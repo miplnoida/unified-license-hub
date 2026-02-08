@@ -44,12 +44,41 @@ export default function NewApplication() {
       });
       return;
     }
-    // For now navigate to a mock wizard placeholder
+
+    const sectorObj = sectors.find(s => s.id === selectedSector);
+    const subSectorObj = subSectors.filter(s => s.sectorId === selectedSector).find(s => s.id === selectedSubSector);
+    const categoryObj = categories.filter(c => c.subSectorId === selectedSubSector).find(c => c.id === selectedCategory);
+
+    const newAppId = `app-${Date.now()}`;
+
     toast({
-      title: 'Application Started',
-      description: 'Redirecting to the application wizard...',
+      title: 'Application Created',
+      description: 'Your application has been created as a draft.',
     });
-    navigate('/pre-license');
+
+    navigate('/pre-license', {
+      state: {
+        newApplication: {
+          id: newAppId,
+          applicationNumber: `APP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
+          userId: 'user-1',
+          organizationName: 'My Organization',
+          sectorId: selectedSector,
+          sectorName: sectorObj?.name,
+          subSectorId: selectedSubSector,
+          subSectorName: subSectorObj?.name,
+          categoryId: selectedCategory,
+          categoryName: categoryObj?.name,
+          formId: 'form-1',
+          status: 'draft' as const,
+          feeStatus: 'pending' as const,
+          feeApproved: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          data: {},
+        },
+      },
+    });
   };
 
   return (
