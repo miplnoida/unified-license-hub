@@ -110,7 +110,7 @@ export default function Index() {
                 variant="hero"
                 onClick={() => handleRoleSelect('public')}
               >
-                Get Started
+                Pre-Licensee Login
                 <ArrowRight className="h-5 w-5" />
               </Button>
               <Button
