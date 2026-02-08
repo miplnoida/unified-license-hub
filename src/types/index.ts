@@ -1,14 +1,17 @@
 // User & Role Types
-export type UserRole = 'public' | 'admin' | 'reviewer' | 'approver' | 'supervisor';
+export type UserRole = 'pre_licensee' | 'post_licensee' | 'admin' | 'reviewer' | 'approver' | 'supervisor';
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
+  organizationName?: string;
   licenseNumber?: string;
   isLicensee?: boolean;
 }
+
+// Permission, Role, Sector, SubSector, Category, Service types
 
 export interface Permission {
   id: string;
@@ -55,17 +58,24 @@ export interface Service {
 }
 
 // Application Types
-export type ApplicationStatus = 'draft' | 'submitted' | 'under_review' | 'query_raised' | 'approved' | 'rejected' | 'returned';
+export type ApplicationStatus = 'draft' | 'work_in_progress' | 'submitted' | 'under_review' | 'query_raised' | 'approved' | 'rejected' | 'returned';
+export type FeeStatus = 'paid' | 'pending';
 
 export interface Application {
   id: string;
   applicationNumber: string;
   userId: string;
+  organizationName?: string;
   sectorId: string;
+  sectorName?: string;
   subSectorId: string;
+  subSectorName?: string;
   categoryId: string;
+  categoryName?: string;
   formId: string;
   status: ApplicationStatus;
+  feeStatus?: FeeStatus;
+  feeApproved?: boolean;
   submittedAt?: string;
   createdAt: string;
   updatedAt: string;

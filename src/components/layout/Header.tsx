@@ -16,7 +16,8 @@ export function Header() {
   const { user, switchRole } = useAuth();
 
   const roles: { role: UserRole; label: string }[] = [
-    { role: 'public', label: 'Public User' },
+    { role: 'pre_licensee', label: 'Pre-Licensee' },
+    { role: 'post_licensee', label: 'Post-Licensee' },
     { role: 'admin', label: 'AFSC Admin' },
     { role: 'reviewer', label: 'Reviewer' },
     { role: 'approver', label: 'Approver' },

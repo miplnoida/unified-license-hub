@@ -13,11 +13,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock users for demonstration
 const mockUsers: Record<UserRole, User> = {
-  public: {
+  pre_licensee: {
     id: 'user-1',
     name: 'John Smith',
     email: 'john.smith@example.com',
-    role: 'public',
+    role: 'pre_licensee',
+    organizationName: 'ABC Financial Services Ltd.',
+  },
+  post_licensee: {
+    id: 'user-2',
+    name: 'Jane Doe',
+    email: 'jane.doe@example.com',
+    role: 'post_licensee',
+    organizationName: 'XYZ Insurance Corp.',
     licenseNumber: 'LIC-2024-001',
     isLicensee: true,
   },

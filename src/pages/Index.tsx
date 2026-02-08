@@ -39,10 +39,16 @@ const features = [
 
 const roleCards: { role: UserRole; title: string; description: string; icon: React.ReactNode }[] = [
   {
-    role: 'public',
-    title: 'Public User',
-    description: 'Apply for licenses, manage returns, and track your applications',
-    icon: <Users className="h-8 w-8" />,
+    role: 'pre_licensee',
+    title: 'Pre-Licensee',
+    description: 'Apply for new licenses, track application status, and manage your submissions',
+    icon: <FileText className="h-8 w-8" />,
+  },
+  {
+    role: 'post_licensee',
+    title: 'Post-Licensee',
+    description: 'Manage compliance, returns, billing, and organizational operations',
+    icon: <Building2 className="h-8 w-8" />,
   },
   {
     role: 'admin',
@@ -54,12 +60,6 @@ const roleCards: { role: UserRole; title: string; description: string; icon: Rea
     role: 'reviewer',
     title: 'Reviewer',
     description: 'Review and process applications and returns',
-    icon: <FileText className="h-8 w-8" />,
-  },
-  {
-    role: 'approver',
-    title: 'Approver',
-    description: 'Approve or reject reviewed applications',
     icon: <CheckCircle className="h-8 w-8" />,
   },
 ];
@@ -108,7 +108,7 @@ export default function Index() {
               <Button
                 size="xl"
                 variant="hero"
-                onClick={() => handleRoleSelect('public')}
+                onClick={() => handleRoleSelect('pre_licensee')}
               >
                 Pre-Licensee Login
                 <ArrowRight className="h-5 w-5" />
@@ -116,9 +116,19 @@ export default function Index() {
               <Button
                 size="xl"
                 variant="hero-outline"
+                onClick={() => handleRoleSelect('post_licensee')}
+              >
+                Post-Licensee Login
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="mt-4 animate-slide-up delay-300">
+              <Button
+                variant="link"
+                className="text-primary-foreground/70 hover:text-primary-foreground"
                 onClick={() => navigate('/registration/pre-licensee')}
               >
-                Register as Pre-Licensee
+                New here? Register as Pre-Licensee →
               </Button>
             </div>
           </div>
