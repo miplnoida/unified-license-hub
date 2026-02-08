@@ -49,6 +49,11 @@ import Messages from "./pages/Messages";
 import MailSms from "./pages/MailSms";
 import Notifications from "./pages/Notifications";
 
+// Registration
+import PreLicenseeRegistration from "./pages/registration/PreLicenseeRegistration";
+import VerificationPending from "./pages/registration/VerificationPending";
+import RegistrationSuccess from "./pages/registration/RegistrationSuccess";
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -121,6 +126,11 @@ function AppRoutes() {
       <Route path="/messages" element={<P><Messages /></P>} />
       <Route path="/mail-sms" element={<P><MailSms /></P>} />
       <Route path="/profile" element={<P><Profile /></P>} />
+
+      {/* Registration (public, no auth required) */}
+      <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
+      <Route path="/registration/verification-pending" element={<VerificationPending />} />
+      <Route path="/registration/success" element={<RegistrationSuccess />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

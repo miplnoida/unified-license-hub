@@ -116,9 +116,9 @@ export default function Index() {
               <Button
                 size="xl"
                 variant="hero-outline"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => navigate('/registration/pre-licensee')}
               >
-                Learn More
+                Register as Pre-Licensee
               </Button>
             </div>
           </div>
