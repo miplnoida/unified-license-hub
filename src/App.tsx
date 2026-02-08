@@ -12,6 +12,7 @@ import PostLicenseeDashboard from "./pages/PostLicenseeDashboard";
 import NewApplication from "./pages/NewApplication";
 import PreLicense from "./pages/PreLicense";
 import PostLicense from "./pages/PostLicense";
+import ApplicationForms from "./pages/ApplicationForms";
 import Returns from "./pages/Returns";
 import NotFound from "./pages/NotFound";
 import ChangePassword from "./pages/ChangePassword";
@@ -90,6 +91,7 @@ function AppRoutes() {
       {/* Pre-Licensee routes */}
       <Route path="/pre-license" element={<P><PreLicenseeDashboard /></P>} />
       <Route path="/pre-license/new" element={<P><NewApplication /></P>} />
+      <Route path="/pre-licensee/applications/:applicationId/forms" element={<P><ApplicationForms /></P>} />
 
       {/* Post-Licensee routes */}
       <Route path="/post-license" element={<P><PostLicense /></P>} />

@@ -1,126 +1,55 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Application, ApplicationStatus, FeeStatus } from '@/types';
 import {
-  PlusCircle,
-  Search,
-  Eye,
-  Pencil,
-  Trash2,
-  MoreHorizontal,
-  FileText,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
+  PlusCircle, Search, Eye, Pencil, Trash2, FileText, Clock,
+  CheckCircle, AlertTriangle, MessageSquare, FileEdit, ShieldCheck,
 } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { toast } from '@/hooks/use-toast';
 
-// Mock applications for Pre-Licensee
-const mockPreLicenseeApplications: Application[] = [
+// Mock applications
+const initialApplications: Application[] = [
   {
-    id: '1',
-    applicationNumber: 'APP-2024-0156',
-    userId: 'user-1',
-    organizationName: 'ABC Financial Services Ltd.',
-    sectorId: 'sec-1',
-    sectorName: 'Insurance',
-    subSectorId: 'sub-1',
-    subSectorName: 'Life Insurance',
-    categoryId: 'cat-1',
-    categoryName: 'Class A License',
-    formId: 'form-1',
-    status: 'submitted',
-    feeStatus: 'paid',
-    feeApproved: true,
-    submittedAt: '2024-01-10T09:00:00Z',
-    createdAt: '2024-01-08T10:00:00Z',
-    updatedAt: '2024-01-12T14:00:00Z',
-    data: {},
+    id: '1', applicationNumber: 'APP-2024-0156', userId: 'user-1',
+    organizationName: 'ABC Financial Services Ltd.', sectorId: 'sec-1', sectorName: 'Insurance',
+    subSectorId: 'sub-1', subSectorName: 'Life Insurance', categoryId: 'cat-1', categoryName: 'Class A License',
+    formId: 'form-1', status: 'submitted', feeStatus: 'paid', feeApproved: true,
+    submittedAt: '2024-01-10T09:00:00Z', createdAt: '2024-01-08T10:00:00Z', updatedAt: '2024-01-12T14:00:00Z', data: {},
   },
   {
-    id: '2',
-    applicationNumber: 'APP-2024-0155',
-    userId: 'user-1',
-    organizationName: 'ABC Financial Services Ltd.',
-    sectorId: 'sec-2',
-    sectorName: 'Banking',
-    subSectorId: 'sub-2',
-    subSectorName: 'Commercial Banking',
-    categoryId: 'cat-2',
-    categoryName: 'Class B License',
-    formId: 'form-2',
-    status: 'work_in_progress',
-    feeStatus: 'pending',
-    feeApproved: false,
-    submittedAt: undefined,
-    createdAt: '2024-01-05T11:00:00Z',
-    updatedAt: '2024-01-11T16:00:00Z',
-    data: {},
+    id: '2', applicationNumber: 'APP-2024-0155', userId: 'user-1',
+    organizationName: 'ABC Financial Services Ltd.', sectorId: 'sec-2', sectorName: 'Banking',
+    subSectorId: 'sub-2', subSectorName: 'Commercial Banking', categoryId: 'cat-2', categoryName: 'Class B License',
+    formId: 'form-2', status: 'work_in_progress', feeStatus: 'pending', feeApproved: false,
+    createdAt: '2024-01-05T11:00:00Z', updatedAt: '2024-01-11T16:00:00Z', data: {},
   },
   {
-    id: '3',
-    applicationNumber: 'APP-2024-0154',
-    userId: 'user-1',
-    organizationName: 'ABC Financial Services Ltd.',
-    sectorId: 'sec-3',
-    sectorName: 'Capital Markets',
-    subSectorId: 'sub-3',
-    subSectorName: 'Securities Dealer',
-    categoryId: 'cat-3',
-    categoryName: 'Class C License',
-    formId: 'form-1',
-    status: 'draft',
-    feeStatus: 'pending',
-    feeApproved: false,
-    createdAt: '2024-01-12T08:00:00Z',
-    updatedAt: '2024-01-12T08:00:00Z',
-    data: {},
+    id: '3', applicationNumber: 'APP-2024-0154', userId: 'user-1',
+    organizationName: 'ABC Financial Services Ltd.', sectorId: 'sec-3', sectorName: 'Capital Markets',
+    subSectorId: 'sub-3', subSectorName: 'Securities Dealer', categoryId: 'cat-3', categoryName: 'Class C License',
+    formId: 'form-1', status: 'draft', feeStatus: 'pending', feeApproved: false,
+    createdAt: '2024-01-12T08:00:00Z', updatedAt: '2024-01-12T08:00:00Z', data: {},
   },
   {
-    id: '4',
-    applicationNumber: 'APP-2024-0150',
-    userId: 'user-1',
-    organizationName: 'ABC Financial Services Ltd.',
-    sectorId: 'sec-1',
-    sectorName: 'Insurance',
-    subSectorId: 'sub-1',
-    subSectorName: 'General Insurance',
-    categoryId: 'cat-4',
-    categoryName: 'Class D License',
-    formId: 'form-1',
-    status: 'approved',
-    feeStatus: 'paid',
-    feeApproved: true,
-    submittedAt: '2023-12-01T09:00:00Z',
-    createdAt: '2023-11-20T10:00:00Z',
-    updatedAt: '2024-01-05T14:00:00Z',
-    data: {},
+    id: '4', applicationNumber: 'APP-2024-0150', userId: 'user-1',
+    organizationName: 'ABC Financial Services Ltd.', sectorId: 'sec-1', sectorName: 'Insurance',
+    subSectorId: 'sub-1', subSectorName: 'General Insurance', categoryId: 'cat-4', categoryName: 'Class D License',
+    formId: 'form-1', status: 'approved', feeStatus: 'paid', feeApproved: true,
+    submittedAt: '2023-12-01T09:00:00Z', createdAt: '2023-11-20T10:00:00Z', updatedAt: '2024-01-05T14:00:00Z', data: {},
   },
 ];
 
@@ -149,12 +78,24 @@ function getFeeBadge(status?: FeeStatus) {
 export default function PreLicenseeDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [applications, setApplications] = useState<Application[]>(initialApplications);
+
+  // Pick up new application from navigation state
+  useEffect(() => {
+    const state = location.state as { newApplication?: Application } | null;
+    if (state?.newApplication) {
+      setApplications(prev => [state.newApplication!, ...prev]);
+      // Clear state so refresh doesn't duplicate
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   if (!user) return null;
 
-  const filteredApplications = mockPreLicenseeApplications.filter((app) => {
+  const filteredApplications = applications.filter((app) => {
     const matchesSearch =
       !searchQuery ||
       app.organizationName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,50 +105,31 @@ export default function PreLicenseeDashboard() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalApps = mockPreLicenseeApplications.length;
-  const draftCount = mockPreLicenseeApplications.filter(a => a.status === 'draft' || a.status === 'work_in_progress').length;
-  const submittedCount = mockPreLicenseeApplications.filter(a => a.status === 'submitted' || a.status === 'under_review').length;
-  const approvedCount = mockPreLicenseeApplications.filter(a => a.status === 'approved').length;
+  const totalApps = applications.length;
+  const draftCount = applications.filter(a => a.status === 'draft' || a.status === 'work_in_progress').length;
+  const submittedCount = applications.filter(a => a.status === 'submitted' || a.status === 'under_review').length;
+  const approvedCount = applications.filter(a => a.status === 'approved').length;
+
+  const handleDelete = (app: Application) => {
+    setApplications(prev => prev.filter(a => a.id !== app.id));
+    toast({ title: 'Application Deleted', description: `${app.applicationNumber} has been deleted.` });
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Welcome */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">Welcome, {user.name}</h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage your license applications and track their status.
-          </p>
+          <p className="mt-1 text-muted-foreground">Manage your license applications and track their status.</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Applications"
-            value={totalApps}
-            icon={<FileText className="h-6 w-6" />}
-          />
-          <StatCard
-            title="In Progress"
-            value={draftCount}
-            icon={<Clock className="h-6 w-6" />}
-            variant="warning"
-          />
-          <StatCard
-            title="Submitted"
-            value={submittedCount}
-            icon={<AlertTriangle className="h-6 w-6" />}
-            variant="primary"
-          />
-          <StatCard
-            title="Approved"
-            value={approvedCount}
-            icon={<CheckCircle className="h-6 w-6" />}
-            variant="success"
-          />
+          <StatCard title="Total Applications" value={totalApps} icon={<FileText className="h-6 w-6" />} />
+          <StatCard title="In Progress" value={draftCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
+          <StatCard title="Submitted" value={submittedCount} icon={<AlertTriangle className="h-6 w-6" />} variant="primary" />
+          <StatCard title="Approved" value={approvedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
 
-        {/* Applications Table */}
         <div className="card-elevated">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 border-b">
             <h2 className="text-lg font-semibold text-foreground">All Applied Applications</h2>
@@ -217,16 +139,10 @@ export default function PreLicenseeDashboard() {
             </Button>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3 p-4 border-b bg-muted/30">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by organization, sector..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <Input placeholder="Search by organization, sector..." className="pl-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-48">
@@ -244,7 +160,6 @@ export default function PreLicenseeDashboard() {
             </Select>
           </div>
 
-          {/* Table */}
           <Table>
             <TableHeader>
               <TableRow>
@@ -262,9 +177,7 @@ export default function PreLicenseeDashboard() {
             <TableBody>
               {filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    No applications found.
-                  </TableCell>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No applications found.</TableCell>
                 </TableRow>
               ) : (
                 filteredApplications.map((app) => (
@@ -276,43 +189,73 @@ export default function PreLicenseeDashboard() {
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell>{getFeeBadge(app.feeStatus)}</TableCell>
                     <TableCell>
-                      {app.feeApproved ? (
-                        <span className="text-success font-medium">Yes</span>
-                      ) : (
-                        <span className="text-muted-foreground">No</span>
-                      )}
+                      {app.feeApproved ? <span className="text-success font-medium">Yes</span> : <span className="text-muted-foreground">No</span>}
                     </TableCell>
-                    <TableCell>
-                      {app.submittedAt
-                        ? new Date(app.submittedAt).toLocaleDateString()
-                        : '—'}
-                    </TableCell>
+                    <TableCell>{app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}</TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </DropdownMenuItem>
-                          {(app.status === 'draft' || app.status === 'work_in_progress') && (
-                            <DropdownMenuItem>
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                          )}
-                          {app.status === 'draft' && (
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center justify-end gap-0.5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/pre-licensee/applications/${app.id}/forms`)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View Forms</TooltipContent>
+                        </Tooltip>
+
+                        {(app.status === 'draft' || app.status === 'work_in_progress') && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {app.status === 'draft' && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(app)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Comment</TooltipContent>
+                        </Tooltip>
+
+                        {app.status === 'draft' && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <FileEdit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Draft</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {(app.status === 'approved' || app.feeApproved) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-success">
+                                <ShieldCheck className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Verified</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
