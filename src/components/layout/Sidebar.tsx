@@ -143,7 +143,17 @@ export function Sidebar() {
       case 'reviewer': return 'reviewer';
       case 'approver': return 'approver';
       case 'supervisor': return 'supervisor';
-      default: return 'public';
+      case 'pre_licensee': return 'default';
+      case 'post_licensee': return 'secondary';
+      default: return 'default';
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'pre_licensee': return 'Pre-Licensee';
+      case 'post_licensee': return 'Post-Licensee';
+      default: return role;
     }
   };
 
@@ -188,7 +198,7 @@ export function Sidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
               <Badge variant={getRoleBadgeVariant(user.role) as any} className="mt-1 capitalize">
-                {user.role}
+                {getRoleLabel(user.role)}
               </Badge>
             </div>
           </div>

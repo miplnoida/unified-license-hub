@@ -7,7 +7,10 @@ import {
   Search,
   HelpCircle,
   ArrowRight,
+  Upload,
+  CreditCard,
 } from 'lucide-react';
+import { UserRole } from '@/types';
 
 interface QuickAction {
   label: string;
@@ -17,33 +20,33 @@ interface QuickAction {
   color: 'primary' | 'secondary' | 'success' | 'warning';
 }
 
-const publicActions: QuickAction[] = [
+const postLicenseeActions: QuickAction[] = [
   {
-    label: 'New Pre-License Application',
-    description: 'Start a new license application',
-    href: '/pre-license/new',
-    icon: <FilePlus className="h-6 w-6" />,
+    label: 'File a Return',
+    description: 'Submit your periodic returns',
+    href: '/returns',
+    icon: <ClipboardList className="h-6 w-6" />,
     color: 'primary',
+  },
+  {
+    label: 'Upload Returns',
+    description: 'Bulk upload return data',
+    href: '/upload-returns',
+    icon: <Upload className="h-6 w-6" />,
+    color: 'secondary',
+  },
+  {
+    label: 'View Billing',
+    description: 'Check billing and payment status',
+    href: '/billing/post-licensee',
+    icon: <CreditCard className="h-6 w-6" />,
+    color: 'success',
   },
   {
     label: 'Post-License Services',
     description: 'Apply for additional services',
     href: '/post-license',
     icon: <FileCheck className="h-6 w-6" />,
-    color: 'secondary',
-  },
-  {
-    label: 'File a Return',
-    description: 'Submit your periodic returns',
-    href: '/returns',
-    icon: <ClipboardList className="h-6 w-6" />,
-    color: 'success',
-  },
-  {
-    label: 'Track Applications',
-    description: 'Check your application status',
-    href: '/applications',
-    icon: <Search className="h-6 w-6" />,
     color: 'warning',
   },
 ];
@@ -80,11 +83,11 @@ const adminActions: QuickAction[] = [
 ];
 
 interface QuickActionsProps {
-  userRole: 'public' | 'admin' | 'reviewer' | 'approver' | 'supervisor';
+  userRole: UserRole;
 }
 
 export function QuickActions({ userRole }: QuickActionsProps) {
-  const actions = userRole === 'public' ? publicActions : adminActions;
+  const actions = userRole === 'post_licensee' ? postLicenseeActions : adminActions;
 
   const colorStyles = {
     primary: 'bg-primary/5 text-primary hover:bg-primary/10 border-primary/20',

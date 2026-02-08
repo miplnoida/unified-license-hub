@@ -7,10 +7,14 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import PreLicenseeDashboard from "./pages/PreLicenseeDashboard";
+import PostLicenseeDashboard from "./pages/PostLicenseeDashboard";
+import NewApplication from "./pages/NewApplication";
 import PreLicense from "./pages/PreLicense";
 import PostLicense from "./pages/PostLicense";
 import Returns from "./pages/Returns";
 import NotFound from "./pages/NotFound";
+import ChangePassword from "./pages/ChangePassword";
 
 // Settings
 import GeneralSettings from "./pages/settings/GeneralSettings";
@@ -66,17 +70,31 @@ function P({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
 }
 
+/** Redirects to the correct dashboard based on user role */
+function DashboardRouter() {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/" replace />;
+  if (user.role === 'pre_licensee') return <PreLicenseeDashboard />;
+  if (user.role === 'post_licensee') return <PostLicenseeDashboard />;
+  return <Dashboard />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
 
-      {/* Core */}
-      <Route path="/dashboard" element={<P><Dashboard /></P>} />
-      <Route path="/pre-license" element={<P><PreLicense /></P>} />
+      {/* Dashboard - role-based routing */}
+      <Route path="/dashboard" element={<P><DashboardRouter /></P>} />
+
+      {/* Pre-Licensee routes */}
+      <Route path="/pre-license" element={<P><PreLicenseeDashboard /></P>} />
+      <Route path="/pre-license/new" element={<P><NewApplication /></P>} />
+
+      {/* Post-Licensee routes */}
       <Route path="/post-license" element={<P><PostLicense /></P>} />
       <Route path="/returns" element={<P><Returns /></P>} />
-      <Route path="/applications" element={<P><Dashboard /></P>} />
+      <Route path="/applications" element={<P><DashboardRouter /></P>} />
 
       {/* Billing */}
       <Route path="/billing/pre-licensee" element={<P><PreLicenseeBilling /></P>} />
@@ -126,6 +144,7 @@ function AppRoutes() {
       <Route path="/messages" element={<P><Messages /></P>} />
       <Route path="/mail-sms" element={<P><MailSms /></P>} />
       <Route path="/profile" element={<P><Profile /></P>} />
+      <Route path="/change-password" element={<P><ChangePassword /></P>} />
 
       {/* Registration (public, no auth required) */}
       <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
