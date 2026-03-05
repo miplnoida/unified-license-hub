@@ -83,20 +83,26 @@ export const mainNavSections: NavSection[] = [
   },
   // ── Post-Licensee Navigation ──
   {
-    label: 'Licensing',
+    label: 'Returns',
     items: [
       {
-        label: 'Returns',
-        href: '/returns',
-        icon: <ClipboardList className="h-5 w-5" />,
-        badge: 3,
+        label: 'Returns Management',
+        icon: <Boxes className="h-5 w-5" />,
         roles: ['post_licensee'],
-      },
-      {
-        label: 'Upload Returns',
-        href: '/upload-returns',
-        icon: <Upload className="h-5 w-5" />,
-        roles: ['post_licensee'],
+        children: [
+          {
+            label: 'Upload Returns',
+            href: '/upload-returns',
+            icon: <Upload className="h-4 w-4" />,
+            roles: ['post_licensee'],
+          },
+          {
+            label: 'View Returns',
+            href: '/returns',
+            icon: <Eye className="h-4 w-4" />,
+            roles: ['post_licensee'],
+          },
+        ],
       },
     ],
   },
@@ -162,7 +168,7 @@ export const mainNavSections: NavSection[] = [
       {
         label: 'Returns Management',
         icon: <Boxes className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor'],
+        roles: ['admin', 'supervisor'],
         children: [
           {
             label: 'Manage Structures',
@@ -198,7 +204,7 @@ export const mainNavSections: NavSection[] = [
             label: 'View Returns',
             href: '/returns-mgmt/view',
             icon: <Eye className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
+            roles: ['admin', 'supervisor'],
           },
         ],
       },
