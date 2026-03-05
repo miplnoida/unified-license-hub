@@ -7,50 +7,78 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Plus, GripVertical, Copy, Trash2, Type } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Plus,
+  GripVertical,
+  Copy,
+  Trash2,
+  Type,
+  Columns2,
+  Columns3,
+  Columns4,
+  Square,
+} from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
-
-interface FormField {
-  id: string;
-  type: string;
-  label: string;
-  required: boolean;
-  placeholder?: string;
-}
+import type { FormField, FormRow } from '@/types/formBuilder';
 
 interface Props {
-  fields: FormField[];
+  rows: FormRow[];
   selectedField: FormField | null;
   onSelectField: (field: FormField) => void;
-  onReorder: (fields: FormField[]) => void;
-  onAddField: (type: string) => void;
-  onDeleteField: (id: string) => void;
-  onDuplicateField: (id: string) => void;
+  onReorderRows: (rows: FormRow[]) => void;
+  onAddRow: (columns: 1 | 2 | 3 | 4) => void;
+  onDeleteRow: (rowId: string) => void;
+  onUpdateRowColumns: (rowId: string, columns: 1 | 2 | 3 | 4) => void;
+  onAddFieldToSlot: (rowId: string, slotIndex: number, type: string) => void;
+  onDeleteField: (rowId: string, slotIndex: number) => void;
+  onDuplicateField: (rowId: string, slotIndex: number) => void;
 }
 
+const columnIcons: Record<number, React.ReactNode> = {
+  1: <Square className="h-3 w-3" />,
+  2: <Columns2 className="h-3 w-3" />,
+  3: <Columns3 className="h-3 w-3" />,
+  4: <Columns4 className="h-3 w-3" />,
+};
+
 export function FormBuilderCanvas({
-  fields,
+  rows,
   selectedField,
   onSelectField,
-  onReorder,
-  onAddField,
+  onReorderRows,
+  onAddRow,
+  onDeleteRow,
+  onUpdateRowColumns,
+  onAddFieldToSlot,
   onDeleteField,
   onDuplicateField,
 }: Props) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
+  const [showAddFieldMenu, setShowAddFieldMenu] = useState<{ rowId: string; slotIndex: number } | null>(null);
 
   const getFieldIcon = (type: string) => {
     const ft = fieldTypes.find(f => f.type === type);
     return ft?.icon || <Type className="h-4 w-4" />;
   };
 
+  const getFieldLabel = (type: string) => {
+    const ft = fieldTypes.find(f => f.type === type);
+    return ft?.label || type;
+  };
+
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDragIndex(index);
     dragNode.current = e.currentTarget as HTMLDivElement;
     e.dataTransfer.effectAllowed = 'move';
-    // Make the drag image semi-transparent
     setTimeout(() => {
       if (dragNode.current) dragNode.current.style.opacity = '0.4';
     }, 0);
@@ -63,10 +91,10 @@ export function FormBuilderCanvas({
 
   const handleDragEnd = () => {
     if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
-      const reordered = [...fields];
+      const reordered = [...rows];
       const [moved] = reordered.splice(dragIndex, 1);
       reordered.splice(overIndex, 0, moved);
-      onReorder(reordered);
+      onReorderRows(reordered);
     }
     if (dragNode.current) dragNode.current.style.opacity = '1';
     setDragIndex(null);
@@ -78,74 +106,164 @@ export function FormBuilderCanvas({
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const totalFields = rows.reduce((acc, row) => acc + row.fields.filter(Boolean).length, 0);
+
   return (
     <div className="lg:col-span-2">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Form Fields</CardTitle>
-            <Badge variant="secondary">{fields.length} fields</Badge>
+            <CardTitle className="text-base">Form Layout</CardTitle>
+            <Badge variant="secondary">{totalFields} fields · {rows.length} rows</Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {fields.map((field, index) => (
+        <CardContent className="space-y-3">
+          {rows.map((row, rowIndex) => (
             <div
-              key={field.id}
+              key={row.id}
               draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragEnter={() => handleDragEnter(index)}
+              onDragStart={(e) => handleDragStart(e, rowIndex)}
+              onDragEnter={() => handleDragEnter(rowIndex)}
               onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
-              className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                selectedField?.id === field.id
-                  ? 'border-primary bg-primary/5'
-                  : dragIndex !== null && overIndex === index
+              className={`rounded-lg border p-3 transition-all ${
+                dragIndex !== null && overIndex === rowIndex
                   ? 'border-primary/50 bg-accent/50'
-                  : 'hover:border-primary/50'
+                  : 'border-border'
               }`}
-              onClick={() => onSelectField(field)}
             >
-              <div className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing">
-                <GripVertical className="h-4 w-4" />
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-muted text-muted-foreground">
-                {getFieldIcon(field.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{field.label}</p>
-                <p className="text-xs text-muted-foreground capitalize">{field.type}</p>
-              </div>
-              {field.required && (
-                <Badge variant="outline" className="text-xs shrink-0">Required</Badge>
-              )}
-              <div className="flex items-center gap-1 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={(e) => { e.stopPropagation(); onDuplicateField(field.id); }}
+              {/* Row header */}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing">
+                  <GripVertical className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">Row {rowIndex + 1}</span>
+                <Select
+                  value={String(row.columns)}
+                  onValueChange={(val) => onUpdateRowColumns(row.id, Number(val) as 1 | 2 | 3 | 4)}
                 >
-                  <Copy className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive"
-                  onClick={(e) => { e.stopPropagation(); onDeleteField(field.id); }}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Column</SelectItem>
+                    <SelectItem value="2">2 Columns</SelectItem>
+                    <SelectItem value="3">3 Columns</SelectItem>
+                    <SelectItem value="4">4 Columns</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="ml-auto">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => onDeleteRow(row.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Column slots */}
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${row.columns}, 1fr)` }}
+              >
+                {row.fields.map((field, slotIndex) => (
+                  <div key={`${row.id}-${slotIndex}`}>
+                    {field ? (
+                      <div
+                        className={`flex items-center gap-2 p-2.5 rounded-md border cursor-pointer transition-all ${
+                          selectedField?.id === field.id
+                            ? 'border-primary bg-primary/5'
+                            : 'hover:border-primary/50 border-muted'
+                        }`}
+                        onClick={() => onSelectField(field)}
+                      >
+                        <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
+                          {getFieldIcon(field.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs truncate">{field.label}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{getFieldLabel(field.type)}</p>
+                        </div>
+                        {field.required && (
+                          <Badge variant="outline" className="text-[10px] px-1 shrink-0">Req</Badge>
+                        )}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); onDuplicateField(row.id, slotIndex); }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive"
+                            onClick={(e) => { e.stopPropagation(); onDeleteField(row.id, slotIndex); }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <button
+                          className="w-full h-16 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
+                          onClick={() =>
+                            setShowAddFieldMenu(
+                              showAddFieldMenu?.rowId === row.id && showAddFieldMenu?.slotIndex === slotIndex
+                                ? null
+                                : { rowId: row.id, slotIndex }
+                            )
+                          }
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Add Field
+                        </button>
+                        {showAddFieldMenu?.rowId === row.id && showAddFieldMenu?.slotIndex === slotIndex && (
+                          <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-popover border rounded-md shadow-md p-1 max-h-48 overflow-y-auto">
+                            {fieldTypes.map(ft => (
+                              <button
+                                key={ft.type}
+                                className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
+                                onClick={() => {
+                                  onAddFieldToSlot(row.id, slotIndex, ft.type);
+                                  setShowAddFieldMenu(null);
+                                }}
+                              >
+                                <span className="text-muted-foreground">{ft.icon}</span>
+                                {ft.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
-          <Button
-            variant="outline"
-            className="w-full border-dashed"
-            onClick={() => onAddField('text')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Field
-          </Button>
+
+          {/* Add Row buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {([1, 2, 3, 4] as const).map(cols => (
+              <Button
+                key={cols}
+                variant="outline"
+                size="sm"
+                className="border-dashed flex-1"
+                onClick={() => onAddRow(cols)}
+              >
+                {columnIcons[cols]}
+                <span className="ml-1.5 text-xs">Add {cols}-Col Row</span>
+              </Button>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

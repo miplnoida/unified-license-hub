@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -38,26 +39,37 @@ import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/F
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import { saveForm } from '@/lib/formStorage';
+import type { FormField, FormRow } from '@/types/formBuilder';
 
-interface FormField {
-  id: string;
-  type: string;
-  label: string;
-  required: boolean;
-  placeholder?: string;
-}
-
-const sampleFields: FormField[] = [
-  { id: '1', type: 'text', label: 'Company Name', required: true, placeholder: 'Enter company name' },
-  { id: '2', type: 'text', label: 'Registration Number', required: true, placeholder: 'Enter registration number' },
-  { id: '3', type: 'email', label: 'Contact Email', required: true, placeholder: 'email@example.com' },
-  { id: '4', type: 'phone', label: 'Contact Phone', required: true, placeholder: '+1 234 567 8900' },
-  { id: '5', type: 'textarea', label: 'Business Description', required: false, placeholder: 'Describe your business...' },
-  { id: '6', type: 'file', label: 'Registration Certificate', required: true },
+const defaultRows: FormRow[] = [
+  {
+    id: '1',
+    columns: 2,
+    fields: [
+      { id: 'f1', type: 'text', label: 'First Name', required: true, placeholder: 'Enter first name' },
+      { id: 'f2', type: 'text', label: 'Last Name', required: true, placeholder: 'Enter last name' },
+    ],
+  },
+  {
+    id: '2',
+    columns: 3,
+    fields: [
+      { id: 'f3', type: 'email', label: 'Email', required: true, placeholder: 'email@example.com' },
+      { id: 'f4', type: 'phone', label: 'Phone', required: true, placeholder: '+1 234 567 8900' },
+      { id: 'f5', type: 'date', label: 'Date of Birth', required: false },
+    ],
+  },
+  {
+    id: '3',
+    columns: 1,
+    fields: [
+      { id: 'f6', type: 'textarea', label: 'Address', required: false, placeholder: 'Enter full address...' },
+    ],
+  },
 ];
 
 export default function FormBuilder() {
-  const [fields, setFields] = useState<FormField[]>(sampleFields);
+  const [rows, setRows] = useState<FormRow[]>(defaultRows);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -99,8 +111,43 @@ export default function FormBuilder() {
     setSelectedService('');
   };
 
+  // Row management
+  const handleAddRow = useCallback((columns: 1 | 2 | 3 | 4) => {
+    const newRow: FormRow = {
+      id: crypto.randomUUID(),
+      columns,
+      fields: Array(columns).fill(null),
+    };
+    setRows(prev => [...prev, newRow]);
+  }, []);
+
+  const handleDeleteRow = useCallback((rowId: string) => {
+    setRows(prev => prev.filter(r => r.id !== rowId));
+    setSelectedField(prev => {
+      const row = rows.find(r => r.id === rowId);
+      if (row && row.fields.some(f => f?.id === prev?.id)) return null;
+      return prev;
+    });
+  }, [rows]);
+
+  const handleUpdateRowColumns = useCallback((rowId: string, columns: 1 | 2 | 3 | 4) => {
+    setRows(prev => prev.map(row => {
+      if (row.id !== rowId) return row;
+      const newFields: (FormField | null)[] = Array(columns).fill(null);
+      // Preserve existing fields
+      for (let i = 0; i < Math.min(row.fields.length, columns); i++) {
+        newFields[i] = row.fields[i];
+      }
+      return { ...row, columns, fields: newFields };
+    }));
+  }, []);
+
+  const handleReorderRows = useCallback((reordered: FormRow[]) => {
+    setRows(reordered);
+  }, []);
+
   // Field management
-  const handleAddField = useCallback((type: string) => {
+  const handleAddFieldToSlot = useCallback((rowId: string, slotIndex: number, type: string) => {
     const ft = fieldTypes.find(f => f.type === type);
     const newField: FormField = {
       id: crypto.randomUUID(),
@@ -108,47 +155,75 @@ export default function FormBuilder() {
       label: ft?.label || 'New Field',
       required: false,
       placeholder: '',
+      options: ['radio', 'select', 'checkbox'].includes(type) ? ['Option 1', 'Option 2'] : undefined,
+      content: type === 'paragraph' ? 'Enter your text here...' : undefined,
     };
-    setFields(prev => [...prev, newField]);
+    setRows(prev => prev.map(row => {
+      if (row.id !== rowId) return row;
+      const fields = [...row.fields];
+      fields[slotIndex] = newField;
+      return { ...row, fields };
+    }));
     setSelectedField(newField);
   }, []);
 
-  const handleDeleteField = useCallback((id: string) => {
-    setFields(prev => prev.filter(f => f.id !== id));
-    setSelectedField(prev => (prev?.id === id ? null : prev));
+  const handleAddFieldFromPalette = useCallback((type: string) => {
+    // Add a new 1-column row with the field
+    const ft = fieldTypes.find(f => f.type === type);
+    const newField: FormField = {
+      id: crypto.randomUUID(),
+      type,
+      label: ft?.label || 'New Field',
+      required: false,
+      placeholder: '',
+      options: ['radio', 'select', 'checkbox'].includes(type) ? ['Option 1', 'Option 2'] : undefined,
+      content: type === 'paragraph' ? 'Enter your text here...' : undefined,
+    };
+    const newRow: FormRow = {
+      id: crypto.randomUUID(),
+      columns: 1,
+      fields: [newField],
+    };
+    setRows(prev => [...prev, newRow]);
+    setSelectedField(newField);
   }, []);
 
-  const handleDuplicateField = useCallback((id: string) => {
-    setFields(prev => {
-      const idx = prev.findIndex(f => f.id === id);
-      if (idx === -1) return prev;
-      const clone = { ...prev[idx], id: crypto.randomUUID() };
+  const handleDeleteField = useCallback((rowId: string, slotIndex: number) => {
+    setRows(prev => prev.map(row => {
+      if (row.id !== rowId) return row;
+      const fields = [...row.fields];
+      if (fields[slotIndex]?.id === selectedField?.id) setSelectedField(null);
+      fields[slotIndex] = null;
+      return { ...row, fields };
+    }));
+  }, [selectedField]);
+
+  const handleDuplicateField = useCallback((rowId: string, slotIndex: number) => {
+    setRows(prev => {
+      const rowIdx = prev.findIndex(r => r.id === rowId);
+      if (rowIdx === -1) return prev;
+      const field = prev[rowIdx].fields[slotIndex];
+      if (!field) return prev;
+      const clone: FormField = { ...field, id: crypto.randomUUID() };
+      // Add as new 1-col row after current row
+      const newRow: FormRow = { id: crypto.randomUUID(), columns: 1, fields: [clone] };
       const next = [...prev];
-      next.splice(idx + 1, 0, clone);
+      next.splice(rowIdx + 1, 0, newRow);
       return next;
     });
   }, []);
 
-  const handleReorder = useCallback((reordered: FormField[]) => {
-    setFields(reordered);
-  }, []);
-
   const handleUpdateField = useCallback((id: string, updates: Partial<FormField>) => {
-    setFields(prev => prev.map(f => (f.id === id ? { ...f, ...updates } : f)));
+    setRows(prev => prev.map(row => ({
+      ...row,
+      fields: row.fields.map(f => (f?.id === id ? { ...f, ...updates } : f)),
+    })));
     setSelectedField(prev => (prev?.id === id ? { ...prev, ...updates } : prev));
   }, []);
 
   const handleSave = async () => {
     if (!formName.trim()) {
       toast.error('Please enter a form name.');
-      return;
-    }
-    if (formType === 'pre_license' && selectedSubSector && !selectedCategory) {
-      toast.error('Please select a category for Pre-License forms.');
-      return;
-    }
-    if (formType === 'post_license' && selectedSubSector && !selectedService) {
-      toast.error('Please select a service for Post-License forms.');
       return;
     }
 
@@ -171,7 +246,7 @@ export default function FormBuilder() {
         subSector: selectedSubSector,
         status: 'draft',
         createdDate: new Date().toISOString().split('T')[0],
-        fields,
+        rows,
       });
 
       toast.success('Form saved successfully!');
@@ -184,6 +259,9 @@ export default function FormBuilder() {
     }
   };
 
+  // Flatten fields for preview
+  const allFields = rows.flatMap(r => r.fields.filter(Boolean)) as FormField[];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -194,7 +272,7 @@ export default function FormBuilder() {
               {formTypeLabel} Form Builder
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Create a new {formTypeLabel.toLowerCase()} form with drag-and-drop fields.
+              Create a new {formTypeLabel.toLowerCase()} form with row-based layouts.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -216,7 +294,6 @@ export default function FormBuilder() {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Sector */}
               <div className="space-y-2">
                 <Label>Sector</Label>
                 <Select value={selectedSector} onValueChange={handleSectorChange}>
@@ -231,7 +308,6 @@ export default function FormBuilder() {
                 </Select>
               </div>
 
-              {/* Sub Sector */}
               {selectedSector && (
                 <div className="space-y-2">
                   <Label>Sub Sector</Label>
@@ -248,7 +324,6 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Category for Pre-License */}
               {formType === 'pre_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Category <span className="text-destructive">*</span></Label>
@@ -265,7 +340,6 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Service for Post-License */}
               {formType === 'post_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Service <span className="text-destructive">*</span></Label>
@@ -282,7 +356,6 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Form Name after Category/Service */}
               {((formType === 'pre_license' && selectedCategory) || (formType === 'post_license' && selectedService)) && (
                 <div className="space-y-2">
                   <Label>Form Name <span className="text-destructive">*</span></Label>
@@ -299,13 +372,16 @@ export default function FormBuilder() {
 
         {/* Builder panels */}
         <div className="grid lg:grid-cols-4 gap-6 animate-slide-up delay-200">
-          <FormBuilderFieldPalette onAddField={handleAddField} />
+          <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
           <FormBuilderCanvas
-            fields={fields}
+            rows={rows}
             selectedField={selectedField}
             onSelectField={setSelectedField}
-            onReorder={handleReorder}
-            onAddField={handleAddField}
+            onReorderRows={handleReorderRows}
+            onAddRow={handleAddRow}
+            onDeleteRow={handleDeleteRow}
+            onUpdateRowColumns={handleUpdateRowColumns}
+            onAddFieldToSlot={handleAddFieldToSlot}
             onDeleteField={handleDeleteField}
             onDuplicateField={handleDuplicateField}
           />
@@ -318,49 +394,88 @@ export default function FormBuilder() {
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{formName || 'Untitled Form'}</DialogTitle>
             <DialogDescription>
-              Preview of form fields ({fields.length} fields)
+              Preview of form layout ({allFields.length} fields · {rows.length} rows)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            {fields.map(field => (
-              <div key={field.id} className="space-y-2">
-                <Label>
-                  {field.label}
-                  {field.required && <span className="text-destructive ml-1">*</span>}
-                </Label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder={field.placeholder}
-                    disabled
-                  />
-                ) : field.type === 'file' ? (
-                  <Input type="file" disabled />
-                ) : field.type === 'checkbox' ? (
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" disabled className="h-4 w-4" />
-                    <span className="text-sm text-muted-foreground">{field.label}</span>
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className="grid gap-4"
+                style={{ gridTemplateColumns: `repeat(${row.columns}, 1fr)` }}
+              >
+                {row.fields.map((field, slotIndex) => (
+                  <div key={`${row.id}-${slotIndex}`}>
+                    {field ? (
+                      <div className="space-y-2">
+                        {field.type === 'paragraph' ? (
+                          <div className="p-3 rounded-md bg-muted/50 text-sm text-muted-foreground whitespace-pre-wrap">
+                            {field.content || 'Paragraph text...'}
+                          </div>
+                        ) : (
+                          <>
+                            <Label>
+                              {field.label}
+                              {field.required && <span className="text-destructive ml-1">*</span>}
+                            </Label>
+                            {field.type === 'textarea' ? (
+                              <textarea
+                                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder={field.placeholder}
+                                disabled
+                              />
+                            ) : field.type === 'file' ? (
+                              <Input type="file" disabled />
+                            ) : field.type === 'checkbox' ? (
+                              <div className="space-y-1.5">
+                                {(field.options || ['Option 1']).map((opt, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <input type="checkbox" disabled className="h-4 w-4" />
+                                    <span className="text-sm text-muted-foreground">{opt}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : field.type === 'radio' ? (
+                              <div className="space-y-1.5">
+                                {(field.options || ['Option 1']).map((opt, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <input type="radio" disabled name={field.id} className="h-4 w-4" />
+                                    <span className="text-sm text-muted-foreground">{opt}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : field.type === 'select' ? (
+                              <Select disabled>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={field.placeholder || 'Select...'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(field.options || ['Option 1']).map((opt, i) => (
+                                    <SelectItem key={i} value={opt}>{opt}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Input
+                                type={field.type === 'phone' ? 'tel' : field.type}
+                                placeholder={field.placeholder}
+                                disabled
+                              />
+                            )}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="h-16 rounded-md border-2 border-dashed border-muted-foreground/10 flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground/40">Empty</span>
+                      </div>
+                    )}
                   </div>
-                ) : field.type === 'select' ? (
-                  <Select disabled>
-                    <SelectTrigger>
-                      <SelectValue placeholder={field.placeholder || 'Select...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="option1">Option 1</SelectItem>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    type={field.type === 'phone' ? 'tel' : field.type}
-                    placeholder={field.placeholder}
-                    disabled
-                  />
-                )}
+                ))}
               </div>
             ))}
           </div>
