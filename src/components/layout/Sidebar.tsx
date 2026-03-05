@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -112,6 +112,25 @@ export function Sidebar() {
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
   const location = useLocation();
   const { user, logout } = useAuth();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const savedScrollTop = useRef<number>(0);
+
+  // Save scroll position before navigation causes re-render
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    if (!viewport) return;
+    const handleScroll = () => { savedScrollTop.current = viewport.scrollTop; };
+    viewport.addEventListener('scroll', handleScroll, { passive: true });
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Restore scroll position after pathname change re-render
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+      if (viewport) viewport.scrollTop = savedScrollTop.current;
+    });
+  }, [location.pathname, expandedGroups]);
 
   const toggleGroup = useCallback((label: string) => {
     setExpandedGroups(prev =>
@@ -216,7 +235,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation - Scrollable */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
         <nav className="p-3 space-y-4">
           {mainNavSections.map((section) => {
             const visibleItems = section.items.filter(isItemVisible);
