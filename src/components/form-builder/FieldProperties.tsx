@@ -17,9 +17,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Settings, Plus, X } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
-import type { FormField } from '@/types/formBuilder';
+import type { FormField, FileValidation } from '@/types/formBuilder';
+
+const COMMON_FILE_TYPES = [
+  { value: '.pdf', label: 'PDF' },
+  { value: '.doc,.docx', label: 'Word (DOC/DOCX)' },
+  { value: '.xls,.xlsx', label: 'Excel (XLS/XLSX)' },
+  { value: '.jpg,.jpeg', label: 'JPEG' },
+  { value: '.png', label: 'PNG' },
+  { value: '.gif', label: 'GIF' },
+  { value: '.csv', label: 'CSV' },
+  { value: '.txt', label: 'Text (TXT)' },
+  { value: '.zip,.rar', label: 'Archive (ZIP/RAR)' },
+];
 
 interface Props {
   selectedField: FormField | null;
@@ -165,6 +178,77 @@ export function FormBuilderFieldProperties({ selectedField, onUpdateField }: Pro
                   onChange={e => onUpdateField(selectedField.id, { placeholder: e.target.value })}
                   placeholder="Enter placeholder text"
                 />
+              </div>
+            )}
+
+            {/* File Upload Validation */}
+            {selectedField.type === 'file' && (
+              <div className="space-y-3">
+                <Label className="font-medium">File Upload Settings</Label>
+
+                {/* Allowed File Types */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Allowed File Types</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {COMMON_FILE_TYPES.map(ft => {
+                      const current = selectedField.fileValidation?.allowedTypes || [];
+                      const checked = current.includes(ft.value);
+                      return (
+                        <label key={ft.value} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(val) => {
+                              const updated = val
+                                ? [...current, ft.value]
+                                : current.filter(t => t !== ft.value);
+                              onUpdateField(selectedField.id, {
+                                fileValidation: { ...selectedField.fileValidation, allowedTypes: updated },
+                              });
+                            }}
+                          />
+                          {ft.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Leave all unchecked to allow any file type.</p>
+                </div>
+
+                {/* Min Size */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Min File Size (KB)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="h-8 text-sm"
+                    value={selectedField.fileValidation?.minSizeKB ?? ''}
+                    onChange={e => {
+                      const val = e.target.value ? Number(e.target.value) : undefined;
+                      onUpdateField(selectedField.id, {
+                        fileValidation: { ...selectedField.fileValidation, minSizeKB: val },
+                      });
+                    }}
+                    placeholder="e.g. 10"
+                  />
+                </div>
+
+                {/* Max Size */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Max File Size (MB)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="h-8 text-sm"
+                    value={selectedField.fileValidation?.maxSizeMB ?? ''}
+                    onChange={e => {
+                      const val = e.target.value ? Number(e.target.value) : undefined;
+                      onUpdateField(selectedField.id, {
+                        fileValidation: { ...selectedField.fileValidation, maxSizeMB: val },
+                      });
+                    }}
+                    placeholder="e.g. 5"
+                  />
+                </div>
               </div>
             )}
 
