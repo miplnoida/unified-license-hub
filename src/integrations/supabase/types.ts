@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sector_id: string
+          status: string
+          sub_sector_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sector_id: string
+          status?: string
+          sub_sector_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sector_id?: string
+          status?: string
+          sub_sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forms: {
         Row: {
           category: string
@@ -55,6 +97,101 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sectors: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sector_id: string
+          status: string
+          sub_sector_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sector_id: string
+          status?: string
+          sub_sector_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sector_id?: string
+          status?: string
+          sub_sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "services_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_sectors: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sector_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sector_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sector_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_sectors_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
