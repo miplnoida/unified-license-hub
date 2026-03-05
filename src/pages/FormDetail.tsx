@@ -40,18 +40,76 @@ export default function FormDetail() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; url: string; type: string }>>({});
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const isReadOnly = mode === 'view';
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    fields.forEach(field => {
+      const val = formData[field.id]?.trim() ?? '';
+
+      // Required check
+      if (field.required) {
+        if (field.type === 'file') {
+          if (!uploadedFiles[field.id]) {
+            errors[field.id] = `${field.label} is required`;
+          }
+        } else if (field.type === 'checkbox') {
+          if (val !== 'true') {
+            errors[field.id] = `${field.label} must be checked`;
+          }
+        } else if (field.type !== 'paragraph' && !val) {
+          errors[field.id] = `${field.label} is required`;
+        }
+      }
+
+      // Email format
+      if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+        errors[field.id] = 'Please enter a valid email address';
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateFile = (field: FormField, file: File): string | null => {
+    const fv = field.fileValidation;
+    if (!fv) return null;
+
+    if (fv.allowedTypes && fv.allowedTypes.length > 0) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!fv.allowedTypes.some(t => t.toLowerCase() === ext)) {
+        return `Allowed types: ${fv.allowedTypes.join(', ')}`;
+      }
+    }
+    if (fv.maxSizeMB && file.size > fv.maxSizeMB * 1024 * 1024) {
+      return `File must be smaller than ${fv.maxSizeMB}MB`;
+    }
+    if (fv.minSizeKB && file.size < fv.minSizeKB * 1024) {
+      return `File must be at least ${fv.minSizeKB}KB`;
+    }
+    return null;
+  };
+
   const handleSave = () => {
+    if (!validateForm()) {
+      toast({ title: 'Validation Error', description: 'Please fix the highlighted errors before saving.', variant: 'destructive' });
+      return;
+    }
     toast({ title: 'Form Saved', description: `${dbForm?.name || 'Form'} has been saved successfully.` });
     navigate(`/pre-licensee/applications/${applicationId}/forms`);
   };
 
   const renderField = (field: FormField) => {
     const val = formData[field.id] ?? '';
-    const onChange = (v: string) => setFormData(prev => ({ ...prev, [field.id]: v }));
+    const onChange = (v: string) => {
+      setFormData(prev => ({ ...prev, [field.id]: v }));
+      setValidationErrors(prev => { const n = { ...prev }; delete n[field.id]; return n; });
+    };
 
     switch (field.type) {
       case 'textarea':
@@ -105,6 +163,13 @@ export default function FormDetail() {
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    const fileError = validateFile(field, file);
+                    if (fileError) {
+                      setValidationErrors(prev => ({ ...prev, [field.id]: fileError }));
+                      e.target.value = '';
+                      return;
+                    }
+                    setValidationErrors(prev => { const n = { ...prev }; delete n[field.id]; return n; });
                     const url = URL.createObjectURL(file);
                     setUploadedFiles(prev => ({
                       ...prev,
@@ -209,6 +274,9 @@ export default function FormDetail() {
                             </Label>
                           )}
                           {renderField(field)}
+                          {validationErrors[field.id] && (
+                            <p className="text-xs text-destructive mt-1">{validationErrors[field.id]}</p>
+                          )}
                         </>
                       ) : (
                         <div className="h-10" /> // empty slot
