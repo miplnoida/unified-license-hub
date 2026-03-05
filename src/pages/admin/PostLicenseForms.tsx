@@ -5,51 +5,20 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search } from 'lucide-react';
-import { getStoredForms, deleteForm, updateFormStatus, type StoredForm } from '@/lib/formStorage';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
+import { useForms, useDeleteForm, useUpdateFormStatus, type DbForm } from '@/hooks/useForms';
 import { toast } from 'sonner';
-
-interface FormEntry {
-  id: string;
-  name: string;
-  service: string;
-  formType: string;
-  status: 'draft' | 'published' | 'archived';
-  createdDate: string;
-}
-
-const hardcodedForms: FormEntry[] = [
-  { id: 'hc-1', name: 'Annual Return Filing', service: 'Annual Returns', formType: 'Post-License', status: 'published', createdDate: '2026-02-10' },
-  { id: 'hc-2', name: 'License Renewal Form', service: 'License Renewal', formType: 'Post-License', status: 'draft', createdDate: '2026-02-18' },
-  { id: 'hc-3', name: 'Ownership Change Request', service: 'Change of Ownership', formType: 'Post-License', status: 'published', createdDate: '2026-03-02' },
-  { id: 'hc-4', name: 'Name Amendment Application', service: 'Name Change', formType: 'Post-License', status: 'archived', createdDate: '2026-01-22' },
-];
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default',
@@ -57,94 +26,62 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   archived: 'outline',
 };
 
-const statusOptions: Array<{ value: FormEntry['status']; label: string }> = [
+const statusOptions = [
   { value: 'draft', label: 'Draft' },
   { value: 'published', label: 'Published' },
   { value: 'archived', label: 'Archived' },
 ];
 
-function storedToEntry(f: StoredForm): FormEntry {
-  return {
-    id: f.id,
-    name: f.name,
-    service: f.service,
-    formType: 'Post-License',
-    status: f.status,
-    createdDate: f.createdDate,
-  };
-}
-
 export default function PostLicenseForms() {
   const navigate = useNavigate();
+  const { data: forms = [], isLoading } = useForms('post_license');
+  const deleteFormMutation = useDeleteForm();
+  const updateStatusMutation = useUpdateFormStatus();
+
   const [searchName, setSearchName] = useState('');
   const [filterService, setFilterService] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Status change dialog state
-  const [statusDialog, setStatusDialog] = useState<{ open: boolean; formId: string; formName: string; currentStatus: string; newStatus: FormEntry['status'] }>({
-    open: false, formId: '', formName: '', currentStatus: '', newStatus: 'draft',
-  });
-
-  const [hardcodedStatuses, setHardcodedStatuses] = useState<Record<string, FormEntry['status']>>({});
-
-  const allForms = useMemo(() => {
-    const dynamic = getStoredForms()
-      .filter((f) => f.formType === 'post_license')
-      .map(storedToEntry);
-    const hcWithOverrides = hardcodedForms.map((f) => ({
-      ...f,
-      status: hardcodedStatuses[f.id] || f.status,
-    }));
-    return [...hcWithOverrides, ...dynamic];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey, hardcodedStatuses]);
+  const [statusDialog, setStatusDialog] = useState<{
+    open: boolean; formId: string; formName: string; currentStatus: string; newStatus: string;
+  }>({ open: false, formId: '', formName: '', currentStatus: '', newStatus: 'draft' });
 
   const filtered = useMemo(() => {
-    return allForms.filter((f) => {
+    return forms.filter((f) => {
       if (searchName && !f.name.toLowerCase().includes(searchName.toLowerCase())) return false;
       if (filterService !== 'all' && f.service !== filterService) return false;
       if (filterStatus !== 'all' && f.status !== filterStatus) return false;
       return true;
     });
-  }, [allForms, searchName, filterService, filterStatus]);
+  }, [forms, searchName, filterService, filterStatus]);
 
-  const uniqueServices = [...new Set(allForms.map((f) => f.service).filter(Boolean))];
+  const uniqueServices = [...new Set(forms.map((f) => f.service).filter(Boolean))];
 
   const handleDelete = (id: string) => {
-    if (id.startsWith('hc-')) {
-      toast.error('Cannot delete sample forms.');
-      return;
-    }
-    deleteForm(id);
-    setRefreshKey((k) => k + 1);
-    toast.success('Form deleted.');
+    deleteFormMutation.mutate(id, {
+      onSuccess: () => toast.success('Form deleted.'),
+      onError: () => toast.error('Failed to delete form.'),
+    });
   };
 
   const handleView = (formId: string) => {
     navigate(`/admin/forms/create?type=post_license&id=${formId}&mode=view`);
   };
 
-  const requestStatusChange = (form: FormEntry, newStatus: FormEntry['status']) => {
+  const requestStatusChange = (form: DbForm, newStatus: string) => {
     if (newStatus === form.status) return;
-    setStatusDialog({
-      open: true,
-      formId: form.id,
-      formName: form.name,
-      currentStatus: form.status,
-      newStatus,
-    });
+    setStatusDialog({ open: true, formId: form.id, formName: form.name, currentStatus: form.status, newStatus });
   };
 
   const confirmStatusChange = () => {
     const { formId, newStatus } = statusDialog;
-    if (formId.startsWith('hc-')) {
-      setHardcodedStatuses((prev) => ({ ...prev, [formId]: newStatus }));
-    } else {
-      updateFormStatus(formId, newStatus);
-      setRefreshKey((k) => k + 1);
-    }
-    toast.success(`Form status changed to "${newStatus}".`);
+    updateStatusMutation.mutate(
+      { id: formId, status: newStatus as DbForm['status'] },
+      {
+        onSuccess: () => toast.success(`Form status changed to "${newStatus}".`),
+        onError: () => toast.error('Failed to update status.'),
+      }
+    );
     setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
@@ -191,65 +128,68 @@ export default function PostLicenseForms() {
 
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Form Name</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Form Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No forms found.</TableCell>
+                    <TableHead>Form Name</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead>Form Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filtered.map((form) => (
-                    <TableRow key={form.id}>
-                      <TableCell className="font-medium">{form.name}</TableCell>
-                      <TableCell>{form.service}</TableCell>
-                      <TableCell>{form.formType}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={form.status}
-                          onValueChange={(val) => requestStatusChange(form, val as FormEntry['status'])}
-                        >
-                          <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
-                            <Badge variant={statusVariant[form.status]} className="cursor-pointer capitalize">
-                              {form.status}
-                            </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {statusOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>{form.createdDate}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="View" onClick={() => handleView(form.id)}><Eye className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${form.id}`)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(form.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      </TableCell>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No forms found.</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filtered.map((form) => (
+                      <TableRow key={form.id}>
+                        <TableCell className="font-medium">{form.name}</TableCell>
+                        <TableCell>{form.service}</TableCell>
+                        <TableCell>Post-License</TableCell>
+                        <TableCell>
+                          <Select
+                            value={form.status}
+                            onValueChange={(val) => requestStatusChange(form, val)}
+                          >
+                            <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
+                              <Badge variant={statusVariant[form.status]} className="cursor-pointer capitalize">
+                                {form.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {statusOptions.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>{new Date(form.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="View" onClick={() => handleView(form.id)}><Eye className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${form.id}`)}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(form.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Status Change Confirmation Dialog */}
       <AlertDialog open={statusDialog.open} onOpenChange={(open) => setStatusDialog((prev) => ({ ...prev, open }))}>
         <AlertDialogContent>
           <AlertDialogHeader>

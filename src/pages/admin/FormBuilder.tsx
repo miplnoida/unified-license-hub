@@ -39,7 +39,7 @@ import {
 import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/FieldPalette';
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
-import { saveForm, getStoredForms } from '@/lib/formStorage';
+import { useSaveForm, useForm } from '@/hooks/useForms';
 import type { FormField, FormRow } from '@/types/formBuilder';
 
 const defaultRows: FormRow[] = [
@@ -76,32 +76,35 @@ export default function FormBuilder() {
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : 'Post-License';
   const editId = searchParams.get('id');
   const isViewMode = searchParams.get('mode') === 'view';
+  const saveFormMutation = useSaveForm();
 
   // Load existing form if editing
-  const existingForm = useMemo(() => {
-    if (!editId) return null;
-    return getStoredForms().find(f => f.id === editId) || null;
-  }, [editId]);
+  const { data: existingForm } = useForm(editId);
 
-  const [rows, setRows] = useState<FormRow[]>(existingForm?.rows || defaultRows);
+  const [rows, setRows] = useState<FormRow[]>(defaultRows);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [selectedSector, setSelectedSector] = useState('');
+  const [selectedSubSector, setSelectedSubSector] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedService, setSelectedService] = useState('');
+  const [initialized, setInitialized] = useState(false);
 
-  const [formName, setFormName] = useState(existingForm?.name || '');
-  const [selectedSector, setSelectedSector] = useState(existingForm?.sector || '');
-  const [selectedSubSector, setSelectedSubSector] = useState(existingForm?.subSector || '');
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    if (!existingForm?.category) return '';
-    // category is stored as name, find the id
+  // Populate state when existing form loads
+  useMemo(() => {
+    if (!existingForm || initialized) return;
+    setRows(existingForm.rows || defaultRows);
+    setFormName(existingForm.name || '');
+    setSelectedSector(existingForm.sector || '');
+    setSelectedSubSector(existingForm.sub_sector || '');
     const cat = categories.find(c => c.name === existingForm.category);
-    return cat?.id || '';
-  });
-  const [selectedService, setSelectedService] = useState(() => {
-    if (!existingForm?.service) return '';
+    setSelectedCategory(cat?.id || '');
     const svc = services.find(s => s.name === existingForm.service);
-    return svc?.id || '';
-  });
+    setSelectedService(svc?.id || '');
+    setInitialized(true);
+  }, [existingForm, initialized]);
 
   const filteredSubSectors = useMemo(
     () => (selectedSector ? getSubSectorsBySector(selectedSector) : []),
@@ -254,16 +257,15 @@ export default function FormBuilder() {
         ? (services.find(s => s.id === selectedService)?.name || selectedService)
         : '';
 
-      saveForm({
-        id: crypto.randomUUID(),
+      await saveFormMutation.mutateAsync({
+        id: editId || crypto.randomUUID(),
         name: formName.trim(),
-        formType: formType as 'pre_license' | 'post_license',
+        form_type: formType as 'pre_license' | 'post_license',
         category: categoryName,
         service: serviceName,
         sector: selectedSector,
-        subSector: selectedSubSector,
-        status: 'draft',
-        createdDate: new Date().toISOString().split('T')[0],
+        sub_sector: selectedSubSector,
+        status: existingForm?.status || 'draft',
         rows,
       });
 
