@@ -1,8 +1,9 @@
 import { Return } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, ArrowRight, ClipboardList, AlertTriangle } from 'lucide-react';
+import { ArrowRight, ClipboardList, AlertTriangle, Save } from 'lucide-react';
 import { format, isPast, differenceInDays } from 'date-fns';
+import { useCanFinalSubmit } from '@/hooks/useUserPermissions';
 
 interface ReturnCardProps {
   returnItem: Return;
@@ -32,6 +33,7 @@ export function ReturnCard({
   onView,
   onSubmit,
 }: ReturnCardProps) {
+  const canFinalSubmit = useCanFinalSubmit();
   const dueDate = new Date(returnItem.dueDate);
   const isOverdue = isPast(dueDate) && returnItem.status !== 'submitted' && returnItem.status !== 'accepted';
   const daysUntilDue = differenceInDays(dueDate, new Date());
@@ -100,13 +102,19 @@ export function ReturnCard({
             {returnItem.status === 'draft' ? 'Continue' : 'View'}
             <ArrowRight className="h-4 w-4" />
           </Button>
-          {(returnItem.status === 'pending' || returnItem.status === 'draft') && (
+          {(returnItem.status === 'pending' || returnItem.status === 'draft') && canFinalSubmit && (
             <Button 
               variant={isOverdue ? 'destructive' : 'default'} 
               size="sm" 
               onClick={onSubmit}
             >
-              Submit
+              Final Submit
+            </Button>
+          )}
+          {(returnItem.status === 'pending' || returnItem.status === 'draft') && !canFinalSubmit && (
+            <Button variant="outline" size="sm">
+              <Save className="h-4 w-4 mr-1" />
+              Save Draft
             </Button>
           )}
         </div>

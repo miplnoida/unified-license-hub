@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ActiveSectorProvider } from "@/contexts/ActiveSectorContext";
 
 import Index from "./pages/Index";
+import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import PreLicenseeDashboard from "./pages/PreLicenseeDashboard";
 import PostLicenseeDashboard from "./pages/PostLicenseeDashboard";
@@ -92,6 +93,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
 
       {/* Dashboard - role-based routing */}
       <Route path="/dashboard" element={<P><DashboardRouter /></P>} />
