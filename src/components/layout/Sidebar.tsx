@@ -246,7 +246,6 @@ export function Sidebar() {
                 )}
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => {
-                    // Collapsible group
                     if (item.children && item.children.length > 0) {
                       const visibleChildren = item.children.filter(isItemVisible);
                       if (visibleChildren.length === 0) return null;
@@ -262,7 +261,6 @@ export function Sidebar() {
                       );
                     }
 
-                    // Standard link
                     if (!item.href) return null;
                     const isActive = location.pathname === item.href;
                     return (
@@ -296,40 +294,49 @@ export function Sidebar() {
               </div>
             );
           })}
+
+          {/* Bottom nav items inline */}
+          {filteredBottomItems.length > 0 && (
+            <div>
+              {!collapsed && (
+                <p className="px-4 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                  Account
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {filteredBottomItems.map((item) => {
+                  if (!item.href) return null;
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={cn('nav-item', isActive && 'nav-item-active')}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      {item.icon}
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 text-xs font-medium text-sidebar-primary-foreground">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+                <button onClick={logout} className="nav-item w-full text-left">
+                  <LogOut className="h-5 w-5" />
+                  {!collapsed && <span className="flex-1">Logout</span>}
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
       </ScrollArea>
-
-      {/* Bottom actions */}
-      <div className="border-t border-sidebar-border p-3 space-y-0.5 shrink-0">
-        {filteredBottomItems.map((item) => {
-          if (!item.href) return null;
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn('nav-item', isActive && 'nav-item-active')}
-              title={collapsed ? item.label : undefined}
-            >
-              {item.icon}
-              {!collapsed && (
-                <>
-                  <span className="flex-1">{item.label}</span>
-                  {item.badge && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 text-xs font-medium text-sidebar-primary-foreground">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </Link>
-          );
-        })}
-        <button onClick={logout} className="nav-item w-full text-left">
-          <LogOut className="h-5 w-5" />
-          {!collapsed && <span className="flex-1">Logout</span>}
-        </button>
-      </div>
     </aside>
   );
 }
