@@ -189,8 +189,8 @@ export function FormBuilderCanvas({
                             {getFieldIcon(field.type)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-xs truncate">{field.label}</p>
-                            <p className="text-[10px] text-muted-foreground capitalize truncate">{getFieldLabel(field.type)}</p>
+                            <p className="font-medium text-xs break-words">{field.label}</p>
+                            <p className="text-[10px] text-muted-foreground capitalize">{getFieldLabel(field.type)}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 pt-0.5 border-t border-border/50">
