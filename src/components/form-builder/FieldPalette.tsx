@@ -29,20 +29,24 @@ export const fieldTypes = [
   { type: 'textarea', label: 'Text Area', icon: <AlignLeft className="h-4 w-4" /> },
 ];
 
-export function FormBuilderFieldPalette() {
+interface Props {
+  onAddField: (type: string) => void;
+}
+
+export function FormBuilderFieldPalette({ onAddField }: Props) {
   return (
     <div>
       <Card className="sticky top-6">
         <CardHeader>
           <CardTitle className="text-base">Field Types</CardTitle>
-          <CardDescription>Drag fields to the form</CardDescription>
+          <CardDescription>Click to add a field</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {fieldTypes.map((fieldType) => (
             <div
               key={fieldType.type}
-              className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 cursor-grab transition-colors"
-              draggable
+              className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 cursor-pointer transition-colors"
+              onClick={() => onAddField(fieldType.type)}
             >
               <div className="text-muted-foreground">{fieldType.icon}</div>
               <span className="text-sm font-medium">{fieldType.label}</span>
