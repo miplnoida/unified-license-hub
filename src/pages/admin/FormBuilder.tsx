@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,7 @@ export default function FormBuilder() {
 
   // Read locked form type from URL params
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const lockedFormType = searchParams.get('type') || '';
 
   // Form details state
@@ -134,6 +135,11 @@ export default function FormBuilder() {
       // Simulate save – replace with DB call when ready
       await new Promise((resolve) => setTimeout(resolve, 800));
       toast.success('Form saved successfully!');
+      // Redirect to the appropriate list page
+      const listPath = formType === 'pre_license'
+        ? '/admin/forms/pre-license'
+        : '/admin/forms/post-license';
+      navigate(listPath);
     } catch (error) {
       console.error('Error saving form:', error);
       toast.error('Failed to save form. Please try again.');
