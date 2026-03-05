@@ -13,7 +13,7 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  ArrowLeft, Eye, Plus, Trash2, FileText, Loader2,
+  ArrowLeft, Eye, Plus, Pencil, Trash2, FileText, Loader2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useForms } from '@/hooks/useForms';
@@ -121,6 +121,18 @@ export default function ApplicationForms() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>View</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost" size="icon" className="h-8 w-8"
+                              onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms/${form.id}?mode=edit`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
