@@ -15,6 +15,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
   Plus,
   GripVertical,
   Copy,
@@ -63,7 +68,6 @@ export function FormBuilderCanvas({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const dragNode = useRef<HTMLDivElement | null>(null);
-  const [showAddFieldMenu, setShowAddFieldMenu] = useState<{ rowId: string; slotIndex: number } | null>(null);
 
   const getFieldIcon = (type: string) => {
     const ft = fieldTypes.find(f => f.type === type);
@@ -210,38 +214,30 @@ export function FormBuilderCanvas({
                         </div>
                       </div>
                     ) : (
-                      <div className="relative">
-                        <button
-                          className="w-full h-16 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
-                          onClick={() =>
-                            setShowAddFieldMenu(
-                              showAddFieldMenu?.rowId === row.id && showAddFieldMenu?.slotIndex === slotIndex
-                                ? null
-                                : { rowId: row.id, slotIndex }
-                            )
-                          }
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Add Field
-                        </button>
-                        {showAddFieldMenu?.rowId === row.id && showAddFieldMenu?.slotIndex === slotIndex && (
-                          <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-popover border rounded-md shadow-md p-1 max-h-48 overflow-y-auto">
-                            {fieldTypes.map(ft => (
-                              <button
-                                key={ft.type}
-                                className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                                onClick={() => {
-                                  onAddFieldToSlot(row.id, slotIndex, ft.type);
-                                  setShowAddFieldMenu(null);
-                                }}
-                              >
-                                <span className="text-muted-foreground">{ft.icon}</span>
-                                {ft.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            className="w-full h-16 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add Field
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-1 max-h-60 overflow-y-auto" align="start">
+                          {fieldTypes.map(ft => (
+                            <button
+                              key={ft.type}
+                              className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
+                              onClick={() => {
+                                onAddFieldToSlot(row.id, slotIndex, ft.type);
+                              }}
+                            >
+                              <span className="text-muted-foreground">{ft.icon}</span>
+                              {ft.label}
+                            </button>
+                          ))}
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 ))}
