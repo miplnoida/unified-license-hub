@@ -1,13 +1,11 @@
 import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -19,19 +17,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   Eye,
   Save,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   sectors,
-  subSectors,
-  categories,
-  services,
   getSubSectorsBySector,
   getCategoriesBySubSector,
   getServicesBySubSector,
 } from '@/data/sectorData';
-import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
+import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/FieldPalette';
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 
@@ -55,6 +58,8 @@ const sampleFields: FormField[] = [
 export default function FormBuilder() {
   const [fields, setFields] = useState<FormField[]>(sampleFields);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form details state
   const [formName, setFormName] = useState('Life Insurance Application Form');
@@ -100,6 +105,42 @@ export default function FormBuilder() {
     setSelectedService('');
   };
 
+  const handleSave = async () => {
+    if (!formName.trim()) {
+      toast.error('Please enter a form name.');
+      return;
+    }
+    if (!formType) {
+      toast.error('Please select a form type.');
+      return;
+    }
+    if (formType === 'pre_license' && selectedSubSector && !selectedCategory) {
+      toast.error('Please select a category for Pre-License forms.');
+      return;
+    }
+    if (formType === 'post_license' && selectedSubSector && !selectedService) {
+      toast.error('Please select a service for Post-License forms.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Simulate save – replace with DB call when ready
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      toast.success('Form saved successfully!');
+    } catch (error) {
+      console.error('Error saving form:', error);
+      toast.error('Failed to save form. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getFieldIcon = (type: string) => {
+    const ft = fieldTypes.find((f) => f.type === type);
+    return ft?.icon || null;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -112,13 +153,13 @@ export default function FormBuilder() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowPreview(true)}>
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            <Button>
+            <Button onClick={handleSave} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
-              Save Form
+              {isSaving ? 'Saving...' : 'Save Form'}
             </Button>
           </div>
         </div>
@@ -130,7 +171,6 @@ export default function FormBuilder() {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Form Name */}
               <div className="space-y-2">
                 <Label>Form Name</Label>
                 <Input
@@ -140,7 +180,6 @@ export default function FormBuilder() {
                 />
               </div>
 
-              {/* Form Type */}
               <div className="space-y-2">
                 <Label>Form Type</Label>
                 <Select value={formType} onValueChange={handleFormTypeChange}>
@@ -154,7 +193,6 @@ export default function FormBuilder() {
                 </Select>
               </div>
 
-              {/* Sector – shown once form type is selected */}
               {formType && (
                 <div className="space-y-2">
                   <Label>Sector</Label>
@@ -171,7 +209,6 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Sub Sector */}
               {selectedSector && (
                 <div className="space-y-2">
                   <Label>Sub Sector</Label>
@@ -188,12 +225,9 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Category – Pre-License only */}
               {formType === 'pre_license' && selectedSubSector && (
                 <div className="space-y-2">
-                  <Label>
-                    Category <span className="text-destructive">*</span>
-                  </Label>
+                  <Label>Category <span className="text-destructive">*</span></Label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -207,12 +241,9 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Service – Post-License only */}
               {formType === 'post_license' && selectedSubSector && (
                 <div className="space-y-2">
-                  <Label>
-                    Service <span className="text-destructive">*</span>
-                  </Label>
+                  <Label>Service <span className="text-destructive">*</span></Label>
                   <Select value={selectedService} onValueChange={setSelectedService}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select service" />
@@ -240,6 +271,57 @@ export default function FormBuilder() {
           <FormBuilderFieldProperties selectedField={selectedField} />
         </div>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{formName || 'Untitled Form'}</DialogTitle>
+            <DialogDescription>
+              Preview of form fields ({fields.length} fields)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            {fields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <Label>
+                  {field.label}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
+                </Label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder={field.placeholder}
+                    disabled
+                  />
+                ) : field.type === 'file' ? (
+                  <Input type="file" disabled />
+                ) : field.type === 'checkbox' ? (
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" disabled className="h-4 w-4" />
+                    <span className="text-sm text-muted-foreground">{field.label}</span>
+                  </div>
+                ) : field.type === 'select' ? (
+                  <Select disabled>
+                    <SelectTrigger>
+                      <SelectValue placeholder={field.placeholder || 'Select...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="option1">Option 1</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    type={field.type === 'phone' ? 'tel' : field.type}
+                    placeholder={field.placeholder}
+                    disabled
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
