@@ -42,7 +42,7 @@ export default function ReturnGroups() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Return Groups" description="Organize returns into logical groups for batch processing." backHref="/dashboard" backLabel="Dashboard" actions={<Button><Plus className="h-4 w-4 mr-2" />Create Group</Button>} />
+        <PageHeader title="Return Groups" description="Organize returns into logical groups for batch processing." actions={<Button><Plus className="h-4 w-4 mr-2" />Create Group</Button>} />
         <div className="animate-slide-up delay-100">
           <DataTableShell columns={columns} data={data} searchPlaceholder="Search groups..." />
         </div>

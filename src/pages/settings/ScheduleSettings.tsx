@@ -33,8 +33,6 @@ export default function ScheduleSettings() {
         <PageHeader
           title="Schedule Settings"
           description="Configure business hours, working days, and holiday calendar."
-          backHref="/dashboard"
-          backLabel="Dashboard"
           actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>}
         />
 

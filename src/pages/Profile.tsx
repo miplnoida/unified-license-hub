@@ -17,7 +17,7 @@ export default function Profile() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
-        <PageHeader title="Profile" description="Manage your personal information and account settings." backHref="/dashboard" backLabel="Dashboard" actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>} />
+        <PageHeader title="Profile" description="Manage your personal information and account settings." actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>} />
 
         <Card className="animate-slide-up delay-100">
           <CardHeader>

@@ -36,8 +36,6 @@ export default function PostLicense() {
         <PageHeader
           title="Post-License Services"
           description="Apply for amendments, renewals, and other post-license services."
-          backHref="/dashboard"
-          backLabel="Dashboard"
         />
 
         {/* Service Selection */}

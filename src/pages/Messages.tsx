@@ -21,7 +21,7 @@ export default function Messages() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Messages" description="Internal messaging and communication." backHref="/dashboard" backLabel="Dashboard" />
+        <PageHeader title="Messages" description="Internal messaging and communication." />
         <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-100" style={{ minHeight: '60vh' }}>
           {/* Conversations */}
           <Card>
