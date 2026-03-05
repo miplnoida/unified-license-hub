@@ -86,12 +86,6 @@ export const mainNavSections: NavSection[] = [
     label: 'Licensing',
     items: [
       {
-        label: 'Post-License Services',
-        href: '/post-license',
-        icon: <FileCheck className="h-5 w-5" />,
-        roles: ['post_licensee'],
-      },
-      {
         label: 'Returns',
         href: '/returns',
         icon: <ClipboardList className="h-5 w-5" />,
@@ -297,6 +291,37 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Administration',
     items: [
+      {
+        label: 'Administration',
+        icon: <Shield className="h-5 w-5" />,
+        roles: ['admin', 'supervisor'],
+        children: [
+          {
+            label: 'Manage Web Users',
+            href: '/admin/web-users',
+            icon: <Users className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Manage Licenses',
+            href: '/admin/licenses',
+            icon: <FileCheck className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Post Licensing Applications',
+            href: '/admin/post-licensing',
+            icon: <FileText className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Change Active Sector',
+            href: '/admin/change-sector',
+            icon: <Layers className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+        ],
+      },
       {
         label: 'Role Management',
         href: '/admin/roles',
