@@ -55,6 +55,8 @@ export default function Notifications() {
         <PageHeader
           title="Notifications"
           description={`You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}.`}
+          backHref="/dashboard"
+          backLabel="Dashboard"
           actions={
             <Button variant="outline" onClick={markAllRead} disabled={unreadCount === 0}>
               <Check className="h-4 w-4 mr-2" />Mark All Read

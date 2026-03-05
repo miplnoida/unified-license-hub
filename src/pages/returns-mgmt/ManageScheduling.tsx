@@ -45,7 +45,7 @@ export default function ManageScheduling() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Manage Scheduling" description="Configure automatic return generation schedules and due dates." actions={<Button><Plus className="h-4 w-4 mr-2" />New Schedule</Button>} />
+        <PageHeader title="Manage Scheduling" description="Configure automatic return generation schedules and due dates." backHref="/dashboard" backLabel="Dashboard" actions={<Button><Plus className="h-4 w-4 mr-2" />New Schedule</Button>} />
         <div className="animate-slide-up delay-100">
           <DataTableShell columns={columns} data={data} searchPlaceholder="Search schedules..." />
         </div>

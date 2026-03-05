@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -266,26 +267,24 @@ export default function FormBuilder() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between animate-slide-up">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {formTypeLabel} Form Builder
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              Create a new {formTypeLabel.toLowerCase()} form with row-based layouts.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setShowPreview(true)}>
-              <Eye className="h-4 w-4 mr-2" />
-              Preview
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Form'}
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title={`${formTypeLabel} Form Builder`}
+          description={`Create a new ${formTypeLabel.toLowerCase()} form with row-based layouts.`}
+          backHref={formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license'}
+          backLabel={`${formTypeLabel} Forms`}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowPreview(true)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Preview
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Form'}
+              </Button>
+            </div>
+          }
+        />
 
         {/* Form Details */}
         <Card className="animate-slide-up delay-100">

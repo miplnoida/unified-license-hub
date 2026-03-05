@@ -63,7 +63,7 @@ export default function UserManagement() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="User Management" description="Create, manage, and monitor system user accounts." actions={<Button><Plus className="h-4 w-4 mr-2" />Add User</Button>} />
+        <PageHeader title="User Management" description="Create, manage, and monitor system user accounts." backHref="/dashboard" backLabel="Dashboard" actions={<Button><Plus className="h-4 w-4 mr-2" />Add User</Button>} />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Users" value={data.length} icon={<Users className="h-6 w-6" />} />
           <StatCard title="Active" value={data.filter(u => u.status === 'active').length} icon={<UserCheck className="h-6 w-6" />} variant="success" />

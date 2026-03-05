@@ -26,7 +26,7 @@ export default function UploadReturns() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
-        <PageHeader title="Upload Returns" description="Bulk upload return data from spreadsheet files." />
+        <PageHeader title="Upload Returns" description="Bulk upload return data from spreadsheet files." backHref="/returns" backLabel="Returns" />
 
         <Card className="animate-slide-up delay-100">
           <CardHeader>

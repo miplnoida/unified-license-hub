@@ -72,6 +72,8 @@ export default function ReportPage() {
         <PageHeader
           title={config.title}
           description={config.description}
+          backHref="/dashboard"
+          backLabel="Dashboard"
           actions={
             <Button>
               <Download className="h-4 w-4 mr-2" />

@@ -41,7 +41,7 @@ export default function ManageValidations() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Manage Validations" description="Define validation rules for return data integrity." actions={<Button><Plus className="h-4 w-4 mr-2" />Add Validation</Button>} />
+        <PageHeader title="Manage Validations" description="Define validation rules for return data integrity." backHref="/dashboard" backLabel="Dashboard" actions={<Button><Plus className="h-4 w-4 mr-2" />Add Validation</Button>} />
         <div className="animate-slide-up delay-100">
           <DataTableShell columns={columns} data={data} searchPlaceholder="Search validations..." />
         </div>
