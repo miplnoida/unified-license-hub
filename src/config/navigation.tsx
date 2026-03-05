@@ -294,7 +294,7 @@ export const mainNavSections: NavSection[] = [
       {
         label: 'Administration',
         icon: <Shield className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
+        roles: ['post_licensee', 'admin', 'supervisor'],
         children: [
           {
             label: 'Manage Web Users',
@@ -306,19 +306,19 @@ export const mainNavSections: NavSection[] = [
             label: 'Manage Licenses',
             href: '/admin/licenses',
             icon: <FileCheck className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
+            roles: ['post_licensee', 'admin', 'supervisor'],
           },
           {
             label: 'Post Licensing Applications',
             href: '/admin/post-licensing',
             icon: <FileText className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
+            roles: ['post_licensee', 'admin', 'supervisor'],
           },
           {
             label: 'Change Active Sector',
             href: '/admin/change-sector',
             icon: <Layers className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
+            roles: ['post_licensee', 'admin', 'supervisor'],
           },
         ],
       },
