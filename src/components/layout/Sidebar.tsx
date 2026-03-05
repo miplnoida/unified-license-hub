@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { mainNavSections, bottomNavItems, NavItem } from '@/config/navigation';
 import {
   Layers,
@@ -112,28 +112,8 @@ export function Sidebar() {
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
   const location = useLocation();
   const { user, logout } = useAuth();
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const savedScrollTop = useRef<number>(0);
 
-  const getViewport = () =>
-    scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
 
-  // Continuously track scroll position
-  useEffect(() => {
-    const viewport = getViewport();
-    if (!viewport) return;
-    const handleScroll = () => { savedScrollTop.current = viewport.scrollTop; };
-    viewport.addEventListener('scroll', handleScroll, { passive: true });
-    return () => viewport.removeEventListener('scroll', handleScroll);
-  });
-
-  // Restore scroll position synchronously before paint
-  useLayoutEffect(() => {
-    const viewport = getViewport();
-    if (viewport && savedScrollTop.current > 0) {
-      viewport.scrollTop = savedScrollTop.current;
-    }
-  });
 
   const toggleGroup = useCallback((label: string) => {
     setExpandedGroups(prev =>
@@ -238,7 +218,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation - Scrollable */}
-      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
         <nav className="p-3 space-y-4">
           {mainNavSections.map((section) => {
             const visibleItems = section.items.filter(isItemVisible);
@@ -303,7 +283,7 @@ export function Sidebar() {
             );
           })}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* Bottom actions */}
       <div className="border-t border-sidebar-border p-3 space-y-0.5 shrink-0">
