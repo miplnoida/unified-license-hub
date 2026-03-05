@@ -170,14 +170,14 @@ export function FormBuilderCanvas({
 
               {/* Column slots */}
               <div
-                className="grid gap-2"
-                style={{ gridTemplateColumns: `repeat(${row.columns}, 1fr)` }}
+                className="grid gap-2 overflow-hidden"
+                style={{ gridTemplateColumns: `repeat(${row.columns}, minmax(0, 1fr))` }}
               >
                 {row.fields.map((field, slotIndex) => (
-                  <div key={`${row.id}-${slotIndex}`}>
+                  <div key={`${row.id}-${slotIndex}`} className="min-w-0">
                     {field ? (
                       <div
-                        className={`flex items-center gap-1.5 p-2 rounded-md border cursor-pointer transition-all min-w-0 ${
+                        className={`flex items-center gap-1.5 p-2 rounded-md border cursor-pointer transition-all overflow-hidden ${
                           selectedField?.id === field.id
                             ? 'border-primary bg-primary/5'
                             : 'hover:border-primary/50 border-muted'
@@ -187,12 +187,12 @@ export function FormBuilderCanvas({
                         <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
                           {getFieldIcon(field.type)}
                         </div>
-                        <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-xs truncate">{field.label}</p>
                           <p className="text-[10px] text-muted-foreground capitalize truncate">{getFieldLabel(field.type)}</p>
                         </div>
                         {field.required && (
-                          <Badge variant="outline" className="text-[10px] px-1 shrink-0">Req</Badge>
+                          <Badge variant="outline" className="text-[10px] px-1 shrink-0 hidden sm:inline-flex">Req</Badge>
                         )}
                         <div className="flex items-center shrink-0">
                           <Button
@@ -217,10 +217,10 @@ export function FormBuilderCanvas({
                       <Popover>
                         <PopoverTrigger asChild>
                           <button
-                            className="w-full h-12 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
+                            className="w-full h-[42px] rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
                           >
-                            <Plus className="h-3 w-3" />
-                            Add
+                            <Plus className="h-3 w-3 shrink-0" />
+                            <span className="truncate">Add</span>
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-48 p-1 max-h-60 overflow-y-auto" align="start">
