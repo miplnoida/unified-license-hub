@@ -371,8 +371,7 @@ export default function FormBuilder() {
         </Card>
 
         {/* Builder panels */}
-        <div className="grid lg:grid-cols-4 gap-6 animate-slide-up delay-200">
-          <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+        <div className="grid grid-cols-12 gap-6 animate-slide-up delay-200">
           <FormBuilderCanvas
             rows={rows}
             selectedField={selectedField}
