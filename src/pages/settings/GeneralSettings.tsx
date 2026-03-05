@@ -20,6 +20,8 @@ export default function GeneralSettings() {
         <PageHeader
           title="General Settings"
           description="Configure global application preferences and system parameters."
+          backHref="/dashboard"
+          backLabel="Dashboard"
           actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>}
         />
 

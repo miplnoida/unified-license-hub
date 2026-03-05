@@ -42,7 +42,7 @@ export default function ViewReturns() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="View Returns" description="Read-only view of all returns across the system." />
+        <PageHeader title="View Returns" description="Read-only view of all returns across the system." backHref="/dashboard" backLabel="Dashboard" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Returns" value={data.length} icon={<ClipboardList className="h-6 w-6" />} />
           <StatCard title="Accepted" value={data.filter(r => r.status === 'accepted').length} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
