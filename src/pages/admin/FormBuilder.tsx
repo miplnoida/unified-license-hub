@@ -39,7 +39,7 @@ import {
 import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/FieldPalette';
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
-import { saveForm } from '@/lib/formStorage';
+import { saveForm, getStoredForms } from '@/lib/formStorage';
 import type { FormField, FormRow } from '@/types/formBuilder';
 
 const defaultRows: FormRow[] = [
@@ -70,21 +70,38 @@ const defaultRows: FormRow[] = [
 ];
 
 export default function FormBuilder() {
-  const [rows, setRows] = useState<FormRow[]>(defaultRows);
-  const [selectedField, setSelectedField] = useState<FormField | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const formType = searchParams.get('type') || 'pre_license';
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : 'Post-License';
+  const editId = searchParams.get('id');
+  const isViewMode = searchParams.get('mode') === 'view';
 
-  const [formName, setFormName] = useState('');
-  const [selectedSector, setSelectedSector] = useState('');
-  const [selectedSubSector, setSelectedSubSector] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedService, setSelectedService] = useState('');
+  // Load existing form if editing
+  const existingForm = useMemo(() => {
+    if (!editId) return null;
+    return getStoredForms().find(f => f.id === editId) || null;
+  }, [editId]);
+
+  const [rows, setRows] = useState<FormRow[]>(existingForm?.rows || defaultRows);
+  const [selectedField, setSelectedField] = useState<FormField | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formName, setFormName] = useState(existingForm?.name || '');
+  const [selectedSector, setSelectedSector] = useState(existingForm?.sector || '');
+  const [selectedSubSector, setSelectedSubSector] = useState(existingForm?.subSector || '');
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (!existingForm?.category) return '';
+    // category is stored as name, find the id
+    const cat = categories.find(c => c.name === existingForm.category);
+    return cat?.id || '';
+  });
+  const [selectedService, setSelectedService] = useState(() => {
+    if (!existingForm?.service) return '';
+    const svc = services.find(s => s.name === existingForm.service);
+    return svc?.id || '';
+  });
 
   const filteredSubSectors = useMemo(
     () => (selectedSector ? getSubSectorsBySector(selectedSector) : []),
@@ -295,7 +312,7 @@ export default function FormBuilder() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Sector</Label>
-                <Select value={selectedSector} onValueChange={handleSectorChange}>
+                <Select value={selectedSector} onValueChange={handleSectorChange} disabled={isViewMode}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
@@ -310,7 +327,7 @@ export default function FormBuilder() {
               {selectedSector && (
                 <div className="space-y-2">
                   <Label>Sub Sector</Label>
-                  <Select value={selectedSubSector} onValueChange={handleSubSectorChange}>
+                  <Select value={selectedSubSector} onValueChange={handleSubSectorChange} disabled={isViewMode}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select sub sector" />
                     </SelectTrigger>
@@ -326,7 +343,7 @@ export default function FormBuilder() {
               {formType === 'pre_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Category <span className="text-destructive">*</span></Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isViewMode}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -342,7 +359,7 @@ export default function FormBuilder() {
               {formType === 'post_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Service <span className="text-destructive">*</span></Label>
-                  <Select value={selectedService} onValueChange={setSelectedService}>
+                  <Select value={selectedService} onValueChange={setSelectedService} disabled={isViewMode}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select service" />
                     </SelectTrigger>
@@ -362,6 +379,7 @@ export default function FormBuilder() {
                     value={formName}
                     onChange={e => setFormName(e.target.value)}
                     placeholder="Enter form name"
+                    disabled={isViewMode}
                   />
                 </div>
               )}
