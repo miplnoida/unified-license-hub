@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, FileText, Eye } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { useForm as useFormDetail } from '@/hooks/useForms';
 import type { FormField } from '@/types/formBuilder';
@@ -35,6 +38,9 @@ export default function FormDetail() {
   }, [dbForm]);
 
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; url: string; type: string }>>({});
+  const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const isReadOnly = mode === 'view';
 
@@ -88,8 +94,50 @@ export default function FormDetail() {
             ))}
           </div>
         );
-      case 'file':
-        return <Input type="file" disabled={isReadOnly} />;
+      case 'file': {
+        const uploaded = uploadedFiles[field.id];
+        return (
+          <div className="space-y-2">
+            {!isReadOnly && (
+              <Input
+                type="file"
+                ref={(el) => { fileInputRefs.current[field.id] = el; }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const url = URL.createObjectURL(file);
+                    setUploadedFiles(prev => ({
+                      ...prev,
+                      [field.id]: { name: file.name, url, type: file.type },
+                    }));
+                  }
+                }}
+              />
+            )}
+            {uploaded && (
+              <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                <span className="text-sm truncate flex-1">{uploaded.name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => {
+                    if (uploaded.type.startsWith('image/') || uploaded.type === 'application/pdf') {
+                      setPreviewFile(uploaded);
+                    } else {
+                      window.open(uploaded.url, '_blank');
+                    }
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        );
+      }
       case 'paragraph':
         return <p className="text-sm text-muted-foreground">{field.placeholder || field.label}</p>;
       default:
@@ -182,6 +230,21 @@ export default function FormDetail() {
           )}
         </div>
       </div>
+      {/* File Preview Modal */}
+      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
+        <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle className="truncate">{previewFile?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {previewFile?.type.startsWith('image/') ? (
+              <img src={previewFile.url} alt={previewFile.name} className="w-full rounded-lg object-contain max-h-[65vh]" />
+            ) : previewFile?.type === 'application/pdf' ? (
+              <iframe src={previewFile.url} className="w-full h-[65vh] rounded-lg border" title={previewFile.name} />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
