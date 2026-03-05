@@ -28,14 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  sectors,
-  getSubSectorsBySector,
-  getCategoriesBySubSector,
-  getServicesBySubSector,
-  categories,
-  services,
-} from '@/data/sectorData';
+import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/FieldPalette';
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
@@ -81,6 +74,14 @@ export default function FormBuilder() {
   // Load existing form if editing
   const { data: existingForm } = useForm(editId);
 
+  // Dynamic data from database
+  const { data: dbSectors = [] } = useSectors();
+  const { data: dbSubSectors = [] } = useSubSectors();
+  const { data: dbCategories = [] } = useCategories();
+  const { data: dbServices = [] } = useServices();
+
+  const activeSectors = dbSectors.filter(s => s.status === 'active');
+
   const [rows, setRows] = useState<FormRow[]>(defaultRows);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -94,29 +95,31 @@ export default function FormBuilder() {
 
   // Populate state when existing form loads
   useMemo(() => {
-    if (!existingForm || initialized) return;
+    if (!existingForm || initialized || dbSectors.length === 0) return;
     setRows(existingForm.rows || defaultRows);
     setFormName(existingForm.name || '');
-    setSelectedSector(existingForm.sector || '');
-    setSelectedSubSector(existingForm.sub_sector || '');
-    const cat = categories.find(c => c.name === existingForm.category);
-    setSelectedCategory(cat?.id || '');
-    const svc = services.find(s => s.name === existingForm.service);
-    setSelectedService(svc?.id || '');
+    const sectorRow = dbSectors.find(s => s.name === existingForm.sector);
+    setSelectedSector(sectorRow?.id || '');
+    const subSectorRow = dbSubSectors.find(s => s.name === existingForm.sub_sector);
+    setSelectedSubSector(subSectorRow?.id || '');
+    const catRow = dbCategories.find(c => c.name === existingForm.category);
+    setSelectedCategory(catRow?.id || '');
+    const svcRow = dbServices.find(s => s.name === existingForm.service);
+    setSelectedService(svcRow?.id || '');
     setInitialized(true);
-  }, [existingForm, initialized]);
+  }, [existingForm, initialized, dbSectors, dbSubSectors, dbCategories, dbServices]);
 
   const filteredSubSectors = useMemo(
-    () => (selectedSector ? getSubSectorsBySector(selectedSector) : []),
-    [selectedSector]
+    () => dbSubSectors.filter(s => s.sector_id === selectedSector && s.status === 'active'),
+    [selectedSector, dbSubSectors]
   );
   const filteredCategories = useMemo(
-    () => (selectedSubSector ? getCategoriesBySubSector(selectedSubSector) : []),
-    [selectedSubSector]
+    () => dbCategories.filter(c => c.sub_sector_id === selectedSubSector && c.status === 'active'),
+    [selectedSubSector, dbCategories]
   );
   const filteredServices = useMemo(
-    () => (selectedSubSector ? getServicesBySubSector(selectedSubSector) : []),
-    [selectedSubSector]
+    () => dbServices.filter(s => s.sub_sector_id === selectedSubSector && s.status === 'active'),
+    [selectedSubSector, dbServices]
   );
 
   const handleSectorChange = (value: string) => {
@@ -250,11 +253,13 @@ export default function FormBuilder() {
 
     setIsSaving(true);
     try {
+      const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
+      const subSectorName = dbSubSectors.find(s => s.id === selectedSubSector)?.name || '';
       const categoryName = selectedCategory
-        ? (categories.find(c => c.id === selectedCategory)?.name || selectedCategory)
+        ? (dbCategories.find(c => c.id === selectedCategory)?.name || '')
         : '';
       const serviceName = selectedService
-        ? (services.find(s => s.id === selectedService)?.name || selectedService)
+        ? (dbServices.find(s => s.id === selectedService)?.name || '')
         : '';
 
       await saveFormMutation.mutateAsync({
@@ -263,8 +268,8 @@ export default function FormBuilder() {
         form_type: formType as 'pre_license' | 'post_license',
         category: categoryName,
         service: serviceName,
-        sector: selectedSector,
-        sub_sector: selectedSubSector,
+        sector: sectorName,
+        sub_sector: subSectorName,
         status: existingForm?.status || 'draft',
         rows,
       });
@@ -319,7 +324,7 @@ export default function FormBuilder() {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sectors.map(s => (
+                    {activeSectors.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
                   </SelectContent>
