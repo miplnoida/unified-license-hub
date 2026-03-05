@@ -316,10 +316,23 @@ export const mainNavSections: NavSection[] = [
         roles: ['admin'],
       },
       {
-        label: 'Form Builder',
-        href: '/admin/forms',
+        label: 'Form Management',
         icon: <FormInput className="h-5 w-5" />,
         roles: ['admin'],
+        children: [
+          {
+            label: 'Pre-License Forms',
+            href: '/admin/forms/pre-license',
+            icon: <FileText className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Post-License Forms',
+            href: '/admin/forms/post-license',
+            icon: <FileCheck className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+        ],
       },
       {
         label: 'Workflow Config',
