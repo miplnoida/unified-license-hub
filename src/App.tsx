@@ -45,6 +45,8 @@ import UploadReturns from "./pages/UploadReturns";
 // Admin
 import RoleManagement from "./pages/admin/RoleManagement";
 import FormBuilder from "./pages/admin/FormBuilder";
+import PreLicenseForms from "./pages/admin/PreLicenseForms";
+import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import UserManagement from "./pages/admin/UserManagement";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import WorkflowConfig from "./pages/admin/WorkflowConfig";
@@ -140,7 +142,9 @@ function AppRoutes() {
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/masters" element={<P><MasterConfiguration /></P>} />
-      <Route path="/admin/forms" element={<P><FormBuilder /></P>} />
+      <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
+      <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
+      <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
       <Route path="/admin/workflows" element={<P><WorkflowConfig /></P>} />
 
       {/* Standalone */}

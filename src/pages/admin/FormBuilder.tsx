@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,14 +62,19 @@ export default function FormBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Read locked form type from URL params
+  const [searchParams] = useSearchParams();
+  const lockedFormType = searchParams.get('type') || '';
+
   // Form details state
-  const [formName, setFormName] = useState('Life Insurance Application Form');
-  const [formType, setFormType] = useState<string>('');
+  const [formName, setFormName] = useState('');
+  const [formType, setFormType] = useState<string>(lockedFormType);
   const [selectedSector, setSelectedSector] = useState<string>('');
   const [selectedSubSector, setSelectedSubSector] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedService, setSelectedService] = useState<string>('');
 
+  const isFormTypeLocked = !!lockedFormType;
   const filteredSubSectors = useMemo(
     () => (selectedSector ? getSubSectorsBySector(selectedSector) : []),
     [selectedSector]
@@ -172,17 +178,8 @@ export default function FormBuilder() {
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Form Name</Label>
-                <Input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="Enter form name"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label>Form Type</Label>
-                <Select value={formType} onValueChange={handleFormTypeChange}>
+                <Select value={formType} onValueChange={handleFormTypeChange} disabled={isFormTypeLocked}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select form type" />
                   </SelectTrigger>
@@ -256,6 +253,18 @@ export default function FormBuilder() {
                   </Select>
                 </div>
               )}
+
+              {/* Form Name appears after Category/Service selection */}
+              {(formType === 'pre_license' && selectedCategory) || (formType === 'post_license' && selectedService) ? (
+                <div className="space-y-2">
+                  <Label>Form Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Enter form name"
+                  />
+                </div>
+              ) : null}
             </div>
           </CardContent>
         </Card>
