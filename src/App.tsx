@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ActiveSectorProvider } from "@/contexts/ActiveSectorContext";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -49,6 +50,10 @@ import PreLicenseForms from "./pages/admin/PreLicenseForms";
 import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import UserManagement from "./pages/admin/UserManagement";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
+import ManageWebUsers from "./pages/admin/ManageWebUsers";
+import ManageLicenses from "./pages/admin/ManageLicenses";
+import PostLicensingApplications from "./pages/admin/PostLicensingApplications";
+import ChangeActiveSector from "./pages/admin/ChangeActiveSector";
 import WorkflowConfig from "./pages/admin/WorkflowConfig";
 
 // Standalone
@@ -141,6 +146,10 @@ function AppRoutes() {
       <Route path="/admin/returns" element={<P><Dashboard /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
+      <Route path="/admin/web-users" element={<P><ManageWebUsers /></P>} />
+      <Route path="/admin/licenses" element={<P><ManageLicenses /></P>} />
+      <Route path="/admin/post-licensing" element={<P><PostLicensingApplications /></P>} />
+      <Route path="/admin/change-sector" element={<P><ChangeActiveSector /></P>} />
       <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
       <Route path="/admin/masters/sectors" element={<P><MasterConfiguration /></P>} />
       <Route path="/admin/masters/sub-sectors" element={<P><MasterConfiguration /></P>} />
@@ -171,13 +180,15 @@ function AppRoutes() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      <ActiveSectorProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </ActiveSectorProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
