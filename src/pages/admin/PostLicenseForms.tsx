@@ -21,8 +21,18 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search } from 'lucide-react';
-import { getStoredForms, deleteForm, type StoredForm } from '@/lib/formStorage';
+import { getStoredForms, deleteForm, updateFormStatus, type StoredForm } from '@/lib/formStorage';
 import { toast } from 'sonner';
 
 interface FormEntry {
@@ -47,6 +57,12 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   archived: 'outline',
 };
 
+const statusOptions: Array<{ value: FormEntry['status']; label: string }> = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'published', label: 'Published' },
+  { value: 'archived', label: 'Archived' },
+];
+
 function storedToEntry(f: StoredForm): FormEntry {
   return {
     id: f.id,
@@ -65,13 +81,24 @@ export default function PostLicenseForms() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Status change dialog state
+  const [statusDialog, setStatusDialog] = useState<{ open: boolean; formId: string; formName: string; currentStatus: string; newStatus: FormEntry['status'] }>({
+    open: false, formId: '', formName: '', currentStatus: '', newStatus: 'draft',
+  });
+
+  const [hardcodedStatuses, setHardcodedStatuses] = useState<Record<string, FormEntry['status']>>({});
+
   const allForms = useMemo(() => {
     const dynamic = getStoredForms()
       .filter((f) => f.formType === 'post_license')
       .map(storedToEntry);
-    return [...hardcodedForms, ...dynamic];
+    const hcWithOverrides = hardcodedForms.map((f) => ({
+      ...f,
+      status: hardcodedStatuses[f.id] || f.status,
+    }));
+    return [...hcWithOverrides, ...dynamic];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [refreshKey, hardcodedStatuses]);
 
   const filtered = useMemo(() => {
     return allForms.filter((f) => {
@@ -92,6 +119,33 @@ export default function PostLicenseForms() {
     deleteForm(id);
     setRefreshKey((k) => k + 1);
     toast.success('Form deleted.');
+  };
+
+  const handleView = (formId: string) => {
+    navigate(`/admin/forms/create?type=post_license&id=${formId}&mode=view`);
+  };
+
+  const requestStatusChange = (form: FormEntry, newStatus: FormEntry['status']) => {
+    if (newStatus === form.status) return;
+    setStatusDialog({
+      open: true,
+      formId: form.id,
+      formName: form.name,
+      currentStatus: form.status,
+      newStatus,
+    });
+  };
+
+  const confirmStatusChange = () => {
+    const { formId, newStatus } = statusDialog;
+    if (formId.startsWith('hc-')) {
+      setHardcodedStatuses((prev) => ({ ...prev, [formId]: newStatus }));
+    } else {
+      updateFormStatus(formId, newStatus);
+      setRefreshKey((k) => k + 1);
+    }
+    toast.success(`Form status changed to "${newStatus}".`);
+    setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
   return (
@@ -159,11 +213,29 @@ export default function PostLicenseForms() {
                       <TableCell className="font-medium">{form.name}</TableCell>
                       <TableCell>{form.service}</TableCell>
                       <TableCell>{form.formType}</TableCell>
-                      <TableCell><Badge variant={statusVariant[form.status]}>{form.status}</Badge></TableCell>
+                      <TableCell>
+                        <Select
+                          value={form.status}
+                          onValueChange={(val) => requestStatusChange(form, val as FormEntry['status'])}
+                        >
+                          <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
+                            <Badge variant={statusVariant[form.status]} className="cursor-pointer capitalize">
+                              {form.status}
+                            </Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>{form.createdDate}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="View"><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="View" onClick={() => handleView(form.id)}><Eye className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${form.id}`)}><Pencil className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(form.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
@@ -176,6 +248,25 @@ export default function PostLicenseForms() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Status Change Confirmation Dialog */}
+      <AlertDialog open={statusDialog.open} onOpenChange={(open) => setStatusDialog((prev) => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Form Status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to change the status of <strong>"{statusDialog.formName}"</strong> from{' '}
+              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge>
+              to{' '}
+              <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusChange}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }

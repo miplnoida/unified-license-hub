@@ -42,3 +42,10 @@ export function deleteForm(id: string): void {
   const forms = getStoredForms().filter((f) => f.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(forms));
 }
+
+export function updateFormStatus(id: string, status: StoredForm['status']): void {
+  const forms = getStoredForms().map((f) =>
+    f.id === id ? { ...f, status } : f
+  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(forms));
+}
