@@ -1,3 +1,9 @@
+export interface FileValidation {
+  allowedTypes?: string[];   // e.g. ['.pdf', '.jpg', '.png']
+  minSizeKB?: number;
+  maxSizeMB?: number;
+}
+
 export interface FormField {
   id: string;
   type: string;
@@ -6,6 +12,7 @@ export interface FormField {
   placeholder?: string;
   options?: string[]; // For radio, select, checkbox
   content?: string;   // For paragraph/text block
+  fileValidation?: FileValidation; // For file upload fields
 }
 
 export interface FormRow {
