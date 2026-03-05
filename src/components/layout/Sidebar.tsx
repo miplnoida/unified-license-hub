@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -115,22 +115,25 @@ export function Sidebar() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const savedScrollTop = useRef<number>(0);
 
-  // Save scroll position before navigation causes re-render
+  const getViewport = () =>
+    scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+
+  // Continuously track scroll position
   useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const viewport = getViewport();
     if (!viewport) return;
     const handleScroll = () => { savedScrollTop.current = viewport.scrollTop; };
     viewport.addEventListener('scroll', handleScroll, { passive: true });
     return () => viewport.removeEventListener('scroll', handleScroll);
-  }, []);
+  });
 
-  // Restore scroll position after pathname change re-render
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-      if (viewport) viewport.scrollTop = savedScrollTop.current;
-    });
-  }, [location.pathname, expandedGroups]);
+  // Restore scroll position synchronously before paint
+  useLayoutEffect(() => {
+    const viewport = getViewport();
+    if (viewport && savedScrollTop.current > 0) {
+      viewport.scrollTop = savedScrollTop.current;
+    }
+  });
 
   const toggleGroup = useCallback((label: string) => {
     setExpandedGroups(prev =>
