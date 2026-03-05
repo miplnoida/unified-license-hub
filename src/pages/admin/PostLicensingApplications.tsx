@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Eye, FileText, Clock, CheckCircle, XCircle, PlusCircle } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface PostLicApp {
@@ -43,10 +43,35 @@ const statusVariant = (s: string) => {
 
 export default function PostLicensingApplications() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [apps, setApps] = useState(initialApps);
   const [viewApp, setViewApp] = useState<PostLicApp | null>(null);
   const [editStatus, setEditStatus] = useState('');
   const [editRemarks, setEditRemarks] = useState('');
+
+  // Merge new application from navigation state
+  useEffect(() => {
+    const state = location.state as { newApplication?: any } | null;
+    if (state?.newApplication) {
+      const newApp = state.newApplication;
+      const app: PostLicApp = {
+        id: newApp.id || `pla-${Date.now()}`,
+        applicationNumber: newApp.applicationNumber || `PLA-${Date.now()}`,
+        applicantName: newApp.applicantName || 'Current User',
+        sector: newApp.sectorName || '',
+        service: newApp.serviceName || '',
+        status: newApp.status || 'Draft',
+        submittedDate: new Date().toISOString().split('T')[0],
+        remarks: '',
+      };
+      setApps(prev => {
+        if (prev.some(a => a.id === app.id)) return prev;
+        return [app, ...prev];
+      });
+      // Clear the state so it doesn't re-add on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const openView = (a: PostLicApp) => { setViewApp(a); setEditStatus(a.status); setEditRemarks(a.remarks); };
   const handleUpdate = () => {
