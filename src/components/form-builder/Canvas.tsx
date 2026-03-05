@@ -177,28 +177,28 @@ export function FormBuilderCanvas({
                   <div key={`${row.id}-${slotIndex}`}>
                     {field ? (
                       <div
-                        className={`flex items-center gap-2 p-2.5 rounded-md border cursor-pointer transition-all ${
+                        className={`flex items-center gap-1.5 p-2 rounded-md border cursor-pointer transition-all min-w-0 ${
                           selectedField?.id === field.id
                             ? 'border-primary bg-primary/5'
                             : 'hover:border-primary/50 border-muted'
                         }`}
                         onClick={() => onSelectField(field)}
                       >
-                        <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
+                        <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
                           {getFieldIcon(field.type)}
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           <p className="font-medium text-xs truncate">{field.label}</p>
-                          <p className="text-[10px] text-muted-foreground capitalize">{getFieldLabel(field.type)}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize truncate">{getFieldLabel(field.type)}</p>
                         </div>
                         {field.required && (
                           <Badge variant="outline" className="text-[10px] px-1 shrink-0">Req</Badge>
                         )}
-                        <div className="flex items-center gap-0.5 shrink-0">
+                        <div className="flex items-center shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-5 w-5"
                             onClick={(e) => { e.stopPropagation(); onDuplicateField(row.id, slotIndex); }}
                           >
                             <Copy className="h-3 w-3" />
@@ -206,7 +206,7 @@ export function FormBuilderCanvas({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-destructive"
+                            className="h-5 w-5 text-destructive"
                             onClick={(e) => { e.stopPropagation(); onDeleteField(row.id, slotIndex); }}
                           >
                             <Trash2 className="h-3 w-3" />
@@ -217,10 +217,10 @@ export function FormBuilderCanvas({
                       <Popover>
                         <PopoverTrigger asChild>
                           <button
-                            className="w-full h-16 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
+                            className="w-full h-12 rounded-md border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-1 text-muted-foreground hover:text-primary transition-colors text-xs"
                           >
-                            <Plus className="h-3.5 w-3.5" />
-                            Add Field
+                            <Plus className="h-3 w-3" />
+                            Add
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-48 p-1 max-h-60 overflow-y-auto" align="start">
