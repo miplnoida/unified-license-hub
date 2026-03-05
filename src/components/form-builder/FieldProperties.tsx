@@ -42,7 +42,7 @@ interface Props {
 export function FormBuilderFieldProperties({ selectedField, onUpdateField }: Props) {
   if (!selectedField) {
     return (
-      <div>
+      <div className="col-span-4">
         <Card className="sticky top-6">
           <CardHeader>
             <CardTitle className="text-base">Field Properties</CardTitle>
@@ -82,7 +82,7 @@ export function FormBuilderFieldProperties({ selectedField, onUpdateField }: Pro
   };
 
   return (
-    <div>
+    <div className="col-span-4">
       <Card className="sticky top-6">
         <CardHeader>
           <CardTitle className="text-base">Field Properties</CardTitle>
@@ -187,30 +187,30 @@ export function FormBuilderFieldProperties({ selectedField, onUpdateField }: Pro
                 <Label className="font-medium">File Upload Settings</Label>
 
                 {/* Allowed File Types */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Allowed File Types</Label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {COMMON_FILE_TYPES.map(ft => {
-                      const current = selectedField.fileValidation?.allowedTypes || [];
-                      const checked = current.includes(ft.value);
-                      return (
-                        <label key={ft.value} className="flex items-center gap-1.5 text-xs cursor-pointer">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={(val) => {
-                              const updated = val
-                                ? [...current, ft.value]
-                                : current.filter(t => t !== ft.value);
-                              onUpdateField(selectedField.id, {
-                                fileValidation: { ...selectedField.fileValidation, allowedTypes: updated },
-                              });
-                            }}
-                          />
-                          {ft.label}
-                        </label>
-                      );
-                    })}
-                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Allowed File Types</Label>
+                    <div className="space-y-1.5">
+                      {COMMON_FILE_TYPES.map(ft => {
+                        const current = selectedField.fileValidation?.allowedTypes || [];
+                        const checked = current.includes(ft.value);
+                        return (
+                          <label key={ft.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(val) => {
+                                const updated = val
+                                  ? [...current, ft.value]
+                                  : current.filter(t => t !== ft.value);
+                                onUpdateField(selectedField.id, {
+                                  fileValidation: { ...selectedField.fileValidation, allowedTypes: updated },
+                                });
+                              }}
+                            />
+                            <span>{ft.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   <p className="text-[11px] text-muted-foreground">Leave all unchecked to allow any file type.</p>
                 </div>
 

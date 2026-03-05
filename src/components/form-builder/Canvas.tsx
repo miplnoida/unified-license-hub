@@ -113,7 +113,7 @@ export function FormBuilderCanvas({
   const totalFields = rows.reduce((acc, row) => acc + row.fields.filter(Boolean).length, 0);
 
   return (
-    <div className="lg:col-span-2">
+    <div className="col-span-8">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
