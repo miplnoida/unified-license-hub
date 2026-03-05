@@ -90,7 +90,7 @@ export default function PostLicensingApplications() {
     { key: 'status', label: 'Status', render: (r) => <Badge variant={statusVariant(r.status) as any}>{r.status}</Badge> },
     {
       key: 'actions', label: '', render: (r) => (
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openView(r)}><Eye className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/post-licensee/applications/${r.id}/forms?service=${encodeURIComponent(r.service)}`)}><Eye className="h-4 w-4" /></Button>
       )
     },
   ];
