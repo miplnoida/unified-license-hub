@@ -86,7 +86,7 @@ export default function PostLicensingApplications() {
             data={apps}
             searchPlaceholder="Search applications..."
             actions={
-              <Button size="sm" onClick={() => navigate('/pre-license/new')}>
+              <Button size="sm" onClick={() => navigate('/post-license/new')}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 New Application
               </Button>

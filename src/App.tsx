@@ -54,6 +54,7 @@ import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import ManageWebUsers from "./pages/admin/ManageWebUsers";
 import ManageLicenses from "./pages/admin/ManageLicenses";
 import PostLicensingApplications from "./pages/admin/PostLicensingApplications";
+import NewPostLicenseApplication from "./pages/NewPostLicenseApplication";
 import ChangeActiveSector from "./pages/admin/ChangeActiveSector";
 import WorkflowConfig from "./pages/admin/WorkflowConfig";
 
@@ -106,6 +107,7 @@ function AppRoutes() {
 
       {/* Post-Licensee routes */}
       <Route path="/post-license" element={<P><PostLicense /></P>} />
+      <Route path="/post-license/new" element={<P><NewPostLicenseApplication /></P>} />
       <Route path="/returns" element={<P><Returns /></P>} />
       <Route path="/applications" element={<P><DashboardRouter /></P>} />
 
