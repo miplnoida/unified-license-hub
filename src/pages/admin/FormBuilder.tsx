@@ -34,10 +34,13 @@ import {
   getSubSectorsBySector,
   getCategoriesBySubSector,
   getServicesBySubSector,
+  categories,
+  services,
 } from '@/data/sectorData';
 import { FormBuilderFieldPalette, fieldTypes } from '@/components/form-builder/FieldPalette';
 import { FormBuilderCanvas } from '@/components/form-builder/Canvas';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
+import { saveForm } from '@/lib/formStorage';
 
 interface FormField {
   id: string;
@@ -132,10 +135,27 @@ export default function FormBuilder() {
 
     setIsSaving(true);
     try {
-      // Simulate save – replace with DB call when ready
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const categoryName = selectedCategory
+        ? (categories.find((c) => c.id === selectedCategory)?.name || selectedCategory)
+        : '';
+      const serviceName = selectedService
+        ? (services.find((s) => s.id === selectedService)?.name || selectedService)
+        : '';
+
+      saveForm({
+        id: crypto.randomUUID(),
+        name: formName.trim(),
+        formType: formType as 'pre_license' | 'post_license',
+        category: categoryName,
+        service: serviceName,
+        sector: selectedSector,
+        subSector: selectedSubSector,
+        status: 'draft',
+        createdDate: new Date().toISOString().split('T')[0],
+        fields,
+      });
+
       toast.success('Form saved successfully!');
-      // Redirect to the appropriate list page
       const listPath = formType === 'pre_license'
         ? '/admin/forms/pre-license'
         : '/admin/forms/post-license';
