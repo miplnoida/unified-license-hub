@@ -64,10 +64,35 @@ export const countries = [
   'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Venezuela',
 ];
 
+export interface ServiceOption {
+  id: string;
+  subSectorId: string;
+  name: string;
+}
+
+export const services: ServiceOption[] = [
+  { id: 'svc-life-underwriting', subSectorId: 'life', name: 'Life Underwriting Services' },
+  { id: 'svc-life-claims', subSectorId: 'life', name: 'Life Claims Processing' },
+  { id: 'svc-general-underwriting', subSectorId: 'general', name: 'General Underwriting Services' },
+  { id: 'svc-general-claims', subSectorId: 'general', name: 'General Claims Processing' },
+  { id: 'svc-health-admin', subSectorId: 'health', name: 'Health Plan Administration' },
+  { id: 'svc-comm-lending', subSectorId: 'commercial', name: 'Commercial Lending Services' },
+  { id: 'svc-comm-deposits', subSectorId: 'commercial', name: 'Deposit Taking Services' },
+  { id: 'svc-dev-project', subSectorId: 'development', name: 'Project Finance Services' },
+  { id: 'svc-securities-trading', subSectorId: 'securities', name: 'Securities Trading Services' },
+  { id: 'svc-investment-mgmt', subSectorId: 'investment', name: 'Portfolio Management Services' },
+  { id: 'svc-pension-mgmt', subSectorId: 'pension-fund', name: 'Pension Fund Management' },
+  { id: 'svc-pension-advisory', subSectorId: 'pension-fund', name: 'Pension Advisory Services' },
+];
+
 export function getSubSectorsBySector(sectorId: string): SubSectorOption[] {
   return subSectors.filter(s => s.sectorId === sectorId);
 }
 
 export function getCategoriesBySubSector(subSectorId: string): CategoryOption[] {
   return categories.filter(c => c.subSectorId === subSectorId);
+}
+
+export function getServicesBySubSector(subSectorId: string): ServiceOption[] {
+  return services.filter(s => s.subSectorId === subSectorId);
 }
