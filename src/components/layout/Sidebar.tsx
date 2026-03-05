@@ -181,7 +181,11 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            setCollapsed(!collapsed);
+            // Notify DashboardLayout of the change
+            setTimeout(() => window.dispatchEvent(new Event('sidebar-toggle')), 0);
+          }}
           className="text-sidebar-foreground hover:bg-sidebar-accent"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
