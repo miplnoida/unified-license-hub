@@ -13,46 +13,34 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
-  ArrowLeft, Eye, Pencil, Plus, Trash2, FileText,
+  ArrowLeft, Eye, Plus, Trash2, FileText, Loader2,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useForms } from '@/hooks/useForms';
 
-export interface FormItem {
-  id: string;
-  name: string;
-  subSector: string;
-  category: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'verified';
-  completedFor: string;
-  organisationName: string;
-}
-
-const initialForms: FormItem[] = [
-  { id: 'f1', name: 'Schedule 2 - Company Information', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'completed', completedFor: 'John Smith', organisationName: 'ABC Financial Services Ltd.' },
-  { id: 'f2', name: 'Schedule 5 - Directors & Officers', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'completed', completedFor: 'Jane Doe', organisationName: 'ABC Financial Services Ltd.' },
-  { id: 'f3', name: 'MLRO/MLCO/CO Declaration', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'in_progress', completedFor: 'Robert Brown', organisationName: 'ABC Financial Services Ltd.' },
-  { id: 'f4', name: 'Financial Statements', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'not_started', completedFor: '—', organisationName: 'ABC Financial Services Ltd.' },
-  { id: 'f5', name: 'Supporting Documents', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'not_started', completedFor: '—', organisationName: 'ABC Financial Services Ltd.' },
-];
-
-function getFormStatusBadge(status: FormItem['status']) {
-  const map = {
+function getFormStatusBadge(status: string) {
+  const map: Record<string, { label: string; className: string }> = {
     not_started: { label: 'Not Started', className: 'bg-muted text-muted-foreground' },
     in_progress: { label: 'In Progress', className: 'bg-warning/10 text-warning border border-warning/20' },
     completed: { label: 'Completed', className: 'bg-success/10 text-success border border-success/20' },
     verified: { label: 'Verified', className: 'bg-primary/10 text-primary border border-primary/20' },
   };
-  const { label, className } = map[status];
+  const { label, className } = map[status] || { label: status, className: 'bg-muted text-muted-foreground' };
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}>{label}</span>;
 }
 
 export default function ApplicationForms() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
-  const [forms, setForms] = useState<FormItem[]>(initialForms);
+  const { data: dbForms = [], isLoading } = useForms('pre_license');
+
+  // Only show published forms from admin panel
+  const publishedForms = dbForms.filter(f => f.status === 'published');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [targetFormId, setTargetFormId] = useState<string | null>(null);
   const [applicantName, setApplicantName] = useState('');
+  const [formApplicants, setFormApplicants] = useState<Record<string, string>>({});
 
   const handleAddApplicant = (formId: string) => {
     setTargetFormId(formId);
@@ -62,18 +50,9 @@ export default function ApplicationForms() {
 
   const handleConfirmApplicant = () => {
     if (!applicantName.trim() || !targetFormId) return;
-    setForms(prev =>
-      prev.map(f =>
-        f.id === targetFormId ? { ...f, completedFor: applicantName.trim() } : f
-      )
-    );
+    setFormApplicants(prev => ({ ...prev, [targetFormId]: applicantName.trim() }));
     toast({ title: 'Applicant Added', description: `"${applicantName.trim()}" assigned to form.` });
     setModalOpen(false);
-  };
-
-  const handleDelete = (formId: string) => {
-    setForms(prev => prev.filter(f => f.id !== formId));
-    toast({ title: 'Form Removed', description: 'The form entry has been removed.' });
   };
 
   return (
@@ -95,91 +74,73 @@ export default function ApplicationForms() {
             <p className="text-sm text-muted-foreground mt-1">Complete all required forms for this application.</p>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Organisation Name</TableHead>
-                <TableHead>Form Name</TableHead>
-                <TableHead>Sub Sector</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Form Status</TableHead>
-                <TableHead>Completed For</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {forms.map((form) => (
-                <TableRow key={form.id}>
-                  <TableCell>{form.organisationName}</TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      {form.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>{form.subSector}</TableCell>
-                  <TableCell>{form.category}</TableCell>
-                  <TableCell>{getFormStatusBadge(form.status)}</TableCell>
-                  <TableCell>{form.completedFor}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-0.5">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms/${form.id}?mode=view`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View</TooltipContent>
-                      </Tooltip>
-
-                      {(form.status === 'not_started' || form.status === 'in_progress') && (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : publishedForms.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No forms have been configured for this application type yet.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Form Name</TableHead>
+                  <TableHead>Sector</TableHead>
+                  <TableHead>Sub Sector</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Form Status</TableHead>
+                  <TableHead>Completed For</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {publishedForms.map((form) => (
+                  <TableRow key={form.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        {form.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{form.sector}</TableCell>
+                    <TableCell>{form.sub_sector}</TableCell>
+                    <TableCell>{form.category}</TableCell>
+                    <TableCell>{getFormStatusBadge('not_started')}</TableCell>
+                    <TableCell>{formApplicants[form.id] || '—'}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-0.5">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost" size="icon" className="h-8 w-8"
-                              onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms/${form.id}?mode=edit`)}
+                              onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms/${form.id}?mode=view`)}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
+                          <TooltipContent>View</TooltipContent>
                         </Tooltip>
-                      )}
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost" size="icon" className="h-8 w-8"
-                            onClick={() => handleAddApplicant(form.id)}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Add Applicant</TooltipContent>
-                      </Tooltip>
-
-                      {form.status === 'not_started' && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="ghost" size="icon" className="h-8 w-8 text-destructive"
-                              onClick={() => handleDelete(form.id)}
+                              variant="ghost" size="icon" className="h-8 w-8"
+                              onClick={() => handleAddApplicant(form.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Plus className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Delete</TooltipContent>
+                          <TooltipContent>Add Applicant</TooltipContent>
                         </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
 

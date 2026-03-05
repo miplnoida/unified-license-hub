@@ -203,16 +203,6 @@ export default function PreLicenseeDashboard() {
                           <TooltipContent>View Forms</TooltipContent>
                         </Tooltip>
 
-                        {(app.status === 'draft' || app.status === 'work_in_progress') && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Edit</TooltipContent>
-                          </Tooltip>
-                        )}
 
                         {app.status === 'draft' && (
                           <Tooltip>
