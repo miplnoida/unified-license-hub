@@ -311,9 +311,34 @@ export const mainNavSections: NavSection[] = [
       },
       {
         label: 'Master Configuration',
-        href: '/admin/masters',
         icon: <Building2 className="h-5 w-5" />,
         roles: ['admin'],
+        children: [
+          {
+            label: 'Sectors',
+            href: '/admin/masters/sectors',
+            icon: <Layers className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Sub-Sectors',
+            href: '/admin/masters/sub-sectors',
+            icon: <Boxes className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Categories',
+            href: '/admin/masters/categories',
+            icon: <ListOrdered className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Services',
+            href: '/admin/masters/services',
+            icon: <SlidersHorizontal className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+        ],
       },
       {
         label: 'Form Management',

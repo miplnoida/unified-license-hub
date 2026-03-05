@@ -141,7 +141,11 @@ function AppRoutes() {
       <Route path="/admin/returns" element={<P><Dashboard /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
-      <Route path="/admin/masters" element={<P><MasterConfiguration /></P>} />
+      <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
+      <Route path="/admin/masters/sectors" element={<P><MasterConfiguration /></P>} />
+      <Route path="/admin/masters/sub-sectors" element={<P><MasterConfiguration /></P>} />
+      <Route path="/admin/masters/categories" element={<P><MasterConfiguration /></P>} />
+      <Route path="/admin/masters/services" element={<P><MasterConfiguration /></P>} />
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
       <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
       <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
