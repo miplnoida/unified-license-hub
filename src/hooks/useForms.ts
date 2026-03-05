@@ -39,6 +39,10 @@ export function useForms(formType?: 'pre_license' | 'post_license') {
       if (formType) forms = forms.filter(f => f.form_type === formType);
       return forms.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -50,6 +54,10 @@ export function useForm(id: string | null) {
       return getAllForms().find(f => f.id === id) || null;
     },
     enabled: !!id,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
