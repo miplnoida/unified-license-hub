@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { Eye, FileText, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Eye, FileText, Clock, CheckCircle, XCircle, PlusCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 interface PostLicApp {
@@ -41,6 +42,7 @@ const statusVariant = (s: string) => {
 };
 
 export default function PostLicensingApplications() {
+  const navigate = useNavigate();
   const [apps, setApps] = useState(initialApps);
   const [viewApp, setViewApp] = useState<PostLicApp | null>(null);
   const [editStatus, setEditStatus] = useState('');
@@ -71,7 +73,13 @@ export default function PostLicensingApplications() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Post Licensing Applications" description="Manage applications submitted after licensing." />
+        <div className="flex items-center justify-between">
+          <PageHeader title="Post Licensing Applications" description="Manage applications submitted after licensing." />
+          <Button onClick={() => navigate('/pre-license/new')}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Application
+          </Button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total" value={apps.length} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Pending" value={apps.filter(a => a.status === 'Pending').length} icon={<Clock className="h-6 w-6" />} variant="warning" />
