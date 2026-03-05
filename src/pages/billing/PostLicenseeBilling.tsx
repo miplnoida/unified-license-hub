@@ -41,7 +41,7 @@ export default function PostLicenseeBilling() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Post-Licensee Billing" description="Billing records for post-license services and renewals." backHref="/dashboard" backLabel="Dashboard" />
+        <PageHeader title="Post-Licensee Billing" description="Billing records for post-license services and renewals." />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Billed" value="$2,850" icon={<DollarSign className="h-6 w-6" />} />
           <StatCard title="Collected" value="$2,100" icon={<CheckCircle className="h-6 w-6" />} variant="success" />

@@ -100,8 +100,6 @@ export default function PostLicenseForms() {
         <PageHeader
           title="Post-License Forms"
           description="Manage all post-license service forms."
-          backHref="/dashboard"
-          backLabel="Dashboard"
           actions={
             <Button onClick={() => navigate('/admin/forms/create?type=post_license')}>
               <PlusCircle className="h-4 w-4 mr-2" />

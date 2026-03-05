@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 export default function ChangePassword() {
   return (
     <DashboardLayout>
-      <PageHeader title="Change Password" backHref="/dashboard" backLabel="Dashboard" />
+      <PageHeader title="Change Password" />
       <div className="max-w-lg mt-6">
         <Card>
           <CardHeader>

@@ -42,7 +42,7 @@ export default function MailSms() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Mail & SMS" description="Send and track email and SMS communications." backHref="/dashboard" backLabel="Dashboard" />
+        <PageHeader title="Mail & SMS" description="Send and track email and SMS communications." />
 
         <Tabs defaultValue="compose" className="animate-slide-up delay-100">
           <TabsList>

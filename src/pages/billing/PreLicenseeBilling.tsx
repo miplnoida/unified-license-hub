@@ -47,8 +47,6 @@ export default function PreLicenseeBilling() {
         <PageHeader
           title="Pre-Licensee Billing"
           description="Manage billing and fee collection for pre-license applications."
-          backHref="/dashboard"
-          backLabel="Dashboard"
         />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Billed" value="$4,250" icon={<DollarSign className="h-6 w-6" />} />

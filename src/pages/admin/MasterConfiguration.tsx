@@ -64,7 +64,7 @@ export default function MasterConfiguration() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Master Configuration" description="Manage sectors, categories, and services metadata." backHref="/dashboard" backLabel="Dashboard" />
+        <PageHeader title="Master Configuration" description="Manage sectors, categories, and services metadata." />
 
         <Tabs defaultValue="sectors" className="animate-slide-up delay-100">
           <TabsList>

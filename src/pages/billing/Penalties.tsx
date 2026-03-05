@@ -48,8 +48,6 @@ export default function Penalties() {
         <PageHeader
           title="Penalties"
           description="Manage penalty assessments, collections, and dispute resolution."
-          backHref="/dashboard"
-          backLabel="Dashboard"
           actions={<Button><Plus className="h-4 w-4 mr-2" />Issue Penalty</Button>}
         />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">

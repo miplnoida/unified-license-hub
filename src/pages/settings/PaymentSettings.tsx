@@ -20,8 +20,6 @@ export default function PaymentSettings() {
         <PageHeader
           title="Payment Settings"
           description="Configure payment gateways, fees, and transaction rules."
-          backHref="/dashboard"
-          backLabel="Dashboard"
           actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>}
         />
 

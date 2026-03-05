@@ -24,8 +24,6 @@ export default function StatementReports() {
         <PageHeader
           title="Statement Reports"
           description="Generate and download official regulatory statements."
-          backHref="/dashboard"
-          backLabel="Dashboard"
           actions={<Button><Download className="h-4 w-4 mr-2" />Generate Statement</Button>}
         />
 
