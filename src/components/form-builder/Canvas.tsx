@@ -177,40 +177,44 @@ export function FormBuilderCanvas({
                   <div key={`${row.id}-${slotIndex}`} className="min-w-0">
                     {field ? (
                       <div
-                        className={`flex items-center gap-1.5 p-2 rounded-md border cursor-pointer transition-all overflow-hidden ${
+                        className={`flex flex-col gap-1 p-2.5 rounded-md border cursor-pointer transition-all overflow-hidden ${
                           selectedField?.id === field.id
                             ? 'border-primary bg-primary/5'
                             : 'hover:border-primary/50 border-muted'
                         }`}
                         onClick={() => onSelectField(field)}
                       >
-                        <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
-                          {getFieldIcon(field.type)}
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="flex h-6 w-6 items-center justify-center rounded bg-muted text-muted-foreground shrink-0">
+                            {getFieldIcon(field.type)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-xs truncate">{field.label}</p>
+                            <p className="text-[10px] text-muted-foreground capitalize truncate">{getFieldLabel(field.type)}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-xs truncate">{field.label}</p>
-                          <p className="text-[10px] text-muted-foreground capitalize truncate">{getFieldLabel(field.type)}</p>
-                        </div>
-                        {field.required && (
-                          <Badge variant="outline" className="text-[10px] px-1 shrink-0 hidden sm:inline-flex">Req</Badge>
-                        )}
-                        <div className="flex items-center shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={(e) => { e.stopPropagation(); onDuplicateField(row.id, slotIndex); }}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-destructive"
-                            onClick={(e) => { e.stopPropagation(); onDeleteField(row.id, slotIndex); }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div className="flex items-center gap-1 pt-0.5 border-t border-border/50">
+                          {field.required && (
+                            <Badge variant="outline" className="text-[10px] px-1">Req</Badge>
+                          )}
+                          <div className="flex items-center ml-auto">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => { e.stopPropagation(); onDuplicateField(row.id, slotIndex); }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                              onClick={(e) => { e.stopPropagation(); onDeleteField(row.id, slotIndex); }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ) : (
