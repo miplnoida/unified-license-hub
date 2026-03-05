@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,29 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { useForm as useFormDetail } from '@/hooks/useForms';
 import type { FormField } from '@/types/formBuilder';
+
+// --- Submission persistence helpers ---
+const SUBMISSIONS_KEY = 'app_form_submissions';
+
+interface FormSubmission {
+  formData: Record<string, string>;
+  uploadedFiles: Record<string, { name: string; url: string; type: string }>;
+}
+
+function getSubmission(applicationId: string, formId: string): FormSubmission | null {
+  try {
+    const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}');
+    return all[`${applicationId}__${formId}`] || null;
+  } catch { return null; }
+}
+
+function saveSubmission(applicationId: string, formId: string, data: FormSubmission) {
+  try {
+    const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}');
+    all[`${applicationId}__${formId}`] = data;
+    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(all));
+  } catch { /* ignore */ }
+}
 
 export default function FormDetail() {
   const { applicationId, formId } = useParams<{ applicationId: string; formId: string }>();
@@ -42,6 +65,17 @@ export default function FormDetail() {
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Load saved submission data on mount
+  useEffect(() => {
+    if (applicationId && formId) {
+      const saved = getSubmission(applicationId, formId);
+      if (saved) {
+        setFormData(saved.formData || {});
+        setUploadedFiles(saved.uploadedFiles || {});
+      }
+    }
+  }, [applicationId, formId]);
 
   const isReadOnly = mode === 'view';
 
@@ -99,6 +133,9 @@ export default function FormDetail() {
     if (!validateForm()) {
       toast({ title: 'Validation Error', description: 'Please fix the highlighted errors before saving.', variant: 'destructive' });
       return;
+    }
+    if (applicationId && formId) {
+      saveSubmission(applicationId, formId, { formData, uploadedFiles });
     }
     toast({ title: 'Form Saved', description: `${dbForm?.name || 'Form'} has been saved successfully.` });
     navigate(`/pre-licensee/applications/${applicationId}/forms`);
