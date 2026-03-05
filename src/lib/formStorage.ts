@@ -1,3 +1,5 @@
+import type { FormField, FormRow } from '@/types/formBuilder';
+
 export interface StoredForm {
   id: string;
   name: string;
@@ -8,7 +10,9 @@ export interface StoredForm {
   subSector: string;
   status: 'draft' | 'published' | 'archived';
   createdDate: string;
-  fields: Array<{
+  rows: FormRow[];
+  // Legacy flat fields (for backward compat)
+  fields?: Array<{
     id: string;
     type: string;
     label: string;
