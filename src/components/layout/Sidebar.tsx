@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { mainNavSections, bottomNavItems, NavItem } from '@/config/navigation';
 import {
   Layers,
@@ -90,6 +90,7 @@ function CollapsibleNavItem({
                 <Link
                   key={child.href}
                   to={child.href}
+                  data-sidebar-active={isActive ? "true" : undefined}
                   className={cn(
                     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
                     isActive && 'bg-sidebar-accent text-sidebar-primary font-medium'
@@ -112,7 +113,7 @@ export function Sidebar() {
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
   const location = useLocation();
   const { user, logout } = useAuth();
-
+  const navRef = useRef<HTMLDivElement>(null);
 
 
   const toggleGroup = useCallback((label: string) => {
@@ -123,18 +124,30 @@ export function Sidebar() {
     );
   }, [setExpandedGroups]);
 
-  // Auto-expand group containing active route
+  // Auto-expand group containing active route and scroll active item into view
   useEffect(() => {
+    let needsExpand = false;
     mainNavSections.forEach(section => {
       section.items.forEach(item => {
         if (item.children) {
           const hasActive = item.children.some(c => c.href && location.pathname === c.href);
           if (hasActive && !expandedGroups.includes(item.label)) {
+            needsExpand = true;
             setExpandedGroups(prev => [...prev, item.label]);
           }
         }
       });
     });
+
+    // Scroll active item into view after a short delay to allow expand animation
+    const delay = needsExpand ? 250 : 50;
+    const timer = setTimeout(() => {
+      const activeEl = navRef.current?.querySelector('[data-sidebar-active="true"]') as HTMLElement | null;
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      }
+    }, delay);
+    return () => clearTimeout(timer);
     // Only on pathname change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -218,7 +231,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation - Scrollable */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
+      <ScrollArea className="flex-1" ref={navRef}>
         <nav className="p-3 space-y-4">
           {mainNavSections.map((section) => {
             const visibleItems = section.items.filter(isItemVisible);
@@ -256,6 +269,7 @@ export function Sidebar() {
                       <Link
                         key={item.href}
                         to={item.href}
+                        data-sidebar-active={isActive ? "true" : undefined}
                         className={cn('nav-item', isActive && 'nav-item-active')}
                         title={collapsed ? item.label : undefined}
                       >
@@ -283,7 +297,7 @@ export function Sidebar() {
             );
           })}
         </nav>
-      </div>
+      </ScrollArea>
 
       {/* Bottom actions */}
       <div className="border-t border-sidebar-border p-3 space-y-0.5 shrink-0">
