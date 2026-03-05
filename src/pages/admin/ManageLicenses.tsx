@@ -69,19 +69,7 @@ export default function ManageLicenses() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <PageHeader title="Pre-License Applications" description="View and manage all pre-license applications." />
-          <div className="flex items-center gap-3">
-            <Button onClick={() => navigate('/pre-license/new')}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Application
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/returns')}>
-              <ClipboardList className="h-4 w-4 mr-2" />
-              Manage Returns
-            </Button>
-          </div>
-        </div>
+        <PageHeader title="Pre-License Applications" description="View and manage all pre-license applications." />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Applications" value={applications.length} icon={<FileCheck className="h-6 w-6" />} />
           <StatCard title="Approved" value={applications.filter(a => a.status === 'Approved').length} icon={<FileCheck className="h-6 w-6" />} variant="success" />
@@ -89,7 +77,23 @@ export default function ManageLicenses() {
           <StatCard title="Rejected" value={applications.filter(a => a.status === 'Rejected').length} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />
         </div>
         <div className="animate-slide-up delay-200">
-          <DataTableShell columns={columns} data={applications} searchPlaceholder="Search applications..." />
+          <DataTableShell
+            columns={columns}
+            data={applications}
+            searchPlaceholder="Search applications..."
+            actions={
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => navigate('/pre-license/new')}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  New Application
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => navigate('/returns')}>
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Manage Returns
+                </Button>
+              </div>
+            }
+          />
         </div>
       </div>
 
