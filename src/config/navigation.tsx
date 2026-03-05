@@ -65,6 +65,135 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
+    label: 'Administration',
+    items: [
+      {
+        label: 'Administration',
+        icon: <Shield className="h-5 w-5" />,
+        roles: ['post_licensee', 'admin', 'supervisor'],
+        children: [
+          {
+            label: 'Manage Web Users',
+            href: '/admin/web-users',
+            icon: <Users className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Manage Licenses',
+            href: '/admin/licenses',
+            icon: <FileCheck className="h-4 w-4" />,
+            roles: ['post_licensee', 'admin', 'supervisor'],
+          },
+          {
+            label: 'Post Licensing Applications',
+            href: '/admin/post-licensing',
+            icon: <FileText className="h-4 w-4" />,
+            roles: ['post_licensee', 'admin', 'supervisor'],
+          },
+          {
+            label: 'Change Active Sector',
+            href: '/admin/change-sector',
+            icon: <Layers className="h-4 w-4" />,
+            roles: ['post_licensee', 'admin', 'supervisor'],
+          },
+        ],
+      },
+      {
+        label: 'Role Management',
+        href: '/admin/roles',
+        icon: <Shield className="h-5 w-5" />,
+        roles: ['admin', 'supervisor'],
+      },
+      {
+        label: 'User Management',
+        href: '/admin/users',
+        icon: <Users className="h-5 w-5" />,
+        roles: ['admin', 'supervisor'],
+      },
+      {
+        label: 'Master Configuration',
+        icon: <Building2 className="h-5 w-5" />,
+        roles: ['admin'],
+        children: [
+          {
+            label: 'Sectors',
+            href: '/admin/masters/sectors',
+            icon: <Layers className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Sub-Sectors',
+            href: '/admin/masters/sub-sectors',
+            icon: <Boxes className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Categories',
+            href: '/admin/masters/categories',
+            icon: <ListOrdered className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Services',
+            href: '/admin/masters/services',
+            icon: <SlidersHorizontal className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+        ],
+      },
+      {
+        label: 'Form Management',
+        icon: <FormInput className="h-5 w-5" />,
+        roles: ['admin'],
+        children: [
+          {
+            label: 'Pre-License Forms',
+            href: '/admin/forms/pre-license',
+            icon: <FileText className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+          {
+            label: 'Post-License Forms',
+            href: '/admin/forms/post-license',
+            icon: <FileCheck className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+        ],
+      },
+      {
+        label: 'Workflow Config',
+        href: '/admin/workflows',
+        icon: <GitBranch className="h-5 w-5" />,
+        roles: ['admin'],
+      },
+      {
+        label: 'Settings',
+        icon: <Settings className="h-5 w-5" />,
+        roles: ['admin', 'supervisor'],
+        children: [
+          {
+            label: 'General Settings',
+            href: '/settings/general',
+            icon: <SlidersHorizontal className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Schedule Settings',
+            href: '/settings/schedule',
+            icon: <Calendar className="h-4 w-4" />,
+            roles: ['admin', 'supervisor'],
+          },
+          {
+            label: 'Payment Settings',
+            href: '/settings/payment',
+            icon: <CreditCard className="h-4 w-4" />,
+            roles: ['admin'],
+          },
+        ],
+      },
+    ],
+  },
+  {
     label: 'Applications',
     items: [
       {
@@ -291,135 +420,6 @@ export const mainNavSections: NavSection[] = [
         href: '/statement-reports',
         icon: <FileBarChart className="h-5 w-5" />,
         roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
-      },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      {
-        label: 'Administration',
-        icon: <Shield className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor'],
-        children: [
-          {
-            label: 'Manage Web Users',
-            href: '/admin/web-users',
-            icon: <Users className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Manage Licenses',
-            href: '/admin/licenses',
-            icon: <FileCheck className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-          {
-            label: 'Post Licensing Applications',
-            href: '/admin/post-licensing',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-          {
-            label: 'Change Active Sector',
-            href: '/admin/change-sector',
-            icon: <Layers className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-        ],
-      },
-      {
-        label: 'Role Management',
-        href: '/admin/roles',
-        icon: <Shield className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-      },
-      {
-        label: 'User Management',
-        href: '/admin/users',
-        icon: <Users className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-      },
-      {
-        label: 'Master Configuration',
-        icon: <Building2 className="h-5 w-5" />,
-        roles: ['admin'],
-        children: [
-          {
-            label: 'Sectors',
-            href: '/admin/masters/sectors',
-            icon: <Layers className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Sub-Sectors',
-            href: '/admin/masters/sub-sectors',
-            icon: <Boxes className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Categories',
-            href: '/admin/masters/categories',
-            icon: <ListOrdered className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Services',
-            href: '/admin/masters/services',
-            icon: <SlidersHorizontal className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
-      },
-      {
-        label: 'Form Management',
-        icon: <FormInput className="h-5 w-5" />,
-        roles: ['admin'],
-        children: [
-          {
-            label: 'Pre-License Forms',
-            href: '/admin/forms/pre-license',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Post-License Forms',
-            href: '/admin/forms/post-license',
-            icon: <FileCheck className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
-      },
-      {
-        label: 'Workflow Config',
-        href: '/admin/workflows',
-        icon: <GitBranch className="h-5 w-5" />,
-        roles: ['admin'],
-      },
-      {
-        label: 'Settings',
-        icon: <Settings className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-        children: [
-          {
-            label: 'General Settings',
-            href: '/settings/general',
-            icon: <SlidersHorizontal className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Schedule Settings',
-            href: '/settings/schedule',
-            icon: <Calendar className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Payment Settings',
-            href: '/settings/payment',
-            icon: <CreditCard className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
       },
     ],
   },
