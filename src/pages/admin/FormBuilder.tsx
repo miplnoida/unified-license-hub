@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  Eye,
-  Save,
-} from 'lucide-react';
+import { Eye, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   sectors,
@@ -65,42 +62,29 @@ export default function FormBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Read locked form type from URL params
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const lockedFormType = searchParams.get('type') || '';
+  const formType = searchParams.get('type') || 'pre_license';
+  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : 'Post-License';
 
-  // Form details state
   const [formName, setFormName] = useState('');
-  const [formType, setFormType] = useState<string>(lockedFormType);
-  const [selectedSector, setSelectedSector] = useState<string>('');
-  const [selectedSubSector, setSelectedSubSector] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedService, setSelectedService] = useState<string>('');
+  const [selectedSector, setSelectedSector] = useState('');
+  const [selectedSubSector, setSelectedSubSector] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedService, setSelectedService] = useState('');
 
-  const isFormTypeLocked = !!lockedFormType;
   const filteredSubSectors = useMemo(
     () => (selectedSector ? getSubSectorsBySector(selectedSector) : []),
     [selectedSector]
   );
-
   const filteredCategories = useMemo(
     () => (selectedSubSector ? getCategoriesBySubSector(selectedSubSector) : []),
     [selectedSubSector]
   );
-
   const filteredServices = useMemo(
     () => (selectedSubSector ? getServicesBySubSector(selectedSubSector) : []),
     [selectedSubSector]
   );
-
-  const handleFormTypeChange = (value: string) => {
-    setFormType(value);
-    setSelectedSector('');
-    setSelectedSubSector('');
-    setSelectedCategory('');
-    setSelectedService('');
-  };
 
   const handleSectorChange = (value: string) => {
     setSelectedSector(value);
@@ -115,13 +99,48 @@ export default function FormBuilder() {
     setSelectedService('');
   };
 
+  // Field management
+  const handleAddField = useCallback((type: string) => {
+    const ft = fieldTypes.find(f => f.type === type);
+    const newField: FormField = {
+      id: crypto.randomUUID(),
+      type,
+      label: ft?.label || 'New Field',
+      required: false,
+      placeholder: '',
+    };
+    setFields(prev => [...prev, newField]);
+    setSelectedField(newField);
+  }, []);
+
+  const handleDeleteField = useCallback((id: string) => {
+    setFields(prev => prev.filter(f => f.id !== id));
+    setSelectedField(prev => (prev?.id === id ? null : prev));
+  }, []);
+
+  const handleDuplicateField = useCallback((id: string) => {
+    setFields(prev => {
+      const idx = prev.findIndex(f => f.id === id);
+      if (idx === -1) return prev;
+      const clone = { ...prev[idx], id: crypto.randomUUID() };
+      const next = [...prev];
+      next.splice(idx + 1, 0, clone);
+      return next;
+    });
+  }, []);
+
+  const handleReorder = useCallback((reordered: FormField[]) => {
+    setFields(reordered);
+  }, []);
+
+  const handleUpdateField = useCallback((id: string, updates: Partial<FormField>) => {
+    setFields(prev => prev.map(f => (f.id === id ? { ...f, ...updates } : f)));
+    setSelectedField(prev => (prev?.id === id ? { ...prev, ...updates } : prev));
+  }, []);
+
   const handleSave = async () => {
     if (!formName.trim()) {
       toast.error('Please enter a form name.');
-      return;
-    }
-    if (!formType) {
-      toast.error('Please select a form type.');
       return;
     }
     if (formType === 'pre_license' && selectedSubSector && !selectedCategory) {
@@ -136,10 +155,10 @@ export default function FormBuilder() {
     setIsSaving(true);
     try {
       const categoryName = selectedCategory
-        ? (categories.find((c) => c.id === selectedCategory)?.name || selectedCategory)
+        ? (categories.find(c => c.id === selectedCategory)?.name || selectedCategory)
         : '';
       const serviceName = selectedService
-        ? (services.find((s) => s.id === selectedService)?.name || selectedService)
+        ? (services.find(s => s.id === selectedService)?.name || selectedService)
         : '';
 
       saveForm({
@@ -156,10 +175,7 @@ export default function FormBuilder() {
       });
 
       toast.success('Form saved successfully!');
-      const listPath = formType === 'pre_license'
-        ? '/admin/forms/pre-license'
-        : '/admin/forms/post-license';
-      navigate(listPath);
+      navigate(formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license');
     } catch (error) {
       console.error('Error saving form:', error);
       toast.error('Failed to save form. Please try again.');
@@ -168,20 +184,17 @@ export default function FormBuilder() {
     }
   };
 
-  const getFieldIcon = (type: string) => {
-    const ft = fieldTypes.find((f) => f.type === type);
-    return ft?.icon || null;
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between animate-slide-up">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Form Builder</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {formTypeLabel} Form Builder
+            </h1>
             <p className="mt-1 text-muted-foreground">
-              Create and manage dynamic forms for applications and returns.
+              Create a new {formTypeLabel.toLowerCase()} form with drag-and-drop fields.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -203,35 +216,22 @@ export default function FormBuilder() {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Sector */}
               <div className="space-y-2">
-                <Label>Form Type</Label>
-                <Select value={formType} onValueChange={handleFormTypeChange} disabled={isFormTypeLocked}>
+                <Label>Sector</Label>
+                <Select value={selectedSector} onValueChange={handleSectorChange}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select form type" />
+                    <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pre_license">Pre-License</SelectItem>
-                    <SelectItem value="post_license">Post-License</SelectItem>
+                    {sectors.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {formType && (
-                <div className="space-y-2">
-                  <Label>Sector</Label>
-                  <Select value={selectedSector} onValueChange={handleSectorChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sector" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectors.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
+              {/* Sub Sector */}
               {selectedSector && (
                 <div className="space-y-2">
                   <Label>Sub Sector</Label>
@@ -240,7 +240,7 @@ export default function FormBuilder() {
                       <SelectValue placeholder="Select sub sector" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredSubSectors.map((ss) => (
+                      {filteredSubSectors.map(ss => (
                         <SelectItem key={ss.id} value={ss.id}>{ss.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -248,6 +248,7 @@ export default function FormBuilder() {
                 </div>
               )}
 
+              {/* Category for Pre-License */}
               {formType === 'pre_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Category <span className="text-destructive">*</span></Label>
@@ -256,7 +257,7 @@ export default function FormBuilder() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredCategories.map((c) => (
+                      {filteredCategories.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -264,6 +265,7 @@ export default function FormBuilder() {
                 </div>
               )}
 
+              {/* Service for Post-License */}
               {formType === 'post_license' && selectedSubSector && (
                 <div className="space-y-2">
                   <Label>Service <span className="text-destructive">*</span></Label>
@@ -272,7 +274,7 @@ export default function FormBuilder() {
                       <SelectValue placeholder="Select service" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredServices.map((svc) => (
+                      {filteredServices.map(svc => (
                         <SelectItem key={svc.id} value={svc.id}>{svc.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -280,30 +282,37 @@ export default function FormBuilder() {
                 </div>
               )}
 
-              {/* Form Name appears after Category/Service selection */}
-              {(formType === 'pre_license' && selectedCategory) || (formType === 'post_license' && selectedService) ? (
+              {/* Form Name after Category/Service */}
+              {((formType === 'pre_license' && selectedCategory) || (formType === 'post_license' && selectedService)) && (
                 <div className="space-y-2">
                   <Label>Form Name <span className="text-destructive">*</span></Label>
                   <Input
                     value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
+                    onChange={e => setFormName(e.target.value)}
                     placeholder="Enter form name"
                   />
                 </div>
-              ) : null}
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Builder panels */}
         <div className="grid lg:grid-cols-4 gap-6 animate-slide-up delay-200">
-          <FormBuilderFieldPalette />
+          <FormBuilderFieldPalette onAddField={handleAddField} />
           <FormBuilderCanvas
             fields={fields}
             selectedField={selectedField}
             onSelectField={setSelectedField}
+            onReorder={handleReorder}
+            onAddField={handleAddField}
+            onDeleteField={handleDeleteField}
+            onDuplicateField={handleDuplicateField}
           />
-          <FormBuilderFieldProperties selectedField={selectedField} />
+          <FormBuilderFieldProperties
+            selectedField={selectedField}
+            onUpdateField={handleUpdateField}
+          />
         </div>
       </div>
 
@@ -317,7 +326,7 @@ export default function FormBuilder() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            {fields.map((field) => (
+            {fields.map(field => (
               <div key={field.id} className="space-y-2">
                 <Label>
                   {field.label}
