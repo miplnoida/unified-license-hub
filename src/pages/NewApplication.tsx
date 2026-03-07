@@ -50,8 +50,8 @@ export default function NewApplication() {
     }
 
     const sectorObj = sectors.find(s => s.id === selectedSector);
-    const subSectorObj = subSectors.filter(s => s.sectorId === selectedSector).find(s => s.id === selectedSubSector);
-    const categoryObj = categories.filter(c => c.subSectorId === selectedSubSector).find(c => c.id === selectedCategory);
+    const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
+    const categoryObj = allCategories.find(c => c.id === selectedCategory);
 
     const newAppId = `app-${Date.now()}`;
 
