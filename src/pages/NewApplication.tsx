@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { sectors, subSectors, categories } from '@/data/sectorData';
+import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,8 +21,12 @@ export default function NewApplication() {
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  const filteredSubSectors = subSectors.filter((s) => s.sectorId === selectedSector);
-  const filteredCategories = categories.filter((c) => c.subSectorId === selectedSubSector);
+  const { data: sectors = [] } = useSectors();
+  const { data: allSubSectors = [] } = useSubSectors();
+  const { data: allCategories = [] } = useCategories();
+
+  const filteredSubSectors = allSubSectors.filter((s) => s.sector_id === selectedSector);
+  const filteredCategories = allCategories.filter((c) => c.sub_sector_id === selectedSubSector);
 
   const handleSectorChange = (val: string) => {
     setSelectedSector(val);
@@ -46,8 +50,8 @@ export default function NewApplication() {
     }
 
     const sectorObj = sectors.find(s => s.id === selectedSector);
-    const subSectorObj = subSectors.filter(s => s.sectorId === selectedSector).find(s => s.id === selectedSubSector);
-    const categoryObj = categories.filter(c => c.subSectorId === selectedSubSector).find(c => c.id === selectedCategory);
+    const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
+    const categoryObj = allCategories.find(c => c.id === selectedCategory);
 
     const newAppId = `app-${Date.now()}`;
 

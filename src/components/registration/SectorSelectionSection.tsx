@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { sectors, getSubSectorsBySector, getCategoriesBySubSector } from '@/data/sectorData';
+import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 
 interface Props {
   sectorId: string;
@@ -27,8 +27,12 @@ export function SectorSelectionSection({
   onCategoryChange,
   errors,
 }: Props) {
-  const subSectors = sectorId ? getSubSectorsBySector(sectorId) : [];
-  const categories = subSectorId ? getCategoriesBySubSector(subSectorId) : [];
+  const { data: sectors = [] } = useSectors();
+  const { data: allSubSectors = [] } = useSubSectors();
+  const { data: allCategories = [] } = useCategories();
+
+  const subSectors = sectorId ? allSubSectors.filter(s => s.sector_id === sectorId) : [];
+  const categories = subSectorId ? allCategories.filter(c => c.sub_sector_id === subSectorId) : [];
 
   return (
     <div className="form-section">
