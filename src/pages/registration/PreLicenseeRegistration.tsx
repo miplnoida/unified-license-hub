@@ -79,7 +79,7 @@ export default function PreLicenseeRegistration() {
         telephone: form.telephone,
         email: form.email,
         status: 'pending_verification',
-      });
+      }]);
 
       if (regError) {
         console.error('Registration save error:', regError);
