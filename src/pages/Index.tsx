@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,18 +16,6 @@ import {
   ClipboardList,
   Building2,
 } from 'lucide-react';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-
-const loginTabs: { value: string; label: string; roles: UserRole[]; useSupabase: boolean }[] = [
-  { value: 'pre_licensee', label: 'Pre-Licensee', roles: ['pre_licensee'], useSupabase: false },
-  { value: 'post_licensee', label: 'Post-Licensee', roles: ['post_licensee'], useSupabase: true },
-  { value: 'staff', label: 'AFSC Staff', roles: ['admin', 'reviewer', 'approver', 'supervisor'], useSupabase: false },
-];
 
 const features = [
   { icon: <FileText className="h-5 w-5" />, text: 'License Applications' },
@@ -39,18 +26,15 @@ const features = [
 
 export default function Index() {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('pre_licensee');
 
   if (isAuthenticated) {
     navigate('/dashboard');
     return null;
   }
-
-  const currentTab = loginTabs.find(t => t.value === activeTab)!;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,25 +44,16 @@ export default function Index() {
     }
 
     setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
 
-    if (currentTab.useSupabase) {
-      // Real Supabase auth for post-licensees
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
-      toast.success('Login successful');
-      navigate('/dashboard');
-    } else {
-      // Mock login for demo (pre-licensee & staff)
-      setLoading(false);
-      const role = currentTab.roles[0]; // default role
-      login(role);
-      toast.success('Login successful');
-      navigate('/dashboard');
+    if (error) {
+      toast.error(error.message);
+      return;
     }
+
+    toast.success('Login successful');
+    navigate('/dashboard');
   };
 
   return (
@@ -137,65 +112,51 @@ export default function Index() {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setEmail(''); setPassword(''); }}>
-            <TabsList className="w-full">
-              {loginTabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value} className="flex-1 text-xs sm:text-sm">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your.email@example.com"
+                  className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
 
-            {loginTabs.map((tab) => (
-              <TabsContent key={tab.value} value={tab.value} className="mt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`email-${tab.value}`}>Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id={`email-${tab.value}`}
-                        type="email"
-                        placeholder="your.email@example.com"
-                        className="pl-10"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                    </div>
-                  </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  className="text-xs text-primary hover:underline"
+                  onClick={() => toast.info('Please contact support to reset your password.')}
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  className="pl-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor={`password-${tab.value}`}>Password</Label>
-                      <button
-                        type="button"
-                        className="text-xs text-primary hover:underline"
-                        onClick={() => toast.info('Please contact support to reset your password.')}
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id={`password-${tab.value}`}
-                        type="password"
-                        placeholder="Enter your password"
-                        className="pl-10"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Signing in...' : 'Sign In'}
-                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
-                  </Button>
-                </form>
-              </TabsContent>
-            ))}
-          </Tabs>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+              {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+            </Button>
+          </form>
 
           {/* Registration link for Pre-Licensee */}
           <div className="text-center border-t pt-6">
