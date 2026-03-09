@@ -180,6 +180,8 @@ function AppRoutes() {
       <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
       <Route path="/registration/verification-pending" element={<VerificationPending />} />
       <Route path="/registration/success" element={<RegistrationSuccess />} />
+      <Route path="/registration/portal" element={<RegistrationPortal />} />
+      <Route path="/registration/portal/form/:formId" element={<RegistrationFormFill />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
