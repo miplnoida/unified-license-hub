@@ -69,6 +69,8 @@ import Notifications from "./pages/Notifications";
 import PreLicenseeRegistration from "./pages/registration/PreLicenseeRegistration";
 import VerificationPending from "./pages/registration/VerificationPending";
 import RegistrationSuccess from "./pages/registration/RegistrationSuccess";
+import RegistrationPortal from "./pages/registration/RegistrationPortal";
+import RegistrationFormFill from "./pages/registration/RegistrationFormFill";
 
 const queryClient = new QueryClient();
 

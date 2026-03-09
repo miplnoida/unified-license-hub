@@ -161,7 +161,7 @@ export default function RegistrationPortal() {
       case 'draft':
         return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Draft</Badge>;
       case 'completed':
-        return <Badge className="gap-1 bg-green-600"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
+        <Badge className="gap-1 bg-emerald-600 text-primary-foreground"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
