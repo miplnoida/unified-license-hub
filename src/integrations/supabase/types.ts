@@ -134,6 +134,107 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_form_submissions: {
+        Row: {
+          created_at: string
+          form_data: Json
+          form_id: string
+          id: string
+          registration_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          form_data?: Json
+          form_id: string
+          id?: string
+          registration_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          form_data?: Json
+          form_id?: string
+          id?: string
+          registration_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_form_submissions_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registrations: {
+        Row: {
+          applicant_name: string
+          applicant_name_alt: string | null
+          category_id: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          mailing_address: Json
+          physical_address: Json
+          same_as_mailing: boolean
+          sector_id: string
+          status: string
+          sub_sector_id: string
+          telephone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applicant_name: string
+          applicant_name_alt?: string | null
+          category_id: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          mailing_address?: Json
+          physical_address?: Json
+          same_as_mailing?: boolean
+          sector_id: string
+          status?: string
+          sub_sector_id: string
+          telephone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applicant_name?: string
+          applicant_name_alt?: string | null
+          category_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          mailing_address?: Json
+          physical_address?: Json
+          same_as_mailing?: boolean
+          sector_id?: string
+          status?: string
+          sub_sector_id?: string
+          telephone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sectors: {
         Row: {
           created_at: string

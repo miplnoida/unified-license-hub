@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { SectorSelectionSection } from '@/components/registration/SectorSelectionSection';
 import { ApplicantInfoSection } from '@/components/registration/ApplicantInfoSection';
 import { AddressSection } from '@/components/registration/AddressSection';
 import { ContactInfoSection } from '@/components/registration/ContactInfoSection';
+import { PasswordSection } from '@/components/registration/PasswordSection';
 import { CaptchaSection } from '@/components/registration/CaptchaSection';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { ArrowRight, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function PreLicenseeRegistration() {
   const navigate = useNavigate();
@@ -26,7 +29,6 @@ export default function PreLicenseeRegistration() {
 
   const handleSubmit = async () => {
     if (!validate()) {
-      // Scroll to first error
       const firstError = document.querySelector('.border-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -34,16 +36,68 @@ export default function PreLicenseeRegistration() {
 
     setSubmitting(true);
 
-    // Mock: simulate saving registration with PENDING_VERIFICATION status
-    await new Promise(res => setTimeout(res, 1200));
+    try {
+      // 1. Create Supabase auth account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            full_name: `${form.firstName} ${form.lastName}`,
+            entity_name: form.applicantName,
+            role: 'pre_licensee',
+            user_type: 'primary',
+          },
+        },
+      });
 
-    // Clear persisted form
-    reset();
+      if (authError) {
+        toast.error(authError.message);
+        setSubmitting(false);
+        return;
+      }
 
-    // Navigate to verification pending page with email context
-    navigate('/registration/verification-pending', {
-      state: { email: form.email },
-    });
+      if (!authData.user) {
+        toast.error('Failed to create account. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      // 2. Save registration data to DB
+      const { error: regError } = await supabase.from('registrations').insert([{
+        user_id: authData.user.id,
+        sector_id: form.sectorId,
+        sub_sector_id: form.subSectorId,
+        category_id: form.categoryId,
+        applicant_name: form.applicantName,
+        applicant_name_alt: form.applicantNameAlt,
+        mailing_address: JSON.parse(JSON.stringify(form.mailingAddress)),
+        physical_address: JSON.parse(JSON.stringify(form.sameAsMailing ? form.mailingAddress : form.physicalAddress)),
+        same_as_mailing: form.sameAsMailing,
+        first_name: form.firstName,
+        last_name: form.lastName,
+        telephone: form.telephone,
+        email: form.email,
+        status: 'pending_verification',
+      }]);
+
+      if (regError) {
+        console.error('Registration save error:', regError);
+        toast.error('Account created but failed to save registration details. Please contact support.');
+        setSubmitting(false);
+        return;
+      }
+
+      // 3. Clear form and navigate to portal
+      reset();
+      toast.success('Registration successful! You can now fill your application forms.');
+      navigate('/registration/portal');
+    } catch (err) {
+      console.error('Registration error:', err);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -99,6 +153,13 @@ export default function PreLicenseeRegistration() {
           errors={errors}
         />
 
+        <PasswordSection
+          password={form.password}
+          confirmPassword={form.confirmPassword}
+          onChange={setField}
+          errors={errors}
+        />
+
         <CaptchaSection
           checked={form.captchaChecked}
           onCheckedChange={(v) => setField('captchaChecked', v)}
@@ -112,9 +173,22 @@ export default function PreLicenseeRegistration() {
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Submitting...' : 'Register'}
+            {submitting ? 'Creating Account...' : 'Register & Continue'}
             {!submitting && <ArrowRight className="h-4 w-4 ml-2" />}
           </Button>
+        </div>
+
+        {/* Login link */}
+        <div className="text-center border-t border-border pt-6">
+          <p className="text-sm text-muted-foreground">
+            Already registered?{' '}
+            <button
+              onClick={() => navigate('/')}
+              className="font-medium text-primary hover:underline"
+            >
+              Sign in here
+            </button>
+          </p>
         </div>
       </div>
     </div>

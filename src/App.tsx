@@ -69,6 +69,8 @@ import Notifications from "./pages/Notifications";
 import PreLicenseeRegistration from "./pages/registration/PreLicenseeRegistration";
 import VerificationPending from "./pages/registration/VerificationPending";
 import RegistrationSuccess from "./pages/registration/RegistrationSuccess";
+import RegistrationPortal from "./pages/registration/RegistrationPortal";
+import RegistrationFormFill from "./pages/registration/RegistrationFormFill";
 
 const queryClient = new QueryClient();
 
@@ -178,6 +180,8 @@ function AppRoutes() {
       <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
       <Route path="/registration/verification-pending" element={<VerificationPending />} />
       <Route path="/registration/success" element={<RegistrationSuccess />} />
+      <Route path="/registration/portal" element={<RegistrationPortal />} />
+      <Route path="/registration/portal/form/:formId" element={<RegistrationFormFill />} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>

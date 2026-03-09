@@ -44,7 +44,7 @@ export default function Index() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
 
     if (error) {
@@ -52,7 +52,29 @@ export default function Index() {
       return;
     }
 
+    // Check profile role to route correctly
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, status')
+      .eq('id', data.user.id)
+      .single();
+
     toast.success('Login successful');
+
+    // Pre-licensee registrants go to their portal
+    if (profile?.role === 'pre_licensee') {
+      const { data: reg } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('user_id', data.user.id)
+        .limit(1);
+
+      if (reg && reg.length > 0) {
+        navigate('/registration/portal');
+        return;
+      }
+    }
+
     navigate('/dashboard');
   };
 
