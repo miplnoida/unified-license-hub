@@ -16,6 +16,8 @@ export interface RegistrationFormData {
   lastName: string;
   telephone: string;
   email: string;
+  password: string;
+  confirmPassword: string;
   captchaChecked: boolean;
 }
 
@@ -34,13 +36,19 @@ const initialState: RegistrationFormData = {
   lastName: '',
   telephone: '',
   email: '',
+  password: '',
+  confirmPassword: '',
   captchaChecked: false,
 };
 
 function loadFromStorage(): RegistrationFormData {
   try {
     const saved = sessionStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Don't restore passwords from storage
+      return { ...parsed, password: '', confirmPassword: '' };
+    }
   } catch {}
   return initialState;
 }
@@ -50,7 +58,9 @@ export function useRegistrationForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(form));
+    // Don't persist passwords
+    const { password, confirmPassword, ...safe } = form;
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   }, [form]);
 
   const setField = useCallback((field: string, value: string | boolean) => {
@@ -134,6 +144,19 @@ export function useRegistrationForm() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errs.email = 'Invalid email address';
     }
+
+    // Password validation
+    if (!form.password) {
+      errs.password = 'Password is required';
+    } else if (form.password.length < 8) {
+      errs.password = 'Password must be at least 8 characters';
+    }
+    if (!form.confirmPassword) {
+      errs.confirmPassword = 'Please confirm your password';
+    } else if (form.password !== form.confirmPassword) {
+      errs.confirmPassword = 'Passwords do not match';
+    }
+
     if (!form.captchaChecked) errs.captcha = 'Please verify the captcha';
 
     setErrors(errs);
