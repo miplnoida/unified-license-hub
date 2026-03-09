@@ -64,7 +64,7 @@ export default function PreLicenseeRegistration() {
       }
 
       // 2. Save registration data to DB
-      const { error: regError } = await supabase.from('registrations').insert({
+      const { error: regError } = await supabase.from('registrations').insert([{
         user_id: authData.user.id,
         sector_id: form.sectorId,
         sub_sector_id: form.subSectorId,
