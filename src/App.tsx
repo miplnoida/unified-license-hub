@@ -10,16 +10,33 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
+// Applications
+import ApplicationsList from "./pages/applications/ApplicationsList";
+import ApplicationDetail from "./pages/applications/ApplicationDetail";
+
+// Complaints
+import ComplaintsList from "./pages/complaints/ComplaintsList";
+
+// Workflows
+import WorkflowList from "./pages/workflows/WorkflowList";
+
+// Delegation
+import DelegationRules from "./pages/delegation/DelegationRules";
+
+// Documents
+import DocumentStore from "./pages/documents/DocumentStore";
+
+// Notifications
+import NotificationCenter from "./pages/notifications/NotificationCenter";
+
 // Admin
 import RoleManagement from "./pages/admin/RoleManagement";
 import AuditLogs from "./pages/admin/AuditLogs";
+import UserManagement from "./pages/admin/UserManagement";
 import FormBuilder from "./pages/admin/FormBuilder";
 import PreLicenseForms from "./pages/admin/PreLicenseForms";
 import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
-
-// Workflows
-import WorkflowList from "./pages/workflows/WorkflowList";
 
 const queryClient = new QueryClient();
 
@@ -43,15 +60,24 @@ function AppRoutes() {
       <Route path="/dashboard" element={<P><Dashboard /></P>} />
 
       {/* Applications */}
-      <Route path="/applications" element={<P><PlaceholderPage /></P>} />
-      <Route path="/applications/queue" element={<P><PlaceholderPage /></P>} />
+      <Route path="/applications" element={<P><ApplicationsList /></P>} />
+      <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
+      <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
       {/* Complaints */}
-      <Route path="/complaints" element={<P><PlaceholderPage /></P>} />
+      <Route path="/complaints" element={<P><ComplaintsList /></P>} />
 
       {/* Workflows */}
       <Route path="/workflows" element={<P><WorkflowList /></P>} />
-      <Route path="/delegation-rules" element={<P><PlaceholderPage /></P>} />
+
+      {/* Delegation Rules */}
+      <Route path="/delegation-rules" element={<P><DelegationRules /></P>} />
+
+      {/* Documents */}
+      <Route path="/documents" element={<P><DocumentStore /></P>} />
+
+      {/* Notifications */}
+      <Route path="/notifications" element={<P><NotificationCenter /></P>} />
 
       {/* Form Management */}
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
@@ -66,7 +92,7 @@ function AppRoutes() {
       <Route path="/admin/masters/services" element={<P><MasterConfiguration /></P>} />
 
       {/* Administration */}
-      <Route path="/admin/users" element={<P><PlaceholderPage /></P>} />
+      <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
 
@@ -74,11 +100,7 @@ function AppRoutes() {
       <Route path="/settings" element={<P><PlaceholderPage /></P>} />
       <Route path="/analytics" element={<P><PlaceholderPage /></P>} />
 
-      {/* Documents */}
-      <Route path="/documents" element={<P><PlaceholderPage /></P>} />
-
       {/* Account */}
-      <Route path="/notifications" element={<P><PlaceholderPage /></P>} />
       <Route path="/profile" element={<P><PlaceholderPage /></P>} />
       <Route path="/change-password" element={<P><PlaceholderPage /></P>} />
 
