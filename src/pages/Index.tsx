@@ -164,6 +164,15 @@ export default function Index() {
                   {loginLoading ? 'Signing in...' : 'Sign In'}
                   {!loginLoading && <ArrowRight className="ml-2 h-4 w-4" />}
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
               </form>
             </TabsContent>
 
