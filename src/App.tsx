@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Dashboard from "./pages/Dashboard";
+import FormDetail from "./pages/FormDetail";
 
 // Applications
 import ApplicationsList from "./pages/applications/ApplicationsList";
@@ -117,6 +118,7 @@ function AppRoutes() {
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
       <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
       <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
+      <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
       {/* Master Configuration */}
       <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
