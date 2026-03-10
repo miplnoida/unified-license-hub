@@ -1,18 +1,20 @@
-import { useAuth, WebUserType } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { AppRole } from '@/types/platform';
 
 /**
  * Hook to check if the current user can perform final submission.
- * Only Primary users can final submit; Secondary users can only save/draft.
+ * Only super_admin, admin, and primary users can final submit.
  */
 export function useCanFinalSubmit(): boolean {
-  const { webUserType } = useAuth();
-  return webUserType === 'primary' || webUserType === null; // null = mock user (admin), allow
+  const { user } = useAuth();
+  if (!user) return false;
+  return ['super_admin', 'admin', 'supervisor', 'licensing_officer'].includes(user.role);
 }
 
 /**
- * Hook to get the current web user type.
+ * Hook to get the current user's role.
  */
-export function useWebUserType(): WebUserType | null {
-  const { webUserType } = useAuth();
-  return webUserType;
+export function useUserRole(): AppRole | null {
+  const { user } = useAuth();
+  return user?.role || null;
 }
