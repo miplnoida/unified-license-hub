@@ -80,7 +80,7 @@ export default function Dashboard() {
           <StatCard title="Pending Review" value={stats.pendingApps} icon={<Clock className="h-5 w-5" />} variant="warning" />
           <StatCard title="Approved" value={stats.approvedApps} icon={<CheckCircle className="h-5 w-5" />} variant="success" />
           {isInternal ? (
-            <StatCard title="Active Licenses" value={stats.totalLicenses} icon={<Shield className="h-5 w-5" />} variant="info" />
+            <StatCard title="Active Licenses" value={stats.totalLicenses} icon={<Shield className="h-5 w-5" />} variant="primary" />
           ) : (
             <StatCard title="Rejected" value={stats.rejectedApps} icon={<AlertTriangle className="h-5 w-5" />} variant="danger" />
           )}
