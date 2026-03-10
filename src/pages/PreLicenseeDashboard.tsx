@@ -119,7 +119,7 @@ export default function PreLicenseeDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome, {user.name}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome, {user.fullName}</h1>
           <p className="mt-1 text-muted-foreground">Manage your license applications and track their status.</p>
         </div>
 

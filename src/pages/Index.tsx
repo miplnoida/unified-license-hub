@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Layers,
   ArrowRight,
@@ -15,183 +15,202 @@ import {
   FileText,
   ClipboardList,
   Building2,
+  User,
 } from 'lucide-react';
 
 const features = [
   { icon: <FileText className="h-5 w-5" />, text: 'License Applications' },
-  { icon: <ClipboardList className="h-5 w-5" />, text: 'Return Management' },
-  { icon: <Shield className="h-5 w-5" />, text: 'Secure & Compliant' },
+  { icon: <ClipboardList className="h-5 w-5" />, text: 'Approval Workflows' },
+  { icon: <Shield className="h-5 w-5" />, text: 'Audit & Compliance' },
   { icon: <Building2 className="h-5 w-5" />, text: 'Multi-Sector Support' },
 ];
 
 export default function Index() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, login, signup } = useAuth();
+  const [tab, setTab] = useState('login');
+
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // Signup state
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirm, setSignupConfirm] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
 
   if (isAuthenticated) {
     navigate('/dashboard');
     return null;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
       toast.error('Please enter email and password');
       return;
     }
-
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
+    setLoginLoading(true);
+    const result = await login(loginEmail, loginPassword);
+    setLoginLoading(false);
+    if (result.error) {
+      toast.error(result.error);
       return;
     }
-
-    // Check profile role to route correctly
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, status')
-      .eq('id', data.user.id)
-      .single();
-
     toast.success('Login successful');
-
-    // Pre-licensee registrants go to their portal
-    if (profile?.role === 'pre_licensee') {
-      const { data: reg } = await supabase
-        .from('registrations')
-        .select('id')
-        .eq('user_id', data.user.id)
-        .limit(1);
-
-      if (reg && reg.length > 0) {
-        navigate('/registration/portal');
-        return;
-      }
-    }
-
     navigate('/dashboard');
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupName || !signupEmail || !signupPassword) {
+      toast.error('Please fill all fields');
+      return;
+    }
+    if (signupPassword !== signupConfirm) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (signupPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setSignupLoading(true);
+    const result = await signup(signupEmail, signupPassword, signupName);
+    setSignupLoading(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success('Account created! Please check your email to confirm, then sign in.');
+    setTab('login');
   };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {/* Left Panel - Branding */}
+      {/* Left Panel */}
       <div className="hero-gradient relative flex flex-col justify-between p-8 lg:p-12 lg:w-[45%] xl:w-[40%] min-h-[280px] lg:min-h-screen">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMiIvPjwvZz48L3N2Zz4=')] opacity-20" />
-        
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-8">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-secondary">
               <Layers className="h-6 w-6 text-secondary-foreground" />
             </div>
-            <span className="text-xl font-bold text-primary-foreground">ARIAS</span>
+            <span className="text-xl font-bold text-primary-foreground">RegPlatform</span>
           </div>
-
           <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-primary-foreground leading-tight">
-            Automated Regulatory &{' '}
-            <span className="text-secondary">Integrated Application System</span>
+            Regulatory Licensing &{' '}
+            <span className="text-secondary">Compliance Platform</span>
           </h1>
-
           <p className="mt-4 text-primary-foreground/70 max-w-lg text-sm lg:text-base">
-            A unified platform for license management, regulatory compliance,
-            and seamless interaction with AFSC regulatory authorities.
+            A configurable platform for licensing management, supervisory compliance,
+            approval workflows, and regulatory oversight.
           </p>
         </div>
-
-        {/* Feature pills */}
         <div className="relative z-10 mt-8 lg:mt-0">
           <div className="flex flex-wrap gap-3">
             {features.map((f) => (
-              <div
-                key={f.text}
-                className="flex items-center gap-2 rounded-full bg-primary-foreground/10 px-4 py-2 text-sm text-primary-foreground/80 backdrop-blur-sm"
-              >
+              <div key={f.text} className="flex items-center gap-2 rounded-full bg-primary-foreground/10 px-4 py-2 text-sm text-primary-foreground/80 backdrop-blur-sm">
                 {f.icon}
                 {f.text}
               </div>
             ))}
           </div>
           <p className="mt-6 text-xs text-primary-foreground/50">
-            © {new Date().getFullYear()} AFSC. All rights reserved.
+            © {new Date().getFullYear()} Regulatory Platform. All rights reserved.
           </p>
         </div>
-
         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-2/3 bg-gradient-to-l from-secondary/20 to-transparent rounded-l-full blur-3xl" />
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel */}
       <div className="flex flex-1 items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-6">
           <div className="text-center lg:text-left">
-            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <h2 className="text-2xl font-bold text-foreground">Get Started</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sign in to access your portal
+              Sign in or create an account to access the platform
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  className="pl-10"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Register</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <button
-                  type="button"
-                  className="text-xs text-primary hover:underline"
-                  onClick={() => toast.info('Please contact support to reset your password.')}
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  className="pl-10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="login-email" type="email" placeholder="your.email@example.com" className="pl-10"
+                      value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="login-password" type="password" placeholder="Enter your password" className="pl-10"
+                      value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={loginLoading}>
+                  {loginLoading ? 'Signing in...' : 'Sign In'}
+                  {!loginLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+              </form>
+            </TabsContent>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-              {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
-            </Button>
-          </form>
-
-          {/* Registration link for Pre-Licensee */}
-          <div className="text-center border-t pt-6">
-            <p className="text-sm text-muted-foreground">
-              New Pre-Licensee?{' '}
-              <button
-                onClick={() => navigate('/registration/pre-licensee')}
-                className="font-medium text-primary hover:underline"
-              >
-                Register here
-              </button>
-            </p>
-          </div>
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="signup-name" placeholder="John Doe" className="pl-10"
+                      value={signupName} onChange={(e) => setSignupName(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="signup-email" type="email" placeholder="your.email@example.com" className="pl-10"
+                      value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="signup-password" type="password" placeholder="Min. 6 characters" className="pl-10"
+                      value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="signup-confirm" type="password" placeholder="Confirm password" className="pl-10"
+                      value={signupConfirm} onChange={(e) => setSignupConfirm(e.target.value)} />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full" disabled={signupLoading}>
+                  {signupLoading ? 'Creating account...' : 'Create Account'}
+                  {!signupLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  First registered user automatically becomes Super Admin
+                </p>
+              </form>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

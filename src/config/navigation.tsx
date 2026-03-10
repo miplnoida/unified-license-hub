@@ -1,46 +1,34 @@
 import {
   LayoutDashboard,
   FileText,
-  FileCheck,
-  ClipboardList,
-  Settings,
+  Shield,
   Users,
   Building2,
   FormInput,
   GitBranch,
   Bell,
-  Shield,
-  CreditCard,
+  Settings,
   BarChart3,
-  Calendar,
-  DollarSign,
-  Upload,
+  ClipboardList,
+  AlertTriangle,
+  FolderOpen,
   UserCircle,
-  MessageSquare,
-  Mail,
-  ListOrdered,
-  FileBarChart,
-  Landmark,
-  HandCoins,
+  KeyRound,
+  ScrollText,
   Layers,
   Boxes,
-  BookOpen,
+  ListOrdered,
   SlidersHorizontal,
-  CheckSquare,
-  Eye,
-  BadgeDollarSign,
-  Receipt,
-  KeyRound,
-  PlusCircle,
+  FileCheck,
 } from 'lucide-react';
-import { UserRole } from '@/types';
+import { AppRole, INTERNAL_ROLES } from '@/types/platform';
 
 export interface NavItem {
   label: string;
   href?: string;
   icon: React.ReactNode;
   badge?: number;
-  roles: UserRole[];
+  roles: AppRole[];
   children?: NavItem[];
 }
 
@@ -49,10 +37,10 @@ export interface NavSection {
   items: NavItem[];
 }
 
-const ALL_INTERNAL: UserRole[] = ['admin', 'reviewer', 'approver', 'supervisor'];
+const ALL_INTERNAL: AppRole[] = [...INTERNAL_ROLES];
+const ADMIN_ROLES: AppRole[] = ['super_admin', 'admin'];
 
 export const mainNavSections: NavSection[] = [
-  // ── Pre-Licensee Navigation ──
   {
     label: 'Main',
     items: [
@@ -60,136 +48,7 @@ export const mainNavSections: NavSection[] = [
         label: 'Dashboard',
         href: '/dashboard',
         icon: <LayoutDashboard className="h-5 w-5" />,
-        roles: ['pre_licensee', 'post_licensee', ...ALL_INTERNAL],
-      },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      {
-        label: 'Administration',
-        icon: <Shield className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor'],
-        children: [
-          {
-            label: 'Manage Web Users',
-            href: '/admin/web-users',
-            icon: <Users className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Manage Licenses',
-            href: '/admin/licenses',
-            icon: <FileCheck className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-          {
-            label: 'Post Licensing Applications',
-            href: '/admin/post-licensing',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-          {
-            label: 'Change Active Sector',
-            href: '/admin/change-sector',
-            icon: <Layers className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor'],
-          },
-        ],
-      },
-      {
-        label: 'Role Management',
-        href: '/admin/roles',
-        icon: <Shield className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-      },
-      {
-        label: 'User Management',
-        href: '/admin/users',
-        icon: <Users className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-      },
-      {
-        label: 'Master Configuration',
-        icon: <Building2 className="h-5 w-5" />,
-        roles: ['admin'],
-        children: [
-          {
-            label: 'Sectors',
-            href: '/admin/masters/sectors',
-            icon: <Layers className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Sub-Sectors',
-            href: '/admin/masters/sub-sectors',
-            icon: <Boxes className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Categories',
-            href: '/admin/masters/categories',
-            icon: <ListOrdered className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Services',
-            href: '/admin/masters/services',
-            icon: <SlidersHorizontal className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
-      },
-      {
-        label: 'Form Management',
-        icon: <FormInput className="h-5 w-5" />,
-        roles: ['admin'],
-        children: [
-          {
-            label: 'Pre-License Forms',
-            href: '/admin/forms/pre-license',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-          {
-            label: 'Post-License Forms',
-            href: '/admin/forms/post-license',
-            icon: <FileCheck className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
-      },
-      {
-        label: 'Workflow Config',
-        href: '/admin/workflows',
-        icon: <GitBranch className="h-5 w-5" />,
-        roles: ['admin'],
-      },
-      {
-        label: 'Settings',
-        icon: <Settings className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-        children: [
-          {
-            label: 'General Settings',
-            href: '/settings/general',
-            icon: <SlidersHorizontal className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Schedule Settings',
-            href: '/settings/schedule',
-            icon: <Calendar className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Payment Settings',
-            href: '/settings/payment',
-            icon: <CreditCard className="h-4 w-4" />,
-            roles: ['admin'],
-          },
-        ],
+        roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'applicant', 'developer'],
       },
     ],
   },
@@ -198,228 +57,154 @@ export const mainNavSections: NavSection[] = [
     items: [
       {
         label: 'My Applications',
-        href: '/pre-license',
+        href: '/applications',
         icon: <FileText className="h-5 w-5" />,
-        roles: ['pre_licensee'],
+        roles: ['applicant'],
       },
-      {
-        label: 'Apply for License',
-        href: '/pre-license/new',
-        icon: <PlusCircle className="h-5 w-5" />,
-        roles: ['pre_licensee'],
-      },
-    ],
-  },
-  // ── Post-Licensee Navigation ──
-  {
-    label: 'Returns',
-    items: [
-      {
-        label: 'Returns Management',
-        icon: <Boxes className="h-5 w-5" />,
-        roles: ['post_licensee'],
-        children: [
-          {
-            label: 'Upload Returns',
-            href: '/upload-returns',
-            icon: <Upload className="h-4 w-4" />,
-            roles: ['post_licensee'],
-          },
-          {
-            label: 'View Returns',
-            href: '/returns',
-            icon: <Eye className="h-4 w-4" />,
-            roles: ['post_licensee'],
-          },
-        ],
-      },
-    ],
-  },
-  // ── Internal / AFSC Processing ──
-  {
-    label: 'Processing',
-    items: [
       {
         label: 'Applications Queue',
-        href: '/admin/applications',
-        icon: <FileText className="h-5 w-5" />,
-        badge: 12,
-        roles: ALL_INTERNAL,
-      },
-      {
-        label: 'Returns Queue',
-        href: '/admin/returns',
+        href: '/applications/queue',
         icon: <ClipboardList className="h-5 w-5" />,
-        badge: 8,
+        roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'],
+      },
+    ],
+  },
+  {
+    label: 'Complaints',
+    items: [
+      {
+        label: 'Complaints',
+        href: '/complaints',
+        icon: <AlertTriangle className="h-5 w-5" />,
+        roles: ['super_admin', 'admin', 'supervisor', 'applicant'],
+      },
+    ],
+  },
+  {
+    label: 'Workflows',
+    items: [
+      {
+        label: 'Approval Workflows',
+        href: '/workflows',
+        icon: <GitBranch className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Delegation Rules',
+        href: '/delegation-rules',
+        icon: <Layers className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+      },
+    ],
+  },
+  {
+    label: 'Form Management',
+    items: [
+      {
+        label: 'Form Builder',
+        icon: <FormInput className="h-5 w-5" />,
+        roles: ['super_admin', 'admin', 'developer'],
+        children: [
+          {
+            label: 'Pre-License Forms',
+            href: '/admin/forms/pre-license',
+            icon: <FileText className="h-4 w-4" />,
+            roles: ['super_admin', 'admin', 'developer'],
+          },
+          {
+            label: 'Post-License Forms',
+            href: '/admin/forms/post-license',
+            icon: <FileCheck className="h-4 w-4" />,
+            roles: ['super_admin', 'admin', 'developer'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Configuration',
+    items: [
+      {
+        label: 'Master Configuration',
+        icon: <Building2 className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+        children: [
+          {
+            label: 'Sectors',
+            href: '/admin/masters/sectors',
+            icon: <Layers className="h-4 w-4" />,
+            roles: ADMIN_ROLES,
+          },
+          {
+            label: 'Sub-Sectors',
+            href: '/admin/masters/sub-sectors',
+            icon: <Boxes className="h-4 w-4" />,
+            roles: ADMIN_ROLES,
+          },
+          {
+            label: 'Categories',
+            href: '/admin/masters/categories',
+            icon: <ListOrdered className="h-4 w-4" />,
+            roles: ADMIN_ROLES,
+          },
+          {
+            label: 'Services',
+            href: '/admin/masters/services',
+            icon: <SlidersHorizontal className="h-4 w-4" />,
+            roles: ADMIN_ROLES,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      {
+        label: 'User Management',
+        href: '/admin/users',
+        icon: <Users className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Role Management',
+        href: '/admin/roles',
+        icon: <Shield className="h-5 w-5" />,
+        roles: ['super_admin'],
+      },
+      {
+        label: 'Audit Logs',
+        href: '/admin/audit-logs',
+        icon: <ScrollText className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Settings',
+        href: '/settings',
+        icon: <Settings className="h-5 w-5" />,
+        roles: ADMIN_ROLES,
+      },
+    ],
+  },
+  {
+    label: 'Analytics',
+    items: [
+      {
+        label: 'Dashboards',
+        href: '/analytics',
+        icon: <BarChart3 className="h-5 w-5" />,
         roles: ALL_INTERNAL,
       },
     ],
   },
   {
-    label: 'Billing',
+    label: 'Documents',
     items: [
       {
-        label: 'Billing',
-        icon: <CreditCard className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
-        children: [
-          {
-            label: 'Pre-Licensee Applications',
-            href: '/billing/pre-licensee',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['admin', 'supervisor', 'approver'],
-          },
-          {
-            label: 'Post-Licensee Applications',
-            href: '/billing/post-licensee',
-            icon: <FileCheck className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
-          },
-          {
-            label: 'Penalties',
-            href: '/billing/penalties',
-            icon: <BadgeDollarSign className="h-4 w-4" />,
-            roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
-          },
-        ],
-      },
-      {
-        label: 'Payment List',
-        href: '/payments',
-        icon: <DollarSign className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
-      },
-    ],
-  },
-  {
-    label: 'Returns Management',
-    items: [
-      {
-        label: 'Returns Management',
-        icon: <Boxes className="h-5 w-5" />,
-        roles: ['admin', 'supervisor'],
-        children: [
-          {
-            label: 'Manage Structures',
-            href: '/returns-mgmt/structures',
-            icon: <Layers className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Manage Rules',
-            href: '/returns-mgmt/rules',
-            icon: <BookOpen className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Manage Validations',
-            href: '/returns-mgmt/validations',
-            icon: <CheckSquare className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Return Groups',
-            href: '/returns-mgmt/groups',
-            icon: <ListOrdered className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Manage Scheduling',
-            href: '/returns-mgmt/scheduling',
-            icon: <Calendar className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'View Returns',
-            href: '/returns-mgmt/view',
-            icon: <Eye className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Reports',
-    items: [
-      {
-        label: 'Reports',
-        icon: <BarChart3 className="h-5 w-5" />,
-        roles: ['post_licensee', ...ALL_INTERNAL],
-        children: [
-          {
-            label: 'Consolidated Reports',
-            href: '/reports/consolidated',
-            icon: <FileBarChart className="h-4 w-4" />,
-            roles: ['post_licensee', ...ALL_INTERNAL],
-          },
-          {
-            label: 'Insurance Internal',
-            href: '/reports/insurance-internal',
-            icon: <Shield className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Cooperatives',
-            href: '/reports/cooperatives',
-            icon: <Users className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Insurance',
-            href: '/reports/insurance',
-            icon: <Shield className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Money Services',
-            href: '/reports/money-services',
-            icon: <HandCoins className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Mutual Fund',
-            href: '/reports/mutual-fund',
-            icon: <DollarSign className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'International Banks',
-            href: '/reports/international-banks',
-            icon: <Landmark className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Trust & Company Mgrs',
-            href: '/reports/trust-company',
-            icon: <Building2 className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Internal Reports',
-            href: '/reports/internal',
-            icon: <FileText className="h-4 w-4" />,
-            roles: ['admin', 'supervisor'],
-          },
-          {
-            label: 'Other Reports',
-            href: '/reports/other',
-            icon: <FileBarChart className="h-4 w-4" />,
-            roles: [...ALL_INTERNAL],
-          },
-          {
-            label: 'Payment Reports',
-            href: '/reports/payments',
-            icon: <Receipt className="h-4 w-4" />,
-            roles: ['admin', 'supervisor', 'approver'],
-          },
-        ],
-      },
-      {
-        label: 'Statement Reports',
-        href: '/statement-reports',
-        icon: <FileBarChart className="h-5 w-5" />,
-        roles: ['post_licensee', 'admin', 'supervisor', 'approver'],
+        label: 'Document Store',
+        href: '/documents',
+        icon: <FolderOpen className="h-5 w-5" />,
+        roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'applicant'],
       },
     ],
   },
@@ -430,31 +215,18 @@ export const bottomNavItems: NavItem[] = [
     label: 'Notifications',
     href: '/notifications',
     icon: <Bell className="h-5 w-5" />,
-    badge: 5,
-    roles: ['pre_licensee', 'post_licensee', ...ALL_INTERNAL],
-  },
-  {
-    label: 'Messages',
-    href: '/messages',
-    icon: <MessageSquare className="h-5 w-5" />,
-    roles: ['pre_licensee', 'post_licensee', ...ALL_INTERNAL],
-  },
-  {
-    label: 'Mail & SMS',
-    href: '/mail-sms',
-    icon: <Mail className="h-5 w-5" />,
-    roles: ['admin', 'supervisor'],
-  },
-  {
-    label: 'Change Password',
-    href: '/change-password',
-    icon: <KeyRound className="h-5 w-5" />,
-    roles: ['pre_licensee', 'post_licensee'],
+    roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'applicant', 'developer'],
   },
   {
     label: 'Profile',
     href: '/profile',
     icon: <UserCircle className="h-5 w-5" />,
-    roles: ['pre_licensee', 'post_licensee', ...ALL_INTERNAL],
+    roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'applicant', 'developer'],
+  },
+  {
+    label: 'Change Password',
+    href: '/change-password',
+    icon: <KeyRound className="h-5 w-5" />,
+    roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'applicant', 'developer'],
   },
 ];

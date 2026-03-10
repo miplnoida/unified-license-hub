@@ -72,19 +72,14 @@ export default function PostLicenseeDashboard() {
       <div className="space-y-8">
         {/* Welcome */}
         <div className="animate-slide-up">
-          <h1 className="text-2xl font-bold text-foreground">Welcome back, {user.name}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome back, {user.fullName}</h1>
           <p className="mt-1 text-muted-foreground">
-            {user.organizationName && (
-              <span className="font-medium text-foreground">{user.organizationName}</span>
+            {user.entityName && (
+              <span className="font-medium text-foreground">{user.entityName}</span>
             )}
-            {user.organizationName && ' — '}
+            {user.entityName && ' — '}
             Manage your compliance, returns, and billing.
           </p>
-          {user.licenseNumber && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              License: <span className="font-medium text-primary">{user.licenseNumber}</span>
-            </p>
-          )}
         </div>
 
         {/* Stats */}
