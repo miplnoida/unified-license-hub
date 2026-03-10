@@ -179,7 +179,7 @@ export default function RegistrationPortal() {
             <div>
               <h1 className="text-xl font-bold">Registration Portal</h1>
               <p className="text-sm text-primary-foreground/70">
-                {registration?.applicant_name || user?.name}
+                {registration?.applicant_name || user?.fullName}
               </p>
             </div>
           </div>
