@@ -10,6 +10,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Dashboard from "./pages/Dashboard";
+import FormDetail from "./pages/FormDetail";
 
 // Applications
 import ApplicationsList from "./pages/applications/ApplicationsList";
