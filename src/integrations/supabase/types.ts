@@ -310,6 +310,75 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_returns: {
+        Row: {
+          created_at: string
+          due_date: string
+          form_data: Json | null
+          id: string
+          license_id: string | null
+          period_end: string
+          period_start: string
+          return_config_id: string | null
+          reviewed_at: string | null
+          reviewer_comments: string | null
+          reviewer_id: string | null
+          status: string
+          submitted_at: string | null
+          submitter_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          form_data?: Json | null
+          id?: string
+          license_id?: string | null
+          period_end: string
+          period_start: string
+          return_config_id?: string | null
+          reviewed_at?: string | null
+          reviewer_comments?: string | null
+          reviewer_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitter_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          form_data?: Json | null
+          id?: string
+          license_id?: string | null
+          period_end?: string
+          period_start?: string
+          return_config_id?: string | null
+          reviewed_at?: string | null
+          reviewer_comments?: string | null
+          reviewer_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_returns_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_returns_return_config_id_fkey"
+            columns: ["return_config_id"]
+            isOneToOne: false
+            referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delegation_rules: {
         Row: {
           condition: Json
@@ -379,6 +448,80 @@ export type Database = {
         }
         Relationships: []
       }
+      fee_configurations: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          currency: string
+          fee_type: string
+          id: string
+          is_active: boolean
+          name: string
+          sector_id: string | null
+          service_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          fee_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          fee_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_configurations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forms: {
         Row: {
           category: string
@@ -421,6 +564,136 @@ export type Database = {
         }
         Relationships: []
       }
+      license_actions: {
+        Row: {
+          action_type: string
+          actor_id: string
+          created_at: string
+          id: string
+          license_id: string
+          metadata: Json | null
+          new_status: string | null
+          old_status: string | null
+          reason: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          license_id: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          license_id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          old_status?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_actions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenses: {
+        Row: {
+          application_id: string | null
+          category_id: string | null
+          compliance_requirements: Json | null
+          conditions: string | null
+          created_at: string
+          holder_id: string
+          id: string
+          issued_at: string
+          license_number: string
+          license_type: string
+          sector_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          category_id?: string | null
+          compliance_requirements?: Json | null
+          conditions?: string | null
+          created_at?: string
+          holder_id: string
+          id?: string
+          issued_at?: string
+          license_number?: string
+          license_type: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          category_id?: string | null
+          compliance_requirements?: Json | null
+          conditions?: string | null
+          created_at?: string
+          holder_id?: string
+          id?: string
+          issued_at?: string
+          license_number?: string
+          license_type?: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -456,6 +729,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          application_id: string | null
+          created_at: string
+          currency: string
+          fee_configuration_id: string | null
+          id: string
+          paid_at: string | null
+          payment_method: string | null
+          receipt_number: string | null
+          status: string
+          transaction_ref: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          application_id?: string | null
+          created_at?: string
+          currency?: string
+          fee_configuration_id?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          status?: string
+          transaction_ref?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          application_id?: string | null
+          created_at?: string
+          currency?: string
+          fee_configuration_id?: string | null
+          id?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          status?: string
+          transaction_ref?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_fee_configuration_id_fkey"
+            columns: ["fee_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "fee_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -594,6 +927,60 @@ export type Database = {
         }
         Relationships: []
       }
+      return_configurations: {
+        Row: {
+          created_at: string
+          due_day: number
+          form_id: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          name: string
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_day?: number
+          form_id?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_day?: number
+          form_id?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_configurations_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_configurations_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sectors: {
         Row: {
           created_at: string
@@ -717,6 +1104,7 @@ export type Database = {
     Functions: {
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
+      generate_license_number: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
