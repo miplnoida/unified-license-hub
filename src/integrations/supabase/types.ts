@@ -526,43 +526,60 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          description: string | null
           form_type: string
           id: string
           name: string
+          parent_form_id: string | null
           rows: Json
           sector: string
           service: string
           status: string
           sub_sector: string
           updated_at: string
+          version: number
         }
         Insert: {
           category?: string
           created_at?: string
+          description?: string | null
           form_type: string
           id?: string
           name: string
+          parent_form_id?: string | null
           rows?: Json
           sector?: string
           service?: string
           status?: string
           sub_sector?: string
           updated_at?: string
+          version?: number
         }
         Update: {
           category?: string
           created_at?: string
+          description?: string | null
           form_type?: string
           id?: string
           name?: string
+          parent_form_id?: string | null
           rows?: Json
           sector?: string
           service?: string
           status?: string
           sub_sector?: string
           updated_at?: string
+          version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "forms_parent_form_id_fkey"
+            columns: ["parent_form_id"]
+            isOneToOne: false
+            referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       license_actions: {
         Row: {
