@@ -1,251 +1,22 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2, FileText, Eye } from 'lucide-react';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { toast } from '@/hooks/use-toast';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useForm as useFormDetail } from '@/hooks/useForms';
-import type { FormField } from '@/types/formBuilder';
-
-// --- Submission persistence helpers ---
-const SUBMISSIONS_KEY = 'app_form_submissions';
-
-interface FormSubmission {
-  formData: Record<string, string>;
-  uploadedFiles: Record<string, { name: string; url: string; type: string }>;
-}
-
-function getSubmission(applicationId: string, formId: string): FormSubmission | null {
-  try {
-    const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}');
-    return all[`${applicationId}__${formId}`] || null;
-  } catch { return null; }
-}
-
-function saveSubmission(applicationId: string, formId: string, data: FormSubmission) {
-  try {
-    const all = JSON.parse(localStorage.getItem(SUBMISSIONS_KEY) || '{}');
-    all[`${applicationId}__${formId}`] = data;
-    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(all));
-  } catch { /* ignore */ }
-}
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import type { FormSection } from '@/types/formBuilder';
 
 export default function FormDetail() {
-  const { applicationId, formId } = useParams<{ applicationId: string; formId: string }>();
-  const [searchParams] = useSearchParams();
+  const { formId } = useParams<{ formId: string }>();
   const navigate = useNavigate();
-
-  const mode = searchParams.get('mode') === 'edit' ? 'edit' : 'view';
   const { data: dbForm, isLoading } = useFormDetail(formId || null);
 
-  // Flatten all fields from form rows
-  const fields = useMemo(() => {
+  const sections = useMemo(() => {
     if (!dbForm?.rows) return [];
-    const result: FormField[] = [];
-    dbForm.rows.forEach(row => {
-      row.fields.forEach(f => {
-        if (f) result.push(f);
-      });
-    });
-    return result;
+    return dbForm.rows as unknown as FormSection[];
   }, [dbForm]);
-
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, { name: string; url: string; type: string }>>({});
-  const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  // Load saved submission data on mount
-  useEffect(() => {
-    if (applicationId && formId) {
-      const saved = getSubmission(applicationId, formId);
-      if (saved) {
-        setFormData(saved.formData || {});
-        setUploadedFiles(saved.uploadedFiles || {});
-      }
-    }
-  }, [applicationId, formId]);
-
-  const isReadOnly = mode === 'view';
-
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-
-    fields.forEach(field => {
-      const val = formData[field.id]?.trim() ?? '';
-
-      // Required check
-      if (field.required) {
-        if (field.type === 'file') {
-          if (!uploadedFiles[field.id]) {
-            errors[field.id] = `${field.label} is required`;
-          }
-        } else if (field.type === 'checkbox') {
-          if (val !== 'true') {
-            errors[field.id] = `${field.label} must be checked`;
-          }
-        } else if (field.type !== 'paragraph' && !val) {
-          errors[field.id] = `${field.label} is required`;
-        }
-      }
-
-      // Email format
-      if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-        errors[field.id] = 'Please enter a valid email address';
-      }
-    });
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const validateFile = (field: FormField, file: File): string | null => {
-    const fv = field.fileValidation;
-    if (!fv) return null;
-
-    if (fv.allowedTypes && fv.allowedTypes.length > 0) {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (!fv.allowedTypes.some(t => t.toLowerCase() === ext)) {
-        return `Allowed types: ${fv.allowedTypes.join(', ')}`;
-      }
-    }
-    if (fv.maxSizeMB && file.size > fv.maxSizeMB * 1024 * 1024) {
-      return `File must be smaller than ${fv.maxSizeMB}MB`;
-    }
-    if (fv.minSizeKB && file.size < fv.minSizeKB * 1024) {
-      return `File must be at least ${fv.minSizeKB}KB`;
-    }
-    return null;
-  };
-
-  const handleSave = () => {
-    if (!validateForm()) {
-      toast({ title: 'Validation Error', description: 'Please fix the highlighted errors before saving.', variant: 'destructive' });
-      return;
-    }
-    if (applicationId && formId) {
-      saveSubmission(applicationId, formId, { formData, uploadedFiles });
-    }
-    toast({ title: 'Form Saved', description: `${dbForm?.name || 'Form'} has been saved successfully.` });
-    navigate(`/pre-licensee/applications/${applicationId}/forms`);
-  };
-
-  const renderField = (field: FormField) => {
-    const val = formData[field.id] ?? '';
-    const onChange = (v: string) => {
-      setFormData(prev => ({ ...prev, [field.id]: v }));
-      setValidationErrors(prev => { const n = { ...prev }; delete n[field.id]; return n; });
-    };
-
-    switch (field.type) {
-      case 'textarea':
-        return <Textarea value={val} onChange={e => onChange(e.target.value)} disabled={isReadOnly} placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`} rows={3} />;
-      case 'select':
-        return (
-          <Select value={val} onValueChange={onChange} disabled={isReadOnly}>
-            <SelectTrigger><SelectValue placeholder={field.placeholder || `Select ${field.label.toLowerCase()}`} /></SelectTrigger>
-            <SelectContent>
-              {(field.options ?? []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        );
-      case 'date':
-        return <Input type="date" value={val} onChange={e => onChange(e.target.value)} disabled={isReadOnly} />;
-      case 'number':
-        return <Input type="number" value={val} onChange={e => onChange(e.target.value)} disabled={isReadOnly} placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`} />;
-      case 'email':
-        return <Input type="email" value={val} onChange={e => onChange(e.target.value)} disabled={isReadOnly} placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`} />;
-      case 'checkbox':
-        return (
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id={field.id}
-              checked={val === 'true'}
-              onCheckedChange={(checked) => onChange(String(checked))}
-              disabled={isReadOnly}
-            />
-            <label htmlFor={field.id} className="text-sm">{field.placeholder || field.label}</label>
-          </div>
-        );
-      case 'radio':
-        return (
-          <div className="space-y-2">
-            {(field.options ?? []).map(o => (
-              <label key={o} className="flex items-center gap-2 text-sm">
-                <input type="radio" name={field.id} value={o} checked={val === o} onChange={() => onChange(o)} disabled={isReadOnly} />
-                {o}
-              </label>
-            ))}
-          </div>
-        );
-      case 'file': {
-        const uploaded = uploadedFiles[field.id];
-        return (
-          <div className="space-y-2">
-            {!isReadOnly && (
-              <Input
-                type="file"
-                ref={(el) => { fileInputRefs.current[field.id] = el; }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const fileError = validateFile(field, file);
-                    if (fileError) {
-                      setValidationErrors(prev => ({ ...prev, [field.id]: fileError }));
-                      e.target.value = '';
-                      return;
-                    }
-                    setValidationErrors(prev => { const n = { ...prev }; delete n[field.id]; return n; });
-                    const url = URL.createObjectURL(file);
-                    setUploadedFiles(prev => ({
-                      ...prev,
-                      [field.id]: { name: file.name, url, type: file.type },
-                    }));
-                  }
-                }}
-              />
-            )}
-            {uploaded && (
-              <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
-                <FileText className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-sm truncate flex-1">{uploaded.name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0"
-                  onClick={() => {
-                    if (uploaded.type.startsWith('image/') || uploaded.type === 'application/pdf') {
-                      setPreviewFile(uploaded);
-                    } else {
-                      window.open(uploaded.url, '_blank');
-                    }
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      }
-      case 'paragraph':
-        return <p className="text-sm text-muted-foreground">{field.placeholder || field.label}</p>;
-      default:
-        return <Input value={val} onChange={e => onChange(e.target.value)} disabled={isReadOnly} placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`} />;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -262,12 +33,12 @@ export default function FormDetail() {
       <DashboardLayout>
         <div className="space-y-6 max-w-3xl">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms`)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Form Not Found</h1>
-              <p className="text-muted-foreground">This form does not exist or has been removed.</p>
+              <h1 className="text-2xl font-bold">Form Not Found</h1>
+              <p className="text-muted-foreground">This form does not exist.</p>
             </div>
           </div>
         </div>
@@ -277,79 +48,29 @@ export default function FormDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(`/pre-licensee/applications/${applicationId}/forms`)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">{dbForm.name}</h1>
-            <p className="text-muted-foreground">
-              {dbForm.sector} · {dbForm.sub_sector} · {dbForm.category}
-            </p>
+          <div>
+            <h1 className="text-xl font-bold">{dbForm.name}</h1>
+            <p className="text-sm text-muted-foreground">{dbForm.sector} · {dbForm.sub_sector}</p>
           </div>
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${mode === 'view' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-warning/10 text-warning border border-warning/20'}`}>
-            {mode === 'view' ? 'Read Only' : 'Editing'}
-          </span>
         </div>
 
-        <div className="card-elevated p-6 space-y-6">
-          {fields.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">This form has no fields configured.</p>
-          ) : (
-            <>
-              {dbForm.rows.map((row, rowIdx) => (
-                <div key={rowIdx} className={`grid gap-4 grid-cols-${row.columns}`}>
-                  {row.fields.map((field, colIdx) => (
-                    <div key={colIdx} className="space-y-2">
-                      {field ? (
-                        <>
-                          {field.type !== 'paragraph' && field.type !== 'checkbox' && (
-                            <Label htmlFor={field.id}>
-                              {field.label}
-                              {field.required && <span className="text-destructive ml-1">*</span>}
-                            </Label>
-                          )}
-                          {renderField(field)}
-                          {validationErrors[field.id] && (
-                            <p className="text-xs text-destructive mt-1">{validationErrors[field.id]}</p>
-                          )}
-                        </>
-                      ) : (
-                        <div className="h-10" /> // empty slot
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
-
-          {!isReadOnly && fields.length > 0 && (
-            <div className="flex justify-end pt-4 border-t">
-              <Button onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Form
-              </Button>
-            </div>
-          )}
-        </div>
+        <FormRenderer
+          formName={dbForm.name}
+          sections={sections}
+          onSaveDraft={(data) => {
+            toast.success('Draft saved!');
+          }}
+          onSubmit={(data) => {
+            toast.success('Form submitted!');
+            navigate(-1);
+          }}
+        />
       </div>
-      {/* File Preview Modal */}
-      <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh]">
-          <DialogHeader>
-            <DialogTitle className="truncate">{previewFile?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {previewFile?.type.startsWith('image/') ? (
-              <img src={previewFile.url} alt={previewFile.name} className="w-full rounded-lg object-contain max-h-[65vh]" />
-            ) : previewFile?.type === 'application/pdf' ? (
-              <iframe src={previewFile.url} className="w-full h-[65vh] rounded-lg border" title={previewFile.name} />
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
