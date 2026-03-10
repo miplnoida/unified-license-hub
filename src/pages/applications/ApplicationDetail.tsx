@@ -117,7 +117,7 @@ export default function ApplicationDetail() {
     const statusMap: Record<string, ApplicationStatus> = {
       approve: 'approved',
       reject: 'rejected',
-      request_info: 'returned',
+      request_info: 'query_raised',
       delegate: app.status,
     };
 

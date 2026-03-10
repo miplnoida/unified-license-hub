@@ -14,6 +14,16 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import ApplicationsList from "./pages/applications/ApplicationsList";
 import ApplicationDetail from "./pages/applications/ApplicationDetail";
 
+// Licenses
+import LicensesList from "./pages/licenses/LicensesList";
+import LicenseDetail from "./pages/licenses/LicenseDetail";
+
+// Compliance
+import ComplianceReturns from "./pages/compliance/ComplianceReturns";
+
+// Payments
+import PaymentHistory from "./pages/payments/PaymentHistory";
+
 // Complaints
 import ComplaintsList from "./pages/complaints/ComplaintsList";
 
@@ -29,6 +39,9 @@ import DocumentStore from "./pages/documents/DocumentStore";
 // Notifications
 import NotificationCenter from "./pages/notifications/NotificationCenter";
 
+// Analytics
+import AnalyticsDashboard from "./pages/analytics/AnalyticsDashboard";
+
 // Admin
 import RoleManagement from "./pages/admin/RoleManagement";
 import AuditLogs from "./pages/admin/AuditLogs";
@@ -37,6 +50,8 @@ import FormBuilder from "./pages/admin/FormBuilder";
 import PreLicenseForms from "./pages/admin/PreLicenseForms";
 import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
+import FeeManagement from "./pages/admin/FeeManagement";
+import ReturnConfiguration from "./pages/admin/ReturnConfiguration";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +79,16 @@ function AppRoutes() {
       <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
       <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
+      {/* Licenses */}
+      <Route path="/licenses" element={<P><LicensesList /></P>} />
+      <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
+
+      {/* Compliance */}
+      <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
+
+      {/* Payments */}
+      <Route path="/payments" element={<P><PaymentHistory /></P>} />
+
       {/* Complaints */}
       <Route path="/complaints" element={<P><ComplaintsList /></P>} />
 
@@ -79,6 +104,9 @@ function AppRoutes() {
       {/* Notifications */}
       <Route path="/notifications" element={<P><NotificationCenter /></P>} />
 
+      {/* Analytics */}
+      <Route path="/analytics" element={<P><AnalyticsDashboard /></P>} />
+
       {/* Form Management */}
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
       <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
@@ -91,16 +119,19 @@ function AppRoutes() {
       <Route path="/admin/masters/categories" element={<P><MasterConfiguration /></P>} />
       <Route path="/admin/masters/services" element={<P><MasterConfiguration /></P>} />
 
+      {/* Fee Management */}
+      <Route path="/admin/fees" element={<P><FeeManagement /></P>} />
+
+      {/* Return Configuration */}
+      <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
+
       {/* Administration */}
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
 
-      {/* Settings & Analytics */}
+      {/* Settings & Account */}
       <Route path="/settings" element={<P><PlaceholderPage /></P>} />
-      <Route path="/analytics" element={<P><PlaceholderPage /></P>} />
-
-      {/* Account */}
       <Route path="/profile" element={<P><PlaceholderPage /></P>} />
       <Route path="/change-password" element={<P><PlaceholderPage /></P>} />
 
