@@ -117,6 +117,7 @@ function AppRoutes() {
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
       <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
       <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
+      <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
       {/* Master Configuration */}
       <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
