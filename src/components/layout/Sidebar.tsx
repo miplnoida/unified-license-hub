@@ -3,17 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mainNavSections, bottomNavItems, NavItem } from '@/config/navigation';
-import { ROLE_LABELS, AppRole } from '@/types/platform';
-import {
-  Layers,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-} from 'lucide-react';
+import { Layers, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -23,17 +15,13 @@ function usePersistedState<T>(key: string, initial: T): [T, (val: T | ((prev: T)
     try {
       const stored = sessionStorage.getItem(key);
       return stored ? JSON.parse(stored) : initial;
-    } catch {
-      return initial;
-    }
+    } catch { return initial; }
   });
   useEffect(() => { sessionStorage.setItem(key, JSON.stringify(state)); }, [key, state]);
   return [state, setState];
 }
 
-function CollapsibleNavItem({
-  item, collapsed, expandedGroups, toggleGroup, pathname,
-}: {
+function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, pathname }: {
   item: NavItem; collapsed: boolean; expandedGroups: string[];
   toggleGroup: (label: string) => void; pathname: string;
 }) {
@@ -44,20 +32,20 @@ function CollapsibleNavItem({
     <div>
       <button
         onClick={() => toggleGroup(item.label)}
-        className={cn('nav-item w-full text-left relative', hasActiveChild && 'text-sidebar-primary font-medium')}
+        className={cn('nav-item w-full text-left', hasActiveChild && 'text-sidebar-primary font-semibold')}
         title={collapsed ? item.label : undefined}
       >
         {item.icon}
         {!collapsed && (
           <>
             <span className="flex-1 truncate">{item.label}</span>
-            <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform duration-200', isExpanded && 'rotate-180')} />
+            <ChevronDown className={cn('h-3.5 w-3.5 shrink-0 transition-transform duration-200', isExpanded && 'rotate-180')} />
           </>
         )}
       </button>
       {!collapsed && (
         <div className={cn('overflow-hidden transition-all duration-200', isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0')}>
-          <div className="ml-4 border-l border-sidebar-border pl-2 py-1 space-y-0.5">
+          <div className="ml-5 border-l border-sidebar-border pl-3 py-1 space-y-0.5">
             {item.children?.map((child) => {
               if (!child.href) return null;
               const isActive = pathname === child.href;
@@ -67,8 +55,8 @@ function CollapsibleNavItem({
                   to={child.href}
                   data-sidebar-active={isActive ? 'true' : undefined}
                   className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
-                    isActive && 'bg-sidebar-accent text-sidebar-primary font-medium'
+                    'flex items-center gap-2 px-3 py-2 rounded-md text-[13px] text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
+                    isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold'
                   )}
                 >
                   {child.icon}
@@ -95,24 +83,16 @@ export function Sidebar() {
   }, [setExpandedGroups]);
 
   useEffect(() => {
-    let needsExpand = false;
     mainNavSections.forEach(section => {
       section.items.forEach(item => {
         if (item.children) {
           const hasActive = item.children.some(c => c.href && location.pathname === c.href);
           if (hasActive && !expandedGroups.includes(item.label)) {
-            needsExpand = true;
             setExpandedGroups(prev => [...prev, item.label]);
           }
         }
       });
     });
-    const delay = needsExpand ? 250 : 50;
-    const timer = setTimeout(() => {
-      const el = navRef.current?.querySelector('[data-sidebar-active="true"]') as HTMLElement | null;
-      el?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-    }, delay);
-    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -120,57 +100,42 @@ export function Sidebar() {
   const filteredBottomItems = bottomNavItems.filter(isItemVisible);
 
   return (
-    <aside className={cn('fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col', collapsed ? 'w-16' : 'w-64')}>
+    <aside className={cn(
+      'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col border-r border-sidebar-border',
+      collapsed ? 'w-16' : 'w-64'
+    )}>
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4 shrink-0">
+      <div className="flex h-14 items-center justify-between px-4 shrink-0">
         {!collapsed && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Layers className="h-5 w-5 text-sidebar-primary-foreground" />
+              <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
             </div>
-            <span className="text-lg font-semibold text-sidebar-foreground">RegPlatform</span>
+            <span className="text-base font-bold text-sidebar-foreground tracking-tight">RegPlatform</span>
           </div>
         )}
         <Button
-          variant="ghost"
-          size="icon"
+          variant="ghost" size="icon"
           onClick={() => {
             setCollapsed(!collapsed);
             setTimeout(() => window.dispatchEvent(new Event('sidebar-toggle')), 0);
           }}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
+          className="h-8 w-8 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
 
-      {/* User info */}
-      {!collapsed && user && (
-        <div className="border-b border-sidebar-border p-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-sidebar-foreground font-medium">
-              {user.fullName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user.fullName}</p>
-              <Badge variant="secondary" className="mt-1 text-xs">
-                {ROLE_LABELS[user.role]}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Navigation */}
-      <ScrollArea className="flex-1" ref={navRef}>
-        <nav className="p-3 space-y-4">
+      <ScrollArea className="flex-1 px-3" ref={navRef}>
+        <nav className="py-3 space-y-5">
           {mainNavSections.map((section) => {
             const visibleItems = section.items.filter(isItemVisible);
             if (visibleItems.length === 0) return null;
             return (
               <div key={section.label || 'main'}>
                 {!collapsed && section.label && (
-                  <p className="px-4 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                  <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
                     {section.label}
                   </p>
                 )}
@@ -194,8 +159,7 @@ export function Sidebar() {
                     const isActive = location.pathname === item.href;
                     return (
                       <Link
-                        key={item.href}
-                        to={item.href}
+                        key={item.href} to={item.href}
                         data-sidebar-active={isActive ? 'true' : undefined}
                         className={cn('nav-item', isActive && 'nav-item-active')}
                         title={collapsed ? item.label : undefined}
@@ -210,11 +174,10 @@ export function Sidebar() {
             );
           })}
 
-          {/* Bottom items */}
           {filteredBottomItems.length > 0 && (
             <div>
               {!collapsed && (
-                <p className="px-4 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+                <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
                   Account
                 </p>
               )}
@@ -223,18 +186,13 @@ export function Sidebar() {
                   if (!item.href) return null;
                   const isActive = location.pathname === item.href;
                   return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className={cn('nav-item', isActive && 'nav-item-active')}
-                      title={collapsed ? item.label : undefined}
-                    >
+                    <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')} title={collapsed ? item.label : undefined}>
                       {item.icon}
                       {!collapsed && <span className="flex-1">{item.label}</span>}
                     </Link>
                   );
                 })}
-                <button onClick={logout} className="nav-item w-full text-left">
+                <button onClick={logout} className="nav-item w-full text-left text-destructive/80 hover:text-destructive">
                   <LogOut className="h-5 w-5" />
                   {!collapsed && <span className="flex-1">Logout</span>}
                 </button>
