@@ -47,24 +47,69 @@ export interface PlatformUser {
   status: string;
 }
 
-// Application statuses
+// Application statuses - extended lifecycle
 export type ApplicationStatus = 
   | 'draft' 
   | 'submitted' 
-  | 'under_review' 
+  | 'scrutiny'
+  | 'query_raised'
+  | 'resubmitted'
+  | 'technical_review'
   | 'pending_approval' 
   | 'approved' 
   | 'rejected' 
-  | 'returned';
+  | 'license_issued';
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   draft: 'Draft',
   submitted: 'Submitted',
-  under_review: 'Under Review',
+  scrutiny: 'Under Scrutiny',
+  query_raised: 'Query Raised',
+  resubmitted: 'Resubmitted',
+  technical_review: 'Technical Review',
   pending_approval: 'Pending Approval',
   approved: 'Approved',
   rejected: 'Rejected',
-  returned: 'Returned for Revision',
+  license_issued: 'License Issued',
+};
+
+export const APPLICATION_STATUS_FLOW: ApplicationStatus[] = [
+  'draft', 'submitted', 'scrutiny', 'query_raised', 'resubmitted',
+  'technical_review', 'pending_approval', 'approved', 'license_issued',
+];
+
+// License statuses
+export type LicenseStatus = 'active' | 'suspended' | 'revoked' | 'expired' | 'cancelled';
+
+export const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
+  active: 'Active',
+  suspended: 'Suspended',
+  revoked: 'Revoked',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
+};
+
+// Compliance return statuses
+export type ReturnStatus = 'pending' | 'draft' | 'submitted' | 'accepted' | 'rejected' | 'overdue';
+
+export const RETURN_STATUS_LABELS: Record<ReturnStatus, string> = {
+  pending: 'Pending',
+  draft: 'Draft',
+  submitted: 'Submitted',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  overdue: 'Overdue',
+};
+
+// Fee types
+export type FeeType = 'application' | 'processing' | 'license' | 'renewal' | 'service';
+
+export const FEE_TYPE_LABELS: Record<FeeType, string> = {
+  application: 'Application Fee',
+  processing: 'Processing Fee',
+  license: 'License Fee',
+  renewal: 'Renewal Fee',
+  service: 'Service Fee',
 };
 
 // Complaint statuses
