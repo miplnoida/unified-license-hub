@@ -6,11 +6,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
-
 import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import Dashboard from "./pages/Dashboard";
 
 // Applications
 import ApplicationsList from "./pages/applications/ApplicationsList";
@@ -31,8 +30,6 @@ import ComplaintsList from "./pages/complaints/ComplaintsList";
 
 // Workflows
 import WorkflowList from "./pages/workflows/WorkflowList";
-
-// Delegation
 import DelegationRules from "./pages/delegation/DelegationRules";
 
 // Documents
@@ -59,7 +56,14 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><p>Loading...</p></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
   if (!isAuthenticated) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -71,9 +75,9 @@ function P({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public */}
       <Route path="/" element={<Index />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      
 
       {/* Dashboard */}
       <Route path="/dashboard" element={<P><Dashboard /></P>} />
@@ -98,8 +102,6 @@ function AppRoutes() {
 
       {/* Workflows */}
       <Route path="/workflows" element={<P><WorkflowList /></P>} />
-
-      {/* Delegation Rules */}
       <Route path="/delegation-rules" element={<P><DelegationRules /></P>} />
 
       {/* Documents */}
@@ -123,10 +125,8 @@ function AppRoutes() {
       <Route path="/admin/masters/categories" element={<P><MasterConfiguration /></P>} />
       <Route path="/admin/masters/services" element={<P><MasterConfiguration /></P>} />
 
-      {/* Fee Management */}
+      {/* Fee & Return Config */}
       <Route path="/admin/fees" element={<P><FeeManagement /></P>} />
-
-      {/* Return Configuration */}
       <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
 
       {/* Administration */}
@@ -134,7 +134,7 @@ function AppRoutes() {
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
 
-      {/* Settings & Account */}
+      {/* Account */}
       <Route path="/settings" element={<P><PlaceholderPage /></P>} />
       <Route path="/profile" element={<P><PlaceholderPage /></P>} />
       <Route path="/change-password" element={<P><PlaceholderPage /></P>} />
