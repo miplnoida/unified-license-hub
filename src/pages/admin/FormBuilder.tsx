@@ -219,6 +219,13 @@ export default function FormBuilder() {
     }
   };
 
+  const handleFileImport = useCallback((imported: FormSection[]) => {
+    setSections(prev => {
+      const offset = prev.length;
+      return [...prev, ...imported.map((s, i) => ({ ...s, sortOrder: offset + i }))];
+    });
+  }, []);
+
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : 'Form';
 
   return (
