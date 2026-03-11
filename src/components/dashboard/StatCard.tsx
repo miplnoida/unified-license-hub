@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { forwardRef, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
@@ -12,7 +12,7 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({
+export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatCard({
   title,
   value,
   change,
@@ -20,7 +20,7 @@ export function StatCard({
   icon,
   variant = 'default',
   className,
-}: StatCardProps) {
+}, ref) {
   const variantStyles = {
     default: 'bg-card',
     primary: 'bg-gradient-to-br from-primary to-primary/80 text-primary-foreground',
@@ -42,6 +42,7 @@ export function StatCard({
 
   return (
     <div
+      ref={ref}
       className={cn(
         'card-stat relative overflow-hidden',
         variantStyles[variant],
@@ -90,4 +91,4 @@ export function StatCard({
       <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5" />
     </div>
   );
-}
+});
