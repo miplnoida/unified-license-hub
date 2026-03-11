@@ -17,6 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Eye, Save, GitBranch } from 'lucide-react';
+import { FileImportDialog } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
@@ -218,6 +219,13 @@ export default function FormBuilder() {
     }
   };
 
+  const handleFileImport = useCallback((imported: FormSection[]) => {
+    setSections(prev => {
+      const offset = prev.length;
+      return [...prev, ...imported.map((s, i) => ({ ...s, sortOrder: offset + i }))];
+    });
+  }, []);
+
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : 'Form';
 
   return (
@@ -241,6 +249,7 @@ export default function FormBuilder() {
                   New Version
                 </Button>
               )}
+              <FileImportDialog onImport={handleFileImport} />
               <Button variant="outline" onClick={() => setShowPreview(true)}>
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
