@@ -42,6 +42,7 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatC
 
   return (
     <div
+      ref={ref}
       className={cn(
         'card-stat relative overflow-hidden',
         variantStyles[variant],
@@ -90,4 +91,4 @@ export const StatCard = forwardRef<HTMLDivElement, StatCardProps>(function StatC
       <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/5" />
     </div>
   );
-}
+});
