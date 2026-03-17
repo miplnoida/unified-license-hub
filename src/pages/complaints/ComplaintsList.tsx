@@ -78,8 +78,12 @@ export default function ComplaintsList() {
 
   const loadComplaints = async () => {
     setLoading(true);
-    const { data } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
+    const [{ data }, { data: typesData }] = await Promise.all([
+      supabase.from('complaints').select('*').order('created_at', { ascending: false }),
+      supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
+    ]);
     setComplaints((data || []) as any);
+    setComplaintTypes((typesData || []) as ComplaintType[]);
     setLoading(false);
   };
 
