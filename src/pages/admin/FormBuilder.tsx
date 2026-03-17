@@ -17,7 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Eye, Save, GitBranch } from 'lucide-react';
-import { FileImportDialog } from '@/components/form-builder/FileImport';
+import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
@@ -28,6 +28,7 @@ import {
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
+import { supabase } from '@/integrations/supabase/client';
 import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
 
 function toFieldName(label: string): string {
