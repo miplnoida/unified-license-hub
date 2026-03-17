@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { INTERNAL_ROLES } from '@/types/platform';
-import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
+import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck, Mail, User } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
