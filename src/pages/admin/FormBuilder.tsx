@@ -231,7 +231,7 @@ export default function FormBuilder() {
       } as any);
 
       toast.success('Form saved successfully!');
-      navigate(formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license');
+      navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
       toast.error('Failed to save form.');
@@ -263,7 +263,7 @@ export default function FormBuilder() {
     });
   }, []);
 
-  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : 'Form';
+  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : 'Form';
 
   return (
     <DashboardLayout>
@@ -271,8 +271,8 @@ export default function FormBuilder() {
         <PageHeader
           title={`${formTypeLabel} Form Builder`}
           description={`Design dynamic forms with sections, fields, and conditional logic.`}
-          backHref={formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license'}
-          backLabel={`${formTypeLabel} Forms`}
+          backHref={`/admin/forms?tab=${formType}`}
+          backLabel="Form Management"
           actions={
             <div className="flex items-center gap-2">
               {editId && latestVersion && (
