@@ -42,8 +42,9 @@ import DocumentStore from "./pages/documents/DocumentStore";
 // Notifications
 import NotificationCenter from "./pages/notifications/NotificationCenter";
 
-// Analytics
+// Analytics & Reports
 import AnalyticsDashboard from "./pages/analytics/AnalyticsDashboard";
+import ReportsDashboard from "./pages/reports/ReportsDashboard";
 
 // Admin
 import RoleManagement from "./pages/admin/RoleManagement";
