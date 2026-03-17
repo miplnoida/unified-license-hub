@@ -26,6 +26,7 @@ export type Database = {
           license_type: string
           regulator_id: string | null
           rejected_at: string | null
+          search_vector: unknown
           status: string
           submitted_at: string | null
           updated_at: string
@@ -42,6 +43,7 @@ export type Database = {
           license_type: string
           regulator_id?: string | null
           rejected_at?: string | null
+          search_vector?: unknown
           status?: string
           submitted_at?: string | null
           updated_at?: string
@@ -58,6 +60,7 @@ export type Database = {
           license_type?: string
           regulator_id?: string | null
           rejected_at?: string | null
+          search_vector?: unknown
           status?: string
           submitted_at?: string | null
           updated_at?: string
@@ -352,6 +355,7 @@ export type Database = {
           license_holder_id: string | null
           regulator_id: string | null
           resolution: string | null
+          search_vector: unknown
           status: string
           subject: string
           updated_at: string
@@ -366,6 +370,7 @@ export type Database = {
           license_holder_id?: string | null
           regulator_id?: string | null
           resolution?: string | null
+          search_vector?: unknown
           status?: string
           subject: string
           updated_at?: string
@@ -380,6 +385,7 @@ export type Database = {
           license_holder_id?: string | null
           regulator_id?: string | null
           resolution?: string | null
+          search_vector?: unknown
           status?: string
           subject?: string
           updated_at?: string
@@ -1094,6 +1100,51 @@ export type Database = {
           },
         ]
       }
+      job_queue: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          priority: number
+          started_at: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          started_at?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          started_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       license_actions: {
         Row: {
           action_type: string
@@ -1151,6 +1202,7 @@ export type Database = {
           license_number: string
           license_type: string
           regulator_id: string | null
+          search_vector: unknown
           sector_id: string | null
           status: string
           sub_sector_id: string | null
@@ -1170,6 +1222,7 @@ export type Database = {
           license_number?: string
           license_type: string
           regulator_id?: string | null
+          search_vector?: unknown
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -1189,6 +1242,7 @@ export type Database = {
           license_number?: string
           license_type?: string
           regulator_id?: string | null
+          search_vector?: unknown
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -1444,6 +1498,7 @@ export type Database = {
           full_name: string
           id: string
           role: string
+          search_vector: unknown
           status: string
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
@@ -1455,6 +1510,7 @@ export type Database = {
           full_name: string
           id: string
           role?: string
+          search_vector?: unknown
           status?: string
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
@@ -1466,6 +1522,7 @@ export type Database = {
           full_name?: string
           id?: string
           role?: string
+          search_vector?: unknown
           status?: string
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
