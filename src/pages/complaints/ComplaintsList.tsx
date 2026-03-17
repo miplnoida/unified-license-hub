@@ -159,6 +159,19 @@ export default function ComplaintsList() {
                 <DialogContent>
                   <DialogHeader><DialogTitle>Submit a Complaint</DialogTitle></DialogHeader>
                   <div className="space-y-4">
+                    {complaintTypes.length > 0 && (
+                      <div>
+                        <Label>Complaint Type</Label>
+                        <Select value={newTypeId} onValueChange={setNewTypeId}>
+                          <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                          <SelectContent>
+                            {complaintTypes.map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                     <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
                     <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>

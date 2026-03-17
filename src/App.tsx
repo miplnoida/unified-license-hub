@@ -189,6 +189,7 @@ function AppRoutes() {
         <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
         <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
         <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
+        <Route path="/admin/complaint-types" element={<P><ComplaintTypes /></P>} />
 
         {/* Settings */}
         <Route path="/settings" element={<P><SettingsHub /></P>} />

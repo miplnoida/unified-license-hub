@@ -123,6 +123,7 @@ export default function AdminHub() {
     { label: 'User Management', desc: `${metrics.totalUsers} users`, icon: <Users className="h-5 w-5" />, href: '/admin/users', count: metrics.totalUsers },
     { label: 'Role Management (RBAC)', desc: 'Roles & permissions', icon: <Shield className="h-5 w-5" />, href: '/admin/roles' },
     { label: 'Complaint Management', desc: `${metrics.totalComplaints} complaints`, icon: <AlertTriangle className="h-5 w-5" />, href: '/complaints', count: metrics.totalComplaints },
+    { label: 'Complaint Types', desc: 'Configure complaint categories', icon: <Layers className="h-5 w-5" />, href: '/admin/complaint-types' },
     { label: 'Audit Logs', desc: `${metrics.totalAuditLogs} events logged`, icon: <ScrollText className="h-5 w-5" />, href: '/admin/audit-logs', count: metrics.totalAuditLogs },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings' },
   ];
