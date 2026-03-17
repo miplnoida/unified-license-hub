@@ -211,6 +211,7 @@ export default function ComplaintsList() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Complaint #</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
@@ -219,7 +220,7 @@ export default function ComplaintsList() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
