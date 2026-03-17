@@ -72,6 +72,7 @@ const ReturnConfiguration = lazy(() => import("./pages/admin/ReturnConfiguration
 const RegulatorManagement = lazy(() => import("./pages/admin/RegulatorManagement"));
 const AdminHub = lazy(() => import("./pages/admin/AdminHub"));
 const NotificationTemplates = lazy(() => import("./pages/admin/NotificationTemplates"));
+const ComplaintTypes = lazy(() => import("./pages/admin/ComplaintTypes"));
 
 // Settings
 const SettingsHub = lazy(() => import("./pages/settings/SettingsHub"));
@@ -188,6 +189,7 @@ function AppRoutes() {
         <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
         <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
         <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
+        <Route path="/admin/complaint-types" element={<P><ComplaintTypes /></P>} />
 
         {/* Settings */}
         <Route path="/settings" element={<P><SettingsHub /></P>} />

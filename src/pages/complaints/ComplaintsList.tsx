@@ -31,6 +31,11 @@ const STATUS_LABELS: Record<string, string> = {
   closed: 'Closed',
 };
 
+interface ComplaintType {
+  id: string;
+  name: string;
+}
+
 interface Complaint {
   id: string;
   complaint_number: string;
@@ -41,6 +46,7 @@ interface Complaint {
   investigator_id: string | null;
   resolution: string | null;
   email: string | null;
+  complaint_type_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +60,7 @@ interface ComplainantProfile {
 export default function ComplaintsList() {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -62,6 +69,7 @@ export default function ComplaintsList() {
   const [detailProfile, setDetailProfile] = useState<ComplainantProfile | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newTypeId, setNewTypeId] = useState('');
   const [creating, setCreating] = useState(false);
   const [resolution, setResolution] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -70,8 +78,12 @@ export default function ComplaintsList() {
 
   const loadComplaints = async () => {
     setLoading(true);
-    const { data } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
+    const [{ data }, { data: typesData }] = await Promise.all([
+      supabase.from('complaints').select('*').order('created_at', { ascending: false }),
+      supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
+    ]);
     setComplaints((data || []) as any);
+    setComplaintTypes((typesData || []) as ComplaintType[]);
     setLoading(false);
   };
 
@@ -83,12 +95,14 @@ export default function ComplaintsList() {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from('complaints').insert({
+    const insertData: any = {
       complainant_id: user.id,
       subject: newSubject.trim(),
       description: newDesc.trim(),
       email: user.email,
-    } as any);
+    };
+    if (newTypeId) insertData.complaint_type_id = newTypeId;
+    const { error } = await supabase.from('complaints').insert(insertData);
     if (error) { toast.error(error.message); setCreating(false); return; }
 
     await logAudit({ action: 'complaint_created', entityType: 'complaint' });
@@ -96,6 +110,7 @@ export default function ComplaintsList() {
     setNewDialogOpen(false);
     setNewSubject('');
     setNewDesc('');
+    setNewTypeId('');
     setCreating(false);
     loadComplaints();
   };
@@ -144,6 +159,19 @@ export default function ComplaintsList() {
                 <DialogContent>
                   <DialogHeader><DialogTitle>Submit a Complaint</DialogTitle></DialogHeader>
                   <div className="space-y-4">
+                    {complaintTypes.length > 0 && (
+                      <div>
+                        <Label>Complaint Type</Label>
+                        <Select value={newTypeId} onValueChange={setNewTypeId}>
+                          <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                          <SelectContent>
+                            {complaintTypes.map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
                     <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
                     <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
@@ -183,6 +211,7 @@ export default function ComplaintsList() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Complaint #</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
@@ -191,10 +220,11 @@ export default function ComplaintsList() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No complaints found</TableCell></TableRow>
                   ) : filtered.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
+                      <TableCell className="text-sm">{complaintTypes.find(t => t.id === c.complaint_type_id)?.name || '—'}</TableCell>
                       <TableCell className="max-w-xs truncate">{c.subject}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[c.status] || 'outline'} className="capitalize">
@@ -229,6 +259,12 @@ export default function ComplaintsList() {
           <DialogHeader><DialogTitle>Complaint {detailDialog?.complaint_number}</DialogTitle></DialogHeader>
           {detailDialog && (
             <div className="space-y-4">
+              {detailDialog.complaint_type_id && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <Badge variant="outline">{complaintTypes.find(t => t.id === detailDialog.complaint_type_id)?.name || 'Unknown'}</Badge>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Subject</p>
                 <p className="font-medium">{detailDialog.subject}</p>
