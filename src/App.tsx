@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Dashboard from "./pages/Dashboard";
 import FormDetail from "./pages/FormDetail";
+import NewApplication from "./pages/NewApplication";
 
 // Applications
 import ApplicationsList from "./pages/applications/ApplicationsList";
@@ -103,6 +104,7 @@ function AppRoutes() {
 
       {/* Applications */}
       <Route path="/applications" element={<P><ApplicationsList /></P>} />
+      <Route path="/applications/new" element={<P><NewApplication /></P>} />
       <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
       <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
