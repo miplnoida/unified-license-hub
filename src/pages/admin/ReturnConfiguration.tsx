@@ -12,12 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors } from '@/hooks/useMasterConfig';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 interface ReturnConfig {
   id: string;
   name: string;
+  regulator_id: string | null;
   form_id: string | null;
   sector_id: string | null;
   sub_sector_id: string | null;
@@ -28,6 +30,7 @@ interface ReturnConfig {
 }
 
 export default function ReturnConfiguration() {
+  const { activeRegulatorId } = useRegulator();
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,17 +44,19 @@ export default function ReturnConfiguration() {
   const [subSectorId, setSubSectorId] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  const { data: sectors = [] } = useSectors();
-  const { data: subSectors = [] } = useSubSectors();
+  const { data: sectors = [] } = useSectors(activeRegulatorId);
+  const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
 
   const loadConfigs = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('return_configurations' as any).select('*').order('created_at', { ascending: false });
+    let query = supabase.from('return_configurations' as any).select('*').order('created_at', { ascending: false });
+    if (activeRegulatorId) query = query.eq('regulator_id', activeRegulatorId);
+    const { data, error } = await query;
     if (!error) setConfigs((data || []) as any);
     setLoading(false);
   };
 
-  useEffect(() => { loadConfigs(); }, []);
+  useEffect(() => { loadConfigs(); }, [activeRegulatorId]);
 
   const resetForm = () => { setName(''); setFrequency('monthly'); setDueDay('15'); setSectorId(''); setSubSectorId(''); setIsActive(true); setEditing(null); };
 
@@ -67,6 +72,7 @@ export default function ReturnConfiguration() {
     const payload: any = {
       name: name.trim(), frequency, due_day: parseInt(dueDay),
       sector_id: sectorId || null, sub_sector_id: subSectorId || null, is_active: isActive,
+      regulator_id: activeRegulatorId || null,
     };
     if (editing) {
       const { error } = await supabase.from('return_configurations' as any).update(payload).eq('id', editing.id);
@@ -93,7 +99,7 @@ export default function ReturnConfiguration() {
       <div className="space-y-6">
         <PageHeader
           title="Return Configuration"
-          description="Configure compliance return schedules and forms"
+          description="Configure compliance return schedules scoped to the active regulator."
           actions={
             <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) resetForm(); }}>
               <DialogTrigger asChild><Button><PlusCircle className="h-4 w-4 mr-2" />Add Configuration</Button></DialogTrigger>

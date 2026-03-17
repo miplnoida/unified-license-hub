@@ -14,20 +14,22 @@ export interface DbForm {
   status: 'draft' | 'published' | 'archived';
   version: number;
   parent_form_id: string | null;
-  rows: FormSection[]; // stored in `rows` jsonb column but semantically sections
+  regulator_id: string | null;
+  rows: FormSection[];
   created_at: string;
   updated_at: string;
 }
 
-export function useForms(formType?: string) {
+export function useForms(formType?: string, regulatorId?: string | null) {
   return useQuery({
-    queryKey: ['forms', formType],
+    queryKey: ['forms', formType, regulatorId],
     queryFn: async () => {
       let query = supabase
         .from('forms')
         .select('*')
         .order('created_at', { ascending: false });
       if (formType) query = query.eq('form_type', formType);
+      if (regulatorId) query = query.eq('regulator_id', regulatorId);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as DbForm[];
@@ -105,6 +107,7 @@ export function useSaveForm() {
         status: form.status,
         version: form.version,
         parent_form_id: form.parent_form_id,
+        regulator_id: form.regulator_id || null,
         rows: JSON.parse(JSON.stringify(form.rows)),
       } as any);
       if (error) throw error;
@@ -121,7 +124,6 @@ export function useCreateNewVersion() {
   return useMutation({
     mutationFn: async (sourceForm: DbForm) => {
       const parentId = sourceForm.parent_form_id || sourceForm.id;
-      // Get max version
       const { data: versions } = await supabase
         .from('forms')
         .select('version')
@@ -143,6 +145,7 @@ export function useCreateNewVersion() {
         status: 'draft',
         version: maxVersion + 1,
         parent_form_id: parentId,
+        regulator_id: sourceForm.regulator_id || null,
         rows: JSON.parse(JSON.stringify(sourceForm.rows)),
       } as any);
       if (error) throw error;

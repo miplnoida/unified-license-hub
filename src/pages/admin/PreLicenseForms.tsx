@@ -4,12 +4,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -18,12 +14,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useForms, useDeleteForm, useUpdateFormStatus, type DbForm } from '@/hooks/useForms';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  published: 'default',
-  draft: 'secondary',
-  archived: 'outline',
+  published: 'default', draft: 'secondary', archived: 'outline',
 };
 
 const statusOptions = [
@@ -34,7 +29,8 @@ const statusOptions = [
 
 export default function PreLicenseForms() {
   const navigate = useNavigate();
-  const { data: forms = [], isLoading } = useForms('pre_license');
+  const { activeRegulatorId } = useRegulator();
+  const { data: forms = [], isLoading } = useForms('pre_license', activeRegulatorId);
   const deleteFormMutation = useDeleteForm();
   const updateStatusMutation = useUpdateFormStatus();
 
@@ -93,8 +89,7 @@ export default function PreLicenseForms() {
           description="Manage all pre-license application forms."
           actions={
             <Button onClick={() => navigate('/admin/forms/create?type=pre_license')}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Pre-License Form
+              <PlusCircle className="h-4 w-4 mr-2" />Add Pre-License Form
             </Button>
           }
         />
@@ -129,9 +124,7 @@ export default function PreLicenseForms() {
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
+              <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : (
               <Table>
                 <TableHeader>
@@ -146,43 +139,32 @@ export default function PreLicenseForms() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No forms found.</TableCell>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No forms found.</TableCell></TableRow>
+                  ) : filtered.map((form) => (
+                    <TableRow key={form.id}>
+                      <TableCell className="font-medium">{form.name}</TableCell>
+                      <TableCell>{form.category}</TableCell>
+                      <TableCell>Pre-License</TableCell>
+                      <TableCell>
+                        <Select value={form.status} onValueChange={(val) => requestStatusChange(form, val)}>
+                          <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
+                            <Badge variant={statusVariant[form.status]} className="cursor-pointer capitalize">{form.status}</Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>{new Date(form.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="View" onClick={() => handleView(form.id)}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=pre_license&id=${form.id}`)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(form.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ) : (
-                    filtered.map((form) => (
-                      <TableRow key={form.id}>
-                        <TableCell className="font-medium">{form.name}</TableCell>
-                        <TableCell>{form.category}</TableCell>
-                        <TableCell>Pre-License</TableCell>
-                        <TableCell>
-                          <Select
-                            value={form.status}
-                            onValueChange={(val) => requestStatusChange(form, val)}
-                          >
-                            <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
-                              <Badge variant={statusVariant[form.status]} className="cursor-pointer capitalize">
-                                {form.status}
-                              </Badge>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {statusOptions.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>{new Date(form.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="View" onClick={() => handleView(form.id)}><Eye className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=pre_license&id=${form.id}`)}><Pencil className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(form.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             )}
@@ -196,8 +178,7 @@ export default function PreLicenseForms() {
             <AlertDialogTitle>Change Form Status</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to change the status of <strong>"{statusDialog.formName}"</strong> from{' '}
-              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge>
-              to{' '}
+              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge> to{' '}
               <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
             </AlertDialogDescription>
           </AlertDialogHeader>

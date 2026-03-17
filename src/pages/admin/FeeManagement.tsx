@@ -12,12 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import { FEE_TYPE_LABELS, FeeType } from '@/types/platform';
-import { PlusCircle, Pencil, Trash2, Loader2, DollarSign } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 interface FeeConfig {
   id: string;
+  regulator_id: string | null;
   sector_id: string | null;
   sub_sector_id: string | null;
   category_id: string | null;
@@ -31,13 +33,13 @@ interface FeeConfig {
 }
 
 export default function FeeManagement() {
+  const { activeRegulatorId } = useRegulator();
   const [fees, setFees] = useState<FeeConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<FeeConfig | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Form state
   const [name, setName] = useState('');
   const [feeType, setFeeType] = useState<FeeType>('application');
   const [amount, setAmount] = useState('');
@@ -48,19 +50,21 @@ export default function FeeManagement() {
   const [serviceId, setServiceId] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  const { data: sectors = [] } = useSectors();
-  const { data: subSectors = [] } = useSubSectors();
-  const { data: categories = [] } = useCategories();
-  const { data: services = [] } = useServices();
+  const { data: sectors = [] } = useSectors(activeRegulatorId);
+  const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: categories = [] } = useCategories(activeRegulatorId);
+  const { data: services = [] } = useServices(activeRegulatorId);
 
   const loadFees = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('fee_configurations' as any).select('*').order('created_at', { ascending: false });
+    let query = supabase.from('fee_configurations' as any).select('*').order('created_at', { ascending: false });
+    if (activeRegulatorId) query = query.eq('regulator_id', activeRegulatorId);
+    const { data, error } = await query;
     if (!error) setFees((data || []) as any);
     setLoading(false);
   };
 
-  useEffect(() => { loadFees(); }, []);
+  useEffect(() => { loadFees(); }, [activeRegulatorId]);
 
   const resetForm = () => {
     setName(''); setFeeType('application'); setAmount(''); setCurrency('USD');
@@ -84,6 +88,7 @@ export default function FeeManagement() {
       name: name.trim(), fee_type: feeType, amount: parseFloat(amount), currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
       category_id: categoryId || null, service_id: serviceId || null, is_active: isActive,
+      regulator_id: activeRegulatorId || null,
     };
 
     if (editing) {
@@ -115,7 +120,7 @@ export default function FeeManagement() {
       <div className="space-y-6">
         <PageHeader
           title="Fee Management"
-          description="Configure application, processing, license and renewal fees"
+          description="Configure application, processing, license and renewal fees scoped to the active regulator."
           actions={
             <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
               <DialogTrigger asChild>
