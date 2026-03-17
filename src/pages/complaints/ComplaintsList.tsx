@@ -110,6 +110,7 @@ export default function ComplaintsList() {
     setNewDialogOpen(false);
     setNewSubject('');
     setNewDesc('');
+    setNewTypeId('');
     setCreating(false);
     loadComplaints();
   };
