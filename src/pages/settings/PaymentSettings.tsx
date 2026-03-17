@@ -11,16 +11,23 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, CreditCard, DollarSign, Shield } from 'lucide-react';
+import { Save, CreditCard, DollarSign, Shield, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function PaymentSettings() {
+  const navigate = useNavigate();
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
         <PageHeader
           title="Payment Settings"
           description="Configure payment gateways, fees, and transaction rules."
-          actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate('/settings')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
+              <Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+            </div>
+          }
         />
 
         <Card className="animate-slide-up delay-100">

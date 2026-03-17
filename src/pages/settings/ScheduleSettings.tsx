@@ -12,7 +12,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -27,13 +28,19 @@ const holidays = [
 ];
 
 export default function ScheduleSettings() {
+  const navigate = useNavigate();
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
         <PageHeader
           title="Schedule Settings"
           description="Configure business hours, working days, and holiday calendar."
-          actions={<Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>}
+          actions={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate('/settings')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
+              <Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+            </div>
+          }
         />
 
         <Card className="animate-slide-up delay-100">
