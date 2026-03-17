@@ -24,6 +24,7 @@ import LicenseDetail from "./pages/licenses/LicenseDetail";
 
 // Compliance
 import ComplianceReturns from "./pages/compliance/ComplianceReturns";
+import ReturnSubmission from "./pages/compliance/ReturnSubmission";
 
 // Payments
 import PaymentHistory from "./pages/payments/PaymentHistory";
@@ -114,6 +115,7 @@ function AppRoutes() {
 
       {/* Compliance */}
       <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
+      <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
 
       {/* Payments */}
       <Route path="/payments" element={<P><PaymentHistory /></P>} />
