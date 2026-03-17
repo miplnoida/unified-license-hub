@@ -53,6 +53,7 @@ import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import FeeManagement from "./pages/admin/FeeManagement";
 import ReturnConfiguration from "./pages/admin/ReturnConfiguration";
+import RegulatorManagement from "./pages/admin/RegulatorManagement";
 
 const queryClient = new QueryClient();
 
