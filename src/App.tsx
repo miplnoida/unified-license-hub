@@ -159,10 +159,12 @@ function AppRoutes() {
       <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
 
       {/* Administration */}
+      <Route path="/admin" element={<P><AdminHub /></P>} />
       <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
+      <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
 
       {/* Settings */}
       <Route path="/settings" element={<P><SettingsHub /></P>} />
