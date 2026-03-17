@@ -23,7 +23,10 @@ import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/u
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
-import { useSaveForm, useForm, useCreateNewVersion } from '@/hooks/useForms';
+import {
+  useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
+} from '@/hooks/useFormTemplates';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
 
@@ -37,10 +40,13 @@ export default function FormBuilder() {
   const formType = searchParams.get('type') || 'pre_license';
   const editId = searchParams.get('id');
   const isViewMode = searchParams.get('mode') === 'view';
-  const saveFormMutation = useSaveForm();
-  const createVersionMutation = useCreateNewVersion();
+  const { activeRegulatorId } = useRegulator();
 
-  const { data: existingForm } = useForm(editId);
+  const saveTemplateMutation = useSaveFormTemplate();
+  const createVersionMutation = useCreateNewFormVersion();
+
+  const { data: existingTemplate } = useFormTemplate(editId);
+  const { data: latestVersion } = useLatestVersion(editId);
 
   const { data: dbSectors = [] } = useSectors();
   const { data: dbSubSectors = [] } = useSubSectors();
@@ -62,24 +68,24 @@ export default function FormBuilder() {
   const [selectedService, setSelectedService] = useState('');
   const [initialized, setInitialized] = useState(false);
 
-  // Populate state when existing form loads
+  // Populate state when existing template + version loads
   useEffect(() => {
-    if (!existingForm || initialized || dbSectors.length === 0) return;
-    // rows column stores sections now
-    const loadedSections = existingForm.rows as unknown as FormSection[];
+    if (!existingTemplate || initialized || dbSectors.length === 0) return;
+    // Load sections from latest version's schema_snapshot
+    const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
     setSections(Array.isArray(loadedSections) ? loadedSections : []);
-    setFormName(existingForm.name || '');
-    setFormDescription(existingForm.description || '');
-    const sectorRow = dbSectors.find(s => s.name === existingForm.sector);
+    setFormName(existingTemplate.name || '');
+    setFormDescription(existingTemplate.description || '');
+    const sectorRow = dbSectors.find(s => s.name === existingTemplate.sector);
     setSelectedSector(sectorRow?.id || '');
-    const subSectorRow = dbSubSectors.find(s => s.name === existingForm.sub_sector);
+    const subSectorRow = dbSubSectors.find(s => s.name === existingTemplate.sub_sector);
     setSelectedSubSector(subSectorRow?.id || '');
-    const catRow = dbCategories.find(c => c.name === existingForm.category);
+    const catRow = dbCategories.find(c => c.name === existingTemplate.category);
     setSelectedCategory(catRow?.id || '');
-    const svcRow = dbServices.find(s => s.name === existingForm.service);
+    const svcRow = dbServices.find(s => s.name === existingTemplate.service);
     setSelectedService(svcRow?.id || '');
     setInitialized(true);
-  }, [existingForm, initialized, dbSectors, dbSubSectors, dbCategories, dbServices]);
+  }, [existingTemplate, latestVersion, initialized, dbSectors, dbSubSectors, dbCategories, dbServices]);
 
   const filteredSubSectors = useMemo(
     () => dbSubSectors.filter(s => s.sector_id === selectedSector && s.status === 'active'),
@@ -97,7 +103,6 @@ export default function FormBuilder() {
   const handleSectorChange = (v: string) => { setSelectedSector(v); setSelectedSubSector(''); setSelectedCategory(''); setSelectedService(''); };
   const handleSubSectorChange = (v: string) => { setSelectedSubSector(v); setSelectedCategory(''); setSelectedService(''); };
 
-  // All fields flattened for properties panel
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
 
   // Field operations
@@ -123,7 +128,6 @@ export default function FormBuilder() {
   }, []);
 
   const handleAddFieldFromPalette = useCallback((type: FieldType) => {
-    // Add to last section, or create one
     if (sections.length === 0) {
       const sId = crypto.randomUUID();
       const ft = fieldTypes.find(f => f.type === type);
@@ -184,8 +188,34 @@ export default function FormBuilder() {
       const categoryName = selectedCategory ? (dbCategories.find(c => c.id === selectedCategory)?.name || '') : '';
       const serviceName = selectedService ? (dbServices.find(s => s.id === selectedService)?.name || '') : '';
 
-      await saveFormMutation.mutateAsync({
-        id: editId || crypto.randomUUID(),
+      const templateId = editId || crypto.randomUUID();
+      const versionId = latestVersion?.id || crypto.randomUUID();
+      const version = latestVersion?.version || 1;
+
+      await saveTemplateMutation.mutateAsync({
+        template: {
+          id: templateId,
+          name: formName.trim(),
+          description: formDescription.trim() || null,
+          form_type: formType,
+          category: categoryName,
+          service: serviceName,
+          sector: sectorName,
+          sub_sector: subSectorName,
+          status: existingTemplate?.status || 'draft',
+          regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
+          is_reusable: true,
+          created_by: existingTemplate?.created_by || null,
+        },
+        sections,
+        versionId,
+        version,
+      });
+
+      // Also save to legacy forms table for backward compatibility
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.from('forms').upsert({
+        id: templateId,
         name: formName.trim(),
         description: formDescription.trim(),
         form_type: formType,
@@ -193,12 +223,13 @@ export default function FormBuilder() {
         service: serviceName,
         sector: sectorName,
         sub_sector: subSectorName,
-        status: existingForm?.status || 'draft',
-        version: existingForm?.version || 1,
-        parent_form_id: existingForm?.parent_form_id || null,
-        regulator_id: existingForm?.regulator_id || null,
-        rows: sections,
-      });
+        status: existingTemplate?.status || 'draft',
+        version,
+        parent_form_id: null,
+        regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
+        rows: JSON.parse(JSON.stringify(sections)),
+      } as any);
+
       toast.success('Form saved successfully!');
       navigate(formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license');
     } catch (error) {
@@ -210,11 +241,16 @@ export default function FormBuilder() {
   };
 
   const handleCreateVersion = async () => {
-    if (!existingForm) return;
+    if (!editId) return;
     try {
-      const newId = await createVersionMutation.mutateAsync(existingForm);
-      toast.success(`Version ${existingForm.version + 1} created!`);
-      navigate(`/admin/forms/create?type=${formType}&id=${newId}`);
+      const result = await createVersionMutation.mutateAsync({
+        templateId: editId,
+        sections,
+      });
+      toast.success(`Version ${result.version} created!`);
+      // Reload the page with same template ID
+      navigate(`/admin/forms/create?type=${formType}&id=${editId}`);
+      setInitialized(false);
     } catch (error) {
       toast.error('Failed to create new version.');
     }
@@ -239,12 +275,12 @@ export default function FormBuilder() {
           backLabel={`${formTypeLabel} Forms`}
           actions={
             <div className="flex items-center gap-2">
-              {editId && existingForm && (
+              {editId && latestVersion && (
                 <Badge variant="secondary" className="gap-1">
-                  <GitBranch className="h-3 w-3" /> v{existingForm.version}
+                  <GitBranch className="h-3 w-3" /> v{latestVersion.version}
                 </Badge>
               )}
-              {editId && existingForm && (
+              {editId && (
                 <Button variant="outline" size="sm" onClick={handleCreateVersion} disabled={createVersionMutation.isPending}>
                   <GitBranch className="h-4 w-4 mr-1" />
                   New Version
@@ -326,12 +362,9 @@ export default function FormBuilder() {
 
         {/* Builder: 3-column layout */}
         <div className="grid grid-cols-12 gap-4">
-          {/* Field Palette */}
           <div className="col-span-2">
             <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
           </div>
-
-          {/* Sections + Fields Canvas */}
           <div className="col-span-7">
             <SectionManager
               sections={sections}
@@ -343,8 +376,6 @@ export default function FormBuilder() {
               onDuplicateField={handleDuplicateField}
             />
           </div>
-
-          {/* Properties Panel */}
           <div className="col-span-3">
             <FormBuilderFieldProperties
               selectedField={selectedField}
@@ -385,15 +416,9 @@ export default function FormBuilder() {
                         <p className="text-sm text-muted-foreground">{field.content}</p>
                       ) : field.type === 'textarea' ? (
                         <Textarea disabled placeholder={field.placeholder} className="text-sm" rows={2} />
-                      ) : field.type === 'select' || field.type === 'multi_select' ? (
-                        <Select disabled>
-                          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={field.placeholder || `Select...`} /></SelectTrigger>
-                          <SelectContent>{(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-                        </Select>
                       ) : (
-                        <Input disabled type={field.type === 'number' || field.type === 'decimal' ? 'number' : field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : 'text'} placeholder={field.placeholder} className="h-9 text-sm" />
+                        <Input disabled placeholder={field.placeholder || field.label} className="text-sm" />
                       )}
-                      {field.helpText && <p className="text-[10px] text-muted-foreground">{field.helpText}</p>}
                     </div>
                   ))}
                 </div>
