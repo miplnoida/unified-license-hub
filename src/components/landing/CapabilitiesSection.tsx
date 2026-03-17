@@ -1,71 +1,34 @@
-import { Building2, Layers, Workflow, CreditCard } from 'lucide-react';
+import { UserPlus, FileText, CreditCard, CheckCircle2, ArrowRight } from 'lucide-react';
 
-const capabilities = [
-  {
-    icon: Building2,
-    title: 'Multi-Regulator Support',
-    desc: 'Manage multiple regulatory bodies within a single platform instance. Each regulator gets isolated configurations, forms, workflows, and reporting.',
-    bullets: ['Tenant isolation', 'Shared master data', 'Cross-regulator analytics'],
-  },
-  {
-    icon: Layers,
-    title: 'Dynamic Form Builder',
-    desc: 'Design complex application forms with conditional logic, repeatable sections, and validation rules — no coding required.',
-    bullets: ['Drag-and-drop editor', 'Version control', 'Field-level conditions'],
-  },
-  {
-    icon: Workflow,
-    title: 'Configurable Workflow Engine',
-    desc: 'Build approval pipelines with role-based steps, SLA enforcement, delegation rules, and automated escalations.',
-    bullets: ['Parallel & sequential steps', 'Auto-assignment', 'SLA alerts'],
-  },
-  {
-    icon: CreditCard,
-    title: 'Fee & Payment Management',
-    desc: 'Configure fee schedules, process payments, generate receipts, and manage refunds with full financial audit trails.',
-    bullets: ['Dynamic fee rules', 'Receipt generation', 'Revenue dashboards'],
-  },
+const steps = [
+  { icon: UserPlus, label: 'Register Account', num: '1' },
+  { icon: FileText, label: 'Fill Application', num: '2' },
+  { icon: CreditCard, label: 'Pay Fees', num: '3' },
+  { icon: CheckCircle2, label: 'Get Approval', num: '4' },
 ];
 
 export function CapabilitiesSection() {
   return (
-    <section id="capabilities" className="py-20 lg:py-28 bg-muted/40">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <p className="text-sm font-semibold tracking-wider uppercase text-secondary mb-2">Platform Modules</p>
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-            Built for complex regulatory workflows
-          </h2>
+    <section id="how-it-works" className="py-14 lg:py-20 bg-muted/40">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="text-center mb-10">
+          <h2 className="text-xl lg:text-2xl font-bold text-foreground">How It Works</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Simple 4-step process to obtain your license</p>
         </div>
 
-        <div className="space-y-8">
-          {capabilities.map((cap, i) => (
-            <div
-              key={cap.title}
-              className={`flex flex-col ${i % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-8 lg:gap-14 items-center rounded-2xl border bg-card p-6 lg:p-10 shadow-card`}
-            >
-              {/* Text */}
-              <div className="flex-1 space-y-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                  <cap.icon className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0">
+          {steps.map((step, i) => (
+            <div key={step.num} className="flex items-center">
+              <div className="flex flex-col items-center text-center w-36">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground mb-3">
+                  <step.icon className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground">{cap.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{cap.desc}</p>
-                <ul className="space-y-2 pt-1">
-                  {cap.bullets.map((b) => (
-                    <li key={b} className="flex items-center gap-2 text-sm text-foreground/80">
-                      <span className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
+                <span className="text-xs font-bold text-primary mb-0.5">Step {step.num}</span>
+                <span className="text-sm font-medium text-foreground">{step.label}</span>
               </div>
-              {/* Illustration placeholder */}
-              <div className="flex-1 w-full">
-                <div className="rounded-xl border bg-muted/50 h-48 lg:h-56 flex items-center justify-center">
-                  <cap.icon className="h-16 w-16 text-muted-foreground/20" />
-                </div>
-              </div>
+              {i < steps.length - 1 && (
+                <ArrowRight className="h-5 w-5 text-muted-foreground/40 hidden sm:block mx-2" />
+              )}
             </div>
           ))}
         </div>

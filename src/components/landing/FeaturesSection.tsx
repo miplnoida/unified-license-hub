@@ -1,40 +1,38 @@
-import { FileText, ClipboardList, Workflow, BarChart3, Search, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileText, Search, ClipboardList, CreditCard, AlertTriangle, BarChart3 } from 'lucide-react';
 
-const features = [
-  { icon: FileText, title: 'License Management', desc: 'End-to-end license application processing with multi-stage approvals.' },
-  { icon: ClipboardList, title: 'Compliance Returns', desc: 'Automated periodic return filing, tracking, and deadline management.' },
-  { icon: Workflow, title: 'Workflow Automation', desc: 'Configurable approval workflows with SLA tracking and escalation.' },
-  { icon: BarChart3, title: 'Reporting & Analytics', desc: 'Real-time dashboards with exportable reports and trend analysis.' },
-  { icon: Search, title: 'Inspection Management', desc: 'Schedule, assign, and track field inspections with digital checklists.' },
-  { icon: ShieldCheck, title: 'Secure Document Handling', desc: 'Encrypted document storage with version control and audit trails.' },
+const services = [
+  { icon: FileText, label: 'Apply for License', href: '/register' },
+  { icon: Search, label: 'Track Application', href: '/login' },
+  { icon: ClipboardList, label: 'Submit Returns', href: '/login' },
+  { icon: CreditCard, label: 'Make Payment', href: '/login' },
+  { icon: AlertTriangle, label: 'Lodge Complaint', href: '/login' },
+  { icon: BarChart3, label: 'View Reports', href: '/login' },
 ];
 
 export function FeaturesSection() {
+  const navigate = useNavigate();
+
   return (
-    <section id="features" className="py-20 lg:py-28 bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <p className="text-sm font-semibold tracking-wider uppercase text-secondary mb-2">Core Features</p>
-          <h2 className="text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-            Everything you need to regulate effectively
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            A comprehensive suite of tools designed for regulatory bodies to streamline licensing, compliance, and oversight.
-          </p>
+    <section id="services" className="py-14 lg:py-20 bg-background">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="text-center mb-10">
+          <h2 className="text-xl lg:text-2xl font-bold text-foreground">Quick Access Services</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Select a service to get started</p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {features.map((f) => (
-            <div
-              key={f.title}
-              className="group rounded-xl border bg-card p-6 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300"
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {services.map((s) => (
+            <button
+              key={s.label}
+              onClick={() => navigate(s.href)}
+              className="group flex flex-col items-center gap-3 rounded-xl border bg-card p-5 text-center shadow-card hover:shadow-card-hover hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/8 text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                <f.icon className="h-5 w-5" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/8 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
+                <s.icon className="h-5 w-5" />
               </div>
-              <h3 className="text-base font-semibold text-foreground mb-1.5">{f.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-            </div>
+              <span className="text-sm font-medium text-foreground">{s.label}</span>
+            </button>
           ))}
         </div>
       </div>
