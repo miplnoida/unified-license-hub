@@ -19,7 +19,7 @@ import {
   Boxes,
   ListOrdered,
   SlidersHorizontal,
-  FileCheck,
+  
   DollarSign,
   CreditCard,
   BookOpen,
