@@ -25,6 +25,8 @@ import {
   BookOpen,
   Briefcase,
   CalendarCheck,
+  LayoutGrid,
+  Mail,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES } from '@/types/platform';
 
@@ -124,9 +126,11 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Administration',
     items: [
+      { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Regulators', href: '/admin/regulators', icon: <Building2 className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'User Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
+      { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],

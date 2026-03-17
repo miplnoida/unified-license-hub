@@ -57,6 +57,8 @@ import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import FeeManagement from "./pages/admin/FeeManagement";
 import ReturnConfiguration from "./pages/admin/ReturnConfiguration";
 import RegulatorManagement from "./pages/admin/RegulatorManagement";
+import AdminHub from "./pages/admin/AdminHub";
+import NotificationTemplates from "./pages/admin/NotificationTemplates";
 
 // Settings
 import SettingsHub from "./pages/settings/SettingsHub";
@@ -157,10 +159,12 @@ function AppRoutes() {
       <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
 
       {/* Administration */}
+      <Route path="/admin" element={<P><AdminHub /></P>} />
       <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
+      <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
 
       {/* Settings */}
       <Route path="/settings" element={<P><SettingsHub /></P>} />
