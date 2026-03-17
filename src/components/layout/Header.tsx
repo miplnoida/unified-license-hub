@@ -1,15 +1,16 @@
-import { Bell, Search, ChevronDown } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
+import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
 
 export function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { unreadCount } = useNotifications();
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-md px-6">
@@ -24,7 +25,11 @@ export function Header() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
           <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-destructive-foreground font-bold">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </Button>
         {user && (
           <div className="flex items-center gap-2 pl-3 border-l">
