@@ -2,42 +2,26 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { logAudit } from '@/hooks/useAuditLog';
-import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { PlusCircle, Search, Eye, FileText, Loader2 } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2 } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  draft: 'secondary',
-  submitted: 'default',
-  under_review: 'outline',
-  pending_approval: 'outline',
-  approved: 'default',
-  rejected: 'destructive',
-  returned: 'outline',
+  draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
+  resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
+  approved: 'default', rejected: 'destructive', license_issued: 'default',
 };
 
 interface Application {
-  id: string;
-  application_number: string;
-  applicant_id: string;
-  license_type: string;
-  status: ApplicationStatus;
-  data: Record<string, unknown>;
-  submitted_at: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string; application_number: string; applicant_id: string; license_type: string;
+  status: ApplicationStatus; data: Record<string, unknown>; submitted_at: string | null; created_at: string;
 }
 
 export default function ApplicationsList() {
@@ -47,61 +31,18 @@ export default function ApplicationsList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [newDialogOpen, setNewDialogOpen] = useState(false);
-  const [newLicenseType, setNewLicenseType] = useState('');
-  const [creating, setCreating] = useState(false);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
-  const loadApplications = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) setApplications((data || []) as any);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadApplications(); }, []);
-
-  const handleCreate = async () => {
-    if (!newLicenseType.trim()) {
-      toast.error('Please select a license type');
-      return;
-    }
-    if (!user) return;
-    setCreating(true);
-    const { data, error } = await supabase
-      .from('applications')
-      .insert({
-        applicant_id: user.id,
-        license_type: newLicenseType,
-        status: 'draft',
-        data: {},
-      } as any)
-      .select()
-      .single();
-
-    if (error) {
-      toast.error(error.message);
-      setCreating(false);
-      return;
-    }
-
-    await logAudit({
-      action: 'application_created',
-      entityType: 'application',
-      entityId: (data as any).id,
-      newValue: { license_type: newLicenseType },
-    });
-
-    toast.success('Application created');
-    setNewDialogOpen(false);
-    setNewLicenseType('');
-    setCreating(false);
-    loadApplications();
-  };
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('applications').select('*').order('created_at', { ascending: false });
+      if (data) setApplications(data as any);
+      setLoading(false);
+    })();
+  }, []);
 
   const filtered = applications.filter(a => {
     if (search && !a.application_number.toLowerCase().includes(search.toLowerCase()) &&
@@ -109,8 +50,6 @@ export default function ApplicationsList() {
     if (statusFilter !== 'all' && a.status !== statusFilter) return false;
     return true;
   });
-
-  const licenseTypes = ['Financial Advisory License', 'Broker License', 'Dealer License', 'Custodian License'];
 
   return (
     <DashboardLayout>
@@ -120,32 +59,9 @@ export default function ApplicationsList() {
           description={isInternal ? 'Review and process license applications' : 'View and manage your license applications'}
           actions={
             !isInternal && (
-              <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button><PlusCircle className="h-4 w-4 mr-2" />New Application</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>New License Application</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>License Type</Label>
-                      <Select value={newLicenseType} onValueChange={setNewLicenseType}>
-                        <SelectTrigger><SelectValue placeholder="Select license type" /></SelectTrigger>
-                        <SelectContent>
-                          {licenseTypes.map(lt => (
-                            <SelectItem key={lt} value={lt}>{lt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button onClick={handleCreate} disabled={creating} className="w-full">
-                      {creating ? 'Creating...' : 'Create Application'}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={() => navigate('/applications/new')}>
+                <PlusCircle className="h-4 w-4 mr-2" />New Application
+              </Button>
             )
           }
         />
@@ -196,11 +112,11 @@ export default function ApplicationsList() {
                       </TableCell>
                     </TableRow>
                   ) : filtered.map(app => (
-                    <TableRow key={app.id}>
+                    <TableRow key={app.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/applications/${app.id}`)}>
                       <TableCell className="font-medium font-mono text-sm">{app.application_number}</TableCell>
-                      <TableCell>{app.license_type}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{app.license_type}</TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant[app.status] || 'outline'} className="capitalize">
+                        <Badge variant={statusVariant[app.status] || 'outline'} className="capitalize text-xs">
                           {APPLICATION_STATUS_LABELS[app.status] || app.status}
                         </Badge>
                       </TableCell>
@@ -211,7 +127,7 @@ export default function ApplicationsList() {
                         {new Date(app.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
+                        <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4 mr-1" />View
                         </Button>
                       </TableCell>
