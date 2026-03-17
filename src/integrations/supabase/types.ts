@@ -344,10 +344,38 @@ export type Database = {
           },
         ]
       }
+      complaint_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       complaints: {
         Row: {
           complainant_id: string | null
           complaint_number: string
+          complaint_type_id: string | null
           created_at: string
           description: string
           email: string | null
@@ -364,6 +392,7 @@ export type Database = {
         Insert: {
           complainant_id?: string | null
           complaint_number?: string
+          complaint_type_id?: string | null
           created_at?: string
           description: string
           email?: string | null
@@ -380,6 +409,7 @@ export type Database = {
         Update: {
           complainant_id?: string | null
           complaint_number?: string
+          complaint_type_id?: string | null
           created_at?: string
           description?: string
           email?: string | null
@@ -394,6 +424,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "complaints_complaint_type_id_fkey"
+            columns: ["complaint_type_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "complaints_regulator_id_fkey"
             columns: ["regulator_id"]
