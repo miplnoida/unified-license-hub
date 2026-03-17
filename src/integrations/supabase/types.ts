@@ -831,6 +831,51 @@ export type Database = {
         }
         Relationships: []
       }
+      form_field_dependencies: {
+        Row: {
+          created_at: string
+          dependent_field_id: string
+          dependent_form_id: string
+          formula_reference: string | null
+          id: string
+          source_field_id: string
+          source_form_id: string
+        }
+        Insert: {
+          created_at?: string
+          dependent_field_id: string
+          dependent_form_id: string
+          formula_reference?: string | null
+          id?: string
+          source_field_id: string
+          source_form_id: string
+        }
+        Update: {
+          created_at?: string
+          dependent_field_id?: string
+          dependent_form_id?: string
+          formula_reference?: string | null
+          id?: string
+          source_field_id?: string
+          source_form_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_field_dependencies_dependent_form_id_fkey"
+            columns: ["dependent_form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_field_dependencies_source_form_id_fkey"
+            columns: ["source_form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_fields: {
         Row: {
           calculated_expression: string | null
@@ -979,8 +1024,10 @@ export type Database = {
           is_reusable: boolean
           name: string
           regulator_id: string | null
+          return_template_id: string | null
           sector: string
           service: string
+          sheet_name: string | null
           status: string
           sub_sector: string
           updated_at: string
@@ -995,8 +1042,10 @@ export type Database = {
           is_reusable?: boolean
           name: string
           regulator_id?: string | null
+          return_template_id?: string | null
           sector?: string
           service?: string
+          sheet_name?: string | null
           status?: string
           sub_sector?: string
           updated_at?: string
@@ -1011,8 +1060,10 @@ export type Database = {
           is_reusable?: boolean
           name?: string
           regulator_id?: string | null
+          return_template_id?: string | null
           sector?: string
           service?: string
+          sheet_name?: string | null
           status?: string
           sub_sector?: string
           updated_at?: string
@@ -1023,6 +1074,13 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_return_template_id_fkey"
+            columns: ["return_template_id"]
+            isOneToOne: false
+            referencedRelation: "return_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -2017,6 +2075,50 @@ export type Database = {
             columns: ["sub_sector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          regulator_id: string | null
+          sheet_count: number
+          source_file_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          regulator_id?: string | null
+          sheet_count?: number
+          source_file_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          regulator_id?: string | null
+          sheet_count?: number
+          source_file_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_templates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
