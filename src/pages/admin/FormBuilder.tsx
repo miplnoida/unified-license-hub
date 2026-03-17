@@ -271,8 +271,8 @@ export default function FormBuilder() {
         <PageHeader
           title={`${formTypeLabel} Form Builder`}
           description={`Design dynamic forms with sections, fields, and conditional logic.`}
-          backHref={formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license'}
-          backLabel={`${formTypeLabel} Forms`}
+          backHref={`/admin/forms?tab=${formType}`}
+          backLabel="Form Management"
           actions={
             <div className="flex items-center gap-2">
               {editId && latestVersion && (
