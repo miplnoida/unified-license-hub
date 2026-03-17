@@ -150,8 +150,4 @@ export const mainNavSections: NavSection[] = [
   },
 ];
 
-export const bottomNavItems: NavItem[] = [
-  { label: 'Notifications', href: '/notifications', icon: <Bell className="h-5 w-5" />, roles: ALL_ROLES },
-  { label: 'Profile', href: '/profile', icon: <UserCircle className="h-5 w-5" />, roles: ALL_ROLES },
-  { label: 'Change Password', href: '/change-password', icon: <KeyRound className="h-5 w-5" />, roles: ALL_ROLES },
-];
+export const bottomNavItems: NavItem[] = [];

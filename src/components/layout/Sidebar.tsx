@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mainNavSections, bottomNavItems, NavItem } from '@/config/navigation';
-import { Layers, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { mainNavSections, NavItem } from '@/config/navigation';
+import { Layers, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -75,7 +75,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = usePersistedState(COLLAPSED_KEY, false);
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((label: string) => {
@@ -97,8 +97,6 @@ export function Sidebar() {
   }, [location.pathname]);
 
   const isItemVisible = (item: NavItem) => user && item.roles.includes(user.role);
-  const filteredBottomItems = bottomNavItems.filter(isItemVisible);
-
   return (
     <aside className={cn(
       'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col border-r border-sidebar-border',
@@ -174,31 +172,6 @@ export function Sidebar() {
             );
           })}
 
-          {filteredBottomItems.length > 0 && (
-            <div>
-              {!collapsed && (
-                <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
-                  Account
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {filteredBottomItems.map((item) => {
-                  if (!item.href) return null;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')} title={collapsed ? item.label : undefined}>
-                      {item.icon}
-                      {!collapsed && <span className="flex-1">{item.label}</span>}
-                    </Link>
-                  );
-                })}
-                <button onClick={logout} className="nav-item w-full text-left text-destructive/80 hover:text-destructive">
-                  <LogOut className="h-5 w-5" />
-                  {!collapsed && <span className="flex-1">Logout</span>}
-                </button>
-              </div>
-            </div>
-          )}
         </nav>
       </ScrollArea>
     </aside>
