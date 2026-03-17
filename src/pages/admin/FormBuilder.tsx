@@ -388,7 +388,7 @@ export default function FormBuilder() {
                   New Version
                 </Button>
               )}
-              <FileImportDialog onImport={handleFileImport} />
+              <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
               <Button variant="outline" onClick={() => setShowPreview(true)}>
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
