@@ -24,6 +24,7 @@ export type Database = {
           data: Json | null
           id: string
           license_type: string
+          regulator_id: string | null
           rejected_at: string | null
           status: string
           submitted_at: string | null
@@ -39,6 +40,7 @@ export type Database = {
           data?: Json | null
           id?: string
           license_type: string
+          regulator_id?: string | null
           rejected_at?: string | null
           status?: string
           submitted_at?: string | null
@@ -54,13 +56,22 @@ export type Database = {
           data?: Json | null
           id?: string
           license_type?: string
+          regulator_id?: string | null
           rejected_at?: string | null
           status?: string
           submitted_at?: string | null
           updated_at?: string
           workflow_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "applications_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approval_actions: {
         Row: {
@@ -168,6 +179,7 @@ export type Database = {
           is_active: boolean
           license_type: string
           name: string
+          regulator_id: string | null
           updated_at: string
         }
         Insert: {
@@ -177,6 +189,7 @@ export type Database = {
           is_active?: boolean
           license_type: string
           name: string
+          regulator_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -186,9 +199,18 @@ export type Database = {
           is_active?: boolean
           license_type?: string
           name?: string
+          regulator_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflows_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -277,6 +299,7 @@ export type Database = {
           id: string
           investigator_id: string | null
           license_holder_id: string | null
+          regulator_id: string | null
           resolution: string | null
           status: string
           subject: string
@@ -290,6 +313,7 @@ export type Database = {
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
+          regulator_id?: string | null
           resolution?: string | null
           status?: string
           subject: string
@@ -303,12 +327,21 @@ export type Database = {
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
+          regulator_id?: string | null
           resolution?: string | null
           status?: string
           subject?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "complaints_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compliance_returns: {
         Row: {
@@ -458,6 +491,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          regulator_id: string | null
           sector_id: string | null
           service_id: string | null
           sub_sector_id: string | null
@@ -472,6 +506,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          regulator_id?: string | null
           sector_id?: string | null
           service_id?: string | null
           sub_sector_id?: string | null
@@ -486,6 +521,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          regulator_id?: string | null
           sector_id?: string | null
           service_id?: string | null
           sub_sector_id?: string | null
@@ -497,6 +533,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
           {
@@ -531,6 +574,7 @@ export type Database = {
           id: string
           name: string
           parent_form_id: string | null
+          regulator_id: string | null
           rows: Json
           sector: string
           service: string
@@ -547,6 +591,7 @@ export type Database = {
           id?: string
           name: string
           parent_form_id?: string | null
+          regulator_id?: string | null
           rows?: Json
           sector?: string
           service?: string
@@ -563,6 +608,7 @@ export type Database = {
           id?: string
           name?: string
           parent_form_id?: string | null
+          regulator_id?: string | null
           rows?: Json
           sector?: string
           service?: string
@@ -577,6 +623,13 @@ export type Database = {
             columns: ["parent_form_id"]
             isOneToOne: false
             referencedRelation: "forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forms_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
@@ -637,6 +690,7 @@ export type Database = {
           issued_at: string
           license_number: string
           license_type: string
+          regulator_id: string | null
           sector_id: string | null
           status: string
           sub_sector_id: string | null
@@ -655,6 +709,7 @@ export type Database = {
           issued_at?: string
           license_number?: string
           license_type: string
+          regulator_id?: string | null
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -673,6 +728,7 @@ export type Database = {
           issued_at?: string
           license_number?: string
           license_type?: string
+          regulator_id?: string | null
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
@@ -693,6 +749,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
           {
@@ -944,6 +1007,42 @@ export type Database = {
         }
         Relationships: []
       }
+      regulators: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          settings: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          settings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          settings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       return_configurations: {
         Row: {
           created_at: string
@@ -953,6 +1052,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          regulator_id: string | null
           sector_id: string | null
           sub_sector_id: string | null
           updated_at: string
@@ -965,6 +1065,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          regulator_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
           updated_at?: string
@@ -977,11 +1078,19 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          regulator_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "return_configurations_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "return_configurations_sector_id_fkey"
             columns: ["sector_id"]
@@ -1003,21 +1112,32 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          regulator_id: string | null
           status: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          regulator_id?: string | null
           status?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          regulator_id?: string | null
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sectors_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       services: {
         Row: {
