@@ -22,14 +22,14 @@ export function useNotifications() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await (supabase
       .from('notifications')
-      .select('*')
+      .select('*') as any)
       .eq('user_id', user.id)
-      .eq('channel' as any, 'in_app')
+      .eq('channel', 'in_app')
       .order('created_at', { ascending: false })
       .limit(100);
-    setNotifications((data || []) as any);
+    setNotifications((data || []) as Notification[]);
     setLoading(false);
   }, [user]);
 
