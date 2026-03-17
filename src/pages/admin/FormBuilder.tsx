@@ -214,7 +214,6 @@ export default function FormBuilder() {
       });
 
       // Also save to legacy forms table for backward compatibility
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase.from('forms').upsert({
         id: templateId,
         name: formName.trim(),
