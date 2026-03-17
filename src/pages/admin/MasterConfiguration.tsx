@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import {
   useSectors, useSubSectors, useCategories, useServices, useMasterMutations,
   type SectorRow, type SubSectorRow, type CategoryRow, type ServiceRow,
@@ -25,6 +26,7 @@ export default function MasterConfiguration() {
   const pathTab = location.pathname.split('/admin/masters/')[1] as EntityType || 'sectors';
   const [activeTab, setActiveTab] = useState<EntityType>(pathTab);
   const { toast } = useToast();
+  const { activeRegulatorId } = useRegulator();
 
   useEffect(() => { setActiveTab(pathTab); }, [pathTab]);
 
@@ -33,10 +35,10 @@ export default function MasterConfiguration() {
     navigate(`/admin/masters/${v}`);
   };
 
-  const { data: sectors = [], isLoading: loadingSectors } = useSectors();
-  const { data: subSectors = [], isLoading: loadingSubs } = useSubSectors();
-  const { data: categories = [], isLoading: loadingCats } = useCategories();
-  const { data: services = [], isLoading: loadingSvcs } = useServices();
+  const { data: sectors = [], isLoading: loadingSectors } = useSectors(activeRegulatorId);
+  const { data: subSectors = [], isLoading: loadingSubs } = useSubSectors(activeRegulatorId);
+  const { data: categories = [], isLoading: loadingCats } = useCategories(activeRegulatorId);
+  const { data: services = [], isLoading: loadingSvcs } = useServices(activeRegulatorId);
   const mutations = useMasterMutations();
 
   // Dialog state
@@ -87,7 +89,7 @@ export default function MasterConfiguration() {
     }
     try {
       if (dialogEntity === 'sectors') {
-        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName, status: formStatus });
+        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName, status: formStatus, regulator_id: activeRegulatorId });
       } else if (dialogEntity === 'sub-sectors') {
         if (!formSectorId) { toast({ title: 'Sector is required', variant: 'destructive' }); return; }
         await mutations.upsertSubSector.mutateAsync({ id: editId || undefined, sector_id: formSectorId, name: formName, status: formStatus });

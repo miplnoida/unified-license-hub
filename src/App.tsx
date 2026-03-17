@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { RegulatorProvider } from "@/contexts/RegulatorContext";
 
 import Index from "./pages/Index";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -52,6 +53,7 @@ import PostLicenseForms from "./pages/admin/PostLicenseForms";
 import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import FeeManagement from "./pages/admin/FeeManagement";
 import ReturnConfiguration from "./pages/admin/ReturnConfiguration";
+import RegulatorManagement from "./pages/admin/RegulatorManagement";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +134,7 @@ function AppRoutes() {
       <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
 
       {/* Administration */}
+      <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
       <Route path="/admin/users" element={<P><UserManagement /></P>} />
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
@@ -149,13 +152,15 @@ function AppRoutes() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      <RegulatorProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </RegulatorProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
