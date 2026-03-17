@@ -17,7 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { Eye, Save, GitBranch } from 'lucide-react';
-import { FileImportDialog } from '@/components/form-builder/FileImport';
+import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
@@ -28,6 +28,7 @@ import {
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
+import { supabase } from '@/integrations/supabase/client';
 import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
 
 function toFieldName(label: string): string {
@@ -213,7 +214,6 @@ export default function FormBuilder() {
       });
 
       // Also save to legacy forms table for backward compatibility
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase.from('forms').upsert({
         id: templateId,
         name: formName.trim(),
@@ -263,6 +263,107 @@ export default function FormBuilder() {
     });
   }, []);
 
+  const handleMultiSheetImport = useCallback(async (result: MultiSheetParseResult) => {
+    try {
+      setIsSaving(true);
+      const sectorName = dbSectors.find(s => s.id === selectedSector)?.name || '';
+      const subSectorName = dbSubSectors.find(s => s.id === selectedSubSector)?.name || '';
+      const categoryName = selectedCategory ? (dbCategories.find(c => c.id === selectedCategory)?.name || '') : '';
+      const serviceName = selectedService ? (dbServices.find(s => s.id === selectedService)?.name || '') : '';
+
+      // 1. Create return template
+      const returnTemplateId = crypto.randomUUID();
+      const { error: rtErr } = await supabase.from('return_templates' as any).insert({
+        id: returnTemplateId,
+        name: result.fileName,
+        description: `Imported from ${result.fileName} with ${result.sheets.length} sheets`,
+        source_file_name: result.fileName,
+        sheet_count: result.sheets.length,
+        regulator_id: activeRegulatorId || null,
+      });
+      if (rtErr) throw rtErr;
+
+      // 2. Create a form template + version for each sheet
+      const sheetToTemplateId = new Map<string, string>();
+
+      for (const sheet of result.sheets) {
+        const templateId = crypto.randomUUID();
+        const versionId = crypto.randomUUID();
+        sheetToTemplateId.set(sheet.sheetName, templateId);
+
+        // Save template with return_template_id and sheet_name
+        const { error: tErr } = await supabase.from('form_templates').upsert({
+          id: templateId,
+          name: sheet.formName,
+          description: `Sheet "${sheet.sheetName}" from ${result.fileName}`,
+          form_type: formType,
+          category: categoryName,
+          service: serviceName,
+          sector: sectorName,
+          sub_sector: subSectorName,
+          status: 'draft',
+          regulator_id: activeRegulatorId || null,
+          is_reusable: true,
+          return_template_id: returnTemplateId,
+          sheet_name: sheet.sheetName,
+        } as any);
+        if (tErr) throw tErr;
+
+        // Save version with schema snapshot
+        const { error: vErr } = await supabase.from('form_versions').upsert({
+          id: versionId,
+          template_id: templateId,
+          version: 1,
+          schema_snapshot: JSON.parse(JSON.stringify(sheet.sections)),
+          status: 'draft',
+          change_notes: `Auto-imported from Excel sheet "${sheet.sheetName}"`,
+        } as any);
+        if (vErr) throw vErr;
+
+        // Save to legacy forms table
+        await supabase.from('forms').upsert({
+          id: templateId,
+          name: sheet.formName,
+          description: `Sheet "${sheet.sheetName}" from ${result.fileName}`,
+          form_type: formType,
+          category: categoryName,
+          service: serviceName,
+          sector: sectorName,
+          sub_sector: subSectorName,
+          status: 'draft',
+          version: 1,
+          parent_form_id: null,
+          regulator_id: activeRegulatorId || null,
+          rows: JSON.parse(JSON.stringify(sheet.sections)),
+        } as any);
+      }
+
+      // 3. Save cross-sheet dependencies
+      const deps = result.allCrossSheetRefs.filter(
+        r => sheetToTemplateId.has(r.sourceSheet) && sheetToTemplateId.has(r.targetSheet)
+      );
+      if (deps.length > 0) {
+        const depRows = deps.map(d => ({
+          id: crypto.randomUUID(),
+          source_form_id: sheetToTemplateId.get(d.sourceSheet)!,
+          source_field_id: d.sourceField,
+          dependent_form_id: sheetToTemplateId.get(d.targetSheet)!,
+          dependent_field_id: d.targetField,
+          formula_reference: d.formula,
+        }));
+        await supabase.from('form_field_dependencies' as any).insert(depRows);
+      }
+
+      toast.success(`Created ${result.sheets.length} forms under "${result.fileName}" template!`);
+      navigate(`/admin/forms?tab=${formType}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to create forms from Excel import.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [formType, activeRegulatorId, selectedSector, selectedSubSector, selectedCategory, selectedService, dbSectors, dbSubSectors, dbCategories, dbServices, navigate]);
+
   const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : 'Form';
 
   return (
@@ -286,7 +387,7 @@ export default function FormBuilder() {
                   New Version
                 </Button>
               )}
-              <FileImportDialog onImport={handleFileImport} />
+              <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
               <Button variant="outline" onClick={() => setShowPreview(true)}>
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
