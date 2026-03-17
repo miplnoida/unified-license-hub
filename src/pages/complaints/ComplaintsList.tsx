@@ -59,6 +59,7 @@ export default function ComplaintsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<Complaint | null>(null);
+  const [detailProfile, setDetailProfile] = useState<ComplainantProfile | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
