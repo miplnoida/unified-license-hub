@@ -722,6 +722,69 @@ export type Database = {
           },
         ]
       }
+      file_uploads: {
+        Row: {
+          access_count: number
+          bucket_name: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          expires_at: string | null
+          file_extension: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          is_quarantined: boolean
+          last_accessed_at: string | null
+          metadata: Json | null
+          mime_type: string
+          scan_status: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          access_count?: number
+          bucket_name?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          expires_at?: string | null
+          file_extension: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          is_quarantined?: boolean
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          mime_type: string
+          scan_status?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          access_count?: number
+          bucket_name?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          expires_at?: string | null
+          file_extension?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          is_quarantined?: boolean
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          mime_type?: string
+          scan_status?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       form_fields: {
         Row: {
           calculated_expression: string | null
