@@ -89,7 +89,7 @@ export default function MasterConfiguration() {
     }
     try {
       if (dialogEntity === 'sectors') {
-        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName, status: formStatus });
+        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName, status: formStatus, regulator_id: activeRegulatorId });
       } else if (dialogEntity === 'sub-sectors') {
         if (!formSectorId) { toast({ title: 'Sector is required', variant: 'destructive' }); return; }
         await mutations.upsertSubSector.mutateAsync({ id: editId || undefined, sector_id: formSectorId, name: formName, status: formStatus });
