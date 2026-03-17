@@ -15,6 +15,7 @@ import {
 import {
   Upload, FileSpreadsheet, FileText, Loader2, AlertCircle,
   Pencil, Trash2, Calculator, ShieldCheck, GripVertical,
+  Layers, Link2, ArrowRight, ArrowLeft, CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { FormSection, FormField, FieldType, ValidationRules } from '@/types/formBuilder';
@@ -57,18 +58,44 @@ function inferFieldType(header: string, sampleValues: string[]): FieldType {
 
 interface FormulaInfo {
   raw: string;
-  expression: string;       // Converted to {field_name} format
-  referencedFields: string[]; // field names referenced
+  expression: string;
+  referencedFields: string[];
+  crossSheetRefs: CrossSheetRef[];
 }
 
-/**
- * Convert Excel cell references (A1, B1, etc.) in a formula to {field_name} tokens.
- * `colToFieldMap` maps column letters (A, B, ...) to field names from the header row.
- */
-function convertFormula(rawFormula: string, colToFieldMap: Map<string, string>): FormulaInfo {
+export interface CrossSheetRef {
+  sourceSheet: string;
+  sourceField: string;
+  targetSheet: string;
+  targetField: string;
+  formula: string;
+}
+
+function convertFormula(
+  rawFormula: string,
+  colToFieldMap: Map<string, string>,
+  currentSheet: string
+): FormulaInfo {
   const referencedFields: string[] = [];
-  // Match cell refs like A1, AB12, $A$1 etc.
+  const crossSheetRefs: CrossSheetRef[] = [];
   let expression = rawFormula.replace(/=?\s*/, '');
+
+  // Detect cross-sheet references like Sheet2!A1, 'Sheet Name'!B2
+  expression = expression.replace(/'?([^'!]+)'?!(\$?[A-Z]+\$?\d+)/gi, (match, sheet, cellRef) => {
+    const colLetters = cellRef.replace(/[\$\d]/g, '').toUpperCase();
+    const fieldName = colToFieldMap.get(colLetters) || `${toFieldName(sheet)}_${colLetters.toLowerCase()}`;
+    const ref: CrossSheetRef = {
+      sourceSheet: currentSheet,
+      sourceField: '', // will be set by caller
+      targetSheet: sheet.trim(),
+      targetField: fieldName,
+      formula: rawFormula,
+    };
+    crossSheetRefs.push(ref);
+    return `{${toFieldName(sheet)}.${fieldName}}`;
+  });
+
+  // Same-sheet cell references
   expression = expression.replace(/\$?([A-Z]+)\$?\d+/gi, (match) => {
     const colLetters = match.replace(/[\$\d]/g, '').toUpperCase();
     const fieldName = colToFieldMap.get(colLetters);
@@ -79,7 +106,7 @@ function convertFormula(rawFormula: string, colToFieldMap: Map<string, string>):
     return match;
   });
 
-  // Handle SUM(A1:B1) → {field_a} + {field_b}
+  // Handle SUM(A1:B1)
   expression = expression.replace(/SUM\(([^)]+)\)/gi, (_, range: string) => {
     const parts = range.split(':');
     if (parts.length === 2) {
@@ -120,7 +147,7 @@ function convertFormula(rawFormula: string, colToFieldMap: Map<string, string>):
     return range;
   });
 
-  return { raw: rawFormula, expression, referencedFields };
+  return { raw: rawFormula, expression, referencedFields, crossSheetRefs };
 }
 
 function colLetterFromIndex(idx: number): string {
@@ -138,9 +165,7 @@ function colLetterFromIndex(idx: number): string {
 function extractValidation(header: string, sampleValues: string[], fieldType: FieldType): ValidationRules | undefined {
   const rules: ValidationRules = {};
   const h = header.toLowerCase();
-
   if (h.includes('required') || h.includes('*')) rules.required = true;
-
   if (fieldType === 'email') {
     rules.pattern = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
     rules.patternMessage = 'Enter a valid email address';
@@ -149,7 +174,6 @@ function extractValidation(header: string, sampleValues: string[], fieldType: Fi
     rules.pattern = '^[+]?[\\d\\s()-]{7,20}$';
     rules.patternMessage = 'Enter a valid phone number';
   }
-
   const nonEmpty = sampleValues.filter(v => v && v.trim());
   if (fieldType === 'number' || fieldType === 'decimal') {
     const nums = nonEmpty.map(Number).filter(n => !isNaN(n));
@@ -165,18 +189,35 @@ function extractValidation(header: string, sampleValues: string[], fieldType: Fi
       if (maxLen > 0) rules.maxLength = Math.min(maxLen * 2, 5000);
     }
   }
-
   return Object.keys(rules).length > 0 ? rules : undefined;
 }
 
-// ─── Excel Parser (enhanced) ───
+// ─── Types for multi-sheet parsing ───
 
-async function parseExcel(file: File): Promise<FormSection[]> {
+export interface SheetParseResult {
+  sheetName: string;
+  formName: string;
+  sections: FormSection[];
+  fieldCount: number;
+  selected: boolean;
+  crossSheetRefs: CrossSheetRef[];
+}
+
+export interface MultiSheetParseResult {
+  fileName: string;
+  sheets: SheetParseResult[];
+  allCrossSheetRefs: CrossSheetRef[];
+}
+
+// ─── Excel Multi-Sheet Parser ───
+
+async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> {
   const XLSX = await import('xlsx');
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array', cellFormula: true, cellNF: true });
 
-  const sections: FormSection[] = [];
+  const sheets: SheetParseResult[] = [];
+  const allCrossSheetRefs: CrossSheetRef[] = [];
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName];
@@ -190,14 +231,13 @@ async function parseExcel(file: File): Promise<FormSection[]> {
     const headersLower = headers.map(h => h.toLowerCase());
     const isTemplate = headersLower.includes('label') || headersLower.includes('field name') || headersLower.includes('field label');
 
-    // Build col-letter → field-name map for formula conversion
     const colToFieldMap = new Map<string, string>();
     headers.forEach((h, i) => {
       colToFieldMap.set(colLetterFromIndex(i), toFieldName(h));
     });
 
-    // Collect formulas from the sheet
-    const formulaMap = new Map<string, string>(); // "COL_LETTER" → formula string
+    // Collect formulas
+    const formulaMap = new Map<string, string>();
     if (sheet['!ref']) {
       const range = XLSX.utils.decode_range(sheet['!ref']);
       for (let c = range.s.c; c <= range.e.c; c++) {
@@ -214,8 +254,10 @@ async function parseExcel(file: File): Promise<FormSection[]> {
       }
     }
 
+    const sections: FormSection[] = [];
+    const sheetCrossRefs: CrossSheetRef[] = [];
+
     if (isTemplate) {
-      // Template mode: each row defines a field
       const labelIdx = headersLower.findIndex(h => h.includes('label') || h.includes('field name') || h.includes('field label'));
       const typeIdx = headersLower.findIndex(h => h === 'type' || h === 'field type');
       const reqIdx = headersLower.findIndex(h => h.includes('required') || h.includes('mandatory'));
@@ -232,7 +274,6 @@ async function parseExcel(file: File): Promise<FormSection[]> {
       for (const row of dataRows) {
         const label = String(row[labelIdx] || '').trim();
         if (!label) continue;
-
         const rawType = typeIdx >= 0 ? String(row[typeIdx] || '').trim().toLowerCase() : '';
         const required = reqIdx >= 0 ? ['yes', 'true', '1', 'y'].includes(String(row[reqIdx] || '').trim().toLowerCase()) : false;
         const options = optIdx >= 0 ? String(row[optIdx] || '').split(/[,;|]/).map(o => o.trim()).filter(Boolean) : undefined;
@@ -249,15 +290,17 @@ async function parseExcel(file: File): Promise<FormSection[]> {
         };
         let fieldType: FieldType = typeMap[rawType] || 'text';
 
-        // If there's a formula column, force type to calculated
         let calculatedExpression: string | undefined;
         if (formulaStr) {
           fieldType = 'calculated';
-          const info = convertFormula(formulaStr, colToFieldMap);
+          const info = convertFormula(formulaStr, colToFieldMap, sheetName);
           calculatedExpression = info.expression;
+          if (info.crossSheetRefs.length > 0) {
+            info.crossSheetRefs.forEach(r => { r.sourceField = toFieldName(label); });
+            sheetCrossRefs.push(...info.crossSheetRefs);
+          }
         }
 
-        // Extract validation rules from dedicated columns
         const validation: ValidationRules = {};
         if (required) validation.required = true;
         if (minIdx >= 0 && row[minIdx]) validation.min = Number(row[minIdx]);
@@ -265,11 +308,7 @@ async function parseExcel(file: File): Promise<FormSection[]> {
         if (patternIdx >= 0 && row[patternIdx]) validation.pattern = String(row[patternIdx]);
 
         const field: FormField = {
-          id: crypto.randomUUID(),
-          type: fieldType,
-          label,
-          fieldName: toFieldName(label),
-          required,
+          id: crypto.randomUUID(), type: fieldType, label, fieldName: toFieldName(label), required,
           helpText,
           options: options && options.length > 0 ? options : (['radio', 'select', 'checkbox', 'multi_select'].includes(fieldType) ? ['Option 1', 'Option 2'] : undefined),
           calculatedExpression,
@@ -285,7 +324,7 @@ async function parseExcel(file: File): Promise<FormSection[]> {
         sections.push({ id: crypto.randomUUID(), title, sortOrder: sortOrder++, isRepeatable: false, fields });
       }
     } else {
-      // Auto-detect mode: each column header becomes a field
+      // Auto-detect mode
       const fields: FormField[] = headers.map((header, colIdx) => {
         const samples = dataRows.slice(0, 10).map(row => String(row[colIdx] || ''));
         const colLetter = colLetterFromIndex(colIdx);
@@ -294,11 +333,14 @@ async function parseExcel(file: File): Promise<FormSection[]> {
         let fieldType = inferFieldType(header, samples);
         let calculatedExpression: string | undefined;
 
-        // If this column has formulas, make it a calculated field
         if (formula) {
           fieldType = 'calculated';
-          const info = convertFormula(formula, colToFieldMap);
+          const info = convertFormula(formula, colToFieldMap, sheetName);
           calculatedExpression = info.expression;
+          if (info.crossSheetRefs.length > 0) {
+            info.crossSheetRefs.forEach(r => { r.sourceField = toFieldName(header); });
+            sheetCrossRefs.push(...info.crossSheetRefs);
+          }
         }
 
         let options: string[] | undefined;
@@ -310,38 +352,40 @@ async function parseExcel(file: File): Promise<FormSection[]> {
         const validation = extractValidation(header, samples, fieldType);
 
         return {
-          id: crypto.randomUUID(),
-          type: fieldType,
-          label: header,
-          fieldName: toFieldName(header),
-          required: false,
-          options,
-          calculatedExpression,
-          validation,
+          id: crypto.randomUUID(), type: fieldType, label: header, fieldName: toFieldName(header),
+          required: false, options, calculatedExpression, validation,
         };
       });
 
       sections.push({
-        id: crypto.randomUUID(),
-        title: sheetName,
-        sortOrder: sections.length,
-        isRepeatable: false,
-        fields,
+        id: crypto.randomUUID(), title: sheetName, sortOrder: 0, isRepeatable: false, fields,
       });
+    }
+
+    const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+    if (fieldCount > 0) {
+      sheets.push({
+        sheetName,
+        formName: sheetName,
+        sections,
+        fieldCount,
+        selected: true,
+        crossSheetRefs: sheetCrossRefs,
+      });
+      allCrossSheetRefs.push(...sheetCrossRefs);
     }
   }
 
-  return sections;
+  return { fileName: file.name, sheets, allCrossSheetRefs };
 }
 
-// ─── Word Parser ───
+// ─── Word Parser (unchanged, returns single sheet result) ───
 
 async function parseWord(file: File): Promise<FormSection[]> {
   const mammoth = await import('mammoth');
   const buffer = await file.arrayBuffer();
   const result = await mammoth.convertToHtml({ arrayBuffer: buffer });
   const html = result.value;
-
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   const elements = Array.from(doc.body.children);
@@ -359,7 +403,6 @@ async function parseWord(file: File): Promise<FormSection[]> {
       currentSection = { id: crypto.randomUUID(), title: text, sortOrder: sections.length, isRepeatable: false, fields: [] };
       continue;
     }
-
     if (!currentSection) {
       currentSection = { id: crypto.randomUUID(), title: 'Section 1', sortOrder: 0, isRepeatable: false, fields: [] };
     }
@@ -370,7 +413,6 @@ async function parseWord(file: File): Promise<FormSection[]> {
         const headerCells = Array.from(rows[0].querySelectorAll('th, td')).map(c => (c.textContent || '').trim());
         const headersLower = headerCells.map(h => h.toLowerCase());
         const hasLabelCol = headersLower.some(h => h.includes('label') || h.includes('field'));
-
         if (hasLabelCol) {
           const labelIdx = headersLower.findIndex(h => h.includes('label') || h.includes('field'));
           const typeIdx = headersLower.findIndex(h => h === 'type');
@@ -424,14 +466,12 @@ async function parseWord(file: File): Promise<FormSection[]> {
   }
 
   if (currentSection && currentSection.fields.length > 0) sections.push(currentSection);
-
   if (sections.length === 0) {
     sections.push({
       id: crypto.randomUUID(), title: 'Imported Content', sortOrder: 0, isRepeatable: false,
       fields: [{ id: crypto.randomUUID(), type: 'paragraph', label: 'Imported Content', fieldName: 'imported_content', required: false, content: doc.body.textContent?.trim() || 'No parseable content found.' }],
     });
   }
-
   return sections;
 }
 
@@ -445,52 +485,29 @@ interface EditableFieldProps {
 
 function EditableFieldRow({ field, onChange, onDelete }: EditableFieldProps) {
   const [expanded, setExpanded] = useState(false);
-
   return (
     <div className="border rounded-md bg-background">
       <div className="flex items-center gap-2 px-3 py-2">
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <Input
-          className="h-7 text-xs flex-1"
-          value={field.label}
-          onChange={e => onChange(field.id, { label: e.target.value, fieldName: toFieldName(e.target.value) })}
-        />
+        <Input className="h-7 text-xs flex-1" value={field.label}
+          onChange={e => onChange(field.id, { label: e.target.value, fieldName: toFieldName(e.target.value) })} />
         <Select value={field.type} onValueChange={(v: FieldType) => onChange(field.id, { type: v })}>
-          <SelectTrigger className="h-7 text-xs w-28 shrink-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FIELD_TYPES.map(t => (
-              <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
-            ))}
-          </SelectContent>
+          <SelectTrigger className="h-7 text-xs w-28 shrink-0"><SelectValue /></SelectTrigger>
+          <SelectContent>{FIELD_TYPES.map(t => (<SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>))}</SelectContent>
         </Select>
         <div className="flex items-center gap-1 shrink-0">
-          <Checkbox
-            checked={field.required}
-            onCheckedChange={v => onChange(field.id, { required: !!v })}
-            className="h-3.5 w-3.5"
-          />
+          <Checkbox checked={field.required} onCheckedChange={v => onChange(field.id, { required: !!v })} className="h-3.5 w-3.5" />
           <span className="text-[10px] text-muted-foreground">Req</span>
         </div>
         {field.calculatedExpression && (
-          <Badge variant="outline" className="text-[10px] gap-0.5 shrink-0">
-            <Calculator className="h-3 w-3" /> calc
-          </Badge>
+          <Badge variant="outline" className="text-[10px] gap-0.5 shrink-0"><Calculator className="h-3 w-3" /> calc</Badge>
         )}
         {field.validation && Object.keys(field.validation).filter(k => k !== 'required').length > 0 && (
-          <Badge variant="outline" className="text-[10px] gap-0.5 shrink-0">
-            <ShieldCheck className="h-3 w-3" /> rules
-          </Badge>
+          <Badge variant="outline" className="text-[10px] gap-0.5 shrink-0"><ShieldCheck className="h-3 w-3" /> rules</Badge>
         )}
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(!expanded)}>
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(field.id)}>
-          <Trash2 className="h-3 w-3" />
-        </Button>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(!expanded)}><Pencil className="h-3 w-3" /></Button>
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(field.id)}><Trash2 className="h-3 w-3" /></Button>
       </div>
-
       {expanded && (
         <div className="px-3 pb-3 pt-1 border-t space-y-2">
           <div className="grid grid-cols-2 gap-2">
@@ -505,25 +522,17 @@ function EditableFieldRow({ field, onChange, onDelete }: EditableFieldProps) {
           </div>
           {field.calculatedExpression !== undefined && (
             <div>
-              <label className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <Calculator className="h-3 w-3" /> Formula Expression
-              </label>
-              <Input
-                className="h-7 text-xs font-mono"
-                value={field.calculatedExpression}
-                onChange={e => onChange(field.id, { calculatedExpression: e.target.value })}
-              />
-              <p className="text-[9px] text-muted-foreground mt-0.5">Use {'{field_name}'} to reference other fields. Operators: + - * / ( )</p>
+              <label className="text-[10px] text-muted-foreground flex items-center gap-1"><Calculator className="h-3 w-3" /> Formula Expression</label>
+              <Input className="h-7 text-xs font-mono" value={field.calculatedExpression}
+                onChange={e => onChange(field.id, { calculatedExpression: e.target.value })} />
+              <p className="text-[9px] text-muted-foreground mt-0.5">Use {'{field_name}'} to reference other fields. Use {'{sheet.field}'} for cross-sheet refs.</p>
             </div>
           )}
           {field.options && (
             <div>
               <label className="text-[10px] text-muted-foreground">Options (comma-separated)</label>
-              <Input
-                className="h-7 text-xs"
-                value={field.options.join(', ')}
-                onChange={e => onChange(field.id, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })}
-              />
+              <Input className="h-7 text-xs" value={field.options.join(', ')}
+                onChange={e => onChange(field.id, { options: e.target.value.split(',').map(o => o.trim()).filter(Boolean) })} />
             </div>
           )}
           {field.validation && (
@@ -534,7 +543,6 @@ function EditableFieldRow({ field, onChange, onDelete }: EditableFieldProps) {
                 {field.validation.max !== undefined && <span>Max: {field.validation.max}</span>}
                 {field.validation.maxLength !== undefined && <span>Max Length: {field.validation.maxLength}</span>}
                 {field.validation.pattern && <span className="col-span-2 font-mono truncate">Pattern: {field.validation.pattern}</span>}
-                {field.validation.patternMessage && <span className="col-span-2">Message: {field.validation.patternMessage}</span>}
               </div>
             </div>
           )}
@@ -544,48 +552,88 @@ function EditableFieldRow({ field, onChange, onDelete }: EditableFieldProps) {
   );
 }
 
+// ─── Import Step Enum ───
+
+type ImportStep = 'upload' | 'select_sheets' | 'preview';
+
 // ─── Main Component ───
 
 interface FileImportProps {
+  /** Legacy: single-form import (adds sections to current form) */
   onImport: (sections: FormSection[]) => void;
+  /** Multi-sheet import: creates multiple forms under a return template */
+  onMultiSheetImport?: (result: MultiSheetParseResult) => void;
 }
 
-export function FileImportDialog({ onImport }: FileImportProps) {
+export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportProps) {
   const [open, setOpen] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [preview, setPreview] = useState<FormSection[] | null>(null);
+  const [step, setStep] = useState<ImportStep>('upload');
+  const [multiResult, setMultiResult] = useState<MultiSheetParseResult | null>(null);
+  const [templateName, setTemplateName] = useState('');
+  // Word files use legacy single-form import
+  const [legacyPreview, setLegacyPreview] = useState<FormSection[] | null>(null);
   const [fileName, setFileName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const resetState = () => {
+    setStep('upload');
+    setMultiResult(null);
+    setLegacyPreview(null);
+    setFileName('');
+    setTemplateName('');
+    if (fileRef.current) fileRef.current.value = '';
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setFileName(file.name);
     setParsing(true);
-    setPreview(null);
+    setMultiResult(null);
+    setLegacyPreview(null);
 
     try {
       const ext = file.name.split('.').pop()?.toLowerCase();
-      let sections: FormSection[];
 
       if (ext === 'xlsx' || ext === 'xls') {
-        sections = await parseExcel(file);
+        const result = await parseExcelMultiSheet(file);
+        if (result.sheets.length === 0) {
+          toast.error('No form fields could be detected in the uploaded file.');
+          setParsing(false);
+          return;
+        }
+        setMultiResult(result);
+        setTemplateName(file.name.replace(/\.[^.]+$/, ''));
+
+        // If single sheet, go to legacy flow (for backward compat on non-returns forms)
+        if (result.sheets.length === 1 && !onMultiSheetImport) {
+          setLegacyPreview(result.sheets[0].sections);
+          setStep('preview');
+        } else {
+          setStep('select_sheets');
+        }
+
+        const totalFields = result.sheets.reduce((a, s) => a + s.fieldCount, 0);
+        const crossRefs = result.allCrossSheetRefs.length;
+        toast.success(
+          `Detected ${result.sheets.length} sheet(s) with ${totalFields} total fields${crossRefs > 0 ? ` and ${crossRefs} cross-sheet reference(s)` : ''}.`
+        );
       } else if (ext === 'docx') {
-        sections = await parseWord(file);
+        const sections = await parseWord(file);
+        if (sections.length === 0 || sections.every(s => s.fields.length === 0)) {
+          toast.error('No form fields could be detected in the uploaded file.');
+          setParsing(false);
+          return;
+        }
+        setLegacyPreview(sections);
+        setStep('preview');
+        toast.success(`Detected ${sections.reduce((a, s) => a + s.fields.length, 0)} fields from ${sections.length} section(s).`);
       } else {
         toast.error('Unsupported file type. Please upload .xlsx or .docx files.');
         setParsing(false);
         return;
       }
-
-      if (sections.length === 0 || sections.every(s => s.fields.length === 0)) {
-        toast.error('No form fields could be detected in the uploaded file.');
-        setParsing(false);
-        return;
-      }
-
-      setPreview(sections);
-      toast.success(`Detected ${sections.reduce((a, s) => a + s.fields.length, 0)} fields from ${sections.length} section(s).`);
     } catch (err) {
       console.error('File parse error:', err);
       toast.error('Failed to parse the uploaded file. Please check the format.');
@@ -594,51 +642,124 @@ export function FileImportDialog({ onImport }: FileImportProps) {
     }
   };
 
-  const handleFieldChange = useCallback((fieldId: string, updates: Partial<FormField>) => {
-    setPreview(prev => {
+  // Sheet selection toggling
+  const toggleSheet = useCallback((sheetName: string) => {
+    setMultiResult(prev => {
       if (!prev) return prev;
-      return prev.map(s => ({
-        ...s,
-        fields: s.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f),
-      }));
+      return {
+        ...prev,
+        sheets: prev.sheets.map(s => s.sheetName === sheetName ? { ...s, selected: !s.selected } : s),
+      };
+    });
+  }, []);
+
+  const toggleAllSheets = useCallback((selected: boolean) => {
+    setMultiResult(prev => {
+      if (!prev) return prev;
+      return { ...prev, sheets: prev.sheets.map(s => ({ ...s, selected })) };
+    });
+  }, []);
+
+  const renameSheet = useCallback((sheetName: string, formName: string) => {
+    setMultiResult(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sheets: prev.sheets.map(s => s.sheetName === sheetName ? { ...s, formName } : s),
+      };
+    });
+  }, []);
+
+  // Field editing (for legacy preview)
+  const handleFieldChange = useCallback((fieldId: string, updates: Partial<FormField>) => {
+    setLegacyPreview(prev => {
+      if (!prev) return prev;
+      return prev.map(s => ({ ...s, fields: s.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f) }));
     });
   }, []);
 
   const handleFieldDelete = useCallback((fieldId: string) => {
-    setPreview(prev => {
+    setLegacyPreview(prev => {
       if (!prev) return prev;
-      return prev.map(s => ({
-        ...s,
-        fields: s.fields.filter(f => f.id !== fieldId),
-      })).filter(s => s.fields.length > 0);
+      return prev.map(s => ({ ...s, fields: s.fields.filter(f => f.id !== fieldId) })).filter(s => s.fields.length > 0);
     });
   }, []);
 
   const handleSectionTitleChange = useCallback((sectionId: string, title: string) => {
-    setPreview(prev => {
+    setLegacyPreview(prev => {
       if (!prev) return prev;
       return prev.map(s => s.id === sectionId ? { ...s, title } : s);
     });
   }, []);
 
-  const handleConfirm = () => {
-    if (!preview) return;
-    onImport(preview);
-    const calcCount = preview.reduce((a, s) => a + s.fields.filter(f => f.type === 'calculated').length, 0);
-    const validCount = preview.reduce((a, s) => a + s.fields.filter(f => f.validation).length, 0);
-    let msg = `Imported ${preview.reduce((a, s) => a + s.fields.length, 0)} fields from ${preview.length} section(s)`;
-    if (calcCount > 0) msg += `, ${calcCount} calculated`;
-    if (validCount > 0) msg += `, ${validCount} with validation`;
-    toast.success(msg + '.');
+  // Multi-sheet field editing
+  const handleMultiFieldChange = useCallback((sheetName: string, fieldId: string, updates: Partial<FormField>) => {
+    setMultiResult(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sheets: prev.sheets.map(s => s.sheetName !== sheetName ? s : {
+          ...s,
+          sections: s.sections.map(sec => ({
+            ...sec,
+            fields: sec.fields.map(f => f.id === fieldId ? { ...f, ...updates } : f),
+          })),
+        }),
+      };
+    });
+  }, []);
+
+  const handleMultiFieldDelete = useCallback((sheetName: string, fieldId: string) => {
+    setMultiResult(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sheets: prev.sheets.map(s => {
+          if (s.sheetName !== sheetName) return s;
+          const newSections = s.sections.map(sec => ({
+            ...sec,
+            fields: sec.fields.filter(f => f.id !== fieldId),
+          })).filter(sec => sec.fields.length > 0);
+          return { ...s, sections: newSections, fieldCount: newSections.reduce((a, sec) => a + sec.fields.length, 0) };
+        }),
+      };
+    });
+  }, []);
+
+  // Confirm handlers
+  const handleLegacyConfirm = () => {
+    if (!legacyPreview) return;
+    onImport(legacyPreview);
+    const totalFields = legacyPreview.reduce((a, s) => a + s.fields.length, 0);
+    toast.success(`Imported ${totalFields} fields from ${legacyPreview.length} section(s).`);
     setOpen(false);
-    setPreview(null);
-    setFileName('');
-    if (fileRef.current) fileRef.current.value = '';
+    resetState();
   };
 
-  const totalFields = preview?.reduce((a, s) => a + s.fields.length, 0) || 0;
-  const calcFields = preview?.reduce((a, s) => a + s.fields.filter(f => f.type === 'calculated').length, 0) || 0;
-  const validatedFields = preview?.reduce((a, s) => a + s.fields.filter(f => f.validation).length, 0) || 0;
+  const handleMultiSheetConfirm = () => {
+    if (!multiResult || !onMultiSheetImport) return;
+    const filtered = { ...multiResult, sheets: multiResult.sheets.filter(s => s.selected) };
+    if (filtered.sheets.length === 0) {
+      toast.error('Please select at least one sheet.');
+      return;
+    }
+    // Attach template name
+    filtered.fileName = templateName || filtered.fileName;
+    onMultiSheetImport(filtered);
+    toast.success(`Creating ${filtered.sheets.length} form(s) under "${filtered.fileName}" template.`);
+    setOpen(false);
+    resetState();
+  };
+
+  const selectedSheets = multiResult?.sheets.filter(s => s.selected) || [];
+  const totalSelectedFields = selectedSheets.reduce((a, s) => a + s.fieldCount, 0);
+  const crossRefCount = multiResult?.allCrossSheetRefs.length || 0;
+
+  // Get dependencies for selected sheets only
+  const selectedSheetNames = new Set(selectedSheets.map(s => s.sheetName));
+  const relevantDeps = multiResult?.allCrossSheetRefs.filter(
+    r => selectedSheetNames.has(r.sourceSheet) || selectedSheetNames.has(r.targetSheet)
+  ) || [];
 
   return (
     <>
@@ -646,105 +767,239 @@ export function FileImportDialog({ onImport }: FileImportProps) {
         <Upload className="h-4 w-4 mr-1" /> Import File
       </Button>
 
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPreview(null); setFileName(''); } }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Form from File</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Import Form from File
+              {step !== 'upload' && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {step === 'select_sheets' ? 'Step 2: Select Sheets' : 'Step 3: Preview & Edit'}
+                </Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>
-              Upload an Excel (.xlsx) or Word (.docx) file. Formulas are auto-detected as calculated fields.
+              {step === 'upload' && 'Upload an Excel (.xlsx) or Word (.docx) file. Each Excel sheet becomes a separate form.'}
+              {step === 'select_sheets' && `Found ${multiResult?.sheets.length} sheets. Select which ones to import as forms.`}
+              {step === 'preview' && (legacyPreview ? 'Review and edit detected fields before importing.' : 'Review fields per sheet before creating forms.')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Upload area */}
-            <div
-              className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileRef.current?.click()}
-            >
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".xlsx,.xls,.docx"
-                className="hidden"
-                onChange={handleFile}
-              />
-              {parsing ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Parsing {fileName}...</p>
+            {/* Step 1: Upload */}
+            {step === 'upload' && (
+              <>
+                <div
+                  className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.docx" className="hidden" onChange={handleFile} />
+                  {parsing ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Parsing {fileName}...</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex gap-3">
+                        <FileSpreadsheet className="h-8 w-8 text-green-600" />
+                        <FileText className="h-8 w-8 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Click to upload or drag and drop</p>
+                        <p className="text-xs text-muted-foreground mt-1">.xlsx or .docx files supported</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex gap-3">
-                    <FileSpreadsheet className="h-8 w-8 text-green-600" />
-                    <FileText className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                    <p className="text-xs text-muted-foreground mt-1">.xlsx or .docx files supported</p>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Format guide */}
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Supported formats:</p>
-                  <p><strong>Excel (Template):</strong> Columns: Label, Type, Required, Options, Section, Help Text, Formula, Min, Max, Pattern</p>
-                  <p><strong>Excel (Auto-detect):</strong> Column headers → field labels, data types inferred, <strong>formulas auto-detected as calculated fields</strong></p>
-                  <p><strong>Word:</strong> Headings → sections, tables/lists → fields, paragraphs → text fields</p>
-                  <p className="text-foreground/70 mt-1">💡 Excel formulas like <code className="bg-muted rounded px-1">=A1+B1</code>, <code className="bg-muted rounded px-1">SUM(A1:D1)</code> are converted to calculated field expressions.</p>
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p className="font-medium text-foreground">Multi-Sheet Excel Support:</p>
+                      <p>• Each worksheet is treated as a <strong>separate form</strong></p>
+                      <p>• All forms are grouped under one <strong>Return Template</strong></p>
+                      <p>• Cross-sheet formulas (e.g. <code className="bg-muted rounded px-1">=Sheet2!A1</code>) are detected and preserved as dependencies</p>
+                      <p>• Supports 50+ sheets per workbook</p>
+                    </div>
+                  </div>
                 </div>
+              </>
+            )}
+
+            {/* Step 2: Select Sheets */}
+            {step === 'select_sheets' && multiResult && (
+              <>
+                {/* Template name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Return Template Name</label>
+                  <Input
+                    value={templateName}
+                    onChange={e => setTemplateName(e.target.value)}
+                    placeholder="Enter template name"
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Stats */}
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="secondary"><Layers className="h-3 w-3 mr-1" /> {multiResult.sheets.length} sheets</Badge>
+                  <Badge variant="secondary"><CheckSquare className="h-3 w-3 mr-1" /> {selectedSheets.length} selected</Badge>
+                  <Badge variant="secondary">{totalSelectedFields} fields</Badge>
+                  {crossRefCount > 0 && (
+                    <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" /> {crossRefCount} cross-sheet refs</Badge>
+                  )}
+                </div>
+
+                {/* Select all / none */}
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => toggleAllSheets(true)}>Select All</Button>
+                  <Button variant="outline" size="sm" onClick={() => toggleAllSheets(false)}>Deselect All</Button>
+                </div>
+
+                {/* Sheet list */}
+                <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-1">
+                  {multiResult.sheets.map(sheet => {
+                    const hasRefs = multiResult.allCrossSheetRefs.some(
+                      r => r.sourceSheet === sheet.sheetName || r.targetSheet === sheet.sheetName
+                    );
+                    return (
+                      <div
+                        key={sheet.sheetName}
+                        className={`border rounded-lg p-3 flex items-center gap-3 transition-colors ${sheet.selected ? 'border-primary/50 bg-primary/5' : 'opacity-60'}`}
+                      >
+                        <Checkbox
+                          checked={sheet.selected}
+                          onCheckedChange={() => toggleSheet(sheet.sheetName)}
+                          className="shrink-0"
+                        />
+                        <FileSpreadsheet className="h-4 w-4 text-green-600 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              className="h-7 text-xs font-medium flex-1"
+                              value={sheet.formName}
+                              onChange={e => renameSheet(sheet.sheetName, e.target.value)}
+                              placeholder="Form name"
+                            />
+                            {sheet.sheetName !== sheet.formName && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                (Sheet: {sheet.sheetName})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="secondary" className="text-[10px]">{sheet.fieldCount} fields</Badge>
+                          {sheet.sections.length > 1 && (
+                            <Badge variant="secondary" className="text-[10px]">{sheet.sections.length} sections</Badge>
+                          )}
+                          {hasRefs && (
+                            <Badge variant="outline" className="text-[10px] gap-0.5">
+                              <Link2 className="h-3 w-3" /> linked
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Cross-sheet dependencies */}
+                {relevantDeps.length > 0 && (
+                  <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-medium flex items-center gap-1">
+                      <Link2 className="h-3.5 w-3.5" /> Detected Cross-Sheet Dependencies
+                    </p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {relevantDeps.slice(0, 20).map((dep, i) => (
+                        <div key={i} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Badge variant="outline" className="text-[9px]">{dep.sourceSheet}</Badge>
+                          <span>.{dep.sourceField}</span>
+                          <ArrowRight className="h-3 w-3" />
+                          <Badge variant="outline" className="text-[9px]">{dep.targetSheet}</Badge>
+                          <span>.{dep.targetField}</span>
+                        </div>
+                      ))}
+                      {relevantDeps.length > 20 && (
+                        <p className="text-[10px] text-muted-foreground">...and {relevantDeps.length - 20} more</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Step 3: Preview (multi-sheet) */}
+            {step === 'preview' && multiResult && !legacyPreview && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold">Edit Fields per Sheet</h4>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary">{selectedSheets.length} form(s)</Badge>
+                    <Badge variant="secondary">{totalSelectedFields} field(s)</Badge>
+                  </div>
+                </div>
+
+                <Accordion type="multiple" defaultValue={selectedSheets.slice(0, 3).map(s => s.sheetName)} className="space-y-2">
+                  {selectedSheets.map(sheet => (
+                    <AccordionItem key={sheet.sheetName} value={sheet.sheetName} className="border rounded-lg">
+                      <AccordionTrigger className="px-4 py-2 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">{sheet.formName}</span>
+                          <Badge variant="secondary" className="text-[10px]">{sheet.fieldCount} fields</Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-3">
+                        {sheet.sections.map(section => (
+                          <div key={section.id} className="space-y-1.5 mb-3">
+                            {sheet.sections.length > 1 && (
+                              <p className="text-xs font-medium text-muted-foreground">{section.title}</p>
+                            )}
+                            {section.fields.map(field => (
+                              <EditableFieldRow
+                                key={field.id}
+                                field={field}
+                                onChange={(id, updates) => handleMultiFieldChange(sheet.sheetName, id, updates)}
+                                onDelete={(id) => handleMultiFieldDelete(sheet.sheetName, id)}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </div>
-            </div>
+            )}
 
-            {/* Editable Preview */}
-            {preview && (
+            {/* Step 3: Preview (legacy single-form) */}
+            {step === 'preview' && legacyPreview && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold">Edit & Preview</h4>
                   <div className="flex gap-2">
-                    <Badge variant="secondary">{preview.length} section(s)</Badge>
-                    <Badge variant="secondary">{totalFields} field(s)</Badge>
-                    {calcFields > 0 && (
-                      <Badge variant="outline" className="gap-1">
-                        <Calculator className="h-3 w-3" /> {calcFields} calculated
-                      </Badge>
-                    )}
-                    {validatedFields > 0 && (
-                      <Badge variant="outline" className="gap-1">
-                        <ShieldCheck className="h-3 w-3" /> {validatedFields} with rules
-                      </Badge>
-                    )}
+                    <Badge variant="secondary">{legacyPreview.length} section(s)</Badge>
+                    <Badge variant="secondary">{legacyPreview.reduce((a, s) => a + s.fields.length, 0)} field(s)</Badge>
                   </div>
                 </div>
-
-                <Accordion type="multiple" defaultValue={preview.map(s => s.id)} className="space-y-2">
-                  {preview.map(section => (
+                <Accordion type="multiple" defaultValue={legacyPreview.map(s => s.id)} className="space-y-2">
+                  {legacyPreview.map(section => (
                     <AccordionItem key={section.id} value={section.id} className="border rounded-lg">
                       <AccordionTrigger className="px-4 py-2 hover:no-underline">
                         <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                          <Input
-                            className="h-7 text-xs font-semibold w-48"
-                            value={section.title}
+                          <Input className="h-7 text-xs font-semibold w-48" value={section.title}
                             onChange={e => handleSectionTitleChange(section.id, e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          />
+                            onClick={e => e.stopPropagation()} />
                           <Badge variant="secondary" className="text-[10px]">{section.fields.length} fields</Badge>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-4 pb-3">
                         <div className="space-y-1.5">
                           {section.fields.map(field => (
-                            <EditableFieldRow
-                              key={field.id}
-                              field={field}
-                              onChange={handleFieldChange}
-                              onDelete={handleFieldDelete}
-                            />
+                            <EditableFieldRow key={field.id} field={field} onChange={handleFieldChange} onDelete={handleFieldDelete} />
                           ))}
                         </div>
                       </AccordionContent>
@@ -755,11 +1010,60 @@ export function FileImportDialog({ onImport }: FileImportProps) {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirm} disabled={!preview || totalFields === 0}>
-              Import {totalFields} Field(s)
-            </Button>
+          <DialogFooter className="flex items-center justify-between">
+            <div className="flex gap-2">
+              {step !== 'upload' && (
+                <Button variant="outline" onClick={() => {
+                  if (step === 'preview' && multiResult && !legacyPreview) setStep('select_sheets');
+                  else { resetState(); setStep('upload'); }
+                }}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setOpen(false); resetState(); }}>Cancel</Button>
+
+              {/* Step 2 → Step 3 */}
+              {step === 'select_sheets' && multiResult && onMultiSheetImport && (
+                <Button
+                  onClick={() => setStep('preview')}
+                  disabled={selectedSheets.length === 0}
+                >
+                  Preview {selectedSheets.length} Sheet(s) <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              )}
+
+              {/* Step 2 → direct confirm if no multi-sheet handler, treat as legacy merge */}
+              {step === 'select_sheets' && multiResult && !onMultiSheetImport && (
+                <Button
+                  onClick={() => {
+                    const allSections = selectedSheets.flatMap(s => s.sections);
+                    onImport(allSections);
+                    toast.success(`Imported ${totalSelectedFields} fields from ${selectedSheets.length} sheet(s).`);
+                    setOpen(false);
+                    resetState();
+                  }}
+                  disabled={selectedSheets.length === 0}
+                >
+                  Import {totalSelectedFields} Field(s)
+                </Button>
+              )}
+
+              {/* Step 3 → confirm multi-sheet */}
+              {step === 'preview' && multiResult && !legacyPreview && onMultiSheetImport && (
+                <Button onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
+                  <Layers className="h-4 w-4 mr-1" /> Create {selectedSheets.length} Form(s)
+                </Button>
+              )}
+
+              {/* Step 3 → confirm legacy */}
+              {step === 'preview' && legacyPreview && (
+                <Button onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
+                  Import {legacyPreview.reduce((a, s) => a + s.fields.length, 0)} Field(s)
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
