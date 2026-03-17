@@ -35,10 +35,10 @@ export default function MasterConfiguration() {
     navigate(`/admin/masters/${v}`);
   };
 
-  const { data: sectors = [], isLoading: loadingSectors } = useSectors();
-  const { data: subSectors = [], isLoading: loadingSubs } = useSubSectors();
-  const { data: categories = [], isLoading: loadingCats } = useCategories();
-  const { data: services = [], isLoading: loadingSvcs } = useServices();
+  const { data: sectors = [], isLoading: loadingSectors } = useSectors(activeRegulatorId);
+  const { data: subSectors = [], isLoading: loadingSubs } = useSubSectors(activeRegulatorId);
+  const { data: categories = [], isLoading: loadingCats } = useCategories(activeRegulatorId);
+  const { data: services = [], isLoading: loadingSvcs } = useServices(activeRegulatorId);
   const mutations = useMasterMutations();
 
   // Dialog state
