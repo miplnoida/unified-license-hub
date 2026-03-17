@@ -34,21 +34,23 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen overflow-hidden bg-background">
       <Sidebar />
       <div
-        className="transition-all duration-300"
+        className="h-screen flex flex-col transition-all duration-300"
         style={{ paddingLeft: collapsed ? '4rem' : '16rem' }}
       >
         <Header />
-        <main className="p-6 max-w-[1440px] mx-auto">
-          {title && (
-            <div className="mb-6 animate-slide-up">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">{title}</h1>
-              {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
-            </div>
-          )}
-          {children}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-[1440px] mx-auto">
+            {title && (
+              <div className="mb-6 animate-slide-up">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">{title}</h1>
+                {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </div>

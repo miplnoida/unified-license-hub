@@ -93,6 +93,13 @@ export function Sidebar() {
         }
       });
     });
+    // Auto-scroll sidebar to active item
+    requestAnimationFrame(() => {
+      const activeEl = navRef.current?.querySelector('[data-sidebar-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
