@@ -565,6 +565,284 @@ export type Database = {
           },
         ]
       }
+      field_conditions: {
+        Row: {
+          action: string
+          created_at: string
+          field_id: string
+          id: string
+          operator: string
+          value: string | null
+          watch_field_id: string
+        }
+        Insert: {
+          action?: string
+          created_at?: string
+          field_id: string
+          id?: string
+          operator?: string
+          value?: string | null
+          watch_field_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          field_id?: string
+          id?: string
+          operator?: string
+          value?: string | null
+          watch_field_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_conditions_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "form_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_fields: {
+        Row: {
+          calculated_expression: string | null
+          content: string | null
+          created_at: string
+          default_value: string | null
+          field_name: string
+          field_type: string
+          help_text: string | null
+          id: string
+          label: string
+          options: Json | null
+          placeholder: string | null
+          required: boolean
+          section_description: string | null
+          section_id: string
+          section_is_repeatable: boolean
+          section_order: number
+          section_title: string
+          sort_order: number
+          table_columns: Json | null
+          validation: Json | null
+          version_id: string
+        }
+        Insert: {
+          calculated_expression?: string | null
+          content?: string | null
+          created_at?: string
+          default_value?: string | null
+          field_name: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          label: string
+          options?: Json | null
+          placeholder?: string | null
+          required?: boolean
+          section_description?: string | null
+          section_id: string
+          section_is_repeatable?: boolean
+          section_order?: number
+          section_title?: string
+          sort_order?: number
+          table_columns?: Json | null
+          validation?: Json | null
+          version_id: string
+        }
+        Update: {
+          calculated_expression?: string | null
+          content?: string | null
+          created_at?: string
+          default_value?: string | null
+          field_name?: string
+          field_type?: string
+          help_text?: string | null
+          id?: string
+          label?: string
+          options?: Json | null
+          placeholder?: string | null
+          required?: boolean
+          section_description?: string | null
+          section_id?: string
+          section_is_repeatable?: boolean
+          section_order?: number
+          section_title?: string
+          sort_order?: number
+          table_columns?: Json | null
+          validation?: Json | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_fields_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_responses: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          response_data: Json
+          status: string
+          submitted_at: string | null
+          template_id: string
+          updated_at: string
+          user_id: string
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          response_data?: Json
+          status?: string
+          submitted_at?: string | null
+          template_id: string
+          updated_at?: string
+          user_id: string
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          response_data?: Json
+          status?: string
+          submitted_at?: string | null
+          template_id?: string
+          updated_at?: string
+          user_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_responses_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_responses_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          form_type: string
+          id: string
+          is_reusable: boolean
+          name: string
+          regulator_id: string | null
+          sector: string
+          service: string
+          status: string
+          sub_sector: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          form_type?: string
+          id?: string
+          is_reusable?: boolean
+          name: string
+          regulator_id?: string | null
+          sector?: string
+          service?: string
+          status?: string
+          sub_sector?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          form_type?: string
+          id?: string
+          is_reusable?: boolean
+          name?: string
+          regulator_id?: string | null
+          sector?: string
+          service?: string
+          status?: string
+          sub_sector?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      form_versions: {
+        Row: {
+          change_notes: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string | null
+          schema_snapshot: Json
+          status: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          change_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          schema_snapshot?: Json
+          status?: string
+          template_id: string
+          version?: number
+        }
+        Update: {
+          change_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          schema_snapshot?: Json
+          status?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       forms: {
         Row: {
           category: string
