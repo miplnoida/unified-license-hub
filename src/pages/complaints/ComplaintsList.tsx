@@ -87,6 +87,7 @@ export default function ComplaintsList() {
       complainant_id: user.id,
       subject: newSubject.trim(),
       description: newDesc.trim(),
+      email: user.email,
     } as any);
     if (error) { toast.error(error.message); setCreating(false); return; }
 
