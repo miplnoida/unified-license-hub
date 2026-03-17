@@ -26,6 +26,7 @@ export default function MasterConfiguration() {
   const pathTab = location.pathname.split('/admin/masters/')[1] as EntityType || 'sectors';
   const [activeTab, setActiveTab] = useState<EntityType>(pathTab);
   const { toast } = useToast();
+  const { activeRegulatorId } = useRegulator();
 
   useEffect(() => { setActiveTab(pathTab); }, [pathTab]);
 
