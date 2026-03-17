@@ -136,6 +136,8 @@ function AppRoutes() {
 
       {/* Analytics */}
       <Route path="/analytics" element={<P><AnalyticsDashboard /></P>} />
+      <Route path="/reports" element={<P><ReportsDashboard /></P>} />
+      <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
 
       {/* Form Management */}
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />

@@ -132,9 +132,10 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Analytics',
+    label: 'Analytics & Reports',
     items: [
-      { label: 'Dashboards', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL },
+      { label: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, roles: ALL_INTERNAL },
+      { label: 'Reports', href: '/reports', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL },
     ],
   },
   {
