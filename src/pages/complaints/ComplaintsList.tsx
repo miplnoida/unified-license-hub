@@ -224,6 +224,7 @@ export default function ComplaintsList() {
                   ) : filtered.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-mono text-sm font-medium">{c.complaint_number}</TableCell>
+                      <TableCell className="text-sm">{complaintTypes.find(t => t.id === c.complaint_type_id)?.name || '—'}</TableCell>
                       <TableCell className="max-w-xs truncate">{c.subject}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[c.status] || 'outline'} className="capitalize">
