@@ -115,6 +115,7 @@ function AppRoutes() {
 
       {/* Compliance */}
       <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
+      <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
 
       {/* Payments */}
       <Route path="/payments" element={<P><PaymentHistory /></P>} />
