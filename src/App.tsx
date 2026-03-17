@@ -42,8 +42,9 @@ import DocumentStore from "./pages/documents/DocumentStore";
 // Notifications
 import NotificationCenter from "./pages/notifications/NotificationCenter";
 
-// Analytics
+// Analytics & Reports
 import AnalyticsDashboard from "./pages/analytics/AnalyticsDashboard";
+import ReportsDashboard from "./pages/reports/ReportsDashboard";
 
 // Admin
 import RoleManagement from "./pages/admin/RoleManagement";
@@ -135,6 +136,8 @@ function AppRoutes() {
 
       {/* Analytics */}
       <Route path="/analytics" element={<P><AnalyticsDashboard /></P>} />
+      <Route path="/reports" element={<P><ReportsDashboard /></P>} />
+      <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
 
       {/* Form Management */}
       <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
