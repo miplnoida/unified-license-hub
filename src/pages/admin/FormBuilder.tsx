@@ -196,6 +196,7 @@ export default function FormBuilder() {
         status: existingForm?.status || 'draft',
         version: existingForm?.version || 1,
         parent_form_id: existingForm?.parent_form_id || null,
+        regulator_id: existingForm?.regulator_id || null,
         rows: sections,
       });
       toast.success('Form saved successfully!');

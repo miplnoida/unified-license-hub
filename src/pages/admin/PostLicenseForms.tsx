@@ -35,7 +35,8 @@ const statusOptions = [
 
 export default function PostLicenseForms() {
   const navigate = useNavigate();
-  const { data: forms = [], isLoading } = useForms('post_license');
+  const { activeRegulatorId } = useRegulator();
+  const { data: forms = [], isLoading } = useForms('post_license', activeRegulatorId);
   const deleteFormMutation = useDeleteForm();
   const updateStatusMutation = useUpdateFormStatus();
 
