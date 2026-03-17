@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import Dashboard from "./pages/Dashboard";
 import FormDetail from "./pages/FormDetail";
+import NewApplication from "./pages/NewApplication";
 
 // Applications
 import ApplicationsList from "./pages/applications/ApplicationsList";
