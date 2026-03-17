@@ -535,12 +535,16 @@ export type Database = {
       fee_configurations: {
         Row: {
           amount: number
+          calculation_expression: string | null
+          calculation_type: string
           category_id: string | null
           created_at: string
           currency: string
           fee_type: string
           id: string
           is_active: boolean
+          max_amount: number | null
+          min_amount: number | null
           name: string
           regulator_id: string | null
           sector_id: string | null
@@ -550,12 +554,16 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          calculation_expression?: string | null
+          calculation_type?: string
           category_id?: string | null
           created_at?: string
           currency?: string
           fee_type?: string
           id?: string
           is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
           name: string
           regulator_id?: string | null
           sector_id?: string | null
@@ -565,12 +573,16 @@ export type Database = {
         }
         Update: {
           amount?: number
+          calculation_expression?: string | null
+          calculation_type?: string
           category_id?: string | null
           created_at?: string
           currency?: string
           fee_type?: string
           id?: string
           is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
           name?: string
           regulator_id?: string | null
           sector_id?: string | null
@@ -612,6 +624,62 @@ export type Database = {
             columns: ["sub_sector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_rules: {
+        Row: {
+          condition: Json
+          created_at: string
+          description: string | null
+          discount_amount: number | null
+          discount_percent: number | null
+          expression: string | null
+          fee_configuration_id: string
+          id: string
+          is_active: boolean
+          name: string
+          priority: number
+          rule_type: string
+          updated_at: string
+        }
+        Insert: {
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          expression?: string | null
+          fee_configuration_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          priority?: number
+          rule_type?: string
+          updated_at?: string
+        }
+        Update: {
+          condition?: Json
+          created_at?: string
+          description?: string | null
+          discount_amount?: number | null
+          discount_percent?: number | null
+          expression?: string | null
+          fee_configuration_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          priority?: number
+          rule_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_rules_fee_configuration_id_fkey"
+            columns: ["fee_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "fee_configurations"
             referencedColumns: ["id"]
           },
         ]
@@ -1139,6 +1207,59 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          fee_breakdown: Json
+          id: string
+          issued_at: string
+          issued_to_email: string | null
+          issued_to_name: string
+          payment_id: string
+          receipt_number: string
+          voided_at: string | null
+          voided_reason: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          fee_breakdown?: Json
+          id?: string
+          issued_at?: string
+          issued_to_email?: string | null
+          issued_to_name: string
+          payment_id: string
+          receipt_number?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          fee_breakdown?: Json
+          id?: string
+          issued_at?: string
+          issued_to_email?: string | null
+          issued_to_name?: string
+          payment_id?: string
+          receipt_number?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -1234,6 +1355,62 @@ export type Database = {
           user_type?: Database["public"]["Enums"]["user_type"]
         }
         Relationships: []
+      }
+      refunds: {
+        Row: {
+          amount: number
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          payment_id: string
+          processed_at: string | null
+          reason: string
+          refund_method: string | null
+          refund_reference: string | null
+          requested_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_id: string
+          processed_at?: string | null
+          reason: string
+          refund_method?: string | null
+          refund_reference?: string | null
+          requested_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_id?: string
+          processed_at?: string | null
+          reason?: string
+          refund_method?: string | null
+          refund_reference?: string | null
+          requested_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registration_form_submissions: {
         Row: {
@@ -1625,6 +1802,7 @@ export type Database = {
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
+      generate_receipt_number: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
