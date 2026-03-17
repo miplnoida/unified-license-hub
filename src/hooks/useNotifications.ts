@@ -26,7 +26,7 @@ export function useNotifications() {
       .from('notifications')
       .select('*')
       .eq('user_id', user.id)
-      .eq('channel', 'in_app')
+      .eq('channel' as any, 'in_app')
       .order('created_at', { ascending: false })
       .limit(100);
     setNotifications((data || []) as any);
