@@ -263,7 +263,7 @@ export default function FormBuilder() {
     });
   }, []);
 
-  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : 'Form';
+  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : 'Form';
 
   return (
     <DashboardLayout>
