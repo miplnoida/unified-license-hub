@@ -60,6 +60,7 @@ interface ComplainantProfile {
 export default function ComplaintsList() {
   const { user } = useAuth();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,6 +69,7 @@ export default function ComplaintsList() {
   const [detailProfile, setDetailProfile] = useState<ComplainantProfile | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [newTypeId, setNewTypeId] = useState('');
   const [creating, setCreating] = useState(false);
   const [resolution, setResolution] = useState('');
   const [updating, setUpdating] = useState(false);
