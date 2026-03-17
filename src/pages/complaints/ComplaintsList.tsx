@@ -203,7 +203,14 @@ export default function ComplaintsList() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
+                        <Button variant="ghost" size="sm" onClick={async () => {
+                          setDetailDialog(c);
+                          setDetailProfile(null);
+                          if (c.complainant_id) {
+                            const { data: p } = await supabase.from('profiles').select('full_name, email, user_type').eq('id', c.complainant_id).single();
+                            if (p) setDetailProfile(p as any);
+                          }
+                        }}>
                           <Eye className="h-4 w-4 mr-1" />View
                         </Button>
                       </TableCell>
