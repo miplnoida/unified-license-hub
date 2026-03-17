@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Upload, Loader2, File } from 'lucide-react';
+import { Upload, Loader2, ShieldCheck } from 'lucide-react';
+import { secureUpload, validateFile, ACCEPT_STRING, MAX_FILE_SIZE } from '@/lib/secureFileUpload';
 
 interface DocumentUploadProps {
   entityType: string;
@@ -20,46 +20,26 @@ export function DocumentUpload({ entityType, entityId, onUploaded }: DocumentUpl
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('File size must be less than 20MB');
+    // Client-side validation first
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      if (fileRef.current) fileRef.current.value = '';
       return;
     }
 
     setUploading(true);
-    const filePath = `${entityType}/${entityId}/${Date.now()}-${file.name}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, file);
+    const result = await secureUpload(file, user.id, entityType, entityId);
 
-    if (uploadError) {
-      toast.error('Upload failed: ' + uploadError.message);
-      setUploading(false);
-      return;
+    if (!result.success) {
+      toast.error(result.error || 'Upload failed');
+    } else {
+      toast.success('Document uploaded securely');
+      onUploaded();
     }
 
-    // Record in documents table
-    const { error: dbError } = await supabase.from('documents').insert({
-      file_name: file.name,
-      file_path: filePath,
-      file_size: file.size,
-      mime_type: file.type,
-      uploaded_by: user.id,
-      entity_type: entityType,
-      entity_id: entityId,
-    } as any);
-
-    if (dbError) {
-      toast.error('Failed to save document record');
-      setUploading(false);
-      return;
-    }
-
-    toast.success('Document uploaded');
     setUploading(false);
-    onUploaded();
-
-    // Reset input
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -70,7 +50,7 @@ export function DocumentUpload({ entityType, entityId, onUploaded }: DocumentUpl
         type="file"
         className="hidden"
         onChange={handleUpload}
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+        accept={ACCEPT_STRING}
       />
       <Button
         variant="outline"
@@ -84,7 +64,10 @@ export function DocumentUpload({ entityType, entityId, onUploaded }: DocumentUpl
           <><Upload className="h-4 w-4 mr-2" />Upload Document</>
         )}
       </Button>
-      <span className="text-xs text-muted-foreground">Max 20MB. PDF, DOC, XLS, images</span>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <ShieldCheck className="h-3 w-3" />
+        <span>Max {MAX_FILE_SIZE / (1024 * 1024)}MB · Private storage · Signed URLs</span>
+      </div>
     </div>
   );
 }
