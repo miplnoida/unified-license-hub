@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useForms, useDeleteForm, useUpdateFormStatus, type DbForm } from '@/hooks/useForms';
+import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
