@@ -95,12 +95,14 @@ export default function ComplaintsList() {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from('complaints').insert({
+    const insertData: any = {
       complainant_id: user.id,
       subject: newSubject.trim(),
       description: newDesc.trim(),
       email: user.email,
-    } as any);
+    };
+    if (newTypeId) insertData.complaint_type_id = newTypeId;
+    const { error } = await supabase.from('complaints').insert(insertData);
     if (error) { toast.error(error.message); setCreating(false); return; }
 
     await logAudit({ action: 'complaint_created', entityType: 'complaint' });
