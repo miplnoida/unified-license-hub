@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { mainNavSections, bottomNavItems, NavItem } from '@/config/navigation';
-import { Layers, LogOut, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { mainNavSections, NavItem } from '@/config/navigation';
+import { Layers, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
