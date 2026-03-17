@@ -155,10 +155,21 @@ function AppRoutes() {
       <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
       <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
 
+      {/* Settings */}
+      <Route path="/settings" element={<P><SettingsHub /></P>} />
+      <Route path="/settings/general" element={<P><GeneralSettings /></P>} />
+      <Route path="/settings/payments" element={<P><PaymentSettings /></P>} />
+      <Route path="/settings/schedule" element={<P><ScheduleSettings /></P>} />
+      <Route path="/settings/notifications" element={<P><NotificationSettings /></P>} />
+      <Route path="/settings/security" element={<P><SecuritySettings /></P>} />
+      <Route path="/settings/branding" element={<P><BrandingSettings /></P>} />
+      <Route path="/settings/email-sms" element={<P><EmailSmsSettings /></P>} />
+      <Route path="/settings/integrations" element={<P><IntegrationSettings /></P>} />
+      <Route path="/settings/data" element={<P><DataManagementSettings /></P>} />
+
       {/* Account */}
-      <Route path="/settings" element={<P><PlaceholderPage /></P>} />
-      <Route path="/profile" element={<P><PlaceholderPage /></P>} />
-      <Route path="/change-password" element={<P><PlaceholderPage /></P>} />
+      <Route path="/profile" element={<P><Profile /></P>} />
+      <Route path="/change-password" element={<P><ChangePassword /></P>} />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
