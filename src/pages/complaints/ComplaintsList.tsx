@@ -40,8 +40,15 @@ interface Complaint {
   status: string;
   investigator_id: string | null;
   resolution: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface ComplainantProfile {
+  full_name: string;
+  email: string;
+  user_type: string;
 }
 
 export default function ComplaintsList() {
