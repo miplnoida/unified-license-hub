@@ -350,6 +350,7 @@ export type Database = {
           complaint_number: string
           created_at: string
           description: string
+          email: string | null
           id: string
           investigator_id: string | null
           license_holder_id: string | null
@@ -365,6 +366,7 @@ export type Database = {
           complaint_number?: string
           created_at?: string
           description: string
+          email?: string | null
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
@@ -380,6 +382,7 @@ export type Database = {
           complaint_number?: string
           created_at?: string
           description?: string
+          email?: string | null
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
