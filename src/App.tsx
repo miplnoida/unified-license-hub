@@ -57,6 +57,8 @@ import MasterConfiguration from "./pages/admin/MasterConfiguration";
 import FeeManagement from "./pages/admin/FeeManagement";
 import ReturnConfiguration from "./pages/admin/ReturnConfiguration";
 import RegulatorManagement from "./pages/admin/RegulatorManagement";
+import AdminHub from "./pages/admin/AdminHub";
+import NotificationTemplates from "./pages/admin/NotificationTemplates";
 
 // Settings
 import SettingsHub from "./pages/settings/SettingsHub";
