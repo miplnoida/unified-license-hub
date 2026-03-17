@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit, Trash2, Building2, Layers, FormInput, GitBranch, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAllRegulators, useRegulatorMutations } from '@/hooks/useRegulators';
-import { useSectors } from '@/hooks/useMasterConfig';
+import { useSectors, useMasterMutations } from '@/hooks/useMasterConfig';
 import { useForms } from '@/hooks/useForms';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Regulator } from '@/contexts/RegulatorContext';
 
@@ -78,8 +78,10 @@ function RegulatorDetail({ regulator }: { regulator: Regulator }) {
 
 export default function RegulatorManagement() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: regulators = [], isLoading } = useAllRegulators();
   const { upsert, remove } = useRegulatorMutations();
+  const { data: allSectors = [] } = useSectors(); // all sectors, unfiltered
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -87,16 +89,27 @@ export default function RegulatorManagement() {
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('active');
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [selectedRegulator, setSelectedRegulator] = useState<Regulator | null>(null);
 
   const openAdd = () => {
     setEditId(null); setName(''); setCode(''); setDescription(''); setStatus('active');
+    setSelectedSectorIds([]);
     setDialogOpen(true);
   };
 
   const openEdit = (r: Regulator) => {
     setEditId(r.id); setName(r.name); setCode(r.code); setDescription(r.description || ''); setStatus(r.status);
+    // Pre-select sectors assigned to this regulator
+    const assigned = allSectors.filter(s => s.regulator_id === r.id).map(s => s.id);
+    setSelectedSectorIds(assigned);
     setDialogOpen(true);
+  };
+
+  const toggleSector = (sectorId: string) => {
+    setSelectedSectorIds(prev =>
+      prev.includes(sectorId) ? prev.filter(id => id !== sectorId) : [...prev, sectorId]
+    );
   };
 
   const handleSave = async () => {
@@ -104,7 +117,36 @@ export default function RegulatorManagement() {
       toast({ title: 'Name and Code are required', variant: 'destructive' }); return;
     }
     try {
-      await upsert.mutateAsync({ id: editId || undefined, name, code, description, status });
+      // Upsert regulator
+      let regulatorId = editId;
+      if (editId) {
+        await upsert.mutateAsync({ id: editId, name, code, description, status });
+      } else {
+        // For new regulators, we need to get the ID back
+        const { data, error } = await (supabase.from('regulators' as any).insert({
+          name, code, description: description || null, status,
+        } as any).select('id').single() as any);
+        if (error) throw error;
+        regulatorId = data.id;
+        queryClient.invalidateQueries({ queryKey: ['regulators'] });
+      }
+
+      // Update sector assignments: unassign old, assign new
+      if (regulatorId) {
+        // Unassign sectors previously linked to this regulator but no longer selected
+        const previouslyAssigned = allSectors.filter(s => s.regulator_id === regulatorId).map(s => s.id);
+        const toUnassign = previouslyAssigned.filter(id => !selectedSectorIds.includes(id));
+        const toAssign = selectedSectorIds.filter(id => !previouslyAssigned.includes(id));
+
+        for (const sid of toUnassign) {
+          await (supabase.from('sectors' as any).update({ regulator_id: null } as any).eq('id', sid) as any);
+        }
+        for (const sid of toAssign) {
+          await (supabase.from('sectors' as any).update({ regulator_id: regulatorId } as any).eq('id', sid) as any);
+        }
+        queryClient.invalidateQueries({ queryKey: ['sectors'] });
+      }
+
       toast({ title: editId ? 'Updated' : 'Created' });
       setDialogOpen(false);
     } catch (e: any) {
@@ -121,6 +163,9 @@ export default function RegulatorManagement() {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
   };
+
+  // Sectors available for assignment: unassigned OR assigned to current editId
+  const availableSectors = allSectors.filter(s => !s.regulator_id || s.regulator_id === editId);
 
   const columns: Column<Regulator>[] = [
     { key: 'name', label: 'Name', render: r => (
@@ -178,7 +223,7 @@ export default function RegulatorManagement() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>{editId ? 'Edit' : 'Add'} Regulator</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -202,6 +247,31 @@ export default function RegulatorManagement() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Assign Sectors</Label>
+              {availableSectors.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No unassigned sectors available. Create sectors in Master Configuration first.</p>
+              ) : (
+                <div className="max-h-40 overflow-y-auto rounded-md border border-border p-3 space-y-2">
+                  {availableSectors.map(sector => (
+                    <div key={sector.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`sector-${sector.id}`}
+                        checked={selectedSectorIds.includes(sector.id)}
+                        onCheckedChange={() => toggleSector(sector.id)}
+                      />
+                      <label htmlFor={`sector-${sector.id}`} className="text-sm cursor-pointer flex-1">
+                        {sector.name}
+                      </label>
+                      <Badge variant="outline" className="text-xs capitalize">{sector.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedSectorIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">{selectedSectorIds.length} sector(s) selected</p>
+              )}
             </div>
           </div>
           <DialogFooter>
