@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
@@ -10,13 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit, Trash2, Building2, Layers, FormInput, GitBranch, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAllRegulators, useRegulatorMutations } from '@/hooks/useRegulators';
-import { useSectors } from '@/hooks/useMasterConfig';
+import { useSectors, useMasterMutations } from '@/hooks/useMasterConfig';
 import { useForms } from '@/hooks/useForms';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Regulator } from '@/contexts/RegulatorContext';
 
