@@ -1549,6 +1549,201 @@ export type Database = {
         }
         Relationships: []
       }
+      report_filters: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          filter_config: Json
+          id: string
+          is_global: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          filter_config?: Json
+          id?: string
+          is_global?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          filter_config?: Json
+          id?: string
+          is_global?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      report_logs: {
+        Row: {
+          action: string
+          created_at: string
+          error_message: string | null
+          executed_by: string | null
+          execution_time_ms: number | null
+          export_format: string | null
+          id: string
+          metadata: Json | null
+          record_count: number | null
+          report_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          error_message?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          export_format?: string | null
+          id?: string
+          metadata?: Json | null
+          record_count?: number | null
+          report_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          error_message?: string | null
+          executed_by?: string | null
+          execution_time_ms?: number | null
+          export_format?: string | null
+          id?: string
+          metadata?: Json | null
+          record_count?: number | null
+          report_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_schedules: {
+        Row: {
+          created_at: string
+          created_by: string
+          cron_expression: string | null
+          export_format: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          recipients: Json
+          report_id: string
+          schedule_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          cron_expression?: string | null
+          export_format?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          recipients?: Json
+          report_id: string
+          schedule_type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          cron_expression?: string | null
+          export_format?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          recipients?: Json
+          report_id?: string
+          schedule_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_schedules_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          name: string
+          query_config: Json
+          regulator_id: string | null
+          report_type: string
+          result_count: number | null
+          result_data: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          name: string
+          query_config?: Json
+          regulator_id?: string | null
+          report_type?: string
+          result_count?: number | null
+          result_data?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          name?: string
+          query_config?: Json
+          regulator_id?: string | null
+          report_type?: string
+          result_count?: number | null
+          result_data?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_configurations: {
         Row: {
           created_at: string
