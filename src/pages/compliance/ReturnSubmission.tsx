@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,19 @@ interface ComplianceReturn {
   due_date: string;
   status: string;
   form_data: any;
+}
+
+function makeField(overrides: Partial<FormField> & { id: string; label: string; fieldName: string; type: FormField['type'] }): FormField {
+  return {
+    required: false,
+    placeholder: '',
+    helpText: '',
+    options: [],
+    validation: {},
+    defaultValue: '',
+    calculatedExpression: '',
+    ...overrides,
+  };
 }
 
 export default function ReturnSubmission() {
@@ -71,7 +84,6 @@ export default function ReturnSubmission() {
 
   const loadFormFields = async (formId: string) => {
     setFormLoading(true);
-    // Try form_templates + form_versions + form_fields first
     const { data: versions } = await supabase.from('form_versions' as any)
       .select('*').eq('template_id', formId).eq('status', 'published').order('version', { ascending: false }).limit(1);
 
@@ -86,11 +98,10 @@ export default function ReturnSubmission() {
       }
     }
 
-    // Fallback: try forms table with rows JSON
+    // Fallback: try forms table
     const { data: formData } = await supabase.from('forms' as any).select('*').eq('id', formId).single();
     if (formData && (formData as any).rows) {
-      const rows = (formData as any).rows as any[];
-      const sections = convertRowsToSections(rows);
+      const sections = convertRowsToSections((formData as any).rows as any[]);
       setFormSections(sections);
     }
     setFormLoading(false);
@@ -104,15 +115,15 @@ export default function ReturnSubmission() {
           id: f.section_id,
           title: f.section_title || 'Section',
           description: f.section_description || '',
-          order: f.section_order || 0,
+          sortOrder: f.section_order || 0,
           isRepeatable: f.section_is_repeatable || false,
           fields: [],
         });
       }
       const section = sectionMap.get(f.section_id)!;
-      section.fields.push({
+      section.fields.push(makeField({
         id: f.id,
-        name: f.field_name,
+        fieldName: f.field_name,
         label: f.label,
         type: f.field_type || 'text',
         required: f.required || false,
@@ -122,39 +133,37 @@ export default function ReturnSubmission() {
         validation: f.validation || {},
         defaultValue: f.default_value || '',
         calculatedExpression: f.calculated_expression || '',
-        order: f.sort_order || 0,
-        conditions: [],
-      });
+      }));
     }
-    return Array.from(sectionMap.values()).sort((a, b) => a.order - b.order);
+    return Array.from(sectionMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
   };
 
   const convertRowsToSections = (rows: any[]): FormSection[] => {
     if (!rows || rows.length === 0) return [{
-      id: 'default', title: 'Return Data', description: '', order: 0, isRepeatable: false,
-      fields: [{ id: 'notes', name: 'notes', label: 'Notes', type: 'textarea', required: false, placeholder: 'Enter return notes...', helpText: '', options: [], validation: {}, defaultValue: '', calculatedExpression: '', order: 0, conditions: [] }],
+      id: 'default', title: 'Return Data', description: '', sortOrder: 0, isRepeatable: false,
+      fields: [makeField({ id: 'notes', fieldName: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Enter return notes...' })],
     }];
     return rows.map((row: any, i: number) => ({
       id: row.id || `section-${i}`,
       title: row.title || `Section ${i + 1}`,
       description: row.description || '',
-      order: i,
+      sortOrder: i,
       isRepeatable: row.isRepeatable || false,
-      fields: (row.fields || []).map((f: any, j: number) => ({
-        id: f.id || `field-${i}-${j}`,
-        name: f.name || f.label?.toLowerCase().replace(/\s+/g, '_') || `field_${j}`,
-        label: f.label || `Field ${j + 1}`,
-        type: f.type || 'text',
-        required: f.required || false,
-        placeholder: f.placeholder || '',
-        helpText: f.helpText || '',
-        options: f.options || [],
-        validation: f.validation || {},
-        defaultValue: f.defaultValue || '',
-        calculatedExpression: f.calculatedExpression || '',
-        order: j,
-        conditions: f.conditions || [],
-      })),
+      fields: (row.fields || []).map((f: any, j: number) =>
+        makeField({
+          id: f.id || `field-${i}-${j}`,
+          fieldName: f.fieldName || f.name || f.label?.toLowerCase().replace(/\s+/g, '_') || `field_${j}`,
+          label: f.label || `Field ${j + 1}`,
+          type: f.type || 'text',
+          required: f.required || false,
+          placeholder: f.placeholder || '',
+          helpText: f.helpText || '',
+          options: f.options || [],
+          validation: f.validation || {},
+          defaultValue: f.defaultValue || '',
+          calculatedExpression: f.calculatedExpression || '',
+        })
+      ),
     }));
   };
 
@@ -164,14 +173,13 @@ export default function ReturnSubmission() {
     if (config?.form_id) {
       await loadFormFields(config.form_id);
     } else {
-      // Default simple form
       setFormSections([{
-        id: 'default', title: 'Return Data', description: 'Enter the return information below', order: 0, isRepeatable: false,
+        id: 'default', title: 'Return Data', description: 'Enter the return information below', sortOrder: 0, isRepeatable: false,
         fields: [
-          { id: 'revenue', name: 'revenue', label: 'Total Revenue', type: 'number', required: true, placeholder: '0.00', helpText: 'Report total revenue for this period', options: [], validation: {}, defaultValue: '', calculatedExpression: '', order: 0, conditions: [] },
-          { id: 'expenses', name: 'expenses', label: 'Total Expenses', type: 'number', required: true, placeholder: '0.00', helpText: '', options: [], validation: {}, defaultValue: '', calculatedExpression: '', order: 1, conditions: [] },
-          { id: 'net_income', name: 'net_income', label: 'Net Income', type: 'number', required: false, placeholder: 'Auto-calculated', helpText: 'Revenue minus expenses', options: [], validation: {}, defaultValue: '', calculatedExpression: '{revenue} - {expenses}', order: 2, conditions: [] },
-          { id: 'notes', name: 'notes', label: 'Additional Notes', type: 'textarea', required: false, placeholder: 'Any additional information...', helpText: '', options: [], validation: {}, defaultValue: '', calculatedExpression: '', order: 3, conditions: [] },
+          makeField({ id: 'revenue', fieldName: 'revenue', label: 'Total Revenue', type: 'number', required: true, placeholder: '0.00', helpText: 'Report total revenue for this period' }),
+          makeField({ id: 'expenses', fieldName: 'expenses', label: 'Total Expenses', type: 'number', required: true, placeholder: '0.00' }),
+          makeField({ id: 'net_income', fieldName: 'net_income', label: 'Net Income', type: 'calculated', placeholder: 'Auto-calculated', helpText: 'Revenue minus expenses', calculatedExpression: '{revenue} - {expenses}' }),
+          makeField({ id: 'notes', fieldName: 'notes', label: 'Additional Notes', type: 'textarea', placeholder: 'Any additional information...' }),
         ],
       }]);
     }
@@ -209,11 +217,10 @@ export default function ReturnSubmission() {
 
   const handleSubmitReturn = async (data: Record<string, any>) => {
     if (!user) return;
-    const returnToSubmit = existingReturn;
-    if (returnToSubmit) {
+    if (existingReturn) {
       const { error } = await supabase.from('compliance_returns' as any)
         .update({ form_data: data, status: 'submitted', submitted_at: new Date().toISOString() } as any)
-        .eq('id', returnToSubmit.id);
+        .eq('id', existingReturn.id);
       if (error) { toast.error(error.message); return; }
     } else {
       const config = configs.find(c => c.id === selectedConfigId);
@@ -255,7 +262,7 @@ export default function ReturnSubmission() {
             <CheckCircle className="h-8 w-8 text-primary" />
           </div>
           <h2 className="text-2xl font-bold">Return Submitted</h2>
-          <p className="text-muted-foreground">Your compliance return has been submitted for review. You'll be notified once it's processed.</p>
+          <p className="text-muted-foreground">Your compliance return has been submitted for review.</p>
           <Button onClick={() => navigate('/compliance/returns')}>Back to Returns</Button>
         </div>
       </DashboardLayout>
@@ -271,7 +278,6 @@ export default function ReturnSubmission() {
           actions={<Button variant="outline" onClick={() => navigate('/compliance/returns')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>}
         />
 
-        {/* Config selection - only when creating new */}
         {!existingReturn && (
           <Card>
             <CardHeader><CardTitle className="text-base">Select Return Type</CardTitle></CardHeader>
@@ -305,7 +311,6 @@ export default function ReturnSubmission() {
           </Card>
         )}
 
-        {/* Dynamic Form */}
         {formLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : formSections.length > 0 ? (
