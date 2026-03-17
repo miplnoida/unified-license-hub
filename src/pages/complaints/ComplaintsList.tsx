@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { INTERNAL_ROLES } from '@/types/platform';
-import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
+import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck, Mail, User } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
@@ -40,8 +40,15 @@ interface Complaint {
   status: string;
   investigator_id: string | null;
   resolution: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface ComplainantProfile {
+  full_name: string;
+  email: string;
+  user_type: string;
 }
 
 export default function ComplaintsList() {
@@ -52,6 +59,7 @@ export default function ComplaintsList() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [detailDialog, setDetailDialog] = useState<Complaint | null>(null);
+  const [detailProfile, setDetailProfile] = useState<ComplainantProfile | null>(null);
   const [newSubject, setNewSubject] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
@@ -79,6 +87,7 @@ export default function ComplaintsList() {
       complainant_id: user.id,
       subject: newSubject.trim(),
       description: newDesc.trim(),
+      email: user.email,
     } as any);
     if (error) { toast.error(error.message); setCreating(false); return; }
 
@@ -194,7 +203,14 @@ export default function ComplaintsList() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setDetailDialog(c)}>
+                        <Button variant="ghost" size="sm" onClick={async () => {
+                          setDetailDialog(c);
+                          setDetailProfile(null);
+                          if (c.complainant_id) {
+                            const { data: p } = await supabase.from('profiles').select('full_name, email, user_type').eq('id', c.complainant_id).single();
+                            if (p) setDetailProfile(p as any);
+                          }
+                        }}>
                           <Eye className="h-4 w-4 mr-1" />View
                         </Button>
                       </TableCell>
@@ -231,6 +247,27 @@ export default function ComplaintsList() {
                   <p className="text-sm">{new Date(detailDialog.created_at).toLocaleString()}</p>
                 </div>
               </div>
+
+              {/* Contact Information - visible to internal users */}
+              {isInternal && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+                  <p className="text-sm font-semibold flex items-center gap-2"><User className="h-4 w-4" />Contact Information</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Name</p>
+                      <p className="font-medium">{detailProfile?.full_name || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Email</p>
+                      <p className="font-medium flex items-center gap-1"><Mail className="h-3 w-3" />{detailDialog.email || detailProfile?.email || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">User Type</p>
+                      <Badge variant="outline" className="capitalize">{detailProfile ? (detailProfile.user_type || 'Registered User') : 'Unknown'}</Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
               {detailDialog.resolution && (
                 <div>
                   <p className="text-sm text-muted-foreground">Resolution</p>
