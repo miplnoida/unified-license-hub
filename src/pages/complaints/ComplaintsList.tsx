@@ -259,6 +259,12 @@ export default function ComplaintsList() {
           <DialogHeader><DialogTitle>Complaint {detailDialog?.complaint_number}</DialogTitle></DialogHeader>
           {detailDialog && (
             <div className="space-y-4">
+              {detailDialog.complaint_type_id && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Type</p>
+                  <Badge variant="outline">{complaintTypes.find(t => t.id === detailDialog.complaint_type_id)?.name || 'Unknown'}</Badge>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-muted-foreground">Subject</p>
                 <p className="font-medium">{detailDialog.subject}</p>
