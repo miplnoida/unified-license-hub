@@ -31,6 +31,11 @@ const STATUS_LABELS: Record<string, string> = {
   closed: 'Closed',
 };
 
+interface ComplaintType {
+  id: string;
+  name: string;
+}
+
 interface Complaint {
   id: string;
   complaint_number: string;
@@ -41,6 +46,7 @@ interface Complaint {
   investigator_id: string | null;
   resolution: string | null;
   email: string | null;
+  complaint_type_id: string | null;
   created_at: string;
   updated_at: string;
 }
