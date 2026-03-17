@@ -97,8 +97,6 @@ export function Sidebar() {
   }, [location.pathname]);
 
   const isItemVisible = (item: NavItem) => user && item.roles.includes(user.role);
-  const filteredBottomItems = bottomNavItems.filter(isItemVisible);
-
   return (
     <aside className={cn(
       'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col border-r border-sidebar-border',
