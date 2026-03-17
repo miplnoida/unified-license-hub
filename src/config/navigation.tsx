@@ -25,6 +25,8 @@ import {
   BookOpen,
   Briefcase,
   CalendarCheck,
+  LayoutGrid,
+  Mail,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES } from '@/types/platform';
 
