@@ -172,31 +172,6 @@ export function Sidebar() {
             );
           })}
 
-          {filteredBottomItems.length > 0 && (
-            <div>
-              {!collapsed && (
-                <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
-                  Account
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {filteredBottomItems.map((item) => {
-                  if (!item.href) return null;
-                  const isActive = location.pathname === item.href;
-                  return (
-                    <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')} title={collapsed ? item.label : undefined}>
-                      {item.icon}
-                      {!collapsed && <span className="flex-1">{item.label}</span>}
-                    </Link>
-                  );
-                })}
-                <button onClick={logout} className="nav-item w-full text-left text-destructive/80 hover:text-destructive">
-                  <LogOut className="h-5 w-5" />
-                  {!collapsed && <span className="flex-1">Logout</span>}
-                </button>
-              </div>
-            </div>
-          )}
         </nav>
       </ScrollArea>
     </aside>
