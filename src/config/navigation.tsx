@@ -99,13 +99,7 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Form Management',
     items: [
-      {
-        label: 'Form Builder', icon: <FormInput className="h-5 w-5" />, roles: ['super_admin', 'admin', 'developer'],
-        children: [
-          { label: 'Pre-License Forms', href: '/admin/forms/pre-license', icon: <FileText className="h-4 w-4" />, roles: ['super_admin', 'admin', 'developer'] },
-          { label: 'Post-License Forms', href: '/admin/forms/post-license', icon: <FileCheck className="h-4 w-4" />, roles: ['super_admin', 'admin', 'developer'] },
-        ],
-      },
+      { label: 'Form Management', href: '/admin/forms', icon: <FormInput className="h-5 w-5" />, roles: ['super_admin', 'admin', 'developer'] },
     ],
   },
   {

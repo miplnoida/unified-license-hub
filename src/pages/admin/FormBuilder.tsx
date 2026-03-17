@@ -231,7 +231,7 @@ export default function FormBuilder() {
       } as any);
 
       toast.success('Form saved successfully!');
-      navigate(formType === 'pre_license' ? '/admin/forms/pre-license' : '/admin/forms/post-license');
+      navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
       toast.error('Failed to save form.');

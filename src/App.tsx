@@ -165,8 +165,9 @@ function AppRoutes() {
         <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
 
         {/* Form Management */}
-        <Route path="/admin/forms/pre-license" element={<P><PreLicenseForms /></P>} />
-        <Route path="/admin/forms/post-license" element={<P><PostLicenseForms /></P>} />
+        <Route path="/admin/forms" element={<P><FormManagement /></P>} />
+        <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
+        <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
         <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
         <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
