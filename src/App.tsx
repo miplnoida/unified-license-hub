@@ -104,6 +104,7 @@ function AppRoutes() {
 
       {/* Applications */}
       <Route path="/applications" element={<P><ApplicationsList /></P>} />
+      <Route path="/applications/new" element={<P><NewApplication /></P>} />
       <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
       <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
