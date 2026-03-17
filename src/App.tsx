@@ -24,6 +24,7 @@ import LicenseDetail from "./pages/licenses/LicenseDetail";
 
 // Compliance
 import ComplianceReturns from "./pages/compliance/ComplianceReturns";
+import ReturnSubmission from "./pages/compliance/ReturnSubmission";
 
 // Payments
 import PaymentHistory from "./pages/payments/PaymentHistory";
