@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { RegulatorSwitcher } from './RegulatorSwitcher';
 
 export function Header() {
   const { user } = useAuth();
