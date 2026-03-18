@@ -392,24 +392,52 @@ export function usePerformAction() {
           await supabase.from('workflow_instances').update({
             current_step_id: steps[currentIdx + 1].id,
           } as any).eq('id', params.instance_id);
+          // Update application to in_progress and move current_step_id
+          await supabase.from('applications').update({
+            status: 'in_progress',
+            current_step_id: steps[currentIdx + 1].id,
+          } as any).eq('id', params.application_id);
         } else {
           // Last step approved - complete workflow
           await supabase.from('workflow_instances').update({
             status: 'completed',
             completed_at: new Date().toISOString(),
           } as any).eq('id', params.instance_id);
+          // Update application to approved
+          await supabase.from('applications').update({
+            status: 'approved',
+            approved_at: new Date().toISOString(),
+          } as any).eq('id', params.application_id);
         }
       } else if (params.action_type === 'reject') {
         await supabase.from('workflow_instances').update({
           status: 'rejected',
           completed_at: new Date().toISOString(),
         } as any).eq('id', params.instance_id);
+        // Update application to rejected
+        await supabase.from('applications').update({
+          status: 'rejected',
+          rejected_at: new Date().toISOString(),
+        } as any).eq('id', params.application_id);
       } else if (params.action_type === 'send_back') {
         // Move to previous step
         if (currentIdx > 0 && steps) {
           await supabase.from('workflow_instances').update({
             current_step_id: steps[currentIdx - 1].id,
           } as any).eq('id', params.instance_id);
+          await supabase.from('applications').update({
+            current_step_id: steps[currentIdx - 1].id,
+          } as any).eq('id', params.application_id);
+        }
+      } else if (params.action_type === 'escalate') {
+        // Move to next step (escalate to senior)
+        if (currentIdx >= 0 && steps && currentIdx < steps.length - 1) {
+          await supabase.from('workflow_instances').update({
+            current_step_id: steps[currentIdx + 1].id,
+          } as any).eq('id', params.instance_id);
+          await supabase.from('applications').update({
+            current_step_id: steps[currentIdx + 1].id,
+          } as any).eq('id', params.application_id);
         }
       }
 

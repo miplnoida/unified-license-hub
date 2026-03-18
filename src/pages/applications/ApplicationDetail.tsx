@@ -86,11 +86,55 @@ export default function ApplicationDetail() {
   const handleSubmit = async () => {
     if (!app || !user) return;
     setProcessing(true);
-    const { error } = await supabase.from('applications')
-      .update({ status: 'submitted', submitted_at: new Date().toISOString() } as any).eq('id', app.id);
+
+    // Find a matching active workflow for this license type
+    const { data: workflows } = await supabase
+      .from('approval_workflows')
+      .select('id')
+      .eq('license_type', app.license_type)
+      .eq('entity_type', 'application')
+      .eq('is_active', true)
+      .limit(1);
+
+    const matchedWorkflowId = workflows?.[0]?.id || null;
+
+    let firstStepId: string | null = null;
+    if (matchedWorkflowId) {
+      // Get the first step of the workflow
+      const { data: steps } = await supabase
+        .from('approval_steps')
+        .select('id')
+        .eq('workflow_id', matchedWorkflowId)
+        .order('step_order', { ascending: true })
+        .limit(1);
+      firstStepId = steps?.[0]?.id || null;
+    }
+
+    // Update application with workflow and status
+    const updates: any = {
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      workflow_id: matchedWorkflowId,
+      current_step_id: firstStepId,
+    };
+    const { error } = await supabase.from('applications').update(updates).eq('id', app.id);
     if (error) { toast.error(error.message); setProcessing(false); return; }
+
+    // Create workflow instance if workflow matched
+    if (matchedWorkflowId) {
+      await supabase.from('workflow_instances').insert({
+        workflow_id: matchedWorkflowId,
+        entity_type: 'application',
+        entity_id: app.id,
+        current_step_id: firstStepId,
+        status: 'active',
+      } as any);
+    }
+
     await logAudit({ action: 'application_submitted', entityType: 'application', entityId: app.id });
-    toast.success('Application submitted');
+    toast.success(matchedWorkflowId
+      ? 'Application submitted and routed to workflow'
+      : 'Application submitted (no matching workflow found)');
     loadData();
     setProcessing(false);
   };
@@ -165,8 +209,8 @@ export default function ApplicationDetail() {
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
-  // Manual actions for staff (no workflow configured)
-  const showManualActions = isInternal && !app.workflow_id && ['submitted', 'in_progress'].includes(app.status);
+  // Only show manual "Start Review" to move to in_progress, but no direct approve/reject without workflow
+  const showManualActions = isInternal && !app.workflow_id && app.status === 'submitted';
 
   return (
     <DashboardLayout>
@@ -299,52 +343,14 @@ export default function ApplicationDetail() {
               />
             )}
 
-            {/* Manual staff actions (no workflow) */}
+            {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {app.status === 'submitted' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStageTransition('in_progress', 'start_review', '')}
-                      disabled={processing}
-                    >
-                      Start Review (Move to In Progress)
-                    </Button>
-                  )}
-                  {app.status === 'in_progress' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-sm">
-                          Remarks / Description <span className="text-destructive">*</span>
-                        </Label>
-                        <Textarea
-                          value={actionComment}
-                          onChange={e => setActionComment(e.target.value)}
-                          placeholder="Enter your remarks (mandatory for approve/reject)..."
-                          rows={3}
-                        />
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button
-                          size="sm"
-                          onClick={() => handleStageTransition('approved', 'approve', actionComment)}
-                          disabled={processing}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" /> Approve
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleStageTransition('rejected', 'reject', actionComment)}
-                          disabled={processing}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" /> Reject
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                <CardContent className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No approval workflow is configured for this license type. Please configure a workflow in the Workflows module to enable multi-level approval.
+                  </p>
                 </CardContent>
               </Card>
             )}
