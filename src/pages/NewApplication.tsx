@@ -39,6 +39,7 @@ export default function NewApplication() {
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
   const [selectedSector, setSelectedSector] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
