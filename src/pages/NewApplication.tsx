@@ -56,23 +56,41 @@ export default function NewApplication() {
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
 
-  // Find matching form template for the selected category
-  const matchedTemplate = useMemo(() => {
-    if (!selectedCategory) return null;
+  // Find ALL matching form templates for the selected category
+  const matchedTemplates = useMemo(() => {
+    if (!selectedCategory) return [];
     const catObj = allCategories.find(c => c.id === selectedCategory);
     const subObj = allSubSectors.find(s => s.id === selectedSubSector);
     const secObj = sectors.find(s => s.id === selectedSector);
-    if (!catObj || !subObj || !secObj) return null;
+    if (!catObj || !subObj || !secObj) return [];
 
-    return formTemplates.find(t =>
+    // Match by category name, sub-sector name, or sector name
+    const matched = formTemplates.filter(t =>
       t.status === 'published' &&
       (t.form_type === 'pre_license' || t.form_type === 'application') &&
-      (t.category === catObj.name || t.sector === secObj.name)
-    ) || formTemplates.find(t =>
-      t.status === 'published' &&
-      (t.form_type === 'pre_license' || t.form_type === 'application')
-    ) || null;
+      (
+        (t.category && t.category === catObj.name) ||
+        (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
+        (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
+      )
+    );
+
+    // If no specific match, fall back to all published pre_license forms
+    if (matched.length === 0) {
+      return formTemplates.filter(t =>
+        t.status === 'published' &&
+        (t.form_type === 'pre_license' || t.form_type === 'application')
+      );
+    }
+
+    return matched;
   }, [selectedCategory, formTemplates, allCategories, allSubSectors, sectors, selectedSubSector, selectedSector]);
+
+  // The selected template from the list
+  const matchedTemplate = useMemo(() => {
+    if (!selectedTemplateId) return matchedTemplates[0] || null;
+    return matchedTemplates.find(t => t.id === selectedTemplateId) || matchedTemplates[0] || null;
+  }, [selectedTemplateId, matchedTemplates]);
 
   const { data: publishedVersion } = useLatestPublishedVersion(matchedTemplate?.id || null);
   const { data: sections = [] } = useVersionSections(publishedVersion?.id || null);
