@@ -13,9 +13,6 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
@@ -28,14 +25,6 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission,
 } from '@/hooks/useRoles';
 
-const SYSTEM_ROLES = [
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'licensing_officer', label: 'Licensing Officer' },
-  { value: 'analyst', label: 'Analyst' },
-  { value: 'developer', label: 'Developer' },
-];
 
 const MODULE_LABELS: Record<string, string> = {
   application_management: 'Application Management',
@@ -66,7 +55,7 @@ export default function RoleManagement() {
   const [editingRole, setEditingRole] = useState<DynamicRole | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formSystemRole, setFormSystemRole] = useState('analyst');
+  
   const [formPerms, setFormPerms] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
@@ -99,7 +88,6 @@ export default function RoleManagement() {
     setEditingRole(null);
     setFormName('');
     setFormDesc('');
-    setFormSystemRole('analyst');
     setFormPerms([]);
     setDialogOpen(true);
   };
@@ -109,7 +97,6 @@ export default function RoleManagement() {
     setEditingRole(role);
     setFormName(role.name);
     setFormDesc(role.description || '');
-    setFormSystemRole(role.system_role);
     setFormPerms(getPermIdsForRole(role.id));
     setDialogOpen(true);
   };
@@ -143,14 +130,14 @@ export default function RoleManagement() {
         id: editingRole.id,
         name: formName,
         description: formDesc,
-        system_role: formSystemRole,
+        system_role: 'analyst',
         permissionIds: formPerms,
       });
     } else {
       await createRole.mutateAsync({
         name: formName,
         description: formDesc,
-        system_role: formSystemRole,
+        system_role: 'analyst',
         permissionIds: formPerms,
       });
     }
@@ -204,7 +191,6 @@ export default function RoleManagement() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Role</TableHead>
-                        <TableHead>System Mapping</TableHead>
                         <TableHead>Users</TableHead>
                         <TableHead>Permissions</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -227,11 +213,6 @@ export default function RoleManagement() {
                                 <p className="text-sm text-muted-foreground">{role.description}</p>
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="capitalize text-xs">
-                              {role.system_role.replace(/_/g, ' ')}
-                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
@@ -257,7 +238,7 @@ export default function RoleManagement() {
                         </TableRow>
                       ))}
                       {filteredRoles.length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -327,23 +308,9 @@ export default function RoleManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role Name <span className="text-destructive">*</span></Label>
-                <Input placeholder="e.g. Senior Officer" value={formName} onChange={e => setFormName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Access Level Mapping <span className="text-destructive">*</span></Label>
-                <Select value={formSystemRole} onValueChange={setFormSystemRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SYSTEM_ROLES.map(r => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Maps to system-level access for data security enforcement.</p>
-              </div>
+            <div className="space-y-2">
+              <Label>Role Name <span className="text-destructive">*</span></Label>
+              <Input placeholder="e.g. Senior Officer" value={formName} onChange={e => setFormName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
