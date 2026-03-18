@@ -9,6 +9,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates, useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,10 +23,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
+  CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
 
-type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'review';
+type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
+type PaymentStatus = 'pending' | 'success' | 'failed';
 
 interface FormProgress {
   templateId: string;
@@ -37,7 +40,8 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
   { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'documents', label: 'Upload Documents', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'review', label: 'Review & Submit', icon: <Send className="h-4 w-4" /> },
+  { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
+  { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
 ];
 
 export default function NewApplication() {
@@ -54,6 +58,11 @@ export default function NewApplication() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [feeAmount, setFeeAmount] = useState<number>(0);
+  const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
 
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
@@ -107,6 +116,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
+  const paymentComplete = paymentStatus === 'success';
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
@@ -273,10 +283,95 @@ export default function NewApplication() {
     setCurrentStep('forms');
   };
 
+  // Load applicable fees when moving to payment step
+  const loadFees = async () => {
+    if (!selectedSector) return;
+    const { data: fees } = await supabase
+      .from('fee_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .or(`sector_id.eq.${selectedSector},sector_id.is.null`)
+      .order('name');
+
+    if (fees && fees.length > 0) {
+      const breakdown = fees.map(f => ({ name: f.name, amount: Number(f.amount) }));
+      setFeeBreakdown(breakdown);
+      setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+    } else {
+      // Default fee if none configured
+      setFeeBreakdown([{ name: 'Application Processing Fee', amount: 500 }]);
+      setFeeAmount(500);
+    }
+  };
+
+  const handleProceedToPayment = async () => {
+    await loadFees();
+    setCurrentStep('payment');
+  };
+
+  const handleProcessPayment = async () => {
+    if (!applicationId || !user) return;
+    setProcessingPayment(true);
+
+    try {
+      // Create payment record
+      const { data: payment, error: payErr } = await supabase
+        .from('payments')
+        .insert({
+          user_id: user.id,
+          application_id: applicationId,
+          amount: feeAmount,
+          status: 'completed',
+          payment_method: 'online',
+          paid_at: new Date().toISOString(),
+          transaction_ref: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        } as any)
+        .select()
+        .single();
+
+      if (payErr) throw payErr;
+
+      setPaymentId((payment as any).id);
+      setPaymentStatus('success');
+
+      // Generate receipt
+      await supabase.from('payment_receipts').insert({
+        payment_id: (payment as any).id,
+        amount: feeAmount,
+        issued_to_name: user.email || 'Applicant',
+        issued_to_email: user.email,
+        fee_breakdown: feeBreakdown,
+      } as any);
+
+      await logAudit({
+        action: 'payment_completed',
+        entityType: 'payment',
+        entityId: (payment as any).id,
+        newValue: { amount: feeAmount, application_id: applicationId },
+      });
+
+      toast.success('Payment successful!');
+    } catch (err: any) {
+      setPaymentStatus('failed');
+      toast.error('Payment failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleRetryPayment = () => {
+    setPaymentStatus('pending');
+    setPaymentId(null);
+  };
+
   const handleFinalSubmit = async () => {
     if (!applicationId || !user) return;
     if (!allFormsCompleted) {
       toast.error('Please complete all required forms before submitting.');
+      return;
+    }
+    if (!paymentComplete) {
+      toast.error('Please complete payment to submit application.');
       return;
     }
     setSubmitting(true);
@@ -347,6 +442,17 @@ export default function NewApplication() {
         return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
       default:
         return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Not Started</Badge>;
+    }
+  };
+
+  const getPaymentStatusBadge = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Paid</Badge>;
+      case 'failed':
+        return <Badge variant="rejected" className="gap-1"><AlertCircle className="h-3 w-3" /> Failed</Badge>;
+      default:
+        return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>;
     }
   };
 
@@ -644,8 +750,8 @@ export default function NewApplication() {
                 <Button variant="outline" onClick={() => setCurrentStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
-                <Button onClick={() => setCurrentStep('review')}>
-                  Review Application
+                <Button onClick={handleProceedToPayment}>
+                  Proceed to Payment
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -653,7 +759,125 @@ export default function NewApplication() {
           </Card>
         )}
 
-        {/* Step 4: Review & Submit */}
+        {/* Step 4: Payment */}
+        {currentStep === 'payment' && applicationId && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-primary" />
+                      Application Payment
+                    </CardTitle>
+                    <CardDescription>
+                      Complete payment to proceed with submission.
+                    </CardDescription>
+                  </div>
+                  {getPaymentStatusBadge()}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Application Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border p-4">
+                    <span className="text-xs font-medium text-muted-foreground">Application ID</span>
+                    <p className="text-sm font-mono font-medium mt-1">{applicationId.substring(0, 8).toUpperCase()}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <span className="text-xs font-medium text-muted-foreground">Applicant</span>
+                    <p className="text-sm font-medium mt-1">{user?.email || '—'}</p>
+                  </div>
+                </div>
+
+                {/* Fee Breakdown */}
+                <div className="rounded-lg border">
+                  <div className="p-4 border-b bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">Fee Breakdown</span>
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {feeBreakdown.map((fee, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{fee.name}</span>
+                        <span className="font-medium">${fee.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Total Amount</span>
+                      <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Action */}
+                {paymentStatus === 'pending' && (
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    <Button
+                      size="lg"
+                      onClick={handleProcessPayment}
+                      disabled={processingPayment}
+                      className="min-w-[200px]"
+                    >
+                      {processingPayment ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                      ) : (
+                        <><CreditCard className="h-4 w-4 mr-2" /> Proceed to Pay</>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Payment is mandatory before final submission.
+                    </p>
+                  </div>
+                )}
+
+                {paymentStatus === 'success' && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
+                    <h3 className="font-semibold text-emerald-800">Payment Successful</h3>
+                    <p className="text-sm text-emerald-700">
+                      Your payment of <strong>${feeAmount.toFixed(2)}</strong> has been processed successfully.
+                    </p>
+                    {paymentId && (
+                      <p className="text-xs text-emerald-600 font-mono">Payment ID: {paymentId.substring(0, 8).toUpperCase()}</p>
+                    )}
+                  </div>
+                )}
+
+                {paymentStatus === 'failed' && (
+                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-6 text-center space-y-3">
+                    <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
+                    <h3 className="font-semibold text-red-800">Payment Failed</h3>
+                    <p className="text-sm text-red-700">
+                      Something went wrong. Please try again.
+                    </p>
+                    <Button variant="destructive" onClick={handleRetryPayment}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Retry Payment
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back
+              </Button>
+              <Button
+                onClick={() => setCurrentStep('review')}
+                disabled={!paymentComplete}
+              >
+                {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Review & Submit */}
         {currentStep === 'review' && (
           <div className="space-y-6">
             <Card>
@@ -706,6 +930,18 @@ export default function NewApplication() {
                   </div>
                 </div>
 
+                {/* Payment summary */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-medium text-muted-foreground">Payment</span>
+                    </div>
+                    {getPaymentStatusBadge()}
+                  </div>
+                  <p className="text-sm font-medium mt-2">Amount: ${feeAmount.toFixed(2)}</p>
+                </div>
+
                 {applicationId && (
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -717,14 +953,23 @@ export default function NewApplication() {
                     </div>
                   </div>
                 )}
+
+                {!paymentComplete && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                    <p className="text-sm text-amber-800">
+                      Please complete payment to submit application.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+              <Button variant="outline" onClick={() => setCurrentStep('payment')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
-              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted} size="lg">
+              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted || !paymentComplete} size="lg">
                 {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 {submitting ? 'Submitting...' : 'Submit Application'}
               </Button>
