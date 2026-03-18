@@ -98,7 +98,7 @@ export default function ManageLicenses() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard title="Total Licensees" value={licensees.length} icon={<Building2 className="h-6 w-6" />} />
-          <StatCard title="Sectors" value={sectors.length} icon={<Shield className="h-6 w-6" />} variant="info" />
+          <StatCard title="Sectors" value={sectors.length} icon={<Shield className="h-6 w-6" />} variant="primary" />
           <StatCard title="Active" value={licensees.filter(l => l.status === 'active').length} icon={<Shield className="h-6 w-6" />} variant="success" />
           <StatCard title="With License" value={licensees.filter(l => l.license_id).length} icon={<Shield className="h-6 w-6" />} variant="warning" />
         </div>
