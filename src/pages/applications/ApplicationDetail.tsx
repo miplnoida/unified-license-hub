@@ -263,15 +263,11 @@ export default function ApplicationDetail() {
                 </Card>
               </TabsContent>
 
-              {sections.length > 0 && (
+              {hasSubmittedForms && (
                 <TabsContent value="form" className="mt-4">
-                  <FormRenderer
-                    formName="Application Form"
-                    sections={sections}
-                    initialData={formDataSaved}
-                    onSaveDraft={() => {}}
-                    onSubmit={() => {}}
-                    readOnly
+                  <SubmittedForms
+                    formTemplateIds={formTemplateIds}
+                    formsData={formsData}
                   />
                 </TabsContent>
               )}
