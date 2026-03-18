@@ -481,7 +481,7 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
               <Select value={step.approver_role} onValueChange={val => onUpdate(step.id, { approver_role: val } as any)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ROLE_HIERARCHY.filter(r => r !== 'applicant').map(r => (
+                  {INTERNAL_ROLES.map(r => (
                     <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
                 </SelectContent>
