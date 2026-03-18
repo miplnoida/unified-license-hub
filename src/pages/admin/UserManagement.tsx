@@ -176,7 +176,7 @@ export default function UserManagement() {
           email: form.email,
           password: generatedPassword,
           full_name: fullName,
-          user_type: form.user_type,
+          user_type: 'primary',
           entity_name: '',
           role: role.system_role,
           role_id: form.role_id,
