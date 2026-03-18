@@ -199,7 +199,7 @@ export default function ApplicationDetail() {
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
-                {sections.length > 0 && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
+                {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
