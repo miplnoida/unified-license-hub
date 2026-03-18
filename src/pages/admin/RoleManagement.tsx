@@ -100,7 +100,6 @@ export default function RoleManagement() {
     setEditingRole(role);
     setFormName(role.name);
     setFormDesc(role.description || '');
-    setFormSystemRole(role.system_role);
     setFormPerms(getPermIdsForRole(role.id));
     setDialogOpen(true);
   };
