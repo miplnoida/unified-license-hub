@@ -397,19 +397,57 @@ export default function NewApplication() {
 
               {/* Show matched form info */}
               {selectedCategory && (
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">
-                      {matchedTemplate ? `Form: ${matchedTemplate.name}` : 'No published form found for this category'}
+                      {matchedTemplates.length > 0
+                        ? `${matchedTemplates.length} Form(s) Available`
+                        : 'No published forms found for this category'}
                     </span>
                   </div>
-                  {matchedTemplate && publishedVersion && (
-                    <p className="text-xs text-muted-foreground">
-                      Version {publishedVersion.version} · {sections.length} section(s)
-                    </p>
-                  )}
-                  {!matchedTemplate && (
+
+                  {matchedTemplates.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {matchedTemplates.map(tmpl => (
+                        <div
+                          key={tmpl.id}
+                          onClick={() => setSelectedTemplateId(tmpl.id)}
+                          className={`rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md ${
+                            (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-border bg-muted/30 hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{tmpl.name}</p>
+                              {tmpl.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
+                              )}
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {tmpl.sector && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.sector}</Badge>
+                                )}
+                                {tmpl.category && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.category}</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
+                                ? 'border-primary bg-primary'
+                                : 'border-muted-foreground/30'
+                            }`}>
+                              {(selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id)) && (
+                                <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <p className="text-xs text-muted-foreground">
                       A default application form will be used. Contact admin to configure a specific form.
                     </p>
