@@ -492,10 +492,44 @@ export default function ApplicationDetail() {
             {showManualActions && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     No approval workflow is configured for this license type. Please configure a workflow in the Workflows module to enable multi-level approval.
                   </p>
+                  {/* Admin can request resubmission even without workflow */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain what needs to be revised..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Admin request resubmission for in_progress apps (with or without workflow) */}
+            {isInternal && !app.workflow_id && (app.status === 'in_progress') && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Request Resubmission</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain what needs to be revised..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -512,11 +546,58 @@ export default function ApplicationDetail() {
               </div>
             )}
 
-            {/* Applicant cancel action for submitted/in_progress applications */}
+            {/* Applicant resubmit action */}
+            {isOwner && app.status === 'resubmission_requested' && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    The reviewer has requested changes to your application. Please update your documents/forms and resubmit.
+                  </p>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks (optional)</Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Describe the changes you made..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleResubmit} disabled={processing} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : 'Resubmit Application'}
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Applicant request edit (before approval, while submitted/in_progress) */}
             {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (
-              <Button variant="destructive" onClick={handleCancel} disabled={processing} className="w-full">
-                <Ban className="h-4 w-4 mr-2" />{processing ? 'Cancelling...' : 'Cancel Application'}
-              </Button>
+              <Card>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Request to Edit Application</Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain why you need to edit your application..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
+                      <Edit className="h-4 w-4 mr-2" />Request Edit
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
 
