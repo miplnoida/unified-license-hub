@@ -499,29 +499,6 @@ export function useCreateNewFormVersion() {
       } as any);
       if (vErr) throw vErr;
 
-      // Generate new IDs for fields in the new version to avoid PK conflicts
-      const newSections = JSON.parse(JSON.stringify(params.sections)) as FormSection[];
-      const idMap = new Map<string, string>();
-      for (const section of newSections) {
-        for (const field of section.fields) {
-          const newId = crypto.randomUUID();
-          idMap.set(field.id, newId);
-          field.id = newId;
-        }
-      }
-      // Update conditional logic references to use new IDs
-      for (const section of newSections) {
-        for (const field of section.fields) {
-          if (field.conditionalLogic) {
-            for (const rule of field.conditionalLogic) {
-              if (rule.fieldId && idMap.has(rule.fieldId)) {
-                rule.fieldId = idMap.get(rule.fieldId)!;
-              }
-            }
-          }
-        }
-      }
-
       const { fields, conditions } = sectionsToFieldRows(vid, newSections);
       if (fields.length > 0) {
         const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
