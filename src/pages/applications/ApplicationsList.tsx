@@ -95,8 +95,8 @@ export default function ApplicationsList() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const approved = applications.filter(a => a.status === 'approved' || a.status === 'license_issued').length;
-  const pending = applications.filter(a => !['approved', 'rejected', 'license_issued'].includes(a.status)).length;
+  const approved = applications.filter(a => a.status === 'approved').length;
+  const pending = applications.filter(a => !['approved', 'rejected'].includes(a.status)).length;
   const rejected = applications.filter(a => a.status === 'rejected').length;
 
   return (
