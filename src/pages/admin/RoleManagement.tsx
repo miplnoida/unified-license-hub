@@ -194,7 +194,6 @@ export default function RoleManagement() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Role</TableHead>
-                        <TableHead>System Mapping</TableHead>
                         <TableHead>Users</TableHead>
                         <TableHead>Permissions</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
