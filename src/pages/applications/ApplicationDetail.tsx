@@ -88,7 +88,9 @@ export default function ApplicationDetail() {
     setProcessing(true);
 
     // Find a matching active workflow for this license type
-    const { data: workflows } = await supabase
+    // Try exact match first, then partial match (license_type starts with workflow's license_type)
+    let matchedWorkflow: { id: string } | null = null;
+    const { data: exactWorkflows } = await supabase
       .from('approval_workflows')
       .select('id')
       .eq('license_type', app.license_type)
@@ -96,7 +98,24 @@ export default function ApplicationDetail() {
       .eq('is_active', true)
       .limit(1);
 
-    const matchedWorkflowId = workflows?.[0]?.id || null;
+    if (exactWorkflows && exactWorkflows.length > 0) {
+      matchedWorkflow = exactWorkflows[0];
+    } else {
+      // Partial match: find workflows where app's license_type starts with the workflow's license_type
+      const { data: allWorkflows } = await supabase
+        .from('approval_workflows')
+        .select('id, license_type')
+        .eq('entity_type', 'application')
+        .eq('is_active', true);
+
+      if (allWorkflows) {
+        matchedWorkflow = allWorkflows.find(w =>
+          app.license_type.toLowerCase().startsWith(w.license_type.toLowerCase())
+        ) || null;
+      }
+    }
+
+    const matchedWorkflowId = matchedWorkflow?.id || null;
 
     let firstStepId: string | null = null;
     if (matchedWorkflowId) {

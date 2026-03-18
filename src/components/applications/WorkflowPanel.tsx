@@ -36,7 +36,10 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const isLastLevel = currentStepIdx === steps.length - 1;
 
   // Check if user's role matches the current step's approver role
-  const userRoleMatchesStep = user && currentStep && user.role === currentStep.approver_role;
+  // super_admin can act on any step; other roles must match exactly
+  const userRoleMatchesStep = user && currentStep && (
+    user.role === 'super_admin' || user.role === currentStep.approver_role
+  );
 
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
 
