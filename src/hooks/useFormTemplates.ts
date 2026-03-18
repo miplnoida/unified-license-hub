@@ -466,17 +466,40 @@ export function useCreateNewFormVersion() {
       const newVersion = maxVersion + 1;
       const vid = crypto.randomUUID();
 
+      // Generate new IDs for fields first, then build snapshot
+      const newSections = JSON.parse(JSON.stringify(params.sections)) as FormSection[];
+      const idMap = new Map<string, string>();
+      for (const section of newSections) {
+        for (const field of section.fields) {
+          const newId = crypto.randomUUID();
+          idMap.set(field.id, newId);
+          field.id = newId;
+        }
+      }
+      // Update conditional logic references to use new IDs
+      for (const section of newSections) {
+        for (const field of section.fields) {
+          if (field.conditionalLogic) {
+            for (const rule of field.conditionalLogic) {
+              if (rule.fieldId && idMap.has(rule.fieldId)) {
+                rule.fieldId = idMap.get(rule.fieldId)!;
+              }
+            }
+          }
+        }
+      }
+
       const { error: vErr } = await supabase.from('form_versions').insert({
         id: vid,
         template_id: params.templateId,
         version: newVersion,
-        schema_snapshot: JSON.parse(JSON.stringify(params.sections)),
+        schema_snapshot: JSON.parse(JSON.stringify(newSections)),
         status: 'draft',
         change_notes: params.changeNotes || null,
       } as any);
       if (vErr) throw vErr;
 
-      const { fields, conditions } = sectionsToFieldRows(vid, params.sections);
+      const { fields, conditions } = sectionsToFieldRows(vid, newSections);
       if (fields.length > 0) {
         const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
         if (fErr) throw fErr;
