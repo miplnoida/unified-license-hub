@@ -311,23 +311,9 @@ export default function RoleManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role Name <span className="text-destructive">*</span></Label>
-                <Input placeholder="e.g. Senior Officer" value={formName} onChange={e => setFormName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Access Level Mapping <span className="text-destructive">*</span></Label>
-                <Select value={formSystemRole} onValueChange={setFormSystemRole}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SYSTEM_ROLES.map(r => (
-                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Maps to system-level access for data security enforcement.</p>
-              </div>
+            <div className="space-y-2">
+              <Label>Role Name <span className="text-destructive">*</span></Label>
+              <Input placeholder="e.g. Senior Officer" value={formName} onChange={e => setFormName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
