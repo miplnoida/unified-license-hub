@@ -9,6 +9,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useFormTemplates, useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,10 +23,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
+  CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
 
-type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'review';
+type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
+type PaymentStatus = 'pending' | 'success' | 'failed';
 
 interface FormProgress {
   templateId: string;
@@ -37,7 +40,8 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
   { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'documents', label: 'Upload Documents', icon: <Paperclip className="h-4 w-4" /> },
-  { key: 'review', label: 'Review & Submit', icon: <Send className="h-4 w-4" /> },
+  { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
+  { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
 ];
 
 export default function NewApplication() {
