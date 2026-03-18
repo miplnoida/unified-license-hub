@@ -78,7 +78,7 @@ const RegulatorManagement = lazy(() => import("./pages/admin/RegulatorManagement
 const AdminHub = lazy(() => import("./pages/admin/AdminHub"));
 const NotificationTemplates = lazy(() => import("./pages/admin/NotificationTemplates"));
 const ComplaintTypes = lazy(() => import("./pages/admin/ComplaintTypes"));
-const ManageLicenses = lazy(() => import("./pages/admin/ManageLicenses"));
+
 const ViewReturns = lazy(() => import("./pages/returns-mgmt/ViewReturns"));
 
 // Settings
