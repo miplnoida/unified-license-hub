@@ -24,17 +24,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, user_type, entity_name, role, licensee_id } = await req.json();
+    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, gender } = await req.json();
 
-    if (!email || !password || !full_name || !user_type) {
+    if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Determine the correct role based on user_type
-    const effectiveRole = role || (user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary');
+    // Determine the system role
+    let effectiveRole = role || 'analyst';
+    
+    // If role_id is provided, look up the system_role from roles table
+    if (role_id) {
+      const { data: roleData } = await supabaseAdmin
+        .from("roles")
+        .select("system_role")
+        .eq("id", role_id)
+        .single();
+      if (roleData) {
+        effectiveRole = roleData.system_role;
+      }
+    } else if (!role && user_type) {
+      effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
+    }
 
     // Create the auth user with metadata
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -43,7 +57,7 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: {
         full_name,
-        user_type,
+        user_type: user_type || "primary",
         entity_name: entity_name || "",
         role: effectiveRole,
       },
@@ -56,15 +70,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If licensee_id is provided, link the user profile to the licensee entity
-    if (licensee_id && userData.user) {
-      const { error: linkError } = await supabaseAdmin
-        .from("profiles")
-        .update({ licensee_id })
-        .eq("id", userData.user.id);
+    // Update profile with additional fields (role_id, gender)
+    if (userData.user) {
+      const updates: Record<string, any> = {};
+      if (role_id) updates.role_id = role_id;
+      if (gender) updates.gender = gender;
+      
+      if (Object.keys(updates).length > 0) {
+        const { error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update(updates)
+          .eq("id", userData.user.id);
 
-      if (linkError) {
-        console.error("Failed to link user to licensee:", linkError.message);
+        if (updateError) {
+          console.error("Failed to update profile extras:", updateError.message);
+        }
+      }
+
+      // If licensee_id is provided, link the user profile to the licensee entity
+      if (licensee_id) {
+        const { error: linkError } = await supabaseAdmin
+          .from("profiles")
+          .update({ licensee_id })
+          .eq("id", userData.user.id);
+
+        if (linkError) {
+          console.error("Failed to link user to licensee:", linkError.message);
+        }
       }
     }
 

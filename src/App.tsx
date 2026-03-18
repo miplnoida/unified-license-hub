@@ -68,6 +68,7 @@ const RoleManagement = lazy(() => import("./pages/admin/RoleManagement"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const ManageWebUsers = lazy(() => import("./pages/admin/ManageWebUsers"));
+
 const ManageLicensees = lazy(() => import("./pages/admin/ManageLicensees"));
 const LicenseeDetailPage = lazy(() => import("./pages/admin/LicenseeDetail"));
 const FormBuilder = lazy(() => import("./pages/admin/FormBuilder"));
@@ -213,7 +214,8 @@ function AppRoutes() {
         <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
         <Route path="/admin/licensees" element={<P><ManageLicensees /></P>} />
         <Route path="/admin/licensees/:id" element={<P><LicenseeDetailPage /></P>} />
-        <Route path="/admin/users" element={<P><ManageWebUsers /></P>} />
+        <Route path="/admin/users" element={<P><UserManagement /></P>} />
+        <Route path="/admin/web-users" element={<P><ManageWebUsers /></P>} />
         <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
         <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
         <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
