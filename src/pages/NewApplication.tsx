@@ -21,14 +21,21 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
-  Building2, Layers, Tag, ClipboardList, Paperclip, Send,
+  Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
 } from 'lucide-react';
 
-type WizardStep = 'selection' | 'form' | 'documents' | 'review';
+type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'review';
+type FormStatus = 'not_started' | 'in_progress' | 'completed';
+
+interface FormProgress {
+  templateId: string;
+  status: FormStatus;
+  data: Record<string, any>;
+}
 
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
-  { key: 'form', label: 'Fill Application', icon: <ClipboardList className="h-4 w-4" /> },
+  { key: 'forms', label: 'Required Forms', icon: <ClipboardList className="h-4 w-4" /> },
   { key: 'documents', label: 'Upload Documents', icon: <Paperclip className="h-4 w-4" /> },
   { key: 'review', label: 'Review & Submit', icon: <Send className="h-4 w-4" /> },
 ];
@@ -38,11 +45,11 @@ export default function NewApplication() {
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
+  const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState('');
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formProgressMap, setFormProgressMap] = useState<Record<string, FormProgress>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +63,7 @@ export default function NewApplication() {
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
 
-  // Find ALL matching form templates for the selected category
+  // Find ALL matching form templates
   const matchedTemplates = useMemo(() => {
     if (!selectedCategory) return [];
     const catObj = allCategories.find(c => c.id === selectedCategory);
@@ -64,7 +71,6 @@ export default function NewApplication() {
     const secObj = sectors.find(s => s.id === selectedSector);
     if (!catObj || !subObj || !secObj) return [];
 
-    // Match by category name, sub-sector name, or sector name
     const matched = formTemplates.filter(t =>
       t.status === 'published' &&
       (t.form_type === 'pre_license' || t.form_type === 'application') &&
@@ -75,7 +81,6 @@ export default function NewApplication() {
       )
     );
 
-    // If no specific match, fall back to all published pre_license forms
     if (matched.length === 0) {
       return formTemplates.filter(t =>
         t.status === 'published' &&
@@ -86,16 +91,21 @@ export default function NewApplication() {
     return matched;
   }, [selectedCategory, formTemplates, allCategories, allSubSectors, sectors, selectedSubSector, selectedSector]);
 
-  // The selected template from the list
-  const matchedTemplate = useMemo(() => {
-    if (!selectedTemplateId) return matchedTemplates[0] || null;
-    return matchedTemplates.find(t => t.id === selectedTemplateId) || matchedTemplates[0] || null;
-  }, [selectedTemplateId, matchedTemplates]);
+  // Active form template being filled
+  const activeTemplate = useMemo(() => {
+    return matchedTemplates.find(t => t.id === activeFormTemplateId) || null;
+  }, [activeFormTemplateId, matchedTemplates]);
 
-  const { data: publishedVersion } = useLatestPublishedVersion(matchedTemplate?.id || null);
+  const { data: publishedVersion } = useLatestPublishedVersion(activeTemplate?.id || null);
   const { data: sections = [] } = useVersionSections(publishedVersion?.id || null);
 
-  const stepIndex = WIZARD_STEPS.findIndex(s => s.key === currentStep);
+  // Progress calculations
+  const completedCount = matchedTemplates.filter(t => formProgressMap[t.id]?.status === 'completed').length;
+  const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
+
+  // Wizard step index (skip 'filling' from display)
+  const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
+  const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
@@ -113,7 +123,7 @@ export default function NewApplication() {
     setSelectedCategory('');
   };
 
-  // Create draft application when moving to form step
+  // Create draft application
   const createDraftApplication = async () => {
     if (!user || !selectedCategory) return null;
     const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
@@ -131,8 +141,7 @@ export default function NewApplication() {
           sector_name: sectorObj?.name,
           sub_sector_name: subSectorObj?.name,
           category_name: categoryObj?.name,
-          form_template_id: matchedTemplate?.id || null,
-          form_version_id: publishedVersion?.id || null,
+          form_template_ids: matchedTemplates.map(t => t.id),
         },
         regulator_id: activeRegulator?.id || null,
       } as any)
@@ -154,9 +163,13 @@ export default function NewApplication() {
     return (data as any).id as string;
   };
 
-  const handleProceedToForm = async () => {
+  const handleProceedToForms = async () => {
     if (!selectedCategory) {
       toast.error('Please select all fields');
+      return;
+    }
+    if (matchedTemplates.length === 0) {
+      toast.error('No forms available for this category');
       return;
     }
 
@@ -164,54 +177,74 @@ export default function NewApplication() {
     const appId = await createDraftApplication();
     if (appId) {
       setApplicationId(appId);
-      setCurrentStep('form');
+      // Initialize progress for all forms
+      const initial: Record<string, FormProgress> = {};
+      matchedTemplates.forEach(t => {
+        initial[t.id] = { templateId: t.id, status: 'not_started', data: {} };
+      });
+      setFormProgressMap(initial);
+      setCurrentStep('forms');
     }
     setSaving(false);
   };
 
-  const handleFormSaveDraft = async (data: Record<string, any>) => {
-    setFormData(data);
-    if (!applicationId) return;
-    setSaving(true);
-    await supabase.from('applications').update({
-      data: {
-        sector_id: selectedSector,
-        sub_sector_id: selectedSubSector,
-        category_id: selectedCategory,
-        sector_name: sectorObj?.name,
-        sub_sector_name: subSectorObj?.name,
-        category_name: categoryObj?.name,
-        form_template_id: matchedTemplate?.id || null,
-        form_version_id: publishedVersion?.id || null,
-        form_data: data,
+  const handleStartForm = (templateId: string) => {
+    setActiveFormTemplateId(templateId);
+    // Mark as in_progress if not_started
+    setFormProgressMap(prev => ({
+      ...prev,
+      [templateId]: {
+        ...prev[templateId],
+        status: prev[templateId]?.status === 'completed' ? 'completed' : 'in_progress',
       },
-    } as any).eq('id', applicationId);
-    toast.success('Draft saved');
-    setSaving(false);
+    }));
+    setCurrentStep('filling');
+  };
+
+  const handleFormSaveDraft = async (data: Record<string, any>) => {
+    if (!activeFormTemplateId) return;
+    setFormProgressMap(prev => ({
+      ...prev,
+      [activeFormTemplateId]: {
+        ...prev[activeFormTemplateId],
+        status: 'in_progress',
+        data,
+      },
+    }));
+    if (applicationId) {
+      setSaving(true);
+      await supabase.from('applications').update({
+        data: {
+          sector_id: selectedSector,
+          sub_sector_id: selectedSubSector,
+          category_id: selectedCategory,
+          sector_name: sectorObj?.name,
+          sub_sector_name: subSectorObj?.name,
+          category_name: categoryObj?.name,
+          form_template_ids: matchedTemplates.map(t => t.id),
+          forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
+        },
+      } as any).eq('id', applicationId);
+      toast.success('Draft saved');
+      setSaving(false);
+    }
   };
 
   const handleFormSubmit = async (data: Record<string, any>) => {
-    setFormData(data);
-    if (!applicationId) return;
-    setSaving(true);
-    await supabase.from('applications').update({
-      data: {
-        sector_id: selectedSector,
-        sub_sector_id: selectedSubSector,
-        category_id: selectedCategory,
-        sector_name: sectorObj?.name,
-        sub_sector_name: subSectorObj?.name,
-        category_name: categoryObj?.name,
-        form_template_id: matchedTemplate?.id || null,
-        form_version_id: publishedVersion?.id || null,
-        form_data: data,
+    if (!activeFormTemplateId) return;
+    setFormProgressMap(prev => ({
+      ...prev,
+      [activeFormTemplateId]: {
+        ...prev[activeFormTemplateId],
+        status: 'completed',
+        data,
       },
-    } as any).eq('id', applicationId);
+    }));
 
-    // Also save as form_response if template exists
-    if (matchedTemplate && publishedVersion && user) {
+    if (applicationId && activeTemplate && publishedVersion && user) {
+      setSaving(true);
       await supabase.from('form_responses').upsert({
-        template_id: matchedTemplate.id,
+        template_id: activeTemplate.id,
         version_id: publishedVersion.id,
         user_id: user.id,
         response_data: data,
@@ -219,14 +252,33 @@ export default function NewApplication() {
         entity_type: 'application',
         entity_id: applicationId,
       } as any, { onConflict: 'entity_id,entity_type' }).select();
+
+      await supabase.from('applications').update({
+        data: {
+          sector_id: selectedSector,
+          sub_sector_id: selectedSubSector,
+          category_id: selectedCategory,
+          sector_name: sectorObj?.name,
+          sub_sector_name: subSectorObj?.name,
+          category_name: categoryObj?.name,
+          form_template_ids: matchedTemplates.map(t => t.id),
+          forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
+        },
+      } as any).eq('id', applicationId);
+      setSaving(false);
     }
 
-    setSaving(false);
-    setCurrentStep('documents');
+    toast.success('Form completed!');
+    setActiveFormTemplateId(null);
+    setCurrentStep('forms');
   };
 
   const handleFinalSubmit = async () => {
     if (!applicationId || !user) return;
+    if (!allFormsCompleted) {
+      toast.error('Please complete all required forms before submitting.');
+      return;
+    }
     setSubmitting(true);
 
     const { error } = await supabase.from('applications').update({
@@ -240,13 +292,11 @@ export default function NewApplication() {
       return;
     }
 
-    // Update form response status
-    if (matchedTemplate && publishedVersion) {
-      await supabase.from('form_responses').update({
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-      } as any).eq('entity_id', applicationId).eq('entity_type', 'application');
-    }
+    // Update form responses
+    await supabase.from('form_responses').update({
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+    } as any).eq('entity_id', applicationId).eq('entity_type', 'application');
 
     // Try to start workflow
     const { data: workflows } = await supabase
@@ -289,30 +339,47 @@ export default function NewApplication() {
     navigate(`/applications/${applicationId}`);
   };
 
+  const getFormStatusBadge = (status: FormStatus) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
+      case 'in_progress':
+        return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
+      default:
+        return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Not Started</Badge>;
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'filling') {
+      setActiveFormTemplateId(null);
+      setCurrentStep('forms');
+    } else if (currentStep === 'selection') {
+      navigate(-1);
+    } else {
+      const prevIdx = stepIndex - 1;
+      if (prevIdx >= 0) setCurrentStep(WIZARD_STEPS[prevIdx].key);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => {
-            if (currentStep === 'selection') navigate(-1);
-            else {
-              const prevIdx = stepIndex - 1;
-              if (prevIdx >= 0) setCurrentStep(WIZARD_STEPS[prevIdx].key);
-            }
-          }}>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">New License Application</h1>
             <p className="text-muted-foreground text-sm">
-              Step {stepIndex + 1} of {WIZARD_STEPS.length}: {WIZARD_STEPS[stepIndex].label}
+              {currentStep === 'filling'
+                ? `Filling: ${activeTemplate?.name || 'Form'}`
+                : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
           {applicationId && (
-            <Badge variant="outline" className="font-mono text-xs">
-              Draft
-            </Badge>
+            <Badge variant="outline" className="font-mono text-xs">Draft</Badge>
           )}
         </div>
 
@@ -340,7 +407,7 @@ export default function NewApplication() {
           </div>
         </div>
 
-        {/* Step 1: Selection */}
+        {/* Step 1: Category Selection */}
         {currentStep === 'selection' && (
           <Card>
             <CardHeader>
@@ -395,70 +462,29 @@ export default function NewApplication() {
                 </Select>
               </div>
 
-              {/* Show matched form info */}
+              {/* Show number of forms available */}
               {selectedCategory && (
-                <div className="space-y-3">
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-foreground">
                       {matchedTemplates.length > 0
-                        ? `${matchedTemplates.length} Form(s) Available`
+                        ? `${matchedTemplates.length} mandatory form(s) to complete`
                         : 'No published forms found for this category'}
                     </span>
                   </div>
-
-                  {matchedTemplates.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {matchedTemplates.map(tmpl => (
-                        <div
-                          key={tmpl.id}
-                          onClick={() => setSelectedTemplateId(tmpl.id)}
-                          className={`rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md ${
-                            (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
-                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                              : 'border-border bg-muted/30 hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-foreground truncate">{tmpl.name}</p>
-                              {tmpl.description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
-                              )}
-                              <div className="flex flex-wrap gap-1.5 mt-2">
-                                {tmpl.sector && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.sector}</Badge>
-                                )}
-                                {tmpl.category && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.category}</Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
-                                ? 'border-primary bg-primary'
-                                : 'border-muted-foreground/30'
-                            }`}>
-                              {(selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id)) && (
-                                <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      A default application form will be used. Contact admin to configure a specific form.
+                  {matchedTemplates.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-6">
+                      All forms must be completed before submission.
                     </p>
                   )}
                 </div>
               )}
 
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleProceedToForm} disabled={!selectedCategory || saving}>
+                <Button onClick={handleProceedToForms} disabled={!selectedCategory || matchedTemplates.length === 0 || saving}>
                   {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Create Draft & Proceed
+                  Proceed to Forms
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -466,14 +492,100 @@ export default function NewApplication() {
           </Card>
         )}
 
-        {/* Step 2: Dynamic Form */}
-        {currentStep === 'form' && (
+        {/* Step 2: Forms List (mandatory all) */}
+        {currentStep === 'forms' && (
+          <div className="space-y-4">
+            {/* Progress Summary */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5 text-primary" />
+                    <span className="font-semibold text-foreground">Form Completion Progress</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground">
+                    {completedCount} / {matchedTemplates.length} Completed
+                  </span>
+                </div>
+                <Progress value={matchedTemplates.length > 0 ? (completedCount / matchedTemplates.length) * 100 : 0} className="h-2" />
+                {!allFormsCompleted && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Complete all forms below to proceed with your application.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Form Cards */}
+            {matchedTemplates.map((tmpl, idx) => {
+              const fp = formProgressMap[tmpl.id];
+              const status: FormStatus = fp?.status || 'not_started';
+              return (
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary text-sm font-bold">
+                          {idx + 1}
+                        </span>
+                        <CardTitle className="text-base">{tmpl.name}</CardTitle>
+                      </div>
+                      {getFormStatusBadge(status)}
+                    </div>
+                    {tmpl.description && (
+                      <CardDescription className="ml-9">{tmpl.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between ml-9">
+                      <div className="flex flex-wrap gap-1.5">
+                        {tmpl.sector && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.sector}</Badge>}
+                        {tmpl.category && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.category}</Badge>}
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.form_type}</Badge>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={status === 'completed' ? 'outline' : 'default'}
+                        onClick={() => handleStartForm(tmpl.id)}
+                      >
+                        {status === 'completed' ? (
+                          <><CheckCircle2 className="h-4 w-4 mr-1" /> Review</>
+                        ) : status === 'in_progress' ? (
+                          <><PlayCircle className="h-4 w-4 mr-1" /> Continue</>
+                        ) : (
+                          <><FileText className="h-4 w-4 mr-1" /> Start</>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Navigation */}
+            <div className="flex justify-between pt-4 border-t">
+              <Button variant="outline" onClick={() => setCurrentStep('selection')}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              </Button>
+              <Button
+                onClick={() => setCurrentStep('documents')}
+                disabled={!allFormsCompleted}
+              >
+                {allFormsCompleted ? 'Proceed to Documents' : `Complete all forms (${completedCount}/${matchedTemplates.length})`}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Filling a specific form */}
+        {currentStep === 'filling' && activeTemplate && (
           <div>
             {sections.length > 0 ? (
               <FormRenderer
-                formName={matchedTemplate?.name || 'Application Form'}
+                formName={activeTemplate.name}
                 sections={sections}
-                initialData={formData}
+                initialData={formProgressMap[activeTemplate.id]?.data || {}}
                 onSaveDraft={handleFormSaveDraft}
                 onSubmit={handleFormSubmit}
                 saving={saving}
@@ -481,15 +593,22 @@ export default function NewApplication() {
             ) : (
               <Card>
                 <CardHeader>
-                  <CardTitle>Application Information</CardTitle>
+                  <CardTitle>{activeTemplate.name}</CardTitle>
                   <CardDescription>
-                    No dynamic form is configured for this category. Please upload your documents in the next step.
+                    No fields configured for this form. Contact admin to set up the form.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-end">
-                    <Button onClick={() => setCurrentStep('documents')}>
-                      Continue to Documents
+                    <Button onClick={() => {
+                      setFormProgressMap(prev => ({
+                        ...prev,
+                        [activeTemplate.id]: { ...prev[activeTemplate.id], status: 'completed' },
+                      }));
+                      setActiveFormTemplateId(null);
+                      setCurrentStep('forms');
+                    }}>
+                      Mark Complete & Return
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
@@ -508,7 +627,7 @@ export default function NewApplication() {
                 Upload Supporting Documents
               </CardTitle>
               <CardDescription>
-                Attach all required documents for your application. You can upload multiple files.
+                Attach all required documents for your application.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -522,8 +641,8 @@ export default function NewApplication() {
               </div>
 
               <div className="flex justify-between pt-4 border-t">
-                <Button variant="outline" onClick={() => setCurrentStep('form')}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />Back to Form
+                <Button variant="outline" onClick={() => setCurrentStep('forms')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
                 <Button onClick={() => setCurrentStep('review')}>
                   Review Application
@@ -569,18 +688,23 @@ export default function NewApplication() {
                   </div>
                 </div>
 
-                {matchedTemplate && (
-                  <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-muted-foreground">Form</span>
-                    </div>
-                    <p className="text-sm font-medium">{matchedTemplate.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {Object.keys(formData).length} field(s) filled
-                    </p>
+                {/* Forms summary */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ClipboardList className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Forms ({completedCount}/{matchedTemplates.length} completed)
+                    </span>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    {matchedTemplates.map(tmpl => (
+                      <div key={tmpl.id} className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{tmpl.name}</span>
+                        {getFormStatusBadge(formProgressMap[tmpl.id]?.status || 'not_started')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {applicationId && (
                   <div className="rounded-lg border p-4">
@@ -600,7 +724,7 @@ export default function NewApplication() {
               <Button variant="outline" onClick={() => setCurrentStep('documents')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
-              <Button onClick={handleFinalSubmit} disabled={submitting} size="lg">
+              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted} size="lg">
                 {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 {submitting ? 'Submitting...' : 'Submit Application'}
               </Button>
