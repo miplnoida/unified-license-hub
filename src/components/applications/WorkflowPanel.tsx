@@ -35,7 +35,35 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
+  // Check if user's role matches the current step's approver role
+  const userRoleMatchesStep = user && currentStep && user.role === currentStep.approver_role;
+
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
+
+  // If user's role doesn't match, show read-only status
+  if (!userRoleMatchesStep) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Workflow Review — Level {currentStepIdx + 1} of {steps.length}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{currentStep.name}</span>
+            <Badge variant="outline" className="text-xs">
+              Pending: {ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You cannot take action on this step.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;

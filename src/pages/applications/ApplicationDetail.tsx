@@ -86,11 +86,55 @@ export default function ApplicationDetail() {
   const handleSubmit = async () => {
     if (!app || !user) return;
     setProcessing(true);
-    const { error } = await supabase.from('applications')
-      .update({ status: 'submitted', submitted_at: new Date().toISOString() } as any).eq('id', app.id);
+
+    // Find a matching active workflow for this license type
+    const { data: workflows } = await supabase
+      .from('approval_workflows')
+      .select('id')
+      .eq('license_type', app.license_type)
+      .eq('entity_type', 'application')
+      .eq('is_active', true)
+      .limit(1);
+
+    const matchedWorkflowId = workflows?.[0]?.id || null;
+
+    let firstStepId: string | null = null;
+    if (matchedWorkflowId) {
+      // Get the first step of the workflow
+      const { data: steps } = await supabase
+        .from('approval_steps')
+        .select('id')
+        .eq('workflow_id', matchedWorkflowId)
+        .order('step_order', { ascending: true })
+        .limit(1);
+      firstStepId = steps?.[0]?.id || null;
+    }
+
+    // Update application with workflow and status
+    const updates: any = {
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      workflow_id: matchedWorkflowId,
+      current_step_id: firstStepId,
+    };
+    const { error } = await supabase.from('applications').update(updates).eq('id', app.id);
     if (error) { toast.error(error.message); setProcessing(false); return; }
+
+    // Create workflow instance if workflow matched
+    if (matchedWorkflowId) {
+      await supabase.from('workflow_instances').insert({
+        workflow_id: matchedWorkflowId,
+        entity_type: 'application',
+        entity_id: app.id,
+        current_step_id: firstStepId,
+        status: 'active',
+      } as any);
+    }
+
     await logAudit({ action: 'application_submitted', entityType: 'application', entityId: app.id });
-    toast.success('Application submitted');
+    toast.success(matchedWorkflowId
+      ? 'Application submitted and routed to workflow'
+      : 'Application submitted (no matching workflow found)');
     loadData();
     setProcessing(false);
   };
