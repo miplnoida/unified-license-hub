@@ -15,8 +15,7 @@ import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
-import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle } from 'lucide-react';
@@ -56,13 +55,9 @@ export default function ApplicationDetail() {
   const isOwner = user && app?.applicant_id === user.id;
 
   const appData = app?.data as any || {};
-  const formTemplateId = appData?.form_template_id || null;
-  const formVersionId = appData?.form_version_id || null;
-  const formDataSaved = appData?.form_data || {};
-
-  const { data: publishedVersion } = useLatestPublishedVersion(formTemplateId);
-  const versionToUse = formVersionId || publishedVersion?.id || null;
-  const { data: sections = [] } = useVersionSections(versionToUse);
+  const formTemplateIds: string[] = appData?.form_template_ids || [];
+  const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
+  const hasSubmittedForms = formTemplateIds.length > 0;
 
   const loadData = async () => {
     if (!id) return;
@@ -204,7 +199,7 @@ export default function ApplicationDetail() {
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
-                {sections.length > 0 && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
+                {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
@@ -268,15 +263,11 @@ export default function ApplicationDetail() {
                 </Card>
               </TabsContent>
 
-              {sections.length > 0 && (
+              {hasSubmittedForms && (
                 <TabsContent value="form" className="mt-4">
-                  <FormRenderer
-                    formName="Application Form"
-                    sections={sections}
-                    initialData={formDataSaved}
-                    onSaveDraft={() => {}}
-                    onSubmit={() => {}}
-                    readOnly
+                  <SubmittedForms
+                    formTemplateIds={formTemplateIds}
+                    formsData={formsData}
                   />
                 </TabsContent>
               )}
