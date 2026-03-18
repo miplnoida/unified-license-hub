@@ -72,7 +72,8 @@ export type ApplicationStatus =
   | 'in_progress'
   | 'approved' 
   | 'rejected'
-  | 'cancelled';
+  | 'cancelled'
+  | 'resubmission_requested';
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   draft: 'Draft',
@@ -81,6 +82,7 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
+  resubmission_requested: 'Resubmission Requested',
 };
 
 export const APPLICATION_STATUS_FLOW: ApplicationStatus[] = [

@@ -441,6 +441,14 @@ export function usePerformAction() {
             current_step_id: steps[currentIdx + 1].id,
           } as any).eq('id', params.application_id);
         }
+      } else if (params.action_type === 'request_resubmission') {
+        // Pause workflow and set application to resubmission_requested
+        await supabase.from('workflow_instances').update({
+          status: 'paused',
+        } as any).eq('id', params.instance_id);
+        await supabase.from('applications').update({
+          status: 'resubmission_requested',
+        } as any).eq('id', params.application_id);
       }
 
       await logAudit({
