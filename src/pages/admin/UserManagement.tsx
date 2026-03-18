@@ -352,7 +352,7 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-3 gap-4 mt-4">
                 <div className="space-y-2">
                   <Label>Email (Username) <span className="text-destructive">*</span></Label>
                   <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="employee@company.com" />
@@ -365,6 +365,17 @@ export default function UserManagement() {
                       {dynamicRoles.map(r => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select value={form.gender} onValueChange={v => setForm(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
