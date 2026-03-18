@@ -60,24 +60,37 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Applications',
+    label: 'Administration',
+    items: [
+      { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Regulators', href: '/admin/regulators', icon: <Building2 className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Web Users', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
+      { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES },
+    ],
+  },
+  {
+    label: 'License Types',
+    items: [
+      { label: 'License Types', href: '/admin/license-types', icon: <Shield className="h-5 w-5" />, roles: ['super_admin', 'admin', 'licensing_officer'] },
+      { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
+    ],
+  },
+  {
+    label: 'License Requests',
     items: [
       { label: 'My Applications', href: '/applications', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
-      { label: 'Applications Queue', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'] },
+      { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'] },
     ],
   },
   {
-    label: 'Licenses',
-    items: [
-      { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
-      { label: 'License Management', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: ['super_admin', 'admin', 'licensing_officer'] },
-    ],
-  },
-  {
-    label: 'Compliance',
+    label: 'Returns Management',
     items: [
       { label: 'My Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
-      { label: 'Compliance Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'] },
+      { label: 'Submitted Returns', href: '/returns-management', icon: <CalendarCheck className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'] },
     ],
   },
   {
@@ -120,19 +133,6 @@ export const mainNavSections: NavSection[] = [
       },
       { label: 'Fee Management', href: '/admin/fees', icon: <DollarSign className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Return Configuration', href: '/admin/return-config', icon: <CalendarCheck className="h-5 w-5" />, roles: ADMIN_ROLES },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Regulators', href: '/admin/regulators', icon: <Building2 className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Web Users', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
-      { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
   {
