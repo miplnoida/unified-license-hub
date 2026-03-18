@@ -310,6 +310,7 @@ export default function WorkflowList() {
                         <StepCard
                           step={step}
                           index={idx}
+                          dynamicRoles={dynamicRoles}
                           onUpdate={handleUpdateStep}
                           onDelete={handleDeleteStep}
                           onDragStart={handleDragStart}
