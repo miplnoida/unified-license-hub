@@ -58,7 +58,7 @@ export default function RoleManagement() {
   const [editingRole, setEditingRole] = useState<DynamicRole | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formSystemRole, setFormSystemRole] = useState('analyst');
+  
   const [formPerms, setFormPerms] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
