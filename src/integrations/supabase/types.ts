@@ -1653,6 +1653,30 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          module: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module?: string
+          name?: string
+        }
+        Relationships: []
+      }
       pre_license_users: {
         Row: {
           category_id: string | null
@@ -1723,9 +1747,11 @@ export type Database = {
           email: string
           entity_name: string
           full_name: string
+          gender: string | null
           id: string
           licensee_id: string | null
           role: string
+          role_id: string | null
           search_vector: unknown
           status: string
           updated_at: string
@@ -1736,9 +1762,11 @@ export type Database = {
           email: string
           entity_name?: string
           full_name: string
+          gender?: string | null
           id: string
           licensee_id?: string | null
           role?: string
+          role_id?: string | null
           search_vector?: unknown
           status?: string
           updated_at?: string
@@ -1749,9 +1777,11 @@ export type Database = {
           email?: string
           entity_name?: string
           full_name?: string
+          gender?: string | null
           id?: string
           licensee_id?: string | null
           role?: string
+          role_id?: string | null
           search_vector?: unknown
           status?: string
           updated_at?: string
@@ -1763,6 +1793,13 @@ export type Database = {
             columns: ["licensee_id"]
             isOneToOne: false
             referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -2262,6 +2299,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          system_role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          system_role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          system_role?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       sectors: {
         Row: {
