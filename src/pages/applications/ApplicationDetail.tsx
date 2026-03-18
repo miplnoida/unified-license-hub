@@ -408,8 +408,20 @@ export default function ApplicationDetail() {
 
             {/* Applicant submit action */}
             {isOwner && app.status === 'draft' && (
-              <Button onClick={handleSubmit} disabled={processing} className="w-full">
-                <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
+              <div className="flex gap-2">
+                <Button onClick={handleSubmit} disabled={processing} className="flex-1">
+                  <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
+                </Button>
+                <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                  <Ban className="h-4 w-4 mr-2" />Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Applicant cancel action for submitted/in_progress applications */}
+            {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (
+              <Button variant="destructive" onClick={handleCancel} disabled={processing} className="w-full">
+                <Ban className="h-4 w-4 mr-2" />{processing ? 'Cancelling...' : 'Cancel Application'}
               </Button>
             )}
           </div>
