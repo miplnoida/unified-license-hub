@@ -258,6 +258,99 @@ export default function ApplicationDetail() {
     setProcessing(false);
   };
 
+  // Applicant requests to edit their application (before approval)
+  const handleRequestEdit = async () => {
+    if (!app || !user || !actionComment.trim()) {
+      toast.error('Please provide a reason for requesting to edit your application');
+      return;
+    }
+    setProcessing(true);
+
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'edit_requested', actor_id: user.id,
+      comments: actionComment,
+    } as any);
+    await logAudit({ action: 'edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    toast.success('Edit request submitted. Admin will review your request.');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
+  // Applicant resubmits application after resubmission was requested
+  const handleResubmit = async () => {
+    if (!app || !user) return;
+    setProcessing(true);
+
+    // Resume paused workflow instance
+    const { data: instances } = await supabase
+      .from('workflow_instances')
+      .select('id, current_step_id')
+      .eq('entity_id', app.id)
+      .eq('entity_type', 'application')
+      .eq('status', 'paused');
+
+    if (instances?.length) {
+      await supabase.from('workflow_instances').update({
+        status: 'active',
+      } as any).eq('id', instances[0].id);
+    }
+
+    await supabase.from('applications').update({
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+    } as any).eq('id', app.id);
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'resubmitted', actor_id: user.id,
+      comments: actionComment || 'Application resubmitted after revision',
+    } as any);
+    await logAudit({ action: 'application_resubmitted', entityType: 'application', entityId: app.id });
+    toast.success('Application resubmitted successfully');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
+  // Admin/Regulator requests resubmission (without workflow)
+  const handleAdminRequestResubmission = async () => {
+    if (!app || !user || !actionComment.trim()) {
+      toast.error('Please provide remarks explaining what needs to be revised');
+      return;
+    }
+    setProcessing(true);
+
+    await supabase.from('applications').update({
+      status: 'resubmission_requested',
+    } as any).eq('id', app.id);
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'resubmission_requested', actor_id: user.id,
+      comments: actionComment,
+    } as any);
+
+    // Send notification to applicant
+    try {
+      await supabase.functions.invoke('send-notification', {
+        body: {
+          action: 'dispatch',
+          event_type: 'resubmission_requested',
+          user_id: app.applicant_id,
+          title: `Resubmission Requested: ${app.application_number}`,
+          message: `Your application ${app.application_number} requires revisions.\n\nRemarks: ${actionComment}`,
+          entity_type: 'application',
+          entity_id: app.id,
+        },
+      });
+    } catch (e) {
+      console.error('Notification failed', e);
+    }
+
+    await logAudit({ action: 'resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    toast.success('Resubmission requested. Applicant has been notified.');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
