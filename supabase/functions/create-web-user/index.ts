@@ -16,7 +16,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify the caller is authenticated (admin check can be added later)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -25,7 +24,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, user_type, entity_name, role } = await req.json();
+    const { email, password, full_name, user_type, entity_name, role, licensee_id } = await req.json();
 
     if (!email || !password || !full_name || !user_type) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -33,6 +32,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Determine the correct role based on user_type
+    const effectiveRole = role || (user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary');
 
     // Create the auth user with metadata
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -43,7 +45,7 @@ Deno.serve(async (req) => {
         full_name,
         user_type,
         entity_name: entity_name || "",
-        role: role || "post_licensee",
+        role: effectiveRole,
       },
     });
 
@@ -52,6 +54,18 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // If licensee_id is provided, link the user profile to the licensee entity
+    if (licensee_id && userData.user) {
+      const { error: linkError } = await supabaseAdmin
+        .from("profiles")
+        .update({ licensee_id })
+        .eq("id", userData.user.id);
+
+      if (linkError) {
+        console.error("Failed to link user to licensee:", linkError.message);
+      }
     }
 
     return new Response(JSON.stringify({ user: userData.user }), {

@@ -1287,6 +1287,71 @@ export type Database = {
           },
         ]
       }
+      licensees: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          license_id: string | null
+          name: string
+          sector_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          license_id?: string | null
+          name: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          license_id?: string | null
+          name?: string
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensees_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licenses: {
         Row: {
           application_id: string | null
@@ -1588,6 +1653,70 @@ export type Database = {
           },
         ]
       }
+      pre_license_users: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          email: string
+          entity_name: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          sector_id: string | null
+          status: string
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          email: string
+          entity_name?: string | null
+          full_name: string
+          id: string
+          phone?: string | null
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          email?: string
+          entity_name?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          sector_id?: string | null
+          status?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_license_users_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_license_users_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_license_users_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1595,6 +1724,7 @@ export type Database = {
           entity_name: string
           full_name: string
           id: string
+          licensee_id: string | null
           role: string
           search_vector: unknown
           status: string
@@ -1607,6 +1737,7 @@ export type Database = {
           entity_name?: string
           full_name: string
           id: string
+          licensee_id?: string | null
           role?: string
           search_vector?: unknown
           status?: string
@@ -1619,13 +1750,22 @@ export type Database = {
           entity_name?: string
           full_name?: string
           id?: string
+          licensee_id?: string | null
           role?: string
           search_vector?: unknown
           status?: string
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refunds: {
         Row: {
@@ -2334,6 +2474,9 @@ export type Database = {
         | "analyst"
         | "applicant"
         | "developer"
+        | "pre_licensee"
+        | "licensee_primary"
+        | "licensee_secondary"
       user_type: "primary" | "secondary"
     }
     CompositeTypes: {
@@ -2470,6 +2613,9 @@ export const Constants = {
         "analyst",
         "applicant",
         "developer",
+        "pre_licensee",
+        "licensee_primary",
+        "licensee_secondary",
       ],
       user_type: ["primary", "secondary"],
     },

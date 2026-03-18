@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
-import { AppRole, PlatformUser } from '@/types/platform';
+import { AppRole, PlatformUser, ROLE_HIERARCHY } from '@/types/platform';
 
 interface AuthContextType {
   user: PlatformUser | null;
@@ -9,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ error?: string }>;
-  signup: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
+  signup: (email: string, password: string, fullName: string, role?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -21,26 +21,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserData = useCallback(async (userId: string, email: string) => {
-    // Fetch profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
     // Fetch role from user_roles
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
 
-    // Get highest priority role
-    const roleHierarchy: AppRole[] = ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'developer', 'applicant'];
     let userRole: AppRole = 'applicant';
     
     if (roleData && roleData.length > 0) {
       const roles = roleData.map(r => r.role as AppRole);
-      for (const r of roleHierarchy) {
+      for (const r of ROLE_HIERARCHY) {
         if (roles.includes(r)) {
           userRole = r;
           break;
@@ -48,14 +39,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setUser({
-      id: userId,
-      email: email,
-      fullName: profile?.full_name || email,
-      role: userRole,
-      entityName: profile?.entity_name || undefined,
-      status: profile?.status || 'active',
-    });
+    const isPreLicensee = userRole === 'pre_licensee';
+
+    if (isPreLicensee) {
+      // Pre-licensee users are stored in pre_license_users table
+      const { data: preLicProfile } = await supabase
+        .from('pre_license_users' as any)
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      const profile = preLicProfile as any;
+      setUser({
+        id: userId,
+        email,
+        fullName: profile?.full_name || email,
+        role: userRole,
+        entityName: profile?.entity_name || undefined,
+        status: profile?.status || 'active',
+        isPreLicensee: true,
+      });
+    } else {
+      // System users (admin, licensee, etc.) are stored in profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      setUser({
+        id: userId,
+        email,
+        fullName: profile?.full_name || email,
+        role: userRole,
+        entityName: profile?.entity_name || undefined,
+        status: profile?.status || 'active',
+        licenseeId: (profile as any)?.licensee_id || undefined,
+        isPreLicensee: false,
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -63,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (_event, newSession) => {
         setSession(newSession);
         if (newSession?.user) {
-          // Use setTimeout to avoid Supabase auth deadlock
           setTimeout(() => fetchUserData(newSession.user.id, newSession.user.email || ''), 0);
         } else {
           setUser(null);
@@ -85,12 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   }, []);
 
-  const signup = useCallback(async (email: string, password: string, fullName: string) => {
+  const signup = useCallback(async (email: string, password: string, fullName: string, role?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, role: role || 'pre_licensee' },
         emailRedirectTo: window.location.origin,
       },
     });

@@ -19,7 +19,6 @@ import {
   Boxes,
   ListOrdered,
   SlidersHorizontal,
-  
   DollarSign,
   CreditCard,
   BookOpen,
@@ -28,7 +27,7 @@ import {
   LayoutGrid,
   Mail,
 } from 'lucide-react';
-import { AppRole, INTERNAL_ROLES } from '@/types/platform';
+import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 
 export interface NavItem {
   label: string;
@@ -44,9 +43,14 @@ export interface NavSection {
   items: NavItem[];
 }
 
-const ALL_ROLES: AppRole[] = ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'applicant', 'developer'];
+const ALL_ROLES: AppRole[] = [
+  'super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst',
+  'applicant', 'developer', 'pre_licensee', 'licensee_primary', 'licensee_secondary',
+];
 const ALL_INTERNAL: AppRole[] = [...INTERNAL_ROLES];
 const ADMIN_ROLES: AppRole[] = ['super_admin', 'admin'];
+const LICENSEE_ALL: AppRole[] = [...LICENSEE_ROLES];
+const PRE_LICENSEE: AppRole[] = ['pre_licensee'];
 
 export const mainNavSections: NavSection[] = [
   {
@@ -58,34 +62,34 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Applications',
     items: [
-      { label: 'My Applications', href: '/applications', icon: <FileText className="h-5 w-5" />, roles: ['applicant'] },
+      { label: 'My Applications', href: '/applications', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
       { label: 'Applications Queue', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'] },
     ],
   },
   {
     label: 'Licenses',
     items: [
-      { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: ['applicant'] },
+      { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
       { label: 'License Management', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: ['super_admin', 'admin', 'licensing_officer'] },
     ],
   },
   {
     label: 'Compliance',
     items: [
-      { label: 'My Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: ['applicant'] },
+      { label: 'My Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
       { label: 'Compliance Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'] },
     ],
   },
   {
     label: 'Payments',
     items: [
-      { label: 'Payment History', href: '/payments', icon: <CreditCard className="h-5 w-5" />, roles: ['applicant', ...ADMIN_ROLES] },
+      { label: 'Payment History', href: '/payments', icon: <CreditCard className="h-5 w-5" />, roles: ['licensee_primary', ...ADMIN_ROLES] },
     ],
   },
   {
     label: 'Complaints',
     items: [
-      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'applicant'] },
+      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensee_primary'] },
       { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
@@ -123,7 +127,8 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Regulators', href: '/admin/regulators', icon: <Building2 className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'User Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Web Users', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
       { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES },
@@ -140,7 +145,7 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Documents',
     items: [
-      { label: 'Document Store', href: '/documents', icon: <FolderOpen className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'applicant'] },
+      { label: 'Document Store', href: '/documents', icon: <FolderOpen className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'licensee_primary', 'licensee_secondary'] },
     ],
   },
 ];
