@@ -65,7 +65,6 @@ const emptyForm = {
   email: '',
   role_id: '',
   gender: '',
-  user_type: 'primary' as string,
 };
 
 export default function UserManagement() {
