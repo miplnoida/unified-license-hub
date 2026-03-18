@@ -49,7 +49,7 @@ export function useUserDynamicPermissions() {
         .select('name, module')
         .in('id', permIds);
 
-      return (perms || []) as { name: string; module: string }[];
+      return (perms || []) as unknown as { name: string; module: string }[];
     },
     staleTime: 60_000,
   });
