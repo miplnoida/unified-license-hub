@@ -65,7 +65,6 @@ const emptyForm = {
   email: '',
   role_id: '',
   gender: '',
-  user_type: 'primary' as string,
 };
 
 export default function UserManagement() {
@@ -177,7 +176,7 @@ export default function UserManagement() {
           email: form.email,
           password: generatedPassword,
           full_name: fullName,
-          user_type: form.user_type,
+          user_type: 'primary',
           entity_name: '',
           role: role.system_role,
           role_id: form.role_id,
@@ -353,7 +352,7 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-3 gap-4 mt-4">
                 <div className="space-y-2">
                   <Label>Email (Username) <span className="text-destructive">*</span></Label>
                   <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="employee@company.com" />
@@ -366,6 +365,17 @@ export default function UserManagement() {
                       {dynamicRoles.map(r => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select value={form.gender} onValueChange={v => setForm(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -386,37 +396,6 @@ export default function UserManagement() {
               </div>
             </div>
 
-            <Separator />
-
-            {/* Section 2: Basic Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Basic Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select value={form.gender} onValueChange={v => setForm(p => ({ ...p, gender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>User Type</Label>
-                  <Select value={form.user_type} onValueChange={v => setForm(p => ({ ...p, user_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="primary">Admin</SelectItem>
-                      <SelectItem value="secondary">Regulator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
