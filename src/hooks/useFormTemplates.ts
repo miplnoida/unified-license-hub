@@ -428,11 +428,20 @@ export function useSaveFormTemplate() {
       if (vErr) throw vErr;
 
       // Delete old fields & conditions for this version, then insert new
-      await supabase.from('form_fields').delete().eq('version_id', vid);
+      const { error: delFieldsErr } = await supabase.from('form_fields').delete().eq('version_id', vid);
+      if (delFieldsErr) console.warn('Could not delete old fields:', delFieldsErr);
 
       const { fields, conditions } = sectionsToFieldRows(vid, sections);
+
+      // Delete old conditions for fields that belong to this version
       if (fields.length > 0) {
-        const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
+        const fieldIds = fields.map(f => f.id);
+        await supabase.from('field_conditions').delete().in('field_id', fieldIds);
+      }
+
+      if (fields.length > 0) {
+        // Use upsert to handle cases where delete didn't remove old rows
+        const { error: fErr } = await supabase.from('form_fields').upsert(fields as any);
         if (fErr) throw fErr;
       }
       if (conditions.length > 0) {
