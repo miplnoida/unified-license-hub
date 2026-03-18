@@ -133,14 +133,14 @@ export default function RoleManagement() {
         id: editingRole.id,
         name: formName,
         description: formDesc,
-        system_role: formSystemRole,
+        system_role: 'analyst',
         permissionIds: formPerms,
       });
     } else {
       await createRole.mutateAsync({
         name: formName,
         description: formDesc,
-        system_role: formSystemRole,
+        system_role: 'analyst',
         permissionIds: formPerms,
       });
     }
