@@ -24,10 +24,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, status } = await req.json();
+    const body = await req.json();
+    const { user_id, status, action, new_password } = body;
 
-    if (!user_id || !status) {
-      return new Response(JSON.stringify({ error: "Missing user_id or status" }), {
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle password reset action
+    if (action === "reset_password" && new_password) {
+      const { error: resetError } = await supabaseAdmin.auth.admin.updateUserById(
+        user_id,
+        { password: new_password }
+      );
+
+      if (resetError) {
+        return new Response(JSON.stringify({ error: resetError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "Password reset successfully" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Handle status toggle
+    if (!status) {
+      return new Response(JSON.stringify({ error: "status is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
