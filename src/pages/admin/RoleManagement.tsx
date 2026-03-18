@@ -218,11 +218,6 @@ export default function RoleManagement() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="capitalize text-xs">
-                              {role.system_role.replace(/_/g, ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
                             <div className="flex items-center gap-1">
                               <Users className="h-4 w-4 text-muted-foreground" />
                               <span>{userCounts[role.id] || 0}</span>
