@@ -159,7 +159,7 @@ function AppRoutes() {
         {/* Licenses */}
         <Route path="/licenses" element={<P><LicensesList /></P>} />
         <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
-        <Route path="/admin/license-types" element={<P><ManageLicenses /></P>} />
+        
 
         {/* Returns Management */}
         <Route path="/returns-management" element={<P><ViewReturns /></P>} />

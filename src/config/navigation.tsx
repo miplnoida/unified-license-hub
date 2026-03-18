@@ -73,9 +73,8 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'License Types',
+    label: 'Licenses',
     items: [
-      { label: 'License Types', href: '/admin/license-types', icon: <Shield className="h-5 w-5" />, roles: ['super_admin', 'admin', 'licensing_officer'] },
       { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
     ],
   },
