@@ -464,7 +464,7 @@ export default function ApplicationDetail() {
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardContent className="pt-6 space-y-4">
-                    {(isOwner && app.status === 'draft') && (
+                    {(isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')) && (
                       <DocumentUpload
                         entityType="application"
                         entityId={app.id}
