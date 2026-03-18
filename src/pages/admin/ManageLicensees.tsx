@@ -1,170 +1,242 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DataTableShell, Column } from '@/components/shared/DataTableShell';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { StatCard } from '@/components/dashboard/StatCard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Building2, CheckCircle, XCircle, Briefcase } from 'lucide-react';
-import { toast } from 'sonner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
+import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Briefcase, Layers } from 'lucide-react';
 
-interface Licensee {
+interface LicenseeRow {
   id: string;
   name: string;
+  status: string;
   sector_id: string | null;
   sub_sector_id: string | null;
   category_id: string | null;
   license_id: string | null;
-  status: string;
   created_at: string;
+  license_number?: string;
+  license_status?: string;
+  approved_date?: string;
 }
 
-interface Sector {
-  id: string;
-  name: string;
-}
+interface LookupMap { [id: string]: string }
+
+const PAGE_SIZE = 10;
 
 export default function ManageLicensees() {
-  const [licensees, setLicensees] = useState<Licensee[]>([]);
-  const [sectors, setSectors] = useState<Sector[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', sector_id: '', status: 'active' });
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const [rows, setRows] = useState<LicenseeRow[]>([]);
+  const [sectors, setSectors] = useState<LookupMap>({});
+  const [subSectors, setSubSectors] = useState<LookupMap>({});
+  const [categories, setCategories] = useState<LookupMap>({});
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sectorFilter, setSectorFilter] = useState('all');
+  const [page, setPage] = useState(0);
 
-  const fetchData = async () => {
-    setFetching(true);
-    const [{ data: licData }, { data: secData }] = await Promise.all([
-      supabase.from('licensees' as any).select('*').order('created_at', { ascending: false }),
-      supabase.from('sectors').select('id, name').eq('status', 'active'),
-    ]);
-    setLicensees((licData as any) || []);
-    setSectors(secData || []);
-    setFetching(false);
-  };
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const [licRes, secRes, subRes, catRes, licensesRes] = await Promise.all([
+        supabase.from('licensees').select('*').eq('status', 'active').order('name'),
+        supabase.from('sectors').select('id, name').eq('status', 'active'),
+        supabase.from('sub_sectors').select('id, name').eq('status', 'active'),
+        supabase.from('categories').select('id, name').eq('status', 'active'),
+        supabase.from('licenses').select('id, license_number, status, issued_at').eq('status', 'active'),
+      ]);
 
-  useEffect(() => { fetchData(); }, []);
+      const sMap: LookupMap = {};
+      (secRes.data || []).forEach(s => { sMap[s.id] = s.name; });
+      setSectors(sMap);
 
-  const handleCreate = async () => {
-    if (!form.name) { toast.error('Licensee name is required'); return; }
-    setLoading(true);
+      const ssMap: LookupMap = {};
+      (subRes.data || []).forEach(s => { ssMap[s.id] = s.name; });
+      setSubSectors(ssMap);
 
-    const { error } = await supabase.from('licensees' as any).insert([{
-      name: form.name,
-      sector_id: form.sector_id || null,
-      status: form.status,
-    }] as any);
+      const cMap: LookupMap = {};
+      (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
+      setCategories(cMap);
 
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Licensee entity created');
-      setDialogOpen(false);
-      setForm({ name: '', sector_id: '', status: 'active' });
-      fetchData();
+      const licenseMap: Record<string, { number: string; status: string; date: string }> = {};
+      (licensesRes.data || []).forEach(l => {
+        licenseMap[l.id] = { number: l.license_number, status: l.status, date: l.issued_at };
+      });
+
+      const enriched: LicenseeRow[] = ((licRes.data || []) as any[]).map(l => ({
+        ...l,
+        license_number: l.license_id ? licenseMap[l.license_id]?.number : undefined,
+        license_status: l.license_id ? licenseMap[l.license_id]?.status : undefined,
+        approved_date: l.license_id ? licenseMap[l.license_id]?.date : undefined,
+      }));
+
+      setRows(enriched);
+      setLoading(false);
     }
-    setLoading(false);
-  };
+    load();
+  }, []);
 
-  const toggleStatus = async (l: Licensee) => {
-    const next = l.status === 'active' ? 'inactive' : 'active';
-    const { error } = await supabase
-      .from('licensees' as any)
-      .update({ status: next } as any)
-      .eq('id', l.id);
-    if (error) { toast.error(error.message); return; }
-    setLicensees(prev => prev.map(x => x.id === l.id ? { ...x, status: next } : x));
-    toast.success(`Licensee ${next === 'active' ? 'activated' : 'deactivated'}`);
-  };
+  const sectorList = useMemo(() => Object.entries(sectors).sort((a, b) => a[1].localeCompare(b[1])), [sectors]);
 
-  const columns: Column<Licensee>[] = [
-    {
-      key: 'name', label: 'Licensee Name', render: (r) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Building2 className="h-4 w-4" />
-          </div>
-          <span className="font-medium text-foreground">{r.name}</span>
-        </div>
-      )
-    },
-    {
-      key: 'sector_id', label: 'Sector', render: (r) => {
-        const sec = sectors.find(s => s.id === r.sector_id);
-        return <span className="text-sm">{sec?.name || '—'}</span>;
-      }
-    },
-    {
-      key: 'created_at', label: 'Created', render: (r) => (
-        <span className="text-sm">{new Date(r.created_at).toLocaleDateString()}</span>
-      )
-    },
-    {
-      key: 'status', label: 'Status', render: (r) => (
-        <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge>
-      )
-    },
-    {
-      key: 'actions' as any, label: '', render: (r) => (
-        <Button variant="ghost" size="sm" onClick={() => toggleStatus(r)}>
-          {r.status === 'active' ? <XCircle className="h-4 w-4 mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-          {r.status === 'active' ? 'Deactivate' : 'Activate'}
-        </Button>
-      )
-    },
-  ];
+  const filtered = useMemo(() => {
+    return rows.filter(r => {
+      if (sectorFilter !== 'all' && r.sector_id !== sectorFilter) return false;
+      if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [rows, sectorFilter, search]);
 
-  const activeCount = licensees.filter(l => l.status === 'active').length;
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rows.forEach(r => {
+      const name = r.sector_id ? (sectors[r.sector_id] || 'Unknown') : 'Unassigned';
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    return counts;
+  }, [rows, sectors]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Licensee Entities"
-          description="Manage licensee organizations. Create entities after license approval, then assign web users."
-          actions={<Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-2" />Create Licensee</Button>}
+          description="Approved licensee organizations with their license and classification details."
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-up delay-100">
-          <StatCard title="Total Licensees" value={licensees.length} icon={<Briefcase className="h-6 w-6" />} />
-          <StatCard title="Active" value={activeCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
-          <StatCard title="Inactive" value={licensees.length - activeCount} icon={<XCircle className="h-6 w-6" />} variant="warning" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard title="Approved Licensees" value={rows.length} icon={<Briefcase className="h-6 w-6" />} />
+          <StatCard title="Sectors" value={sectorList.length} icon={<Layers className="h-6 w-6" />} variant="primary" />
+          <StatCard title="With License #" value={rows.filter(r => r.license_number).length} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
 
-        <div className="animate-slide-up delay-200">
-          <DataTableShell columns={columns} data={licensees} searchPlaceholder="Search licensees..." />
-        </div>
-      </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Create Licensee Entity</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Organization Name *</Label>
-              <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. ABC Insurance Corp." />
-            </div>
-            <div>
-              <Label>Sector</Label>
-              <Select value={form.sector_id} onValueChange={v => setForm(p => ({ ...p, sector_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
+        {/* Toolbar */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search licensees..."
+                  className="pl-10"
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(0); }}
+                />
+              </div>
+              <Select value={sectorFilter} onValueChange={v => { setSectorFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="All Sectors" />
+                </SelectTrigger>
                 <SelectContent>
-                  {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  <SelectItem value="all">All Sectors</SelectItem>
+                  {sectorList.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Table */}
+        <Card>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Licensee Name</TableHead>
+                    <TableHead>Sector</TableHead>
+                    <TableHead>Sub-Sector</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>License #</TableHead>
+                    <TableHead>Approval Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                        No approved licensees found.
+                      </TableCell>
+                    </TableRow>
+                  ) : paged.map(row => (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <Building2 className="h-4 w-4" />
+                          </div>
+                          <span className="font-medium text-foreground">{row.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{row.sector_id ? sectors[row.sector_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-sm">{row.sub_sector_id ? subSectors[row.sub_sector_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-sm">{row.category_id ? categories[row.category_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-sm font-mono">{row.license_number || '—'}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {row.approved_date ? new Date(row.approved_date).toLocaleDateString() : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="default" className="capitalize bg-emerald-500/10 text-emerald-700 border-emerald-200">
+                          Approved
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={loading}>{loading ? 'Creating...' : 'Create'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+
+        {/* Sector distribution */}
+        {!loading && Object.keys(sectorCounts).length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Sector-wise Distribution</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Object.entries(sectorCounts).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+                <Card key={name}>
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-sm text-muted-foreground">{name}</p>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs text-muted-foreground">licensee{count !== 1 ? 's' : ''}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
