@@ -5,7 +5,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,12 +19,14 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Send, Loader2, FileText, Building2, Layers, Tag } from 'lucide-react';
+import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
-  resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
-  approved: 'default', rejected: 'destructive', license_issued: 'default',
+  draft: 'secondary',
+  submitted: 'default',
+  in_progress: 'outline',
+  approved: 'default',
+  rejected: 'destructive',
 };
 
 interface Application {
@@ -47,6 +50,7 @@ export default function ApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
+  const [actionComment, setActionComment] = useState('');
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
   const isOwner = user && app?.applicant_id === user.id;
@@ -96,19 +100,15 @@ export default function ApplicationDetail() {
     setProcessing(false);
   };
 
-  const handleResubmit = async () => {
-    if (!app || !user) return;
-    setProcessing(true);
-    const { error } = await supabase.from('applications').update({ status: 'resubmitted' } as any).eq('id', app.id);
-    if (error) { toast.error(error.message); setProcessing(false); return; }
-    await logAudit({ action: 'application_resubmitted', entityType: 'application', entityId: app.id });
-    toast.success('Application resubmitted');
-    loadData();
-    setProcessing(false);
-  };
-
   const handleStageTransition = async (newStatus: ApplicationStatus, actionType: string, comment: string) => {
     if (!app || !user) return;
+
+    // Mandatory remarks for approve/reject
+    if ((newStatus === 'approved' || newStatus === 'rejected') && !comment.trim()) {
+      toast.error('Remarks are mandatory for Approve / Reject');
+      return;
+    }
+
     setProcessing(true);
 
     await supabase.from('approval_actions').insert({
@@ -125,24 +125,44 @@ export default function ApplicationDetail() {
       newValue: { status: newStatus, comments: comment },
     });
 
-    // License generation on approval
-    if (newStatus === 'license_issued') {
-      const { data: lic, error: licErr } = await supabase.from('licenses').insert({
-        application_id: app.id,
-        holder_id: app.applicant_id,
-        license_type: app.license_type,
-        regulator_id: app.regulator_id,
-        sector_id: (app.data as any)?.sector_id || null,
-        sub_sector_id: (app.data as any)?.sub_sector_id || null,
-        category_id: (app.data as any)?.category_id || null,
-      } as any).select().single();
+    // Send notification on approve/reject
+    if (newStatus === 'approved' || newStatus === 'rejected') {
+      try {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            action: 'dispatch',
+            event_type: newStatus === 'approved' ? 'application_approved' : 'application_rejected',
+            user_id: app.applicant_id,
+            title: `Application ${newStatus === 'approved' ? 'Approved' : 'Rejected'}: ${app.application_number}`,
+            message: `Your application ${app.application_number} has been ${newStatus}.\n\nRemarks: ${comment}`,
+            entity_type: 'application',
+            entity_id: app.id,
+          },
+        });
+      } catch (e) {
+        console.error('Notification failed', e);
+      }
 
-      if (!licErr && lic) {
-        toast.success(`License ${(lic as any).license_number} generated!`);
+      // Generate license on approval
+      if (newStatus === 'approved') {
+        const { data: lic, error: licErr } = await supabase.from('licenses').insert({
+          application_id: app.id,
+          holder_id: app.applicant_id,
+          license_type: app.license_type,
+          regulator_id: app.regulator_id,
+          sector_id: (app.data as any)?.sector_id || null,
+          sub_sector_id: (app.data as any)?.sub_sector_id || null,
+          category_id: (app.data as any)?.category_id || null,
+        } as any).select().single();
+
+        if (!licErr && lic) {
+          toast.success(`License ${(lic as any).license_number} generated!`);
+        }
       }
     }
 
-    toast.success(`Application moved to ${APPLICATION_STATUS_LABELS[newStatus]}`);
+    toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
+    setActionComment('');
     loadData();
     setProcessing(false);
   };
@@ -150,39 +170,8 @@ export default function ApplicationDetail() {
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
-  // Manual actions for staff (fallback when no workflow configured)
-  const getManualActions = (): { label: string; status: ApplicationStatus; action: string; variant?: 'default' | 'destructive' | 'outline'; }[] => {
-    if (!isInternal || app.workflow_id) return []; // Use workflow panel instead
-    switch (app.status) {
-      case 'submitted': case 'resubmitted':
-        return [
-          { label: 'Move to Scrutiny', status: 'scrutiny', action: 'scrutiny_start' },
-          { label: 'Reject', status: 'rejected', action: 'reject', variant: 'destructive' },
-        ];
-      case 'scrutiny':
-        return [
-          { label: 'Raise Query', status: 'query_raised', action: 'query_raised', variant: 'outline' },
-          { label: 'Technical Review', status: 'technical_review', action: 'technical_review_start' },
-          { label: 'Reject', status: 'rejected', action: 'reject', variant: 'destructive' },
-        ];
-      case 'technical_review':
-        return [
-          { label: 'Raise Query', status: 'query_raised', action: 'query_raised', variant: 'outline' },
-          { label: 'Move to Approval', status: 'pending_approval', action: 'approval_start' },
-          { label: 'Reject', status: 'rejected', action: 'reject', variant: 'destructive' },
-        ];
-      case 'pending_approval':
-        return [
-          { label: 'Approve', status: 'approved', action: 'approve' },
-          { label: 'Reject', status: 'rejected', action: 'reject', variant: 'destructive' },
-        ];
-      case 'approved':
-        return [{ label: 'Issue License', status: 'license_issued', action: 'license_issued' }];
-      default: return [];
-    }
-  };
-
-  const manualActions = getManualActions();
+  // Manual actions for staff (no workflow configured)
+  const showManualActions = isInternal && !app.workflow_id && ['submitted', 'in_progress'].includes(app.status);
 
   return (
     <DashboardLayout>
@@ -193,13 +182,13 @@ export default function ApplicationDetail() {
           backHref={isInternal ? '/applications/queue' : '/applications'}
           backLabel="Back to Applications"
           actions={
-            <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1 capitalize">
+            <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
               {APPLICATION_STATUS_LABELS[app.status]}
             </Badge>
           }
         />
 
-        {/* Status Timeline */}
+        {/* Simple Progress Bar */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Application Progress</CardTitle>
@@ -211,10 +200,11 @@ export default function ApplicationDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
+            {/* Forms and Documents tabs - always visible */}
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
-                {sections.length > 0 && <TabsTrigger value="form">Form Data</TabsTrigger>}
+                {sections.length > 0 && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
 
@@ -294,7 +284,7 @@ export default function ApplicationDetail() {
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardContent className="pt-6 space-y-4">
-                    {(isOwner && ['draft', 'query_raised'].includes(app.status)) && (
+                    {(isOwner && app.status === 'draft') && (
                       <DocumentUpload
                         entityType="application"
                         entityId={app.id}
@@ -319,41 +309,64 @@ export default function ApplicationDetail() {
             )}
 
             {/* Manual staff actions (no workflow) */}
-            {isInternal && manualActions.length > 0 && (
+            {showManualActions && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex gap-2 flex-wrap">
-                    {manualActions.map(a => (
-                      <Button
-                        key={a.action}
-                        variant={a.variant || 'default'}
-                        size="sm"
-                        onClick={() => handleStageTransition(a.status, a.action, '')}
-                        disabled={processing}
-                      >
-                        {a.label}
-                      </Button>
-                    ))}
-                  </div>
+                <CardContent className="space-y-4">
+                  {app.status === 'submitted' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleStageTransition('in_progress', 'start_review', '')}
+                      disabled={processing}
+                    >
+                      Start Review (Move to In Progress)
+                    </Button>
+                  )}
+                  {app.status === 'in_progress' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-sm">
+                          Remarks / Description <span className="text-destructive">*</span>
+                        </Label>
+                        <Textarea
+                          value={actionComment}
+                          onChange={e => setActionComment(e.target.value)}
+                          placeholder="Enter your remarks (mandatory for approve/reject)..."
+                          rows={3}
+                        />
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          onClick={() => handleStageTransition('approved', 'approve', actionComment)}
+                          disabled={processing}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" /> Approve
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleStageTransition('rejected', 'reject', actionComment)}
+                          disabled={processing}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" /> Reject
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Applicant actions */}
+            {/* Applicant submit action */}
             {isOwner && app.status === 'draft' && (
               <Button onClick={handleSubmit} disabled={processing} className="w-full">
                 <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
               </Button>
             )}
-            {isOwner && app.status === 'query_raised' && (
-              <Button onClick={handleResubmit} disabled={processing} className="w-full">
-                <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : 'Resubmit Application'}
-              </Button>
-            )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - Activity Log */}
           <div className="space-y-4">
             <Card>
               <CardHeader>
