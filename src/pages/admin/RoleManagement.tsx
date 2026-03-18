@@ -91,7 +91,6 @@ export default function RoleManagement() {
     setEditingRole(null);
     setFormName('');
     setFormDesc('');
-    setFormSystemRole('analyst');
     setFormPerms([]);
     setDialogOpen(true);
   };
