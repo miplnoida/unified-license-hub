@@ -485,8 +485,8 @@ function StepCard({ step, index, dynamicRoles, onUpdate, onDelete, onDragStart, 
               <Select value={step.approver_role} onValueChange={val => onUpdate(step.id, { approver_role: val } as any)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {INTERNAL_ROLES.map(r => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                  {dynamicRoles.map(r => (
+                    <SelectItem key={r.id} value={r.system_role}>{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
