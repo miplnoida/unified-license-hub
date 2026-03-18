@@ -18,7 +18,7 @@ import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
