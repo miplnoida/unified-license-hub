@@ -45,8 +45,8 @@ export default function Dashboard() {
       ] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(5),
         supabase.from('applications').select('*', { count: 'exact', head: true }),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'scrutiny', 'technical_review', 'pending_approval']),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['approved', 'license_issued']),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'in_progress']),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
         supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
         supabase.from('licenses').select('*', { count: 'exact', head: true }),
         supabase.from('complaints').select('*', { count: 'exact', head: true }),
@@ -66,9 +66,8 @@ export default function Dashboard() {
   if (!user) return null;
 
   const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
-    resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
-    approved: 'default', rejected: 'destructive', license_issued: 'default',
+    draft: 'secondary', submitted: 'default', in_progress: 'outline',
+    approved: 'default', rejected: 'destructive',
   };
 
   // ─── Pre-Licensee Dashboard ───

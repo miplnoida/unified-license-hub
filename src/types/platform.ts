@@ -65,35 +65,24 @@ export interface PlatformUser {
   isPreLicensee: boolean;
 }
 
-// Application statuses - extended lifecycle
+// Application statuses - simplified lifecycle
 export type ApplicationStatus = 
   | 'draft' 
   | 'submitted' 
-  | 'scrutiny'
-  | 'query_raised'
-  | 'resubmitted'
-  | 'technical_review'
-  | 'pending_approval' 
+  | 'in_progress'
   | 'approved' 
-  | 'rejected' 
-  | 'license_issued';
+  | 'rejected';
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   draft: 'Draft',
   submitted: 'Submitted',
-  scrutiny: 'Under Scrutiny',
-  query_raised: 'Query Raised',
-  resubmitted: 'Resubmitted',
-  technical_review: 'Technical Review',
-  pending_approval: 'Pending Approval',
+  in_progress: 'In Progress',
   approved: 'Approved',
   rejected: 'Rejected',
-  license_issued: 'License Issued',
 };
 
 export const APPLICATION_STATUS_FLOW: ApplicationStatus[] = [
-  'draft', 'submitted', 'scrutiny', 'query_raised', 'resubmitted',
-  'technical_review', 'pending_approval', 'approved', 'license_issued',
+  'draft', 'submitted', 'in_progress', 'approved',
 ];
 
 // License statuses

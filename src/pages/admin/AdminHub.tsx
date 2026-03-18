@@ -67,7 +67,7 @@ export default function AdminHub() {
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('applications').select('*', { count: 'exact', head: true }),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'scrutiny', 'technical_review', 'pending_approval']),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'in_progress']),
         supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('regulators').select('*', { count: 'exact', head: true }),
         supabase.from('sectors').select('*', { count: 'exact', head: true }),

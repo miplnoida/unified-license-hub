@@ -15,9 +15,8 @@ import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
-  resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
-  approved: 'default', rejected: 'destructive', license_issued: 'default',
+  draft: 'secondary', submitted: 'default', in_progress: 'outline',
+  approved: 'default', rejected: 'destructive',
 };
 
 interface Application {
@@ -96,8 +95,8 @@ export default function ApplicationsList() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const approved = applications.filter(a => a.status === 'approved' || a.status === 'license_issued').length;
-  const pending = applications.filter(a => !['approved', 'rejected', 'license_issued'].includes(a.status)).length;
+  const approved = applications.filter(a => a.status === 'approved').length;
+  const pending = applications.filter(a => !['approved', 'rejected'].includes(a.status)).length;
   const rejected = applications.filter(a => a.status === 'rejected').length;
 
   return (
