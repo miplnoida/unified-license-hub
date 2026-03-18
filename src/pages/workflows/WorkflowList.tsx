@@ -543,8 +543,8 @@ function StepCard({ step, index, dynamicRoles, onUpdate, onDelete, onDragStart, 
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {INTERNAL_ROLES.map(r => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                  {dynamicRoles.map(r => (
+                    <SelectItem key={r.id} value={r.system_role}>{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
