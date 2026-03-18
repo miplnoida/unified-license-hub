@@ -66,9 +66,8 @@ export default function Dashboard() {
   if (!user) return null;
 
   const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
-    resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
-    approved: 'default', rejected: 'destructive', license_issued: 'default',
+    draft: 'secondary', submitted: 'default', in_progress: 'outline',
+    approved: 'default', rejected: 'destructive',
   };
 
   // ─── Pre-Licensee Dashboard ───

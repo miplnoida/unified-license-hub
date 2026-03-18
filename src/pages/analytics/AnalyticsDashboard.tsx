@@ -39,8 +39,8 @@ export default function AnalyticsDashboard() {
         statusCounts[a.status] = (statusCounts[a.status] || 0) + 1;
         const month = new Date(a.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
         monthCounts[month] = (monthCounts[month] || 0) + 1;
-        if (['submitted', 'scrutiny', 'technical_review', 'pending_approval'].includes(a.status)) pending++;
-        if (a.status === 'approved' || a.status === 'license_issued') approved++;
+        if (['submitted', 'in_progress'].includes(a.status)) pending++;
+        if (a.status === 'approved') approved++;
         if (a.status === 'rejected') rejected++;
       });
 
