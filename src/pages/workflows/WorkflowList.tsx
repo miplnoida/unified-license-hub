@@ -408,6 +408,7 @@ export default function WorkflowList() {
 interface StepCardProps {
   step: WorkflowStep;
   index: number;
+  dynamicRoles: { id: string; name: string; system_role: string }[];
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onDragStart: (idx: number) => void;
@@ -415,7 +416,7 @@ interface StepCardProps {
   onDrop: (e: React.DragEvent, idx: number) => void;
 }
 
-function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, onDrop }: StepCardProps) {
+function StepCard({ step, index, dynamicRoles, onUpdate, onDelete, onDragStart, onDragOver, onDrop }: StepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const allowedActions = (step.allowed_actions || ['approve', 'reject', 'send_back']) as WorkflowActionType[];
 
