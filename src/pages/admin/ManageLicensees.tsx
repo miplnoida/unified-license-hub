@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
-import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Briefcase, Layers } from 'lucide-react';
+import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Briefcase, Layers, Eye } from 'lucide-react';
 
 interface LicenseeRow {
   id: string;
@@ -30,6 +31,7 @@ interface LookupMap { [id: string]: string }
 const PAGE_SIZE = 10;
 
 export default function ManageLicensees() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState<LicenseeRow[]>([]);
   const [sectors, setSectors] = useState<LookupMap>({});
   const [subSectors, setSubSectors] = useState<LookupMap>({});
@@ -37,17 +39,18 @@ export default function ManageLicensees() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       const [licRes, secRes, subRes, catRes, licensesRes] = await Promise.all([
-        supabase.from('licensees').select('*').eq('status', 'active').order('name'),
+        supabase.from('licensees').select('*').order('name'),
         supabase.from('sectors').select('id, name').eq('status', 'active'),
         supabase.from('sub_sectors').select('id, name').eq('status', 'active'),
         supabase.from('categories').select('id, name').eq('status', 'active'),
-        supabase.from('licenses').select('id, license_number, status, issued_at').eq('status', 'active'),
+        supabase.from('licenses').select('id, license_number, status, issued_at'),
       ]);
 
       const sMap: LookupMap = {};
@@ -81,39 +84,46 @@ export default function ManageLicensees() {
   }, []);
 
   const sectorList = useMemo(() => Object.entries(sectors).sort((a, b) => a[1].localeCompare(b[1])), [sectors]);
+  const statusOptions = useMemo(() => [...new Set(rows.map(r => r.status))].sort(), [rows]);
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
       if (sectorFilter !== 'all' && r.sector_id !== sectorFilter) return false;
+      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [rows, sectorFilter, search]);
+  }, [rows, sectorFilter, statusFilter, search]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const sectorCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    rows.forEach(r => {
-      const name = r.sector_id ? (sectors[r.sector_id] || 'Unknown') : 'Unassigned';
-      counts[name] = (counts[name] || 0) + 1;
-    });
-    return counts;
-  }, [rows, sectors]);
+  const activeCount = rows.filter(r => r.status === 'active').length;
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, string> = {
+      active: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
+      inactive: 'bg-muted text-muted-foreground border-border',
+    };
+    return (
+      <Badge variant="outline" className={`capitalize ${map[status] || ''}`}>
+        {status}
+      </Badge>
+    );
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Licensee Entities"
-          description="Approved licensee organizations with their license and classification details."
+          description="Manage licensee organizations with their license and classification details."
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard title="Approved Licensees" value={rows.length} icon={<Briefcase className="h-6 w-6" />} />
+          <StatCard title="Total Licensees" value={rows.length} icon={<Briefcase className="h-6 w-6" />} />
+          <StatCard title="Active" value={activeCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Sectors" value={sectorList.length} icon={<Layers className="h-6 w-6" />} variant="primary" />
-          <StatCard title="With License #" value={rows.filter(r => r.license_number).length} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
 
         {/* Toolbar */}
@@ -123,7 +133,7 @@ export default function ManageLicensees() {
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search licensees..."
+                  placeholder="Search by company name..."
                   className="pl-10"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
@@ -137,6 +147,17 @@ export default function ManageLicensees() {
                   <SelectItem value="all">All Sectors</SelectItem>
                   {sectorList.map(([id, name]) => (
                     <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {statusOptions.map(s => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -160,19 +181,19 @@ export default function ManageLicensees() {
                     <TableHead>Sub-Sector</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>License #</TableHead>
-                    <TableHead>Approval Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paged.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                        No approved licensees found.
+                        No licensees found.
                       </TableCell>
                     </TableRow>
                   ) : paged.map(row => (
-                    <TableRow key={row.id}>
+                    <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/licensees/${row.id}`)}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -185,13 +206,11 @@ export default function ManageLicensees() {
                       <TableCell className="text-sm">{row.sub_sector_id ? subSectors[row.sub_sector_id] || '—' : '—'}</TableCell>
                       <TableCell className="text-sm">{row.category_id ? categories[row.category_id] || '—' : '—'}</TableCell>
                       <TableCell className="text-sm font-mono">{row.license_number || '—'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {row.approved_date ? new Date(row.approved_date).toLocaleDateString() : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="default" className="capitalize bg-emerald-500/10 text-emerald-700 border-emerald-200">
-                          Approved
-                        </Badge>
+                      <TableCell>{statusBadge(row.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
+                          <Eye className="h-4 w-4 mr-1" />View
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -215,24 +234,6 @@ export default function ManageLicensees() {
               <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Sector distribution */}
-        {!loading && Object.keys(sectorCounts).length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Sector-wise Distribution</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Object.entries(sectorCounts).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
-                <Card key={name}>
-                  <CardContent className="pt-4 pb-4">
-                    <p className="text-sm text-muted-foreground">{name}</p>
-                    <p className="text-2xl font-bold">{count}</p>
-                    <p className="text-xs text-muted-foreground">licensee{count !== 1 ? 's' : ''}</p>
-                  </CardContent>
-                </Card>
-              ))}
             </div>
           </div>
         )}
