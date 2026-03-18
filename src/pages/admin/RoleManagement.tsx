@@ -28,14 +28,6 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission,
 } from '@/hooks/useRoles';
 
-const SYSTEM_ROLES = [
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'licensing_officer', label: 'Licensing Officer' },
-  { value: 'analyst', label: 'Analyst' },
-  { value: 'developer', label: 'Developer' },
-];
 
 const MODULE_LABELS: Record<string, string> = {
   application_management: 'Application Management',
