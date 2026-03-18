@@ -55,13 +55,9 @@ export default function ApplicationDetail() {
   const isOwner = user && app?.applicant_id === user.id;
 
   const appData = app?.data as any || {};
-  const formTemplateId = appData?.form_template_id || null;
-  const formVersionId = appData?.form_version_id || null;
-  const formDataSaved = appData?.form_data || {};
-
-  const { data: publishedVersion } = useLatestPublishedVersion(formTemplateId);
-  const versionToUse = formVersionId || publishedVersion?.id || null;
-  const { data: sections = [] } = useVersionSections(versionToUse);
+  const formTemplateIds: string[] = appData?.form_template_ids || [];
+  const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
+  const hasSubmittedForms = formTemplateIds.length > 0;
 
   const loadData = async () => {
     if (!id) return;
