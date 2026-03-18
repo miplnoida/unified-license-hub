@@ -68,6 +68,7 @@ const RoleManagement = lazy(() => import("./pages/admin/RoleManagement"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const ManageWebUsers = lazy(() => import("./pages/admin/ManageWebUsers"));
+
 const ManageLicensees = lazy(() => import("./pages/admin/ManageLicensees"));
 const LicenseeDetailPage = lazy(() => import("./pages/admin/LicenseeDetail"));
 const FormBuilder = lazy(() => import("./pages/admin/FormBuilder"));
