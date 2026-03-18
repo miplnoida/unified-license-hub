@@ -18,7 +18,7 @@ import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle } from 'lucide-react';
+import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -26,6 +26,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   in_progress: 'outline',
   approved: 'default',
   rejected: 'destructive',
+  cancelled: 'destructive',
 };
 
 interface Application {
@@ -225,6 +226,37 @@ export default function ApplicationDetail() {
     setProcessing(false);
   };
 
+  const handleCancel = async () => {
+    if (!app || !user) return;
+    if (!window.confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
+    setProcessing(true);
+
+    // Cancel any active workflow instance
+    if (app.workflow_id) {
+      const { data: instances } = await supabase
+        .from('workflow_instances')
+        .select('id')
+        .eq('entity_id', app.id)
+        .eq('entity_type', 'application')
+        .eq('status', 'active');
+      if (instances?.length) {
+        await supabase.from('workflow_instances').update({
+          status: 'cancelled',
+          completed_at: new Date().toISOString(),
+        } as any).eq('id', instances[0].id);
+      }
+    }
+
+    await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'cancelled', actor_id: user.id, comments: 'Application cancelled by applicant',
+    } as any);
+    await logAudit({ action: 'application_cancelled', entityType: 'application', entityId: app.id });
+    toast.success('Application cancelled');
+    loadData();
+    setProcessing(false);
+  };
+
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
@@ -376,8 +408,20 @@ export default function ApplicationDetail() {
 
             {/* Applicant submit action */}
             {isOwner && app.status === 'draft' && (
-              <Button onClick={handleSubmit} disabled={processing} className="w-full">
-                <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
+              <div className="flex gap-2">
+                <Button onClick={handleSubmit} disabled={processing} className="flex-1">
+                  <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
+                </Button>
+                <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                  <Ban className="h-4 w-4 mr-2" />Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Applicant cancel action for submitted/in_progress applications */}
+            {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (
+              <Button variant="destructive" onClick={handleCancel} disabled={processing} className="w-full">
+                <Ban className="h-4 w-4 mr-2" />{processing ? 'Cancelling...' : 'Cancel Application'}
               </Button>
             )}
           </div>
