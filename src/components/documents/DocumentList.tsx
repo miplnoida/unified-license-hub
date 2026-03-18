@@ -29,18 +29,31 @@ export function DocumentList({ entityType, entityId }: DocumentListProps) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      const { data } = await supabase
+  const loadDocs = async () => {
+    setLoading(true);
+    // Query both tables and merge results
+    const [{ data: legacyDocs }, { data: secureDocs }] = await Promise.all([
+      supabase
         .from('documents')
-        .select('*')
+        .select('id, file_name, file_path, file_size, mime_type, created_at')
         .eq('entity_type', entityType)
         .eq('entity_id', entityId)
-        .order('created_at', { ascending: false });
-      setDocs((data || []) as any);
-      setLoading(false);
-    }
-    load();
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('file_uploads')
+        .select('id, file_name, file_path, file_size, mime_type, created_at')
+        .eq('entity_type', entityType)
+        .eq('entity_id', entityId)
+        .order('created_at', { ascending: false }),
+    ]);
+    const all = [...(legacyDocs || []), ...(secureDocs || [])] as Doc[];
+    all.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setDocs(all);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadDocs();
   }, [entityType, entityId]);
 
   const handleDownload = async (doc: Doc) => {
