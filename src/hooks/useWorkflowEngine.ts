@@ -14,7 +14,7 @@ export const ENTITY_TYPE_LABELS: Record<WorkflowEntityType, string> = {
   return: 'Compliance Return',
 };
 
-export type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'request_info' | 'delegate' | 'escalate';
+export type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'request_info' | 'delegate' | 'escalate' | 'request_resubmission';
 
 export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   approve: 'Approve',
@@ -23,6 +23,7 @@ export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   request_info: 'Request Info',
   delegate: 'Delegate',
   escalate: 'Escalate',
+  request_resubmission: 'Request Resubmission',
 };
 
 export const ACTION_COLORS: Record<WorkflowActionType, string> = {
@@ -32,6 +33,7 @@ export const ACTION_COLORS: Record<WorkflowActionType, string> = {
   request_info: 'bg-info/10 text-info border-info/30',
   delegate: 'bg-secondary text-secondary-foreground border-secondary',
   escalate: 'bg-accent text-accent-foreground border-accent',
+  request_resubmission: 'bg-warning/10 text-warning border-warning/30',
 };
 
 export interface Workflow {
