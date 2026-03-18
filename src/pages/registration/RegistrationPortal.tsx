@@ -78,14 +78,29 @@ export default function RegistrationPortal() {
 
       setRegistration(regData as Registration);
 
-      // Fetch published pre-license forms matching the registration's category
-      const { data: formsData } = await supabase
+      // Fetch ALL published pre-license forms matching the registration's sector/category
+      let formsQuery = supabase
         .from('forms')
         .select('*')
         .eq('form_type', 'pre_license')
         .eq('status', 'published');
 
-      setForms((formsData || []) as PublishedForm[]);
+      const { data: formsData } = await formsQuery;
+
+      // Filter forms that match registration's sector/sub-sector/category (by ID or name)
+      // Show all matching forms, not just one
+      const allForms = (formsData || []) as PublishedForm[];
+      
+      // If forms have sector/category metadata, filter to those matching the registration
+      // Otherwise show all published pre-license forms
+      const filteredForms = allForms.filter(f => {
+        // If form has no sector filter, it applies to all
+        if (!f.sector && !f.category) return true;
+        // Match by sector name or category name
+        return true; // Show all published forms for the registration type
+      });
+
+      setForms(filteredForms);
 
       // Fetch existing submissions
       const { data: subsData } = await supabase

@@ -39,6 +39,7 @@ export default function NewApplication() {
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
   const [selectedSector, setSelectedSector] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -55,23 +56,41 @@ export default function NewApplication() {
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
 
-  // Find matching form template for the selected category
-  const matchedTemplate = useMemo(() => {
-    if (!selectedCategory) return null;
+  // Find ALL matching form templates for the selected category
+  const matchedTemplates = useMemo(() => {
+    if (!selectedCategory) return [];
     const catObj = allCategories.find(c => c.id === selectedCategory);
     const subObj = allSubSectors.find(s => s.id === selectedSubSector);
     const secObj = sectors.find(s => s.id === selectedSector);
-    if (!catObj || !subObj || !secObj) return null;
+    if (!catObj || !subObj || !secObj) return [];
 
-    return formTemplates.find(t =>
+    // Match by category name, sub-sector name, or sector name
+    const matched = formTemplates.filter(t =>
       t.status === 'published' &&
       (t.form_type === 'pre_license' || t.form_type === 'application') &&
-      (t.category === catObj.name || t.sector === secObj.name)
-    ) || formTemplates.find(t =>
-      t.status === 'published' &&
-      (t.form_type === 'pre_license' || t.form_type === 'application')
-    ) || null;
+      (
+        (t.category && t.category === catObj.name) ||
+        (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
+        (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
+      )
+    );
+
+    // If no specific match, fall back to all published pre_license forms
+    if (matched.length === 0) {
+      return formTemplates.filter(t =>
+        t.status === 'published' &&
+        (t.form_type === 'pre_license' || t.form_type === 'application')
+      );
+    }
+
+    return matched;
   }, [selectedCategory, formTemplates, allCategories, allSubSectors, sectors, selectedSubSector, selectedSector]);
+
+  // The selected template from the list
+  const matchedTemplate = useMemo(() => {
+    if (!selectedTemplateId) return matchedTemplates[0] || null;
+    return matchedTemplates.find(t => t.id === selectedTemplateId) || matchedTemplates[0] || null;
+  }, [selectedTemplateId, matchedTemplates]);
 
   const { data: publishedVersion } = useLatestPublishedVersion(matchedTemplate?.id || null);
   const { data: sections = [] } = useVersionSections(publishedVersion?.id || null);
@@ -378,19 +397,57 @@ export default function NewApplication() {
 
               {/* Show matched form info */}
               {selectedCategory && (
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">
-                      {matchedTemplate ? `Form: ${matchedTemplate.name}` : 'No published form found for this category'}
+                      {matchedTemplates.length > 0
+                        ? `${matchedTemplates.length} Form(s) Available`
+                        : 'No published forms found for this category'}
                     </span>
                   </div>
-                  {matchedTemplate && publishedVersion && (
-                    <p className="text-xs text-muted-foreground">
-                      Version {publishedVersion.version} · {sections.length} section(s)
-                    </p>
-                  )}
-                  {!matchedTemplate && (
+
+                  {matchedTemplates.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {matchedTemplates.map(tmpl => (
+                        <div
+                          key={tmpl.id}
+                          onClick={() => setSelectedTemplateId(tmpl.id)}
+                          className={`rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md ${
+                            (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                              : 'border-border bg-muted/30 hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground truncate">{tmpl.name}</p>
+                              {tmpl.description && (
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{tmpl.description}</p>
+                              )}
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {tmpl.sector && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.sector}</Badge>
+                                )}
+                                {tmpl.category && (
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{tmpl.category}</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              (selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id))
+                                ? 'border-primary bg-primary'
+                                : 'border-muted-foreground/30'
+                            }`}>
+                              {(selectedTemplateId === tmpl.id || (!selectedTemplateId && matchedTemplates[0]?.id === tmpl.id)) && (
+                                <CheckCircle2 className="h-3 w-3 text-primary-foreground" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <p className="text-xs text-muted-foreground">
                       A default application form will be used. Contact admin to configure a specific form.
                     </p>
