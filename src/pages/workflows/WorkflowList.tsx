@@ -47,6 +47,7 @@ export default function WorkflowList() {
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
   const { data: dbSectors = [] } = useSectors();
   const { data: dbCategories = [] } = useCategories();
+  const { data: dynamicRoles = [] } = useRoles();
 
   const createWorkflow = useCreateWorkflow();
   const updateWorkflow = useUpdateWorkflow();
