@@ -26,6 +26,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   in_progress: 'outline',
   approved: 'default',
   rejected: 'destructive',
+  cancelled: 'destructive',
 };
 
 interface Application {
