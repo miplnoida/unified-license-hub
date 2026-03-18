@@ -1,123 +1,225 @@
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { DataTableShell, Column } from '@/components/shared/DataTableShell';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Eye, FileCheck, Clock, AlertTriangle, PlusCircle, ClipboardList } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Shield, Search, Loader2, Building2, ChevronLeft, ChevronRight, Eye, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface PreLicenseApplication {
+interface Licensee {
   id: string;
-  applicationNumber: string;
-  organizationName: string;
-  sector: string;
-  subSector: string;
-  category: string;
+  name: string;
   status: string;
-  feeStatus: string;
-  feeApproved: string;
-  submittedDate: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+  license_id: string | null;
+  created_at: string;
 }
 
-const initialApplications: PreLicenseApplication[] = [
-  { id: '1', applicationNumber: 'APP-2024-0001', organizationName: 'XYZ Insurance Corp.', sector: 'Insurance', subSector: 'Life Insurance', category: 'Life Insurer License', status: 'Approved', feeStatus: 'Paid', feeApproved: 'Yes', submittedDate: '2024-01-15' },
-  { id: '2', applicationNumber: 'APP-2024-0002', organizationName: 'ABC Financial Ltd.', sector: 'Banking', subSector: 'Commercial Banking', category: 'Commercial Bank License', status: 'Approved', feeStatus: 'Paid', feeApproved: 'Yes', submittedDate: '2024-02-20' },
-  { id: '3', applicationNumber: 'APP-2024-0003', organizationName: 'Global Trust Managers', sector: 'Insurance', subSector: 'General Insurance', category: 'General Insurer License', status: 'Under Review', feeStatus: 'Paid', feeApproved: 'Yes', submittedDate: '2024-03-10' },
-  { id: '4', applicationNumber: 'APP-2024-0004', organizationName: 'Pacific Mutual Fund', sector: 'Capital Markets', subSector: 'Securities', category: 'Broker-Dealer License', status: 'Submitted', feeStatus: 'Pending', feeApproved: 'No', submittedDate: '2024-04-01' },
-  { id: '5', applicationNumber: 'APP-2024-0005', organizationName: 'Island Health Co.', sector: 'Insurance', subSector: 'Life Insurance', category: 'Life Insurance Broker', status: 'Draft', feeStatus: 'Pending', feeApproved: 'No', submittedDate: '2024-05-12' },
-  { id: '6', applicationNumber: 'APP-2024-0006', organizationName: 'Caribbean Pensions Ltd.', sector: 'Pension & Retirement', subSector: 'Pension Funds', category: 'Pension Fund Administrator', status: 'Rejected', feeStatus: 'Paid', feeApproved: 'Yes', submittedDate: '2024-06-18' },
-];
+interface Sector {
+  id: string;
+  name: string;
+}
 
-const statusVariant = (s: string) => {
-  switch (s) {
-    case 'Approved': return 'approved';
-    case 'Rejected': return 'rejected';
-    case 'Under Review': return 'secondary';
-    case 'Submitted': return 'default';
-    default: return 'draft';
-  }
-};
+const PAGE_SIZE = 10;
 
 export default function ManageLicenses() {
   const navigate = useNavigate();
-  const [applications] = useState(initialApplications);
-  const [viewApp, setViewApp] = useState<PreLicenseApplication | null>(null);
+  const [licensees, setLicensees] = useState<Licensee[]>([]);
+  const [sectors, setSectors] = useState<Sector[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [sectorFilter, setSectorFilter] = useState('all');
+  const [page, setPage] = useState(0);
 
-  const columns: Column<PreLicenseApplication>[] = [
-    { key: 'applicationNumber', label: 'Application #', render: (r) => <span className="font-medium text-primary">{r.applicationNumber}</span> },
-    { key: 'organizationName', label: 'Organisation Name' },
-    { key: 'sector', label: 'Sector' },
-    { key: 'subSector', label: 'Sub-Sector' },
-    { key: 'category', label: 'Category' },
-    { key: 'submittedDate', label: 'Submitted Date' },
-    { key: 'feeStatus', label: 'Fee Status', render: (r) => <Badge variant={r.feeStatus === 'Paid' ? 'approved' as any : 'draft' as any}>{r.feeStatus}</Badge> },
-    { key: 'feeApproved', label: 'Fee Approved', render: (r) => <Badge variant={r.feeApproved === 'Yes' ? 'approved' as any : 'draft' as any}>{r.feeApproved}</Badge> },
-    {
-      key: 'status', label: 'Status', render: (r) => <Badge variant={statusVariant(r.status) as any}>{r.status}</Badge>
-    },
-    {
-      key: 'actions', label: '', render: (r) => (
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewApp(r)}><Eye className="h-4 w-4" /></Button>
-      )
-    },
-  ];
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const [licRes, secRes] = await Promise.all([
+        supabase.from('licensees' as any).select('*').eq('status', 'active').order('name'),
+        supabase.from('sectors' as any).select('id, name').eq('status', 'active'),
+      ]);
+      if (!licRes.error) setLicensees((licRes.data || []) as any);
+      if (!secRes.error) setSectors((secRes.data || []) as any);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const getSectorName = (id: string | null) => sectors.find(s => s.id === id)?.name || 'Unassigned';
+
+  const filtered = useMemo(() => {
+    return licensees.filter(l => {
+      if (sectorFilter !== 'all' && l.sector_id !== sectorFilter) return false;
+      if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }, [licensees, sectorFilter, search]);
+
+  // Group by sector
+  const grouped = useMemo(() => {
+    const map: Record<string, { sectorName: string; items: Licensee[] }> = {};
+    filtered.forEach(l => {
+      const key = l.sector_id || 'unassigned';
+      if (!map[key]) map[key] = { sectorName: getSectorName(l.sector_id), items: [] };
+      map[key].items.push(l);
+    });
+    return Object.entries(map).sort((a, b) => a[1].sectorName.localeCompare(b[1].sectorName));
+  }, [filtered, sectors]);
+
+  // Flat list for pagination
+  const flatFiltered = filtered;
+  const totalPages = Math.ceil(flatFiltered.length / PAGE_SIZE);
+  const paged = flatFiltered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const sectorCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    licensees.forEach(l => {
+      const name = getSectorName(l.sector_id);
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    return counts;
+  }, [licensees, sectors]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Pre-License Applications" description="View and manage all pre-license applications." />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
-          <StatCard title="Total Applications" value={applications.length} icon={<FileCheck className="h-6 w-6" />} />
-          <StatCard title="Approved" value={applications.filter(a => a.status === 'Approved').length} icon={<FileCheck className="h-6 w-6" />} variant="success" />
-          <StatCard title="Under Review" value={applications.filter(a => a.status === 'Under Review').length} icon={<Clock className="h-6 w-6" />} variant="warning" />
-          <StatCard title="Rejected" value={applications.filter(a => a.status === 'Rejected').length} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />
-        </div>
-        <div className="animate-slide-up delay-200">
-          <DataTableShell
-            columns={columns}
-            data={applications}
-            searchPlaceholder="Search applications..."
-            actions={
-              <div className="flex items-center gap-2">
-                <Button size="sm" onClick={() => navigate('/post-license/new')}>
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  New Application
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => navigate('/returns')}>
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Manage Returns
-                </Button>
-              </div>
-            }
-          />
-        </div>
-      </div>
+        <PageHeader
+          title="License Types"
+          description="Approved licensees grouped by sector."
+        />
 
-      <Dialog open={!!viewApp} onOpenChange={() => setViewApp(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Application Details</DialogTitle></DialogHeader>
-          {viewApp && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-muted-foreground text-xs">Application #</Label><p className="font-medium">{viewApp.applicationNumber}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Organisation</Label><p className="font-medium">{viewApp.organizationName}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Sector</Label><p>{viewApp.sector}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Sub-Sector</Label><p>{viewApp.subSector}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Category</Label><p>{viewApp.category}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Submitted</Label><p>{viewApp.submittedDate}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Fee Status</Label><Badge variant={viewApp.feeStatus === 'Paid' ? 'approved' as any : 'draft' as any} className="mt-1">{viewApp.feeStatus}</Badge></div>
-                <div><Label className="text-muted-foreground text-xs">Fee Approved</Label><Badge variant={viewApp.feeApproved === 'Yes' ? 'approved' as any : 'draft' as any} className="mt-1">{viewApp.feeApproved}</Badge></div>
-                <div><Label className="text-muted-foreground text-xs">Status</Label><Badge variant={statusVariant(viewApp.status) as any} className="mt-1">{viewApp.status}</Badge></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard title="Total Licensees" value={licensees.length} icon={<Building2 className="h-6 w-6" />} />
+          <StatCard title="Sectors" value={sectors.length} icon={<Shield className="h-6 w-6" />} variant="info" />
+          <StatCard title="Active" value={licensees.filter(l => l.status === 'active').length} icon={<Shield className="h-6 w-6" />} variant="success" />
+          <StatCard title="With License" value={licensees.filter(l => l.license_id).length} icon={<Shield className="h-6 w-6" />} variant="warning" />
+        </div>
+
+        {/* Toolbar */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search licensees..."
+                  className="pl-10"
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(0); }}
+                />
               </div>
+              <Select value={sectorFilter} onValueChange={v => { setSectorFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="All Sectors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sectors</SelectItem>
+                  {sectors.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" className="ml-auto">
+                <Download className="h-4 w-4 mr-2" />Export
+              </Button>
             </div>
-          )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewApp(null)}>Close</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+
+        {/* Table */}
+        <Card>
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Licensee Name</TableHead>
+                    <TableHead>Sector</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paged.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                        No approved licensees found.
+                      </TableCell>
+                    </TableRow>
+                  ) : paged.map(lic => (
+                    <TableRow key={lic.id}>
+                      <TableCell className="font-medium">{lic.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{getSectorName(lic.sector_id)}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="default" className="capitalize">{lic.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(lic.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4 mr-1" />View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, flatFiltered.length)} of {flatFiltered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium">{page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Sector-wise summary cards */}
+        {!loading && Object.keys(sectorCounts).length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Sector-wise Distribution</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Object.entries(sectorCounts).sort((a, b) => b[1] - a[1]).map(([name, count]) => (
+                <Card key={name}>
+                  <CardContent className="pt-4 pb-4">
+                    <p className="text-sm text-muted-foreground">{name}</p>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-xs text-muted-foreground">licensee{count !== 1 ? 's' : ''}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
