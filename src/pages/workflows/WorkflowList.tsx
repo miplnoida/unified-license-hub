@@ -31,7 +31,7 @@ import {
   ENTITY_TYPE_LABELS, ACTION_LABELS, ACTION_COLORS,
   type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
 } from '@/hooks/useWorkflowEngine';
-import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
+import { AppRole, ROLE_LABELS, ROLE_HIERARCHY, INTERNAL_ROLES } from '@/types/platform';
 
 const STEP_TYPE_LABELS: Record<string, string> = {
   sequential: 'Sequential',
@@ -481,7 +481,7 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
               <Select value={step.approver_role} onValueChange={val => onUpdate(step.id, { approver_role: val } as any)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ROLE_HIERARCHY.filter(r => r !== 'applicant').map(r => (
+                  {INTERNAL_ROLES.map(r => (
                     <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -539,7 +539,7 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {ROLE_HIERARCHY.filter(r => r !== 'applicant').map(r => (
+                  {INTERNAL_ROLES.map(r => (
                     <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
                 </SelectContent>
