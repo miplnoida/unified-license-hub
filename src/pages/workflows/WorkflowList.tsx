@@ -32,6 +32,7 @@ import {
   type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
 } from '@/hooks/useWorkflowEngine';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY, INTERNAL_ROLES } from '@/types/platform';
+import { useRoles } from '@/hooks/useRoles';
 
 const STEP_TYPE_LABELS: Record<string, string> = {
   sequential: 'Sequential',
