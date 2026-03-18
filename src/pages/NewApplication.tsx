@@ -750,8 +750,8 @@ export default function NewApplication() {
                 <Button variant="outline" onClick={() => setCurrentStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
-                <Button onClick={() => setCurrentStep('review')}>
-                  Review Application
+                <Button onClick={handleProceedToPayment}>
+                  Proceed to Payment
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -759,7 +759,125 @@ export default function NewApplication() {
           </Card>
         )}
 
-        {/* Step 4: Review & Submit */}
+        {/* Step 4: Payment */}
+        {currentStep === 'payment' && applicationId && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-primary" />
+                      Application Payment
+                    </CardTitle>
+                    <CardDescription>
+                      Complete payment to proceed with submission.
+                    </CardDescription>
+                  </div>
+                  {getPaymentStatusBadge()}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Application Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="rounded-lg border p-4">
+                    <span className="text-xs font-medium text-muted-foreground">Application ID</span>
+                    <p className="text-sm font-mono font-medium mt-1">{applicationId.substring(0, 8).toUpperCase()}</p>
+                  </div>
+                  <div className="rounded-lg border p-4">
+                    <span className="text-xs font-medium text-muted-foreground">Applicant</span>
+                    <p className="text-sm font-medium mt-1">{user?.email || '—'}</p>
+                  </div>
+                </div>
+
+                {/* Fee Breakdown */}
+                <div className="rounded-lg border">
+                  <div className="p-4 border-b bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">Fee Breakdown</span>
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {feeBreakdown.map((fee, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{fee.name}</span>
+                        <span className="font-medium">${fee.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">Total Amount</span>
+                      <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Action */}
+                {paymentStatus === 'pending' && (
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    <Button
+                      size="lg"
+                      onClick={handleProcessPayment}
+                      disabled={processingPayment}
+                      className="min-w-[200px]"
+                    >
+                      {processingPayment ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                      ) : (
+                        <><CreditCard className="h-4 w-4 mr-2" /> Proceed to Pay</>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Payment is mandatory before final submission.
+                    </p>
+                  </div>
+                )}
+
+                {paymentStatus === 'success' && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
+                    <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
+                    <h3 className="font-semibold text-emerald-800">Payment Successful</h3>
+                    <p className="text-sm text-emerald-700">
+                      Your payment of <strong>${feeAmount.toFixed(2)}</strong> has been processed successfully.
+                    </p>
+                    {paymentId && (
+                      <p className="text-xs text-emerald-600 font-mono">Payment ID: {paymentId.substring(0, 8).toUpperCase()}</p>
+                    )}
+                  </div>
+                )}
+
+                {paymentStatus === 'failed' && (
+                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-6 text-center space-y-3">
+                    <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
+                    <h3 className="font-semibold text-red-800">Payment Failed</h3>
+                    <p className="text-sm text-red-700">
+                      Something went wrong. Please try again.
+                    </p>
+                    <Button variant="destructive" onClick={handleRetryPayment}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Retry Payment
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />Back
+              </Button>
+              <Button
+                onClick={() => setCurrentStep('review')}
+                disabled={!paymentComplete}
+              >
+                {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Review & Submit */}
         {currentStep === 'review' && (
           <div className="space-y-6">
             <Card>
@@ -812,6 +930,18 @@ export default function NewApplication() {
                   </div>
                 </div>
 
+                {/* Payment summary */}
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-medium text-muted-foreground">Payment</span>
+                    </div>
+                    {getPaymentStatusBadge()}
+                  </div>
+                  <p className="text-sm font-medium mt-2">Amount: ${feeAmount.toFixed(2)}</p>
+                </div>
+
                 {applicationId && (
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -823,14 +953,23 @@ export default function NewApplication() {
                     </div>
                   </div>
                 )}
+
+                {!paymentComplete && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                    <p className="text-sm text-amber-800">
+                      Please complete payment to submit application.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+              <Button variant="outline" onClick={() => setCurrentStep('payment')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
-              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted} size="lg">
+              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted || !paymentComplete} size="lg">
                 {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 {submitting ? 'Submitting...' : 'Submit Application'}
               </Button>
