@@ -533,12 +533,12 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
                 <AlertTriangle className="h-3 w-3" /> Escalation Role
               </Label>
               <Select
-                value={step.escalation_role || ''}
-                onValueChange={val => onUpdate(step.id, { escalation_role: val || null } as any)}
+                value={step.escalation_role || 'none'}
+                onValueChange={val => onUpdate(step.id, { escalation_role: val === 'none' ? null : val } as any)}
               >
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {ROLE_HIERARCHY.filter(r => r !== 'applicant').map(r => (
                     <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
