@@ -115,7 +115,7 @@ export default function ApplicationDetail() {
       }
     }
 
-    const matchedWorkflowId = workflows?.[0]?.id || null;
+    const matchedWorkflowId = matchedWorkflow?.id || null;
 
     let firstStepId: string | null = null;
     if (matchedWorkflowId) {
