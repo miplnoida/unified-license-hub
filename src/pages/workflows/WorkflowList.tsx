@@ -453,7 +453,7 @@ function StepCard({ step, index, dynamicRoles, onUpdate, onDelete, onDragStart, 
         <div className="flex items-center gap-1 shrink-0">
           <Badge variant="secondary" className="text-[10px] gap-0.5">
             <Users className="h-3 w-3" />
-            {ROLE_LABELS[step.approver_role] || step.approver_role}
+            {dynamicRoles.find(r => r.system_role === step.approver_role)?.name || ROLE_LABELS[step.approver_role] || step.approver_role}
           </Badge>
           <Badge variant="outline" className={`text-[10px] gap-0.5 ${slaColor}`}>
             <Clock className="h-3 w-3" /> {step.sla_hours || 48}h
