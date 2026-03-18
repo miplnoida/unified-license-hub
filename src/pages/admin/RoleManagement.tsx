@@ -241,7 +241,7 @@ export default function RoleManagement() {
                         </TableRow>
                       ))}
                       {filteredRoles.length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
