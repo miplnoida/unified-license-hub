@@ -26,7 +26,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +38,7 @@ import {
   Search,
   CheckCircle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Permission {
   id: string;
@@ -56,7 +56,7 @@ interface Role {
   isSystem: boolean;
 }
 
-const permissions: Permission[] = [
+const allPermissions: Permission[] = [
   { id: 'app_view', name: 'View Applications', description: 'View all applications', module: 'Applications' },
   { id: 'app_review', name: 'Review Applications', description: 'Review and add comments', module: 'Applications' },
   { id: 'app_approve', name: 'Approve Applications', description: 'Approve or reject applications', module: 'Applications' },
@@ -71,13 +71,13 @@ const permissions: Permission[] = [
   { id: 'workflow_config', name: 'Workflow Configuration', description: 'Configure workflows', module: 'Configuration' },
 ];
 
-const roles: Role[] = [
+const initialRoles: Role[] = [
   {
     id: '1',
     name: 'Administrator',
     description: 'Full system access with all permissions',
     userCount: 5,
-    permissions: permissions.map(p => p.id),
+    permissions: allPermissions.map(p => p.id),
     isSystem: true,
   },
   {
@@ -106,22 +106,93 @@ const roles: Role[] = [
   },
 ];
 
+const groupedPermissions = allPermissions.reduce((acc, perm) => {
+  if (!acc[perm.module]) acc[perm.module] = [];
+  acc[perm.module].push(perm);
+  return acc;
+}, {} as Record<string, Permission[]>);
+
 export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [roles, setRoles] = useState<Role[]>(initialRoles);
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formDesc, setFormDesc] = useState('');
+  const [formPerms, setFormPerms] = useState<string[]>([]);
 
   const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     role.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const groupedPermissions = permissions.reduce((acc, perm) => {
-    if (!acc[perm.module]) {
-      acc[perm.module] = [];
+  const openCreateDialog = () => {
+    setEditingRole(null);
+    setFormName('');
+    setFormDesc('');
+    setFormPerms([]);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (role: Role, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingRole(role);
+    setFormName(role.name);
+    setFormDesc(role.description);
+    setFormPerms([...role.permissions]);
+    setDialogOpen(true);
+  };
+
+  const togglePerm = (permId: string) => {
+    setFormPerms(prev =>
+      prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]
+    );
+  };
+
+  const handleSave = () => {
+    if (!formName.trim()) {
+      toast.error('Role name is required');
+      return;
     }
-    acc[perm.module].push(perm);
-    return acc;
-  }, {} as Record<string, Permission[]>);
+
+    if (editingRole) {
+      setRoles(prev =>
+        prev.map(r =>
+          r.id === editingRole.id
+            ? { ...r, name: formName, description: formDesc, permissions: formPerms }
+            : r
+        )
+      );
+      // Update selectedRole if it was the one edited
+      if (selectedRole?.id === editingRole.id) {
+        setSelectedRole({ ...editingRole, name: formName, description: formDesc, permissions: formPerms });
+      }
+      toast.success('Role updated successfully');
+    } else {
+      const newRole: Role = {
+        id: crypto.randomUUID(),
+        name: formName,
+        description: formDesc,
+        userCount: 0,
+        permissions: formPerms,
+        isSystem: false,
+      };
+      setRoles(prev => [...prev, newRole]);
+      toast.success('Role created successfully');
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (role: Role, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (role.isSystem) return;
+    setRoles(prev => prev.filter(r => r.id !== role.id));
+    if (selectedRole?.id === role.id) setSelectedRole(null);
+    toast.success('Role deleted');
+  };
 
   return (
     <DashboardLayout>
@@ -134,57 +205,10 @@ export default function RoleManagement() {
               Create and manage roles with granular permissions for system access control.
             </p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Role
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Role</DialogTitle>
-                <DialogDescription>
-                  Define a new role with specific permissions for system access.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-6 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role-name">Role Name</Label>
-                  <Input id="role-name" placeholder="Enter role name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role-desc">Description</Label>
-                  <Textarea id="role-desc" placeholder="Describe this role's purpose" />
-                </div>
-                <div className="space-y-4">
-                  <Label>Permissions</Label>
-                  {Object.entries(groupedPermissions).map(([module, perms]) => (
-                    <div key={module} className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">{module}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {perms.map((perm) => (
-                          <div key={perm.id} className="flex items-center space-x-2">
-                            <Checkbox id={perm.id} />
-                            <label
-                              htmlFor={perm.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {perm.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline">Cancel</Button>
-                <Button>Create Role</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Role
+          </Button>
         </div>
 
         {/* Search */}
@@ -205,9 +229,7 @@ export default function RoleManagement() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Roles</CardTitle>
-                <CardDescription>
-                  Click on a role to view and edit its permissions
-                </CardDescription>
+                <CardDescription>Click on a role to view its permissions</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -248,11 +270,11 @@ export default function RoleManagement() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" onClick={(e) => openEditDialog(role, e)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             {!role.isSystem && (
-                              <Button variant="ghost" size="icon">
+                              <Button variant="ghost" size="icon" onClick={(e) => handleDelete(role, e)}>
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             )}
@@ -321,6 +343,69 @@ export default function RoleManagement() {
           </div>
         </div>
       </div>
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+            <DialogDescription>
+              {editingRole
+                ? 'Update the role name, description and permissions.'
+                : 'Define a new role with specific permissions for system access.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="role-name">Role Name</Label>
+              <Input
+                id="role-name"
+                placeholder="Enter role name"
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role-desc">Description</Label>
+              <Textarea
+                id="role-desc"
+                placeholder="Describe this role's purpose"
+                value={formDesc}
+                onChange={(e) => setFormDesc(e.target.value)}
+              />
+            </div>
+            <div className="space-y-4">
+              <Label>Permissions</Label>
+              {Object.entries(groupedPermissions).map(([module, perms]) => (
+                <div key={module} className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">{module}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {perms.map((perm) => (
+                      <div key={perm.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`dialog-${perm.id}`}
+                          checked={formPerms.includes(perm.id)}
+                          onCheckedChange={() => togglePerm(perm.id)}
+                        />
+                        <label
+                          htmlFor={`dialog-${perm.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {perm.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSave}>{editingRole ? 'Save Changes' : 'Create Role'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
