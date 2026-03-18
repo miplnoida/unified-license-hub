@@ -45,8 +45,8 @@ export default function Dashboard() {
       ] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(5),
         supabase.from('applications').select('*', { count: 'exact', head: true }),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'scrutiny', 'technical_review', 'pending_approval']),
-        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['approved', 'license_issued']),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'in_progress']),
+        supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
         supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
         supabase.from('licenses').select('*', { count: 'exact', head: true }),
         supabase.from('complaints').select('*', { count: 'exact', head: true }),
