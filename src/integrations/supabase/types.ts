@@ -2334,6 +2334,9 @@ export type Database = {
         | "analyst"
         | "applicant"
         | "developer"
+        | "pre_licensee"
+        | "licensee_primary"
+        | "licensee_secondary"
       user_type: "primary" | "secondary"
     }
     CompositeTypes: {
@@ -2470,6 +2473,9 @@ export const Constants = {
         "analyst",
         "applicant",
         "developer",
+        "pre_licensee",
+        "licensee_primary",
+        "licensee_secondary",
       ],
       user_type: ["primary", "secondary"],
     },
