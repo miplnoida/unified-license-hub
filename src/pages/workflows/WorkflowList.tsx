@@ -32,6 +32,7 @@ import {
   type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
 } from '@/hooks/useWorkflowEngine';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY, INTERNAL_ROLES } from '@/types/platform';
+import { useRoles } from '@/hooks/useRoles';
 
 const STEP_TYPE_LABELS: Record<string, string> = {
   sequential: 'Sequential',
@@ -46,6 +47,7 @@ export default function WorkflowList() {
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
   const { data: dbSectors = [] } = useSectors();
   const { data: dbCategories = [] } = useCategories();
+  const { data: dynamicRoles = [] } = useRoles();
 
   const createWorkflow = useCreateWorkflow();
   const updateWorkflow = useUpdateWorkflow();
@@ -308,6 +310,7 @@ export default function WorkflowList() {
                         <StepCard
                           step={step}
                           index={idx}
+                          dynamicRoles={dynamicRoles}
                           onUpdate={handleUpdateStep}
                           onDelete={handleDeleteStep}
                           onDragStart={handleDragStart}
@@ -405,6 +408,7 @@ export default function WorkflowList() {
 interface StepCardProps {
   step: WorkflowStep;
   index: number;
+  dynamicRoles: { id: string; name: string; system_role: string }[];
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onDragStart: (idx: number) => void;
@@ -412,7 +416,7 @@ interface StepCardProps {
   onDrop: (e: React.DragEvent, idx: number) => void;
 }
 
-function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, onDrop }: StepCardProps) {
+function StepCard({ step, index, dynamicRoles, onUpdate, onDelete, onDragStart, onDragOver, onDrop }: StepCardProps) {
   const [expanded, setExpanded] = useState(false);
   const allowedActions = (step.allowed_actions || ['approve', 'reject', 'send_back']) as WorkflowActionType[];
 
@@ -449,7 +453,7 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
         <div className="flex items-center gap-1 shrink-0">
           <Badge variant="secondary" className="text-[10px] gap-0.5">
             <Users className="h-3 w-3" />
-            {ROLE_LABELS[step.approver_role] || step.approver_role}
+            {dynamicRoles.find(r => r.system_role === step.approver_role)?.name || ROLE_LABELS[step.approver_role] || step.approver_role}
           </Badge>
           <Badge variant="outline" className={`text-[10px] gap-0.5 ${slaColor}`}>
             <Clock className="h-3 w-3" /> {step.sla_hours || 48}h
@@ -481,8 +485,8 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
               <Select value={step.approver_role} onValueChange={val => onUpdate(step.id, { approver_role: val } as any)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {INTERNAL_ROLES.map(r => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                  {dynamicRoles.map(r => (
+                    <SelectItem key={r.id} value={r.system_role}>{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -539,8 +543,8 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {INTERNAL_ROLES.map(r => (
-                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                  {dynamicRoles.map(r => (
+                    <SelectItem key={r.id} value={r.system_role}>{r.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
