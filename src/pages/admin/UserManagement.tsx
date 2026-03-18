@@ -396,37 +396,6 @@ export default function UserManagement() {
               </div>
             </div>
 
-            <Separator />
-
-            {/* Section 2: Basic Information */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Basic Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select value={form.gender} onValueChange={v => setForm(p => ({ ...p, gender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>User Type</Label>
-                  <Select value={form.user_type} onValueChange={v => setForm(p => ({ ...p, user_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="primary">Admin</SelectItem>
-                      <SelectItem value="secondary">Regulator</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
