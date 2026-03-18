@@ -58,6 +58,11 @@ export default function NewApplication() {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [feeAmount, setFeeAmount] = useState<number>(0);
+  const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
 
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
