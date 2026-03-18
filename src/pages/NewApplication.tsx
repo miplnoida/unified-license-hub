@@ -116,6 +116,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
+  const paymentComplete = paymentStatus === 'success';
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
