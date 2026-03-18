@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RegulatorProvider } from "@/contexts/RegulatorContext";
 import { lazy, Suspense } from "react";
+import { isPreLicenseeAllowedRoute } from "@/hooks/useUserPermissions";
 
 // ─── Loading fallback ───
 const PageLoader = () => (
@@ -26,6 +27,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FormDetail = lazy(() => import("./pages/FormDetail"));
 const NewApplication = lazy(() => import("./pages/NewApplication"));
+
+// Registration
+const PreLicenseeRegistration = lazy(() => import("./pages/registration/PreLicenseeRegistration"));
 
 // Applications
 const ApplicationsList = lazy(() => import("./pages/applications/ApplicationsList"));
@@ -63,6 +67,8 @@ const ReportsDashboard = lazy(() => import("./pages/reports/ReportsDashboard"));
 const RoleManagement = lazy(() => import("./pages/admin/RoleManagement"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const ManageWebUsers = lazy(() => import("./pages/admin/ManageWebUsers"));
+const ManageLicensees = lazy(() => import("./pages/admin/ManageLicensees"));
 const FormBuilder = lazy(() => import("./pages/admin/FormBuilder"));
 const FormManagement = lazy(() => import("./pages/admin/FormManagement"));
 const MasterConfiguration = lazy(() => import("./pages/admin/MasterConfiguration"));
@@ -93,8 +99,8 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,       // 30s before refetch
-      gcTime: 300_000,         // 5min garbage collection
+      staleTime: 30_000,
+      gcTime: 300_000,
       retry: 2,
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
       refetchOnWindowFocus: false,
@@ -105,10 +111,22 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Protected route with pre-licensee access restriction.
+ * Pre-licensee users can only access a limited set of routes.
+ */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/" replace />;
+
+  // Pre-licensee users: restrict to allowed routes only
+  if (user?.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -124,6 +142,7 @@ function AppRoutes() {
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Dashboard */}
@@ -185,7 +204,8 @@ function AppRoutes() {
         {/* Administration */}
         <Route path="/admin" element={<P><AdminHub /></P>} />
         <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
-        <Route path="/admin/users" element={<P><UserManagement /></P>} />
+        <Route path="/admin/licensees" element={<P><ManageLicensees /></P>} />
+        <Route path="/admin/users" element={<P><ManageWebUsers /></P>} />
         <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
         <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
         <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />

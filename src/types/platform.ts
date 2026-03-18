@@ -7,7 +7,10 @@ export type AppRole =
   | 'licensing_officer' 
   | 'analyst' 
   | 'applicant' 
-  | 'developer';
+  | 'developer'
+  | 'pre_licensee'
+  | 'licensee_primary'
+  | 'licensee_secondary';
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: 'Super Admin',
@@ -17,6 +20,9 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   analyst: 'Analyst',
   applicant: 'Applicant',
   developer: 'Developer',
+  pre_licensee: 'Pre-Licensee Applicant',
+  licensee_primary: 'Primary User',
+  licensee_secondary: 'Secondary User',
 };
 
 export const ROLE_HIERARCHY: AppRole[] = [
@@ -26,6 +32,9 @@ export const ROLE_HIERARCHY: AppRole[] = [
   'licensing_officer',
   'analyst',
   'developer',
+  'licensee_primary',
+  'licensee_secondary',
+  'pre_licensee',
   'applicant',
 ];
 
@@ -38,6 +47,13 @@ export const INTERNAL_ROLES: AppRole[] = [
   'developer',
 ];
 
+export const LICENSEE_ROLES: AppRole[] = [
+  'licensee_primary',
+  'licensee_secondary',
+];
+
+export const PRE_LICENSEE_ROLES: AppRole[] = ['pre_licensee'];
+
 export interface PlatformUser {
   id: string;
   email: string;
@@ -45,6 +61,8 @@ export interface PlatformUser {
   role: AppRole;
   entityName?: string;
   status: string;
+  licenseeId?: string;
+  isPreLicensee: boolean;
 }
 
 // Application statuses - extended lifecycle

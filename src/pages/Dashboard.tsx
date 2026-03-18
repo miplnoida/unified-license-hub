@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { INTERNAL_ROLES, APPLICATION_STATUS_LABELS } from '@/types/platform';
+import { INTERNAL_ROLES, APPLICATION_STATUS_LABELS, LICENSEE_ROLES } from '@/types/platform';
 import { FileText, Clock, CheckCircle, AlertTriangle, Shield, ClipboardList, Plus, ArrowUpRight } from 'lucide-react';
 
 interface DashboardStats {
@@ -26,7 +26,10 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({ totalApps: 0, pendingApps: 0, approvedApps: 0, rejectedApps: 0, totalLicenses: 0, totalComplaints: 0, overdueReturns: 0 });
   const [recentApps, setRecentApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isLicensee = user && LICENSEE_ROLES.includes(user.role);
+  const isPreLicensee = user?.isPreLicensee;
 
   useEffect(() => {
     async function load() {
@@ -68,13 +71,93 @@ export default function Dashboard() {
     approved: 'default', rejected: 'destructive', license_issued: 'default',
   };
 
+  // ─── Pre-Licensee Dashboard ───
+  if (isPreLicensee) {
+    return (
+      <DashboardLayout
+        title="Pre-License Portal"
+        subtitle={`Welcome, ${user.fullName}. Track your pre-license applications below.`}
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-slide-up delay-100">
+            <StatCard title="My Applications" value={stats.totalApps} icon={<FileText className="h-5 w-5" />} variant="primary" />
+            <StatCard title="Pending Review" value={stats.pendingApps} icon={<Clock className="h-5 w-5" />} variant="warning" />
+            <StatCard title="Approved" value={stats.approvedApps} icon={<CheckCircle className="h-5 w-5" />} variant="success" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up delay-200">
+            <Card>
+              <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/applications')}>
+                  <FileText className="h-4 w-4" /> My Applications
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Recent Applications</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/applications')}>
+                    View All <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {recentApps.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No applications yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentApps.map(app => (
+                      <div key={app.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 cursor-pointer transition-colors" onClick={() => navigate(`/applications/${app.id}`)}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-mono text-sm font-medium">{app.application_number}</p>
+                            <p className="text-xs text-muted-foreground">{app.license_type}</p>
+                          </div>
+                        </div>
+                        <Badge variant={statusVariant[app.status] || 'outline'} className="capitalize text-xs">
+                          {APPLICATION_STATUS_LABELS[app.status as keyof typeof APPLICATION_STATUS_LABELS] || app.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Restriction notice */}
+          <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-800 dark:text-amber-300">Pre-License Account</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                    You are registered as a pre-license applicant. Access to post-license modules (returns, payments, license management)
+                    will be available after your license is approved and a web user account is created by the regulator.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // ─── Licensee Dashboard ───
+  const dashboardTitle = isInternal ? 'Admin Dashboard' : isLicensee ? 'Licensee Dashboard' : 'My Dashboard';
+  const dashboardSubtitle = `Welcome back, ${user.fullName}. Here's your overview.`;
+
   return (
-    <DashboardLayout
-      title={isInternal ? 'Admin Dashboard' : 'My Dashboard'}
-      subtitle={`Welcome back, ${user.fullName}. Here's your overview.`}
-    >
+    <DashboardLayout title={dashboardTitle} subtitle={dashboardSubtitle}>
       <div className="space-y-6">
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title={isInternal ? 'Total Applications' : 'My Applications'} value={stats.totalApps} icon={<FileText className="h-5 w-5" />} variant="primary" />
           <StatCard title="Pending Review" value={stats.pendingApps} icon={<Clock className="h-5 w-5" />} variant="warning" />
@@ -94,15 +177,11 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Quick Actions + Recent */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up delay-300">
-          {/* Quick Actions */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {!isInternal && (
+              {(isLicensee || (!isInternal && !isPreLicensee)) && (
                 <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/applications')}>
                   <Plus className="h-4 w-4" /> New Application
                 </Button>
@@ -110,16 +189,17 @@ export default function Dashboard() {
               <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate(isInternal ? '/applications/queue' : '/applications')}>
                 <FileText className="h-4 w-4" /> {isInternal ? 'View Queue' : 'My Applications'}
               </Button>
-              <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/compliance/returns')}>
-                <ClipboardList className="h-4 w-4" /> Compliance Returns
-              </Button>
+              {(isLicensee || isInternal) && (
+                <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/compliance/returns')}>
+                  <ClipboardList className="h-4 w-4" /> Compliance Returns
+                </Button>
+              )}
               <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/documents')}>
                 <ArrowUpRight className="h-4 w-4" /> Documents
               </Button>
             </CardContent>
           </Card>
 
-          {/* Recent Applications */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
