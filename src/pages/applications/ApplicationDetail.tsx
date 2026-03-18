@@ -343,52 +343,14 @@ export default function ApplicationDetail() {
               />
             )}
 
-            {/* Manual staff actions (no workflow) */}
+            {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {app.status === 'submitted' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStageTransition('in_progress', 'start_review', '')}
-                      disabled={processing}
-                    >
-                      Start Review (Move to In Progress)
-                    </Button>
-                  )}
-                  {app.status === 'in_progress' && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-sm">
-                          Remarks / Description <span className="text-destructive">*</span>
-                        </Label>
-                        <Textarea
-                          value={actionComment}
-                          onChange={e => setActionComment(e.target.value)}
-                          placeholder="Enter your remarks (mandatory for approve/reject)..."
-                          rows={3}
-                        />
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        <Button
-                          size="sm"
-                          onClick={() => handleStageTransition('approved', 'approve', actionComment)}
-                          disabled={processing}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" /> Approve
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleStageTransition('rejected', 'reject', actionComment)}
-                          disabled={processing}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" /> Reject
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                <CardContent className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    No approval workflow is configured for this license type. Please configure a workflow in the Workflows module to enable multi-level approval.
+                  </p>
                 </CardContent>
               </Card>
             )}
