@@ -212,6 +212,7 @@ function AppRoutes() {
         <Route path="/admin" element={<P><AdminHub /></P>} />
         <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
         <Route path="/admin/licensees" element={<P><ManageLicensees /></P>} />
+        <Route path="/admin/licensees/:id" element={<P><LicenseeDetailPage /></P>} />
         <Route path="/admin/users" element={<P><ManageWebUsers /></P>} />
         <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
         <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
