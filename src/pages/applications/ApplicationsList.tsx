@@ -12,11 +12,11 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary', submitted: 'default', in_progress: 'outline',
-  approved: 'default', rejected: 'destructive',
+  approved: 'default', rejected: 'destructive', resubmission_requested: 'outline',
 };
 
 interface Application {
@@ -35,6 +35,16 @@ interface Profile {
   full_name: string;
 }
 
+interface ActionEvent {
+  id: string;
+  application_id: string;
+  action: string;
+  comments: string | null;
+  actor_id: string;
+  created_at: string;
+  actor_email?: string;
+}
+
 const PAGE_SIZE = 10;
 
 export default function ApplicationsList() {
@@ -42,28 +52,40 @@ export default function ApplicationsList() {
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [allActions, setAllActions] = useState<ActionEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, profRes, preLicRes] = await Promise.all([
+      const [appRes, profRes, preLicRes, actionsRes] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }),
-        supabase.from('profiles').select('id, full_name'),
-        supabase.from('pre_license_users' as any).select('id, full_name'),
+        supabase.from('profiles').select('id, full_name, email'),
+        supabase.from('pre_license_users' as any).select('id, full_name, email'),
+        supabase.from('approval_actions').select('*').order('created_at', { ascending: true }),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
-      const allProfiles: Profile[] = [
+      const allProfiles: any[] = [
         ...((profRes.data || []) as any),
         ...((preLicRes.data || []) as any),
       ];
       setProfiles(allProfiles);
+
+      if (actionsRes.data) {
+        const emailMap: Record<string, string> = {};
+        allProfiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
+        setAllActions((actionsRes.data as any[]).map(a => ({
+          ...a,
+          actor_email: emailMap[a.actor_id] || a.actor_id,
+        })));
+      }
       setLoading(false);
     }
     load();
@@ -71,7 +93,8 @@ export default function ApplicationsList() {
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
 
-  // Extract unique license types for filter
+  const getAppActions = (appId: string) => allActions.filter(a => a.application_id === appId);
+
   const licenseTypes = useMemo(() => {
     const types = new Set(applications.map(a => a.license_type));
     return Array.from(types).filter(Boolean).sort();
@@ -96,7 +119,7 @@ export default function ApplicationsList() {
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const approved = applications.filter(a => a.status === 'approved').length;
-  const pending = applications.filter(a => !['approved', 'rejected'].includes(a.status)).length;
+  const pending = applications.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
   const rejected = applications.filter(a => a.status === 'rejected').length;
 
   return (
@@ -175,40 +198,95 @@ export default function ApplicationsList() {
                     <TableHead>License Type / Category</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>History</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paged.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
                         No license requests found.
                       </TableCell>
                     </TableRow>
-                  ) : paged.map(app => (
-                    <TableRow
-                      key={app.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/applications/${app.id}`)}
-                    >
-                      <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
-                      <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{app.license_type}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant[app.status] || 'outline'} className="capitalize text-xs">
-                          {APPLICATION_STATUS_LABELS[app.status] || app.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
-                          <Eye className="h-4 w-4 mr-1" />View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  ) : paged.map(app => {
+                    const actions = getAppActions(app.id);
+                    const isExpanded = expandedId === app.id;
+                    return (
+                      <>
+                        <TableRow
+                          key={app.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/applications/${app.id}`)}
+                        >
+                          <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
+                          <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{app.license_type}</TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant[app.status] || 'outline'} className="capitalize text-xs">
+                              {APPLICATION_STATUS_LABELS[app.status] || app.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            {actions.length > 0 ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setExpandedId(isExpanded ? null : app.id);
+                                }}
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                <span className="text-xs">{actions.length}</span>
+                                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
+                              <Eye className="h-4 w-4 mr-1" />View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && actions.length > 0 && (
+                          <TableRow key={`${app.id}-history`}>
+                            <TableCell colSpan={7} className="bg-muted/30 p-4">
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
+                                {actions.map(evt => (
+                                  <div key={evt.id} className="flex gap-3 items-start border-l-2 border-primary/30 pl-3 py-1">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <Badge variant="outline" className="text-[10px] capitalize">
+                                          {evt.action.replace(/_/g, ' ')}
+                                        </Badge>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {new Date(evt.created_at).toLocaleString()}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground mt-0.5">by {evt.actor_email}</p>
+                                      {evt.comments && (
+                                        <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-muted pl-2">
+                                          "{evt.comments}"
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

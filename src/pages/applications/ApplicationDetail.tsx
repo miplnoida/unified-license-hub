@@ -18,7 +18,7 @@ import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban } from 'lucide-react';
+import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -27,6 +27,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   approved: 'default',
   rejected: 'destructive',
   cancelled: 'destructive',
+  resubmission_requested: 'outline',
 };
 
 interface Application {
@@ -257,6 +258,99 @@ export default function ApplicationDetail() {
     setProcessing(false);
   };
 
+  // Applicant requests to edit their application (before approval)
+  const handleRequestEdit = async () => {
+    if (!app || !user || !actionComment.trim()) {
+      toast.error('Please provide a reason for requesting to edit your application');
+      return;
+    }
+    setProcessing(true);
+
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'edit_requested', actor_id: user.id,
+      comments: actionComment,
+    } as any);
+    await logAudit({ action: 'edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    toast.success('Edit request submitted. Admin will review your request.');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
+  // Applicant resubmits application after resubmission was requested
+  const handleResubmit = async () => {
+    if (!app || !user) return;
+    setProcessing(true);
+
+    // Resume paused workflow instance
+    const { data: instances } = await supabase
+      .from('workflow_instances')
+      .select('id, current_step_id')
+      .eq('entity_id', app.id)
+      .eq('entity_type', 'application')
+      .eq('status', 'paused');
+
+    if (instances?.length) {
+      await supabase.from('workflow_instances').update({
+        status: 'active',
+      } as any).eq('id', instances[0].id);
+    }
+
+    await supabase.from('applications').update({
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
+    } as any).eq('id', app.id);
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'resubmitted', actor_id: user.id,
+      comments: actionComment || 'Application resubmitted after revision',
+    } as any);
+    await logAudit({ action: 'application_resubmitted', entityType: 'application', entityId: app.id });
+    toast.success('Application resubmitted successfully');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
+  // Admin/Regulator requests resubmission (without workflow)
+  const handleAdminRequestResubmission = async () => {
+    if (!app || !user || !actionComment.trim()) {
+      toast.error('Please provide remarks explaining what needs to be revised');
+      return;
+    }
+    setProcessing(true);
+
+    await supabase.from('applications').update({
+      status: 'resubmission_requested',
+    } as any).eq('id', app.id);
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: 'resubmission_requested', actor_id: user.id,
+      comments: actionComment,
+    } as any);
+
+    // Send notification to applicant
+    try {
+      await supabase.functions.invoke('send-notification', {
+        body: {
+          action: 'dispatch',
+          event_type: 'resubmission_requested',
+          user_id: app.applicant_id,
+          title: `Resubmission Requested: ${app.application_number}`,
+          message: `Your application ${app.application_number} requires revisions.\n\nRemarks: ${actionComment}`,
+          entity_type: 'application',
+          entity_id: app.id,
+        },
+      });
+    } catch (e) {
+      console.error('Notification failed', e);
+    }
+
+    await logAudit({ action: 'resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    toast.success('Resubmission requested. Applicant has been notified.');
+    setActionComment('');
+    loadData();
+    setProcessing(false);
+  };
+
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
@@ -370,7 +464,7 @@ export default function ApplicationDetail() {
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardContent className="pt-6 space-y-4">
-                    {(isOwner && app.status === 'draft') && (
+                    {(isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')) && (
                       <DocumentUpload
                         entityType="application"
                         entityId={app.id}
@@ -398,10 +492,44 @@ export default function ApplicationDetail() {
             {showManualActions && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
                     No approval workflow is configured for this license type. Please configure a workflow in the Workflows module to enable multi-level approval.
                   </p>
+                  {/* Admin can request resubmission even without workflow */}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain what needs to be revised..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Admin request resubmission for in_progress apps (with or without workflow) */}
+            {isInternal && !app.workflow_id && (app.status === 'in_progress') && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Request Resubmission</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain what needs to be revised..."
+                      rows={3}
+                    />
+                  </div>
+                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -418,11 +546,58 @@ export default function ApplicationDetail() {
               </div>
             )}
 
-            {/* Applicant cancel action for submitted/in_progress applications */}
+            {/* Applicant resubmit action */}
+            {isOwner && app.status === 'resubmission_requested' && (
+              <Card>
+                <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    The reviewer has requested changes to your application. Please update your documents/forms and resubmit.
+                  </p>
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks (optional)</Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Describe the changes you made..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleResubmit} disabled={processing} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : 'Resubmit Application'}
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Applicant request edit (before approval, while submitted/in_progress) */}
             {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (
-              <Button variant="destructive" onClick={handleCancel} disabled={processing} className="w-full">
-                <Ban className="h-4 w-4 mr-2" />{processing ? 'Cancelling...' : 'Cancel Application'}
-              </Button>
+              <Card>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm">Request to Edit Application</Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Explain why you need to edit your application..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
+                      <Edit className="h-4 w-4 mr-2" />Request Edit
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </div>
 

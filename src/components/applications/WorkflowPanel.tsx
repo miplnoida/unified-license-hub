@@ -123,6 +123,11 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
     );
   }
 
+  // Request Resubmission - available at any level
+  actions.push(
+    { type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
+  );
+
   return (
     <Card>
       <CardHeader className="pb-3">

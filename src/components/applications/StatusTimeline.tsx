@@ -23,6 +23,8 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   in_progress: { icon: <Loader2 className="h-4 w-4" />, color: 'text-warning' },
   approved: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-success' },
   rejected: { icon: <XCircle className="h-4 w-4" />, color: 'text-destructive' },
+  cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-destructive' },
+  resubmission_requested: { icon: <Clock className="h-4 w-4" />, color: 'text-warning' },
 };
 
 export function StatusTimeline({ currentStatus, events }: Props) {
