@@ -539,7 +539,7 @@ function StepCard({ step, index, onUpdate, onDelete, onDragStart, onDragOver, on
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {ROLE_HIERARCHY.filter(r => r !== 'applicant').map(r => (
+                  {INTERNAL_ROLES.map(r => (
                     <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
                 </SelectContent>
