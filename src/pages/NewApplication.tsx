@@ -283,10 +283,95 @@ export default function NewApplication() {
     setCurrentStep('forms');
   };
 
+  // Load applicable fees when moving to payment step
+  const loadFees = async () => {
+    if (!selectedSector) return;
+    const { data: fees } = await supabase
+      .from('fee_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .or(`sector_id.eq.${selectedSector},sector_id.is.null`)
+      .order('name');
+
+    if (fees && fees.length > 0) {
+      const breakdown = fees.map(f => ({ name: f.name, amount: Number(f.amount) }));
+      setFeeBreakdown(breakdown);
+      setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+    } else {
+      // Default fee if none configured
+      setFeeBreakdown([{ name: 'Application Processing Fee', amount: 500 }]);
+      setFeeAmount(500);
+    }
+  };
+
+  const handleProceedToPayment = async () => {
+    await loadFees();
+    setCurrentStep('payment');
+  };
+
+  const handleProcessPayment = async () => {
+    if (!applicationId || !user) return;
+    setProcessingPayment(true);
+
+    try {
+      // Create payment record
+      const { data: payment, error: payErr } = await supabase
+        .from('payments')
+        .insert({
+          user_id: user.id,
+          application_id: applicationId,
+          amount: feeAmount,
+          status: 'completed',
+          payment_method: 'online',
+          paid_at: new Date().toISOString(),
+          transaction_ref: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        } as any)
+        .select()
+        .single();
+
+      if (payErr) throw payErr;
+
+      setPaymentId((payment as any).id);
+      setPaymentStatus('success');
+
+      // Generate receipt
+      await supabase.from('payment_receipts').insert({
+        payment_id: (payment as any).id,
+        amount: feeAmount,
+        issued_to_name: user.email || 'Applicant',
+        issued_to_email: user.email,
+        fee_breakdown: feeBreakdown,
+      } as any);
+
+      await logAudit({
+        action: 'payment_completed',
+        entityType: 'payment',
+        entityId: (payment as any).id,
+        newValue: { amount: feeAmount, application_id: applicationId },
+      });
+
+      toast.success('Payment successful!');
+    } catch (err: any) {
+      setPaymentStatus('failed');
+      toast.error('Payment failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handleRetryPayment = () => {
+    setPaymentStatus('pending');
+    setPaymentId(null);
+  };
+
   const handleFinalSubmit = async () => {
     if (!applicationId || !user) return;
     if (!allFormsCompleted) {
       toast.error('Please complete all required forms before submitting.');
+      return;
+    }
+    if (!paymentComplete) {
+      toast.error('Please complete payment to submit application.');
       return;
     }
     setSubmitting(true);
@@ -357,6 +442,17 @@ export default function NewApplication() {
         return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
       default:
         return <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Not Started</Badge>;
+    }
+  };
+
+  const getPaymentStatusBadge = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Paid</Badge>;
+      case 'failed':
+        return <Badge variant="rejected" className="gap-1"><AlertCircle className="h-3 w-3" /> Failed</Badge>;
+      default:
+        return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>;
     }
   };
 
