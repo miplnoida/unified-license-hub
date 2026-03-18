@@ -15,9 +15,8 @@ import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  draft: 'secondary', submitted: 'default', scrutiny: 'outline', query_raised: 'outline',
-  resubmitted: 'outline', technical_review: 'outline', pending_approval: 'outline',
-  approved: 'default', rejected: 'destructive', license_issued: 'default',
+  draft: 'secondary', submitted: 'default', in_progress: 'outline',
+  approved: 'default', rejected: 'destructive',
 };
 
 interface Application {
