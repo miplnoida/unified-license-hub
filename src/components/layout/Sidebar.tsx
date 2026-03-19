@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mainNavSections, NavItem } from '@/config/navigation';
 import { Layers, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
