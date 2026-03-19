@@ -22,7 +22,46 @@ export default function BrandingSettingsPage() {
   const [foot, setFoot] = useState<FooterSettings>(footer);
   const [menu, setMenu] = useState<HeaderMenuItem[]>(header_menu);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
 
+  const uploadFile = async (file: File, folder: string): Promise<string> => {
+    const ext = file.name.split('.').pop();
+    const path = `${folder}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('branding-assets').upload(path, file, { upsert: true });
+    if (error) throw error;
+    return `${SUPABASE_URL}/storage/v1/object/public/branding-assets/${path}`;
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('File must be under 5MB'); return; }
+    setUploadingLogo(true);
+    try {
+      const url = await uploadFile(file, 'logo');
+      setBrand(prev => ({ ...prev, logo_url: url }));
+      toast.success('Logo uploaded');
+    } catch (err: any) { toast.error('Upload failed: ' + err.message); }
+    finally { setUploadingLogo(false); if (logoInputRef.current) logoInputRef.current.value = ''; }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error('File must be under 2MB'); return; }
+    setUploadingFavicon(true);
+    try {
+      const url = await uploadFile(file, 'favicon');
+      setBrand(prev => ({ ...prev, favicon_url: url }));
+      toast.success('Favicon uploaded');
+    } catch (err: any) { toast.error('Upload failed: ' + err.message); }
+    finally { setUploadingFavicon(false); if (faviconInputRef.current) faviconInputRef.current.value = ''; }
+  };
   // Sync when context loads
   useEffect(() => {
     setBrand(branding);
