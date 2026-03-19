@@ -115,10 +115,14 @@ export function Sidebar() {
       <div className="flex h-14 items-center justify-between px-4 shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
-            </div>
-            <span className="text-base font-bold text-sidebar-foreground tracking-tight">RegPlatform</span>
+            {branding.logo_url ? (
+              <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-lg object-contain" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+                <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
+              </div>
+            )}
+            <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
           </div>
         )}
         <Button
