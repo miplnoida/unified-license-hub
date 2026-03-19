@@ -2,33 +2,31 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Layers, Menu, X, HelpCircle } from 'lucide-react';
-
-const navLinks = [
-  { label: 'Home', href: '#' },
-  { label: 'Services', href: '#services' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'About', href: '#highlights' },
-  { label: 'Contact', href: '#footer' },
-];
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 
 export function LandingNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const { branding, header_menu } = useSiteSettings();
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
-            <Layers className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-foreground">RegPortal</span>
+          {branding.logo_url ? (
+            <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-md object-contain" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
+              <Layers className="h-4 w-4 text-primary-foreground" />
+            </div>
+          )}
+          <span className="text-base font-bold tracking-tight text-foreground">{branding.site_name}</span>
         </a>
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((l) => (
+          {header_menu.map((l) => (
             <a
               key={l.label}
               href={l.href}
@@ -60,7 +58,7 @@ export function LandingNav() {
 
       {open && (
         <div className="md:hidden border-t bg-card px-4 pb-4 pt-2 space-y-1 animate-fade-in">
-          {navLinks.map((l) => (
+          {header_menu.map((l) => (
             <a key={l.label} href={l.href} onClick={() => setOpen(false)}
               className="block py-2 text-sm text-muted-foreground hover:text-foreground">
               {l.label}

@@ -6,6 +6,7 @@ import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
+  const { branding } = useSiteSettings();
 
   const handleLogout = async () => {
     await logout();
@@ -29,7 +31,7 @@ export function Header() {
       <div className="flex items-center gap-4">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search applications, licenses..." className="pl-10 h-9 bg-muted/40 border-0 text-sm" />
+          <Input placeholder={`Search ${branding.site_name}...`} className="pl-10 h-9 bg-muted/40 border-0 text-sm" />
         </div>
       </div>
 
