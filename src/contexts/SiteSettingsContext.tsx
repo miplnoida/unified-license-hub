@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── Types ───
@@ -21,11 +21,29 @@ export interface FooterSettings {
   social: { icon: string; href: string; label: string }[];
 }
 
+export interface GeneralSettings {
+  org_name: string;
+  org_short_name: string;
+  contact_email: string;
+  contact_phone: string;
+  address: string;
+  timezone: string;
+  date_format: string;
+  language: string;
+  currency: string;
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  maintenance_mode: boolean;
+  audit_logging: boolean;
+}
+
 export interface SiteSettings {
   branding: BrandingSettings;
   header_menu: HeaderMenuItem[];
   footer: FooterSettings;
+  general: GeneralSettings;
   loading: boolean;
+  refreshSettings: () => Promise<void>;
 }
 
 // ─── Defaults (fallback if API fails) ───
@@ -55,11 +73,29 @@ const DEFAULT_FOOTER: FooterSettings = {
   social: [],
 };
 
+const DEFAULT_GENERAL: GeneralSettings = {
+  org_name: 'AFSC - Authority for Financial Services Commission',
+  org_short_name: 'AFSC',
+  contact_email: 'info@afsc.gov',
+  contact_phone: '+1-800-555-0100',
+  address: '123 Regulatory Avenue, Financial District, Capital City',
+  timezone: 'utc-5',
+  date_format: 'mdy',
+  language: 'en',
+  currency: 'usd',
+  email_notifications: true,
+  sms_notifications: false,
+  maintenance_mode: false,
+  audit_logging: true,
+};
+
 const DEFAULTS: SiteSettings = {
   branding: DEFAULT_BRANDING,
   header_menu: DEFAULT_HEADER_MENU,
   footer: DEFAULT_FOOTER,
+  general: DEFAULT_GENERAL,
   loading: true,
+  refreshSettings: async () => {},
 };
 
 // ─── Context ───
@@ -75,50 +111,50 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
 export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SiteSettings>(() => {
-    // Try reading from sessionStorage cache first
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
         if (Date.now() - ts < CACHE_TTL) {
-          return { ...data, loading: false };
+          return { ...data, loading: false, refreshSettings: async () => {} };
         }
       }
     } catch { /* ignore */ }
     return DEFAULTS;
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchSettings = useCallback(async () => {
+    try {
+      const { data, error } = await (supabase.from('site_settings' as any).select('key, value') as any);
+      if (error) throw error;
 
-    async function fetchSettings() {
-      try {
-        const { data, error } = await (supabase.from('site_settings' as any).select('key, value') as any);
-        if (error) throw error;
+      const map: Record<string, any> = {};
+      (data || []).forEach((row: any) => { map[row.key] = row.value; });
 
-        const map: Record<string, any> = {};
-        (data || []).forEach((row: any) => { map[row.key] = row.value; });
+      const resolved = {
+        branding: { ...DEFAULT_BRANDING, ...(map.branding || {}) },
+        header_menu: Array.isArray(map.header_menu) ? map.header_menu : DEFAULT_HEADER_MENU,
+        footer: { ...DEFAULT_FOOTER, ...(map.footer || {}) },
+        general: { ...DEFAULT_GENERAL, ...(map.general || {}) },
+        loading: false,
+      };
 
-        const resolved: SiteSettings = {
-          branding: { ...DEFAULT_BRANDING, ...(map.branding || {}) },
-          header_menu: Array.isArray(map.header_menu) ? map.header_menu : DEFAULT_HEADER_MENU,
-          footer: { ...DEFAULT_FOOTER, ...(map.footer || {}) },
-          loading: false,
-        };
-
-        if (!cancelled) {
-          setSettings(resolved);
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: resolved, ts: Date.now() }));
-        }
-      } catch (err) {
-        console.error('[SiteSettings] fetch failed, using defaults:', err);
-        if (!cancelled) setSettings(prev => ({ ...prev, loading: false }));
-      }
+      setSettings(prev => ({ ...resolved, refreshSettings: prev.refreshSettings }));
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: resolved, ts: Date.now() }));
+    } catch (err) {
+      console.error('[SiteSettings] fetch failed, using defaults:', err);
+      setSettings(prev => ({ ...prev, loading: false }));
     }
-
-    fetchSettings();
-    return () => { cancelled = true; };
   }, []);
+
+  // Expose refresh
+  useEffect(() => {
+    setSettings(prev => ({ ...prev, refreshSettings: fetchSettings }));
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   // Dynamic document title & favicon
   useEffect(() => {

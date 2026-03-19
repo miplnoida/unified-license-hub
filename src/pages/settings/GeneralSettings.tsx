@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -5,17 +6,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from '@/components/ui/card';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSiteSettings, GeneralSettings as GeneralType } from '@/contexts/SiteSettingsContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function GeneralSettings() {
   const navigate = useNavigate();
+  const { general, refreshSettings } = useSiteSettings();
+  const [form, setForm] = useState<GeneralType>(general);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setForm(general); }, [general]);
+
+  const set = <K extends keyof GeneralType>(key: K, val: GeneralType[K]) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await (supabase.from('site_settings' as any).upsert({ key: 'general', value: form }, { onConflict: 'key' }) as any);
+      if (error) throw error;
+      sessionStorage.removeItem('site_settings_cache');
+      await refreshSettings();
+      toast.success('General settings saved successfully');
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to save: ' + (err.message || 'Unknown error'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
@@ -25,7 +49,10 @@ export default function GeneralSettings() {
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-              <Button><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Save Changes
+              </Button>
             </div>
           }
         />
@@ -38,23 +65,23 @@ export default function GeneralSettings() {
           <CardContent className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Organization Name</Label>
-              <Input defaultValue="AFSC - Authority for Financial Services Commission" />
+              <Input value={form.org_name} onChange={e => set('org_name', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Short Name / Acronym</Label>
-              <Input defaultValue="AFSC" />
+              <Input value={form.org_short_name} onChange={e => set('org_short_name', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Contact Email</Label>
-              <Input type="email" defaultValue="info@afsc.gov" />
+              <Input type="email" value={form.contact_email} onChange={e => set('contact_email', e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Contact Phone</Label>
-              <Input defaultValue="+1-800-555-0100" />
+              <Input value={form.contact_phone} onChange={e => set('contact_phone', e.target.value)} />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Address</Label>
-              <Textarea defaultValue="123 Regulatory Avenue, Financial District, Capital City" />
+              <Textarea value={form.address} onChange={e => set('address', e.target.value)} />
             </div>
           </CardContent>
         </Card>
@@ -66,7 +93,7 @@ export default function GeneralSettings() {
           <CardContent className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Timezone</Label>
-              <Select defaultValue="utc-5">
+              <Select value={form.timezone} onValueChange={v => set('timezone', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="utc-5">UTC-05:00 (Eastern)</SelectItem>
@@ -78,7 +105,7 @@ export default function GeneralSettings() {
             </div>
             <div className="space-y-2">
               <Label>Date Format</Label>
-              <Select defaultValue="mdy">
+              <Select value={form.date_format} onValueChange={v => set('date_format', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
@@ -89,7 +116,7 @@ export default function GeneralSettings() {
             </div>
             <div className="space-y-2">
               <Label>Default Language</Label>
-              <Select defaultValue="en">
+              <Select value={form.language} onValueChange={v => set('language', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
@@ -100,7 +127,7 @@ export default function GeneralSettings() {
             </div>
             <div className="space-y-2">
               <Label>Currency</Label>
-              <Select defaultValue="usd">
+              <Select value={form.currency} onValueChange={v => set('currency', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="usd">USD ($)</SelectItem>
@@ -117,18 +144,18 @@ export default function GeneralSettings() {
             <CardTitle className="text-lg">System Preferences</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {[
-              { label: 'Enable Email Notifications', desc: 'Send email alerts for application status changes.', on: true },
-              { label: 'Enable SMS Notifications', desc: 'Send SMS alerts for overdue returns.', on: false },
-              { label: 'Maintenance Mode', desc: 'Disable public access during system updates.', on: false },
-              { label: 'Audit Logging', desc: 'Record all user actions for compliance auditing.', on: true },
-            ].map(item => (
-              <div key={item.label} className="flex items-center justify-between">
+            {([
+              { key: 'email_notifications' as const, label: 'Enable Email Notifications', desc: 'Send email alerts for application status changes.' },
+              { key: 'sms_notifications' as const, label: 'Enable SMS Notifications', desc: 'Send SMS alerts for overdue returns.' },
+              { key: 'maintenance_mode' as const, label: 'Maintenance Mode', desc: 'Disable public access during system updates.' },
+              { key: 'audit_logging' as const, label: 'Audit Logging', desc: 'Record all user actions for compliance auditing.' },
+            ]).map(item => (
+              <div key={item.key} className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-foreground">{item.label}</p>
                   <p className="text-sm text-muted-foreground">{item.desc}</p>
                 </div>
-                <Switch defaultChecked={item.on} />
+                <Switch checked={form[item.key]} onCheckedChange={v => set(item.key, v)} />
               </div>
             ))}
           </CardContent>
