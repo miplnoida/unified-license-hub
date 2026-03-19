@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RegulatorProvider } from "@/contexts/RegulatorContext";
+import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { lazy, Suspense } from "react";
 import { isPreLicenseeAllowedRoute } from "@/hooks/useUserPermissions";
 
