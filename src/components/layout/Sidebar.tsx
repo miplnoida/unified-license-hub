@@ -77,6 +77,7 @@ export function Sidebar() {
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
   const location = useLocation();
   const { user } = useAuth();
+  const { branding } = useSiteSettings();
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((label: string) => {
