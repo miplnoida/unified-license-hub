@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +12,7 @@ import { Layers, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 export default function Login() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
+  const { branding } = useSiteSettings();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,10 +35,14 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
       {/* Logo */}
       <a href="/" className="flex items-center gap-2.5 mb-8">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-          <Layers className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <span className="text-xl font-bold tracking-tight text-foreground">RegPlatform</span>
+        {branding.logo_url ? (
+          <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-10 rounded-xl object-contain" />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+            <Layers className="h-5 w-5 text-primary-foreground" />
+          </div>
+        )}
+        <span className="text-xl font-bold tracking-tight text-foreground">{branding.site_name}</span>
       </a>
 
       <Card className="w-full max-w-[420px] shadow-card">
