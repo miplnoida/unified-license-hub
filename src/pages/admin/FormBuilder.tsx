@@ -25,10 +25,12 @@ import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
   useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
+  computeSemanticVersion,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
 
 function toFieldName(label: string): string {
