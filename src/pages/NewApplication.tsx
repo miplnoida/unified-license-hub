@@ -262,7 +262,7 @@ export default function NewApplication() {
         status: 'draft',
         entity_type: 'application',
         entity_id: applicationId,
-      } as any, { onConflict: 'entity_id,entity_type' }).select();
+      } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
 
       await supabase.from('applications').update({
         data: {
