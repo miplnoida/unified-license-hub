@@ -408,8 +408,9 @@ export function useSaveFormTemplate() {
       versionId?: string;
       version?: number;
       changeNotes?: string;
+      semanticVersion?: string;
     }) => {
-      const { template, sections, versionId, version = 1, changeNotes } = params;
+      const { template, sections, versionId, version = 1, changeNotes, semanticVersion } = params;
 
       // Upsert template
       const { error: tErr } = await supabase.from('form_templates').upsert({
@@ -443,6 +444,7 @@ export function useSaveFormTemplate() {
         published_at: template.status === 'published' ? new Date().toISOString() : null,
         created_by: template.created_by,
         change_notes: changeNotes || null,
+        semantic_version: semanticVersion || `${version}.0`,
       } as any);
       if (vErr) throw vErr;
 
