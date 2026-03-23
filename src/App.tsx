@@ -224,16 +224,16 @@ function AppRoutes() {
         <Route path="/admin/complaint-types" element={<P><AdminRoute><ComplaintTypes /></AdminRoute></P>} />
 
         {/* Settings */}
-        <Route path="/settings" element={<P><SettingsHub /></P>} />
-        <Route path="/settings/general" element={<P><GeneralSettings /></P>} />
-        <Route path="/settings/payments" element={<P><PaymentSettings /></P>} />
-        <Route path="/settings/schedule" element={<P><ScheduleSettings /></P>} />
-        <Route path="/settings/notifications" element={<P><NotificationSettings /></P>} />
-        <Route path="/settings/security" element={<P><SecuritySettings /></P>} />
-        <Route path="/settings/branding" element={<P><BrandingSettings /></P>} />
-        <Route path="/settings/email-sms" element={<P><EmailSmsSettings /></P>} />
-        <Route path="/settings/integrations" element={<P><IntegrationSettings /></P>} />
-        <Route path="/settings/data" element={<P><DataManagementSettings /></P>} />
+        <Route path="/settings" element={<P><SettingsRoute><SettingsHub /></SettingsRoute></P>} />
+        <Route path="/settings/general" element={<P><SettingsRoute><GeneralSettings /></SettingsRoute></P>} />
+        <Route path="/settings/payments" element={<P><SettingsRoute><PaymentSettings /></SettingsRoute></P>} />
+        <Route path="/settings/schedule" element={<P><SettingsRoute><ScheduleSettings /></SettingsRoute></P>} />
+        <Route path="/settings/notifications" element={<P><SettingsRoute><NotificationSettings /></SettingsRoute></P>} />
+        <Route path="/settings/security" element={<P><SettingsRoute><SecuritySettings /></SettingsRoute></P>} />
+        <Route path="/settings/branding" element={<P><SettingsRoute><BrandingSettings /></SettingsRoute></P>} />
+        <Route path="/settings/email-sms" element={<P><SettingsRoute><EmailSmsSettings /></SettingsRoute></P>} />
+        <Route path="/settings/integrations" element={<P><SettingsRoute><IntegrationSettings /></SettingsRoute></P>} />
+        <Route path="/settings/data" element={<P><SettingsRoute><DataManagementSettings /></SettingsRoute></P>} />
 
         {/* Account */}
         <Route path="/profile" element={<P><Profile /></P>} />
