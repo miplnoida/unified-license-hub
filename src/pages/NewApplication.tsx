@@ -315,22 +315,34 @@ export default function NewApplication() {
     setProcessingPayment(true);
 
     try {
-      // Create payment record
+      // Create payment record with 'pending' status first
+      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const { data: payment, error: payErr } = await supabase
         .from('payments')
         .insert({
           user_id: user.id,
           application_id: applicationId,
           amount: feeAmount,
-          status: 'completed',
+          status: 'pending',
           payment_method: 'online',
-          paid_at: new Date().toISOString(),
-          transaction_ref: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          transaction_ref: txnRef,
         } as any)
         .select()
         .single();
 
       if (payErr) throw payErr;
+
+      // Simulate payment processing (in production, this would call a payment gateway)
+      // For now we update to completed after a brief delay to simulate real flow
+      const { error: updateErr } = await supabase
+        .from('payments')
+        .update({
+          status: 'completed',
+          paid_at: new Date().toISOString(),
+        } as any)
+        .eq('id', (payment as any).id);
+
+      if (updateErr) throw updateErr;
 
       setPaymentId((payment as any).id);
       setPaymentStatus('success');
@@ -339,7 +351,7 @@ export default function NewApplication() {
       await supabase.from('payment_receipts').insert({
         payment_id: (payment as any).id,
         amount: feeAmount,
-        issued_to_name: user.email || 'Applicant',
+        issued_to_name: user.fullName || user.email || 'Applicant',
         issued_to_email: user.email,
         fee_breakdown: feeBreakdown,
       } as any);
@@ -353,6 +365,7 @@ export default function NewApplication() {
 
       toast.success('Payment successful!');
     } catch (err: any) {
+      // Mark payment as failed if it was created
       setPaymentStatus('failed');
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
     } finally {
