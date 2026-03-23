@@ -13,7 +13,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 export default function Login() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
-  const { branding } = useSiteSettings();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
