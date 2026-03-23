@@ -59,6 +59,7 @@ export default function FormBuilder() {
   const activeSectors = dbSectors.filter(s => s.status === 'active');
 
   const [sections, setSections] = useState<FormSection[]>([]);
+  const [initialSections, setInitialSections] = useState<FormSection[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
