@@ -184,6 +184,11 @@ export default function FormBuilder() {
     setSelectedSectionId(sectionId);
   }, []);
 
+  // Compute display version
+  const currentVersionStr = latestVersion
+    ? (latestVersion as any).semantic_version || `${latestVersion.version}.0`
+    : '1.0';
+
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
     setIsSaving(true);
@@ -195,7 +200,13 @@ export default function FormBuilder() {
 
       const templateId = editId || crypto.randomUUID();
       const versionId = latestVersion?.id || crypto.randomUUID();
-      const version = latestVersion?.version || 1;
+      const intVersion = latestVersion?.version || 1;
+
+      // Compute semantic version based on changes
+      let semanticVersion = currentVersionStr;
+      if (editId && initialSections.length > 0) {
+        semanticVersion = computeSemanticVersion(currentVersionStr, initialSections, sections);
+      }
 
       await saveTemplateMutation.mutateAsync({
         template: {
@@ -222,7 +233,9 @@ export default function FormBuilder() {
         },
         sections,
         versionId,
-        version,
+        version: intVersion,
+        changeNotes: `Version ${semanticVersion}`,
+        semanticVersion,
       });
 
       // Also save to legacy forms table for backward compatibility
@@ -236,13 +249,13 @@ export default function FormBuilder() {
         sector: sectorName,
         sub_sector: subSectorName,
         status: existingTemplate?.status || 'draft',
-        version,
+        version: intVersion,
         parent_form_id: null,
         regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
         rows: JSON.parse(JSON.stringify(sections)),
       } as any);
 
-      toast.success('Form saved successfully!');
+      toast.success(`Form saved — Version ${semanticVersion}`);
       navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
