@@ -73,6 +73,11 @@ export default function ApprovedLicensees() {
   const getName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
   const getEmail = (id: string) => profiles.find(p => p.id === id)?.email || '';
   const getLicense = (appId: string) => licenses.find(l => l.application_id === appId);
+  const getLicensee = (appId: string) => {
+    const lic = getLicense(appId);
+    if (!lic) return null;
+    return licensees.find(l => l.license_id === lic.id) || null;
+  };
 
   const filtered = useMemo(() => {
     if (!search) return apps;
