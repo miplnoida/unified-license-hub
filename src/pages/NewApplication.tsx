@@ -699,6 +699,7 @@ export default function NewApplication() {
                 onSaveDraft={handleFormSaveDraft}
                 onSubmit={handleFormSubmit}
                 saving={saving}
+                applicationId={applicationId || undefined}
               />
             ) : (
               <Card>
