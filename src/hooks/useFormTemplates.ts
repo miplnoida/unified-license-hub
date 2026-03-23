@@ -611,5 +611,28 @@ export function useSaveFormResponse() {
   });
 }
 
+// ─── Semantic Versioning Helper ───
+// Minor change (label, text, validation tweak): 1.0 → 1.1 → 1.2
+// Major change (field added/removed): 1.x → 2.0, 2.x → 3.0
+export function computeSemanticVersion(
+  currentVersion: string,
+  oldSections: FormSection[],
+  newSections: FormSection[]
+): string {
+  const [major, minor] = currentVersion.split('.').map(Number);
+
+  const oldFieldIds = new Set(oldSections.flatMap(s => s.fields.map(f => f.id)));
+  const newFieldIds = new Set(newSections.flatMap(s => s.fields.map(f => f.id)));
+
+  // Check if any fields were added or removed
+  const added = [...newFieldIds].some(id => !oldFieldIds.has(id));
+  const removed = [...oldFieldIds].some(id => !newFieldIds.has(id));
+
+  if (added || removed) {
+    return `${major + 1}.0`;
+  }
+  return `${major}.${minor + 1}`;
+}
+
 // Re-export helpers for use in FormBuilder
 export { sectionsToFieldRows, fieldRowsToSections };

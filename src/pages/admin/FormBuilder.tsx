@@ -268,12 +268,14 @@ export default function FormBuilder() {
   const handleCreateVersion = async () => {
     if (!editId) return;
     try {
+      const newSemVer = computeSemanticVersion(currentVersionStr, initialSections, sections);
       const result = await createVersionMutation.mutateAsync({
         templateId: editId,
         sections,
+        changeNotes: `Version ${newSemVer}`,
+        semanticVersion: newSemVer,
       });
-      toast.success(`Version ${result.version} created!`);
-      // Reload the page with same template ID
+      toast.success(`Version ${newSemVer} created!`);
       navigate(`/admin/forms/create?type=${formType}&id=${editId}`);
       setInitialized(false);
     } catch (error) {
