@@ -122,12 +122,34 @@ export default function ApplicationDetail() {
 
     setProcessing(true);
 
+    // For approvals, use the server-side edge function
+    if (newStatus === 'approved') {
+      try {
+        const { data, error } = await supabase.functions.invoke('approve-pre-licensee', {
+          body: { application_id: app.id, comments: comment },
+        });
+        if (error || data?.error) {
+          toast.error(data?.error || error?.message || 'Approval failed');
+          setProcessing(false);
+          return;
+        }
+        toast.success(`Application approved! License: ${data.license_number}`);
+        setActionComment('');
+        loadData();
+        setProcessing(false);
+        return;
+      } catch (e) {
+        toast.error('Approval request failed');
+        setProcessing(false);
+        return;
+      }
+    }
+
     await supabase.from('approval_actions').insert({
       application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
     } as any);
 
     const updates: any = { status: newStatus };
-    if (newStatus === 'approved') updates.approved_at = new Date().toISOString();
     if (newStatus === 'rejected') updates.rejected_at = new Date().toISOString();
 
     await supabase.from('applications').update(updates).eq('id', app.id);
@@ -136,39 +158,22 @@ export default function ApplicationDetail() {
       newValue: { status: newStatus, comments: comment },
     });
 
-    // Send notification on approve/reject
-    if (newStatus === 'approved' || newStatus === 'rejected') {
+    // Send notification on reject
+    if (newStatus === 'rejected') {
       try {
         await supabase.functions.invoke('send-notification', {
           body: {
             action: 'dispatch',
-            event_type: newStatus === 'approved' ? 'application_approved' : 'application_rejected',
+            event_type: 'application_rejected',
             user_id: app.applicant_id,
-            title: `Application ${newStatus === 'approved' ? 'Approved' : 'Rejected'}: ${app.application_number}`,
-            message: `Your application ${app.application_number} has been ${newStatus}.\n\nRemarks: ${comment}`,
+            title: `Application Rejected: ${app.application_number}`,
+            message: `Your application ${app.application_number} has been rejected.\n\nRemarks: ${comment}`,
             entity_type: 'application',
             entity_id: app.id,
           },
         });
       } catch (e) {
         console.error('Notification failed', e);
-      }
-
-      // Generate license on approval
-      if (newStatus === 'approved') {
-        const { data: lic, error: licErr } = await supabase.from('licenses').insert({
-          application_id: app.id,
-          holder_id: app.applicant_id,
-          license_type: app.license_type,
-          regulator_id: app.regulator_id,
-          sector_id: (app.data as any)?.sector_id || null,
-          sub_sector_id: (app.data as any)?.sub_sector_id || null,
-          category_id: (app.data as any)?.category_id || null,
-        } as any).select().single();
-
-        if (!licErr && lic) {
-          toast.success(`License ${(lic as any).license_number} generated!`);
-        }
       }
     }
 

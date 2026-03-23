@@ -84,6 +84,7 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'My Applications', href: '/applications', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
       { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'] },
+      { label: 'Approved Licensees', href: '/admin/approved-licensees', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
   {
