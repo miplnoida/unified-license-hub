@@ -221,6 +221,93 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
           ))}
         </div>
       </CardContent>
+
+      {/* Approval Result Dialog */}
+      <Dialog open={!!approvalResult} onOpenChange={() => setApprovalResult(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Application Approved
+            </DialogTitle>
+            <DialogDescription>
+              License and web user have been created successfully.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {approvalResult?.license_number && (
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground">License Number</p>
+                  <p className="font-mono font-bold text-lg">{approvalResult.license_number}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(approvalResult.license_number!);
+                    toast.success('Copied!');
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {approvalResult?.web_user_created && approvalResult?.web_user_password && (
+              <div className="space-y-3 p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Web User Credentials</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="text-sm font-medium">{approvalResult.web_user_email}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(approvalResult.web_user_email!);
+                        toast.success('Copied!');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Password</p>
+                      <p className="text-sm font-mono font-medium">{approvalResult.web_user_password}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(approvalResult.web_user_password!);
+                        toast.success('Copied!');
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-destructive font-medium">
+                  ⚠ Save these credentials now. The password cannot be retrieved later.
+                </p>
+              </div>
+            )}
+
+            {approvalResult?.web_user_created && !approvalResult?.web_user_password && (
+              <p className="text-sm text-muted-foreground">
+                Web user already existed and has been linked to the licensee entity.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
