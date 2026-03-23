@@ -25,10 +25,12 @@ import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
   useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
+  computeSemanticVersion,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import { supabase } from '@/integrations/supabase/client';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
 
 function toFieldName(label: string): string {
@@ -57,6 +59,7 @@ export default function FormBuilder() {
   const activeSectors = dbSectors.filter(s => s.status === 'active');
 
   const [sections, setSections] = useState<FormSection[]>([]);
+  const [initialSections, setInitialSections] = useState<FormSection[]>([]);
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -73,10 +76,11 @@ export default function FormBuilder() {
   useEffect(() => {
     if (!existingTemplate || initialized || dbSectors.length === 0) return;
     const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
-    setSections(Array.isArray(loadedSections) ? loadedSections : []);
+    const parsed = Array.isArray(loadedSections) ? loadedSections : [];
+    setSections(parsed);
+    setInitialSections(JSON.parse(JSON.stringify(parsed)));
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
-    // Prefer FK IDs, fall back to name-based lookup for legacy data
     const sectorId = existingTemplate.sector_id || dbSectors.find(s => s.name === existingTemplate.sector)?.id || '';
     setSelectedSector(sectorId);
     const subSectorId = existingTemplate.sub_sector_id || dbSubSectors.find(s => s.name === existingTemplate.sub_sector)?.id || '';
@@ -180,6 +184,11 @@ export default function FormBuilder() {
     setSelectedSectionId(sectionId);
   }, []);
 
+  // Compute display version
+  const currentVersionStr = latestVersion
+    ? (latestVersion as any).semantic_version || `${latestVersion.version}.0`
+    : '1.0';
+
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
     setIsSaving(true);
@@ -191,7 +200,13 @@ export default function FormBuilder() {
 
       const templateId = editId || crypto.randomUUID();
       const versionId = latestVersion?.id || crypto.randomUUID();
-      const version = latestVersion?.version || 1;
+      const intVersion = latestVersion?.version || 1;
+
+      // Compute semantic version based on changes
+      let semanticVersion = currentVersionStr;
+      if (editId && initialSections.length > 0) {
+        semanticVersion = computeSemanticVersion(currentVersionStr, initialSections, sections);
+      }
 
       await saveTemplateMutation.mutateAsync({
         template: {
@@ -218,7 +233,9 @@ export default function FormBuilder() {
         },
         sections,
         versionId,
-        version,
+        version: intVersion,
+        changeNotes: `Version ${semanticVersion}`,
+        semanticVersion,
       });
 
       // Also save to legacy forms table for backward compatibility
@@ -232,13 +249,13 @@ export default function FormBuilder() {
         sector: sectorName,
         sub_sector: subSectorName,
         status: existingTemplate?.status || 'draft',
-        version,
+        version: intVersion,
         parent_form_id: null,
         regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
         rows: JSON.parse(JSON.stringify(sections)),
       } as any);
 
-      toast.success('Form saved successfully!');
+      toast.success(`Form saved — Version ${semanticVersion}`);
       navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
@@ -251,12 +268,14 @@ export default function FormBuilder() {
   const handleCreateVersion = async () => {
     if (!editId) return;
     try {
+      const newSemVer = computeSemanticVersion(currentVersionStr, initialSections, sections);
       const result = await createVersionMutation.mutateAsync({
         templateId: editId,
         sections,
+        changeNotes: `Version ${newSemVer}`,
+        semanticVersion: newSemVer,
       });
-      toast.success(`Version ${result.version} created!`);
-      // Reload the page with same template ID
+      toast.success(`Version ${newSemVer} created!`);
       navigate(`/admin/forms/create?type=${formType}&id=${editId}`);
       setInitialized(false);
     } catch (error) {
@@ -390,7 +409,7 @@ export default function FormBuilder() {
             <div className="flex items-center gap-2">
               {editId && latestVersion && (
                 <Badge variant="secondary" className="gap-1">
-                  <GitBranch className="h-3 w-3" /> v{latestVersion.version}
+                  <GitBranch className="h-3 w-3" /> v{currentVersionStr}
                 </Badge>
               )}
               {editId && (
@@ -474,27 +493,38 @@ export default function FormBuilder() {
         </Card>
 
         {/* Builder: 3-column layout */}
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-2">
-            <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" style={{ minHeight: 'calc(100vh - 400px)' }}>
+          {/* Left: Field Palette */}
+          <div className="lg:col-span-2">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+            </ScrollArea>
           </div>
-          <div className="col-span-7">
-            <SectionManager
-              sections={sections}
-              selectedFieldId={selectedField?.id || null}
-              onSelectField={handleSelectField}
-              onSectionsChange={setSections}
-              onAddField={handleAddField}
-              onDeleteField={handleDeleteField}
-              onDuplicateField={handleDuplicateField}
-            />
+
+          {/* Center: Section Manager */}
+          <div className="lg:col-span-7">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <SectionManager
+                sections={sections}
+                selectedFieldId={selectedField?.id || null}
+                onSelectField={handleSelectField}
+                onSectionsChange={setSections}
+                onAddField={handleAddField}
+                onDeleteField={handleDeleteField}
+                onDuplicateField={handleDuplicateField}
+              />
+            </ScrollArea>
           </div>
-          <div className="col-span-3">
-            <FormBuilderFieldProperties
-              selectedField={selectedField}
-              allFields={allFields}
-              onUpdateField={handleUpdateField}
-            />
+
+          {/* Right: Field Properties */}
+          <div className="lg:col-span-3">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <FormBuilderFieldProperties
+                selectedField={selectedField}
+                allFields={allFields}
+                onUpdateField={handleUpdateField}
+              />
+            </ScrollArea>
           </div>
         </div>
       </div>

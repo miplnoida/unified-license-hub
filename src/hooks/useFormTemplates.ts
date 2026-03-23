@@ -408,8 +408,9 @@ export function useSaveFormTemplate() {
       versionId?: string;
       version?: number;
       changeNotes?: string;
+      semanticVersion?: string;
     }) => {
-      const { template, sections, versionId, version = 1, changeNotes } = params;
+      const { template, sections, versionId, version = 1, changeNotes, semanticVersion } = params;
 
       // Upsert template
       const { error: tErr } = await supabase.from('form_templates').upsert({
@@ -443,6 +444,7 @@ export function useSaveFormTemplate() {
         published_at: template.status === 'published' ? new Date().toISOString() : null,
         created_by: template.created_by,
         change_notes: changeNotes || null,
+        semantic_version: semanticVersion || `${version}.0`,
       } as any);
       if (vErr) throw vErr;
 
@@ -482,7 +484,7 @@ export function useSaveFormTemplate() {
 export function useCreateNewFormVersion() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { templateId: string; sections: FormSection[]; changeNotes?: string }) => {
+    mutationFn: async (params: { templateId: string; sections: FormSection[]; changeNotes?: string; semanticVersion?: string }) => {
       // Get max version
       const { data: versions } = await supabase
         .from('form_versions')
@@ -524,6 +526,7 @@ export function useCreateNewFormVersion() {
         schema_snapshot: JSON.parse(JSON.stringify(newSections)),
         status: 'draft',
         change_notes: params.changeNotes || null,
+        semantic_version: params.semanticVersion || `${newVersion}.0`,
       } as any);
       if (vErr) throw vErr;
 
@@ -609,6 +612,29 @@ export function useSaveFormResponse() {
       queryClient.invalidateQueries({ queryKey: ['form_responses'] });
     },
   });
+}
+
+// ─── Semantic Versioning Helper ───
+// Minor change (label, text, validation tweak): 1.0 → 1.1 → 1.2
+// Major change (field added/removed): 1.x → 2.0, 2.x → 3.0
+export function computeSemanticVersion(
+  currentVersion: string,
+  oldSections: FormSection[],
+  newSections: FormSection[]
+): string {
+  const [major, minor] = currentVersion.split('.').map(Number);
+
+  const oldFieldIds = new Set(oldSections.flatMap(s => s.fields.map(f => f.id)));
+  const newFieldIds = new Set(newSections.flatMap(s => s.fields.map(f => f.id)));
+
+  // Check if any fields were added or removed
+  const added = [...newFieldIds].some(id => !oldFieldIds.has(id));
+  const removed = [...oldFieldIds].some(id => !newFieldIds.has(id));
+
+  if (added || removed) {
+    return `${major + 1}.0`;
+  }
+  return `${major}.${minor + 1}`;
 }
 
 // Re-export helpers for use in FormBuilder

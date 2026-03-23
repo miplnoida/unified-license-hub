@@ -1133,6 +1133,7 @@ export type Database = {
           id: string
           published_at: string | null
           schema_snapshot: Json
+          semantic_version: string | null
           status: string
           template_id: string
           version: number
@@ -1144,6 +1145,7 @@ export type Database = {
           id?: string
           published_at?: string | null
           schema_snapshot?: Json
+          semantic_version?: string | null
           status?: string
           template_id: string
           version?: number
@@ -1155,6 +1157,7 @@ export type Database = {
           id?: string
           published_at?: string | null
           schema_snapshot?: Json
+          semantic_version?: string | null
           status?: string
           template_id?: string
           version?: number

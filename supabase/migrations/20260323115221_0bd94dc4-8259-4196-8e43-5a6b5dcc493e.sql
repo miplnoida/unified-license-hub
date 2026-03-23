@@ -1,0 +1,1 @@
+ALTER TABLE public.form_versions ADD COLUMN IF NOT EXISTS semantic_version text DEFAULT '1.0';
