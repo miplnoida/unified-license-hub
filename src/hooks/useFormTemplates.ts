@@ -207,13 +207,19 @@ export function useFormTemplates(formType?: string, regulatorId?: string | null)
     queryFn: async () => {
       let query = supabase
         .from('form_templates')
-        .select('*')
+        .select('*, sectors:sector_id(name), sub_sectors:sub_sector_id(name), categories:category_id(name), services:service_id(name)')
         .order('created_at', { ascending: false });
       if (formType) query = query.eq('form_type', formType);
       if (regulatorId) query = query.eq('regulator_id', regulatorId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as FormTemplate[];
+      return ((data || []) as any[]).map((row: any) => ({
+        ...row,
+        sector_name: row.sectors?.name || row.sector || null,
+        sub_sector_name: row.sub_sectors?.name || row.sub_sector || null,
+        category_name: row.categories?.name || row.category || null,
+        service_name: row.services?.name || row.service || null,
+      })) as FormTemplate[];
     },
   });
 }
