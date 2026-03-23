@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
 import { startWorkflowForApplication } from '@/lib/workflowService';
-import { DocumentList } from '@/components/documents/DocumentList';
+import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
