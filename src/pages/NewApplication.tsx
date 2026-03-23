@@ -389,53 +389,35 @@ export default function NewApplication() {
       return;
     }
 
-    // Server-side payment verification
-    const { data: paymentCheck } = await supabase
-      .from('payments')
-      .select('status')
-      .eq('application_id', applicationId)
-      .eq('status', 'completed')
-      .limit(1);
-
-    if (!paymentCheck || paymentCheck.length === 0) {
-      toast.error('Payment verification failed. Please complete payment first.');
-      return;
-    }
-
     setSubmitting(true);
 
-    const { error } = await supabase.from('applications').update({
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-    } as any).eq('id', applicationId);
+    try {
+      // Use server-side edge function for secure submission
+      const { data, error } = await supabase.functions.invoke('verify-and-submit', {
+        body: { application_id: applicationId },
+      });
 
-    if (error) {
-      toast.error('Submission failed: ' + error.message);
+      if (error) {
+        // Edge function invocation error
+        toast.error('Submission failed: ' + (error.message || 'Server error'));
+        setSubmitting(false);
+        return;
+      }
+
+      if (data?.error) {
+        // Business logic error from edge function
+        toast.error(data.error);
+        setSubmitting(false);
+        return;
+      }
+
+      toast.success(data?.message || 'Application submitted successfully!');
+      navigate(`/applications/${applicationId}`);
+    } catch (err: any) {
+      toast.error('Submission failed: ' + (err.message || 'Unknown error'));
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    // Update form responses
-    await supabase.from('form_responses').update({
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-    } as any).eq('entity_id', applicationId).eq('entity_type', 'application');
-
-    // Use centralized workflow service (prevents duplicates)
-    const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
-    const wfResult = await startWorkflowForApplication(applicationId, licenseType);
-
-    await logAudit({
-      action: 'application_submitted',
-      entityType: 'application',
-      entityId: applicationId,
-    });
-
-    toast.success(wfResult.matched
-      ? 'Application submitted and routed to workflow!'
-      : 'Application submitted successfully!');
-    setSubmitting(false);
-    navigate(`/applications/${applicationId}`);
   };
 
   const getFormStatusBadge = (status: FormStatus) => {
