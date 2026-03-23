@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LandingNav } from '@/components/landing/LandingNav';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
