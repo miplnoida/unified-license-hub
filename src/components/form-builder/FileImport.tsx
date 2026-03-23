@@ -599,26 +599,43 @@ async function parseWord(file: File): Promise<FormSection[]> {
 
     // ── Paragraphs: check for inline checkbox symbols ──
     if (tag === 'p') {
-      // Check if the paragraph contains checkbox symbols inline (e.g., "☐ Yes  ☐ No")
-      const inlineCheckboxMatches = text.match(new RegExp(`${CHECKBOX_SYMBOLS.source}\\s*[^${CHECKBOX_SYMBOLS.source}]+`, 'g'));
-      if (inlineCheckboxMatches && inlineCheckboxMatches.length >= 2) {
-        const options = inlineCheckboxMatches.map(m => m.replace(CHECKBOX_SYMBOLS, '').trim()).filter(Boolean);
-        const precedingLabel = findPrecedingLabel(elements, elIdx);
-        const label = precedingLabel || 'Selection';
+      // Count checkbox symbols in the text
+      const cbSymbolCount = (text.match(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/g) || []).length;
+      if (cbSymbolCount >= 2) {
+        // Split by checkbox symbols to extract option labels
+        // Handles both "☐ MLRO  ☐ MLCO" and "MLRO ☐  MLCO ☐" patterns
+        const parts = text.split(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/);
+        const options = parts.map(p => p.trim()).filter(Boolean);
 
-        if (precedingLabel && currentSection.fields.length > 0) {
-          const lastField = currentSection.fields[currentSection.fields.length - 1];
-          if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
-            currentSection.fields.pop();
+        if (options.length >= 2) {
+          const precedingLabel = findPrecedingLabel(elements, elIdx);
+          const label = precedingLabel || 'Selection';
+
+          if (precedingLabel && currentSection.fields.length > 0) {
+            const lastField = currentSection.fields[currentSection.fields.length - 1];
+            if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
+              currentSection.fields.pop();
+            }
           }
-        }
 
-        currentSection.fields.push({
-          id: crypto.randomUUID(), type: 'checkbox', label,
-          fieldName: toFieldName(label), required: false, options,
-        });
-        elIdx++;
-        continue;
+          currentSection.fields.push({
+            id: crypto.randomUUID(), type: 'checkbox', label,
+            fieldName: toFieldName(label), required: false, options,
+          });
+          elIdx++;
+          continue;
+        }
+      } else if (cbSymbolCount === 1) {
+        // Single checkbox symbol — check if it's part of a label like "I agree ☐"
+        const stripped = text.replace(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/g, '').trim();
+        if (stripped) {
+          currentSection.fields.push({
+            id: crypto.randomUUID(), type: 'checkbox', label: stripped,
+            fieldName: toFieldName(stripped), required: false, options: ['Yes', 'No'],
+          });
+          elIdx++;
+          continue;
+        }
       }
 
       if (text.length > 200) {
