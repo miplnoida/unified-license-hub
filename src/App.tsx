@@ -82,7 +82,7 @@ const RegulatorManagement = lazy(() => import("./pages/admin/RegulatorManagement
 const AdminHub = lazy(() => import("./pages/admin/AdminHub"));
 const NotificationTemplates = lazy(() => import("./pages/admin/NotificationTemplates"));
 const ComplaintTypes = lazy(() => import("./pages/admin/ComplaintTypes"));
-
+const ApprovedLicensees = lazy(() => import("./pages/admin/ApprovedLicensees"));
 const ViewReturns = lazy(() => import("./pages/returns-mgmt/ViewReturns"));
 
 // Settings
@@ -222,6 +222,7 @@ function AppRoutes() {
         <Route path="/admin/audit-logs" element={<P><AdminRoute><AuditLogs /></AdminRoute></P>} />
         <Route path="/admin/notification-templates" element={<P><AdminRoute><NotificationTemplates /></AdminRoute></P>} />
         <Route path="/admin/complaint-types" element={<P><AdminRoute><ComplaintTypes /></AdminRoute></P>} />
+        <Route path="/admin/approved-licensees" element={<P><AdminRoute><ApprovedLicensees /></AdminRoute></P>} />
 
         {/* Settings */}
         <Route path="/settings" element={<P><SettingsRoute><SettingsHub /></SettingsRoute></P>} />
