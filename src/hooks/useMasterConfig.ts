@@ -6,6 +6,21 @@ export interface SubSectorRow { id: string; sector_id: string; name: string; sta
 export interface CategoryRow { id: string; sector_id: string; sub_sector_id: string; name: string; status: string; created_at: string; sector_name?: string; sub_sector_name?: string; }
 export interface ServiceRow { id: string; sector_id: string; sub_sector_id: string; name: string; status: string; created_at: string; sector_name?: string; sub_sector_name?: string; }
 
+// Helper to parse unique constraint violation into a user-friendly message
+function parseDuplicateError(error: any, entityType: string): string {
+  const msg = error?.message || '';
+  if (msg.includes('duplicate key') || msg.includes('unique constraint') || msg.includes('23505')) {
+    switch (entityType) {
+      case 'sector': return 'A sector with this name already exists.';
+      case 'sub_sector': return 'A sub-sector with this name already exists in the selected sector.';
+      case 'category': return 'A category with this name already exists for this sector and sub-sector combination.';
+      case 'service': return 'A service with this name already exists for this sector and sub-sector combination.';
+      default: return 'A record with this name already exists.';
+    }
+  }
+  return msg || 'An unexpected error occurred.';
+}
+
 export function useSectors(regulatorId?: string | null) {
   return useQuery({
     queryKey: ['sectors', regulatorId],
@@ -65,10 +80,10 @@ export function useMasterMutations() {
     mutationFn: async (row: { id?: string; name: string; status: string; regulator_id?: string | null }) => {
       if (row.id) {
         const { error } = await supabase.from('sectors' as any).update({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any).eq('id', row.id);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'sector'));
       } else {
         const { error } = await supabase.from('sectors' as any).insert({ name: row.name, status: row.status, regulator_id: row.regulator_id || null } as any);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'sector'));
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sectors'] }),
@@ -86,10 +101,10 @@ export function useMasterMutations() {
     mutationFn: async (row: { id?: string; sector_id: string; name: string; status: string }) => {
       if (row.id) {
         const { error } = await supabase.from('sub_sectors' as any).update({ sector_id: row.sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'sub_sector'));
       } else {
         const { error } = await supabase.from('sub_sectors' as any).insert({ sector_id: row.sector_id, name: row.name, status: row.status } as any);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'sub_sector'));
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sub_sectors'] }),
@@ -107,10 +122,10 @@ export function useMasterMutations() {
     mutationFn: async (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) => {
       if (row.id) {
         const { error } = await supabase.from('categories' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'category'));
       } else {
         const { error } = await supabase.from('categories' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'category'));
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
@@ -128,10 +143,10 @@ export function useMasterMutations() {
     mutationFn: async (row: { id?: string; sector_id: string; sub_sector_id: string; name: string; status: string }) => {
       if (row.id) {
         const { error } = await supabase.from('services' as any).update({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any).eq('id', row.id);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'service'));
       } else {
         const { error } = await supabase.from('services' as any).insert({ sector_id: row.sector_id, sub_sector_id: row.sub_sector_id, name: row.name, status: row.status } as any);
-        if (error) throw error;
+        if (error) throw new Error(parseDuplicateError(error, 'service'));
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['services'] }),
