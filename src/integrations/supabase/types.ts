@@ -578,6 +578,116 @@ export type Database = {
         }
         Relationships: []
       }
+      enforcement_actions: {
+        Row: {
+          case_number: string
+          created_at: string
+          date_opened: string
+          description: string | null
+          enforcement_type: string
+          entity_id: string
+          findings: string | null
+          id: string
+          penalty_amount: number | null
+          resolution_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          case_number?: string
+          created_at?: string
+          date_opened?: string
+          description?: string | null
+          enforcement_type?: string
+          entity_id: string
+          findings?: string | null
+          id?: string
+          penalty_amount?: number | null
+          resolution_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          case_number?: string
+          created_at?: string
+          date_opened?: string
+          description?: string | null
+          enforcement_type?: string
+          entity_id?: string
+          findings?: string | null
+          id?: string
+          penalty_amount?: number | null
+          resolution_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_relationships: {
+        Row: {
+          created_at: string
+          effective_date: string | null
+          entity_id: string
+          id: string
+          notes: string | null
+          ownership_percentage: number | null
+          related_entity_id: string | null
+          related_entity_name: string
+          relationship_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string | null
+          entity_id: string
+          id?: string
+          notes?: string | null
+          ownership_percentage?: number | null
+          related_entity_id?: string | null
+          related_entity_name: string
+          relationship_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string | null
+          entity_id?: string
+          id?: string
+          notes?: string | null
+          ownership_percentage?: number | null
+          related_entity_id?: string | null
+          related_entity_name?: string
+          relationship_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_relationships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relationships_related_entity_id_fkey"
+            columns: ["related_entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_configurations: {
         Row: {
           amount: number
@@ -1237,6 +1347,62 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspections: {
+        Row: {
+          compliance_rating: string | null
+          created_at: string
+          date_conducted: string
+          entity_id: string
+          findings_summary: string | null
+          follow_up_actions: string | null
+          id: string
+          inspection_type: string
+          inspector_id: string | null
+          inspector_name: string | null
+          report_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          compliance_rating?: string | null
+          created_at?: string
+          date_conducted?: string
+          entity_id: string
+          findings_summary?: string | null
+          follow_up_actions?: string | null
+          id?: string
+          inspection_type?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          report_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          compliance_rating?: string | null
+          created_at?: string
+          date_conducted?: string
+          entity_id?: string
+          findings_summary?: string | null
+          follow_up_actions?: string | null
+          id?: string
+          inspection_type?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          report_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
         ]
@@ -2040,6 +2206,62 @@ export type Database = {
         }
         Relationships: []
       }
+      reinsurance_contracts: {
+        Row: {
+          contract_number: string | null
+          coverage_amount: number | null
+          coverage_type: string
+          created_at: string
+          effective_from: string | null
+          effective_to: string | null
+          entity_id: string
+          id: string
+          premium_amount: number | null
+          reinsurer_name: string
+          status: string
+          terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          contract_number?: string | null
+          coverage_amount?: number | null
+          coverage_type?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id: string
+          id?: string
+          premium_amount?: number | null
+          reinsurer_name: string
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contract_number?: string | null
+          coverage_amount?: number | null
+          coverage_type?: string
+          created_at?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entity_id?: string
+          id?: string
+          premium_amount?: number | null
+          reinsurer_name?: string
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reinsurance_contracts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_filters: {
         Row: {
           created_at: string
@@ -2339,6 +2561,56 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risk_ratings: {
+        Row: {
+          assessment_date: string
+          assessor_id: string | null
+          created_at: string
+          entity_id: string
+          id: string
+          mitigation_measures: string | null
+          notes: string | null
+          overall_rating: string
+          risk_factors: Json | null
+          risk_score: number
+          updated_at: string
+        }
+        Insert: {
+          assessment_date?: string
+          assessor_id?: string | null
+          created_at?: string
+          entity_id: string
+          id?: string
+          mitigation_measures?: string | null
+          notes?: string | null
+          overall_rating?: string
+          risk_factors?: Json | null
+          risk_score?: number
+          updated_at?: string
+        }
+        Update: {
+          assessment_date?: string
+          assessor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          id?: string
+          mitigation_measures?: string | null
+          notes?: string | null
+          overall_rating?: string
+          risk_factors?: Json | null
+          risk_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_ratings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
         ]
