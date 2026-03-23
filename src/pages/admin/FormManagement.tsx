@@ -49,17 +49,27 @@ export default function FormManagement() {
 
   const [searchName, setSearchName] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterSector, setFilterSector] = useState('all');
+  const [filterSubSector, setFilterSubSector] = useState('all');
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
+
+  const uniqueSectors = useMemo(() => [...new Set(templates.map(t => t.sector).filter(Boolean))], [templates]);
+  const uniqueSubSectors = useMemo(() => {
+    const filtered = filterSector !== 'all' ? templates.filter(t => t.sector === filterSector) : templates;
+    return [...new Set(filtered.map(t => t.sub_sector).filter(Boolean))];
+  }, [templates, filterSector]);
 
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       if (searchName && !t.name.toLowerCase().includes(searchName.toLowerCase())) return false;
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+      if (filterSector !== 'all' && t.sector !== filterSector) return false;
+      if (filterSubSector !== 'all' && t.sub_sector !== filterSubSector) return false;
       return true;
     });
-  }, [templates, searchName, filterStatus]);
+  }, [templates, searchName, filterStatus, filterSector, filterSubSector]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
