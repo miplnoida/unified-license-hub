@@ -8,6 +8,7 @@ import { RegulatorProvider } from "@/contexts/RegulatorContext";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { lazy, Suspense } from "react";
 import { isPreLicenseeAllowedRoute } from "@/hooks/useUserPermissions";
+import { AdminRoute, SettingsRoute, InternalRoute } from "@/components/auth/RouteGuards";
 
 // ─── Loading fallback ───
 const PageLoader = () => (
