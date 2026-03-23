@@ -409,7 +409,7 @@ export default function FormBuilder() {
             <div className="flex items-center gap-2">
               {editId && latestVersion && (
                 <Badge variant="secondary" className="gap-1">
-                  <GitBranch className="h-3 w-3" /> v{latestVersion.version}
+                  <GitBranch className="h-3 w-3" /> v{currentVersionStr}
                 </Badge>
               )}
               {editId && (
