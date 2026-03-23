@@ -45,6 +45,7 @@ export default function ApprovedLicensees() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<ApprovedApp[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
