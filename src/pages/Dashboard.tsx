@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, APPLICATION_STATUS_LABELS, LICENSEE_ROLES } from '@/types/platform';
-import { FileText, Clock, CheckCircle, AlertTriangle, Shield, ClipboardList, Plus, ArrowUpRight } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertTriangle, Shield, ClipboardList, Plus, ArrowUpRight, Edit } from 'lucide-react';
 
 interface DashboardStats {
   totalApps: number;
@@ -20,11 +20,19 @@ interface DashboardStats {
   overdueReturns: number;
 }
 
+interface DraftApp {
+  id: string;
+  application_number: string;
+  license_type: string;
+  updated_at: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({ totalApps: 0, pendingApps: 0, approvedApps: 0, rejectedApps: 0, totalLicenses: 0, totalComplaints: 0, overdueReturns: 0 });
   const [recentApps, setRecentApps] = useState<any[]>([]);
+  const [draftApps, setDraftApps] = useState<DraftApp[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
@@ -42,6 +50,7 @@ export default function Dashboard() {
         { count: totalLicenses },
         { count: totalComplaints },
         { count: overdueReturns },
+        { data: drafts },
       ] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(5),
         supabase.from('applications').select('*', { count: 'exact', head: true }),
@@ -51,8 +60,10 @@ export default function Dashboard() {
         supabase.from('licenses').select('*', { count: 'exact', head: true }),
         supabase.from('complaints').select('*', { count: 'exact', head: true }),
         supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
+        supabase.from('applications').select('id, application_number, license_type, updated_at').eq('status', 'draft').order('updated_at', { ascending: false }).limit(5),
       ]);
       setRecentApps(apps || []);
+      setDraftApps((drafts || []) as DraftApp[]);
       setStats({
         totalApps: totalApps || 0, pendingApps: pendingApps || 0, approvedApps: approvedApps || 0,
         rejectedApps: rejectedApps || 0, totalLicenses: totalLicenses || 0, totalComplaints: totalComplaints || 0,
@@ -93,6 +104,32 @@ export default function Dashboard() {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Draft Applications */}
+            {draftApps.length > 0 && (
+              <Card className="lg:col-span-2 border-amber-200 dark:border-amber-800">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Edit className="h-4 w-4 text-amber-600" /> Draft Applications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {draftApps.map(draft => (
+                      <div key={draft.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 cursor-pointer transition-colors" onClick={() => navigate(`/applications/${draft.id}`)}>
+                        <div>
+                          <p className="font-mono text-sm font-medium">{draft.application_number}</p>
+                          <p className="text-xs text-muted-foreground">Last modified: {new Date(draft.updated_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="gap-1">
+                          <Edit className="h-3 w-3" /> Continue
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -174,6 +211,40 @@ export default function Dashboard() {
             <StatCard title="Overdue Returns" value={stats.overdueReturns} icon={<ClipboardList className="h-5 w-5" />} variant="danger" />
             <StatCard title="Rejected" value={stats.rejectedApps} icon={<AlertTriangle className="h-5 w-5" />} variant="danger" />
           </div>
+        )}
+
+        {/* Draft Applications Section */}
+        {!isInternal && draftApps.length > 0 && (
+          <Card className="border-amber-200 dark:border-amber-800 animate-slide-up delay-250">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Edit className="h-4 w-4 text-amber-600" /> Draft Applications
+                </CardTitle>
+                <Badge variant="outline" className="text-xs">{draftApps.length} draft{draftApps.length > 1 ? 's' : ''}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {draftApps.map(draft => (
+                  <div key={draft.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 cursor-pointer transition-colors" onClick={() => navigate(`/applications/${draft.id}`)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600">
+                        <Edit className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm font-medium">{draft.application_number}</p>
+                        <p className="text-xs text-muted-foreground">{draft.license_type} · Modified {new Date(draft.updated_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <Edit className="h-3 w-3" /> Continue
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up delay-300">
