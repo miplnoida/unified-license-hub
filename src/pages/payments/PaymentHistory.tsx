@@ -66,6 +66,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function PaymentHistory() {
   const { user } = useAuth();
+  const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
@@ -114,10 +115,13 @@ export default function PaymentHistory() {
   const handleRequestRefund = async () => {
     if (!selectedPayment || !user) return;
     if (!refundReason.trim()) { toast.error('Reason is required'); return; }
+    const amount = parseFloat(refundAmount);
+    if (isNaN(amount) || amount <= 0) { toast.error('Refund amount must be a positive number'); return; }
+    if (amount > Number(selectedPayment.amount)) { toast.error(`Refund amount cannot exceed payment amount (${selectedPayment.currency} ${Number(selectedPayment.amount).toFixed(2)})`); return; }
     setSaving(true);
     const { error } = await supabase.from('refunds' as any).insert({
       payment_id: selectedPayment.id,
-      amount: parseFloat(refundAmount),
+      amount,
       reason: refundReason.trim(),
       requested_by: user.id,
     });
@@ -291,7 +295,7 @@ export default function PaymentHistory() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground capitalize">{r.refund_method?.replace('_', ' ') || '—'}</TableCell>
                         <TableCell className="text-right space-x-1">
-                          {r.status === 'pending' && (
+                          {r.status === 'pending' && isAdmin && (
                             <>
                               <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApproveRefund(r, 'approved')}>
                                 <CheckCircle className="h-3 w-3 mr-1" />Approve

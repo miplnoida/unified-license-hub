@@ -138,7 +138,11 @@ export function useRegistrationForm() {
 
     if (!form.firstName.trim()) errs.firstName = 'First name is required';
     if (!form.lastName.trim()) errs.lastName = 'Last name is required';
-    if (!form.telephone.trim()) errs.telephone = 'Telephone is required';
+    if (!form.telephone.trim()) {
+      errs.telephone = 'Telephone is required';
+    } else if (!/^[+]?[\d\s\-()]{7,20}$/.test(form.telephone.trim())) {
+      errs.telephone = 'Invalid phone number (7-20 digits, may include +, spaces, dashes)';
+    }
     if (!form.email.trim()) {
       errs.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
