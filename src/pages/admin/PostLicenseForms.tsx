@@ -4,12 +4,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -18,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
+import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
@@ -39,24 +36,40 @@ export default function PostLicenseForms() {
   const deleteTemplateMutation = useDeleteFormTemplate();
   const updateStatusMutation = useUpdateTemplateStatus();
 
+  const { data: dbSectors = [] } = useSectors();
+  const { data: dbSubSectors = [] } = useSubSectors();
+  const { data: dbServices = [] } = useServices();
+
   const [searchName, setSearchName] = useState('');
-  const [filterService, setFilterService] = useState('all');
+  const [filterSectorId, setFilterSectorId] = useState('all');
+  const [filterSubSectorId, setFilterSubSectorId] = useState('all');
+  const [filterServiceId, setFilterServiceId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
 
+  const activeSectors = useMemo(() => dbSectors.filter(s => s.status === 'active'), [dbSectors]);
+  const filteredSubSectors = useMemo(() => {
+    if (filterSectorId === 'all') return dbSubSectors.filter(s => s.status === 'active');
+    return dbSubSectors.filter(s => s.sector_id === filterSectorId && s.status === 'active');
+  }, [dbSubSectors, filterSectorId]);
+  const filteredServices = useMemo(() => {
+    if (filterSubSectorId === 'all') return dbServices.filter(s => s.status === 'active');
+    return dbServices.filter(s => s.sub_sector_id === filterSubSectorId && s.status === 'active');
+  }, [dbServices, filterSubSectorId]);
+
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       if (searchName && !t.name.toLowerCase().includes(searchName.toLowerCase())) return false;
-      if (filterService !== 'all' && t.service !== filterService) return false;
+      if (filterSectorId !== 'all' && t.sector_id !== filterSectorId) return false;
+      if (filterSubSectorId !== 'all' && t.sub_sector_id !== filterSubSectorId) return false;
+      if (filterServiceId !== 'all' && t.service_id !== filterServiceId) return false;
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
       return true;
     });
-  }, [templates, searchName, filterService, filterStatus]);
-
-  const uniqueServices = [...new Set(templates.map((t) => t.service).filter(Boolean))];
+  }, [templates, searchName, filterSectorId, filterSubSectorId, filterServiceId, filterStatus]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -96,6 +109,17 @@ export default function PostLicenseForms() {
     setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
+  const handleSectorFilterChange = (val: string) => {
+    setFilterSectorId(val);
+    setFilterSubSectorId('all');
+    setFilterServiceId('all');
+  };
+
+  const handleSubSectorFilterChange = (val: string) => {
+    setFilterSubSectorId(val);
+    setFilterServiceId('all');
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -104,24 +128,37 @@ export default function PostLicenseForms() {
           description="Manage all post-license service form templates."
           actions={
             <Button onClick={() => navigate('/admin/forms/create?type=post_license')}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Post-License Form
+              <PlusCircle className="h-4 w-4 mr-2" />Add Post-License Form
             </Button>
           }
         />
 
         <Card>
           <CardContent className="pt-6">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by form name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9" />
               </div>
-              <Select value={filterService} onValueChange={setFilterService}>
+              <Select value={filterSectorId} onValueChange={handleSectorFilterChange}>
+                <SelectTrigger><SelectValue placeholder="All Sectors" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sectors</SelectItem>
+                  {activeSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterSubSectorId} onValueChange={handleSubSectorFilterChange}>
+                <SelectTrigger><SelectValue placeholder="All Sub-Sectors" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sub-Sectors</SelectItem>
+                  {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterServiceId} onValueChange={setFilterServiceId}>
                 <SelectTrigger><SelectValue placeholder="All Services" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Services</SelectItem>
-                  {uniqueServices.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+                  {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -140,13 +177,13 @@ export default function PostLicenseForms() {
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
+              <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Sector</TableHead>
+                    <TableHead>Sub-Sector</TableHead>
                     <TableHead>Form Name</TableHead>
                     <TableHead>Service</TableHead>
                     <TableHead>Reusable</TableHead>
@@ -157,42 +194,38 @@ export default function PostLicenseForms() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No form templates found.</TableCell>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No form templates found.</TableCell></TableRow>
+                  ) : filtered.map((tpl) => (
+                    <TableRow key={tpl.id}>
+                      <TableCell>{tpl.sector_name || tpl.sector || '—'}</TableCell>
+                      <TableCell>{tpl.sub_sector_name || tpl.sub_sector || '—'}</TableCell>
+                      <TableCell className="font-medium">{tpl.name}</TableCell>
+                      <TableCell>{tpl.service_name || tpl.service || '—'}</TableCell>
+                      <TableCell>
+                        <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
+                          {tpl.is_reusable ? 'Yes' : 'No'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Select value={tpl.status} onValueChange={(val) => requestStatusChange(tpl, val)}>
+                          <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
+                            <Badge variant={statusVariant[tpl.status]} className="cursor-pointer capitalize">{tpl.status}</Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${tpl.id}`)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(tpl.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  ) : (
-                    filtered.map((tpl) => (
-                      <TableRow key={tpl.id}>
-                        <TableCell className="font-medium">{tpl.name}</TableCell>
-                        <TableCell>{tpl.service}</TableCell>
-                        <TableCell>
-                          <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
-                            {tpl.is_reusable ? 'Yes' : 'No'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Select value={tpl.status} onValueChange={(val) => requestStatusChange(tpl, val)}>
-                            <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
-                              <Badge variant={statusVariant[tpl.status]} className="cursor-pointer capitalize">{tpl.status}</Badge>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {statusOptions.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><Eye className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${tpl.id}`)}><Pencil className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(tpl.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             )}
@@ -206,8 +239,7 @@ export default function PostLicenseForms() {
             <AlertDialogTitle>Change Form Status</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to change the status of <strong>"{statusDialog.name}"</strong> from{' '}
-              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge>
-              to{' '}
+              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge> to{' '}
               <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
             </AlertDialogDescription>
           </AlertDialogHeader>
