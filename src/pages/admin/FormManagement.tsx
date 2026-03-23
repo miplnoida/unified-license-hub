@@ -49,17 +49,27 @@ export default function FormManagement() {
 
   const [searchName, setSearchName] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterSector, setFilterSector] = useState('all');
+  const [filterSubSector, setFilterSubSector] = useState('all');
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
+
+  const uniqueSectors = useMemo(() => [...new Set(templates.map(t => t.sector).filter(Boolean))], [templates]);
+  const uniqueSubSectors = useMemo(() => {
+    const filtered = filterSector !== 'all' ? templates.filter(t => t.sector === filterSector) : templates;
+    return [...new Set(filtered.map(t => t.sub_sector).filter(Boolean))];
+  }, [templates, filterSector]);
 
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       if (searchName && !t.name.toLowerCase().includes(searchName.toLowerCase())) return false;
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
+      if (filterSector !== 'all' && t.sector !== filterSector) return false;
+      if (filterSubSector !== 'all' && t.sub_sector !== filterSubSector) return false;
       return true;
     });
-  }, [templates, searchName, filterStatus]);
+  }, [templates, searchName, filterStatus, filterSector, filterSubSector]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -126,11 +136,25 @@ export default function FormManagement() {
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input placeholder="Search by form name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9" />
                       </div>
+                      <Select value={filterSector} onValueChange={(val) => { setFilterSector(val); setFilterSubSector('all'); }}>
+                        <SelectTrigger><SelectValue placeholder="All Sectors" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sectors</SelectItem>
+                          {uniqueSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterSubSector} onValueChange={setFilterSubSector}>
+                        <SelectTrigger><SelectValue placeholder="All Sub-Sectors" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sub-Sectors</SelectItem>
+                          {uniqueSubSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                       <Select value={filterStatus} onValueChange={setFilterStatus}>
                         <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
                         <SelectContent>
@@ -152,8 +176,10 @@ export default function FormManagement() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Form Name</TableHead>
+                            <TableHead>Sector</TableHead>
+                            <TableHead>Sub-Sector</TableHead>
                             <TableHead>Category</TableHead>
+                            <TableHead>Form Name</TableHead>
                             <TableHead>Service</TableHead>
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
@@ -163,11 +189,13 @@ export default function FormManagement() {
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id}>
-                              <TableCell className="font-medium">{tpl.name}</TableCell>
+                              <TableCell>{tpl.sector || '—'}</TableCell>
+                              <TableCell>{tpl.sub_sector || '—'}</TableCell>
                               <TableCell>{tpl.category || '—'}</TableCell>
+                              <TableCell className="font-medium">{tpl.name}</TableCell>
                               <TableCell>{tpl.service || '—'}</TableCell>
                               <TableCell>
                                 <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
