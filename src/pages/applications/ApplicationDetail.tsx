@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
-import { DocumentUpload } from '@/components/documents/DocumentUpload';
+import { startWorkflowForApplication } from '@/lib/workflowService';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
