@@ -12,6 +12,15 @@ export interface FormTemplate {
   sub_sector: string;
   category: string;
   service: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+  service_id: string | null;
+  // Joined names for display
+  sector_name: string | null;
+  sub_sector_name: string | null;
+  category_name: string | null;
+  service_name: string | null;
   regulator_id: string | null;
   is_reusable: boolean;
   status: string;
