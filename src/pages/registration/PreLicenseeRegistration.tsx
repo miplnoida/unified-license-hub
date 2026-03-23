@@ -10,6 +10,7 @@ import { PasswordSection } from '@/components/registration/PasswordSection';
 import { CaptchaSection } from '@/components/registration/CaptchaSection';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { ArrowRight, FileText } from 'lucide-react';
+import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 
 export default function PreLicenseeRegistration() {
