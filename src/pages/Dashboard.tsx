@@ -105,6 +105,32 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            {/* Draft Applications */}
+            {draftApps.length > 0 && (
+              <Card className="lg:col-span-2 border-amber-200 dark:border-amber-800">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Edit className="h-4 w-4 text-amber-600" /> Draft Applications
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {draftApps.map(draft => (
+                      <div key={draft.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 cursor-pointer transition-colors" onClick={() => navigate(`/applications/${draft.id}`)}>
+                        <div>
+                          <p className="font-mono text-sm font-medium">{draft.application_number}</p>
+                          <p className="text-xs text-muted-foreground">Last modified: {new Date(draft.updated_at).toLocaleDateString()}</p>
+                        </div>
+                        <Button size="sm" variant="outline" className="gap-1">
+                          <Edit className="h-3 w-3" /> Continue
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="lg:col-span-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
