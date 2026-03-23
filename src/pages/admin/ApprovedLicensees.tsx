@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
+import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2 } from 'lucide-react';
 
 interface ApprovedApp {
   id: string;
@@ -27,6 +27,12 @@ interface License {
   issued_at: string;
 }
 
+interface Licensee {
+  id: string;
+  license_id: string | null;
+  name: string;
+}
+
 interface Profile {
   id: string;
   full_name: string;
@@ -39,6 +45,7 @@ export default function ApprovedLicensees() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<ApprovedApp[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
+  const [licensees, setLicensees] = useState<Licensee[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -47,14 +54,16 @@ export default function ApprovedLicensees() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, licRes, profRes, preLicRes] = await Promise.all([
+      const [appRes, licRes, profRes, preLicRes, licenseeRes] = await Promise.all([
         supabase.from('applications').select('*').eq('status', 'approved').order('approved_at', { ascending: false }),
         supabase.from('licenses').select('id, license_number, application_id, status, issued_at'),
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
+        supabase.from('licensees').select('id, license_id, name'),
       ]);
       if (appRes.data) setApps(appRes.data as any);
       if (licRes.data) setLicenses(licRes.data as any);
+      if (licenseeRes.data) setLicensees(licenseeRes.data as any);
       setProfiles([...((profRes.data || []) as any), ...((preLicRes.data || []) as any)]);
       setLoading(false);
     }
@@ -64,6 +73,11 @@ export default function ApprovedLicensees() {
   const getName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
   const getEmail = (id: string) => profiles.find(p => p.id === id)?.email || '';
   const getLicense = (appId: string) => licenses.find(l => l.application_id === appId);
+  const getLicensee = (appId: string) => {
+    const lic = getLicense(appId);
+    if (!lic) return null;
+    return licensees.find(l => l.license_id === lic.id) || null;
+  };
 
   const filtered = useMemo(() => {
     if (!search) return apps;
@@ -162,7 +176,15 @@ export default function ApprovedLicensees() {
                         <TableCell className="text-sm text-muted-foreground">
                           {app.approved_at ? new Date(app.approved_at).toLocaleDateString() : '—'}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1">
+                          {(() => {
+                            const licensee = getLicensee(app.id);
+                            return licensee ? (
+                              <Button variant="outline" size="sm" onClick={() => navigate(`/admin/licensees/${licensee.id}`)}>
+                                <Building2 className="h-4 w-4 mr-1" />Entity
+                              </Button>
+                            ) : null;
+                          })()}
                           <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
                             <Eye className="h-4 w-4 mr-1" />View
                           </Button>
