@@ -1,65 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { PageHeader } from '@/components/shared/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Building2, Loader2, Shield, Calendar, Hash, Layers, Boxes, ListOrdered } from 'lucide-react';
+import Swal from 'sweetalert2';
+import {
+  ArrowLeft, Loader2, Building2, Users, GitBranch, Shield, Gavel,
+  ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash
+} from 'lucide-react';
+
+// Lazy-load tab components
+const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
+const RelationshipsTab = lazy(() => import('@/components/entity-detail/RelationshipsTab'));
+const OwnershipTab = lazy(() => import('@/components/entity-detail/OwnershipTab'));
+const LicensesTab = lazy(() => import('@/components/entity-detail/LicensesTab'));
+const EnforcementTab = lazy(() => import('@/components/entity-detail/EnforcementTab'));
+const RiskRatingsTab = lazy(() => import('@/components/entity-detail/RiskRatingsTab'));
+const WebUsersTab = lazy(() => import('@/components/entity-detail/WebUsersTab'));
+const ReturnsTab = lazy(() => import('@/components/entity-detail/ReturnsTab'));
+const InspectionsTab = lazy(() => import('@/components/entity-detail/InspectionsTab'));
+const ReinsuranceTab = lazy(() => import('@/components/entity-detail/ReinsuranceTab'));
 
 interface LookupMap { [id: string]: string }
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-16">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 export default function LicenseeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [licensee, setLicensee] = useState<any>(null);
-  const [license, setLicense] = useState<any>(null);
   const [sectors, setSectors] = useState<LookupMap>({});
   const [subSectors, setSubSectors] = useState<LookupMap>({});
   const [categories, setCategories] = useState<LookupMap>({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('background');
+  const [isDirty, setIsDirty] = useState(false);
+  const [hasReinsurance, setHasReinsurance] = useState(false);
+  // Track which tabs have been loaded (for caching)
+  const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(['background']));
 
-  useEffect(() => {
+  const loadEntity = useCallback(async () => {
     if (!id) return;
-    async function load() {
-      setLoading(true);
-      const [licRes, secRes, subRes, catRes] = await Promise.all([
-        supabase.from('licensees').select('*').eq('id', id).single(),
-        supabase.from('sectors').select('id, name'),
-        supabase.from('sub_sectors').select('id, name'),
-        supabase.from('categories').select('id, name'),
-      ]);
+    setLoading(true);
+    const [licRes, secRes, subRes, catRes, reinsRes] = await Promise.all([
+      supabase.from('licensees').select('*').eq('id', id).single(),
+      supabase.from('sectors').select('id, name'),
+      supabase.from('sub_sectors').select('id, name'),
+      supabase.from('categories').select('id, name'),
+      supabase.from('reinsurance_contracts' as any).select('id').eq('entity_id', id).limit(1),
+    ]);
 
-      const sMap: LookupMap = {};
-      (secRes.data || []).forEach(s => { sMap[s.id] = s.name; });
-      setSectors(sMap);
-      const ssMap: LookupMap = {};
-      (subRes.data || []).forEach(s => { ssMap[s.id] = s.name; });
-      setSubSectors(ssMap);
-      const cMap: LookupMap = {};
-      (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
-      setCategories(cMap);
+    const sMap: LookupMap = {};
+    (secRes.data || []).forEach(s => { sMap[s.id] = s.name; });
+    setSectors(sMap);
+    const ssMap: LookupMap = {};
+    (subRes.data || []).forEach(s => { ssMap[s.id] = s.name; });
+    setSubSectors(ssMap);
+    const cMap: LookupMap = {};
+    (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
+    setCategories(cMap);
 
-      if (licRes.data) {
-        setLicensee(licRes.data);
-        if (licRes.data.license_id) {
-          const { data: lic } = await supabase.from('licenses').select('*').eq('id', licRes.data.license_id).single();
-          setLicense(lic);
-        }
-      }
-      setLoading(false);
-    }
-    load();
+    setLicensee(licRes.data);
+    setHasReinsurance(((reinsRes.data as any[]) || []).length > 0);
+    setLoading(false);
   }, [id]);
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      active: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-      inactive: 'bg-muted text-muted-foreground border-border',
-    };
-    return <Badge variant="outline" className={`capitalize ${map[status] || ''}`}>{status}</Badge>;
+  useEffect(() => { loadEntity(); }, [loadEntity]);
+
+  const handleTabChange = async (newTab: string) => {
+    if (isDirty) {
+      const result = await Swal.fire({
+        title: 'Unsaved Changes',
+        text: 'You have unsaved changes. Are you sure you want to switch tabs?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, switch tab',
+        cancelButtonText: 'Cancel',
+      });
+      if (!result.isConfirmed) return;
+      setIsDirty(false);
+    }
+    setActiveTab(newTab);
+    setLoadedTabs(prev => new Set(prev).add(newTab));
   };
 
   if (loading) {
@@ -85,92 +113,120 @@ export default function LicenseeDetail() {
     );
   }
 
-  const InfoItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | React.ReactNode }) => (
-    <div className="flex items-start gap-3 py-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">{icon}</div>
-      <div>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <div className="font-medium text-foreground">{value || '—'}</div>
-      </div>
-    </div>
-  );
+  const tabs = [
+    { id: 'background', label: 'Background Info', icon: Building2 },
+    { id: 'relationships', label: 'Relationships', icon: Users },
+    { id: 'ownership', label: 'Ownership', icon: GitBranch },
+    { id: 'licenses', label: 'Licenses', icon: Shield },
+    { id: 'enforcement', label: 'Enforcement', icon: Gavel },
+    { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
+    { id: 'web-users', label: 'Web Users', icon: Users2 },
+    { id: 'returns', label: 'Returns', icon: FileText },
+    { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
+    ...(hasReinsurance ? [{ id: 'reinsurance', label: 'Reinsurance', icon: Umbrella }] : []),
+  ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader
-          title={licensee.name}
-          description="Licensee entity details"
-          actions={
-            <Button variant="outline" onClick={() => navigate('/admin/licensees')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />Back
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => navigate('/admin/licensees')}>
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-          }
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Company Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="h-5 w-5 text-primary" />Company Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <InfoItem icon={<Building2 className="h-4 w-4" />} label="Company Name" value={licensee.name} />
-              <Separator />
-              <InfoItem icon={<Layers className="h-4 w-4" />} label="Sector" value={licensee.sector_id ? sectors[licensee.sector_id] : '—'} />
-              <Separator />
-              <InfoItem icon={<Boxes className="h-4 w-4" />} label="Sub-Sector" value={licensee.sub_sector_id ? subSectors[licensee.sub_sector_id] : '—'} />
-              <Separator />
-              <InfoItem icon={<ListOrdered className="h-4 w-4" />} label="Category" value={licensee.category_id ? categories[licensee.category_id] : '—'} />
-              <Separator />
-              <InfoItem icon={<Calendar className="h-4 w-4" />} label="Created" value={new Date(licensee.created_at).toLocaleDateString()} />
-              <Separator />
-              <InfoItem icon={<Shield className="h-4 w-4" />} label="Status" value={statusBadge(licensee.status)} />
-            </CardContent>
-          </Card>
-
-          {/* License Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Shield className="h-5 w-5 text-primary" />License Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {license ? (
-                <div className="space-y-1">
-                  <InfoItem icon={<Hash className="h-4 w-4" />} label="License Number" value={<span className="font-mono">{license.license_number}</span>} />
-                  <Separator />
-                  <InfoItem icon={<Shield className="h-4 w-4" />} label="License Type" value={license.license_type} />
-                  <Separator />
-                  <InfoItem icon={<Shield className="h-4 w-4" />} label="License Status" value={statusBadge(license.status)} />
-                  <Separator />
-                  <InfoItem icon={<Calendar className="h-4 w-4" />} label="Issued At" value={new Date(license.issued_at).toLocaleDateString()} />
-                  <Separator />
-                  <InfoItem icon={<Calendar className="h-4 w-4" />} label="Valid From" value={new Date(license.valid_from).toLocaleDateString()} />
-                  <Separator />
-                  <InfoItem icon={<Calendar className="h-4 w-4" />} label="Valid Until" value={license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No expiry'} />
-                  {license.conditions && (
-                    <>
-                      <Separator />
-                      <div className="py-3">
-                        <p className="text-sm text-muted-foreground mb-1">Conditions</p>
-                        <p className="text-sm text-foreground">{license.conditions}</p>
-                      </div>
-                    </>
-                  )}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Building2 className="h-5 w-5" />
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <Shield className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm">No license linked to this entity.</p>
+                <div>
+                  <h1 className="text-xl font-bold text-foreground">{licensee.name}</h1>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {licensee.license_id && (
+                      <span className="flex items-center gap-1 font-mono"><Hash className="h-3 w-3" />{licensee.license_id.slice(0, 8)}</span>
+                    )}
+                    <Badge variant="outline" className={`capitalize ${licensee.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
+                      {licensee.status}
+                    </Badge>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <div className="border-b">
+            <TabsList className="h-auto bg-transparent p-0 w-full justify-start overflow-x-auto flex-nowrap">
+              {tabs.map(tab => (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="flex items-center gap-1.5 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none hover:text-foreground"
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          {/* Tab Content */}
+          <Suspense fallback={<TabLoader />}>
+            <TabsContent value="background" className="mt-6">
+              {loadedTabs.has('background') && (
+                <BackgroundInfoTab
+                  entity={licensee}
+                  sectors={sectors}
+                  subSectors={subSectors}
+                  categories={categories}
+                  onUpdate={loadEntity}
+                  onDirtyChange={setIsDirty}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="relationships" className="mt-6">
+              {loadedTabs.has('relationships') && <RelationshipsTab entityId={id!} />}
+            </TabsContent>
+
+            <TabsContent value="ownership" className="mt-6">
+              {loadedTabs.has('ownership') && <OwnershipTab entityId={id!} entityName={licensee.name} />}
+            </TabsContent>
+
+            <TabsContent value="licenses" className="mt-6">
+              {loadedTabs.has('licenses') && <LicensesTab entityId={id!} licenseId={licensee.license_id} />}
+            </TabsContent>
+
+            <TabsContent value="enforcement" className="mt-6">
+              {loadedTabs.has('enforcement') && <EnforcementTab entityId={id!} />}
+            </TabsContent>
+
+            <TabsContent value="risk" className="mt-6">
+              {loadedTabs.has('risk') && <RiskRatingsTab entityId={id!} />}
+            </TabsContent>
+
+            <TabsContent value="web-users" className="mt-6">
+              {loadedTabs.has('web-users') && <WebUsersTab entityId={id!} />}
+            </TabsContent>
+
+            <TabsContent value="returns" className="mt-6">
+              {loadedTabs.has('returns') && <ReturnsTab entityId={id!} licenseId={licensee.license_id} />}
+            </TabsContent>
+
+            <TabsContent value="inspections" className="mt-6">
+              {loadedTabs.has('inspections') && <InspectionsTab entityId={id!} />}
+            </TabsContent>
+
+            {hasReinsurance && (
+              <TabsContent value="reinsurance" className="mt-6">
+                {loadedTabs.has('reinsurance') && <ReinsuranceTab entityId={id!} />}
+              </TabsContent>
+            )}
+          </Suspense>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
