@@ -194,34 +194,34 @@ function AppRoutes() {
         <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
 
         {/* Form Management */}
-        <Route path="/admin/forms" element={<P><FormManagement /></P>} />
+        <Route path="/admin/forms" element={<P><AdminRoute><FormManagement /></AdminRoute></P>} />
         <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
         <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
-        <Route path="/admin/forms/create" element={<P><FormBuilder /></P>} />
+        <Route path="/admin/forms/create" element={<P><AdminRoute><FormBuilder /></AdminRoute></P>} />
         <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
         {/* Master Configuration */}
         <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
-        <Route path="/admin/masters/sectors" element={<P><MasterConfiguration /></P>} />
-        <Route path="/admin/masters/sub-sectors" element={<P><MasterConfiguration /></P>} />
-        <Route path="/admin/masters/categories" element={<P><MasterConfiguration /></P>} />
-        <Route path="/admin/masters/services" element={<P><MasterConfiguration /></P>} />
+        <Route path="/admin/masters/sectors" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
+        <Route path="/admin/masters/sub-sectors" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
+        <Route path="/admin/masters/categories" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
+        <Route path="/admin/masters/services" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
 
         {/* Fee & Return Config */}
-        <Route path="/admin/fees" element={<P><FeeManagement /></P>} />
-        <Route path="/admin/return-config" element={<P><ReturnConfiguration /></P>} />
+        <Route path="/admin/fees" element={<P><AdminRoute><FeeManagement /></AdminRoute></P>} />
+        <Route path="/admin/return-config" element={<P><AdminRoute><ReturnConfiguration /></AdminRoute></P>} />
 
         {/* Administration */}
-        <Route path="/admin" element={<P><AdminHub /></P>} />
-        <Route path="/admin/regulators" element={<P><RegulatorManagement /></P>} />
-        <Route path="/admin/licensees" element={<P><ManageLicensees /></P>} />
-        <Route path="/admin/licensees/:id" element={<P><LicenseeDetailPage /></P>} />
-        <Route path="/admin/users" element={<P><UserManagement /></P>} />
-        <Route path="/admin/web-users" element={<P><ManageWebUsers /></P>} />
-        <Route path="/admin/roles" element={<P><RoleManagement /></P>} />
-        <Route path="/admin/audit-logs" element={<P><AuditLogs /></P>} />
-        <Route path="/admin/notification-templates" element={<P><NotificationTemplates /></P>} />
-        <Route path="/admin/complaint-types" element={<P><ComplaintTypes /></P>} />
+        <Route path="/admin" element={<P><AdminRoute><AdminHub /></AdminRoute></P>} />
+        <Route path="/admin/regulators" element={<P><AdminRoute><RegulatorManagement /></AdminRoute></P>} />
+        <Route path="/admin/licensees" element={<P><AdminRoute><ManageLicensees /></AdminRoute></P>} />
+        <Route path="/admin/licensees/:id" element={<P><AdminRoute><LicenseeDetailPage /></AdminRoute></P>} />
+        <Route path="/admin/users" element={<P><AdminRoute><UserManagement /></AdminRoute></P>} />
+        <Route path="/admin/web-users" element={<P><AdminRoute><ManageWebUsers /></AdminRoute></P>} />
+        <Route path="/admin/roles" element={<P><AdminRoute><RoleManagement /></AdminRoute></P>} />
+        <Route path="/admin/audit-logs" element={<P><AdminRoute><AuditLogs /></AdminRoute></P>} />
+        <Route path="/admin/notification-templates" element={<P><AdminRoute><NotificationTemplates /></AdminRoute></P>} />
+        <Route path="/admin/complaint-types" element={<P><AdminRoute><ComplaintTypes /></AdminRoute></P>} />
 
         {/* Settings */}
         <Route path="/settings" element={<P><SettingsHub /></P>} />
