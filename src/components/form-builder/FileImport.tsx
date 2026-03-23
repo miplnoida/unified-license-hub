@@ -379,7 +379,82 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
   return { fileName: file.name, sheets, allCrossSheetRefs };
 }
 
-// ─── Word Parser (unchanged, returns single sheet result) ───
+// ─── Checkbox Detection Helpers ───
+
+const CHECKBOX_SYMBOLS = /[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/;
+const CHECKBOX_LINE_RE = /^[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]\s*/;
+
+/** Returns true if a text line starts with a checkbox symbol */
+function isCheckboxLine(text: string): boolean {
+  return CHECKBOX_LINE_RE.test(text.trim());
+}
+
+/** Strip checkbox symbol prefix and return the option label */
+function stripCheckboxSymbol(text: string): string {
+  return text.trim().replace(CHECKBOX_LINE_RE, '').trim();
+}
+
+/**
+ * Given a sequence of elements starting at `startIdx`, look backward for a
+ * preceding label (a <p> that ends with ":" or "?" or is short text without
+ * checkbox symbols). Returns the label text or null.
+ */
+function findPrecedingLabel(elements: Element[], startIdx: number): string | null {
+  for (let i = startIdx - 1; i >= 0; i--) {
+    const el = elements[i];
+    const tag = el.tagName.toLowerCase();
+    const text = (el.textContent || '').trim();
+    if (!text) continue;
+    // Stop at headings — they are section separators
+    if (['h1', 'h2', 'h3', 'h4'].includes(tag)) return null;
+    if (tag === 'p' && !isCheckboxLine(text)) {
+      // Likely a question/label for the checkbox group
+      return text.replace(/[:?*]$/g, '').trim();
+    }
+    break; // only look at the immediately preceding non-empty element
+  }
+  return null;
+}
+
+/**
+ * Detect consecutive checkbox paragraphs starting at `startIdx` and return
+ * the collected option labels and how many elements were consumed.
+ */
+function collectCheckboxParagraphs(elements: Element[], startIdx: number): { options: string[]; consumed: number } {
+  const options: string[] = [];
+  let i = startIdx;
+  while (i < elements.length) {
+    const el = elements[i];
+    const text = (el.textContent || '').trim();
+    if (!text) { i++; continue; }
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'p' && isCheckboxLine(text)) {
+      options.push(stripCheckboxSymbol(text));
+      i++;
+    } else {
+      break;
+    }
+  }
+  return { options, consumed: i - startIdx };
+}
+
+/**
+ * Detect checkbox items inside a <ul>/<ol>. Returns options if the majority
+ * of list items contain checkbox symbols.
+ */
+function extractCheckboxOptionsFromList(el: Element): string[] | null {
+  const items = Array.from(el.querySelectorAll('li')).map(li => (li.textContent || '').trim()).filter(Boolean);
+  if (items.length === 0) return null;
+  const cbCount = items.filter(i => isCheckboxLine(i)).length;
+  // Also detect if the items contain checkbox symbols anywhere in the text
+  const symbolCount = items.filter(i => CHECKBOX_SYMBOLS.test(i)).length;
+  if (cbCount >= items.length * 0.5 || symbolCount >= items.length * 0.5) {
+    return items.map(i => i.replace(CHECKBOX_SYMBOLS, '').trim()).filter(Boolean);
+  }
+  return null;
+}
+
+// ─── Word Parser ───
 
 async function parseWord(file: File): Promise<FormSection[]> {
   const mammoth = await import('mammoth');
@@ -392,21 +467,28 @@ async function parseWord(file: File): Promise<FormSection[]> {
 
   const sections: FormSection[] = [];
   let currentSection: FormSection | null = null;
+  let elIdx = 0;
 
-  for (const el of elements) {
+  while (elIdx < elements.length) {
+    const el = elements[elIdx];
     const tag = el.tagName.toLowerCase();
     const text = (el.textContent || '').trim();
-    if (!text) continue;
 
+    if (!text) { elIdx++; continue; }
+
+    // ── Section headings ──
     if (['h1', 'h2', 'h3', 'h4'].includes(tag)) {
       if (currentSection && currentSection.fields.length > 0) sections.push(currentSection);
       currentSection = { id: crypto.randomUUID(), title: text, sortOrder: sections.length, isRepeatable: false, fields: [] };
+      elIdx++;
       continue;
     }
+
     if (!currentSection) {
       currentSection = { id: crypto.randomUUID(), title: 'Section 1', sortOrder: 0, isRepeatable: false, fields: [] };
     }
 
+    // ── Tables (existing logic) ──
     if (tag === 'table') {
       const rows = Array.from(el.querySelectorAll('tr'));
       if (rows.length >= 2) {
@@ -435,10 +517,69 @@ async function parseWord(file: File): Promise<FormSection[]> {
           }
         }
       }
+      elIdx++;
       continue;
     }
 
+    // ── Checkbox detection: consecutive <p> with checkbox symbols ──
+    if (tag === 'p' && isCheckboxLine(text)) {
+      const { options, consumed } = collectCheckboxParagraphs(elements, elIdx);
+      if (options.length > 0) {
+        // Try to find a label from the preceding element
+        const precedingLabel = findPrecedingLabel(elements, elIdx);
+        const label = precedingLabel || options[0];
+        const fieldOptions = precedingLabel ? options : options.slice(1);
+
+        // If there's only one checkbox item with no preceding label, treat as single checkbox
+        if (fieldOptions.length === 0) {
+          currentSection.fields.push({
+            id: crypto.randomUUID(), type: 'checkbox', label,
+            fieldName: toFieldName(label), required: false, options: ['Yes', 'No'],
+          });
+        } else {
+          // If the preceding label was already added as a text field, remove it
+          if (precedingLabel && currentSection.fields.length > 0) {
+            const lastField = currentSection.fields[currentSection.fields.length - 1];
+            if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
+              currentSection.fields.pop();
+            }
+          }
+          currentSection.fields.push({
+            id: crypto.randomUUID(), type: 'checkbox', label,
+            fieldName: toFieldName(label), required: false, options: fieldOptions,
+          });
+        }
+        elIdx += consumed;
+        continue;
+      }
+    }
+
+    // ── Lists: detect checkbox items inside <ul>/<ol> ──
     if (tag === 'ul' || tag === 'ol') {
+      const checkboxOptions = extractCheckboxOptionsFromList(el);
+      if (checkboxOptions && checkboxOptions.length > 0) {
+        const precedingLabel = findPrecedingLabel(elements, elIdx);
+        const label = precedingLabel || checkboxOptions[0];
+        const fieldOptions = precedingLabel ? checkboxOptions : checkboxOptions.slice(1);
+
+        if (precedingLabel && currentSection.fields.length > 0) {
+          const lastField = currentSection.fields[currentSection.fields.length - 1];
+          if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
+            currentSection.fields.pop();
+          }
+        }
+
+        currentSection.fields.push({
+          id: crypto.randomUUID(), type: 'checkbox',
+          label: label,
+          fieldName: toFieldName(label), required: false,
+          options: fieldOptions.length > 0 ? fieldOptions : ['Option 1', 'Option 2'],
+        });
+        elIdx++;
+        continue;
+      }
+
+      // Non-checkbox list (existing logic)
       const items = Array.from(el.querySelectorAll('li')).map(li => (li.textContent || '').trim()).filter(Boolean);
       const colonPattern = items.filter(i => i.includes(':'));
       if (colonPattern.length > items.length * 0.5) {
@@ -452,10 +593,34 @@ async function parseWord(file: File): Promise<FormSection[]> {
           currentSection.fields.push({ id: crypto.randomUUID(), type: 'text', label: item, fieldName: toFieldName(item), required: false });
         }
       }
+      elIdx++;
       continue;
     }
 
+    // ── Paragraphs: check for inline checkbox symbols ──
     if (tag === 'p') {
+      // Check if the paragraph contains checkbox symbols inline (e.g., "☐ Yes  ☐ No")
+      const inlineCheckboxMatches = text.match(new RegExp(`${CHECKBOX_SYMBOLS.source}\\s*[^${CHECKBOX_SYMBOLS.source}]+`, 'g'));
+      if (inlineCheckboxMatches && inlineCheckboxMatches.length >= 2) {
+        const options = inlineCheckboxMatches.map(m => m.replace(CHECKBOX_SYMBOLS, '').trim()).filter(Boolean);
+        const precedingLabel = findPrecedingLabel(elements, elIdx);
+        const label = precedingLabel || 'Selection';
+
+        if (precedingLabel && currentSection.fields.length > 0) {
+          const lastField = currentSection.fields[currentSection.fields.length - 1];
+          if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
+            currentSection.fields.pop();
+          }
+        }
+
+        currentSection.fields.push({
+          id: crypto.randomUUID(), type: 'checkbox', label,
+          fieldName: toFieldName(label), required: false, options,
+        });
+        elIdx++;
+        continue;
+      }
+
       if (text.length > 200) {
         currentSection.fields.push({ id: crypto.randomUUID(), type: 'paragraph', label: 'Information', fieldName: toFieldName('info_' + currentSection.fields.length), required: false, content: text });
       } else if (text.endsWith(':') || text.endsWith('?') || text.length < 80) {
@@ -463,6 +628,8 @@ async function parseWord(file: File): Promise<FormSection[]> {
         currentSection.fields.push({ id: crypto.randomUUID(), type: inferFieldType(label, []), label, fieldName: toFieldName(label), required: text.includes('*') || text.toLowerCase().includes('required') });
       }
     }
+
+    elIdx++;
   }
 
   if (currentSection && currentSection.fields.length > 0) sections.push(currentSection);
