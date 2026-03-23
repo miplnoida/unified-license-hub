@@ -76,10 +76,11 @@ export default function FormBuilder() {
   useEffect(() => {
     if (!existingTemplate || initialized || dbSectors.length === 0) return;
     const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
-    setSections(Array.isArray(loadedSections) ? loadedSections : []);
+    const parsed = Array.isArray(loadedSections) ? loadedSections : [];
+    setSections(parsed);
+    setInitialSections(JSON.parse(JSON.stringify(parsed)));
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
-    // Prefer FK IDs, fall back to name-based lookup for legacy data
     const sectorId = existingTemplate.sector_id || dbSectors.find(s => s.name === existingTemplate.sector)?.id || '';
     setSelectedSector(sectorId);
     const subSectorId = existingTemplate.sub_sector_id || dbSubSectors.find(s => s.name === existingTemplate.sub_sector)?.id || '';
