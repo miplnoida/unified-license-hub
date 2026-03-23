@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
-  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock,
+  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,6 +25,12 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const { user } = useAuth();
   const [comment, setComment] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [approvalResult, setApprovalResult] = useState<{
+    license_number?: string;
+    web_user_email?: string;
+    web_user_password?: string;
+    web_user_created?: boolean;
+  } | null>(null);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
   const { data: steps = [] } = useWorkflowSteps(workflowId);
