@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
-  if (isAuthenticated) { navigate('/dashboard'); return null; }
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

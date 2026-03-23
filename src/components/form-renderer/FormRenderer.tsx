@@ -14,12 +14,16 @@ import {
 import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft, ArrowRight, Save, CheckCircle2, Plus, Trash2,
-  FileText, Eye, Upload,
+  FileText, Eye, Upload, Loader2, X,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
+import { evaluateFormula } from '@/lib/safeEval';
+import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface Props {
   formName: string;
@@ -29,6 +33,7 @@ interface Props {
   onSubmit: (data: Record<string, any>) => void;
   saving?: boolean;
   readOnly?: boolean;
+  applicationId?: string;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
@@ -73,13 +78,17 @@ function isFieldRequired(field: FormField, formData: Record<string, any>, allFie
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly,
+  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId,
 }: Props) {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
-  const [repeatableData, setRepeatableData] = useState<Record<string, Record<string, any>[]>>({});
+  const [repeatableData, setRepeatableData] = useState<Record<string, Record<string, any>[]>>(
+    initialData?.__repeatable || {}
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
+  const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
@@ -105,6 +114,22 @@ export function FormRenderer({
     setErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
   }, []);
 
+  // Merge repeatable data into the main payload for save/submit
+  const getMergedData = useCallback((): Record<string, any> => {
+    const merged = { ...formData };
+    // Store repeatable data under a special key
+    if (Object.keys(repeatableData).length > 0) {
+      merged.__repeatable = repeatableData;
+    }
+    // Also flatten repeatable data into named fields for backward compatibility
+    for (const [sectionId, entries] of Object.entries(repeatableData)) {
+      if (entries.length > 0) {
+        merged[`_repeatable_${sectionId}`] = entries;
+      }
+    }
+    return merged;
+  }, [formData, repeatableData]);
+
   const validateCurrentStep = (): boolean => {
     if (!currentSection) return true;
     const stepErrors: Record<string, string> = {};
@@ -129,6 +154,16 @@ export function FormRenderer({
       if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
         stepErrors[field.fieldName] = 'Invalid email address';
       }
+      if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
+        stepErrors[field.fieldName] = 'Invalid phone number';
+      }
+      // Validate numeric fields store actual numbers
+      if ((field.type === 'number' || field.type === 'decimal') && val !== undefined && val !== '' && val !== null) {
+        const numVal = Number(val);
+        if (isNaN(numVal)) {
+          stepErrors[field.fieldName] = 'Must be a valid number';
+        }
+      }
     }
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
@@ -144,10 +179,43 @@ export function FormRenderer({
     if (currentStep > 0) setCurrentStep(prev => prev - 1);
   };
 
-  const handleSaveDraft = () => onSaveDraft(formData);
+  const handleSaveDraft = () => onSaveDraft(getMergedData());
 
   const handleSubmit = () => {
-    if (validateCurrentStep()) onSubmit(formData);
+    if (validateCurrentStep()) onSubmit(getMergedData());
+  };
+
+  // Handle file upload to storage
+  const handleFileUpload = async (fieldName: string, file: File) => {
+    if (!user) { toast.error('You must be logged in to upload files'); return; }
+    setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
+    const result = await uploadFormFile(file, user.id, applicationId);
+    setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
+    if (result.success && result.data) {
+      updateField(fieldName, result.data);
+      toast.success(`${file.name} uploaded`);
+    } else {
+      toast.error(result.error || 'Upload failed');
+    }
+  };
+
+  // Handle file removal
+  const handleFileRemove = async (fieldName: string) => {
+    const fileData = formData[fieldName] as FormFileData | undefined;
+    if (fileData?.filePath) {
+      await deleteFormFile(fileData.filePath, fileData.uploadId);
+    }
+    updateField(fieldName, '');
+  };
+
+  // Handle file preview with fresh signed URL
+  const handleFilePreview = async (fileData: FormFileData) => {
+    if (fileData.filePath) {
+      const freshUrl = await refreshFormFileUrl(fileData.filePath);
+      setPreviewFile({ name: fileData.name, url: freshUrl, type: fileData.type });
+    } else if (fileData.url) {
+      setPreviewFile({ name: fileData.name, url: fileData.url, type: fileData.type });
+    }
   };
 
   // Repeatable section helpers
@@ -178,6 +246,7 @@ export function FormRenderer({
     const val = data[field.fieldName] ?? field.defaultValue ?? '';
     const required = isFieldRequired(field, data, allFields);
     const error = errors[field.fieldName];
+    const isUploading = uploadingFields[field.fieldName];
 
     const fieldLabel = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
       <Label className="text-sm">
@@ -191,12 +260,32 @@ export function FormRenderer({
     switch (field.type) {
       case 'text':
       case 'email':
-      case 'phone':
         input = <Input type={field.type === 'email' ? 'email' : 'text'} value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} disabled={readOnly} />;
+        break;
+      case 'phone':
+        input = <Input type="tel" value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder || '+1 (555) 123-4567'} disabled={readOnly} />;
         break;
       case 'number':
       case 'decimal':
-        input = <Input type="number" step={field.type === 'decimal' ? '0.01' : '1'} value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} disabled={readOnly} />;
+        input = (
+          <Input
+            type="number"
+            step={field.type === 'decimal' ? '0.01' : '1'}
+            value={val}
+            onChange={e => {
+              const raw = e.target.value;
+              // Store as number when valid, empty string when blank
+              if (raw === '' || raw === '-') {
+                onChange(field.fieldName, raw);
+              } else {
+                const num = field.type === 'decimal' ? parseFloat(raw) : parseInt(raw, 10);
+                onChange(field.fieldName, isNaN(num) ? raw : num);
+              }
+            }}
+            placeholder={field.placeholder}
+            disabled={readOnly}
+          />
+        );
         break;
       case 'date':
         input = <Input type="date" value={val} onChange={e => onChange(field.fieldName, e.target.value)} disabled={readOnly} />;
@@ -265,20 +354,32 @@ export function FormRenderer({
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      onChange(field.fieldName, { name: file.name, url: URL.createObjectURL(file), type: file.type, size: file.size });
+                      handleFileUpload(field.fieldName, file);
                     }
+                    // Reset input so same file can be re-selected
+                    if (e.target) e.target.value = '';
                   }}
                   className="flex-1"
+                  disabled={isUploading}
                 />
+                {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
             )}
             {val && typeof val === 'object' && val.name && (
               <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-sm truncate flex-1">{val.name}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewFile(val)}>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {val.size ? `${(val.size / 1024).toFixed(1)} KB` : ''}
+                </span>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(val)}>
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
+                {!readOnly && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleFileRemove(field.fieldName)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -341,11 +442,9 @@ export function FormRenderer({
         );
         break;
       case 'calculated':
-        const calcValue = field.calculatedExpression
-          ? field.calculatedExpression.replace(/\{(\w+)\}/g, (_, key) => String(data[key] || 0))
-          : '';
-        let result = '';
-        try { result = String(eval(calcValue)); } catch { result = 'Error'; }
+        const result = field.calculatedExpression
+          ? evaluateFormula(field.calculatedExpression, data)
+          : '0';
         input = <Input value={result} disabled className="bg-muted" />;
         break;
       default:

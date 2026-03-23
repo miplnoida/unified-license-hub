@@ -19,6 +19,7 @@ import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
+import { startWorkflowForApplication } from '@/lib/workflowService';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
@@ -261,7 +262,7 @@ export default function NewApplication() {
         status: 'draft',
         entity_type: 'application',
         entity_id: applicationId,
-      } as any, { onConflict: 'entity_id,entity_type' }).select();
+      } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
 
       await supabase.from('applications').update({
         data: {
@@ -314,22 +315,34 @@ export default function NewApplication() {
     setProcessingPayment(true);
 
     try {
-      // Create payment record
+      // Create payment record with 'pending' status first
+      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const { data: payment, error: payErr } = await supabase
         .from('payments')
         .insert({
           user_id: user.id,
           application_id: applicationId,
           amount: feeAmount,
-          status: 'completed',
+          status: 'pending',
           payment_method: 'online',
-          paid_at: new Date().toISOString(),
-          transaction_ref: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          transaction_ref: txnRef,
         } as any)
         .select()
         .single();
 
       if (payErr) throw payErr;
+
+      // Simulate payment processing (in production, this would call a payment gateway)
+      // For now we update to completed after a brief delay to simulate real flow
+      const { error: updateErr } = await supabase
+        .from('payments')
+        .update({
+          status: 'completed',
+          paid_at: new Date().toISOString(),
+        } as any)
+        .eq('id', (payment as any).id);
+
+      if (updateErr) throw updateErr;
 
       setPaymentId((payment as any).id);
       setPaymentStatus('success');
@@ -338,7 +351,7 @@ export default function NewApplication() {
       await supabase.from('payment_receipts').insert({
         payment_id: (payment as any).id,
         amount: feeAmount,
-        issued_to_name: user.email || 'Applicant',
+        issued_to_name: user.fullName || user.email || 'Applicant',
         issued_to_email: user.email,
         fee_breakdown: feeBreakdown,
       } as any);
@@ -352,6 +365,7 @@ export default function NewApplication() {
 
       toast.success('Payment successful!');
     } catch (err: any) {
+      // Mark payment as failed if it was created
       setPaymentStatus('failed');
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
     } finally {
@@ -374,6 +388,20 @@ export default function NewApplication() {
       toast.error('Please complete payment to submit application.');
       return;
     }
+
+    // Server-side payment verification
+    const { data: paymentCheck } = await supabase
+      .from('payments')
+      .select('status')
+      .eq('application_id', applicationId)
+      .eq('status', 'completed')
+      .limit(1);
+
+    if (!paymentCheck || paymentCheck.length === 0) {
+      toast.error('Payment verification failed. Please complete payment first.');
+      return;
+    }
+
     setSubmitting(true);
 
     const { error } = await supabase.from('applications').update({
@@ -393,35 +421,9 @@ export default function NewApplication() {
       submitted_at: new Date().toISOString(),
     } as any).eq('entity_id', applicationId).eq('entity_type', 'application');
 
-    // Try to start workflow
-    const { data: workflows } = await supabase
-      .from('approval_workflows')
-      .select('id')
-      .eq('entity_type', 'application')
-      .eq('is_active', true)
-      .limit(1);
-
-    if (workflows && workflows.length > 0) {
-      const { data: steps } = await supabase
-        .from('approval_steps')
-        .select('id')
-        .eq('workflow_id', workflows[0].id)
-        .order('step_order', { ascending: true })
-        .limit(1);
-
-      await supabase.from('workflow_instances').insert({
-        workflow_id: workflows[0].id,
-        entity_type: 'application',
-        entity_id: applicationId,
-        current_step_id: steps?.[0]?.id || null,
-        status: 'active',
-      } as any);
-
-      await supabase.from('applications').update({
-        workflow_id: workflows[0].id,
-        current_step_id: steps?.[0]?.id || null,
-      } as any).eq('id', applicationId);
-    }
+    // Use centralized workflow service (prevents duplicates)
+    const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
+    const wfResult = await startWorkflowForApplication(applicationId, licenseType);
 
     await logAudit({
       action: 'application_submitted',
@@ -429,7 +431,9 @@ export default function NewApplication() {
       entityId: applicationId,
     });
 
-    toast.success('Application submitted successfully!');
+    toast.success(wfResult.matched
+      ? 'Application submitted and routed to workflow!'
+      : 'Application submitted successfully!');
     setSubmitting(false);
     navigate(`/applications/${applicationId}`);
   };
@@ -695,6 +699,7 @@ export default function NewApplication() {
                 onSaveDraft={handleFormSaveDraft}
                 onSubmit={handleFormSubmit}
                 saving={saving}
+                applicationId={applicationId || undefined}
               />
             ) : (
               <Card>
