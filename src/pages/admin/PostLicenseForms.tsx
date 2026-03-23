@@ -20,6 +20,7 @@ import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default', draft: 'secondary', archived: 'outline',
