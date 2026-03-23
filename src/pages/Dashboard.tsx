@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, APPLICATION_STATUS_LABELS, LICENSEE_ROLES } from '@/types/platform';
-import { FileText, Clock, CheckCircle, AlertTriangle, Shield, ClipboardList, Plus, ArrowUpRight } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertTriangle, Shield, ClipboardList, Plus, ArrowUpRight, Edit } from 'lucide-react';
 
 interface DashboardStats {
   totalApps: number;
@@ -20,11 +20,19 @@ interface DashboardStats {
   overdueReturns: number;
 }
 
+interface DraftApp {
+  id: string;
+  application_number: string;
+  license_type: string;
+  updated_at: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({ totalApps: 0, pendingApps: 0, approvedApps: 0, rejectedApps: 0, totalLicenses: 0, totalComplaints: 0, overdueReturns: 0 });
   const [recentApps, setRecentApps] = useState<any[]>([]);
+  const [draftApps, setDraftApps] = useState<DraftApp[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
@@ -42,6 +50,7 @@ export default function Dashboard() {
         { count: totalLicenses },
         { count: totalComplaints },
         { count: overdueReturns },
+        { data: drafts },
       ] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }).limit(5),
         supabase.from('applications').select('*', { count: 'exact', head: true }),
@@ -51,8 +60,10 @@ export default function Dashboard() {
         supabase.from('licenses').select('*', { count: 'exact', head: true }),
         supabase.from('complaints').select('*', { count: 'exact', head: true }),
         supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('status', 'overdue'),
+        supabase.from('applications').select('id, application_number, license_type, updated_at').eq('status', 'draft').order('updated_at', { ascending: false }).limit(5),
       ]);
       setRecentApps(apps || []);
+      setDraftApps((drafts || []) as DraftApp[]);
       setStats({
         totalApps: totalApps || 0, pendingApps: pendingApps || 0, approvedApps: approvedApps || 0,
         rejectedApps: rejectedApps || 0, totalLicenses: totalLicenses || 0, totalComplaints: totalComplaints || 0,
