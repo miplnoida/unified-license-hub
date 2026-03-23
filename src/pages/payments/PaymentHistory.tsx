@@ -115,10 +115,13 @@ export default function PaymentHistory() {
   const handleRequestRefund = async () => {
     if (!selectedPayment || !user) return;
     if (!refundReason.trim()) { toast.error('Reason is required'); return; }
+    const amount = parseFloat(refundAmount);
+    if (isNaN(amount) || amount <= 0) { toast.error('Refund amount must be a positive number'); return; }
+    if (amount > Number(selectedPayment.amount)) { toast.error(`Refund amount cannot exceed payment amount (${selectedPayment.currency} ${Number(selectedPayment.amount).toFixed(2)})`); return; }
     setSaving(true);
     const { error } = await supabase.from('refunds' as any).insert({
       payment_id: selectedPayment.id,
-      amount: parseFloat(refundAmount),
+      amount,
       reason: refundReason.trim(),
       requested_by: user.id,
     });
