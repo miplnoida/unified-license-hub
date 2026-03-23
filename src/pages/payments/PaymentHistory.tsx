@@ -295,7 +295,7 @@ export default function PaymentHistory() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground capitalize">{r.refund_method?.replace('_', ' ') || '—'}</TableCell>
                         <TableCell className="text-right space-x-1">
-                          {r.status === 'pending' && (
+                          {r.status === 'pending' && isAdmin && (
                             <>
                               <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApproveRefund(r, 'approved')}>
                                 <CheckCircle className="h-3 w-3 mr-1" />Approve
