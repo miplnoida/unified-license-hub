@@ -47,7 +47,7 @@ interface Props {
 
 export function FormBuilderFieldPalette({ onAddField }: Props) {
   return (
-    <Card className="sticky top-6">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm">Field Types</CardTitle>
         <CardDescription className="text-xs">Click to add</CardDescription>
