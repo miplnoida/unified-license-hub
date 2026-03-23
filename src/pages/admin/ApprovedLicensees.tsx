@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2, RefreshCw } from 'lucide-react';
 
 interface ApprovedApp {
   id: string;
@@ -50,33 +51,58 @@ export default function ApprovedLicensees() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [generatingFor, setGeneratingFor] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [appRes, licRes, profRes, preLicRes, licenseeRes] = await Promise.all([
-        supabase.from('applications').select('*').eq('status', 'approved').order('approved_at', { ascending: false }),
-        supabase.from('licenses').select('id, license_number, application_id, status, issued_at'),
-        supabase.from('profiles').select('id, full_name, email'),
-        supabase.from('pre_license_users' as any).select('id, full_name, email'),
-        supabase.from('licensees').select('id, license_id, name'),
-      ]);
-      if (appRes.data) setApps(appRes.data as any);
-      if (licRes.data) setLicenses(licRes.data as any);
-      if (licenseeRes.data) setLicensees(licenseeRes.data as any);
-      setProfiles([...((profRes.data || []) as any), ...((preLicRes.data || []) as any)]);
-      setLoading(false);
-    }
-    load();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const [appRes, licRes, profRes, preLicRes, licenseeRes] = await Promise.all([
+      supabase.from('applications').select('*').eq('status', 'approved').order('approved_at', { ascending: false }),
+      supabase.from('licenses').select('id, license_number, application_id, status, issued_at'),
+      supabase.from('profiles').select('id, full_name, email'),
+      supabase.from('pre_license_users' as any).select('id, full_name, email'),
+      supabase.from('licensees').select('id, license_id, name'),
+    ]);
+    if (appRes.data) setApps(appRes.data as any);
+    if (licRes.data) setLicenses(licRes.data as any);
+    if (licenseeRes.data) setLicensees(licenseeRes.data as any);
+    setProfiles([...((profRes.data || []) as any), ...((preLicRes.data || []) as any)]);
+    setLoading(false);
   }, []);
 
+  useEffect(() => { loadData(); }, [loadData]);
+
   const getName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
-  const getEmail = (id: string) => profiles.find(p => p.id === id)?.email || '';
   const getLicense = (appId: string) => licenses.find(l => l.application_id === appId);
   const getLicensee = (appId: string) => {
     const lic = getLicense(appId);
     if (!lic) return null;
     return licensees.find(l => l.license_id === lic.id) || null;
+  };
+
+  const handleGenerateLicense = async (appId: string) => {
+    setGeneratingFor(appId);
+    try {
+      // Reset status to in_progress so edge function can process it
+      await supabase.from('applications').update({ status: 'in_progress', approved_at: null }).eq('id', appId);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke('approve-pre-licensee', {
+        body: { application_id: appId, comments: 'License generated from approved list' },
+      });
+
+      if (res.error) {
+        toast.error('Failed to generate license: ' + res.error.message);
+      } else if (res.data?.success) {
+        toast.success(`License ${res.data.license_number} generated successfully`);
+        await loadData();
+      } else {
+        toast.error(res.data?.error || 'Unknown error');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate license');
+    } finally {
+      setGeneratingFor(null);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -150,6 +176,7 @@ export default function ApprovedLicensees() {
                     </TableRow>
                   ) : paged.map(app => {
                     const lic = getLicense(app.id);
+                    const licensee = getLicensee(app.id);
                     const entityName = (app.data as any)?.entity_name
                       || (app.data as any)?.applicant_name
                       || getName(app.applicant_id);
@@ -165,7 +192,7 @@ export default function ApprovedLicensees() {
                               <span className="font-mono text-sm font-medium">{lic.license_number}</span>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground text-sm">Pending</span>
+                            <span className="text-muted-foreground text-sm">Not generated</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -176,18 +203,31 @@ export default function ApprovedLicensees() {
                         <TableCell className="text-sm text-muted-foreground">
                           {app.approved_at ? new Date(app.approved_at).toLocaleDateString() : '—'}
                         </TableCell>
-                        <TableCell className="text-right space-x-1">
-                          {(() => {
-                            const licensee = getLicensee(app.id);
-                            return licensee ? (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {licensee ? (
                               <Button variant="outline" size="sm" onClick={() => navigate(`/admin/licensees/${licensee.id}`)}>
                                 <Building2 className="h-4 w-4 mr-1" />Entity
                               </Button>
-                            ) : null;
-                          })()}
-                          <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
-                            <Eye className="h-4 w-4 mr-1" />View
-                          </Button>
+                            ) : !lic ? (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                disabled={generatingFor === app.id}
+                                onClick={() => handleGenerateLicense(app.id)}
+                              >
+                                {generatingFor === app.id ? (
+                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-4 w-4 mr-1" />
+                                )}
+                                Generate License
+                              </Button>
+                            ) : null}
+                            <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
+                              <Eye className="h-4 w-4 mr-1" />View
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
