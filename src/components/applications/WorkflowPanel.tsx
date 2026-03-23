@@ -87,6 +87,36 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
 
     setProcessing(true);
     try {
+      // For final-level approvals, use the server-side edge function
+      if (actionType === 'approve' && isLastLevel) {
+        const { data, error } = await supabase.functions.invoke('approve-pre-licensee', {
+          body: { application_id: applicationId, comments: comment },
+        });
+        if (error) {
+          toast.error(error.message || 'Approval failed');
+          setProcessing(false);
+          return;
+        }
+        if (data?.error) {
+          toast.error(data.error);
+          setProcessing(false);
+          return;
+        }
+        // Show approval result with credentials
+        setApprovalResult({
+          license_number: data.license_number,
+          web_user_email: data.web_user_email,
+          web_user_password: data.web_user_password,
+          web_user_created: data.web_user_created,
+        });
+        toast.success(`Application approved! License: ${data.license_number}`);
+        setComment('');
+        onStatusChange?.();
+        setProcessing(false);
+        return;
+      }
+
+      // For rejections at final level, also use edge function pattern but via normal mutation
       await performAction.mutateAsync({
         instance_id: activeInstance.id,
         step_id: currentStep.id,
