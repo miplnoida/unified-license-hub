@@ -224,6 +224,7 @@ export default function ForgotPassword() {
           </>
         )}
       </Card>
+      </div>
     </div>
   );
 }
