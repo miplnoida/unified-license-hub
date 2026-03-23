@@ -20,6 +20,7 @@ import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default', draft: 'secondary', archived: 'outline',
@@ -57,10 +58,20 @@ export default function PostLicenseForms() {
 
   const uniqueServices = [...new Set(templates.map((t) => t.service).filter(Boolean))];
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'This form template will be permanently deleted.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'hsl(var(--destructive))',
+      cancelButtonColor: 'hsl(var(--muted-foreground))',
+      confirmButtonText: 'Yes, delete it!',
+    });
+    if (!result.isConfirmed) return;
     deleteTemplateMutation.mutate(id, {
-      onSuccess: () => toast.success('Form template deleted.'),
-      onError: () => toast.error('Failed to delete form template.'),
+      onSuccess: () => Swal.fire({ title: 'Deleted!', text: 'Form template has been deleted.', icon: 'success', timer: 1500, showConfirmButton: false }),
+      onError: () => Swal.fire({ title: 'Error', text: 'Failed to delete form template.', icon: 'error' }),
     });
   };
 
