@@ -12,6 +12,15 @@ export interface FormTemplate {
   sub_sector: string;
   category: string;
   service: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+  service_id: string | null;
+  // Joined names for display
+  sector_name: string | null;
+  sub_sector_name: string | null;
+  category_name: string | null;
+  service_name: string | null;
   regulator_id: string | null;
   is_reusable: boolean;
   status: string;
@@ -198,13 +207,19 @@ export function useFormTemplates(formType?: string, regulatorId?: string | null)
     queryFn: async () => {
       let query = supabase
         .from('form_templates')
-        .select('*')
+        .select('*, sectors:sector_id(name), sub_sectors:sub_sector_id(name), categories:category_id(name), services:service_id(name)')
         .order('created_at', { ascending: false });
       if (formType) query = query.eq('form_type', formType);
       if (regulatorId) query = query.eq('regulator_id', regulatorId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as FormTemplate[];
+      return ((data || []) as any[]).map((row: any) => ({
+        ...row,
+        sector_name: row.sectors?.name || row.sector || null,
+        sub_sector_name: row.sub_sectors?.name || row.sub_sector || null,
+        category_name: row.categories?.name || row.category || null,
+        service_name: row.services?.name || row.service || null,
+      })) as FormTemplate[];
     },
   });
 }
@@ -406,6 +421,10 @@ export function useSaveFormTemplate() {
         sub_sector: template.sub_sector,
         category: template.category,
         service: template.service,
+        sector_id: template.sector_id || null,
+        sub_sector_id: template.sub_sector_id || null,
+        category_id: template.category_id || null,
+        service_id: template.service_id || null,
         regulator_id: template.regulator_id || null,
         is_reusable: template.is_reusable,
         status: template.status,

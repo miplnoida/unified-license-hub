@@ -12,8 +12,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, GitBranch } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
+import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
@@ -35,24 +36,40 @@ export default function PreLicenseForms() {
   const deleteTemplateMutation = useDeleteFormTemplate();
   const updateStatusMutation = useUpdateTemplateStatus();
 
+  const { data: dbSectors = [] } = useSectors();
+  const { data: dbSubSectors = [] } = useSubSectors();
+  const { data: dbCategories = [] } = useCategories();
+
   const [searchName, setSearchName] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterSectorId, setFilterSectorId] = useState('all');
+  const [filterSubSectorId, setFilterSubSectorId] = useState('all');
+  const [filterCategoryId, setFilterCategoryId] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
 
+  const activeSectors = useMemo(() => dbSectors.filter(s => s.status === 'active'), [dbSectors]);
+  const filteredSubSectors = useMemo(() => {
+    if (filterSectorId === 'all') return dbSubSectors.filter(s => s.status === 'active');
+    return dbSubSectors.filter(s => s.sector_id === filterSectorId && s.status === 'active');
+  }, [dbSubSectors, filterSectorId]);
+  const filteredCategories = useMemo(() => {
+    if (filterSubSectorId === 'all') return dbCategories.filter(c => c.status === 'active');
+    return dbCategories.filter(c => c.sub_sector_id === filterSubSectorId && c.status === 'active');
+  }, [dbCategories, filterSubSectorId]);
+
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       if (searchName && !t.name.toLowerCase().includes(searchName.toLowerCase())) return false;
-      if (filterCategory !== 'all' && t.category !== filterCategory) return false;
+      if (filterSectorId !== 'all' && t.sector_id !== filterSectorId) return false;
+      if (filterSubSectorId !== 'all' && t.sub_sector_id !== filterSubSectorId) return false;
+      if (filterCategoryId !== 'all' && t.category_id !== filterCategoryId) return false;
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
       return true;
     });
-  }, [templates, searchName, filterCategory, filterStatus]);
-
-  const uniqueCategories = [...new Set(templates.map((t) => t.category).filter(Boolean))];
+  }, [templates, searchName, filterSectorId, filterSubSectorId, filterCategoryId, filterStatus]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -92,6 +109,17 @@ export default function PreLicenseForms() {
     setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
+  const handleSectorFilterChange = (val: string) => {
+    setFilterSectorId(val);
+    setFilterSubSectorId('all');
+    setFilterCategoryId('all');
+  };
+
+  const handleSubSectorFilterChange = (val: string) => {
+    setFilterSubSectorId(val);
+    setFilterCategoryId('all');
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -107,16 +135,30 @@ export default function PreLicenseForms() {
 
         <Card>
           <CardContent className="pt-6">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search by form name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9" />
               </div>
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <Select value={filterSectorId} onValueChange={handleSectorFilterChange}>
+                <SelectTrigger><SelectValue placeholder="All Sectors" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sectors</SelectItem>
+                  {activeSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterSubSectorId} onValueChange={handleSubSectorFilterChange}>
+                <SelectTrigger><SelectValue placeholder="All Sub-Sectors" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sub-Sectors</SelectItem>
+                  {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
                 <SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {uniqueCategories.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                  {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -140,8 +182,10 @@ export default function PreLicenseForms() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Form Name</TableHead>
+                    <TableHead>Sector</TableHead>
+                    <TableHead>Sub-Sector</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Form Name</TableHead>
                     <TableHead>Reusable</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created Date</TableHead>
@@ -150,11 +194,13 @@ export default function PreLicenseForms() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No form templates found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No form templates found.</TableCell></TableRow>
                   ) : filtered.map((tpl) => (
                     <TableRow key={tpl.id}>
+                      <TableCell>{tpl.sector_name || tpl.sector || '—'}</TableCell>
+                      <TableCell>{tpl.sub_sector_name || tpl.sub_sector || '—'}</TableCell>
+                      <TableCell>{tpl.category_name || tpl.category || '—'}</TableCell>
                       <TableCell className="font-medium">{tpl.name}</TableCell>
-                      <TableCell>{tpl.category}</TableCell>
                       <TableCell>
                         <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
                           {tpl.is_reusable ? 'Yes' : 'No'}

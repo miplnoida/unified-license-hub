@@ -1016,6 +1016,7 @@ export type Database = {
       form_templates: {
         Row: {
           category: string
+          category_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1026,14 +1027,18 @@ export type Database = {
           regulator_id: string | null
           return_template_id: string | null
           sector: string
+          sector_id: string | null
           service: string
+          service_id: string | null
           sheet_name: string | null
           status: string
           sub_sector: string
+          sub_sector_id: string | null
           updated_at: string
         }
         Insert: {
           category?: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1044,14 +1049,18 @@ export type Database = {
           regulator_id?: string | null
           return_template_id?: string | null
           sector?: string
+          sector_id?: string | null
           service?: string
+          service_id?: string | null
           sheet_name?: string | null
           status?: string
           sub_sector?: string
+          sub_sector_id?: string | null
           updated_at?: string
         }
         Update: {
           category?: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1062,13 +1071,23 @@ export type Database = {
           regulator_id?: string | null
           return_template_id?: string | null
           sector?: string
+          sector_id?: string | null
           service?: string
+          service_id?: string | null
           sheet_name?: string | null
           status?: string
           sub_sector?: string
+          sub_sector_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "form_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "form_templates_regulator_id_fkey"
             columns: ["regulator_id"]
@@ -1081,6 +1100,27 @@ export type Database = {
             columns: ["return_template_id"]
             isOneToOne: false
             referencedRelation: "return_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
             referencedColumns: ["id"]
           },
         ]

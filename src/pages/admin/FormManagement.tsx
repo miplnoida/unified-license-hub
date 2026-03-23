@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
+import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 
@@ -47,29 +48,47 @@ export default function FormManagement() {
   const deleteTemplateMutation = useDeleteFormTemplate();
   const updateStatusMutation = useUpdateTemplateStatus();
 
+  // Dynamic master data
+  const { data: dbSectors = [] } = useSectors();
+  const { data: dbSubSectors = [] } = useSubSectors();
+  const { data: dbCategories = [] } = useCategories();
+  const { data: dbServices = [] } = useServices();
+
   const [searchName, setSearchName] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterSector, setFilterSector] = useState('all');
-  const [filterSubSector, setFilterSubSector] = useState('all');
+  const [filterSectorId, setFilterSectorId] = useState('all');
+  const [filterSubSectorId, setFilterSubSectorId] = useState('all');
+  const [filterCategoryId, setFilterCategoryId] = useState('all');
+  const [filterServiceId, setFilterServiceId] = useState('all');
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
 
-  const uniqueSectors = useMemo(() => [...new Set(templates.map(t => t.sector).filter(Boolean))], [templates]);
-  const uniqueSubSectors = useMemo(() => {
-    const filtered = filterSector !== 'all' ? templates.filter(t => t.sector === filterSector) : templates;
-    return [...new Set(filtered.map(t => t.sub_sector).filter(Boolean))];
-  }, [templates, filterSector]);
+  const activeSectors = useMemo(() => dbSectors.filter(s => s.status === 'active'), [dbSectors]);
+  const filteredSubSectors = useMemo(() => {
+    if (filterSectorId === 'all') return dbSubSectors.filter(s => s.status === 'active');
+    return dbSubSectors.filter(s => s.sector_id === filterSectorId && s.status === 'active');
+  }, [dbSubSectors, filterSectorId]);
+  const filteredCategories = useMemo(() => {
+    if (filterSubSectorId === 'all') return dbCategories.filter(c => c.status === 'active');
+    return dbCategories.filter(c => c.sub_sector_id === filterSubSectorId && c.status === 'active');
+  }, [dbCategories, filterSubSectorId]);
+  const filteredServices = useMemo(() => {
+    if (filterSubSectorId === 'all') return dbServices.filter(s => s.status === 'active');
+    return dbServices.filter(s => s.sub_sector_id === filterSubSectorId && s.status === 'active');
+  }, [dbServices, filterSubSectorId]);
 
   const filtered = useMemo(() => {
     return templates.filter((t) => {
       if (searchName && !t.name.toLowerCase().includes(searchName.toLowerCase())) return false;
       if (filterStatus !== 'all' && t.status !== filterStatus) return false;
-      if (filterSector !== 'all' && t.sector !== filterSector) return false;
-      if (filterSubSector !== 'all' && t.sub_sector !== filterSubSector) return false;
+      if (filterSectorId !== 'all' && t.sector_id !== filterSectorId) return false;
+      if (filterSubSectorId !== 'all' && t.sub_sector_id !== filterSubSectorId) return false;
+      if (filterCategoryId !== 'all' && t.category_id !== filterCategoryId) return false;
+      if (filterServiceId !== 'all' && t.service_id !== filterServiceId) return false;
       return true;
     });
-  }, [templates, searchName, filterStatus, filterSector, filterSubSector]);
+  }, [templates, searchName, filterStatus, filterSectorId, filterSubSectorId, filterCategoryId, filterServiceId]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -109,6 +128,19 @@ export default function FormManagement() {
     setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
+  const handleSectorFilterChange = (val: string) => {
+    setFilterSectorId(val);
+    setFilterSubSectorId('all');
+    setFilterCategoryId('all');
+    setFilterServiceId('all');
+  };
+
+  const handleSubSectorFilterChange = (val: string) => {
+    setFilterSubSectorId(val);
+    setFilterCategoryId('all');
+    setFilterServiceId('all');
+  };
+
   const activeTypeLabel = FORM_TYPES.find(t => t.value === activeTab)?.label || 'Form';
 
   return (
@@ -136,23 +168,37 @@ export default function FormManagement() {
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input placeholder="Search by form name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9" />
                       </div>
-                      <Select value={filterSector} onValueChange={(val) => { setFilterSector(val); setFilterSubSector('all'); }}>
+                      <Select value={filterSectorId} onValueChange={handleSectorFilterChange}>
                         <SelectTrigger><SelectValue placeholder="All Sectors" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Sectors</SelectItem>
-                          {uniqueSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          {activeSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <Select value={filterSubSector} onValueChange={setFilterSubSector}>
+                      <Select value={filterSubSectorId} onValueChange={handleSubSectorFilterChange}>
                         <SelectTrigger><SelectValue placeholder="All Sub-Sectors" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Sub-Sectors</SelectItem>
-                          {uniqueSubSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterCategoryId} onValueChange={setFilterCategoryId}>
+                        <SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterServiceId} onValueChange={setFilterServiceId}>
+                        <SelectTrigger><SelectValue placeholder="All Services" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Services</SelectItem>
+                          {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -192,11 +238,11 @@ export default function FormManagement() {
                             <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id}>
-                              <TableCell>{tpl.sector || '—'}</TableCell>
-                              <TableCell>{tpl.sub_sector || '—'}</TableCell>
-                              <TableCell>{tpl.category || '—'}</TableCell>
+                              <TableCell>{tpl.sector_name || tpl.sector || '—'}</TableCell>
+                              <TableCell>{tpl.sub_sector_name || tpl.sub_sector || '—'}</TableCell>
+                              <TableCell>{tpl.category_name || tpl.category || '—'}</TableCell>
                               <TableCell className="font-medium">{tpl.name}</TableCell>
-                              <TableCell>{tpl.service || '—'}</TableCell>
+                              <TableCell>{tpl.service_name || tpl.service || '—'}</TableCell>
                               <TableCell>
                                 <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
                                   {tpl.is_reusable ? 'Yes' : 'No'}
