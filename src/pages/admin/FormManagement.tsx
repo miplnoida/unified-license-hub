@@ -176,8 +176,10 @@ export default function FormManagement() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Form Name</TableHead>
+                            <TableHead>Sector</TableHead>
+                            <TableHead>Sub-Sector</TableHead>
                             <TableHead>Category</TableHead>
+                            <TableHead>Form Name</TableHead>
                             <TableHead>Service</TableHead>
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
@@ -187,11 +189,13 @@ export default function FormManagement() {
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id}>
-                              <TableCell className="font-medium">{tpl.name}</TableCell>
+                              <TableCell>{tpl.sector || '—'}</TableCell>
+                              <TableCell>{tpl.sub_sector || '—'}</TableCell>
                               <TableCell>{tpl.category || '—'}</TableCell>
+                              <TableCell className="font-medium">{tpl.name}</TableCell>
                               <TableCell>{tpl.service || '—'}</TableCell>
                               <TableCell>
                                 <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
