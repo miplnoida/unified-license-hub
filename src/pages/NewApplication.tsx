@@ -19,7 +19,6 @@ import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
-import { startWorkflowForApplication } from '@/lib/workflowService';
 import { toast } from 'sonner';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
