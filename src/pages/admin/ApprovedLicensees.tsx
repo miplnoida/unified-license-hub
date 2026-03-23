@@ -54,14 +54,16 @@ export default function ApprovedLicensees() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, licRes, profRes, preLicRes] = await Promise.all([
+      const [appRes, licRes, profRes, preLicRes, licenseeRes] = await Promise.all([
         supabase.from('applications').select('*').eq('status', 'approved').order('approved_at', { ascending: false }),
         supabase.from('licenses').select('id, license_number, application_id, status, issued_at'),
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
+        supabase.from('licensees').select('id, license_id, name'),
       ]);
       if (appRes.data) setApps(appRes.data as any);
       if (licRes.data) setLicenses(licRes.data as any);
+      if (licenseeRes.data) setLicensees(licenseeRes.data as any);
       setProfiles([...((profRes.data || []) as any), ...((preLicRes.data || []) as any)]);
       setLoading(false);
     }
