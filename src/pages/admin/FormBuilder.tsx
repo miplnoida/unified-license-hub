@@ -72,19 +72,19 @@ export default function FormBuilder() {
   // Populate state when existing template + version loads
   useEffect(() => {
     if (!existingTemplate || initialized || dbSectors.length === 0) return;
-    // Load sections from latest version's schema_snapshot
     const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
     setSections(Array.isArray(loadedSections) ? loadedSections : []);
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
-    const sectorRow = dbSectors.find(s => s.name === existingTemplate.sector);
-    setSelectedSector(sectorRow?.id || '');
-    const subSectorRow = dbSubSectors.find(s => s.name === existingTemplate.sub_sector);
-    setSelectedSubSector(subSectorRow?.id || '');
-    const catRow = dbCategories.find(c => c.name === existingTemplate.category);
-    setSelectedCategory(catRow?.id || '');
-    const svcRow = dbServices.find(s => s.name === existingTemplate.service);
-    setSelectedService(svcRow?.id || '');
+    // Prefer FK IDs, fall back to name-based lookup for legacy data
+    const sectorId = existingTemplate.sector_id || dbSectors.find(s => s.name === existingTemplate.sector)?.id || '';
+    setSelectedSector(sectorId);
+    const subSectorId = existingTemplate.sub_sector_id || dbSubSectors.find(s => s.name === existingTemplate.sub_sector)?.id || '';
+    setSelectedSubSector(subSectorId);
+    const catId = existingTemplate.category_id || dbCategories.find(c => c.name === existingTemplate.category)?.id || '';
+    setSelectedCategory(catId);
+    const svcId = existingTemplate.service_id || dbServices.find(s => s.name === existingTemplate.service)?.id || '';
+    setSelectedService(svcId);
     setInitialized(true);
   }, [existingTemplate, latestVersion, initialized, dbSectors, dbSubSectors, dbCategories, dbServices]);
 
