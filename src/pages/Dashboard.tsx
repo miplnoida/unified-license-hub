@@ -213,6 +213,40 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Draft Applications Section */}
+        {!isInternal && draftApps.length > 0 && (
+          <Card className="border-amber-200 dark:border-amber-800 animate-slide-up delay-250">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Edit className="h-4 w-4 text-amber-600" /> Draft Applications
+                </CardTitle>
+                <Badge variant="outline" className="text-xs">{draftApps.length} draft{draftApps.length > 1 ? 's' : ''}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {draftApps.map(draft => (
+                  <div key={draft.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 cursor-pointer transition-colors" onClick={() => navigate(`/applications/${draft.id}`)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600">
+                        <Edit className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-mono text-sm font-medium">{draft.application_number}</p>
+                        <p className="text-xs text-muted-foreground">{draft.license_type} · Modified {new Date(draft.updated_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <Edit className="h-3 w-3" /> Continue
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up delay-300">
           <Card>
             <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
