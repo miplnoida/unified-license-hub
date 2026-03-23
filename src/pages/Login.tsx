@@ -35,10 +35,14 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
       {/* Logo */}
       <a href="/" className="flex items-center gap-2.5 mb-8">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-          <Layers className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <span className="text-xl font-bold tracking-tight text-foreground">RegPlatform</span>
+        {branding.logo_url ? (
+          <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-10 rounded-xl object-contain" />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+            <Layers className="h-5 w-5 text-primary-foreground" />
+          </div>
+        )}
+        <span className="text-xl font-bold tracking-tight text-foreground">{branding.site_name}</span>
       </a>
 
       <Card className="w-full max-w-[420px] shadow-card">
