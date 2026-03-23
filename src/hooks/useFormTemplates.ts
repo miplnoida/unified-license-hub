@@ -484,7 +484,7 @@ export function useSaveFormTemplate() {
 export function useCreateNewFormVersion() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { templateId: string; sections: FormSection[]; changeNotes?: string }) => {
+    mutationFn: async (params: { templateId: string; sections: FormSection[]; changeNotes?: string; semanticVersion?: string }) => {
       // Get max version
       const { data: versions } = await supabase
         .from('form_versions')
@@ -526,6 +526,7 @@ export function useCreateNewFormVersion() {
         schema_snapshot: JSON.parse(JSON.stringify(newSections)),
         status: 'draft',
         change_notes: params.changeNotes || null,
+        semantic_version: params.semanticVersion || `${newVersion}.0`,
       } as any);
       if (vErr) throw vErr;
 
