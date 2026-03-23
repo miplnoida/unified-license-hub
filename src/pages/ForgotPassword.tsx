@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Mail, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
+import { LandingNav } from '@/components/landing/LandingNav';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 type Step = 'email' | 'otp' | 'new-password' | 'success';
