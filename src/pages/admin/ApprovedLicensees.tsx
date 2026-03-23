@@ -27,6 +27,12 @@ interface License {
   issued_at: string;
 }
 
+interface Licensee {
+  id: string;
+  license_id: string | null;
+  name: string;
+}
+
 interface Profile {
   id: string;
   full_name: string;
