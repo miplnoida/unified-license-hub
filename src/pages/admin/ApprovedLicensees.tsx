@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield } from 'lucide-react';
+import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2 } from 'lucide-react';
 
 interface ApprovedApp {
   id: string;
@@ -176,7 +176,15 @@ export default function ApprovedLicensees() {
                         <TableCell className="text-sm text-muted-foreground">
                           {app.approved_at ? new Date(app.approved_at).toLocaleDateString() : '—'}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1">
+                          {(() => {
+                            const licensee = getLicensee(app.id);
+                            return licensee ? (
+                              <Button variant="outline" size="sm" onClick={() => navigate(`/admin/licensees/${licensee.id}`)}>
+                                <Building2 className="h-4 w-4 mr-1" />Entity
+                              </Button>
+                            ) : null;
+                          })()}
                           <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
                             <Eye className="h-4 w-4 mr-1" />View
                           </Button>
