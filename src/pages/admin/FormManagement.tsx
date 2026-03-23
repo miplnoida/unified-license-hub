@@ -136,11 +136,25 @@ export default function FormManagement() {
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input placeholder="Search by form name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} className="pl-9" />
                       </div>
+                      <Select value={filterSector} onValueChange={(val) => { setFilterSector(val); setFilterSubSector('all'); }}>
+                        <SelectTrigger><SelectValue placeholder="All Sectors" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sectors</SelectItem>
+                          {uniqueSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Select value={filterSubSector} onValueChange={setFilterSubSector}>
+                        <SelectTrigger><SelectValue placeholder="All Sub-Sectors" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sub-Sectors</SelectItem>
+                          {uniqueSubSectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                       <Select value={filterStatus} onValueChange={setFilterStatus}>
                         <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
                         <SelectContent>
