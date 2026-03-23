@@ -493,27 +493,38 @@ export default function FormBuilder() {
         </Card>
 
         {/* Builder: 3-column layout */}
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-2">
-            <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" style={{ minHeight: 'calc(100vh - 400px)' }}>
+          {/* Left: Field Palette */}
+          <div className="lg:col-span-2">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+            </ScrollArea>
           </div>
-          <div className="col-span-7">
-            <SectionManager
-              sections={sections}
-              selectedFieldId={selectedField?.id || null}
-              onSelectField={handleSelectField}
-              onSectionsChange={setSections}
-              onAddField={handleAddField}
-              onDeleteField={handleDeleteField}
-              onDuplicateField={handleDuplicateField}
-            />
+
+          {/* Center: Section Manager */}
+          <div className="lg:col-span-7">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <SectionManager
+                sections={sections}
+                selectedFieldId={selectedField?.id || null}
+                onSelectField={handleSelectField}
+                onSectionsChange={setSections}
+                onAddField={handleAddField}
+                onDeleteField={handleDeleteField}
+                onDuplicateField={handleDuplicateField}
+              />
+            </ScrollArea>
           </div>
-          <div className="col-span-3">
-            <FormBuilderFieldProperties
-              selectedField={selectedField}
-              allFields={allFields}
-              onUpdateField={handleUpdateField}
-            />
+
+          {/* Right: Field Properties */}
+          <div className="lg:col-span-3">
+            <ScrollArea className="h-[calc(100vh-400px)]">
+              <FormBuilderFieldProperties
+                selectedField={selectedField}
+                allFields={allFields}
+                onUpdateField={handleUpdateField}
+              />
+            </ScrollArea>
           </div>
         </div>
       </div>
