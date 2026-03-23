@@ -10,6 +10,7 @@ import { PasswordSection } from '@/components/registration/PasswordSection';
 import { CaptchaSection } from '@/components/registration/CaptchaSection';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { ArrowRight, FileText } from 'lucide-react';
+import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 
 export default function PreLicenseeRegistration() {
@@ -102,6 +103,7 @@ export default function PreLicenseeRegistration() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LandingNav />
       {/* Header Banner */}
       <div className="hero-gradient text-primary-foreground py-8 px-4">
         <div className="max-w-4xl mx-auto">

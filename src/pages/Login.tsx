@@ -1,18 +1,19 @@
 import { useState } from 'react';
+import { LandingNav } from '@/components/landing/LandingNav';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Layers, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const { isAuthenticated, login } = useAuth();
-  const { branding } = useSiteSettings();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,18 +33,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
-      {/* Logo */}
-      <a href="/" className="flex items-center gap-2.5 mb-8">
-        {branding.logo_url ? (
-          <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-10 rounded-xl object-contain" />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <Layers className="h-5 w-5 text-primary-foreground" />
-          </div>
-        )}
-        <span className="text-xl font-bold tracking-tight text-foreground">{branding.site_name}</span>
-      </a>
+    <div className="min-h-screen flex flex-col bg-muted/40">
+      <LandingNav />
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
 
       <Card className="w-full max-w-[420px] shadow-card">
         <CardHeader className="text-center space-y-1 pb-4">
@@ -86,6 +78,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
