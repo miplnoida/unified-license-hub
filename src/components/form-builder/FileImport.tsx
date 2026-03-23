@@ -381,17 +381,100 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
 
 // ─── Checkbox Detection Helpers ───
 
-const CHECKBOX_SYMBOLS = /[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/;
-const CHECKBOX_LINE_RE = /^[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]\s*/;
+const KNOWN_CHECKBOX_SYMBOLS = '☐☑☒✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■';
+const CHECKBOX_SYMBOL_RE = new RegExp(`[${KNOWN_CHECKBOX_SYMBOLS}]`, 'u');
+const CHECKBOX_SYMBOL_GLOBAL_RE = new RegExp(`[${KNOWN_CHECKBOX_SYMBOLS}]`, 'gu');
+
+function isPrivateUseChar(char: string): boolean {
+  const cp = char.codePointAt(0) ?? 0;
+  return cp >= 0xE000 && cp <= 0xF8FF;
+}
+
+function isLikelyCheckboxMarker(char: string): boolean {
+  if (!char) return false;
+  if (CHECKBOX_SYMBOL_RE.test(char)) return true;
+  if (isPrivateUseChar(char)) return true;
+  return /\p{So}/u.test(char);
+}
+
+function countCheckboxMarkers(text: string): number {
+  return Array.from(text).reduce((acc, char) => acc + (isLikelyCheckboxMarker(char) ? 1 : 0), 0);
+}
+
+function removeCheckboxMarkers(text: string): string {
+  return Array.from(text)
+    .filter(char => !isLikelyCheckboxMarker(char))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function cleanCheckboxOption(option: string): string {
+  return option.replace(/^[\s,;]+|[\s,;]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function extractInlineCheckboxOptions(text: string): string[] {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return [];
+
+  const direct = normalized
+    .split(CHECKBOX_SYMBOL_GLOBAL_RE)
+    .map(cleanCheckboxOption)
+    .filter(Boolean);
+  if (direct.length >= 2) return [...new Set(direct)];
+
+  const markerCounts = new Map<string, number>();
+  for (const char of Array.from(normalized)) {
+    if (!isLikelyCheckboxMarker(char)) continue;
+    markerCounts.set(char, (markerCounts.get(char) ?? 0) + 1);
+  }
+
+  const candidate = Array.from(markerCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+  if (!candidate || candidate[1] < 2) return [];
+
+  const [marker] = candidate;
+  const fallback = normalized
+    .split(marker)
+    .map(cleanCheckboxOption)
+    .filter(Boolean);
+
+  if (fallback.length < 2 || fallback.some(option => option.length > 100)) return [];
+  return [...new Set(fallback)];
+}
+
+function extractCheckboxFieldData(text: string): { label?: string; options: string[] } | null {
+  const options = extractInlineCheckboxOptions(text);
+  if (options.length < 2) return null;
+
+  const first = options[0];
+  const questionMatch = first.match(/^(.{3,120}?)[?:]\s+(.+)$/);
+  if (questionMatch) {
+    const [, question, firstOption] = questionMatch;
+    const normalizedOptions = [cleanCheckboxOption(firstOption), ...options.slice(1)].filter(Boolean);
+    if (normalizedOptions.length >= 2) {
+      return { label: question.trim(), options: normalizedOptions };
+    }
+  }
+
+  return { options };
+}
 
 /** Returns true if a text line starts with a checkbox symbol */
 function isCheckboxLine(text: string): boolean {
-  return CHECKBOX_LINE_RE.test(text.trim());
+  const trimmed = text.trimStart();
+  if (!trimmed) return false;
+  const [firstChar] = Array.from(trimmed);
+  return isLikelyCheckboxMarker(firstChar || '');
 }
 
 /** Strip checkbox symbol prefix and return the option label */
 function stripCheckboxSymbol(text: string): string {
-  return text.trim().replace(CHECKBOX_LINE_RE, '').trim();
+  const trimmed = text.trimStart();
+  const chars = Array.from(trimmed);
+  if (chars.length > 0 && isLikelyCheckboxMarker(chars[0])) {
+    return chars.slice(1).join('').trim();
+  }
+  return trimmed.trim();
 }
 
 /**
@@ -447,9 +530,9 @@ function extractCheckboxOptionsFromList(el: Element): string[] | null {
   if (items.length === 0) return null;
   const cbCount = items.filter(i => isCheckboxLine(i)).length;
   // Also detect if the items contain checkbox symbols anywhere in the text
-  const symbolCount = items.filter(i => CHECKBOX_SYMBOLS.test(i)).length;
+  const symbolCount = items.filter(i => countCheckboxMarkers(i) > 0).length;
   if (cbCount >= items.length * 0.5 || symbolCount >= items.length * 0.5) {
-    return items.map(i => i.replace(CHECKBOX_SYMBOLS, '').trim()).filter(Boolean);
+    return items.map(i => cleanCheckboxOption(removeCheckboxMarkers(i))).filter(Boolean);
   }
   return null;
 }
@@ -505,14 +588,39 @@ async function parseWord(file: File): Promise<FormSection[]> {
             if (!label) continue;
             const rawType = typeIdx >= 0 ? cells[typeIdx]?.toLowerCase() || 'text' : 'text';
             const typeMap: Record<string, FieldType> = { text: 'text', number: 'number', email: 'email', date: 'date', textarea: 'textarea', select: 'select', dropdown: 'select', checkbox: 'checkbox', radio: 'radio', file: 'file' };
+            const inlineCheckbox = extractCheckboxFieldData(label);
+            let parsedType: FieldType = typeMap[rawType] || 'text';
+            let parsedLabel = label;
+            let parsedOptions: string[] | undefined;
+
+            if (inlineCheckbox && (parsedType === 'checkbox' || parsedType === 'text')) {
+              parsedType = 'checkbox';
+              parsedLabel = inlineCheckbox.label || 'Selection';
+              parsedOptions = inlineCheckbox.options;
+            }
+
             currentSection.fields.push({
-              id: crypto.randomUUID(), type: typeMap[rawType] || 'text', label, fieldName: toFieldName(label),
+              id: crypto.randomUUID(), type: parsedType, label: parsedLabel, fieldName: toFieldName(parsedLabel),
               required: reqIdx >= 0 ? ['yes', 'y', 'true'].includes((cells[reqIdx] || '').toLowerCase()) : false,
+              options: parsedOptions,
             });
           }
         } else {
           for (const header of headerCells) {
             if (!header) continue;
+            const inlineCheckbox = extractCheckboxFieldData(header);
+            if (inlineCheckbox) {
+              const checkboxLabel = inlineCheckbox.label || 'Selection';
+              currentSection.fields.push({
+                id: crypto.randomUUID(),
+                type: 'checkbox',
+                label: checkboxLabel,
+                fieldName: toFieldName(checkboxLabel),
+                required: false,
+                options: inlineCheckbox.options,
+              });
+              continue;
+            }
             currentSection.fields.push({ id: crypto.randomUUID(), type: inferFieldType(header, []), label: header, fieldName: toFieldName(header), required: false });
           }
         }
@@ -599,35 +707,27 @@ async function parseWord(file: File): Promise<FormSection[]> {
 
     // ── Paragraphs: check for inline checkbox symbols ──
     if (tag === 'p') {
-      // Count checkbox symbols in the text
-      const cbSymbolCount = (text.match(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/g) || []).length;
-      if (cbSymbolCount >= 2) {
-        // Split by checkbox symbols to extract option labels
-        // Handles both "☐ MLRO  ☐ MLCO" and "MLRO ☐  MLCO ☐" patterns
-        const parts = text.split(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/);
-        const options = parts.map(p => p.trim()).filter(Boolean);
+      const inlineCheckbox = extractCheckboxFieldData(text);
+      if (inlineCheckbox) {
+        const precedingLabel = findPrecedingLabel(elements, elIdx);
+        const label = precedingLabel || inlineCheckbox.label || 'Selection';
 
-        if (options.length >= 2) {
-          const precedingLabel = findPrecedingLabel(elements, elIdx);
-          const label = precedingLabel || 'Selection';
-
-          if (precedingLabel && currentSection.fields.length > 0) {
-            const lastField = currentSection.fields[currentSection.fields.length - 1];
-            if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
-              currentSection.fields.pop();
-            }
+        if (precedingLabel && currentSection.fields.length > 0) {
+          const lastField = currentSection.fields[currentSection.fields.length - 1];
+          if (lastField.label === precedingLabel && lastField.type !== 'checkbox') {
+            currentSection.fields.pop();
           }
-
-          currentSection.fields.push({
-            id: crypto.randomUUID(), type: 'checkbox', label,
-            fieldName: toFieldName(label), required: false, options,
-          });
-          elIdx++;
-          continue;
         }
-      } else if (cbSymbolCount === 1) {
+
+        currentSection.fields.push({
+          id: crypto.randomUUID(), type: 'checkbox', label,
+          fieldName: toFieldName(label), required: false, options: inlineCheckbox.options,
+        });
+        elIdx++;
+        continue;
+      } else if (countCheckboxMarkers(text) === 1) {
         // Single checkbox symbol — check if it's part of a label like "I agree ☐"
-        const stripped = text.replace(/[☐☑✓✔✗✘⬜⬛▢▣◻◼○●❏❑❒□■]/g, '').trim();
+        const stripped = removeCheckboxMarkers(text);
         if (stripped) {
           currentSection.fields.push({
             id: crypto.randomUUID(), type: 'checkbox', label: stripped,
