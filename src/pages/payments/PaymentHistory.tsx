@@ -66,6 +66,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function PaymentHistory() {
   const { user } = useAuth();
+  const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
