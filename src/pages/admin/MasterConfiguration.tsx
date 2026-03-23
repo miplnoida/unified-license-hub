@@ -82,28 +82,51 @@ export default function MasterConfiguration() {
     }
   };
 
+  const checkDuplicate = (): string | null => {
+    const name = formName.trim().toLowerCase();
+    if (dialogEntity === 'sectors') {
+      const dup = sectors.find(s => s.name.toLowerCase() === name && s.id !== editId);
+      if (dup) return 'A sector with this name already exists.';
+    } else if (dialogEntity === 'sub-sectors') {
+      const dup = subSectors.find(s => s.sector_id === formSectorId && s.name.toLowerCase() === name && s.id !== editId);
+      if (dup) return 'A sub-sector with this name already exists in the selected sector.';
+    } else if (dialogEntity === 'categories') {
+      const dup = categories.find(c => c.sector_id === formSectorId && c.sub_sector_id === formSubSectorId && c.name.toLowerCase() === name && c.id !== editId);
+      if (dup) return 'A category with this name already exists for this sector and sub-sector.';
+    } else {
+      const dup = services.find(s => s.sector_id === formSectorId && s.sub_sector_id === formSubSectorId && s.name.toLowerCase() === name && s.id !== editId);
+      if (dup) return 'A service with this name already exists for this sector and sub-sector.';
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     if (!formName.trim()) {
       toast({ title: 'Name is required', variant: 'destructive' });
       return;
     }
+    const dupError = checkDuplicate();
+    if (dupError) {
+      toast({ title: 'Duplicate Entry', description: dupError, variant: 'destructive' });
+      return;
+    }
     try {
       if (dialogEntity === 'sectors') {
-        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName, status: formStatus, regulator_id: activeRegulatorId });
+        await mutations.upsertSector.mutateAsync({ id: editId || undefined, name: formName.trim(), status: formStatus, regulator_id: activeRegulatorId });
       } else if (dialogEntity === 'sub-sectors') {
         if (!formSectorId) { toast({ title: 'Sector is required', variant: 'destructive' }); return; }
-        await mutations.upsertSubSector.mutateAsync({ id: editId || undefined, sector_id: formSectorId, name: formName, status: formStatus });
+        await mutations.upsertSubSector.mutateAsync({ id: editId || undefined, sector_id: formSectorId, name: formName.trim(), status: formStatus });
       } else if (dialogEntity === 'categories') {
         if (!formSectorId || !formSubSectorId) { toast({ title: 'Sector & Sub-Sector are required', variant: 'destructive' }); return; }
-        await mutations.upsertCategory.mutateAsync({ id: editId || undefined, sector_id: formSectorId, sub_sector_id: formSubSectorId, name: formName, status: formStatus });
+        await mutations.upsertCategory.mutateAsync({ id: editId || undefined, sector_id: formSectorId, sub_sector_id: formSubSectorId, name: formName.trim(), status: formStatus });
       } else {
         if (!formSectorId || !formSubSectorId) { toast({ title: 'Sector & Sub-Sector are required', variant: 'destructive' }); return; }
-        await mutations.upsertService.mutateAsync({ id: editId || undefined, sector_id: formSectorId, sub_sector_id: formSubSectorId, name: formName, status: formStatus });
+        await mutations.upsertService.mutateAsync({ id: editId || undefined, sector_id: formSectorId, sub_sector_id: formSubSectorId, name: formName.trim(), status: formStatus });
       }
       toast({ title: editId ? 'Updated successfully' : 'Created successfully' });
       setDialogOpen(false);
     } catch (e: any) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      toast({ title: 'Duplicate Entry', description: e.message, variant: 'destructive' });
     }
   };
 
