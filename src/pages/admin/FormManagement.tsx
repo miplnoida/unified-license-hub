@@ -51,9 +51,6 @@ export default function FormManagement() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSector, setFilterSector] = useState('all');
   const [filterSubSector, setFilterSubSector] = useState('all');
-  const [statusDialog, setStatusDialog] = useState<{
-    open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
-  }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
 
   const uniqueSectors = useMemo(() => [...new Set(templates.map(t => t.sector).filter(Boolean))], [templates]);
   const uniqueSubSectors = useMemo(() => {
