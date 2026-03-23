@@ -388,6 +388,20 @@ export default function NewApplication() {
       toast.error('Please complete payment to submit application.');
       return;
     }
+
+    // Server-side payment verification
+    const { data: paymentCheck } = await supabase
+      .from('payments')
+      .select('status')
+      .eq('application_id', applicationId)
+      .eq('status', 'completed')
+      .limit(1);
+
+    if (!paymentCheck || paymentCheck.length === 0) {
+      toast.error('Payment verification failed. Please complete payment first.');
+      return;
+    }
+
     setSubmitting(true);
 
     const { error } = await supabase.from('applications').update({
@@ -407,35 +421,9 @@ export default function NewApplication() {
       submitted_at: new Date().toISOString(),
     } as any).eq('entity_id', applicationId).eq('entity_type', 'application');
 
-    // Try to start workflow
-    const { data: workflows } = await supabase
-      .from('approval_workflows')
-      .select('id')
-      .eq('entity_type', 'application')
-      .eq('is_active', true)
-      .limit(1);
-
-    if (workflows && workflows.length > 0) {
-      const { data: steps } = await supabase
-        .from('approval_steps')
-        .select('id')
-        .eq('workflow_id', workflows[0].id)
-        .order('step_order', { ascending: true })
-        .limit(1);
-
-      await supabase.from('workflow_instances').insert({
-        workflow_id: workflows[0].id,
-        entity_type: 'application',
-        entity_id: applicationId,
-        current_step_id: steps?.[0]?.id || null,
-        status: 'active',
-      } as any);
-
-      await supabase.from('applications').update({
-        workflow_id: workflows[0].id,
-        current_step_id: steps?.[0]?.id || null,
-      } as any).eq('id', applicationId);
-    }
+    // Use centralized workflow service (prevents duplicates)
+    const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
+    const wfResult = await startWorkflowForApplication(applicationId, licenseType);
 
     await logAudit({
       action: 'application_submitted',
@@ -443,7 +431,9 @@ export default function NewApplication() {
       entityId: applicationId,
     });
 
-    toast.success('Application submitted successfully!');
+    toast.success(wfResult.matched
+      ? 'Application submitted and routed to workflow!'
+      : 'Application submitted successfully!');
     setSubmitting(false);
     navigate(`/applications/${applicationId}`);
   };
