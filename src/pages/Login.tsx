@@ -33,18 +33,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/40 p-4">
-      {/* Logo */}
-      <a href="/" className="flex items-center gap-2.5 mb-8">
-        {branding.logo_url ? (
-          <img src={branding.logo_url} alt={branding.site_name} className="h-10 w-10 rounded-xl object-contain" />
-        ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-            <Layers className="h-5 w-5 text-primary-foreground" />
-          </div>
-        )}
-        <span className="text-xl font-bold tracking-tight text-foreground">{branding.site_name}</span>
-      </a>
+    <div className="min-h-screen flex flex-col bg-muted/40">
+      <LandingNav />
+      <div className="flex-1 flex flex-col items-center justify-center p-4">
 
       <Card className="w-full max-w-[420px] shadow-card">
         <CardHeader className="text-center space-y-1 pb-4">
