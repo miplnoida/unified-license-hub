@@ -616,7 +616,7 @@ export function useSaveFormResponse() {
 
 // ─── Semantic Versioning Helper ───
 // Minor change (label, text, validation tweak): 1.0 → 1.1 → 1.2
-// Major change (field added/removed): 1.x → 2.0, 2.x → 3.0
+// Major change (field added/removed, field type changed, section added/removed): 1.x → 2.0, 2.x → 3.0
 export function computeSemanticVersion(
   currentVersion: string,
   oldSections: FormSection[],
@@ -631,7 +631,20 @@ export function computeSemanticVersion(
   const added = [...newFieldIds].some(id => !oldFieldIds.has(id));
   const removed = [...oldFieldIds].some(id => !newFieldIds.has(id));
 
-  if (added || removed) {
+  // Check if sections were added or removed
+  const oldSectionIds = new Set(oldSections.map(s => s.id));
+  const newSectionIds = new Set(newSections.map(s => s.id));
+  const sectionAdded = [...newSectionIds].some(id => !oldSectionIds.has(id));
+  const sectionRemoved = [...oldSectionIds].some(id => !newSectionIds.has(id));
+
+  // Check if any field type was changed
+  const oldFieldMap = new Map<string, string>();
+  oldSections.forEach(s => s.fields.forEach(f => oldFieldMap.set(f.id, f.type)));
+  const typeChanged = newSections.some(s =>
+    s.fields.some(f => oldFieldMap.has(f.id) && oldFieldMap.get(f.id) !== f.type)
+  );
+
+  if (added || removed || sectionAdded || sectionRemoved || typeChanged) {
     return `${major + 1}.0`;
   }
   return `${major}.${minor + 1}`;
