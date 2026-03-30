@@ -16,7 +16,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Eye, Save, GitBranch } from 'lucide-react';
+import { Eye, Save, GitBranch, History } from 'lucide-react';
+import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
@@ -417,6 +418,9 @@ export default function FormBuilder() {
                   <GitBranch className="h-4 w-4 mr-1" />
                   New Version
                 </Button>
+              )}
+              {editId && (
+                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
               )}
               <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
               <Button variant="outline" onClick={() => setShowPreview(true)}>
