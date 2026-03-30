@@ -419,6 +419,9 @@ export default function FormBuilder() {
                   New Version
                 </Button>
               )}
+              {editId && (
+                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
+              )}
               <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
               <Button variant="outline" onClick={() => setShowPreview(true)}>
                 <Eye className="h-4 w-4 mr-2" /> Preview
