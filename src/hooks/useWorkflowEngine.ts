@@ -449,6 +449,26 @@ export function usePerformAction() {
         await supabase.from('applications').update({
           status: 'resubmission_requested',
         } as any).eq('id', params.application_id);
+
+        // Send notification to applicant
+        const { data: appRecord } = await supabase.from('applications').select('applicant_id, application_number').eq('id', params.application_id).single();
+        if (appRecord) {
+          try {
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                action: 'dispatch',
+                event_type: 'resubmission_requested',
+                user_id: (appRecord as any).applicant_id,
+                title: `Resubmission Requested: ${(appRecord as any).application_number}`,
+                message: `Your application ${(appRecord as any).application_number} requires revisions.\n\nRemarks: ${params.comments || 'Please review and resubmit.'}`,
+                entity_type: 'application',
+                entity_id: params.application_id,
+              },
+            });
+          } catch (e) {
+            console.error('Notification failed', e);
+          }
+        }
       }
 
       await logAudit({
