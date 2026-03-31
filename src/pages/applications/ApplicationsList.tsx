@@ -485,8 +485,7 @@ export default function ApplicationsList() {
           applicationNumber={selectedPaymentApp?.applicationNumber || ''}
           applicantId={selectedPaymentApp?.applicantId || ''}
           onVerified={() => {
-            // Reload data
-            window.location.reload();
+            setRefreshKey(k => k + 1);
           }}
         />
       </div>
