@@ -152,7 +152,9 @@ export default function ApplicationsList() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [refreshKey]);
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
 
