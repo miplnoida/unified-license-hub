@@ -326,7 +326,7 @@ export default function ApplicationsList() {
                                 <Pencil className="h-4 w-4 mr-1" />Edit
                               </Button>
                             )}
-                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
