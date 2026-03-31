@@ -415,7 +415,7 @@ export default function ApplicationDetail() {
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
                     formVersionIds={formVersionIds}
-                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onSave={async (templateId, data) => {
                       const updatedFormsData = { ...formsData, [templateId]: data };
                       const updatedAppData = { ...appData, forms_data: updatedFormsData };
