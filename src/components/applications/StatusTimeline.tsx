@@ -1,7 +1,7 @@
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_FLOW, ApplicationStatus } from '@/types/platform';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, XCircle, Clock, Loader2, RotateCcw } from 'lucide-react';
 
 interface TimelineEvent {
   id: string;
@@ -24,13 +24,15 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   approved: { icon: <CheckCircle2 className="h-4 w-4" />, color: 'text-success' },
   rejected: { icon: <XCircle className="h-4 w-4" />, color: 'text-destructive' },
   cancelled: { icon: <XCircle className="h-4 w-4" />, color: 'text-destructive' },
-  resubmission_requested: { icon: <Clock className="h-4 w-4" />, color: 'text-warning' },
+  resubmission_requested: { icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500' },
+  query_raised: { icon: <RotateCcw className="h-4 w-4" />, color: 'text-orange-500' },
 };
 
 export function StatusTimeline({ currentStatus, events }: Props) {
   const isRejected = currentStatus === 'rejected';
-  const currentIdx = APPLICATION_STATUS_FLOW.indexOf(currentStatus);
-  // Progress: draft=0, submitted=33, in_progress=66, approved=100
+  const isResubmission = currentStatus === 'resubmission_requested' || currentStatus === 'query_raised';
+  // For resubmission, show progress as if between submitted and in_progress
+  const currentIdx = isResubmission ? 1 : APPLICATION_STATUS_FLOW.indexOf(currentStatus);
   const progressValue = isRejected ? 100 : currentIdx >= 0 ? (currentIdx / (APPLICATION_STATUS_FLOW.length - 1)) * 100 : 0;
 
   const config = statusConfig[currentStatus] || statusConfig.draft;
