@@ -47,7 +47,7 @@ export function PaymentVerificationDialog({
 
   if (!payment) return null;
 
-  const showVerify = !viewOnly && !!applicantId && !!applicationNumber;
+
   const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const handleVerify = async () => {
