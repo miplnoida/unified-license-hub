@@ -101,7 +101,7 @@ export default function ApplicationsList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
-  const [activeTab, setActiveTab] = useState('submitted');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -181,9 +181,8 @@ export default function ApplicationsList() {
   };
 
   const filtered = useMemo(() => {
-    const tabStatuses = TAB_STATUS_MAP[activeTab] || [];
     return applications.filter(a => {
-      if (!tabStatuses.includes(a.status)) return false;
+      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
@@ -198,18 +197,10 @@ export default function ApplicationsList() {
       }
       return true;
     });
-  }, [applications, activeTab, search, searchMode, profiles, sectors, subSectors]);
+  }, [applications, statusFilter, search, searchMode, profiles, sectors, subSectors]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
-  const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    Object.entries(TAB_STATUS_MAP).forEach(([tab, statuses]) => {
-      counts[tab] = applications.filter(a => statuses.includes(a.status)).length;
-    });
-    return counts;
-  }, [applications]);
 
   const approved = applications.filter(a => a.status === 'approved').length;
   const pending = applications.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
@@ -425,6 +416,17 @@ export default function ApplicationsList() {
                   <SelectItem value="exact">Exact Match</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="resubmission_requested">Resubmission Requested</SelectItem>
+                  <SelectItem value="approved">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="sm" className="ml-auto">
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
@@ -432,32 +434,10 @@ export default function ApplicationsList() {
           </CardContent>
         </Card>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setPage(0); setExpandedId(null); }}>
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="submitted" className="gap-1.5">
-              Submitted
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.submitted || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="resubmission" className="gap-1.5">
-              Resubmission Requested
-              <Badge variant="returned" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.resubmission || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="accepted" className="gap-1.5">
-              Accepted
-              <Badge variant="approved" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.accepted || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="rejected" className="gap-1.5">
-              Rejected
-              <Badge variant="rejected" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.rejected || 0}</Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="submitted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="resubmission" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="accepted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="rejected" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-        </Tabs>
+        {/* Application List */}
+        <div className="space-y-4">
+          {renderTable()}
+        </div>
 
         <PaymentVerificationDialog
           open={paymentDialogOpen}
