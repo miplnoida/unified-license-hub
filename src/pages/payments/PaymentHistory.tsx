@@ -373,37 +373,13 @@ export default function PaymentHistory() {
                 </>
               )}
 
-              {/* Refund form */}
-              {showRefundForm && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label>Refund Amount *</Label>
-                    <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment.amount} />
-                    <Label>Reason *</Label>
-                    <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" rows={3} />
-                    <p className="text-xs text-muted-foreground">A notification will be sent to the payer once processed.</p>
-                  </div>
-                </>
-              )}
             </div>
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => { setDetailDialogOpen(false); setShowRefundForm(false); }}>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               <XCircle className="h-4 w-4 mr-1.5" />Close
             </Button>
-            {selectedPayment?.status === 'completed' && !showRefundForm && (
-              <Button variant="outline" onClick={() => setShowRefundForm(true)}>
-                <RotateCcw className="h-4 w-4 mr-1.5" />Request Refund
-              </Button>
-            )}
-            {showRefundForm && (
-              <Button onClick={handleRequestRefund} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-                Submit Refund Request
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
