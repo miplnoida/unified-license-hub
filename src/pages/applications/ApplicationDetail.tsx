@@ -514,7 +514,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant resubmit action */}
-            {isOwner && app.status === 'resubmission_requested' && (
+            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
