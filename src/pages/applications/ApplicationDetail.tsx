@@ -311,8 +311,8 @@ export default function ApplicationDetail() {
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
-  // Only show manual "Start Review" to move to in_progress, but no direct approve/reject without workflow
-  const showManualActions = isInternal && !app.workflow_id && app.status === 'submitted';
+  // Show manual actions for internal users when no workflow is configured
+  const showManualActions = isInternal && !app.workflow_id && ['submitted', 'in_progress'].includes(app.status);
 
   return (
     <DashboardLayout>
