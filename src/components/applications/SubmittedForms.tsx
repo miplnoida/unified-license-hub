@@ -12,6 +12,7 @@ interface SingleFormViewerProps {
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  applicationStatus?: string;
 }
 
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving }: SingleFormViewerProps) {
