@@ -247,7 +247,7 @@ export default function ApplicationsList() {
                   const categoryName = resolveField(app, 'category_id');
                   const serviceName = resolveField(app, 'service_id');
                   const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
-
+                  const payment = payments[app.id];
                   return (
                     <> 
                       <TableRow
