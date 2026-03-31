@@ -266,6 +266,8 @@ export default function NewApplication() {
         entity_id: applicationId,
       } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
 
+      const existingApp2 = await supabase.from('applications').select('data').eq('id', applicationId).single();
+      const existingVersionIds2 = (existingApp2.data?.data as any)?.form_version_ids || {};
       await supabase.from('applications').update({
         data: {
           sector_id: selectedSector,
@@ -275,6 +277,7 @@ export default function NewApplication() {
           sub_sector_name: subSectorObj?.name,
           category_name: categoryObj?.name,
           form_template_ids: matchedTemplates.map(t => t.id),
+          form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: publishedVersion.id },
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
