@@ -71,9 +71,12 @@ interface SubmittedFormsProps {
   formTemplateIds: string[];
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
+  editable?: boolean;
+  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  saving?: boolean;
 }
 
-export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {} }: SubmittedFormsProps) {
+export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}, editable, onSave, saving }: SubmittedFormsProps) {
   if (!formTemplateIds || formTemplateIds.length === 0) {
     return <p className="text-sm text-muted-foreground py-4">No forms were submitted with this application.</p>;
   }
