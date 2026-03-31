@@ -321,7 +321,7 @@ export default function ApplicationsList() {
                             <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
                               <Eye className="h-4 w-4 mr-1" />View
                             </Button>
-                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
                               <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
                                 <Pencil className="h-4 w-4 mr-1" />Edit
                               </Button>
