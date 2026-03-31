@@ -31,8 +31,6 @@ interface Props {
   applicationNumber?: string;
   applicantId?: string;
   onVerified?: () => void;
-  /** If true, shows only view mode (no verify button) */
-  viewOnly?: boolean;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
