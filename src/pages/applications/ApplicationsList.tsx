@@ -104,6 +104,8 @@ export default function ApplicationsList() {
   const [activeTab, setActiveTab] = useState('submitted');
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedPaymentApp, setSelectedPaymentApp] = useState<{ payment: PaymentInfo; applicantName: string; applicationNumber: string; applicantId: string } | null>(null);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
