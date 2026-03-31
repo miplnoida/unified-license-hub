@@ -63,6 +63,13 @@ interface ActionEvent {
   actor_email?: string;
 }
 
+interface PaymentInfo {
+  application_id: string;
+  amount: number;
+  status: string;
+  currency: string;
+}
+
 type SearchMode = 'contains' | 'starts_with' | 'exact';
 
 const TAB_STATUS_MAP: Record<string, ApplicationStatus[]> = {
