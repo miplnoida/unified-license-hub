@@ -183,7 +183,11 @@ export default function ApplicationsList() {
 
   const filtered = useMemo(() => {
     return applications.filter(a => {
-      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'resubmission_requested') {
+          if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
+        } else if (a.status !== statusFilter) return false;
+      }
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
