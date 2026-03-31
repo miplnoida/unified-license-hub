@@ -1,20 +1,25 @@
 import { useMemo } from 'react';
-import { useFormTemplate, useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
 
 interface SingleFormViewerProps {
   templateId: string;
   formData: Record<string, any>;
+  versionId?: string | null;
 }
 
-function SingleFormViewer({ templateId, formData }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
-  const { data: publishedVersion, isLoading: vLoading } = useLatestPublishedVersion(templateId);
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(publishedVersion?.id || null);
+  // If a specific versionId was stored, use it; otherwise fall back to latest published
+  const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
+  const resolvedVersionId = versionId || latestVersion?.id || null;
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
+  const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
-  const isLoading = tLoading || vLoading || sLoading;
+  const isLoading = tLoading || lvLoading || sLoading;
 
   if (isLoading) {
     return (
@@ -32,24 +37,39 @@ function SingleFormViewer({ templateId, formData }: SingleFormViewerProps) {
     );
   }
 
+  const semanticVersion = versionInfo?.semantic_version || `v${versionInfo?.version || 1}`;
+
   return (
-    <FormRenderer
-      formName={template.name}
-      sections={sections}
-      initialData={formData}
-      onSaveDraft={() => {}}
-      onSubmit={() => {}}
-      readOnly
-    />
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px]">
+          Submitted on v{semanticVersion}
+        </Badge>
+        {latestVersion && versionId && latestVersion.id !== versionId && (
+          <Badge variant="pending" className="text-[10px]">
+            Latest: v{latestVersion.semantic_version || latestVersion.version}
+          </Badge>
+        )}
+      </div>
+      <FormRenderer
+        formName={template.name}
+        sections={sections}
+        initialData={formData}
+        onSaveDraft={() => {}}
+        onSubmit={() => {}}
+        readOnly
+      />
+    </div>
   );
 }
 
 interface SubmittedFormsProps {
   formTemplateIds: string[];
   formsData: Record<string, Record<string, any>>;
+  formVersionIds?: Record<string, string>;
 }
 
-export function SubmittedForms({ formTemplateIds, formsData }: SubmittedFormsProps) {
+export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {} }: SubmittedFormsProps) {
   if (!formTemplateIds || formTemplateIds.length === 0) {
     return <p className="text-sm text-muted-foreground py-4">No forms were submitted with this application.</p>;
   }
@@ -59,6 +79,7 @@ export function SubmittedForms({ formTemplateIds, formsData }: SubmittedFormsPro
       <SingleFormViewer
         templateId={formTemplateIds[0]}
         formData={formsData[formTemplateIds[0]] || {}}
+        versionId={formVersionIds[formTemplateIds[0]] || null}
       />
     );
   }
@@ -71,7 +92,11 @@ export function SubmittedForms({ formTemplateIds, formsData }: SubmittedFormsPro
             Form {idx + 1}
           </AccordionTrigger>
           <AccordionContent>
-            <SingleFormViewer templateId={tid} formData={formsData[tid] || {}} />
+            <SingleFormViewer
+              templateId={tid}
+              formData={formsData[tid] || {}}
+              versionId={formVersionIds[tid] || null}
+            />
           </AccordionContent>
         </AccordionItem>
       ))}
