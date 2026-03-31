@@ -225,6 +225,7 @@ export default function ApplicationsList() {
                   <TableHead>Sector</TableHead>
                   <TableHead>Sub Sector</TableHead>
                   <TableHead>Category / Service</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
