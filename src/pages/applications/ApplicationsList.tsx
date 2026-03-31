@@ -202,14 +202,6 @@ export default function ApplicationsList() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    Object.entries(TAB_STATUS_MAP).forEach(([tab, statuses]) => {
-      counts[tab] = applications.filter(a => statuses.includes(a.status)).length;
-    });
-    return counts;
-  }, [applications]);
-
   const approved = applications.filter(a => a.status === 'approved').length;
   const pending = applications.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
   const rejected = applications.filter(a => a.status === 'rejected').length;
