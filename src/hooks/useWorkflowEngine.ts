@@ -416,11 +416,30 @@ export function usePerformAction() {
           status: 'rejected',
           completed_at: new Date().toISOString(),
         } as any).eq('id', params.instance_id);
-        // Update application to rejected
         await supabase.from('applications').update({
           status: 'rejected',
           rejected_at: new Date().toISOString(),
         } as any).eq('id', params.application_id);
+
+        // Send rejection notification
+        const { data: rejApp } = await supabase.from('applications').select('applicant_id, application_number').eq('id', params.application_id).single();
+        if (rejApp) {
+          try {
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                action: 'dispatch',
+                event_type: 'application_rejected',
+                user_id: (rejApp as any).applicant_id,
+                title: `Application Rejected: ${(rejApp as any).application_number}`,
+                message: `Your application ${(rejApp as any).application_number} has been rejected.\n\nRemarks: ${params.comments || 'No remarks provided.'}`,
+                entity_type: 'application',
+                entity_id: params.application_id,
+              },
+            });
+          } catch (e) {
+            console.error('Notification failed', e);
+          }
+        }
       } else if (params.action_type === 'send_back') {
         // Move to previous step
         if (currentIdx > 0 && steps) {
@@ -449,6 +468,26 @@ export function usePerformAction() {
         await supabase.from('applications').update({
           status: 'resubmission_requested',
         } as any).eq('id', params.application_id);
+
+        // Send notification to applicant
+        const { data: appRecord } = await supabase.from('applications').select('applicant_id, application_number').eq('id', params.application_id).single();
+        if (appRecord) {
+          try {
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                action: 'dispatch',
+                event_type: 'resubmission_requested',
+                user_id: (appRecord as any).applicant_id,
+                title: `Resubmission Requested: ${(appRecord as any).application_number}`,
+                message: `Your application ${(appRecord as any).application_number} requires revisions.\n\nRemarks: ${params.comments || 'Please review and resubmit.'}`,
+                entity_type: 'application',
+                entity_id: params.application_id,
+              },
+            });
+          } catch (e) {
+            console.error('Notification failed', e);
+          }
+        }
       }
 
       await logAudit({

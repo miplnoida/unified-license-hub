@@ -38,6 +38,7 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const performAction = usePerformAction();
 
   const activeInstance = instances.find(i => i.status === 'active');
+  const pausedInstance = instances.find(i => i.status === 'paused');
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isFirstLevel = currentStepIdx === 0;
@@ -48,6 +49,25 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const userRoleMatchesStep = user && currentStep && (
     user.role === 'super_admin' || user.role === currentStep.approver_role
   );
+
+  // If workflow is paused (waiting for resubmission), show info card
+  if (!activeInstance && pausedInstance && isInternal) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            Workflow Paused — Awaiting Resubmission
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            This application has been sent back to the applicant for resubmission. The workflow will resume once the applicant resubmits.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
 
