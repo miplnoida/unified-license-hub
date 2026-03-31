@@ -78,11 +78,8 @@ export default function PaymentHistory() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
-  // Refund form inside detail
-  const [showRefundForm, setShowRefundForm] = useState(false);
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [saving, setSaving] = useState(false);
+
+  // Receipt dialog
 
   // Receipt dialog
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
