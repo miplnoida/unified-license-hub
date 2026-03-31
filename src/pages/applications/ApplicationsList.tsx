@@ -121,7 +121,7 @@ export default function ApplicationsList() {
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
-        supabase.from('payments').select('application_id, amount, status, currency'),
+        supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
