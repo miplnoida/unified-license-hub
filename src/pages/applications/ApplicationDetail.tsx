@@ -461,42 +461,47 @@ export default function ApplicationDetail() {
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    No approval workflow is configured for this license type. Please configure a workflow in the Workflows module to enable multi-level approval.
+                    No approval workflow is configured for this license type. Use the actions below to process this application.
                   </p>
-                  {/* Admin can request resubmission even without workflow */}
                   <div className="space-y-2">
                     <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
                     <Textarea
                       value={actionComment}
                       onChange={e => setActionComment(e.target.value)}
-                      placeholder="Explain what needs to be revised..."
+                      placeholder="Enter your remarks before taking action..."
                       rows={3}
                     />
                   </div>
-                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
-                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      onClick={() => handleStageTransition('approved', 'approved', actionComment)}
+                      disabled={processing}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />Approve
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleStageTransition('rejected', 'rejected', actionComment)}
+                      disabled={processing}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />Reject
+                    </Button>
+                    <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                      <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Admin request resubmission for in_progress apps (with or without workflow) */}
-            {isInternal && !app.workflow_id && (app.status === 'in_progress') && (
+            {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
+            {isInternal && !app.workflow_id && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
-                <CardHeader><CardTitle className="text-base">Request Resubmission</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Explain what needs to be revised..."
-                      rows={3}
-                    />
-                  </div>
-                  <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
-                    <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
-                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    This application has been sent back to the applicant for resubmission. Once they resubmit, you can continue review.
+                  </p>
                 </CardContent>
               </Card>
             )}
