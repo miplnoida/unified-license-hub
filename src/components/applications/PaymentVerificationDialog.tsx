@@ -162,8 +162,8 @@ export function PaymentVerificationDialog({
             </div>
           </div>
 
-          {/* Admin Message - only for verification mode */}
-          {showVerify && payment.status !== 'success' && (
+          {/* Admin Message */}
+          {payment.status !== 'success' && (
             <>
               <Separator />
               <div className="space-y-2">
@@ -186,14 +186,12 @@ export function PaymentVerificationDialog({
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleClose} disabled={loading}>
             <XCircle className="h-4 w-4 mr-1.5" />
-            Close
+            Cancel
           </Button>
-          {showVerify && (
-            <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
-              {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-              {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
-            </Button>
-          )}
+          <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
+            {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+            {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
