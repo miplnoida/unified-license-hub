@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
@@ -326,41 +326,52 @@ export default function PaymentHistory() {
 
       {/* Payment Detail Dialog */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Payment Details</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Payment Details
+            </DialogTitle>
+            <DialogDescription>
+              Review payment information{selectedPayment?.transaction_ref ? ` — ${selectedPayment.transaction_ref}` : ''}
+            </DialogDescription>
+          </DialogHeader>
           {selectedPayment && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Date</span>
-                  <p className="font-medium">{new Date(selectedPayment.created_at).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Status</span>
-                  <div className="mt-1"><Badge variant={statusVariant[selectedPayment.status] || 'outline'} className="capitalize">{selectedPayment.status}</Badge></div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Amount</span>
-                  <p className="font-mono font-bold text-lg">{selectedPayment.currency} {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Method</span>
-                  <p className="font-medium capitalize">{selectedPayment.payment_method?.replace('_', ' ') || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Transaction Ref</span>
-                  <p className="font-mono text-sm">{selectedPayment.transaction_ref || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Receipt #</span>
-                  <p className="font-mono text-sm">{selectedPayment.receipt_number || '—'}</p>
-                </div>
-                {selectedPayment.paid_at && (
+              {/* Payment Summary Card */}
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Paid At</span>
-                    <p className="font-medium">{new Date(selectedPayment.paid_at).toLocaleDateString()}</p>
+                    <p className="text-muted-foreground text-xs">Date</p>
+                    <p className="font-medium">{new Date(selectedPayment.created_at).toLocaleDateString()}</p>
                   </div>
-                )}
+                  <div>
+                    <p className="text-muted-foreground text-xs">Status</p>
+                    <Badge variant={statusVariant[selectedPayment.status] || 'outline'} className="capitalize mt-1">{selectedPayment.status}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Amount</p>
+                    <p className="font-semibold text-lg">{selectedPayment.currency} {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Payment Method</p>
+                    <p className="text-sm capitalize">{selectedPayment.payment_method?.replace('_', ' ') || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Transaction Ref</p>
+                    <p className="font-mono text-sm">{selectedPayment.transaction_ref || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Receipt #</p>
+                    <p className="font-mono text-sm">{selectedPayment.receipt_number || '—'}</p>
+                  </div>
+                  {selectedPayment.paid_at && (
+                    <div>
+                      <p className="text-muted-foreground text-xs">Paid At</p>
+                      <p className="text-sm">{new Date(selectedPayment.paid_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Refund history for this payment */}
@@ -371,7 +382,7 @@ export default function PaymentHistory() {
                     <p className="text-sm font-medium mb-2">Refund History</p>
                     <div className="space-y-2">
                       {paymentRefunds.map(r => (
-                        <div key={r.id} className="flex items-center justify-between text-sm border rounded-md p-2">
+                        <div key={r.id} className="flex items-center justify-between text-sm rounded-lg border bg-muted/30 p-3">
                           <div>
                             <span className="font-mono">${Number(r.amount).toFixed(2)}</span>
                             <span className="text-muted-foreground ml-2">— {r.reason}</span>
@@ -386,40 +397,38 @@ export default function PaymentHistory() {
                 </>
               )}
 
-              {/* Refund action */}
-              {selectedPayment.status === 'completed' && !showRefundForm && (
-                <>
-                  <Separator />
-                  <Button variant="outline" className="w-full" onClick={() => setShowRefundForm(true)}>
-                    <RotateCcw className="h-4 w-4 mr-2" />Request Refund
-                  </Button>
-                </>
-              )}
-
+              {/* Refund form */}
               {showRefundForm && (
                 <>
                   <Separator />
                   <div className="space-y-3">
-                    <p className="text-sm font-medium">Request Refund</p>
-                    <div className="space-y-2">
-                      <Label>Refund Amount *</Label>
-                      <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment.amount} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Reason *</Label>
-                      <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={handleRequestRefund} disabled={saving} className="flex-1">
-                        {saving ? 'Submitting...' : 'Submit Refund Request'}
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowRefundForm(false)}>Cancel</Button>
-                    </div>
+                    <Label>Refund Amount *</Label>
+                    <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment.amount} />
+                    <Label>Reason *</Label>
+                    <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" rows={3} />
+                    <p className="text-xs text-muted-foreground">A notification will be sent to the payer once processed.</p>
                   </div>
                 </>
               )}
             </div>
           )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => { setDetailDialogOpen(false); setShowRefundForm(false); }}>
+              <XCircle className="h-4 w-4 mr-1.5" />Close
+            </Button>
+            {selectedPayment?.status === 'completed' && !showRefundForm && (
+              <Button variant="outline" onClick={() => setShowRefundForm(true)}>
+                <RotateCcw className="h-4 w-4 mr-1.5" />Request Refund
+              </Button>
+            )}
+            {showRefundForm && (
+              <Button onClick={handleRequestRefund} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                Submit Refund Request
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
