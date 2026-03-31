@@ -65,10 +65,15 @@ interface ActionEvent {
 }
 
 interface PaymentInfo {
+  id?: string;
   application_id: string;
   amount: number;
   status: string;
   currency: string;
+  payment_method?: string;
+  transaction_ref?: string;
+  created_at?: string;
+  paid_at?: string;
 }
 
 type SearchMode = 'contains' | 'starts_with' | 'exact';
