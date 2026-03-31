@@ -415,6 +415,15 @@ export default function ApplicationDetail() {
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
                     formVersionIds={formVersionIds}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')}
+                    onSave={async (templateId, data) => {
+                      const updatedFormsData = { ...formsData, [templateId]: data };
+                      const updatedAppData = { ...appData, forms_data: updatedFormsData };
+                      const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
+                      if (error) { toast.error('Failed to save form'); return; }
+                      toast.success('Form saved successfully');
+                      loadData();
+                    }}
                   />
                 </TabsContent>
               )}
