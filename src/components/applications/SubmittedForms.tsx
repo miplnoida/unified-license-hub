@@ -58,9 +58,10 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
         formName={template.name}
         sections={sections}
         initialData={formData}
-        onSaveDraft={() => {}}
-        onSubmit={() => {}}
-        readOnly
+        onSaveDraft={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
+        onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
+        readOnly={!editable}
+        saving={saving}
       />
     </div>
   );
