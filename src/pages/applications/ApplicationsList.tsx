@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
@@ -64,10 +65,15 @@ interface ActionEvent {
 }
 
 interface PaymentInfo {
+  id?: string;
   application_id: string;
   amount: number;
   status: string;
   currency: string;
+  payment_method?: string;
+  transaction_ref?: string;
+  created_at?: string;
+  paid_at?: string;
 }
 
 type SearchMode = 'contains' | 'starts_with' | 'exact';
@@ -98,6 +104,8 @@ export default function ApplicationsList() {
   const [activeTab, setActiveTab] = useState('submitted');
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedPaymentApp, setSelectedPaymentApp] = useState<{ payment: PaymentInfo; applicantName: string; applicationNumber: string; applicantId: string } | null>(null);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
@@ -113,7 +121,7 @@ export default function ApplicationsList() {
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
-        supabase.from('payments').select('application_id, amount, status, currency'),
+        supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
@@ -265,7 +273,19 @@ export default function ApplicationsList() {
                         <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
                         <TableCell>
                           {payment ? (
-                            <div className="flex items-center gap-1.5">
+                            <div
+                              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSelectedPaymentApp({
+                                  payment,
+                                  applicantName: getApplicantName(app.applicant_id),
+                                  applicationNumber: app.application_number,
+                                  applicantId: app.applicant_id,
+                                });
+                                setPaymentDialogOpen(true);
+                              }}
+                            >
                               <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
                               <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
                                 {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
@@ -438,6 +458,19 @@ export default function ApplicationsList() {
           <TabsContent value="accepted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
           <TabsContent value="rejected" className="space-y-4 mt-4">{renderTable()}</TabsContent>
         </Tabs>
+
+        <PaymentVerificationDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          payment={selectedPaymentApp?.payment || null}
+          applicantName={selectedPaymentApp?.applicantName || ''}
+          applicationNumber={selectedPaymentApp?.applicationNumber || ''}
+          applicantId={selectedPaymentApp?.applicantId || ''}
+          onVerified={() => {
+            // Reload data
+            window.location.reload();
+          }}
+        />
       </div>
     </DashboardLayout>
   );
