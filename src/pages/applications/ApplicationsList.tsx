@@ -24,6 +24,7 @@ const statusBadgeVariant = (s: string) => {
     case 'submitted': return 'submitted';
     case 'in_progress': return 'under-review';
     case 'resubmission_requested': return 'returned';
+    case 'query_raised': return 'returned';
     case 'cancelled': return 'destructive';
     default: return 'draft';
   }
@@ -183,7 +184,11 @@ export default function ApplicationsList() {
 
   const filtered = useMemo(() => {
     return applications.filter(a => {
-      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'resubmission_requested') {
+          if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
+        } else if (a.status !== statusFilter) return false;
+      }
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
@@ -316,12 +321,12 @@ export default function ApplicationsList() {
                             <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
                               <Eye className="h-4 w-4 mr-1" />View
                             </Button>
-                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
                               <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
                                 <Pencil className="h-4 w-4 mr-1" />Edit
                               </Button>
                             )}
-                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
