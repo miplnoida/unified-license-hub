@@ -109,28 +109,7 @@ export default function PaymentHistory() {
 
   const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
-    setShowRefundForm(false);
-    setRefundAmount(String(payment.amount));
-    setRefundReason('');
     setDetailDialogOpen(true);
-  };
-
-  const handleRequestRefund = async () => {
-    if (!selectedPayment || !user) return;
-    if (!refundReason.trim()) { toast.error('Reason is required'); return; }
-    const amount = parseFloat(refundAmount);
-    if (isNaN(amount) || amount <= 0) { toast.error('Refund amount must be a positive number'); return; }
-    if (amount > Number(selectedPayment.amount)) { toast.error(`Refund amount cannot exceed payment amount (${selectedPayment.currency} ${Number(selectedPayment.amount).toFixed(2)})`); return; }
-    setSaving(true);
-    const { error } = await supabase.from('refunds' as any).insert({
-      payment_id: selectedPayment.id,
-      amount,
-      reason: refundReason.trim(),
-      requested_by: user.id,
-    });
-    if (error) { toast.error(error.message); setSaving(false); return; }
-    toast.success('Refund requested');
-    setSaving(false); setDetailDialogOpen(false); loadAll();
   };
 
   const handleApproveRefund = async (refund: Refund, action: 'approved' | 'rejected') => {
