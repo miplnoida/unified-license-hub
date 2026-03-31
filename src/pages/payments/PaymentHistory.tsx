@@ -298,89 +298,12 @@ export default function PaymentHistory() {
         </Tabs>
       </div>
 
-      {/* Payment Detail Dialog */}
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-primary" />
-              Payment Details
-            </DialogTitle>
-            <DialogDescription>
-              Review payment information{selectedPayment?.transaction_ref ? ` — ${selectedPayment.transaction_ref}` : ''}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedPayment && (
-            <div className="space-y-4">
-              {/* Payment Summary Card */}
-              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Date</p>
-                    <p className="font-medium">{new Date(selectedPayment.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Status</p>
-                    <Badge variant={statusVariant[selectedPayment.status] || 'outline'} className="capitalize mt-1">{selectedPayment.status}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Amount</p>
-                    <p className="font-semibold text-lg">{selectedPayment.currency} {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Payment Method</p>
-                    <p className="text-sm capitalize">{selectedPayment.payment_method?.replace('_', ' ') || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Transaction Ref</p>
-                    <p className="font-mono text-sm">{selectedPayment.transaction_ref || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Receipt #</p>
-                    <p className="font-mono text-sm">{selectedPayment.receipt_number || '—'}</p>
-                  </div>
-                  {selectedPayment.paid_at && (
-                    <div>
-                      <p className="text-muted-foreground text-xs">Paid At</p>
-                      <p className="text-sm">{new Date(selectedPayment.paid_at).toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Refund history for this payment */}
-              {paymentRefunds.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-sm font-medium mb-2">Refund History</p>
-                    <div className="space-y-2">
-                      {paymentRefunds.map(r => (
-                        <div key={r.id} className="flex items-center justify-between text-sm rounded-lg border bg-muted/30 p-3">
-                          <div>
-                            <span className="font-mono">${Number(r.amount).toFixed(2)}</span>
-                            <span className="text-muted-foreground ml-2">— {r.reason}</span>
-                          </div>
-                          <Badge variant={r.status === 'processed' ? 'default' : r.status === 'rejected' ? 'destructive' : 'outline'} className="capitalize text-xs">
-                            {REFUND_STATUS_LABELS[r.status] || r.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-            </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
-              <XCircle className="h-4 w-4 mr-1.5" />Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentVerificationDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        payment={selectedPayment}
+        viewOnly
+      />
 
       {/* Receipt View Dialog */}
       <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
