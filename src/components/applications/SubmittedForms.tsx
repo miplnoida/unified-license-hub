@@ -90,7 +90,7 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
         editable={editable}
         onSave={onSave}
         saving={saving}
-    );
+      />
     );
   }
 
