@@ -29,6 +29,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   rejected: 'destructive',
   cancelled: 'destructive',
   resubmission_requested: 'outline',
+  query_raised: 'outline',
 };
 
 interface Application {
