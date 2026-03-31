@@ -60,6 +60,7 @@ export default function ApplicationDetail() {
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
   const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
+  const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
   const hasSubmittedForms = formTemplateIds.length > 0;
 
   const loadData = async () => {
@@ -413,6 +414,7 @@ export default function ApplicationDetail() {
                   <SubmittedForms
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
+                    formVersionIds={formVersionIds}
                   />
                 </TabsContent>
               )}
