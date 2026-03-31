@@ -257,12 +257,26 @@ export default function ApplicationsList() {
                       >
                         <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
                         <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
-                        <TableCell className="text-sm capitalize">
-                          {app.license_type?.replace(/_/g, '-') === 'pre-license' ? 'Pre' : app.license_type?.replace(/_/g, '-') === 'post-license' ? 'Post' : app.license_type}
+                        <TableCell>
+                          <Badge variant={licenseTypeBadgeVariant(app.license_type || '') as any} className="text-xs">
+                            {app.license_type?.replace(/_/g, '-') === 'pre-license' ? 'Pre Licensee' : app.license_type?.replace(/_/g, '-') === 'post-license' ? 'Post Licensee' : app.license_type}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{sectorName}</TableCell>
                         <TableCell className="text-sm">{subSectorName}</TableCell>
                         <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
+                        <TableCell>
+                          {payment ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
+                              <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
+                                {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs">
                             {APPLICATION_STATUS_LABELS[app.status] || app.status}
