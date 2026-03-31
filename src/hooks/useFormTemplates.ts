@@ -33,6 +33,7 @@ export interface FormVersion {
   id: string;
   template_id: string;
   version: number;
+  semantic_version?: string | null;
   schema_snapshot: FormSection[];
   status: string;
   published_at: string | null;
