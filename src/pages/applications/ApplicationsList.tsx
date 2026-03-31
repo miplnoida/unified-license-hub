@@ -123,6 +123,13 @@ export default function ApplicationsList() {
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
 
+      if (payRes.data) {
+        const payMap: Record<string, PaymentInfo> = {};
+        (payRes.data as any[]).forEach(p => {
+          if (p.application_id) payMap[p.application_id] = p;
+        });
+        setPayments(payMap);
+      }
       if (actionsRes.data) {
         const emailMap: Record<string, string> = {};
         allProfiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
