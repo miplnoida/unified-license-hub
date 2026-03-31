@@ -92,6 +92,7 @@ export default function ApplicationsList() {
   const [services, setServices] = useState<Record<string, string>>({});
   const [allActions, setAllActions] = useState<ActionEvent[]>([]);
   const [payments, setPayments] = useState<Record<string, PaymentInfo>>({});
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
   const [activeTab, setActiveTab] = useState('submitted');
