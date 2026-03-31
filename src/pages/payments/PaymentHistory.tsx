@@ -6,16 +6,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { PAYMENT_METHODS, REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
-import { Search, Loader2, Receipt, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
+import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -73,17 +73,22 @@ export default function PaymentHistory() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('payments');
-  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+
+  // Detail dialog
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
+
+  // Refund form inside detail
+  const [showRefundForm, setShowRefundForm] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  // Receipt dialog
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
+
+  useEffect(() => { loadAll(); }, []);
 
   const loadAll = async () => {
     setLoading(true);
@@ -105,11 +110,12 @@ export default function PaymentHistory() {
             p.status.toLowerCase().includes(search.toLowerCase()));
   });
 
-  const openRefundDialog = (payment: Payment) => {
+  const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
+    setShowRefundForm(false);
     setRefundAmount(String(payment.amount));
     setRefundReason('');
-    setRefundDialogOpen(true);
+    setDetailDialogOpen(true);
   };
 
   const handleRequestRefund = async () => {
@@ -127,7 +133,7 @@ export default function PaymentHistory() {
     });
     if (error) { toast.error(error.message); setSaving(false); return; }
     toast.success('Refund requested');
-    setSaving(false); setRefundDialogOpen(false); loadAll();
+    setSaving(false); setDetailDialogOpen(false); loadAll();
   };
 
   const handleApproveRefund = async (refund: Refund, action: 'approved' | 'rejected') => {
@@ -150,6 +156,8 @@ export default function PaymentHistory() {
   const totalCollected = payments.filter(p => p.status === 'completed').reduce((s, p) => s + Number(p.amount), 0);
   const totalPending = payments.filter(p => p.status === 'pending').reduce((s, p) => s + Number(p.amount), 0);
   const totalRefunded = refunds.filter(r => r.status === 'processed' || r.status === 'approved').reduce((s, r) => s + Number(r.amount), 0);
+
+  const paymentRefunds = selectedPayment ? refunds.filter(r => r.payment_id === selectedPayment.id) : [];
 
   return (
     <DashboardLayout>
@@ -217,10 +225,10 @@ export default function PaymentHistory() {
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
-                          <TableCell className="text-right space-x-1">
-                            {p.status === 'completed' && (
-                              <Button variant="ghost" size="sm" onClick={() => openRefundDialog(p)}><RotateCcw className="h-3 w-3 mr-1" />Refund</Button>
-                            )}
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
+                              <Eye className="h-3 w-3 mr-1" />View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -316,27 +324,102 @@ export default function PaymentHistory() {
         </Tabs>
       </div>
 
-      {/* Refund Request Dialog */}
-      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Request Refund</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Original Amount</Label>
-              <p className="font-mono text-lg">{selectedPayment?.currency} {Number(selectedPayment?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+      {/* Payment Detail Dialog */}
+      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Payment Details</DialogTitle></DialogHeader>
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Date</span>
+                  <p className="font-medium">{new Date(selectedPayment.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status</span>
+                  <div className="mt-1"><Badge variant={statusVariant[selectedPayment.status] || 'outline'} className="capitalize">{selectedPayment.status}</Badge></div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Amount</span>
+                  <p className="font-mono font-bold text-lg">{selectedPayment.currency} {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Method</span>
+                  <p className="font-medium capitalize">{selectedPayment.payment_method?.replace('_', ' ') || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Transaction Ref</span>
+                  <p className="font-mono text-sm">{selectedPayment.transaction_ref || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Receipt #</span>
+                  <p className="font-mono text-sm">{selectedPayment.receipt_number || '—'}</p>
+                </div>
+                {selectedPayment.paid_at && (
+                  <div>
+                    <span className="text-muted-foreground">Paid At</span>
+                    <p className="font-medium">{new Date(selectedPayment.paid_at).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Refund history for this payment */}
+              {paymentRefunds.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium mb-2">Refund History</p>
+                    <div className="space-y-2">
+                      {paymentRefunds.map(r => (
+                        <div key={r.id} className="flex items-center justify-between text-sm border rounded-md p-2">
+                          <div>
+                            <span className="font-mono">${Number(r.amount).toFixed(2)}</span>
+                            <span className="text-muted-foreground ml-2">— {r.reason}</span>
+                          </div>
+                          <Badge variant={r.status === 'processed' ? 'default' : r.status === 'rejected' ? 'destructive' : 'outline'} className="capitalize text-xs">
+                            {REFUND_STATUS_LABELS[r.status] || r.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Refund action */}
+              {selectedPayment.status === 'completed' && !showRefundForm && (
+                <>
+                  <Separator />
+                  <Button variant="outline" className="w-full" onClick={() => setShowRefundForm(true)}>
+                    <RotateCcw className="h-4 w-4 mr-2" />Request Refund
+                  </Button>
+                </>
+              )}
+
+              {showRefundForm && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium">Request Refund</p>
+                    <div className="space-y-2">
+                      <Label>Refund Amount *</Label>
+                      <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment.amount} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Reason *</Label>
+                      <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleRequestRefund} disabled={saving} className="flex-1">
+                        {saving ? 'Submitting...' : 'Submit Refund Request'}
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowRefundForm(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="space-y-2">
-              <Label>Refund Amount *</Label>
-              <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment?.amount} />
-            </div>
-            <div className="space-y-2">
-              <Label>Reason *</Label>
-              <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" />
-            </div>
-            <Button onClick={handleRequestRefund} disabled={saving} className="w-full">
-              {saving ? 'Submitting...' : 'Submit Refund Request'}
-            </Button>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
 
