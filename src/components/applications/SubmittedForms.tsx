@@ -15,7 +15,7 @@ interface SingleFormViewerProps {
   applicationStatus?: string;
 }
 
-function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   // If a specific versionId was stored, use it; otherwise fall back to latest published
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
