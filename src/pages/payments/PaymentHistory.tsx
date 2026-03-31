@@ -78,8 +78,6 @@ export default function PaymentHistory() {
 
 
   // Receipt dialog
-
-  // Receipt dialog
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
 
