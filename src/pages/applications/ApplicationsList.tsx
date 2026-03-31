@@ -458,6 +458,19 @@ export default function ApplicationsList() {
           <TabsContent value="accepted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
           <TabsContent value="rejected" className="space-y-4 mt-4">{renderTable()}</TabsContent>
         </Tabs>
+
+        <PaymentVerificationDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          payment={selectedPaymentApp?.payment || null}
+          applicantName={selectedPaymentApp?.applicantName || ''}
+          applicationNumber={selectedPaymentApp?.applicationNumber || ''}
+          applicantId={selectedPaymentApp?.applicantId || ''}
+          onVerified={() => {
+            // Reload data
+            window.location.reload();
+          }}
+        />
       </div>
     </DashboardLayout>
   );
