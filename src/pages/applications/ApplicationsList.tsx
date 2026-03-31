@@ -108,6 +108,7 @@ export default function ApplicationsList() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPaymentApp, setSelectedPaymentApp] = useState<{ payment: PaymentInfo; applicantName: string; applicationNumber: string; applicantId: string } | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
@@ -152,7 +153,8 @@ export default function ApplicationsList() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [refreshKey]);
+
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
 
@@ -483,8 +485,7 @@ export default function ApplicationsList() {
           applicationNumber={selectedPaymentApp?.applicationNumber || ''}
           applicantId={selectedPaymentApp?.applicantId || ''}
           onVerified={() => {
-            // Reload data
-            window.location.reload();
+            setRefreshKey(k => k + 1);
           }}
         />
       </div>
