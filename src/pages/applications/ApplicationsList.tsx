@@ -181,9 +181,8 @@ export default function ApplicationsList() {
   };
 
   const filtered = useMemo(() => {
-    const tabStatuses = TAB_STATUS_MAP[activeTab] || [];
     return applications.filter(a => {
-      if (!tabStatuses.includes(a.status)) return false;
+      if (statusFilter !== 'all' && a.status !== statusFilter) return false;
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
@@ -198,7 +197,7 @@ export default function ApplicationsList() {
       }
       return true;
     });
-  }, [applications, activeTab, search, searchMode, profiles, sectors, subSectors]);
+  }, [applications, statusFilter, search, searchMode, profiles, sectors, subSectors]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
