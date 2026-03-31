@@ -42,12 +42,15 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
   }
 
   const semanticVersion = versionInfo?.semantic_version || `v${versionInfo?.version || 1}`;
+  const isResubmission = applicationStatus === 'resubmission_requested' || applicationStatus === 'query_raised';
+  const badgeLabel = isResubmission ? `To Be Resubmitted — v${semanticVersion}` : `Submitted on v${semanticVersion}`;
+  const badgeVariant = isResubmission ? 'returned' : 'outline';
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px]">
-          Submitted on v{semanticVersion}
+        <Badge variant={badgeVariant as any} className="text-[10px]">
+          {badgeLabel}
         </Badge>
         {latestVersion && versionId && latestVersion.id !== versionId && (
           <Badge variant="pending" className="text-[10px]">
