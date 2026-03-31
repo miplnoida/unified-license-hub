@@ -38,7 +38,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function PaymentVerificationDialog({
-  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, viewOnly,
+  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified,
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);

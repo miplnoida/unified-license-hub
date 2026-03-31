@@ -300,7 +300,6 @@ export default function PaymentHistory() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         payment={selectedPayment}
-        viewOnly
       />
 
       {/* Receipt View Dialog */}
