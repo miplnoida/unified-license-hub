@@ -312,9 +312,37 @@ export default function ApplicationsList() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
-                            <Eye className="h-4 w-4 mr-1" />View
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
+                              <Eye className="h-4 w-4 mr-1" />View
+                            </Button>
+                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                              <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
+                                <Pencil className="h-4 w-4 mr-1" />Edit
+                              </Button>
+                            )}
+                            {!isInternal && ['draft', 'resubmission_requested'].includes(app.status) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  if (!window.confirm('Are you sure you want to cancel this application?')) return;
+                                  const { error } = await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
+                                  if (error) { toast.error(error.message); return; }
+                                  await supabase.from('approval_actions').insert({
+                                    application_id: app.id, action: 'cancelled', actor_id: user!.id,
+                                    comments: 'Application cancelled by applicant',
+                                  } as any);
+                                  toast.success('Application cancelled');
+                                  setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
+                                }}
+                              >
+                                <Ban className="h-4 w-4 mr-1" />Cancel
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                       {isExpanded && actions.length > 0 && (
