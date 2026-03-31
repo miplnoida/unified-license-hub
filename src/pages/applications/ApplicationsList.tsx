@@ -416,6 +416,17 @@ export default function ApplicationsList() {
                   <SelectItem value="exact">Exact Match</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="resubmission_requested">Resubmission Requested</SelectItem>
+                  <SelectItem value="approved">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
               <Button variant="outline" size="sm" className="ml-auto">
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
