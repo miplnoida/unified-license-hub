@@ -9,9 +9,12 @@ interface SingleFormViewerProps {
   templateId: string;
   formData: Record<string, any>;
   versionId?: string | null;
+  editable?: boolean;
+  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  saving?: boolean;
 }
 
-function SingleFormViewer({ templateId, formData, versionId }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   // If a specific versionId was stored, use it; otherwise fall back to latest published
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
@@ -55,9 +58,10 @@ function SingleFormViewer({ templateId, formData, versionId }: SingleFormViewerP
         formName={template.name}
         sections={sections}
         initialData={formData}
-        onSaveDraft={() => {}}
-        onSubmit={() => {}}
-        readOnly
+        onSaveDraft={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
+        onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
+        readOnly={!editable}
+        saving={saving}
       />
     </div>
   );
@@ -67,9 +71,12 @@ interface SubmittedFormsProps {
   formTemplateIds: string[];
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
+  editable?: boolean;
+  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  saving?: boolean;
 }
 
-export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {} }: SubmittedFormsProps) {
+export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}, editable, onSave, saving }: SubmittedFormsProps) {
   if (!formTemplateIds || formTemplateIds.length === 0) {
     return <p className="text-sm text-muted-foreground py-4">No forms were submitted with this application.</p>;
   }
@@ -80,6 +87,9 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
         templateId={formTemplateIds[0]}
         formData={formsData[formTemplateIds[0]] || {}}
         versionId={formVersionIds[formTemplateIds[0]] || null}
+        editable={editable}
+        onSave={onSave}
+        saving={saving}
       />
     );
   }
@@ -96,6 +106,9 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
               templateId={tid}
               formData={formsData[tid] || {}}
               versionId={formVersionIds[tid] || null}
+              editable={editable}
+              onSave={onSave}
+              saving={saving}
             />
           </AccordionContent>
         </AccordionItem>
