@@ -9,9 +9,12 @@ interface SingleFormViewerProps {
   templateId: string;
   formData: Record<string, any>;
   versionId?: string | null;
+  editable?: boolean;
+  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  saving?: boolean;
 }
 
-function SingleFormViewer({ templateId, formData, versionId }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   // If a specific versionId was stored, use it; otherwise fall back to latest published
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
