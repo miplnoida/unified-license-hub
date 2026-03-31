@@ -57,24 +57,28 @@ export function PaymentVerificationDialog({
     }
     setLoading(true);
     try {
-      const { error: payErr } = await supabase
-        .from('payments')
-        .update({ status: 'success', paid_at: new Date().toISOString() } as any)
-        .eq('application_id', payment.application_id);
+      // Update payment status
+      const updateFilter = payment.application_id
+        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)
+        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);
 
+      const { error: payErr } = await updateFilter;
       if (payErr) throw payErr;
 
-      await supabase.functions.invoke('send-notification', {
-        body: {
-          action: 'dispatch',
-          event_type: 'payment_verified',
-          user_id: applicantId,
-          title: 'Payment Verified',
-          message: `Your payment of ${formattedAmount} for application ${applicationNumber} has been verified. Admin remarks: ${message.trim()}`,
-          entity_type: 'payment',
-          entity_id: payment.application_id,
-        },
-      });
+      // Send notification if applicant info is available
+      if (applicantId) {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            action: 'dispatch',
+            event_type: 'payment_verified',
+            user_id: applicantId,
+            title: 'Payment Verified',
+            message: `Your payment of ${formattedAmount}${applicationNumber ? ` for application ${applicationNumber}` : ''} has been verified. Admin remarks: ${message.trim()}`,
+            entity_type: 'payment',
+            entity_id: payment.application_id || payment.id,
+          },
+        });
+      }
 
       toast.success('Payment verified and notification sent to licensee.');
       setMessage('');
