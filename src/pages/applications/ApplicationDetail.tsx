@@ -414,6 +414,7 @@ export default function ApplicationDetail() {
                   <SubmittedForms
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
+                    formVersionIds={formVersionIds}
                   />
                 </TabsContent>
               )}
