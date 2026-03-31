@@ -5,11 +5,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -78,11 +78,8 @@ export default function PaymentHistory() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
 
-  // Refund form inside detail
-  const [showRefundForm, setShowRefundForm] = useState(false);
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundReason, setRefundReason] = useState('');
-  const [saving, setSaving] = useState(false);
+
+  // Receipt dialog
 
   // Receipt dialog
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
@@ -112,28 +109,7 @@ export default function PaymentHistory() {
 
   const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
-    setShowRefundForm(false);
-    setRefundAmount(String(payment.amount));
-    setRefundReason('');
     setDetailDialogOpen(true);
-  };
-
-  const handleRequestRefund = async () => {
-    if (!selectedPayment || !user) return;
-    if (!refundReason.trim()) { toast.error('Reason is required'); return; }
-    const amount = parseFloat(refundAmount);
-    if (isNaN(amount) || amount <= 0) { toast.error('Refund amount must be a positive number'); return; }
-    if (amount > Number(selectedPayment.amount)) { toast.error(`Refund amount cannot exceed payment amount (${selectedPayment.currency} ${Number(selectedPayment.amount).toFixed(2)})`); return; }
-    setSaving(true);
-    const { error } = await supabase.from('refunds' as any).insert({
-      payment_id: selectedPayment.id,
-      amount,
-      reason: refundReason.trim(),
-      requested_by: user.id,
-    });
-    if (error) { toast.error(error.message); setSaving(false); return; }
-    toast.success('Refund requested');
-    setSaving(false); setDetailDialogOpen(false); loadAll();
   };
 
   const handleApproveRefund = async (refund: Refund, action: 'approved' | 'rejected') => {
@@ -397,37 +373,13 @@ export default function PaymentHistory() {
                 </>
               )}
 
-              {/* Refund form */}
-              {showRefundForm && (
-                <>
-                  <Separator />
-                  <div className="space-y-3">
-                    <Label>Refund Amount *</Label>
-                    <Input type="number" step="0.01" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} max={selectedPayment.amount} />
-                    <Label>Reason *</Label>
-                    <Textarea value={refundReason} onChange={e => setRefundReason(e.target.value)} placeholder="Why is this refund being requested?" rows={3} />
-                    <p className="text-xs text-muted-foreground">A notification will be sent to the payer once processed.</p>
-                  </div>
-                </>
-              )}
             </div>
           )}
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => { setDetailDialogOpen(false); setShowRefundForm(false); }}>
+            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               <XCircle className="h-4 w-4 mr-1.5" />Close
             </Button>
-            {selectedPayment?.status === 'completed' && !showRefundForm && (
-              <Button variant="outline" onClick={() => setShowRefundForm(true)}>
-                <RotateCcw className="h-4 w-4 mr-1.5" />Request Refund
-              </Button>
-            )}
-            {showRefundForm && (
-              <Button onClick={handleRequestRefund} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-                Submit Refund Request
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
