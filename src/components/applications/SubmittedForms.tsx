@@ -12,9 +12,10 @@ interface SingleFormViewerProps {
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  applicationStatus?: string;
 }
 
-function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   // If a specific versionId was stored, use it; otherwise fall back to latest published
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
@@ -41,12 +42,15 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
   }
 
   const semanticVersion = versionInfo?.semantic_version || `v${versionInfo?.version || 1}`;
+  const isResubmission = applicationStatus === 'resubmission_requested' || applicationStatus === 'query_raised';
+  const badgeLabel = isResubmission ? `To Be Resubmitted — v${semanticVersion}` : `Submitted on v${semanticVersion}`;
+  const badgeVariant = isResubmission ? 'returned' : 'outline';
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-[10px]">
-          Submitted on v{semanticVersion}
+        <Badge variant={badgeVariant as any} className="text-[10px]">
+          {badgeLabel}
         </Badge>
         {latestVersion && versionId && latestVersion.id !== versionId && (
           <Badge variant="pending" className="text-[10px]">
@@ -74,9 +78,10 @@ interface SubmittedFormsProps {
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
   saving?: boolean;
+  applicationStatus?: string;
 }
 
-export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}, editable, onSave, saving }: SubmittedFormsProps) {
+export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}, editable, onSave, saving, applicationStatus }: SubmittedFormsProps) {
   if (!formTemplateIds || formTemplateIds.length === 0) {
     return <p className="text-sm text-muted-foreground py-4">No forms were submitted with this application.</p>;
   }
@@ -90,6 +95,7 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
         editable={editable}
         onSave={onSave}
         saving={saving}
+        applicationStatus={applicationStatus}
       />
     );
   }
@@ -109,6 +115,7 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
               editable={editable}
               onSave={onSave}
               saving={saving}
+              applicationStatus={applicationStatus}
             />
           </AccordionContent>
         </AccordionItem>
