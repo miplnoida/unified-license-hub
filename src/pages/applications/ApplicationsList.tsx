@@ -28,9 +28,18 @@ const statusBadgeVariant = (s: string) => {
 };
 
 const licenseTypeBadgeVariant = (t: string) => {
-  if (t.toLowerCase().includes('pre')) return 'pending';
+  if (t.toLowerCase().includes('pre')) return 'submitted';
   if (t.toLowerCase().includes('post')) return 'approved';
   return 'secondary';
+};
+
+const paymentBadgeVariant = (s: string) => {
+  switch (s) {
+    case 'success': return 'approved';
+    case 'pending': return 'pending';
+    case 'failed': return 'rejected';
+    default: return 'draft';
+  }
 };
 
 interface Application {
@@ -54,6 +63,13 @@ interface ActionEvent {
   actor_email?: string;
 }
 
+interface PaymentInfo {
+  application_id: string;
+  amount: number;
+  status: string;
+  currency: string;
+}
+
 type SearchMode = 'contains' | 'starts_with' | 'exact';
 
 const TAB_STATUS_MAP: Record<string, ApplicationStatus[]> = {
@@ -75,6 +91,7 @@ export default function ApplicationsList() {
   const [categories, setCategories] = useState<Record<string, string>>({});
   const [services, setServices] = useState<Record<string, string>>({});
   const [allActions, setAllActions] = useState<ActionEvent[]>([]);
+  const [payments, setPayments] = useState<Record<string, PaymentInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
@@ -87,7 +104,7 @@ export default function ApplicationsList() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes] = await Promise.all([
+      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
@@ -96,6 +113,7 @@ export default function ApplicationsList() {
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
+        supabase.from('payments').select('application_id, amount, status, currency'),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
@@ -106,6 +124,13 @@ export default function ApplicationsList() {
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
 
+      if (payRes.data) {
+        const payMap: Record<string, PaymentInfo> = {};
+        (payRes.data as any[]).forEach(p => {
+          if (p.application_id) payMap[p.application_id] = p;
+        });
+        setPayments(payMap);
+      }
       if (actionsRes.data) {
         const emailMap: Record<string, string> = {};
         allProfiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
@@ -200,6 +225,7 @@ export default function ApplicationsList() {
                   <TableHead>Sector</TableHead>
                   <TableHead>Sub Sector</TableHead>
                   <TableHead>Category / Service</TableHead>
+                  <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
@@ -209,7 +235,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
@@ -221,7 +247,7 @@ export default function ApplicationsList() {
                   const categoryName = resolveField(app, 'category_id');
                   const serviceName = resolveField(app, 'service_id');
                   const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
-
+                  const payment = payments[app.id];
                   return (
                     <> 
                       <TableRow
@@ -231,12 +257,26 @@ export default function ApplicationsList() {
                       >
                         <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
                         <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
-                        <TableCell className="text-sm capitalize">
-                          {app.license_type?.replace(/_/g, '-') === 'pre-license' ? 'Pre' : app.license_type?.replace(/_/g, '-') === 'post-license' ? 'Post' : app.license_type}
+                        <TableCell>
+                          <Badge variant={licenseTypeBadgeVariant(app.license_type || '') as any} className="text-xs">
+                            {app.license_type?.replace(/_/g, '-') === 'pre-license' ? 'Pre Licensee' : app.license_type?.replace(/_/g, '-') === 'post-license' ? 'Post Licensee' : app.license_type}
+                          </Badge>
                         </TableCell>
                         <TableCell className="text-sm">{sectorName}</TableCell>
                         <TableCell className="text-sm">{subSectorName}</TableCell>
                         <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
+                        <TableCell>
+                          {payment ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
+                              <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
+                                {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs">
                             {APPLICATION_STATUS_LABELS[app.status] || app.status}
@@ -269,7 +309,7 @@ export default function ApplicationsList() {
                       </TableRow>
                       {isExpanded && actions.length > 0 && (
                         <TableRow key={`${app.id}-history`}>
-                          <TableCell colSpan={10} className="bg-muted/30 p-4">
+                          <TableCell colSpan={11} className="bg-muted/30 p-4">
                             <div className="space-y-2 max-h-60 overflow-y-auto">
                               <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                               {actions.map(evt => (
