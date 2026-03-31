@@ -434,32 +434,10 @@ export default function ApplicationsList() {
           </CardContent>
         </Card>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={v => { setActiveTab(v); setPage(0); setExpandedId(null); }}>
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="submitted" className="gap-1.5">
-              Submitted
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.submitted || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="resubmission" className="gap-1.5">
-              Resubmission Requested
-              <Badge variant="returned" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.resubmission || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="accepted" className="gap-1.5">
-              Accepted
-              <Badge variant="approved" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.accepted || 0}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="rejected" className="gap-1.5">
-              Rejected
-              <Badge variant="rejected" className="ml-1 text-[10px] px-1.5 py-0">{tabCounts.rejected || 0}</Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="submitted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="resubmission" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="accepted" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-          <TabsContent value="rejected" className="space-y-4 mt-4">{renderTable()}</TabsContent>
-        </Tabs>
+        {/* Application List */}
+        <div className="space-y-4">
+          {renderTable()}
+        </div>
 
         <PaymentVerificationDialog
           open={paymentDialogOpen}
