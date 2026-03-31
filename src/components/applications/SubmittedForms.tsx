@@ -106,6 +106,9 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
               templateId={tid}
               formData={formsData[tid] || {}}
               versionId={formVersionIds[tid] || null}
+              editable={editable}
+              onSave={onSave}
+              saving={saving}
             />
           </AccordionContent>
         </AccordionItem>
