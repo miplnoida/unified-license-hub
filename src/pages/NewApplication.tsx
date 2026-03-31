@@ -223,6 +223,8 @@ export default function NewApplication() {
     }));
     if (applicationId) {
       setSaving(true);
+      const existingApp = await supabase.from('applications').select('data').eq('id', applicationId).single();
+      const existingVersionIds = (existingApp.data?.data as any)?.form_version_ids || {};
       await supabase.from('applications').update({
         data: {
           sector_id: selectedSector,
@@ -232,6 +234,7 @@ export default function NewApplication() {
           sub_sector_name: subSectorObj?.name,
           category_name: categoryObj?.name,
           form_template_ids: matchedTemplates.map(t => t.id),
+          form_version_ids: { ...existingVersionIds, ...(publishedVersion ? { [activeFormTemplateId]: publishedVersion.id } : {}) },
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
