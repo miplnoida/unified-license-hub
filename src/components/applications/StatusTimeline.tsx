@@ -1,7 +1,7 @@
 import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_FLOW, ApplicationStatus } from '@/types/platform';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Circle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, XCircle, Clock, Loader2, RotateCcw } from 'lucide-react';
 
 interface TimelineEvent {
   id: string;
