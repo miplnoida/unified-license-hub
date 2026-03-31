@@ -205,11 +205,7 @@ export default function ApprovedLicensees() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {licensee ? (
-                              <Button variant="outline" size="sm" onClick={() => navigate(`/admin/licensees/${licensee.id}`)}>
-                                <Building2 className="h-4 w-4 mr-1" />Entity
-                              </Button>
-                            ) : !lic ? (
+                            {!lic && !licensee ? (
                               <Button
                                 variant="default"
                                 size="sm"
@@ -224,7 +220,11 @@ export default function ApprovedLicensees() {
                                 Generate License
                               </Button>
                             ) : null}
-                            <Button variant="ghost" size="sm" onClick={() => navigate(`/applications/${app.id}`)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => licensee ? navigate(`/admin/licensees/${licensee.id}`) : navigate(`/applications/${app.id}`)}
+                            >
                               <Eye className="h-4 w-4 mr-1" />View
                             </Button>
                           </div>
