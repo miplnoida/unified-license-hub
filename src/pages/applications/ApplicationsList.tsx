@@ -24,6 +24,7 @@ const statusBadgeVariant = (s: string) => {
     case 'submitted': return 'submitted';
     case 'in_progress': return 'under-review';
     case 'resubmission_requested': return 'returned';
+    case 'query_raised': return 'returned';
     case 'cancelled': return 'destructive';
     default: return 'draft';
   }
