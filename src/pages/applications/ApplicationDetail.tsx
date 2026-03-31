@@ -415,7 +415,7 @@ export default function ApplicationDetail() {
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
                     formVersionIds={formVersionIds}
-                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onSave={async (templateId, data) => {
                       const updatedFormsData = { ...formsData, [templateId]: data };
                       const updatedAppData = { ...appData, forms_data: updatedFormsData };
@@ -431,7 +431,7 @@ export default function ApplicationDetail() {
               <TabsContent value="documents" className="mt-4">
                 <Card>
                   <CardContent className="pt-6 space-y-4">
-                    {(isOwner && (app.status === 'draft' || app.status === 'resubmission_requested')) && (
+                    {(isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')) && (
                       <DocumentUpload
                         entityType="application"
                         entityId={app.id}
@@ -514,7 +514,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant resubmit action */}
-            {isOwner && app.status === 'resubmission_requested' && (
+            {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Required</CardTitle></CardHeader>
                 <CardContent className="space-y-4">

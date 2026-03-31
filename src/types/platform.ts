@@ -83,8 +83,8 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
-  resubmission_requested: 'Resubmission Requested',
-  query_raised: 'Resubmission Requested',
+  resubmission_requested: 'To Be Resubmitted',
+  query_raised: 'To Be Resubmitted',
 };
 
 export const APPLICATION_STATUS_FLOW: ApplicationStatus[] = [
