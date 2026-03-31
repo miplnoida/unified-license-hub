@@ -28,9 +28,18 @@ const statusBadgeVariant = (s: string) => {
 };
 
 const licenseTypeBadgeVariant = (t: string) => {
-  if (t.toLowerCase().includes('pre')) return 'pending';
+  if (t.toLowerCase().includes('pre')) return 'submitted';
   if (t.toLowerCase().includes('post')) return 'approved';
   return 'secondary';
+};
+
+const paymentBadgeVariant = (s: string) => {
+  switch (s) {
+    case 'success': return 'approved';
+    case 'pending': return 'pending';
+    case 'failed': return 'rejected';
+    default: return 'draft';
+  }
 };
 
 interface Application {
