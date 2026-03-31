@@ -30,8 +30,9 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string }> = {
 
 export function StatusTimeline({ currentStatus, events }: Props) {
   const isRejected = currentStatus === 'rejected';
-  const currentIdx = APPLICATION_STATUS_FLOW.indexOf(currentStatus);
-  // Progress: draft=0, submitted=33, in_progress=66, approved=100
+  const isResubmission = currentStatus === 'resubmission_requested' || currentStatus === 'query_raised';
+  // For resubmission, show progress as if between submitted and in_progress
+  const currentIdx = isResubmission ? 1 : APPLICATION_STATUS_FLOW.indexOf(currentStatus);
   const progressValue = isRejected ? 100 : currentIdx >= 0 ? (currentIdx / (APPLICATION_STATUS_FLOW.length - 1)) * 100 : 0;
 
   const config = statusConfig[currentStatus] || statusConfig.draft;
