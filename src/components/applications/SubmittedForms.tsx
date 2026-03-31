@@ -87,6 +87,10 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
         templateId={formTemplateIds[0]}
         formData={formsData[formTemplateIds[0]] || {}}
         versionId={formVersionIds[formTemplateIds[0]] || null}
+        editable={editable}
+        onSave={onSave}
+        saving={saving}
+      />
       />
     );
   }
