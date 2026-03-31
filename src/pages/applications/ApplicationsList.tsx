@@ -273,7 +273,19 @@ export default function ApplicationsList() {
                         <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
                         <TableCell>
                           {payment ? (
-                            <div className="flex items-center gap-1.5">
+                            <div
+                              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSelectedPaymentApp({
+                                  payment,
+                                  applicantName: getApplicantName(app.applicant_id),
+                                  applicationNumber: app.application_number,
+                                  applicantId: app.applicant_id,
+                                });
+                                setPaymentDialogOpen(true);
+                              }}
+                            >
                               <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
                               <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
                                 {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
