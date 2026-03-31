@@ -231,10 +231,8 @@ export default function ApplicationsList() {
                       >
                         <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
                         <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
-                        <TableCell>
-                          <Badge variant={licenseTypeBadgeVariant(app.license_type) as any} className="text-xs">
-                            {app.license_type}
-                          </Badge>
+                        <TableCell className="text-sm capitalize">
+                          {app.license_type?.replace(/_/g, '-') === 'pre-license' ? 'Pre' : app.license_type?.replace(/_/g, '-') === 'post-license' ? 'Post' : app.license_type}
                         </TableCell>
                         <TableCell className="text-sm">{sectorName}</TableCell>
                         <TableCell className="text-sm">{subSectorName}</TableCell>
