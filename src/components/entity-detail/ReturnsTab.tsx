@@ -20,8 +20,10 @@ export default function ReturnsTab({ entityId, licenseId }: { entityId: string; 
 
   const statusColor = (s: string) => {
     if (s === 'submitted') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
+    if (s === 'accepted') return 'bg-emerald-500/10 text-emerald-700 border-emerald-200';
     if (s === 'overdue') return 'bg-destructive/10 text-destructive border-destructive/20';
     if (s === 'pending') return 'bg-warning/10 text-warning border-warning/20';
+    if (s === 'resubmission_requested') return 'bg-orange-500/10 text-orange-700 border-orange-200';
     return '';
   };
 
