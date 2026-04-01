@@ -166,8 +166,8 @@ export function PaymentVerificationDialog({
             </div>
           </div>
 
-          {/* Admin Message */}
-          {payment.status !== 'success' && (
+          {/* Admin Message - only shown for admin users */}
+          {isAdminView && payment.status !== 'success' && (
             <>
               <Separator />
               <div className="space-y-2">
