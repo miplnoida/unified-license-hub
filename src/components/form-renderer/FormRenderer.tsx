@@ -108,6 +108,15 @@ export function FormRenderer({
   const currentSection = visibleSections[currentStep];
   const totalSteps = visibleSections.length;
   const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+  const showTabs = totalSteps > 1;
+
+  // Check if a section has any data filled in
+  const isSectionCompleted = useCallback((section: FormSection): boolean => {
+    return section.fields.some(f => {
+      const val = formData[f.fieldName];
+      return val !== undefined && val !== null && val !== '';
+    });
+  }, [formData]);
 
   const updateField = useCallback((fieldName: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
