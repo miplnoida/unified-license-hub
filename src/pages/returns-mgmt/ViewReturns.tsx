@@ -88,6 +88,7 @@ export default function ViewReturns() {
     ['accepted', 'Accepted'],
     ['rejected', 'Rejected'],
     ['overdue', 'Overdue'],
+    ['resubmission_requested', 'To Be Resubmitted'],
   ];
 
   const filtered = useMemo(() => {
