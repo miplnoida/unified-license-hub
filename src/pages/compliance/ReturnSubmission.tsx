@@ -96,6 +96,16 @@ export default function ReturnSubmission() {
         setFormLoading(false);
         return;
       }
+      // Fallback: try schema_snapshot from the version
+      const snapshot = (versions[0] as any).schema_snapshot;
+      if (snapshot && Array.isArray(snapshot) && snapshot.length > 0) {
+        const sections = convertSnapshotToSections(snapshot);
+        if (sections.length > 0) {
+          setFormSections(sections);
+          setFormLoading(false);
+          return;
+        }
+      }
     }
 
     // Fallback: try forms table
@@ -105,6 +115,31 @@ export default function ReturnSubmission() {
       setFormSections(sections);
     }
     setFormLoading(false);
+  };
+
+  const convertSnapshotToSections = (snapshot: any[]): FormSection[] => {
+    return snapshot.map((s: any, i: number) => ({
+      id: s.id || `section-${i}`,
+      title: s.title || `Section ${i + 1}`,
+      description: s.description || '',
+      sortOrder: s.sortOrder ?? i,
+      isRepeatable: s.isRepeatable || false,
+      fields: (s.fields || []).map((f: any, j: number) =>
+        makeField({
+          id: f.id || `field-${i}-${j}`,
+          fieldName: f.fieldName || f.field_name || f.label?.toLowerCase().replace(/\s+/g, '_') || `field_${j}`,
+          label: f.label || `Field ${j + 1}`,
+          type: f.type || f.field_type || 'text',
+          required: f.required || false,
+          placeholder: f.placeholder || '',
+          helpText: f.helpText || f.help_text || '',
+          options: f.options || [],
+          validation: f.validation || {},
+          defaultValue: f.defaultValue || f.default_value || '',
+          calculatedExpression: f.calculatedExpression || f.calculated_expression || '',
+        })
+      ),
+    }));
   };
 
   const groupFieldsIntoSections = (fields: any[]): FormSection[] => {
