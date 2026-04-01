@@ -31,6 +31,8 @@ interface Props {
   applicationNumber?: string;
   applicantId?: string;
   onVerified?: () => void;
+  /** When false, hides admin-only controls (remarks, verify button) */
+  isAdminView?: boolean;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
