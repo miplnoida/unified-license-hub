@@ -40,7 +40,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function PaymentVerificationDialog({
-  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified,
+  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true,
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
