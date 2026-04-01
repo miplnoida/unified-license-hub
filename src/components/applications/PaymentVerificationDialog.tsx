@@ -31,6 +31,8 @@ interface Props {
   applicationNumber?: string;
   applicantId?: string;
   onVerified?: () => void;
+  /** When false, hides admin-only controls (remarks, verify button) */
+  isAdminView?: boolean;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -38,7 +40,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function PaymentVerificationDialog({
-  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified,
+  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true,
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -164,8 +166,8 @@ export function PaymentVerificationDialog({
             </div>
           </div>
 
-          {/* Admin Message */}
-          {payment.status !== 'success' && (
+          {/* Admin Message - only shown for admin users */}
+          {isAdminView && payment.status !== 'success' && (
             <>
               <Separator />
               <div className="space-y-2">
@@ -186,14 +188,22 @@ export function PaymentVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
-            <XCircle className="h-4 w-4 mr-1.5" />
-            Cancel
-          </Button>
-          <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
-            {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-            {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
-          </Button>
+          {isAdminView ? (
+            <>
+              <Button variant="outline" onClick={handleClose} disabled={loading}>
+                <XCircle className="h-4 w-4 mr-1.5" />
+                Cancel
+              </Button>
+              <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
+                {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={handleClose}>
+              Close
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
