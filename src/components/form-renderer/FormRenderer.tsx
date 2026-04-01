@@ -540,23 +540,99 @@ export function FormRenderer({
     );
   }
 
+  const isAtVeryStart = sectionGroups
+    ? groupKeys.indexOf(activeGroup) === 0 && activeFormIdx === 0
+    : currentStep === 0;
+
+  const isAtVeryEnd = sectionGroups
+    ? groupKeys.indexOf(activeGroup) === groupKeys.length - 1 && activeFormIdx === activeGroupForms.length - 1
+    : currentStep === visibleSections.length - 1;
+
+  // Total forms across all groups for progress
+  const totalFormsCount = sectionGroups
+    ? Array.from(sectionGroups.values()).reduce((sum, g) => sum + g.length, 0)
+    : visibleSections.length;
+  const completedFormsCount = sectionGroups
+    ? groupKeys.slice(0, groupKeys.indexOf(activeGroup)).reduce((sum, k) => sum + (sectionGroups.get(k)?.length || 0), 0) + activeFormIdx + 1
+    : currentStep + 1;
+  const overallProgress = totalFormsCount > 0 ? (completedFormsCount / totalFormsCount) * 100 : 0;
+
   return (
     <div className="space-y-6">
       {/* Progress */}
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formName}</span>
-          <span>Section {currentStep + 1} of {totalSteps}</span>
+          <span>Form {completedFormsCount} of {totalFormsCount}</span>
         </div>
-        <Progress value={progress} className="h-2" />
+        <Progress value={overallProgress} className="h-2" />
 
-        {/* Section Tabs – only when multiple sections */}
+        {/* Two-level navigation for grouped forms */}
+        {sectionGroups && (
+          <div className="space-y-3">
+            {/* Group tabs (A Forms, B Forms, etc.) */}
+            <div className="flex flex-wrap gap-1.5">
+              {groupKeys.map(key => {
+                const isActive = key === activeGroup;
+                const groupForms = sectionGroups.get(key) || [];
+                const allCompleted = groupForms.every(s => isSectionCompleted(s));
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setActiveGroup(key); setActiveFormIdx(0); }}
+                    className={`
+                      flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-bold transition-all
+                      ${isActive
+                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-md'
+                        : allCompleted
+                          ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                      }
+                    `}
+                  >
+                    {key} Forms
+                    {allCompleted && !isActive && <CheckCircle2 className="h-3.5 w-3.5" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sub-form buttons */}
+            <div className="flex flex-wrap gap-1.5">
+              {activeGroupForms.map((s, i) => {
+                const isActive = i === activeFormIdx;
+                const isCompleted = isSectionCompleted(s);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveFormIdx(i)}
+                    title={s.title}
+                    className={`
+                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all
+                      ${isActive
+                        ? 'bg-[hsl(var(--warning,40_96%_53%))] text-white shadow-sm'
+                        : isCompleted
+                          ? 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30'
+                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                      }
+                    `}
+                  >
+                    <span className="truncate max-w-[200px]">{s.title}</span>
+                    {isCompleted && !isActive && <CheckCircle2 className="h-3 w-3 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Simple tab navigation for non-grouped multi-section forms */}
         {showTabs && (
           <div className="flex flex-wrap gap-1.5">
             {visibleSections.map((s, i) => {
               const isActive = i === currentStep;
               const isCompleted = isSectionCompleted(s);
-              const letter = String.fromCharCode(65 + i); // A, B, C...
+              const letter = String.fromCharCode(65 + i);
               return (
                 <button
                   key={s.id}
@@ -637,7 +713,7 @@ export function FormRenderer({
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={handlePrev} disabled={currentStep === 0}>
+        <Button variant="outline" onClick={handlePrev} disabled={isAtVeryStart}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Previous
         </Button>
         <div className="flex gap-2">
@@ -646,7 +722,7 @@ export function FormRenderer({
               <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Draft'}
             </Button>
           )}
-          {currentStep < totalSteps - 1 ? (
+          {!isAtVeryEnd ? (
             <Button onClick={handleNext}>
               Next <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
