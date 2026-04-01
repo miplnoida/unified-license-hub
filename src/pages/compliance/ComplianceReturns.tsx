@@ -372,21 +372,22 @@ export default function ComplianceReturns() {
                             </TableCell>
                           )}
                           <TableCell className="text-right space-x-1">
-                            {!isInternal && (ret.status === 'pending' || ret.status === 'draft') && (
+                            {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'resubmission_requested') && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                  <FileText className="h-3 w-3 mr-1" />Fill Form
+                                  <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : 'Fill Form'}
                                 </Button>
-                                {ret.form_data && Object.keys(ret.form_data).length > 0 && (
+                                {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
                                   <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
                                 )}
                               </>
                             )}
                             {isInternal && ret.status === 'submitted' && (
-                              <>
+                              <div className="flex gap-1 justify-end">
                                 <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
                                 <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
-                              </>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>
