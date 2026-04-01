@@ -26,7 +26,7 @@ import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
   useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
-  computeSemanticVersion,
+  computeSemanticVersion, useFormFields, useFieldConditions, fieldRowsToSections,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
@@ -51,6 +51,8 @@ export default function FormBuilder() {
 
   const { data: existingTemplate } = useFormTemplate(editId);
   const { data: latestVersion } = useLatestVersion(editId);
+  const { data: versionFieldRows = [], isFetched: fieldsFetched } = useFormFields(latestVersion?.id || null);
+  const { data: versionConditionRows = [] } = useFieldConditions(latestVersion?.id || null);
 
   const { data: dbSectors = [] } = useSectors();
   const { data: dbSubSectors = [] } = useSubSectors();
@@ -77,7 +79,15 @@ export default function FormBuilder() {
   useEffect(() => {
     if (!existingTemplate || initialized || dbSectors.length === 0) return;
     const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
-    const parsed = Array.isArray(loadedSections) ? loadedSections : [];
+    const snapshotSections = Array.isArray(loadedSections) ? loadedSections : [];
+
+    // If snapshot is empty, wait for normalized fields and rebuild sections from rows.
+    if (snapshotSections.length === 0 && latestVersion?.id && !fieldsFetched) return;
+
+    const parsed = snapshotSections.length > 0
+      ? snapshotSections
+      : (versionFieldRows.length > 0 ? fieldRowsToSections(versionFieldRows, versionConditionRows) : []);
+
     setSections(parsed);
     setInitialSections(JSON.parse(JSON.stringify(parsed)));
     setFormName(existingTemplate.name || '');
@@ -91,7 +101,18 @@ export default function FormBuilder() {
     const svcId = existingTemplate.service_id || dbServices.find(s => s.name === existingTemplate.service)?.id || '';
     setSelectedService(svcId);
     setInitialized(true);
-  }, [existingTemplate, latestVersion, initialized, dbSectors, dbSubSectors, dbCategories, dbServices]);
+  }, [
+    existingTemplate,
+    latestVersion,
+    versionFieldRows,
+    versionConditionRows,
+    fieldsFetched,
+    initialized,
+    dbSectors,
+    dbSubSectors,
+    dbCategories,
+    dbServices,
+  ]);
 
   const filteredSubSectors = useMemo(
     () => dbSubSectors.filter(s => s.sector_id === selectedSector && s.status === 'active'),
