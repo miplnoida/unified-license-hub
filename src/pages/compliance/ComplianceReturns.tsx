@@ -50,7 +50,7 @@ interface Penalty {
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending: 'outline', draft: 'secondary', submitted: 'default', accepted: 'default', rejected: 'destructive', overdue: 'destructive',
+  pending: 'outline', draft: 'secondary', submitted: 'default', accepted: 'default', rejected: 'destructive', overdue: 'destructive', resubmission_requested: 'outline',
 };
 
 export default function ComplianceReturns() {
@@ -116,11 +116,17 @@ export default function ComplianceReturns() {
     toast.success('Return submitted'); loadAll();
   };
 
-  const handleReview = async (id: string, status: 'accepted' | 'rejected') => {
+  const handleReview = async (id: string, status: 'accepted' | 'rejected' | 'resubmission_requested') => {
+    const updateData: any = { status, reviewed_at: new Date().toISOString(), reviewer_id: user?.id };
+    if (status === 'resubmission_requested') {
+      // Clear reviewed_at so it shows as pending resubmission
+      updateData.reviewed_at = null;
+    }
     const { error } = await supabase.from('compliance_returns' as any)
-      .update({ status, reviewed_at: new Date().toISOString(), reviewer_id: user?.id } as any).eq('id', id);
+      .update(updateData).eq('id', id);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Return ${status}`); loadAll();
+    const label = status === 'resubmission_requested' ? 'requested for resubmission' : status;
+    toast.success(`Return ${label}`); loadAll();
   };
 
   const filtered = processedReturns.filter(r => {
@@ -366,21 +372,22 @@ export default function ComplianceReturns() {
                             </TableCell>
                           )}
                           <TableCell className="text-right space-x-1">
-                            {!isInternal && (ret.status === 'pending' || ret.status === 'draft') && (
+                            {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'resubmission_requested') && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                  <FileText className="h-3 w-3 mr-1" />Fill Form
+                                  <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : 'Fill Form'}
                                 </Button>
-                                {ret.form_data && Object.keys(ret.form_data).length > 0 && (
+                                {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
                                   <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
                                 )}
                               </>
                             )}
                             {isInternal && ret.status === 'submitted' && (
-                              <>
+                              <div className="flex gap-1 justify-end">
                                 <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
                                 <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
-                              </>
+                              </div>
                             )}
                           </TableCell>
                         </TableRow>

@@ -37,7 +37,7 @@ interface Profile {
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  submitted: 'default', accepted: 'default', rejected: 'destructive', overdue: 'destructive',
+  submitted: 'default', accepted: 'default', rejected: 'destructive', overdue: 'destructive', resubmission_requested: 'outline',
 };
 
 const PAGE_SIZE = 10;
@@ -88,6 +88,7 @@ export default function ViewReturns() {
     ['accepted', 'Accepted'],
     ['rejected', 'Rejected'],
     ['overdue', 'Overdue'],
+    ['resubmission_requested', 'To Be Resubmitted'],
   ];
 
   const filtered = useMemo(() => {

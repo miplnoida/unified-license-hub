@@ -103,7 +103,7 @@ export const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
 };
 
 // Compliance return statuses
-export type ReturnStatus = 'pending' | 'draft' | 'submitted' | 'accepted' | 'rejected' | 'overdue';
+export type ReturnStatus = 'pending' | 'draft' | 'submitted' | 'accepted' | 'rejected' | 'overdue' | 'resubmission_requested';
 
 export const RETURN_STATUS_LABELS: Record<ReturnStatus, string> = {
   pending: 'Pending',
@@ -112,6 +112,7 @@ export const RETURN_STATUS_LABELS: Record<ReturnStatus, string> = {
   accepted: 'Accepted',
   rejected: 'Rejected',
   overdue: 'Overdue',
+  resubmission_requested: 'To Be Resubmitted',
 };
 
 // Fee types
