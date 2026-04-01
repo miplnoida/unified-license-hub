@@ -300,6 +300,7 @@ export default function PaymentHistory() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         payment={selectedPayment}
+        isAdminView={!!isAdmin}
       />
 
       {/* Receipt View Dialog */}

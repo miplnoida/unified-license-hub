@@ -188,14 +188,22 @@ export function PaymentVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
-            <XCircle className="h-4 w-4 mr-1.5" />
-            Cancel
-          </Button>
-          <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
-            {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-            {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
-          </Button>
+          {isAdminView ? (
+            <>
+              <Button variant="outline" onClick={handleClose} disabled={loading}>
+                <XCircle className="h-4 w-4 mr-1.5" />
+                Cancel
+              </Button>
+              <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
+                {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={handleClose}>
+              Close
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
