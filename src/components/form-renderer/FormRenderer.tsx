@@ -105,10 +105,44 @@ export function FormRenderer({
     [sections, formData, allFields]
   );
 
-  const currentSection = visibleSections[currentStep];
-  const totalSteps = visibleSections.length;
-  const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
-  const showTabs = totalSteps > 1;
+  // Detect grouped sections (e.g. "A1-...", "B3-...", etc.)
+  const sectionGroups = useMemo(() => {
+    const groups = new Map<string, typeof visibleSections>();
+    let hasGroups = false;
+    for (const s of visibleSections) {
+      const match = s.title.match(/^([A-Z])\d+-/i);
+      if (match) {
+        hasGroups = true;
+        const letter = match[1].toUpperCase();
+        if (!groups.has(letter)) groups.set(letter, []);
+        groups.get(letter)!.push(s);
+      }
+    }
+    if (!hasGroups) return null;
+    return groups;
+  }, [visibleSections]);
+
+  const groupKeys = useMemo(() => sectionGroups ? Array.from(sectionGroups.keys()).sort() : [], [sectionGroups]);
+  const [activeGroup, setActiveGroup] = useState(groupKeys[0] || '');
+  const [activeFormIdx, setActiveFormIdx] = useState(0);
+
+  // Keep activeGroup valid if groupKeys change
+  useMemo(() => {
+    if (groupKeys.length > 0 && !groupKeys.includes(activeGroup)) {
+      setActiveGroup(groupKeys[0]);
+      setActiveFormIdx(0);
+    }
+  }, [groupKeys]);
+
+  const activeGroupForms = sectionGroups?.get(activeGroup) || [];
+  const currentSection = sectionGroups
+    ? activeGroupForms[activeFormIdx] || activeGroupForms[0]
+    : visibleSections[currentStep];
+
+  const totalSteps = sectionGroups ? activeGroupForms.length : visibleSections.length;
+  const currentStepIdx = sectionGroups ? activeFormIdx : currentStep;
+  const progress = totalSteps > 0 ? ((currentStepIdx + 1) / totalSteps) * 100 : 0;
+  const showTabs = !sectionGroups && visibleSections.length > 1;
 
   // Check if a section has any data filled in
   const isSectionCompleted = useCallback((section: FormSection): boolean => {
