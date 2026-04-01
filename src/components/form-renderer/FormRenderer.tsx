@@ -213,13 +213,39 @@ export function FormRenderer({
   };
 
   const handleNext = () => {
-    if (validateCurrentStep() && currentStep < totalSteps - 1) {
-      setCurrentStep(prev => prev + 1);
+    if (!validateCurrentStep()) return;
+    if (sectionGroups) {
+      if (activeFormIdx < activeGroupForms.length - 1) {
+        setActiveFormIdx(prev => prev + 1);
+      } else {
+        // Move to next group
+        const nextGroupIdx = groupKeys.indexOf(activeGroup) + 1;
+        if (nextGroupIdx < groupKeys.length) {
+          setActiveGroup(groupKeys[nextGroupIdx]);
+          setActiveFormIdx(0);
+        }
+      }
+    } else {
+      if (currentStep < visibleSections.length - 1) setCurrentStep(prev => prev + 1);
     }
   };
 
   const handlePrev = () => {
-    if (currentStep > 0) setCurrentStep(prev => prev - 1);
+    if (sectionGroups) {
+      if (activeFormIdx > 0) {
+        setActiveFormIdx(prev => prev - 1);
+      } else {
+        // Move to previous group's last form
+        const prevGroupIdx = groupKeys.indexOf(activeGroup) - 1;
+        if (prevGroupIdx >= 0) {
+          const prevKey = groupKeys[prevGroupIdx];
+          setActiveGroup(prevKey);
+          setActiveFormIdx((sectionGroups.get(prevKey)?.length || 1) - 1);
+        }
+      }
+    } else {
+      if (currentStep > 0) setCurrentStep(prev => prev - 1);
+    }
   };
 
   const handleSaveDraft = () => onSaveDraft(getMergedData());
