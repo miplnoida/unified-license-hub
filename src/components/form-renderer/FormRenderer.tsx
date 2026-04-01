@@ -108,6 +108,15 @@ export function FormRenderer({
   const currentSection = visibleSections[currentStep];
   const totalSteps = visibleSections.length;
   const progress = totalSteps > 0 ? ((currentStep + 1) / totalSteps) * 100 : 0;
+  const showTabs = totalSteps > 1;
+
+  // Check if a section has any data filled in
+  const isSectionCompleted = useCallback((section: FormSection): boolean => {
+    return section.fields.some(f => {
+      const val = formData[f.fieldName];
+      return val !== undefined && val !== null && val !== '';
+    });
+  }, [formData]);
 
   const updateField = useCallback((fieldName: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
@@ -474,24 +483,45 @@ export function FormRenderer({
   return (
     <div className="space-y-6">
       {/* Progress */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{formName}</span>
-          <span>Step {currentStep + 1} of {totalSteps}</span>
+          <span>Section {currentStep + 1} of {totalSteps}</span>
         </div>
         <Progress value={progress} className="h-2" />
-        {/* Step indicators */}
-        <div className="flex gap-1">
-          {visibleSections.map((s, i) => (
-            <button
-              key={s.id}
-              onClick={() => setCurrentStep(i)}
-              className={`flex-1 h-1.5 rounded-full transition-colors ${
-                i <= currentStep ? 'bg-primary' : 'bg-muted'
-              }`}
-            />
-          ))}
-        </div>
+
+        {/* Section Tabs – only when multiple sections */}
+        {showTabs && (
+          <div className="flex flex-wrap gap-1.5">
+            {visibleSections.map((s, i) => {
+              const isActive = i === currentStep;
+              const isCompleted = isSectionCompleted(s);
+              const letter = String.fromCharCode(65 + i); // A, B, C...
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentStep(i)}
+                  title={s.title}
+                  className={`
+                    relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border
+                    ${isActive
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      : isCompleted
+                        ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                    }
+                  `}
+                >
+                  <span className="font-bold">{letter}</span>
+                  <span className="hidden sm:inline max-w-[120px] truncate">{s.title}</span>
+                  {isCompleted && !isActive && (
+                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Section Content */}
