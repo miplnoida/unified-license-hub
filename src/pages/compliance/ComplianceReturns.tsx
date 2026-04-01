@@ -116,11 +116,17 @@ export default function ComplianceReturns() {
     toast.success('Return submitted'); loadAll();
   };
 
-  const handleReview = async (id: string, status: 'accepted' | 'rejected') => {
+  const handleReview = async (id: string, status: 'accepted' | 'rejected' | 'resubmission_requested') => {
+    const updateData: any = { status, reviewed_at: new Date().toISOString(), reviewer_id: user?.id };
+    if (status === 'resubmission_requested') {
+      // Clear reviewed_at so it shows as pending resubmission
+      updateData.reviewed_at = null;
+    }
     const { error } = await supabase.from('compliance_returns' as any)
-      .update({ status, reviewed_at: new Date().toISOString(), reviewer_id: user?.id } as any).eq('id', id);
+      .update(updateData).eq('id', id);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Return ${status}`); loadAll();
+    const label = status === 'resubmission_requested' ? 'requested for resubmission' : status;
+    toast.success(`Return ${label}`); loadAll();
   };
 
   const filtered = processedReturns.filter(r => {
