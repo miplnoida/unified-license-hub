@@ -1,0 +1,1 @@
+UPDATE public.form_templates SET regulator_id = '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3' WHERE id = 'd1a2b3c4-0001-4000-8000-000000000001';
