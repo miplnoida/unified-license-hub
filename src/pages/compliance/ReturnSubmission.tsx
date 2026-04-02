@@ -281,10 +281,7 @@ export default function ReturnSubmission() {
   };
 
   const convertRowsToSections = (rows: any[]): FormSection[] => {
-    if (!rows || rows.length === 0) return [{
-      id: 'default', title: 'Return Data', description: '', sortOrder: 0, isRepeatable: false,
-      fields: [makeField({ id: 'notes', fieldName: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Enter return notes...' })],
-    }];
+    if (!rows || rows.length === 0) return [];
     return rows.map((row: any, i: number) => ({
       id: row.id || `section-${i}`,
       title: row.title || `Section ${i + 1}`,
