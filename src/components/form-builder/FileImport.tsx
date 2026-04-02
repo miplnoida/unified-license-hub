@@ -211,6 +211,288 @@ export interface MultiSheetParseResult {
 
 // ─── Excel Multi-Sheet Parser ───
 
+// ─── Financial Statement Layout Detection ───
+
+interface FinancialLayout {
+  titleRow: number;       // Row with the form title (e.g., "STATEMENT OF FINANCIAL POSITION")
+  formTitle: string;
+  headerStartRow: number; // First row of column headers (e.g., row 13)
+  headerEndRow: number;   // Last row of column headers (e.g., row 14)
+  dataStartRow: number;   // First data row (e.g., row 16)
+  labelCol: number;       // Column index for row labels (B=1 or C=2)
+  numberCol: number;      // Column index for line numbers (A=0 or B=1)
+  dataColStart: number;   // First data column index
+  dataColEnd: number;     // Last data column index
+  columnHeaders: string[];// Headers for each data column
+}
+
+function detectFinancialLayout(sheet: any, data: string[][], XLSX: any): FinancialLayout | null {
+  if (data.length < 10) return null;
+
+  // Check for "Go to TOC" or similar navigation in row 1
+  const row1 = data[0]?.map(c => String(c || '').trim()) || [];
+  const hasNavLink = row1.some(v => /go to toc|toc|table of content/i.test(v));
+  // Also check for formula objects or cover references in early rows
+  const hasMetadata = data.slice(0, 8).some(row =>
+    row.some(c => {
+      const v = String(c || '');
+      return /Cover!|financial year|period end/i.test(v);
+    })
+  );
+
+  if (!hasNavLink && !hasMetadata) return null;
+
+  // Find form title (look for keywords in rows 8-12)
+  let formTitle = '';
+  let titleRow = -1;
+  for (let r = 7; r < Math.min(15, data.length); r++) {
+    for (let c = 0; c < Math.min(10, (data[r] || []).length); c++) {
+      const val = String(data[r]?.[c] || '').trim();
+      if (val.length > 10 && !/^=/.test(val) && !/Go to/i.test(val)) {
+        if (/STATEMENT|FINANCIAL|INSURANCE|COMPUTATION|SOLVENCY|DEPOSIT|PROFIT|LOSS|CASH FLOW|COMPREHENSIVE|RECONCILIATION|DISCLOSURES|RESERVES|REINSURANCE|CLAIMS|ASSET|INVESTMENT|BUSINESS|SCHEDULE|CERTIFICATION/i.test(val)) {
+          formTitle = val;
+          titleRow = r;
+          break;
+        }
+      }
+    }
+    if (formTitle) break;
+  }
+
+  if (!formTitle) {
+    // Fallback: use any long text from rows 9-12
+    for (let r = 8; r < Math.min(14, data.length); r++) {
+      for (let c = 0; c < Math.min(10, (data[r] || []).length); c++) {
+        const val = String(data[r]?.[c] || '').trim();
+        if (val.length > 15 && !/^=/.test(val) && !/Go to|Cover!/i.test(val) && !/^\s+$/.test(val)) {
+          formTitle = val;
+          titleRow = r;
+          break;
+        }
+      }
+      if (formTitle) break;
+    }
+  }
+
+  // Find the row with column numbers (1, 2, 3...) — this is typically row 15
+  let colNumberRow = -1;
+  for (let r = 12; r < Math.min(25, data.length); r++) {
+    const row = data[r] || [];
+    let numCount = 0;
+    let consecutiveNums: number[] = [];
+    for (let c = 0; c < row.length; c++) {
+      const val = row[c];
+      if (val !== '' && val !== null && val !== undefined) {
+        const n = Number(val);
+        if (!isNaN(n) && Number.isInteger(n) && n >= 1 && n <= 50) {
+          numCount++;
+          consecutiveNums.push(n);
+        }
+      }
+    }
+    // Must have at least 3 consecutive column numbers
+    if (numCount >= 3 && consecutiveNums[0] === 1) {
+      colNumberRow = r;
+      break;
+    }
+  }
+
+  if (colNumberRow < 0) {
+    // Alternative: look for "Notes" label which typically precedes data columns
+    for (let r = 12; r < Math.min(25, data.length); r++) {
+      const row = data[r] || [];
+      for (let c = 0; c < Math.min(10, row.length); c++) {
+        if (/^Notes$/i.test(String(row[c] || '').trim())) {
+          colNumberRow = r;
+          break;
+        }
+      }
+      if (colNumberRow >= 0) break;
+    }
+  }
+
+  if (colNumberRow < 0) return null;
+
+  // Determine label column and number column by scanning data rows
+  let labelCol = 2; // Default: column C (index 2)
+  let numberCol = 1; // Default: column B (index 1)
+
+  // Check if numbers are in column A (index 0) and labels in column B (index 1)
+  let numInA = 0, numInB = 0;
+  for (let r = colNumberRow + 1; r < Math.min(colNumberRow + 20, data.length); r++) {
+    const row = data[r] || [];
+    const aVal = row[0];
+    const bVal = row[1];
+    if (aVal !== '' && aVal !== null && !isNaN(Number(aVal)) && Number.isInteger(Number(aVal))) numInA++;
+    if (bVal !== '' && bVal !== null && !isNaN(Number(bVal)) && Number.isInteger(Number(bVal))) numInB++;
+  }
+
+  if (numInA > numInB) {
+    numberCol = 0; // Column A
+    labelCol = 1;  // Column B
+  } else {
+    numberCol = 1; // Column B
+    labelCol = 2;  // Column C
+  }
+
+  // Find data columns (columns after label that have headers)
+  const headerRow1 = data[colNumberRow - 2] || [];
+  const headerRow2 = data[colNumberRow - 1] || [];
+  const colNumRow = data[colNumberRow] || [];
+
+  let dataColStart = labelCol + 1;
+  let dataColEnd = 0;
+  const columnHeaders: string[] = [];
+
+  // Skip the "Notes" column if present
+  if (/^Notes$/i.test(String(colNumRow[dataColStart] || '').trim()) ||
+      /^Notes$/i.test(String(headerRow2[dataColStart] || '').trim())) {
+    dataColStart++;
+  }
+
+  for (let c = dataColStart; c < Math.max(headerRow1.length, headerRow2.length, colNumRow.length); c++) {
+    const h1 = String(headerRow1[c] || '').trim();
+    const h2 = String(headerRow2[c] || '').trim();
+    const cn = String(colNumRow[c] || '').trim();
+
+    // A data column should have either a header or a column number
+    if (h1 || h2 || (cn && !isNaN(Number(cn)))) {
+      const header = h2 || h1 || `Column ${cn || c}`;
+      // Shorten long repetitive headers
+      const shortHeader = header.length > 60 ? header.substring(0, 60).trim() : header;
+      columnHeaders.push(shortHeader);
+      dataColEnd = c;
+    } else if (columnHeaders.length > 0) {
+      // Stop at first empty column after data started
+      break;
+    }
+  }
+
+  if (columnHeaders.length === 0) return null;
+
+  return {
+    titleRow,
+    formTitle: formTitle.replace(/\(\$000\)/g, '').replace(/\s+/g, ' ').trim(),
+    headerStartRow: colNumberRow - 2,
+    headerEndRow: colNumberRow,
+    dataStartRow: colNumberRow + 1,
+    labelCol,
+    numberCol,
+    dataColStart,
+    dataColEnd,
+    columnHeaders,
+  };
+}
+
+function parseFinancialSheet(
+  sheetName: string,
+  data: string[][],
+  layout: FinancialLayout,
+  sheet: any,
+  XLSX: any,
+): { sections: FormSection[]; crossSheetRefs: CrossSheetRef[] } {
+  const sections: FormSection[] = [];
+  const crossSheetRefs: CrossSheetRef[] = [];
+
+  let currentSectionTitle = layout.formTitle || sheetName;
+  let currentFields: FormField[] = [];
+  let sortOrder = 0;
+
+  // Build a field-name map for formula conversion
+  const fieldNameMap = new Map<string, string>();
+
+  const flushSection = () => {
+    if (currentFields.length > 0) {
+      sections.push({
+        id: crypto.randomUUID(),
+        title: currentSectionTitle,
+        sortOrder: sortOrder++,
+        isRepeatable: false,
+        fields: [...currentFields],
+      });
+      currentFields = [];
+    }
+  };
+
+  for (let r = layout.dataStartRow; r < data.length; r++) {
+    const row = data[r] || [];
+    const lineNum = String(row[layout.numberCol] || '').trim();
+    const label = String(row[layout.labelCol] || '').trim();
+
+    if (!label) continue;
+    // Skip placeholder rows
+    if (/^\(Input line item here\)$/i.test(label)) continue;
+
+    const hasNumber = lineNum !== '' && (/^\d+$/.test(lineNum) || /^S\d+$/i.test(lineNum));
+
+    if (!hasNumber) {
+      // This is a section header (e.g., "ASSETS", "LIABILITIES", "Insurance Revenue")
+      // Check if it's truly a header (no data values in data columns)
+      let hasData = false;
+      for (let c = layout.dataColStart; c <= layout.dataColEnd; c++) {
+        const val = String(row[c] || '').trim();
+        if (val && val !== '0') { hasData = true; break; }
+      }
+      if (!hasData && label.length > 2) {
+        flushSection();
+        currentSectionTitle = label;
+        continue;
+      }
+    }
+
+    // Create fields for each data column
+    for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
+      const colIdx = layout.dataColStart + ci;
+      const colHeader = layout.columnHeaders[ci];
+      const cellAddr = XLSX.utils.encode_cell({ r, c: colIdx });
+      const cell = sheet[cellAddr];
+
+      const fieldLabel = layout.columnHeaders.length === 1
+        ? label
+        : `${label} - ${colHeader}`;
+      const fieldName = toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
+      fieldNameMap.set(cellAddr, fieldName);
+
+      let fieldType: FieldType = 'number';
+      let calculatedExpression: string | undefined;
+
+      if (cell && cell.f) {
+        fieldType = 'calculated';
+        // Convert the formula to field token references
+        const formulaFieldMap = new Map<string, string>();
+        // Map column letters to field names for same-row references
+        for (let fc = layout.dataColStart; fc <= layout.dataColEnd; fc++) {
+          const fAddr = XLSX.utils.encode_cell({ r, c: fc });
+          const fName = fieldNameMap.get(fAddr);
+          if (fName) {
+            formulaFieldMap.set(XLSX.utils.encode_col(fc), fName);
+          }
+        }
+        const info = convertFormula(cell.f, formulaFieldMap, sheetName);
+        calculatedExpression = info.expression;
+        if (info.crossSheetRefs.length > 0) {
+          info.crossSheetRefs.forEach(ref => { ref.sourceField = fieldName; });
+          crossSheetRefs.push(...info.crossSheetRefs);
+        }
+      }
+
+      const field: FormField = {
+        id: crypto.randomUUID(),
+        type: fieldType,
+        label: fieldLabel,
+        fieldName,
+        required: false,
+        placeholder: fieldType === 'number' ? '0' : undefined,
+        calculatedExpression,
+      };
+      currentFields.push(field);
+    }
+  }
+
+  flushSection();
+  return { sections, crossSheetRefs };
+}
+
 async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> {
   const XLSX = await import('xlsx');
   const buffer = await file.arrayBuffer();
@@ -224,6 +506,28 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
     const data: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
     if (data.length === 0) continue;
 
+    // ── Try financial statement layout first ──
+    const financialLayout = detectFinancialLayout(sheet, data, XLSX);
+    if (financialLayout) {
+      const { sections, crossSheetRefs: sheetCrossRefs } = parseFinancialSheet(
+        sheetName, data, financialLayout, sheet, XLSX
+      );
+      const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
+      if (fieldCount > 0) {
+        sheets.push({
+          sheetName,
+          formName: `${sheetName} - ${financialLayout.formTitle}`,
+          sections,
+          fieldCount,
+          selected: true,
+          crossSheetRefs: sheetCrossRefs,
+        });
+        allCrossSheetRefs.push(...sheetCrossRefs);
+      }
+      continue;
+    }
+
+    // ── Original parsing logic ──
     const headers = data[0].map(h => String(h).trim()).filter(Boolean);
     if (headers.length === 0) continue;
 
