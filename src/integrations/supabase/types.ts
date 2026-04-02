@@ -1130,6 +1130,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          form_order: number
           form_type: string
           id: string
           is_reusable: boolean
@@ -1144,6 +1145,7 @@ export type Database = {
           status: string
           sub_sector: string
           sub_sector_id: string | null
+          tab_name: string | null
           updated_at: string
         }
         Insert: {
@@ -1152,6 +1154,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          form_order?: number
           form_type?: string
           id?: string
           is_reusable?: boolean
@@ -1166,6 +1169,7 @@ export type Database = {
           status?: string
           sub_sector?: string
           sub_sector_id?: string | null
+          tab_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -1174,6 +1178,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          form_order?: number
           form_type?: string
           id?: string
           is_reusable?: boolean
@@ -1188,6 +1193,7 @@ export type Database = {
           status?: string
           sub_sector?: string
           sub_sector_id?: string | null
+          tab_name?: string | null
           updated_at?: string
         }
         Relationships: [
