@@ -332,17 +332,29 @@ export default function ReturnSubmission() {
     const groups = new Map<string, MultiFormTemplate[]>();
     let hasGroups = false;
     for (const tpl of multiFormTemplates) {
-      const match = tpl.name.match(/^([A-Z])\./i);
-      if (match) {
+      // Use admin-configured tab_name for grouping
+      const tab = tpl.tabName?.trim();
+      if (tab) {
         hasGroups = true;
-        const letter = match[1].toUpperCase();
-        if (!groups.has(letter)) groups.set(letter, []);
-        groups.get(letter)!.push(tpl);
+        if (!groups.has(tab)) groups.set(tab, []);
+        groups.get(tab)!.push(tpl);
+      } else {
+        // Fallback: try letter prefix from name
+        const match = tpl.name.match(/^([A-Z])\./i);
+        if (match) {
+          hasGroups = true;
+          const letter = match[1].toUpperCase();
+          if (!groups.has(letter)) groups.set(letter, []);
+          groups.get(letter)!.push(tpl);
+        }
       }
     }
     if (!hasGroups) {
-      // No letter prefix grouping - use numeric grouping or flat list
       groups.set('All', multiFormTemplates);
+    }
+    // Sort forms within each group by form_order
+    for (const [, forms] of groups) {
+      forms.sort((a, b) => a.formOrder - b.formOrder);
     }
     return groups;
   }, [isMultiForm, multiFormTemplates]);
