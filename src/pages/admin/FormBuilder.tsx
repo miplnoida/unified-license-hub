@@ -256,6 +256,8 @@ export default function FormBuilder() {
           regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
           is_reusable: true,
           created_by: existingTemplate?.created_by || null,
+          tab_name: tabName.trim() || null,
+          form_order: formOrder,
         },
         sections,
         versionId,
