@@ -258,7 +258,7 @@ export default function FormBuilder() {
           created_by: existingTemplate?.created_by || null,
           tab_name: tabName.trim() || null,
           form_order: formOrder,
-        },
+        } as any,
         sections,
         versionId,
         version: intVersion,
