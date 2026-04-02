@@ -75,30 +75,35 @@ export default function NewApplication() {
   // Find ALL matching form templates
   const matchedTemplates = useMemo(() => {
     if (!selectedCategory) return [];
+    const published = formTemplates.filter(t =>
+      t.status === 'published' &&
+      (t.form_type === 'pre_license' || t.form_type === 'application')
+    );
+
+    // Priority 1: Match by category_id (most specific)
+    const byCategory = published.filter(t => t.category_id === selectedCategory);
+    if (byCategory.length > 0) return byCategory;
+
+    // Priority 2: Match by sub_sector_id (no category set on template)
+    const bySubSector = published.filter(t => t.sub_sector_id === selectedSubSector && !t.category_id);
+    if (bySubSector.length > 0) return bySubSector;
+
+    // Priority 3: Match by sector_id (no sub-sector or category set)
+    const bySector = published.filter(t => t.sector_id === selectedSector && !t.sub_sector_id && !t.category_id);
+    if (bySector.length > 0) return bySector;
+
+    // Priority 4: Fallback to string-based name matching for legacy templates
     const catObj = allCategories.find(c => c.id === selectedCategory);
     const subObj = allSubSectors.find(s => s.id === selectedSubSector);
     const secObj = sectors.find(s => s.id === selectedSector);
     if (!catObj || !subObj || !secObj) return [];
 
-    const matched = formTemplates.filter(t =>
-      t.status === 'published' &&
-      (t.form_type === 'pre_license' || t.form_type === 'application') &&
-      (
-        (t.category && t.category === catObj.name) ||
-        (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
-        (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
-      )
+    return published.filter(t =>
+      (t.category && t.category === catObj.name) ||
+      (t.sub_sector && t.sub_sector === subObj.name && !t.category) ||
+      (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
     );
-
-    if (matched.length === 0) {
-      return formTemplates.filter(t =>
-        t.status === 'published' &&
-        (t.form_type === 'pre_license' || t.form_type === 'application')
-      );
-    }
-
-    return matched;
-  }, [selectedCategory, formTemplates, allCategories, allSubSectors, sectors, selectedSubSector, selectedSector]);
+  }, [selectedCategory, selectedSubSector, selectedSector, formTemplates, allCategories, allSubSectors, sectors]);
 
   // Active form template being filled
   const activeTemplate = useMemo(() => {

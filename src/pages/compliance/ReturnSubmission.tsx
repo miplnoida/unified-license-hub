@@ -120,16 +120,8 @@ export default function ReturnSubmission() {
     } else if (config.form_id) {
       await loadSingleForm(config.form_id);
     } else {
-      // No form configured - show default
-      setFormSections([{
-        id: 'default', title: 'Return Data', description: 'Enter the return information below', sortOrder: 0, isRepeatable: false,
-        fields: [
-          makeField({ id: 'revenue', fieldName: 'revenue', label: 'Total Revenue', type: 'number', required: true, placeholder: '0.00', helpText: 'Report total revenue for this period' }),
-          makeField({ id: 'expenses', fieldName: 'expenses', label: 'Total Expenses', type: 'number', required: true, placeholder: '0.00' }),
-          makeField({ id: 'net_income', fieldName: 'net_income', label: 'Net Income', type: 'calculated', placeholder: 'Auto-calculated', helpText: 'Revenue minus expenses', calculatedExpression: '{revenue} - {expenses}' }),
-          makeField({ id: 'notes', fieldName: 'notes', label: 'Additional Notes', type: 'textarea', placeholder: 'Any additional information...' }),
-        ],
-      }]);
+      // No form configured — show message instead of hardcoded fields
+      setFormSections([]);
     }
     setFormLoading(false);
   };
@@ -289,10 +281,7 @@ export default function ReturnSubmission() {
   };
 
   const convertRowsToSections = (rows: any[]): FormSection[] => {
-    if (!rows || rows.length === 0) return [{
-      id: 'default', title: 'Return Data', description: '', sortOrder: 0, isRepeatable: false,
-      fields: [makeField({ id: 'notes', fieldName: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Enter return notes...' })],
-    }];
+    if (!rows || rows.length === 0) return [];
     return rows.map((row: any, i: number) => ({
       id: row.id || `section-${i}`,
       title: row.title || `Section ${i + 1}`,
