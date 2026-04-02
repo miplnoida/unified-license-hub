@@ -94,6 +94,8 @@ export default function FormBuilder() {
     setInitialSections(JSON.parse(JSON.stringify(parsed)));
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
+    setTabName((existingTemplate as any).tab_name || '');
+    setFormOrder((existingTemplate as any).form_order || 0);
     const sectorId = existingTemplate.sector_id || dbSectors.find(s => s.name === existingTemplate.sector)?.id || '';
     setSelectedSector(sectorId);
     const subSectorId = existingTemplate.sub_sector_id || dbSubSectors.find(s => s.name === existingTemplate.sub_sector)?.id || '';
