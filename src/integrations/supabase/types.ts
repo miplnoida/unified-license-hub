@@ -2467,6 +2467,7 @@ export type Database = {
           is_active: boolean
           name: string
           regulator_id: string | null
+          return_template_id: string | null
           sector_id: string | null
           sub_sector_id: string | null
           updated_at: string
@@ -2480,6 +2481,7 @@ export type Database = {
           is_active?: boolean
           name: string
           regulator_id?: string | null
+          return_template_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
           updated_at?: string
@@ -2493,6 +2495,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           regulator_id?: string | null
+          return_template_id?: string | null
           sector_id?: string | null
           sub_sector_id?: string | null
           updated_at?: string
@@ -2503,6 +2506,13 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_configurations_return_template_id_fkey"
+            columns: ["return_template_id"]
+            isOneToOne: false
+            referencedRelation: "return_templates"
             referencedColumns: ["id"]
           },
           {
