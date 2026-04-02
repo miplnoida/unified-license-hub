@@ -139,31 +139,64 @@ export default function ReturnSubmission() {
       return;
     }
 
-    // For each template, load its published version's schema
-    const formTemplates: MultiFormTemplate[] = [];
-    for (const tpl of templates as any[]) {
-      const { data: versions } = await supabase.from('form_versions' as any)
+    const tplList = templates as any[];
+
+    // Batch: load all published versions in parallel
+    const versionPromises = tplList.map(tpl =>
+      supabase.from('form_versions' as any)
         .select('id, schema_snapshot')
         .eq('template_id', tpl.id)
         .eq('status', 'published')
         .order('version', { ascending: false })
-        .limit(1);
+        .limit(1)
+    );
+    const versionResults = await Promise.all(versionPromises);
 
-      let sections: FormSection[] = [];
+    // Collect version IDs for batch field loading
+    const versionIdMap = new Map<string, { tplIdx: number; versionId: string; snapshot: any }>();
+    const allVersionIds: string[] = [];
+    for (let i = 0; i < tplList.length; i++) {
+      const versions = versionResults[i].data;
       if (versions && versions.length > 0) {
-        const snapshot = (versions[0] as any).schema_snapshot;
-        if (snapshot && Array.isArray(snapshot) && snapshot.length > 0) {
-          sections = convertSnapshotToSections(snapshot);
-        }
-        // If snapshot empty, try form_fields
-        if (sections.length === 0) {
-          const versionId = (versions[0] as any).id;
-          const { data: fields } = await supabase.from('form_fields' as any)
-            .select('*').eq('version_id', versionId)
-            .order('section_order').order('sort_order');
-          if (fields && fields.length > 0) {
-            sections = groupFieldsIntoSections(fields as any[]);
-          }
+        const v = versions[0] as any;
+        versionIdMap.set(tplList[i].id, { tplIdx: i, versionId: v.id, snapshot: v.schema_snapshot });
+        allVersionIds.push(v.id);
+      }
+    }
+
+    // Batch load ALL form_fields for all version IDs at once
+    let allFields: any[] = [];
+    if (allVersionIds.length > 0) {
+      const { data: fieldsData } = await supabase.from('form_fields' as any)
+        .select('*')
+        .in('version_id', allVersionIds)
+        .order('section_order')
+        .order('sort_order');
+      allFields = (fieldsData || []) as any[];
+    }
+
+    // Group fields by version_id
+    const fieldsByVersion = new Map<string, any[]>();
+    for (const f of allFields) {
+      const vid = f.version_id;
+      if (!fieldsByVersion.has(vid)) fieldsByVersion.set(vid, []);
+      fieldsByVersion.get(vid)!.push(f);
+    }
+
+    // Build form templates - prefer form_fields over schema_snapshot
+    const formTemplates: MultiFormTemplate[] = [];
+    for (let i = 0; i < tplList.length; i++) {
+      const tpl = tplList[i];
+      const vInfo = versionIdMap.get(tpl.id);
+      let sections: FormSection[] = [];
+
+      if (vInfo) {
+        // Prefer normalized form_fields
+        const fields = fieldsByVersion.get(vInfo.versionId);
+        if (fields && fields.length > 0) {
+          sections = groupFieldsIntoSections(fields);
+        } else if (vInfo.snapshot && Array.isArray(vInfo.snapshot) && vInfo.snapshot.length > 0) {
+          sections = convertSnapshotToSections(vInfo.snapshot);
         }
       }
 
@@ -185,7 +218,6 @@ export default function ReturnSubmission() {
       formTemplates.forEach(t => { initial[t.id] = existingData || {}; });
       setFormDataMap(prev => {
         if (Object.keys(prev).length > 0 && prev['_single']) {
-          // Migrate single form data
           const single = prev['_single'];
           const migrated: Record<string, Record<string, any>> = {};
           formTemplates.forEach(t => { migrated[t.id] = single; });
