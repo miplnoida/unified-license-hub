@@ -519,6 +519,20 @@ export default function FormBuilder() {
                 <Label className="text-xs">Description</Label>
                 <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Brief form description" disabled={isViewMode} className="h-9" />
               </div>
+              {(formType === 'post_license' || formType === 'returns') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tab Name</Label>
+                    <Input value={tabName} onChange={e => setTabName(e.target.value)} placeholder="e.g. B1, B2, Q14" disabled={isViewMode} className="h-9" />
+                    <p className="text-[10px] text-muted-foreground">Used to group forms into tabs on the licensee side</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Form Order</Label>
+                    <Input type="number" value={formOrder} onChange={e => setFormOrder(parseInt(e.target.value) || 0)} placeholder="0" disabled={isViewMode} className="h-9" />
+                    <p className="text-[10px] text-muted-foreground">Controls display order within its tab</p>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
