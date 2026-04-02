@@ -69,6 +69,8 @@ export default function FormBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [tabName, setTabName] = useState('');
+  const [formOrder, setFormOrder] = useState(0);
   const [selectedSector, setSelectedSector] = useState('');
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
