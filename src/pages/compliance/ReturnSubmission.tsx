@@ -137,10 +137,10 @@ export default function ReturnSubmission() {
   const loadMultiFormTemplate = async (returnTemplateId: string, existingData?: any) => {
     // Load all form templates belonging to this return template
     const { data: templates } = await supabase.from('form_templates' as any)
-      .select('id, name, sheet_name, status')
+      .select('id, name, sheet_name, status, tab_name, form_order')
       .eq('return_template_id', returnTemplateId)
       .eq('status', 'published')
-      .order('name');
+      .order('form_order');
 
     if (!templates || templates.length === 0) {
       setFormLoading(false);
