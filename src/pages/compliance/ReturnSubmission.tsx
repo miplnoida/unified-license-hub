@@ -178,6 +178,8 @@ export default function ReturnSubmission() {
       formTemplates.push({
         id: tpl.id,
         name: tpl.name || tpl.sheet_name || `Form ${formTemplates.length + 1}`,
+        tabName: tpl.tab_name || '',
+        formOrder: tpl.form_order || 0,
         sections,
       });
     }
