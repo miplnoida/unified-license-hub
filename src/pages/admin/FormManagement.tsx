@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -19,6 +20,8 @@ import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type 
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default', draft: 'secondary', archived: 'outline',
@@ -40,9 +43,13 @@ export default function FormManagement() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeRegulatorId } = useRegulator();
+  const queryClient = useQueryClient();
 
   const activeTab = searchParams.get('tab') || 'pre_license';
-  const setActiveTab = (tab: string) => setSearchParams({ tab });
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+    setSelectedIds(new Set());
+  };
 
   const { data: templates = [], isLoading } = useFormTemplates(activeTab, activeRegulatorId);
   const deleteTemplateMutation = useDeleteFormTemplate();
@@ -60,6 +67,8 @@ export default function FormManagement() {
   const [filterSubSectorId, setFilterSubSectorId] = useState('all');
   const [filterCategoryId, setFilterCategoryId] = useState('all');
   const [filterServiceId, setFilterServiceId] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
@@ -89,6 +98,74 @@ export default function FormManagement() {
       return true;
     });
   }, [templates, searchName, filterStatus, filterSectorId, filterSubSectorId, filterCategoryId, filterServiceId]);
+
+  const allSelected = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(t => t.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkPublish = async () => {
+    const ids = Array.from(selectedIds);
+    const result = await Swal.fire({
+      title: 'Bulk Publish',
+      text: `Publish ${ids.length} selected form(s)?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, publish all',
+    });
+    if (!result.isConfirmed) return;
+    setBulkLoading(true);
+    try {
+      const { error } = await supabase.from('form_templates').update({ status: 'published' } as any).in('id', ids);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['form_templates'] });
+      toast.success(`${ids.length} form(s) published successfully.`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error('Failed to bulk publish forms.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    const result = await Swal.fire({
+      title: 'Bulk Delete',
+      text: `Permanently delete ${ids.length} selected form(s)? This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'hsl(var(--destructive))',
+      confirmButtonText: 'Yes, delete all',
+    });
+    if (!result.isConfirmed) return;
+    setBulkLoading(true);
+    try {
+      for (const id of ids) {
+        await deleteTemplateMutation.mutateAsync(id);
+      }
+      toast.success(`${ids.length} form(s) deleted successfully.`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error('Failed to delete some forms.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -214,6 +291,26 @@ export default function FormManagement() {
                   </CardContent>
                 </Card>
 
+                {/* Bulk action bar */}
+                {someSelected && (
+                  <Card>
+                    <CardContent className="py-3 flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-medium">{selectedIds.size} form(s) selected</span>
+                      <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
+                        {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                        Publish Selected
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkLoading}>
+                        {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                        Delete Selected
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} disabled={bulkLoading}>
+                        Clear Selection
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card>
                   <CardContent className="p-0">
                     {isLoading ? (
@@ -222,6 +319,13 @@ export default function FormManagement() {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-10">
+                              <Checkbox
+                                checked={allSelected}
+                                onCheckedChange={toggleSelectAll}
+                                aria-label="Select all"
+                              />
+                            </TableHead>
                             <TableHead>Sector</TableHead>
                             <TableHead>Sub-Sector</TableHead>
                             <TableHead>Category</TableHead>
@@ -235,9 +339,16 @@ export default function FormManagement() {
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
-                            <TableRow key={tpl.id}>
+                            <TableRow key={tpl.id} className={selectedIds.has(tpl.id) ? 'bg-muted/50' : ''}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedIds.has(tpl.id)}
+                                  onCheckedChange={() => toggleSelect(tpl.id)}
+                                  aria-label={`Select ${tpl.name}`}
+                                />
+                              </TableCell>
                               <TableCell>{tpl.sector_name || tpl.sector || '—'}</TableCell>
                               <TableCell>{tpl.sub_sector_name || tpl.sub_sector || '—'}</TableCell>
                               <TableCell>{tpl.category_name || tpl.category || '—'}</TableCell>
