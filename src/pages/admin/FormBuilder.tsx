@@ -69,6 +69,8 @@ export default function FormBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [tabName, setTabName] = useState('');
+  const [formOrder, setFormOrder] = useState(0);
   const [selectedSector, setSelectedSector] = useState('');
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -92,6 +94,8 @@ export default function FormBuilder() {
     setInitialSections(JSON.parse(JSON.stringify(parsed)));
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
+    setTabName((existingTemplate as any).tab_name || '');
+    setFormOrder((existingTemplate as any).form_order || 0);
     const sectorId = existingTemplate.sector_id || dbSectors.find(s => s.name === existingTemplate.sector)?.id || '';
     setSelectedSector(sectorId);
     const subSectorId = existingTemplate.sub_sector_id || dbSubSectors.find(s => s.name === existingTemplate.sub_sector)?.id || '';
@@ -252,7 +256,9 @@ export default function FormBuilder() {
           regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
           is_reusable: true,
           created_by: existingTemplate?.created_by || null,
-        },
+          tab_name: tabName.trim() || null,
+          form_order: formOrder,
+        } as any,
         sections,
         versionId,
         version: intVersion,
@@ -513,6 +519,20 @@ export default function FormBuilder() {
                 <Label className="text-xs">Description</Label>
                 <Input value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Brief form description" disabled={isViewMode} className="h-9" />
               </div>
+              {(formType === 'post_license' || formType === 'returns') && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tab Name</Label>
+                    <Input value={tabName} onChange={e => setTabName(e.target.value)} placeholder="e.g. B1, B2, Q14" disabled={isViewMode} className="h-9" />
+                    <p className="text-[10px] text-muted-foreground">Used to group forms into tabs on the licensee side</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Form Order</Label>
+                    <Input type="number" value={formOrder} onChange={e => setFormOrder(parseInt(e.target.value) || 0)} placeholder="0" disabled={isViewMode} className="h-9" />
+                    <p className="text-[10px] text-muted-foreground">Controls display order within its tab</p>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

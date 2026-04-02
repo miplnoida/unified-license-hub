@@ -37,6 +37,8 @@ interface ComplianceReturn {
 interface MultiFormTemplate {
   id: string;
   name: string;
+  tabName: string;
+  formOrder: number;
   sections: FormSection[];
 }
 
@@ -135,10 +137,10 @@ export default function ReturnSubmission() {
   const loadMultiFormTemplate = async (returnTemplateId: string, existingData?: any) => {
     // Load all form templates belonging to this return template
     const { data: templates } = await supabase.from('form_templates' as any)
-      .select('id, name, sheet_name, status')
+      .select('id, name, sheet_name, status, tab_name, form_order')
       .eq('return_template_id', returnTemplateId)
       .eq('status', 'published')
-      .order('name');
+      .order('form_order');
 
     if (!templates || templates.length === 0) {
       setFormLoading(false);
@@ -176,6 +178,8 @@ export default function ReturnSubmission() {
       formTemplates.push({
         id: tpl.id,
         name: tpl.name || tpl.sheet_name || `Form ${formTemplates.length + 1}`,
+        tabName: tpl.tab_name || '',
+        formOrder: tpl.form_order || 0,
         sections,
       });
     }
@@ -328,17 +332,29 @@ export default function ReturnSubmission() {
     const groups = new Map<string, MultiFormTemplate[]>();
     let hasGroups = false;
     for (const tpl of multiFormTemplates) {
-      const match = tpl.name.match(/^([A-Z])\./i);
-      if (match) {
+      // Use admin-configured tab_name for grouping
+      const tab = tpl.tabName?.trim();
+      if (tab) {
         hasGroups = true;
-        const letter = match[1].toUpperCase();
-        if (!groups.has(letter)) groups.set(letter, []);
-        groups.get(letter)!.push(tpl);
+        if (!groups.has(tab)) groups.set(tab, []);
+        groups.get(tab)!.push(tpl);
+      } else {
+        // Fallback: try letter prefix from name
+        const match = tpl.name.match(/^([A-Z])\./i);
+        if (match) {
+          hasGroups = true;
+          const letter = match[1].toUpperCase();
+          if (!groups.has(letter)) groups.set(letter, []);
+          groups.get(letter)!.push(tpl);
+        }
       }
     }
     if (!hasGroups) {
-      // No letter prefix grouping - use numeric grouping or flat list
       groups.set('All', multiFormTemplates);
+    }
+    // Sort forms within each group by form_order
+    for (const [, forms] of groups) {
+      forms.sort((a, b) => a.formOrder - b.formOrder);
     }
     return groups;
   }, [isMultiForm, multiFormTemplates]);
