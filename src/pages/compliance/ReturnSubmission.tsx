@@ -37,6 +37,8 @@ interface ComplianceReturn {
 interface MultiFormTemplate {
   id: string;
   name: string;
+  tabName: string;
+  formOrder: number;
   sections: FormSection[];
 }
 
