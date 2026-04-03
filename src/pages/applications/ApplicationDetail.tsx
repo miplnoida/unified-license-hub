@@ -509,16 +509,23 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant submit action */}
-            {isOwner && app.status === 'draft' && (
-              <div className="flex gap-2">
-                <Button onClick={handleSubmit} disabled={processing} className="flex-1">
-                  <Send className="h-4 w-4 mr-2" />{processing ? 'Submitting...' : 'Submit Application'}
-                </Button>
-                <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                  <Ban className="h-4 w-4 mr-2" />Cancel
-                </Button>
-              </div>
-            )}
+            {isOwner && app.status === 'draft' && (() => {
+              const allFormsCompleted = formTemplateIds.length > 0 && formTemplateIds.every(tid => {
+                const fd = formsData[tid];
+                return fd && Object.keys(fd).length > 0;
+              });
+              return (
+                <div className="flex gap-2">
+                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted} className="flex-1">
+                    <Send className="h-4 w-4 mr-2" />
+                    {processing ? 'Submitting...' : allFormsCompleted ? 'Submit Application' : `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`}
+                  </Button>
+                  <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                    <Ban className="h-4 w-4 mr-2" />Cancel
+                  </Button>
+                </div>
+              );
+            })()}
 
             {/* Applicant resubmit action */}
             {isOwner && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (

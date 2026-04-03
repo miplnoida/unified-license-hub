@@ -66,6 +66,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
         onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
         readOnly={!editable}
         saving={saving}
+        showFullTabTitles
       />
     </div>
   );
