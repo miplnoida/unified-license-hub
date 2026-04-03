@@ -1961,6 +1961,7 @@ export type Database = {
           created_at: string
           email: string
           entity_name: string
+          force_password_change: boolean
           full_name: string
           gender: string | null
           id: string
@@ -1976,6 +1977,7 @@ export type Database = {
           created_at?: string
           email: string
           entity_name?: string
+          force_password_change?: boolean
           full_name: string
           gender?: string | null
           id: string
@@ -1991,6 +1993,7 @@ export type Database = {
           created_at?: string
           email?: string
           entity_name?: string
+          force_password_change?: boolean
           full_name?: string
           gender?: string | null
           id?: string
