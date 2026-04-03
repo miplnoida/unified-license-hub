@@ -746,7 +746,7 @@ export function FormRenderer({
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh]">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="truncate">{previewFile?.name}</DialogTitle>
           </DialogHeader>
