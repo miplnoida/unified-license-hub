@@ -34,6 +34,8 @@ interface Props {
   saving?: boolean;
   readOnly?: boolean;
   applicationId?: string;
+  /** When true, section tabs show full title instead of letter-prefixed labels */
+  showFullTabTitles?: boolean;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
