@@ -341,59 +341,71 @@ export default function ComplianceReturns() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Return Type</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Due Date</TableHead>
+                        <TableHead>Return Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Year</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Submitted</TableHead>
-                        {isInternal && <TableHead>Late?</TableHead>}
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Submit Date</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={isInternal ? 8 : 7} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
-                      ) : filtered.map(ret => (
-                        <TableRow key={ret.id}>
-                          <TableCell className="font-medium">{getConfigName(ret.return_config_id)}</TableCell>
-                          <TableCell><Badge variant="outline" className="capitalize">{getConfigFrequency(ret.return_config_id) || '—'}</Badge></TableCell>
-                          <TableCell className="text-sm">{new Date(ret.period_start).toLocaleDateString()} – {new Date(ret.period_end).toLocaleDateString()}</TableCell>
-                          <TableCell className="text-sm">{new Date(ret.due_date).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">{RETURN_STATUS_LABELS[ret.status] || ret.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}</TableCell>
-                          {isInternal && (
+                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
+                      ) : filtered.map(ret => {
+                        const configName = getConfigName(ret.return_config_id);
+                        const freq = getConfigFrequency(ret.return_config_id);
+                        const year = new Date(ret.period_end).getFullYear();
+                        const typeName = freq ? `${freq.charAt(0).toUpperCase() + freq.slice(1).toUpperCase()} ${configName}` : configName;
+                        // Build return name like reference: CONFIG_LICENSE_DATE_SEQ
+                        const returnDisplayName = configName !== '—' ? `${configName}_${new Date(ret.period_end).toISOString().split('T')[0].replace(/-/g, '')}` : '—';
+                        return (
+                          <TableRow key={ret.id}>
                             <TableCell>
-                              {ret.status === 'overdue' ? (
-                                <Badge variant="destructive">{daysOverdue(ret)} days</Badge>
-                              ) : isLate(ret) ? (
-                                <Badge variant="outline" className="text-destructive">Late</Badge>
-                              ) : '—'}
+                              <button
+                                className="font-medium text-primary hover:underline text-left"
+                                onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}
+                              >
+                                {returnDisplayName}
+                              </button>
                             </TableCell>
-                          )}
-                          <TableCell className="text-right space-x-1">
-                            {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'resubmission_requested') && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                  <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : 'Fill Form'}
+                            <TableCell className="text-sm uppercase">{freq ? `${freq.toUpperCase()} ${configName}` : '—'}</TableCell>
+                            <TableCell className="text-sm">{year}</TableCell>
+                            <TableCell>
+                              <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">{RETURN_STATUS_LABELS[ret.status] || ret.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? 'Yes' : '—'}</TableCell>
+                            <TableCell className="text-sm">{new Date(ret.due_date).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}</TableCell>
+                            <TableCell className="text-right space-x-1">
+                              {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'resubmission_requested') && (
+                                <>
+                                  <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
+                                    <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : 'Fill Form'}
+                                  </Button>
+                                  {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
+                                    <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
+                                  )}
+                                </>
+                              )}
+                              {isInternal && ret.status === 'submitted' && (
+                                <div className="flex gap-1 justify-end">
+                                  <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
+                                </div>
+                              )}
+                              {(ret.status === 'accepted' || ret.status === 'submitted') && (
+                                <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
+                                  <Eye className="h-3 w-3" />
                                 </Button>
-                                {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
-                                  <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
-                                )}
-                              </>
-                            )}
-                            {isInternal && ret.status === 'submitted' && (
-                              <div className="flex gap-1 justify-end">
-                                <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
-                                <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
