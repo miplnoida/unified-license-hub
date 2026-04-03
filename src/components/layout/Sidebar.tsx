@@ -76,6 +76,8 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
 export function Sidebar() {
   const [collapsed, setCollapsed] = usePersistedState(COLLAPSED_KEY, false);
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useIsMobile();
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
