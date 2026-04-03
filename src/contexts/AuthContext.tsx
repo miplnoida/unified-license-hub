@@ -76,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         status: profile?.status || 'active',
         licenseeId: (profile as any)?.licensee_id || undefined,
         isPreLicensee: false,
+        forcePasswordChange: (profile as any)?.force_password_change || false,
       });
     }
   }, []);

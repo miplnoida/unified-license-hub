@@ -128,6 +128,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
+  // Force password change redirect
+  if (user?.forcePasswordChange && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+
   // Pre-licensee users: restrict to allowed routes only
   if (user?.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
     return <Navigate to="/dashboard" replace />;
