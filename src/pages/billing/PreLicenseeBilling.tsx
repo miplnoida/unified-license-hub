@@ -48,7 +48,7 @@ export default function PreLicenseeBilling() {
           title="Pre-Licensee Billing"
           description="Manage billing and fee collection for pre-license applications."
         />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Billed" value="$4,250" icon={<DollarSign className="h-6 w-6" />} />
           <StatCard title="Collected" value="$3,000" icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Pending" value="$750" icon={<Clock className="h-6 w-6" />} variant="warning" />

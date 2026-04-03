@@ -99,7 +99,7 @@ export default function PostLicensingApplications() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader title="Post Licensing Applications" description="Manage applications submitted after licensing." />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 animate-slide-up delay-100">
           <StatCard title="Total" value={apps.length} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Pending" value={apps.filter(a => a.status === 'Pending').length} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Approved" value={apps.filter(a => a.status === 'Approved').length} icon={<CheckCircle className="h-6 w-6" />} variant="success" />

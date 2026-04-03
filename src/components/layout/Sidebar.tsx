@@ -5,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mainNavSections, NavItem } from '@/config/navigation';
-import { Layers, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -75,6 +76,8 @@ function CollapsibleNavItem({ item, collapsed, expandedGroups, toggleGroup, path
 export function Sidebar() {
   const [collapsed, setCollapsed] = usePersistedState(COLLAPSED_KEY, false);
   const [expandedGroups, setExpandedGroups] = usePersistedState<string[]>(EXPANDED_KEY, []);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useIsMobile();
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
@@ -105,7 +108,93 @@ export function Sidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false);
+  }, [location.pathname, isMobile]);
+
   const isItemVisible = (item: NavItem) => user && item.roles.includes(user.role);
+
+  // Mobile: hamburger button rendered outside sidebar
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile hamburger */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed top-3 left-3 z-50 h-9 w-9 bg-card shadow-md border"
+          onClick={() => setMobileOpen(true)}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        {/* Overlay */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setMobileOpen(false)} />
+        )}
+
+        {/* Slide-out drawer */}
+        <aside className={cn(
+          'fixed left-0 top-0 z-50 h-screen w-72 bg-sidebar flex flex-col border-r border-sidebar-border transition-transform duration-300',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}>
+          <div className="flex h-14 items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-2.5">
+              {branding.logo_url ? (
+                <img src={branding.logo_url} alt={branding.site_name} className="h-8 w-8 rounded-lg object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+                  <Layers className="h-4.5 w-4.5 text-sidebar-primary-foreground" />
+                </div>
+              )}
+              <span className="text-base font-bold text-sidebar-foreground tracking-tight">{branding.site_name}</span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} className="h-8 w-8 text-sidebar-foreground/60">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 px-3" ref={navRef}>
+            <nav className="py-3 space-y-5">
+              {mainNavSections.map((section) => {
+                const visibleItems = section.items.filter(isItemVisible);
+                if (visibleItems.length === 0) return null;
+                return (
+                  <div key={section.label || 'main'}>
+                    {section.label && (
+                      <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sidebar-foreground/30">
+                        {section.label}
+                      </p>
+                    )}
+                    <div className="space-y-0.5">
+                      {visibleItems.map((item) => {
+                        if (item.children?.length) {
+                          const visibleChildren = item.children.filter(isItemVisible);
+                          if (!visibleChildren.length) return null;
+                          return (
+                            <CollapsibleNavItem key={item.label} item={{ ...item, children: visibleChildren }} collapsed={false} expandedGroups={expandedGroups} toggleGroup={toggleGroup} pathname={location.pathname} />
+                          );
+                        }
+                        if (!item.href) return null;
+                        const isActive = location.pathname === item.href;
+                        return (
+                          <Link key={item.href} to={item.href} className={cn('nav-item', isActive && 'nav-item-active')}>
+                            {item.icon}
+                            <span className="flex-1 truncate">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </ScrollArea>
+        </aside>
+      </>
+    );
+  }
+
   return (
     <aside className={cn(
       'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 flex flex-col border-r border-sidebar-border',

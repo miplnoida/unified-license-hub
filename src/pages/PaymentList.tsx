@@ -46,7 +46,7 @@ export default function PaymentList() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader title="Payment List" description="View all payment transactions across the system." />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Received" value="$12,450" icon={<DollarSign className="h-6 w-6" />} variant="success" />
           <StatCard title="Processing" value="$250" icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Failed" value="$500" icon={<CreditCard className="h-6 w-6" />} variant="danger" />

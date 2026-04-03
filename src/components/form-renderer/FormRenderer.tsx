@@ -670,10 +670,10 @@ export function FormRenderer({
 
       {/* Section Content */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-lg">{currentSection.title}</CardTitle>
+              <CardTitle className="text-base sm:text-lg">{currentSection.title}</CardTitle>
               {currentSection.description && (
                 <p className="text-sm text-muted-foreground mt-1">{currentSection.description}</p>
               )}
@@ -683,9 +683,9 @@ export function FormRenderer({
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentSection.fields.map(field => renderField(field, formData, updateField))}
             </div>
           ) : (
@@ -720,23 +720,23 @@ export function FormRenderer({
       </Card>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={handlePrev} disabled={isAtVeryStart}>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <Button variant="outline" onClick={handlePrev} disabled={isAtVeryStart} className="w-full sm:w-auto">
           <ArrowLeft className="h-4 w-4 mr-2" /> Previous
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           {!readOnly && (
-            <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
+            <Button variant="outline" onClick={handleSaveDraft} disabled={saving} className="w-full sm:w-auto">
               <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Draft'}
             </Button>
           )}
           {!isAtVeryEnd ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="w-full sm:w-auto">
               Next <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
             !readOnly && (
-              <Button onClick={handleSubmit} disabled={saving}>
+              <Button onClick={handleSubmit} disabled={saving} className="w-full sm:w-auto">
                 <CheckCircle2 className="h-4 w-4 mr-2" /> Submit
               </Button>
             )
@@ -746,7 +746,7 @@ export function FormRenderer({
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh]">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="truncate">{previewFile?.name}</DialogTitle>
           </DialogHeader>
