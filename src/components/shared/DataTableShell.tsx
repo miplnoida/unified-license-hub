@@ -63,9 +63,9 @@ export function DataTableShell<T extends Record<string, any>>({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative max-w-sm flex-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
@@ -76,7 +76,7 @@ export function DataTableShell<T extends Record<string, any>>({
           </div>
           {filterOptions && (
             <Select value={filterValue} onValueChange={(v) => { setFilterValue(v); setPage(0); }}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder={filterLabel} />
               </SelectTrigger>
               <SelectContent>
@@ -89,7 +89,7 @@ export function DataTableShell<T extends Record<string, any>>({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="hidden sm:inline-flex">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
