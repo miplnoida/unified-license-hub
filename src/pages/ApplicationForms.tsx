@@ -61,6 +61,7 @@ function ActiveFormFiller({
       onSubmit={onSubmit}
       saving={saving}
       applicationId={applicationId}
+      showFullTabTitles
     />
   );
 }
