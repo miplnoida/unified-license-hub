@@ -5,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { mainNavSections, NavItem } from '@/config/navigation';
-import { Layers, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
