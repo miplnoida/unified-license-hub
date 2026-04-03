@@ -173,7 +173,7 @@ export default function ComplianceReturns() {
           <TabsList>
             <TabsTrigger value="dashboard"><TrendingUp className="h-4 w-4 mr-1" />Dashboard</TabsTrigger>
             <TabsTrigger value="returns"><ClipboardList className="h-4 w-4 mr-1" />Returns</TabsTrigger>
-            <TabsTrigger value="penalties"><DollarSign className="h-4 w-4 mr-1" />Penalties</TabsTrigger>
+            {isInternal && <TabsTrigger value="penalties"><DollarSign className="h-4 w-4 mr-1" />Penalties</TabsTrigger>}
           </TabsList>
 
           {/* DASHBOARD TAB */}
