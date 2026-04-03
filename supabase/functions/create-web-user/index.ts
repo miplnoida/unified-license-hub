@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, gender } = await req.json();
+    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, gender, send_email, position, username } = await req.json();
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -36,7 +36,6 @@ Deno.serve(async (req) => {
     // Determine the system role
     let effectiveRole = role || 'analyst';
     
-    // If role_id is provided, look up the system_role from roles table
     if (role_id) {
       const { data: roleData } = await supabaseAdmin
         .from("roles")
@@ -70,32 +69,35 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update profile with additional fields (role_id, gender)
+    // Update profile with additional fields
     if (userData.user) {
-      const updates: Record<string, any> = {};
+      const updates: Record<string, any> = { force_password_change: true };
       if (role_id) updates.role_id = role_id;
       if (gender) updates.gender = gender;
-      
-      if (Object.keys(updates).length > 0) {
-        const { error: updateError } = await supabaseAdmin
-          .from("profiles")
-          .update(updates)
-          .eq("id", userData.user.id);
+      if (licensee_id) updates.licensee_id = licensee_id;
 
-        if (updateError) {
-          console.error("Failed to update profile extras:", updateError.message);
-        }
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update(updates)
+        .eq("id", userData.user.id);
+
+      if (updateError) {
+        console.error("Failed to update profile:", updateError.message);
       }
 
-      // If licensee_id is provided, link the user profile to the licensee entity
-      if (licensee_id) {
-        const { error: linkError } = await supabaseAdmin
-          .from("profiles")
-          .update({ licensee_id })
-          .eq("id", userData.user.id);
-
-        if (linkError) {
-          console.error("Failed to link user to licensee:", linkError.message);
+      // Send credentials email
+      if (send_email) {
+        try {
+          await supabaseAdmin.functions.invoke("send-notification", {
+            body: {
+              type: "email",
+              to: email,
+              subject: "Your Account Credentials",
+              body: `Dear ${full_name},\n\nYour account has been created for ${entity_name || 'the platform'}.\n\nUsername: ${username || email}\nEmail: ${email}\nTemporary Password: ${password}\n\nPlease log in and change your password immediately after first login.\n\nRegards,\nAdministration Team`,
+            },
+          });
+        } catch (emailErr) {
+          console.error("Failed to send credentials email:", emailErr);
         }
       }
     }
