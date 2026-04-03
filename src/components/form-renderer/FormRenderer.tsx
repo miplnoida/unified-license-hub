@@ -650,8 +650,14 @@ export function FormRenderer({
                     }
                   `}
                 >
-                  <span className="font-bold">{letter}</span>
-                  <span className="hidden sm:inline max-w-[120px] truncate">{s.title}</span>
+                  {showFullTabTitles ? (
+                    <span className="max-w-[200px] truncate">{s.title}</span>
+                  ) : (
+                    <>
+                      <span className="font-bold">{letter}</span>
+                      <span className="hidden sm:inline max-w-[120px] truncate">{s.title}</span>
+                    </>
+                  )}
                   {isCompleted && !isActive && (
                     <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
                   )}

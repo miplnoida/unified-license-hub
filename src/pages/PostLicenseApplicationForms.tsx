@@ -347,21 +347,21 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
-            <div className="flex justify-end pt-4 border-t">
-              <Button
-                size="lg"
-                onClick={handleSubmitApplication}
-                disabled={!allFormsCompleted || submitting}
-              >
-                {submitting ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
-                ) : allFormsCompleted ? (
-                  <><Send className="h-4 w-4 mr-2" /> Submit Application</>
-                ) : (
-                  `Complete all forms (${completedCount}/${matchedTemplates.length})`
-                )}
-              </Button>
-            </div>
+            {allFormsCompleted && (
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  size="lg"
+                  onClick={handleSubmitApplication}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
+                  ) : (
+                    <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                  )}
+                </Button>
+              </div>
+            )}
           </>
         )}
       </div>
