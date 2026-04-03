@@ -230,6 +230,7 @@ export default function ComplianceReturns() {
                 </CardContent>
               </Card>
 
+              {isInternal && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Penalty Summary</CardTitle><CardDescription>Outstanding penalties from overdue returns</CardDescription></CardHeader>
                 <CardContent className="space-y-4">
@@ -254,6 +255,7 @@ export default function ComplianceReturns() {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
 
             {/* Upcoming due dates */}
