@@ -670,10 +670,10 @@ export function FormRenderer({
 
       {/* Section Content */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3 px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-lg">{currentSection.title}</CardTitle>
+              <CardTitle className="text-base sm:text-lg">{currentSection.title}</CardTitle>
               {currentSection.description && (
                 <p className="text-sm text-muted-foreground mt-1">{currentSection.description}</p>
               )}
