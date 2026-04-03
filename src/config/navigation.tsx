@@ -143,12 +143,6 @@ export const mainNavSections: NavSection[] = [
       { label: 'Reports', href: '/reports', icon: <BookOpen className="h-5 w-5" />, roles: ALL_INTERNAL },
     ],
   },
-  {
-    label: 'Documents',
-    items: [
-      { label: 'Document Store', href: '/documents', icon: <FolderOpen className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'licensee_primary', 'licensee_secondary'] },
-    ],
-  },
 ];
 
 export const bottomNavItems: NavItem[] = [];
