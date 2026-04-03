@@ -683,9 +683,9 @@ export function FormRenderer({
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentSection.fields.map(field => renderField(field, formData, updateField))}
             </div>
           ) : (
