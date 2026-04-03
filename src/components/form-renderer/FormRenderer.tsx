@@ -80,7 +80,7 @@ function isFieldRequired(field: FormField, formData: Record<string, any>, allFie
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId,
+  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
