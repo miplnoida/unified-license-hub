@@ -34,6 +34,8 @@ interface Props {
   saving?: boolean;
   readOnly?: boolean;
   applicationId?: string;
+  /** When true, section tabs show full title instead of letter-prefixed labels */
+  showFullTabTitles?: boolean;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
@@ -78,7 +80,7 @@ function isFieldRequired(field: FormField, formData: Record<string, any>, allFie
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId,
+  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -648,8 +650,14 @@ export function FormRenderer({
                     }
                   `}
                 >
-                  <span className="font-bold">{letter}</span>
-                  <span className="hidden sm:inline max-w-[120px] truncate">{s.title}</span>
+                  {showFullTabTitles ? (
+                    <span className="max-w-[200px] truncate">{s.title}</span>
+                  ) : (
+                    <>
+                      <span className="font-bold">{letter}</span>
+                      <span className="hidden sm:inline max-w-[120px] truncate">{s.title}</span>
+                    </>
+                  )}
                   {isCompleted && !isActive && (
                     <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
                   )}
