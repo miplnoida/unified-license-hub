@@ -65,7 +65,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
       
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'User Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
+      { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Licensee Web Users', href: '/admin/web-users', icon: <UserCircle className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
       { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },

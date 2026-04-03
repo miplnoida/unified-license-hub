@@ -120,7 +120,7 @@ export default function AdminHub() {
     { label: 'Return Configuration', desc: 'Compliance schedules & rules', icon: <CalendarCheck className="h-5 w-5" />, href: '/admin/return-config', count: metrics.totalReturns },
     { label: 'Reports & Analytics', desc: 'Dashboards & ad-hoc reports', icon: <BarChart3 className="h-5 w-5" />, href: '/reports' },
     { label: 'Notification Templates', desc: `${metrics.totalNotificationTemplates} templates`, icon: <Bell className="h-5 w-5" />, href: '/admin/notification-templates', count: metrics.totalNotificationTemplates },
-    { label: 'User Management', desc: `${metrics.totalUsers} users`, icon: <Users className="h-5 w-5" />, href: '/admin/users', count: metrics.totalUsers },
+    { label: 'Employee Management', desc: `${metrics.totalUsers} employees`, icon: <Users className="h-5 w-5" />, href: '/admin/users', count: metrics.totalUsers },
     { label: 'Role Management (RBAC)', desc: 'Roles & permissions', icon: <Shield className="h-5 w-5" />, href: '/admin/roles' },
     { label: 'Complaint Management', desc: `${metrics.totalComplaints} complaints`, icon: <AlertTriangle className="h-5 w-5" />, href: '/complaints', count: metrics.totalComplaints },
     { label: 'Complaint Types', desc: 'Configure complaint categories', icon: <Layers className="h-5 w-5" />, href: '/admin/complaint-types' },

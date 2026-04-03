@@ -302,7 +302,7 @@ export default function UserManagement() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title="User Management"
+          title="Employee Management"
           description="Manage admin and regulator employee accounts, roles, and access."
           actions={
             <Button onClick={openCreate}>
