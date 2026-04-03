@@ -215,11 +215,8 @@ export default function UserManagement() {
         headers: { Authorization: `Bearer ${session?.access_token || ''}` },
       });
       if (res.data?.success) {
-        toast.success('Password reset successfully');
+        toast.success('Temporary password sent to user email');
         setResetPasswordDialog(false);
-        setCredentialsDialog(true);
-        setCreatedEmail(resetUserEmail);
-        setGeneratedPassword(newPassword);
       } else {
         toast.error(res.data?.error || 'Failed to reset password');
       }

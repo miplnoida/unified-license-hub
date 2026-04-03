@@ -63,6 +63,7 @@ export interface PlatformUser {
   status: string;
   licenseeId?: string;
   isPreLicensee: boolean;
+  forcePasswordChange?: boolean;
 }
 
 // Application statuses - simplified lifecycle
