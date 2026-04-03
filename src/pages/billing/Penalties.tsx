@@ -50,7 +50,7 @@ export default function Penalties() {
           description="Manage penalty assessments, collections, and dispute resolution."
           actions={<Button><Plus className="h-4 w-4 mr-2" />Issue Penalty</Button>}
         />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Penalties" value="$14,600" icon={<AlertTriangle className="h-6 w-6" />} />
           <StatCard title="Collected" value="$600" icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Outstanding" value="$10,500" icon={<DollarSign className="h-6 w-6" />} variant="danger" />

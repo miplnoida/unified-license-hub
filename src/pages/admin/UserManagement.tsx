@@ -308,7 +308,7 @@ export default function UserManagement() {
           }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Users" value={users.length} icon={<Users className="h-6 w-6" />} />
           <StatCard title="Active" value={activeCount} icon={<UserCheck className="h-6 w-6" />} variant="success" />
           <StatCard title="Inactive" value={inactiveCount} icon={<UserX className="h-6 w-6" />} variant="warning" />

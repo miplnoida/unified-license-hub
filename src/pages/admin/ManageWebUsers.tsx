@@ -210,7 +210,7 @@ export default function ManageWebUsers() {
           actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Add Web User</Button>}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard title="Total Users" value={users.length} icon={<Users className="h-6 w-6" />} />
           <StatCard title="Primary Users" value={primaryCount} icon={<Shield className="h-6 w-6" />} variant="primary" />
           <StatCard title="Active" value={activeCount} icon={<UserCheck className="h-6 w-6" />} variant="success" />

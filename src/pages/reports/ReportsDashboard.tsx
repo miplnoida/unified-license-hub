@@ -396,7 +396,7 @@ export default function ReportsDashboard() {
 
           {/* ===== DASHBOARD TAB ===== */}
           <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard title="Total Applications" value={dashData.totalApps} icon={<FileBarChart className="h-6 w-6" />} />
               <StatCard title="Total Revenue" value={`$${dashData.totalRevenue.toLocaleString()}`} icon={<TrendingUp className="h-6 w-6" />} variant="success" />
               <StatCard title="Active Licenses" value={dashData.totalLicenses} icon={<BarChart3 className="h-6 w-6" />} variant="primary" />

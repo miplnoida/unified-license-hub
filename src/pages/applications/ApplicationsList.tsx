@@ -424,7 +424,7 @@ export default function ApplicationsList() {
           }
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard title="Total Requests" value={applications.length} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Approved" value={approved} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Pending" value={pending} icon={<Clock className="h-6 w-6" />} variant="warning" />

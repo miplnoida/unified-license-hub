@@ -115,7 +115,7 @@ export default function ReportPage() {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-slide-up delay-200">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-200">
           <StatCard title="Total Reports" value={mockData.length} icon={<FileBarChart className="h-6 w-6" />} />
           <StatCard title="Ready" value={mockData.filter(r => r.status === 'ready').length} icon={<BarChart3 className="h-6 w-6" />} variant="success" />
           <StatCard title="Total Records" value="3,796" icon={<TrendingUp className="h-6 w-6" />} />
