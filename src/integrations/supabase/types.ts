@@ -1458,6 +1458,95 @@ export type Database = {
         }
         Relationships: []
       }
+      late_fee_penalty_tiers: {
+        Row: {
+          created_at: string
+          days_from: number
+          days_to: number
+          id: string
+          late_fee_structure_id: string
+          penalty_percentage: number
+          tier_label: string
+        }
+        Insert: {
+          created_at?: string
+          days_from: number
+          days_to: number
+          id?: string
+          late_fee_structure_id: string
+          penalty_percentage?: number
+          tier_label: string
+        }
+        Update: {
+          created_at?: string
+          days_from?: number
+          days_to?: number
+          id?: string
+          late_fee_structure_id?: string
+          penalty_percentage?: number
+          tier_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "late_fee_penalty_tiers_late_fee_structure_id_fkey"
+            columns: ["late_fee_structure_id"]
+            isOneToOne: false
+            referencedRelation: "late_fee_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      late_fee_structures: {
+        Row: {
+          base_amount: number
+          created_at: string
+          currency: string
+          fee_name: string
+          id: string
+          return_type_id: string | null
+          sector_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          fee_name: string
+          id?: string
+          return_type_id?: string | null
+          sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          fee_name?: string
+          id?: string
+          return_type_id?: string | null
+          sector_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "late_fee_structures_return_type_id_fkey"
+            columns: ["return_type_id"]
+            isOneToOne: false
+            referencedRelation: "return_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "late_fee_structures_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_actions: {
         Row: {
           action_type: string
@@ -2466,6 +2555,201 @@ export type Database = {
           },
         ]
       }
+      return_audit_log: {
+        Row: {
+          action: Database["public"]["Enums"]["return_audit_action"]
+          comments: string | null
+          created_at: string
+          id: string
+          new_status: string | null
+          performed_by: string | null
+          previous_status: string | null
+          return_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["return_audit_action"]
+          comments?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          performed_by?: string | null
+          previous_status?: string | null
+          return_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["return_audit_action"]
+          comments?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          performed_by?: string | null
+          previous_status?: string | null
+          return_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_audit_log_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_comments: {
+        Row: {
+          comment_text: string
+          commented_by: string | null
+          created_at: string
+          form_id: string | null
+          id: string
+          is_editable: boolean
+          return_id: string
+          tab_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          comment_text: string
+          commented_by?: string | null
+          created_at?: string
+          form_id?: string | null
+          id?: string
+          is_editable?: boolean
+          return_id: string
+          tab_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comment_text?: string
+          commented_by?: string | null
+          created_at?: string
+          form_id?: string | null
+          id?: string
+          is_editable?: boolean
+          return_id?: string
+          tab_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_comments_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_comments_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_config_forms: {
+        Row: {
+          created_at: string
+          display_order: number
+          form_id: string
+          id: string
+          return_configuration_id: string
+          status: string
+          tab_name: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          form_id: string
+          id?: string
+          return_configuration_id: string
+          status?: string
+          tab_name?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          form_id?: string
+          id?: string
+          return_configuration_id?: string
+          status?: string
+          tab_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_config_forms_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_config_forms_return_configuration_id_fkey"
+            columns: ["return_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "return_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_configs: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          return_type_id: string
+          sector_id: string | null
+          status: string
+          subsector_id: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          return_type_id: string
+          sector_id?: string | null
+          status?: string
+          subsector_id?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          return_type_id?: string
+          sector_id?: string | null
+          status?: string
+          subsector_id?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_configs_return_type_id_fkey"
+            columns: ["return_type_id"]
+            isOneToOne: false
+            referencedRelation: "return_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_configs_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_configs_subsector_id_fkey"
+            columns: ["subsector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_configurations: {
         Row: {
           created_at: string
@@ -2540,6 +2824,318 @@ export type Database = {
           },
         ]
       }
+      return_cutoff_config: {
+        Row: {
+          created_at: string
+          cutoff_days: number
+          cutoff_unit: Database["public"]["Enums"]["cutoff_unit_enum"]
+          id: string
+          return_type_id: string
+          sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cutoff_days?: number
+          cutoff_unit?: Database["public"]["Enums"]["cutoff_unit_enum"]
+          id?: string
+          return_type_id: string
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cutoff_days?: number
+          cutoff_unit?: Database["public"]["Enums"]["cutoff_unit_enum"]
+          id?: string
+          return_type_id?: string
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_cutoff_config_return_type_id_fkey"
+            columns: ["return_type_id"]
+            isOneToOne: false
+            referencedRelation: "return_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_cutoff_config_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          return_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          return_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          return_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_documents_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_due_dates: {
+        Row: {
+          created_at: string
+          due_date: string
+          entity_id: string | null
+          id: string
+          notification_date: string | null
+          notification_sent: boolean
+          reminder_count: number
+          return_configuration_id: string
+          return_period: string
+          return_year: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          entity_id?: string | null
+          id?: string
+          notification_date?: string | null
+          notification_sent?: boolean
+          reminder_count?: number
+          return_configuration_id: string
+          return_period: string
+          return_year: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          entity_id?: string | null
+          id?: string
+          notification_date?: string | null
+          notification_sent?: boolean
+          reminder_count?: number
+          return_configuration_id?: string
+          return_period?: string
+          return_year?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_due_dates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_due_dates_return_configuration_id_fkey"
+            columns: ["return_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "return_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_form_data: {
+        Row: {
+          created_at: string
+          field_id: string
+          field_name: string
+          field_value: string | null
+          form_id: string
+          id: string
+          return_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          field_name: string
+          field_value?: string | null
+          form_id: string
+          id?: string
+          return_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          field_name?: string
+          field_value?: string | null
+          form_id?: string
+          id?: string
+          return_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_form_data_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_form_data_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_notification_templates: {
+        Row: {
+          body_template: string
+          created_at: string
+          id: string
+          name: string
+          status: string
+          subject_template: string | null
+          template_code: string
+          updated_at: string
+        }
+        Insert: {
+          body_template: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+          subject_template?: string | null
+          template_code: string
+          updated_at?: string
+        }
+        Update: {
+          body_template?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          subject_template?: string | null
+          template_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      return_notifications_log: {
+        Row: {
+          body: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string | null
+          recipient_user_id: string | null
+          return_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["notification_status_enum"]
+          subject: string | null
+          template_code: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          return_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status_enum"]
+          subject?: string | null
+          template_code?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          return_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["notification_status_enum"]
+          subject?: string | null
+          template_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_notifications_log_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_requests: {
+        Row: {
+          created_at: string
+          id: string
+          reasons: string
+          requested_by: string | null
+          resolved_at: string | null
+          return_id: string
+          status: Database["public"]["Enums"]["return_request_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reasons: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          return_id: string
+          status?: Database["public"]["Enums"]["return_request_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reasons?: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          return_id?: string
+          status?: Database["public"]["Enums"]["return_request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_requests_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_templates: {
         Row: {
           created_at: string
@@ -2580,6 +3176,140 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      return_types: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      returns_filed: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          entity_id: string | null
+          id: string
+          ontime_status:
+            | Database["public"]["Enums"]["ontime_status_enum"]
+            | null
+          period_end_date: string
+          period_start_date: string
+          return_configuration_id: string
+          return_period: string
+          return_year: number
+          sector_id: string | null
+          status: string
+          submit_date: string | null
+          subsector_id: string | null
+          unique_id: string
+          updated_at: string
+          updated_by: string | null
+          version: string | null
+          workflow_status: Database["public"]["Enums"]["return_workflow_status"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          id?: string
+          ontime_status?:
+            | Database["public"]["Enums"]["ontime_status_enum"]
+            | null
+          period_end_date: string
+          period_start_date: string
+          return_configuration_id: string
+          return_period: string
+          return_year: number
+          sector_id?: string | null
+          status?: string
+          submit_date?: string | null
+          subsector_id?: string | null
+          unique_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          workflow_status?: Database["public"]["Enums"]["return_workflow_status"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          id?: string
+          ontime_status?:
+            | Database["public"]["Enums"]["ontime_status_enum"]
+            | null
+          period_end_date?: string
+          period_start_date?: string
+          return_configuration_id?: string
+          return_period?: string
+          return_year?: number
+          sector_id?: string | null
+          status?: string
+          submit_date?: string | null
+          subsector_id?: string | null
+          unique_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: string | null
+          workflow_status?: Database["public"]["Enums"]["return_workflow_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_filed_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_return_configuration_id_fkey"
+            columns: ["return_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "return_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_subsector_id_fkey"
+            columns: ["subsector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
             referencedColumns: ["id"]
           },
         ]
@@ -2911,6 +3641,7 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
+      generate_return_unique_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2935,6 +3666,21 @@ export type Database = {
         | "pre_licensee"
         | "licensee_primary"
         | "licensee_secondary"
+      cutoff_unit_enum: "days" | "weeks" | "months"
+      notification_status_enum: "pending" | "sent" | "failed"
+      ontime_status_enum: "ON_TIME" | "LATE"
+      return_audit_action:
+        | "created"
+        | "draft_saved"
+        | "submitted"
+        | "validated"
+        | "rejected"
+        | "resubmitted"
+        | "comment_added"
+        | "comment_edited"
+        | "comment_deleted"
+      return_request_status: "active" | "resolved"
+      return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR"
       user_type: "primary" | "secondary"
     }
     CompositeTypes: {
@@ -3075,6 +3821,22 @@ export const Constants = {
         "licensee_primary",
         "licensee_secondary",
       ],
+      cutoff_unit_enum: ["days", "weeks", "months"],
+      notification_status_enum: ["pending", "sent", "failed"],
+      ontime_status_enum: ["ON_TIME", "LATE"],
+      return_audit_action: [
+        "created",
+        "draft_saved",
+        "submitted",
+        "validated",
+        "rejected",
+        "resubmitted",
+        "comment_added",
+        "comment_edited",
+        "comment_deleted",
+      ],
+      return_request_status: ["active", "resolved"],
+      return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR"],
       user_type: ["primary", "secondary"],
     },
   },
