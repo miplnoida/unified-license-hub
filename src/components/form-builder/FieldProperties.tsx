@@ -11,7 +11,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Plus, X, Zap } from 'lucide-react';
+import { Settings, Plus, X, Zap, Trash2 } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormField, FieldType, ValidationRules, ConditionalRule, TableColumn } from '@/types/formBuilder';
 
@@ -29,9 +29,10 @@ interface Props {
   selectedField: FormField | null;
   allFields: FormField[];
   onUpdateField: (id: string, updates: Partial<FormField>) => void;
+  onDeleteField?: () => void;
 }
 
-export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField }: Props) {
+export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField, onDeleteField }: Props) {
   if (!selectedField) {
     return (
       <Card className="sticky top-6">
@@ -370,6 +371,16 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
             </div>
           ))}
         </div>
+
+        {onDeleteField && (
+          <>
+            <Separator className="my-4" />
+            <Button variant="destructive" size="sm" className="w-full" onClick={onDeleteField}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove Field
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );
