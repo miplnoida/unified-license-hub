@@ -14,6 +14,8 @@ import {
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
@@ -70,12 +72,79 @@ export default function FillReturnPage() {
   const navigate = useNavigate();
   const { data: returnData, isLoading: loadingReturn } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
+  const { data: fallbackConfigForms = [], isLoading: loadingFallbackForms } = useQuery({
+    queryKey: [
+      'fallback_return_forms',
+      returnData?.return_configuration_id,
+      returnData?.return_configs?.sector_id,
+      returnData?.return_configs?.subsector_id,
+    ],
+    enabled: !!returnData?.return_configuration_id && configForms.length === 0,
+    queryFn: async () => {
+      const config = returnData?.return_configs;
+      if (!config?.sector_id) return [];
+
+      const fetchTemplates = async (matchSubSector: boolean) => {
+        let query = supabase
+          .from('form_templates')
+          .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, created_at')
+          .eq('status', 'published')
+          .eq('form_type', 'returns')
+          .eq('sector_id', config.sector_id);
+
+        if (matchSubSector && config.subsector_id) {
+          query = query.eq('sub_sector_id', config.subsector_id);
+        }
+
+        const { data, error } = await query.order('form_order', { ascending: true }).order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      };
+
+      const exactMatches = await fetchTemplates(true);
+      const sectorMatches = exactMatches.length > 0 ? exactMatches : await fetchTemplates(false);
+
+      if (sectorMatches.length === 0) return [];
+
+      const grouped = sectorMatches.reduce<Record<string, any[]>>((acc, template) => {
+        const key = template.return_template_id || '__ungrouped__';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(template);
+        return acc;
+      }, {});
+
+      const bestGroup = Object.values(grouped)
+        .sort((a, b) => {
+          if (b.length !== a.length) return b.length - a.length;
+          return new Date(b[0]?.created_at || 0).getTime() - new Date(a[0]?.created_at || 0).getTime();
+        })[0] || [];
+
+      return bestGroup
+        .sort((a, b) => (a.form_order || 0) - (b.form_order || 0))
+        .map((template, index) => ({
+          id: `fallback-${template.id}`,
+          form_id: template.id,
+          return_configuration_id: returnData!.return_configuration_id,
+          tab_name: (template.tab_name || template.name || 'General').trim() || 'General',
+          display_order: template.form_order ?? index,
+          status: 'active',
+          form_templates: {
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            status: template.status,
+          },
+        }));
+    },
+  });
   const { data: savedFormData = [] } = useReturnFormData(id);
   const saveFormData = useSaveReturnFormData();
   const { update: updateReturn } = useMutateReturn();
   const insertAudit = useInsertReturnAudit();
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
+
+  const effectiveConfigForms = configForms.length > 0 ? configForms : fallbackConfigForms;
 
   // Store all form data keyed by formTemplateId → { [fieldName]: value }
   const [allData, setAllData] = useState<Record<string, Record<string, any>>>({});
@@ -102,9 +171,9 @@ export default function FillReturnPage() {
 
   // Set initial tab
   const tabs = useMemo(() => {
-    const t = [...new Set(configForms.map((f: any) => f.tab_name || 'General'))];
+    const t = [...new Set(effectiveConfigForms.map((f: any) => f.tab_name || 'General'))];
     return t;
-  }, [configForms]);
+  }, [effectiveConfigForms]);
 
   useEffect(() => {
     if (tabs.length > 0 && !activeTab) setActiveTab(tabs[0]);
@@ -253,7 +322,7 @@ export default function FillReturnPage() {
         )}
 
         {/* Tabbed forms using FormRenderer */}
-        {tabs.length > 0 && (
+        {(tabs.length > 0 || loadingFallbackForms) && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto">
               {tabs.map(tab => (
@@ -264,7 +333,7 @@ export default function FillReturnPage() {
             </TabsList>
 
             {tabs.map(tab => {
-              const tabForms = configForms
+              const tabForms = effectiveConfigForms
                 .filter((f: any) => (f.tab_name || 'General') === tab)
                 .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
 
@@ -295,6 +364,14 @@ export default function FillReturnPage() {
               );
             })}
           </Tabs>
+        )}
+
+        {!loadingFallbackForms && tabs.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No published return forms are linked to this return configuration yet.
+            </CardContent>
+          </Card>
         )}
 
         {/* Navigation + Actions */}
