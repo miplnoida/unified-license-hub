@@ -11,7 +11,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Plus, X, Zap } from 'lucide-react';
+import { Settings, Plus, X, Zap, Trash2 } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormField, FieldType, ValidationRules, ConditionalRule, TableColumn } from '@/types/formBuilder';
 
