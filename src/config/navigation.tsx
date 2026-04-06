@@ -1,31 +1,9 @@
 import {
-  LayoutDashboard,
-  FileText,
-  Shield,
-  Users,
-  Building2,
-  FormInput,
-  GitBranch,
-  Bell,
-  Settings,
-  BarChart3,
-  ClipboardList,
-  AlertTriangle,
-  FolderOpen,
-  UserCircle,
-  KeyRound,
-  ScrollText,
-  Layers,
-  Boxes,
-  ListOrdered,
-  SlidersHorizontal,
-  DollarSign,
-  CreditCard,
-  BookOpen,
-  Briefcase,
-  CalendarCheck,
-  LayoutGrid,
-  Mail,
+  LayoutDashboard, FileText, Shield, Users, Building2, FormInput, GitBranch,
+  Bell, Settings, BarChart3, ClipboardList, AlertTriangle, FolderOpen,
+  UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
+  SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
+  CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 
@@ -63,10 +41,8 @@ export const mainNavSections: NavSection[] = [
     label: 'Administration',
     items: [
       { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES },
-      
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES },
-      
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ['super_admin'] },
       { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Audit Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES },
@@ -84,14 +60,27 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'My Applications', href: '/applications', icon: <FileText className="h-5 w-5" />, roles: [...PRE_LICENSEE, ...LICENSEE_ALL, 'applicant'] },
       { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'] },
-      
     ],
   },
   {
     label: 'Returns Management',
     items: [
-      { label: 'My Returns', href: '/compliance/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
-      { label: 'Submitted Returns', href: '/returns-management', icon: <CalendarCheck className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'] },
+      {
+        label: 'Returns Admin', icon: <CalendarCheck className="h-5 w-5" />, roles: ADMIN_ROLES,
+        children: [
+          { label: 'Return Types', href: '/admin/returns/types', icon: <Layers className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Configurations', href: '/admin/returns/configurations', icon: <Settings className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Cutoff Config', href: '/admin/returns/cutoff', icon: <Timer className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Due Dates', href: '/admin/returns/due-dates', icon: <CalendarDays className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Late Fees', href: '/admin/returns/late-fees', icon: <DollarSign className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Schedule Calendar', href: '/admin/returns/schedule', icon: <CalendarDays className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Notif Templates', href: '/admin/returns/notifications/templates', icon: <Mail className="h-4 w-4" />, roles: ADMIN_ROLES },
+          { label: 'Notif Log', href: '/admin/returns/notifications/log', icon: <FileBarChart className="h-4 w-4" />, roles: ADMIN_ROLES },
+        ],
+      },
+      { label: 'Returns Queue', href: '/returns-management', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'analyst'] },
+      { label: 'Returns Dashboard', href: '/entity/returns/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, roles: LICENSEE_ALL },
+      { label: 'My Returns', href: '/entity/returns', icon: <CalendarCheck className="h-5 w-5" />, roles: LICENSEE_ALL },
     ],
   },
   {
@@ -133,7 +122,6 @@ export const mainNavSections: NavSection[] = [
         ],
       },
       { label: 'Fee Management', href: '/admin/fees', icon: <DollarSign className="h-5 w-5" />, roles: ADMIN_ROLES },
-      { label: 'Return Configuration', href: '/admin/return-config', icon: <CalendarCheck className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
   {

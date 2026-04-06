@@ -10,7 +10,6 @@ import { lazy, Suspense } from "react";
 import { isPreLicenseeAllowedRoute } from "@/hooks/useUserPermissions";
 import { AdminRoute, SettingsRoute, InternalRoute } from "@/components/auth/RouteGuards";
 
-// ─── Loading fallback ───
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="flex flex-col items-center gap-3">
@@ -29,48 +28,25 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FormDetail = lazy(() => import("./pages/FormDetail"));
 const NewApplication = lazy(() => import("./pages/NewApplication"));
-
-// Registration
 const PreLicenseeRegistration = lazy(() => import("./pages/registration/PreLicenseeRegistration"));
-
-// Applications
 const ApplicationsList = lazy(() => import("./pages/applications/ApplicationsList"));
 const ApplicationDetail = lazy(() => import("./pages/applications/ApplicationDetail"));
-
-// Licenses
 const LicensesList = lazy(() => import("./pages/licenses/LicensesList"));
 const LicenseDetail = lazy(() => import("./pages/licenses/LicenseDetail"));
-
-// Compliance
 const ComplianceReturns = lazy(() => import("./pages/compliance/ComplianceReturns"));
 const ReturnSubmission = lazy(() => import("./pages/compliance/ReturnSubmission"));
-
-// Payments
 const PaymentHistory = lazy(() => import("./pages/payments/PaymentHistory"));
-
-// Complaints
 const ComplaintsList = lazy(() => import("./pages/complaints/ComplaintsList"));
-
-// Workflows
 const WorkflowList = lazy(() => import("./pages/workflows/WorkflowList"));
 const DelegationRules = lazy(() => import("./pages/delegation/DelegationRules"));
-
-// Documents
 const DocumentStore = lazy(() => import("./pages/documents/DocumentStore"));
-
-// Notifications
 const NotificationCenter = lazy(() => import("./pages/notifications/NotificationCenter"));
-
-// Analytics & Reports
 const AnalyticsDashboard = lazy(() => import("./pages/analytics/AnalyticsDashboard"));
 const ReportsDashboard = lazy(() => import("./pages/reports/ReportsDashboard"));
-
-// Admin
 const RoleManagement = lazy(() => import("./pages/admin/RoleManagement"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const ManageWebUsers = lazy(() => import("./pages/admin/ManageWebUsers"));
-
 const ManageLicensees = lazy(() => import("./pages/admin/ManageLicensees"));
 const LicenseeDetailPage = lazy(() => import("./pages/admin/LicenseeDetail"));
 const FormBuilder = lazy(() => import("./pages/admin/FormBuilder"));
@@ -85,6 +61,23 @@ const ComplaintTypes = lazy(() => import("./pages/admin/ComplaintTypes"));
 const ApprovedLicensees = lazy(() => import("./pages/admin/ApprovedLicensees"));
 const ViewReturns = lazy(() => import("./pages/returns-mgmt/ViewReturns"));
 
+// Returns Management - Admin
+const ReturnTypesPage = lazy(() => import("./pages/admin/returns/ReturnTypesPage"));
+const ReturnConfigsPage = lazy(() => import("./pages/admin/returns/ReturnConfigsPage"));
+const CutoffConfigPage = lazy(() => import("./pages/admin/returns/CutoffConfigPage"));
+const DueDatesPage = lazy(() => import("./pages/admin/returns/DueDatesPage"));
+const LateFeesPage = lazy(() => import("./pages/admin/returns/LateFeesPage"));
+const NotifTemplatesPage = lazy(() => import("./pages/admin/returns/NotifTemplatesPage"));
+const NotifLogPage = lazy(() => import("./pages/admin/returns/NotifLogPage"));
+const ScheduleCalendarPage = lazy(() => import("./pages/admin/returns/ScheduleCalendarPage"));
+
+// Returns Management - Entity
+const EntityReturnsDashboard = lazy(() => import("./pages/entity/returns/EntityReturnsDashboard"));
+const MyReturnsPage = lazy(() => import("./pages/entity/returns/MyReturnsPage"));
+const CreateReturnPage = lazy(() => import("./pages/entity/returns/CreateReturnPage"));
+const FillReturnPage = lazy(() => import("./pages/entity/returns/FillReturnPage"));
+const ViewReturnPage = lazy(() => import("./pages/entity/returns/ViewReturnPage"));
+
 // Settings
 const SettingsHub = lazy(() => import("./pages/settings/SettingsHub"));
 const GeneralSettings = lazy(() => import("./pages/settings/GeneralSettings"));
@@ -96,48 +89,23 @@ const BrandingSettings = lazy(() => import("./pages/settings/BrandingSettings"))
 const EmailSmsSettings = lazy(() => import("./pages/settings/EmailSmsSettings"));
 const IntegrationSettings = lazy(() => import("./pages/settings/IntegrationSettings"));
 const DataManagementSettings = lazy(() => import("./pages/settings/DataManagementSettings"));
-
-// Account
 const Profile = lazy(() => import("./pages/Profile"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
-// ─── Query Client with optimized defaults ───
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      gcTime: 300_000,
-      retry: 2,
-      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 1,
-    },
+    queries: { staleTime: 30_000, gcTime: 300_000, retry: 2, retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000), refetchOnWindowFocus: false },
+    mutations: { retry: 1 },
   },
 });
 
-/**
- * Protected route with pre-licensee access restriction.
- * Pre-licensee users can only access a limited set of routes.
- */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, loading } = useAuth();
   const location = useLocation();
-
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/" replace />;
-
-  // Force password change redirect
-  if (user?.forcePasswordChange && location.pathname !== '/change-password') {
-    return <Navigate to="/change-password" replace />;
-  }
-
-  // Pre-licensee users: restrict to allowed routes only
-  if (user?.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
+  if (user?.forcePasswordChange && location.pathname !== '/change-password') return <Navigate to="/change-password" replace />;
+  if (user?.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -149,74 +117,69 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public */}
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Dashboard */}
         <Route path="/dashboard" element={<P><Dashboard /></P>} />
 
-        {/* Applications */}
         <Route path="/applications" element={<P><ApplicationsList /></P>} />
         <Route path="/applications/new" element={<P><NewApplication /></P>} />
         <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
         <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
-        {/* Licenses */}
         <Route path="/licenses" element={<P><LicensesList /></P>} />
         <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
-        
 
-        {/* Returns Management */}
         <Route path="/returns-management" element={<P><ViewReturns /></P>} />
 
-        {/* Compliance */}
         <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
         <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
 
-        {/* Payments */}
+        {/* Returns Management - Admin */}
+        <Route path="/admin/returns/types" element={<P><AdminRoute><ReturnTypesPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/configurations" element={<P><AdminRoute><ReturnConfigsPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/cutoff" element={<P><AdminRoute><CutoffConfigPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/due-dates" element={<P><AdminRoute><DueDatesPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/late-fees" element={<P><AdminRoute><LateFeesPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/notifications/templates" element={<P><AdminRoute><NotifTemplatesPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/notifications/log" element={<P><AdminRoute><NotifLogPage /></AdminRoute></P>} />
+        <Route path="/admin/returns/schedule" element={<P><AdminRoute><ScheduleCalendarPage /></AdminRoute></P>} />
+
+        {/* Returns Management - Entity */}
+        <Route path="/entity/returns/dashboard" element={<P><EntityReturnsDashboard /></P>} />
+        <Route path="/entity/returns" element={<P><MyReturnsPage /></P>} />
+        <Route path="/entity/returns/new" element={<P><CreateReturnPage /></P>} />
+        <Route path="/entity/returns/:id/fill" element={<P><FillReturnPage /></P>} />
+        <Route path="/entity/returns/:id/view" element={<P><ViewReturnPage /></P>} />
+
         <Route path="/payments" element={<P><PaymentHistory /></P>} />
-
-        {/* Complaints */}
         <Route path="/complaints" element={<P><ComplaintsList /></P>} />
-
-        {/* Workflows */}
         <Route path="/workflows" element={<P><WorkflowList /></P>} />
         <Route path="/delegation-rules" element={<P><DelegationRules /></P>} />
-
-        {/* Documents */}
         <Route path="/documents" element={<P><DocumentStore /></P>} />
-
-        {/* Notifications */}
         <Route path="/notifications" element={<P><NotificationCenter /></P>} />
-
-        {/* Analytics */}
         <Route path="/analytics" element={<P><AnalyticsDashboard /></P>} />
         <Route path="/reports" element={<P><ReportsDashboard /></P>} />
         <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
 
-        {/* Form Management */}
         <Route path="/admin/forms" element={<P><AdminRoute><FormManagement /></AdminRoute></P>} />
         <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
         <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
         <Route path="/admin/forms/create" element={<P><AdminRoute><FormBuilder /></AdminRoute></P>} />
         <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 
-        {/* Master Configuration */}
         <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
         <Route path="/admin/masters/sectors" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
         <Route path="/admin/masters/sub-sectors" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
         <Route path="/admin/masters/categories" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
         <Route path="/admin/masters/services" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
 
-        {/* Fee & Return Config */}
         <Route path="/admin/fees" element={<P><AdminRoute><FeeManagement /></AdminRoute></P>} />
         <Route path="/admin/return-config" element={<P><AdminRoute><ReturnConfiguration /></AdminRoute></P>} />
 
-        {/* Administration */}
         <Route path="/admin" element={<P><AdminRoute><AdminHub /></AdminRoute></P>} />
         <Route path="/admin/regulators" element={<P><AdminRoute><RegulatorManagement /></AdminRoute></P>} />
         <Route path="/admin/licensees" element={<P><AdminRoute><ManageLicensees /></AdminRoute></P>} />
@@ -229,7 +192,6 @@ function AppRoutes() {
         <Route path="/admin/complaint-types" element={<P><AdminRoute><ComplaintTypes /></AdminRoute></P>} />
         <Route path="/admin/approved-licensees" element={<P><AdminRoute><ApprovedLicensees /></AdminRoute></P>} />
 
-        {/* Settings */}
         <Route path="/settings" element={<P><SettingsRoute><SettingsHub /></SettingsRoute></P>} />
         <Route path="/settings/general" element={<P><SettingsRoute><GeneralSettings /></SettingsRoute></P>} />
         <Route path="/settings/payments" element={<P><SettingsRoute><PaymentSettings /></SettingsRoute></P>} />
@@ -241,7 +203,6 @@ function AppRoutes() {
         <Route path="/settings/integrations" element={<P><SettingsRoute><IntegrationSettings /></SettingsRoute></P>} />
         <Route path="/settings/data" element={<P><SettingsRoute><DataManagementSettings /></SettingsRoute></P>} />
 
-        {/* Account */}
         <Route path="/profile" element={<P><Profile /></P>} />
         <Route path="/change-password" element={<P><ChangePassword /></P>} />
 
