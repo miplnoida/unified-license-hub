@@ -341,12 +341,17 @@ export default function FormBuilder() {
       // 2. Create a form template + version for each sheet
       const sheetToTemplateId = new Map<string, string>();
 
-      for (const sheet of result.sheets) {
+      for (let sheetIdx = 0; sheetIdx < result.sheets.length; sheetIdx++) {
+        const sheet = result.sheets[sheetIdx];
         const templateId = crypto.randomUUID();
         const versionId = crypto.randomUUID();
         sheetToTemplateId.set(sheet.sheetName, templateId);
 
-        // Save template with return_template_id and sheet_name
+        // Derive tab_name from sheet name (use letter prefix if present, otherwise sheet name)
+        const tabMatch = sheet.sheetName.match(/^([A-Z])\d/i);
+        const tabName = tabMatch ? tabMatch[1].toUpperCase() : sheet.sheetName;
+
+        // Save template with return_template_id, sheet_name, tab_name, and form_order
         const { error: tErr } = await supabase.from('form_templates').upsert({
           id: templateId,
           name: sheet.formName,
@@ -365,6 +370,8 @@ export default function FormBuilder() {
           is_reusable: true,
           return_template_id: returnTemplateId,
           sheet_name: sheet.sheetName,
+          tab_name: tabName,
+          form_order: sheetIdx,
         } as any);
         if (tErr) throw tErr;
 
