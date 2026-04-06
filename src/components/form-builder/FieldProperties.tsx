@@ -32,7 +32,7 @@ interface Props {
   onDeleteField?: () => void;
 }
 
-export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField }: Props) {
+export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField, onDeleteField }: Props) {
   if (!selectedField) {
     return (
       <Card className="sticky top-6">
