@@ -371,6 +371,16 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
             </div>
           ))}
         </div>
+
+        {onDeleteField && (
+          <>
+            <Separator className="my-4" />
+            <Button variant="destructive" size="sm" className="w-full" onClick={onDeleteField}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove Field
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );

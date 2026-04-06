@@ -568,6 +568,11 @@ export default function FormBuilder() {
                 selectedField={selectedField}
                 allFields={allFields}
                 onUpdateField={handleUpdateField}
+                onDeleteField={selectedField && selectedSectionId ? () => {
+                  handleDeleteField(selectedSectionId, selectedField.id);
+                  setSelectedField(null);
+                  setSelectedSectionId(null);
+                } : undefined}
               />
             </ScrollArea>
           </div>
