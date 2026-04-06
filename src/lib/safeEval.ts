@@ -136,8 +136,16 @@ export function safeEvaluate(expression: string): { value: string; error?: strin
 export function evaluateFormula(
   expression: string,
   formData: Record<string, any>,
+  crossFormData?: Record<string, Record<string, any>>,
 ): string {
-  const substituted = expression.replace(/\{(\w+)\}/g, (_, key) => {
+  // Support {sheet.field} dot-notation for cross-sheet references
+  let substituted = expression.replace(/\{([^}]+)\}/g, (_, key: string) => {
+    if (key.includes('.')) {
+      const [sheetKey, fieldKey] = key.split('.', 2);
+      const sheetData = crossFormData?.[sheetKey];
+      const val = Number(sheetData?.[fieldKey] || 0);
+      return isNaN(val) ? '0' : String(val);
+    }
     const val = Number(formData[key] || 0);
     return isNaN(val) ? '0' : String(val);
   });

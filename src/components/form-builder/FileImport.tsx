@@ -742,42 +742,131 @@ async function parseExcelMultiSheet(file: File): Promise<MultiSheetParseResult> 
         sections.push({ id: crypto.randomUUID(), title, sortOrder: sortOrder++, isRepeatable: false, fields });
       }
     } else {
-      // Auto-detect mode
-      const fields: FormField[] = headers.map((header, colIdx) => {
-        const samples = dataRows.slice(0, 10).map(row => String(row[colIdx] || ''));
-        const colLetter = colLetterFromIndex(colIdx);
-        const formula = formulaMap.get(colLetter);
+      // Auto-detect mode: detect section headers (rows where col A has text but other cols are empty)
+      // and build a row-oriented layout preserving the Excel structure
+      const globalCellFieldMap = new Map<string, string>();
 
-        let fieldType = inferFieldType(header, samples);
-        let calculatedExpression: string | undefined;
-
-        if (formula) {
-          fieldType = 'calculated';
-          const info = convertFormula(formula, colToFieldMap, sheetName);
-          calculatedExpression = info.expression;
-          if (info.crossSheetRefs.length > 0) {
-            info.crossSheetRefs.forEach(r => { r.sourceField = toFieldName(header); });
-            sheetCrossRefs.push(...info.crossSheetRefs);
+      // First pass: build global field map for all data cells
+      if (sheet['!ref']) {
+        const range = XLSX.utils.decode_range(sheet['!ref']);
+        for (let r = range.s.r + 1; r <= range.e.r; r++) {
+          for (let c = range.s.c; c <= range.e.c; c++) {
+            if (c < headers.length) {
+              const addr = XLSX.utils.encode_cell({ r, c });
+              const fieldName = toFieldName(`${headers[c]}_row_${r}`);
+              globalCellFieldMap.set(addr, fieldName);
+            }
           }
         }
+      }
 
-        let options: string[] | undefined;
-        if (fieldType === 'select') {
-          const unique = [...new Set(dataRows.map(r => String(r[colIdx] || '').trim()).filter(Boolean))];
-          options = unique.slice(0, 20);
-        }
+      // Check if first column appears to be labels/row headers (mostly text, few numbers)
+      const firstColValues = dataRows.map(row => String(row[0] || '').trim()).filter(Boolean);
+      const firstColTextCount = firstColValues.filter(v => isNaN(Number(v))).length;
+      const isRowOriented = headers.length >= 2 && firstColTextCount > firstColValues.length * 0.6;
 
-        const validation = extractValidation(header, samples, fieldType);
+      if (isRowOriented && dataRows.length > 3) {
+        // Row-oriented: first column = labels, remaining columns = data fields per row
+        let currentSectionTitle = sheetName;
+        let currentSectionFields: FormField[] = [];
+        let secOrder = 0;
 
-        return {
-          id: crypto.randomUUID(), type: fieldType, label: header, fieldName: toFieldName(header),
-          required: false, options, calculatedExpression, validation,
+        const flushSec = () => {
+          if (currentSectionFields.length > 0) {
+            sections.push({ id: crypto.randomUUID(), title: currentSectionTitle, sortOrder: secOrder++, isRepeatable: false, fields: [...currentSectionFields] });
+            currentSectionFields = [];
+          }
         };
-      });
 
-      sections.push({
-        id: crypto.randomUUID(), title: sheetName, sortOrder: 0, isRepeatable: false, fields,
-      });
+        for (let ri = 0; ri < dataRows.length; ri++) {
+          const row = dataRows[ri];
+          const label = String(row[0] || '').trim();
+          if (!label) continue;
+
+          // Check if this is a section header (only first column has text)
+          const otherColsEmpty = row.slice(1).every((c: any) => !String(c || '').trim());
+          if (otherColsEmpty && label.length > 2) {
+            flushSec();
+            currentSectionTitle = label;
+            continue;
+          }
+
+          // Create a field for each data column in this row
+          for (let ci = 1; ci < headers.length; ci++) {
+            const colHeader = headers[ci];
+            const fieldLabel = headers.length === 2 ? label : `${label} - ${colHeader}`;
+            const fieldName = toFieldName(`${label}_${colHeader}`);
+            const sample = String(row[ci] || '');
+            const colLetter = colLetterFromIndex(ci);
+
+            // Check for formula in this specific cell
+            const actualRow = ri + 1; // +1 for header row
+            const cellAddr = XLSX.utils.encode_cell({ r: actualRow, c: ci });
+            const cell = sheet[cellAddr];
+            let fieldType = inferFieldType(fieldLabel, [sample]);
+            let calculatedExpression: string | undefined;
+
+            if (cell && cell.f) {
+              fieldType = 'calculated';
+              const info = convertFormula(cell.f, colToFieldMap, sheetName);
+              calculatedExpression = info.expression;
+              if (info.crossSheetRefs.length > 0) {
+                info.crossSheetRefs.forEach(r => { r.sourceField = fieldName; });
+                sheetCrossRefs.push(...info.crossSheetRefs);
+              }
+            } else if (formulaMap.has(colLetter)) {
+              fieldType = 'calculated';
+              const info = convertFormula(formulaMap.get(colLetter)!, colToFieldMap, sheetName);
+              calculatedExpression = info.expression;
+            }
+
+            const validation = extractValidation(fieldLabel, [sample], fieldType);
+
+            currentSectionFields.push({
+              id: crypto.randomUUID(), type: fieldType, label: fieldLabel, fieldName,
+              required: false, calculatedExpression, validation,
+            });
+          }
+        }
+        flushSec();
+      } else {
+        // Column-oriented (original): each column header = a field
+        const fields: FormField[] = headers.map((header, colIdx) => {
+          const samples = dataRows.slice(0, 10).map(row => String(row[colIdx] || ''));
+          const colLetter = colLetterFromIndex(colIdx);
+          const formula = formulaMap.get(colLetter);
+
+          let fieldType = inferFieldType(header, samples);
+          let calculatedExpression: string | undefined;
+
+          if (formula) {
+            fieldType = 'calculated';
+            const info = convertFormula(formula, colToFieldMap, sheetName);
+            calculatedExpression = info.expression;
+            if (info.crossSheetRefs.length > 0) {
+              info.crossSheetRefs.forEach(r => { r.sourceField = toFieldName(header); });
+              sheetCrossRefs.push(...info.crossSheetRefs);
+            }
+          }
+
+          let options: string[] | undefined;
+          if (fieldType === 'select') {
+            const unique = [...new Set(dataRows.map(r => String(r[colIdx] || '').trim()).filter(Boolean))];
+            options = unique.slice(0, 20);
+          }
+
+          const validation = extractValidation(header, samples, fieldType);
+
+          return {
+            id: crypto.randomUUID(), type: fieldType, label: header, fieldName: toFieldName(header),
+            required: false, options, calculatedExpression, validation,
+          };
+        });
+
+        sections.push({
+          id: crypto.randomUUID(), title: sheetName, sortOrder: 0, isRepeatable: false, fields,
+        });
+      }
     }
 
     const fieldCount = sections.reduce((a, s) => a + s.fields.length, 0);
