@@ -122,9 +122,9 @@ export default function DueDatesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Return Type (optional)</Label>
-                    <Select value={genTypeId} onValueChange={setGenTypeId}>
+                    <Select value={genTypeId || 'all'} onValueChange={v => setGenTypeId(v === 'all' ? '' : v)}>
                       <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
-                      <SelectContent><SelectItem value="">All</SelectItem>{returnTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                      <SelectContent><SelectItem value="all">All</SelectItem>{returnTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>

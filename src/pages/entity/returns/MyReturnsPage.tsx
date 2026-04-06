@@ -51,9 +51,9 @@ export default function MyReturnsPage() {
               <TabsTrigger value="validated">Validated</TabsTrigger>
               <TabsTrigger value="tbr">Resubmit</TabsTrigger>
             </TabsList>
-            <Select value={yearFilter} onValueChange={setYearFilter}>
+            <Select value={yearFilter || 'all'} onValueChange={v => setYearFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[120px]"><SelectValue placeholder="All years" /></SelectTrigger>
-              <SelectContent><SelectItem value="">All</SelectItem>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="all">All</SelectItem>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
