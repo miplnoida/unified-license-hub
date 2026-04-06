@@ -20,9 +20,9 @@ export default function NotifLogPage() {
       <div className="space-y-6">
         <PageHeader title="Notification Log" description="Track sent return notifications"
           actions={
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
               <SelectTrigger className="w-[150px]"><SelectValue placeholder="All statuses" /></SelectTrigger>
-              <SelectContent><SelectItem value="">All</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="sent">Sent</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="all">All</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="sent">Sent</SelectItem><SelectItem value="failed">Failed</SelectItem></SelectContent>
             </Select>
           }
         />

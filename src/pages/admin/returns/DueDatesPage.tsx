@@ -115,16 +115,16 @@ export default function DueDatesPage() {
                   <div className="space-y-2"><Label>Year *</Label><Input type="number" value={genYear} onChange={e => setGenYear(e.target.value)} /></div>
                   <div className="space-y-2">
                     <Label>Sector (optional)</Label>
-                    <Select value={genSectorId} onValueChange={setGenSectorId}>
+                    <Select value={genSectorId || 'all'} onValueChange={v => setGenSectorId(v === 'all' ? '' : v)}>
                       <SelectTrigger><SelectValue placeholder="All sectors" /></SelectTrigger>
-                      <SelectContent><SelectItem value="">All</SelectItem>{sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                      <SelectContent><SelectItem value="all">All</SelectItem>{sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Return Type (optional)</Label>
-                    <Select value={genTypeId} onValueChange={setGenTypeId}>
+                    <Select value={genTypeId || 'all'} onValueChange={v => setGenTypeId(v === 'all' ? '' : v)}>
                       <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
-                      <SelectContent><SelectItem value="">All</SelectItem>{returnTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                      <SelectContent><SelectItem value="all">All</SelectItem>{returnTypes.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                 </div>
