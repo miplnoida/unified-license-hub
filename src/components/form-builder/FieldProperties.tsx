@@ -29,6 +29,7 @@ interface Props {
   selectedField: FormField | null;
   allFields: FormField[];
   onUpdateField: (id: string, updates: Partial<FormField>) => void;
+  onDeleteField?: () => void;
 }
 
 export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField }: Props) {
