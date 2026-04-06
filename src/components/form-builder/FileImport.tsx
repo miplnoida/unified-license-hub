@@ -398,8 +398,10 @@ function parseFinancialSheet(
   let currentFields: FormField[] = [];
   let sortOrder = 0;
 
-  // Build a field-name map for formula conversion
-  const fieldNameMap = new Map<string, string>();
+  // Build a GLOBAL field-name map: cellAddr -> fieldName (across ALL rows)
+  const globalFieldMap = new Map<string, string>();
+  // Also build colRow -> fieldName for formula resolution
+  const colRowFieldMap = new Map<string, string>(); // "COL_ROW" -> fieldName
 
   const flushSection = () => {
     if (currentFields.length > 0) {
@@ -414,20 +416,144 @@ function parseFinancialSheet(
     }
   };
 
+  // First pass: assign field names to all data cells
+  for (let r = layout.dataStartRow; r < data.length; r++) {
+    const row = data[r] || [];
+    const lineNum = String(row[layout.numberCol] || '').trim();
+    const label = String(row[layout.labelCol] || '').trim();
+    if (!label) continue;
+    if (/^\(Input line item here\)$/i.test(label)) continue;
+
+    for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
+      const colIdx = layout.dataColStart + ci;
+      const cellAddr = XLSX.utils.encode_cell({ r, c: colIdx });
+      const fieldName = toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
+      globalFieldMap.set(cellAddr, fieldName);
+      const colLetter = XLSX.utils.encode_col(colIdx);
+      colRowFieldMap.set(`${colLetter}${r + 1}`, fieldName);
+    }
+  }
+
+  // Helper: convert cell ref like "B16" to a field name using globalFieldMap
+  function cellRefToFieldName(cellRef: string): string | null {
+    // Parse cell ref to row/col
+    const match = cellRef.replace(/\$/g, '').match(/^([A-Z]+)(\d+)$/i);
+    if (!match) return null;
+    const col = match[1].toUpperCase();
+    const row = parseInt(match[2], 10);
+    const colIdx = XLSX.utils.decode_col(col);
+    const addr = XLSX.utils.encode_cell({ r: row - 1, c: colIdx });
+    return globalFieldMap.get(addr) || null;
+  }
+
+  // Enhanced formula converter that uses global field map
+  function convertFormulaWithGlobalMap(rawFormula: string): FormulaInfo {
+    const referencedFields: string[] = [];
+    const sheetCrossRefs: CrossSheetRef[] = [];
+    let expression = rawFormula.replace(/^=\s*/, '');
+
+    // Cross-sheet references
+    expression = expression.replace(/'?([^'!]+)'?!(\$?[A-Z]+\$?\d+)/gi, (match, refSheet, cellRef) => {
+      const cleanRef = cellRef.replace(/\$/g, '');
+      const colLetters = cleanRef.replace(/\d/g, '').toUpperCase();
+      const fieldName = `${toFieldName(refSheet)}_${colLetters.toLowerCase()}`;
+      sheetCrossRefs.push({
+        sourceSheet: sheetName,
+        sourceField: '',
+        targetSheet: refSheet.trim(),
+        targetField: fieldName,
+        formula: rawFormula,
+      });
+      return `{${toFieldName(refSheet)}.${fieldName}}`;
+    });
+
+    // Handle SUM with ranges (vertical: same col different rows, or horizontal)
+    expression = expression.replace(/SUM\(([^)]+)\)/gi, (_, range: string) => {
+      const parts = range.split(':');
+      if (parts.length === 2) {
+        const startRef = parts[0].replace(/\$/g, '');
+        const endRef = parts[1].replace(/\$/g, '');
+        const startMatch = startRef.match(/^([A-Z]+)(\d+)$/i);
+        const endMatch = endRef.match(/^([A-Z]+)(\d+)$/i);
+        if (startMatch && endMatch) {
+          const startCol = XLSX.utils.decode_col(startMatch[1]);
+          const endCol = XLSX.utils.decode_col(endMatch[1]);
+          const startRow = parseInt(startMatch[2], 10);
+          const endRow = parseInt(endMatch[2], 10);
+          const sumFields: string[] = [];
+          for (let r = startRow; r <= endRow; r++) {
+            for (let c = startCol; c <= endCol; c++) {
+              const addr = XLSX.utils.encode_cell({ r: r - 1, c });
+              const fn = globalFieldMap.get(addr);
+              if (fn) {
+                sumFields.push(fn);
+                if (!referencedFields.includes(fn)) referencedFields.push(fn);
+              }
+            }
+          }
+          if (sumFields.length > 0) return sumFields.map(f => `{${f}}`).join(' + ');
+        }
+      }
+      return range;
+    });
+
+    // Handle AVERAGE with ranges
+    expression = expression.replace(/AVERAGE\(([^)]+)\)/gi, (_, range: string) => {
+      const parts = range.split(':');
+      if (parts.length === 2) {
+        const startRef = parts[0].replace(/\$/g, '');
+        const endRef = parts[1].replace(/\$/g, '');
+        const startMatch = startRef.match(/^([A-Z]+)(\d+)$/i);
+        const endMatch = endRef.match(/^([A-Z]+)(\d+)$/i);
+        if (startMatch && endMatch) {
+          const startCol = XLSX.utils.decode_col(startMatch[1]);
+          const endCol = XLSX.utils.decode_col(endMatch[1]);
+          const startRow = parseInt(startMatch[2], 10);
+          const endRow = parseInt(endMatch[2], 10);
+          const avgFields: string[] = [];
+          for (let r = startRow; r <= endRow; r++) {
+            for (let c = startCol; c <= endCol; c++) {
+              const addr = XLSX.utils.encode_cell({ r: r - 1, c });
+              const fn = globalFieldMap.get(addr);
+              if (fn) {
+                avgFields.push(fn);
+                if (!referencedFields.includes(fn)) referencedFields.push(fn);
+              }
+            }
+          }
+          if (avgFields.length > 0) {
+            return `(${avgFields.map(f => `{${f}}`).join(' + ')}) / ${avgFields.length}`;
+          }
+        }
+      }
+      return range;
+    });
+
+    // Same-sheet cell references (individual cells like B16, $C$20, etc.)
+    expression = expression.replace(/\$?([A-Z]+)\$?(\d+)/gi, (match) => {
+      const fn = cellRefToFieldName(match);
+      if (fn) {
+        if (!referencedFields.includes(fn)) referencedFields.push(fn);
+        return `{${fn}}`;
+      }
+      return match;
+    });
+
+    return { raw: rawFormula, expression, referencedFields, crossSheetRefs: sheetCrossRefs };
+  }
+
+  // Second pass: create fields with properly resolved formulas
   for (let r = layout.dataStartRow; r < data.length; r++) {
     const row = data[r] || [];
     const lineNum = String(row[layout.numberCol] || '').trim();
     const label = String(row[layout.labelCol] || '').trim();
 
     if (!label) continue;
-    // Skip placeholder rows
     if (/^\(Input line item here\)$/i.test(label)) continue;
 
     const hasNumber = lineNum !== '' && (/^\d+$/.test(lineNum) || /^S\d+$/i.test(lineNum));
 
     if (!hasNumber) {
-      // This is a section header (e.g., "ASSETS", "LIABILITIES", "Insurance Revenue")
-      // Check if it's truly a header (no data values in data columns)
       let hasData = false;
       for (let c = layout.dataColStart; c <= layout.dataColEnd; c++) {
         const val = String(row[c] || '').trim();
@@ -440,35 +566,23 @@ function parseFinancialSheet(
       }
     }
 
-    // Create fields for each data column
     for (let ci = 0; ci < layout.columnHeaders.length; ci++) {
       const colIdx = layout.dataColStart + ci;
       const colHeader = layout.columnHeaders[ci];
       const cellAddr = XLSX.utils.encode_cell({ r, c: colIdx });
       const cell = sheet[cellAddr];
+      const fieldName = globalFieldMap.get(cellAddr) || toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
 
       const fieldLabel = layout.columnHeaders.length === 1
         ? label
         : `${label} - ${colHeader}`;
-      const fieldName = toFieldName(`line_${lineNum || r}_col_${ci + 1}`);
-      fieldNameMap.set(cellAddr, fieldName);
 
       let fieldType: FieldType = 'number';
       let calculatedExpression: string | undefined;
 
       if (cell && cell.f) {
         fieldType = 'calculated';
-        // Convert the formula to field token references
-        const formulaFieldMap = new Map<string, string>();
-        // Map column letters to field names for same-row references
-        for (let fc = layout.dataColStart; fc <= layout.dataColEnd; fc++) {
-          const fAddr = XLSX.utils.encode_cell({ r, c: fc });
-          const fName = fieldNameMap.get(fAddr);
-          if (fName) {
-            formulaFieldMap.set(XLSX.utils.encode_col(fc), fName);
-          }
-        }
-        const info = convertFormula(cell.f, formulaFieldMap, sheetName);
+        const info = convertFormulaWithGlobalMap(cell.f);
         calculatedExpression = info.expression;
         if (info.crossSheetRefs.length > 0) {
           info.crossSheetRefs.forEach(ref => { ref.sourceField = fieldName; });
