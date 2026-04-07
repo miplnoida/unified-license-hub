@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
