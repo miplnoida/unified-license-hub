@@ -121,7 +121,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
-  const paymentComplete = paymentStatus === 'success';
+  const paymentComplete = paymentStatus === 'success' || (feeAmount === 0 && feeBreakdown.length === 0);
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
@@ -294,24 +294,56 @@ export default function NewApplication() {
     setCurrentStep('forms');
   };
 
-  // Load applicable fees when moving to payment step
+  // Load applicable fees dynamically from Fee Management (single source of truth)
   const loadFees = async () => {
     if (!selectedSector) return;
-    const { data: fees } = await supabase
+
+    // Build precise filter: match sector + optional sub-sector/category, plus global (null sector) fees
+    let query = supabase
       .from('fee_configurations')
       .select('*')
       .eq('is_active', true)
-      .or(`sector_id.eq.${selectedSector},sector_id.is.null`)
+      .order('fee_type')
       .order('name');
 
+    // Fetch fees that match the selected hierarchy or are global
+    const filters: string[] = [`sector_id.eq.${selectedSector}`, 'sector_id.is.null'];
+    query = query.or(filters.join(','));
+
+    const { data: fees } = await query;
+
     if (fees && fees.length > 0) {
-      const breakdown = fees.map(f => ({ name: f.name, amount: Number(f.amount) }));
+      // Prefer most specific match: category > sub_sector > sector > global
+      const ranked = fees
+        .map(f => ({
+          ...f,
+          specificity:
+            (f.category_id === selectedCategory ? 4 : 0) +
+            (f.sub_sector_id === selectedSubSector ? 2 : 0) +
+            (f.sector_id === selectedSector ? 1 : 0),
+        }))
+        .filter(f =>
+          // Exclude fees scoped to a different sub-sector or category
+          (!f.sub_sector_id || f.sub_sector_id === selectedSubSector) &&
+          (!f.category_id || f.category_id === selectedCategory)
+        )
+        .sort((a, b) => b.specificity - a.specificity);
+
+      // De-duplicate by fee_type – keep the most specific
+      const seen = new Set<string>();
+      const deduped = ranked.filter(f => {
+        if (seen.has(f.fee_type)) return false;
+        seen.add(f.fee_type);
+        return true;
+      });
+
+      const breakdown = deduped.map(f => ({ name: f.name, amount: Number(f.amount), currency: f.currency }));
       setFeeBreakdown(breakdown);
       setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
     } else {
-      // Default fee if none configured
-      setFeeBreakdown([{ name: 'Application Processing Fee', amount: 500 }]);
-      setFeeAmount(500);
+      // No fees configured – allow free submission
+      setFeeBreakdown([]);
+      setFeeAmount(0);
     }
   };
 
@@ -796,22 +828,30 @@ export default function NewApplication() {
                     </div>
                   </div>
                   <div className="p-4 space-y-3">
-                    {feeBreakdown.map((fee, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{fee.name}</span>
-                        <span className="font-medium">${fee.amount.toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Total Amount</span>
-                      <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
-                    </div>
+                    {feeBreakdown.length > 0 ? (
+                      <>
+                        {feeBreakdown.map((fee, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{fee.name}</span>
+                            <span className="font-medium">${fee.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">Total Amount</span>
+                          <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No fees configured for this category. You may proceed without payment.
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Payment Action */}
-                {paymentStatus === 'pending' && (
+                {paymentStatus === 'pending' && feeAmount > 0 && (
                   <div className="flex flex-col items-center gap-4 py-4">
                     <Button
                       size="lg"
@@ -828,6 +868,14 @@ export default function NewApplication() {
                     <p className="text-xs text-muted-foreground text-center">
                       Payment is mandatory before final submission.
                     </p>
+                  </div>
+                )}
+
+                {/* No fees – skip payment */}
+                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+                    <p className="text-sm text-muted-foreground">No payment required. You can proceed to submit.</p>
                   </div>
                 )}
 
