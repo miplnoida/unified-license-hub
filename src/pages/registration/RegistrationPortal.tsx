@@ -8,12 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import {
-  FileText,
-  CheckCircle2,
-  Clock,
-  Layers,
-  LogOut,
-  Save,
+  FileText, CheckCircle2, Clock, Layers, LogOut, Save,
 } from 'lucide-react';
 
 interface Registration {
@@ -25,13 +20,15 @@ interface Registration {
   status: string;
 }
 
-interface PublishedForm {
+interface MatchedForm {
   id: string;
   name: string;
-  category: string;
+  description: string | null;
   sector: string;
-  sub_sector: string;
-  status: string;
+  category: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
 }
 
 interface FormSubmission {
@@ -45,7 +42,7 @@ export default function RegistrationPortal() {
   const navigate = useNavigate();
   const { user, logout, session, loading: authLoading } = useAuth();
   const [registration, setRegistration] = useState<Registration | null>(null);
-  const [forms, setForms] = useState<PublishedForm[]>([]);
+  const [forms, setForms] = useState<MatchedForm[]>([]);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,29 +75,30 @@ export default function RegistrationPortal() {
 
       setRegistration(regData as Registration);
 
-      // Fetch ALL published pre-license forms matching the registration's sector/category
-      let formsQuery = supabase
-        .from('forms')
-        .select('*')
+      // Fetch published pre-license form_templates matching the registration
+      const { data: templatesData } = await supabase
+        .from('form_templates')
+        .select('id, name, description, sector, category, sector_id, sub_sector_id, category_id')
         .eq('form_type', 'pre_license')
         .eq('status', 'published');
 
-      const { data: formsData } = await formsQuery;
+      const allTemplates = (templatesData || []) as MatchedForm[];
+      const reg = regData as Registration;
 
-      // Filter forms that match registration's sector/sub-sector/category (by ID or name)
-      // Show all matching forms, not just one
-      const allForms = (formsData || []) as PublishedForm[];
-      
-      // If forms have sector/category metadata, filter to those matching the registration
-      // Otherwise show all published pre-license forms
-      const filteredForms = allForms.filter(f => {
-        // If form has no sector filter, it applies to all
-        if (!f.sector && !f.category) return true;
-        // Match by sector name or category name
-        return true; // Show all published forms for the registration type
-      });
+      // Filter by category_id > sub_sector_id > sector_id > all
+      let matched = allTemplates.filter(t => t.category_id === reg.category_id);
+      if (matched.length === 0) {
+        matched = allTemplates.filter(t => t.sub_sector_id === reg.sub_sector_id && !t.category_id);
+      }
+      if (matched.length === 0) {
+        matched = allTemplates.filter(t => t.sector_id === reg.sector_id && !t.sub_sector_id && !t.category_id);
+      }
+      if (matched.length === 0) {
+        // Fallback: show all published pre-license forms with no sector filter
+        matched = allTemplates.filter(t => !t.sector_id && !t.sub_sector_id && !t.category_id);
+      }
 
-      setForms(filteredForms);
+      setForms(matched);
 
       // Fetch existing submissions
       const { data: subsData } = await supabase
@@ -127,7 +125,6 @@ export default function RegistrationPortal() {
     if (existing) {
       navigate(`/registration/portal/form/${formId}?submission=${existing.id}`);
     } else {
-      // Create a new draft submission
       const { data, error } = await supabase
         .from('registration_form_submissions')
         .insert({
@@ -256,10 +253,9 @@ export default function RegistrationPortal() {
                       </Badge>
                     )}
                   </div>
-                  <CardDescription>
-                    {form.sector && `Sector: ${form.sector}`}
-                    {form.category && ` • Category: ${form.category}`}
-                  </CardDescription>
+                  {form.description && (
+                    <CardDescription>{form.description}</CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center justify-between">
