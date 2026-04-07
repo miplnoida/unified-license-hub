@@ -97,6 +97,17 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
     );
   }
 
+  if (autoCreating) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+          <span className="text-sm text-muted-foreground">Initializing workflow...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
 
   // If user's role doesn't match, show read-only status
