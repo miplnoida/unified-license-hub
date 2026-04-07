@@ -294,24 +294,56 @@ export default function NewApplication() {
     setCurrentStep('forms');
   };
 
-  // Load applicable fees when moving to payment step
+  // Load applicable fees dynamically from Fee Management (single source of truth)
   const loadFees = async () => {
     if (!selectedSector) return;
-    const { data: fees } = await supabase
+
+    // Build precise filter: match sector + optional sub-sector/category, plus global (null sector) fees
+    let query = supabase
       .from('fee_configurations')
       .select('*')
       .eq('is_active', true)
-      .or(`sector_id.eq.${selectedSector},sector_id.is.null`)
+      .order('fee_type')
       .order('name');
 
+    // Fetch fees that match the selected hierarchy or are global
+    const filters: string[] = [`sector_id.eq.${selectedSector}`, 'sector_id.is.null'];
+    query = query.or(filters.join(','));
+
+    const { data: fees } = await query;
+
     if (fees && fees.length > 0) {
-      const breakdown = fees.map(f => ({ name: f.name, amount: Number(f.amount) }));
+      // Prefer most specific match: category > sub_sector > sector > global
+      const ranked = fees
+        .map(f => ({
+          ...f,
+          specificity:
+            (f.category_id === selectedCategory ? 4 : 0) +
+            (f.sub_sector_id === selectedSubSector ? 2 : 0) +
+            (f.sector_id === selectedSector ? 1 : 0),
+        }))
+        .filter(f =>
+          // Exclude fees scoped to a different sub-sector or category
+          (!f.sub_sector_id || f.sub_sector_id === selectedSubSector) &&
+          (!f.category_id || f.category_id === selectedCategory)
+        )
+        .sort((a, b) => b.specificity - a.specificity);
+
+      // De-duplicate by fee_type – keep the most specific
+      const seen = new Set<string>();
+      const deduped = ranked.filter(f => {
+        if (seen.has(f.fee_type)) return false;
+        seen.add(f.fee_type);
+        return true;
+      });
+
+      const breakdown = deduped.map(f => ({ name: f.name, amount: Number(f.amount), currency: f.currency }));
       setFeeBreakdown(breakdown);
       setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
     } else {
-      // Default fee if none configured
-      setFeeBreakdown([{ name: 'Application Processing Fee', amount: 500 }]);
-      setFeeAmount(500);
+      // No fees configured – allow free submission
+      setFeeBreakdown([]);
+      setFeeAmount(0);
     }
   };
 
