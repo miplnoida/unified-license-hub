@@ -73,14 +73,14 @@ export default function RegistrationFormFill() {
                     title: f.section_title,
                     description: f.section_description || undefined,
                     isRepeatable: f.section_is_repeatable || false,
-                    order: f.section_order,
+                    sortOrder: f.section_order,
                     fields: [],
                   });
                 }
                 const sec = sectionMap.get(f.section_id)!;
                 sec.fields.push({
                   id: f.id,
-                  name: f.field_name,
+                  fieldName: f.field_name,
                   label: f.label,
                   type: f.field_type as any,
                   required: f.required,
@@ -89,13 +89,12 @@ export default function RegistrationFormFill() {
                   defaultValue: f.default_value || undefined,
                   options: f.options as any,
                   validation: f.validation as any,
-                  order: f.sort_order,
                   calculatedExpression: f.calculated_expression || undefined,
                   content: f.content || undefined,
                   tableColumns: f.table_columns as any,
                 });
               }
-              sections = Array.from(sectionMap.values()).sort((a, b) => a.order - b.order);
+              sections = Array.from(sectionMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
             }
           }
 
