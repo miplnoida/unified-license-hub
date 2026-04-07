@@ -108,7 +108,7 @@ export default function PostLicensingApplications() {
         <div className="animate-slide-up delay-200">
           <DataTableShell
             columns={columns}
-            data={apps}
+            data={apps.filter(a => a.status !== 'Draft')}
             searchPlaceholder="Search applications..."
             actions={
               <Button size="sm" onClick={() => navigate('/post-license/new')}>

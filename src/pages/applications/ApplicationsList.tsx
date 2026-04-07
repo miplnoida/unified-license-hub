@@ -186,6 +186,8 @@ export default function ApplicationsList() {
 
   const filtered = useMemo(() => {
     return applications.filter(a => {
+      // Hide draft and in_progress from internal/admin users
+      if (isInternal && ['draft', 'in_progress'].includes(a.status)) return false;
       if (statusFilter !== 'all') {
         if (statusFilter === 'resubmission_requested') {
           if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
@@ -205,14 +207,15 @@ export default function ApplicationsList() {
       }
       return true;
     });
-  }, [applications, statusFilter, search, searchMode, profiles, sectors, subSectors]);
+  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const approved = applications.filter(a => a.status === 'approved').length;
-  const pending = applications.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
-  const rejected = applications.filter(a => a.status === 'rejected').length;
+  const visibleApps = isInternal ? applications.filter(a => !['draft', 'in_progress'].includes(a.status)) : applications;
+  const approved = visibleApps.filter(a => a.status === 'approved').length;
+  const pending = visibleApps.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
+  const rejected = visibleApps.filter(a => a.status === 'rejected').length;
 
   const renderTable = () => (
     <>
@@ -425,7 +428,7 @@ export default function ApplicationsList() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total Requests" value={applications.length} icon={<FileText className="h-6 w-6" />} />
+          <StatCard title="Total Requests" value={visibleApps.length} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Approved" value={approved} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Pending" value={pending} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Rejected" value={rejected} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />
@@ -456,9 +459,9 @@ export default function ApplicationsList() {
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
+                  {!isInternal && <SelectItem value="draft">Draft</SelectItem>}
                   <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  {!isInternal && <SelectItem value="in_progress">In Progress</SelectItem>}
                   <SelectItem value="resubmission_requested">Resubmission Requested</SelectItem>
                   <SelectItem value="approved">Accepted</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
