@@ -72,29 +72,19 @@ export default function PaymentSettings() {
         <Card className="animate-slide-up delay-200">
           <CardHeader>
             <CardTitle className="text-lg">Fee Structure</CardTitle>
+            <CardDescription>
+              Fees are managed centrally via the <strong>Fee Management</strong> module under Admin Hub. Changes made there apply automatically across all application and return workflows.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                { label: 'Pre-License Application Fee', amount: '500.00', currency: 'USD' },
-                { label: 'Post-License Service Fee', amount: '250.00', currency: 'USD' },
-                { label: 'Late Return Penalty (per day)', amount: '50.00', currency: 'USD' },
-                { label: 'License Renewal Fee', amount: '350.00', currency: 'USD' },
-                { label: 'Certificate Issuance Fee', amount: '100.00', currency: 'USD' },
-              ].map(fee => (
-                <div key={fee.label} className="flex items-center justify-between p-4 rounded-lg border">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="font-medium text-foreground">{fee.label}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Input type="number" defaultValue={fee.amount} className="w-32 text-right" />
-                    <Badge variant="outline">{fee.currency}</Badge>
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-lg border border-dashed p-6 text-center space-y-2">
+              <DollarSign className="h-8 w-8 mx-auto text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Fee configurations are maintained in <strong>Admin Hub → Fee Management</strong>.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => navigate('/admin/fee-management')}>
+                Go to Fee Management
+              </Button>
             </div>
           </CardContent>
         </Card>

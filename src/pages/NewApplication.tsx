@@ -828,17 +828,25 @@ export default function NewApplication() {
                     </div>
                   </div>
                   <div className="p-4 space-y-3">
-                    {feeBreakdown.map((fee, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{fee.name}</span>
-                        <span className="font-medium">${fee.amount.toFixed(2)}</span>
-                      </div>
-                    ))}
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Total Amount</span>
-                      <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
-                    </div>
+                    {feeBreakdown.length > 0 ? (
+                      <>
+                        {feeBreakdown.map((fee, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{fee.name}</span>
+                            <span className="font-medium">${fee.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                        <Separator />
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">Total Amount</span>
+                          <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No fees configured for this category. You may proceed without payment.
+                      </p>
+                    )}
                   </div>
                 </div>
 
