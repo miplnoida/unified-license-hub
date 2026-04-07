@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -13,26 +13,13 @@ import { AlertTriangle, Lock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ChangePassword() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [isForced, setIsForced] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('profiles')
-      .select('force_password_change')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => {
-        if ((data as any)?.force_password_change) {
-          setIsForced(true);
-        }
-      });
-  }, [user]);
+  const isForced = !!user?.forcePasswordChange;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +50,17 @@ export default function ChangePassword() {
 
     toast.success('Password updated successfully');
     setSaving(false);
-    navigate('/dashboard');
+    // Force a page reload so AuthContext re-fetches user data with updated flag
+    window.location.href = '/dashboard';
   };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/40">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const content = (
     <div className={isForced ? "min-h-screen flex items-center justify-center bg-muted/40 p-4" : ""}>
