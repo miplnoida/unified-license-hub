@@ -70,7 +70,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (app.status !== "draft") {
+    const isResubmission = app.status === "resubmission_requested" || app.status === "query_raised";
+
+    if (app.status !== "draft" && !isResubmission) {
       return new Response(
         JSON.stringify({ error: `Application is already ${app.status}, cannot submit` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -138,13 +140,36 @@ Deno.serve(async (req) => {
 
     const { data: existing } = await adminClient
       .from("workflow_instances")
-      .select("id, workflow_id, current_step_id")
+      .select("id, workflow_id, current_step_id, status")
       .eq("entity_id", application_id)
       .eq("entity_type", "application")
       .in("status", ["active", "paused"])
       .limit(1);
 
     if (existing && existing.length > 0) {
+      if (existing[0].status === "paused") {
+        const { error: resumeErr } = await adminClient
+          .from("workflow_instances")
+          .update({ status: "active" })
+          .eq("id", existing[0].id)
+          .eq("status", "paused");
+
+        if (resumeErr) {
+          return new Response(
+            JSON.stringify({ error: "Failed to resume workflow: " + resumeErr.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      await adminClient
+        .from("applications")
+        .update({
+          workflow_id: existing[0].workflow_id,
+          current_step_id: existing[0].current_step_id,
+        })
+        .eq("id", application_id);
+
       workflowResult = {
         matched: true,
         workflowId: existing[0].workflow_id,
@@ -207,19 +232,23 @@ Deno.serve(async (req) => {
 
     // 7. Audit log
     await adminClient.from("audit_logs").insert({
-      action: "application_submitted",
+      action: isResubmission ? "application_resubmitted" : "application_submitted",
       entity_type: "application",
       entity_id: application_id,
       user_id: user.id,
-      new_value: { status: "submitted", workflow_matched: workflowResult.matched },
+      new_value: { status: "submitted", workflow_matched: workflowResult.matched, resumed_workflow: isResubmission },
     });
 
     return new Response(
       JSON.stringify({
         success: true,
         message: workflowResult.matched
-          ? "Application submitted and routed to approval workflow"
-          : "Application submitted successfully",
+          ? isResubmission
+            ? "Application resubmitted and workflow resumed"
+            : "Application submitted and routed to approval workflow"
+          : isResubmission
+            ? "Application resubmitted successfully"
+            : "Application submitted successfully",
         workflow_matched: workflowResult.matched,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
