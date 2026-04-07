@@ -19,10 +19,11 @@ import { toast } from 'sonner';
 interface Props {
   applicationId: string;
   workflowId: string | null;
+  applicationStatus: string;
   onStatusChange?: () => void;
 }
 
-export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Props) {
+export function WorkflowPanel({ applicationId, workflowId, applicationStatus, onStatusChange }: Props) {
   const { user } = useAuth();
   const [comment, setComment] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -43,6 +44,7 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
 
   const activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
+  const shouldResumePausedWorkflow = !!pausedInstance && ['submitted', 'in_progress'].includes(applicationStatus);
 
   // Auto-create workflow instance if application has workflow_id but no instance
   useEffect(() => {
@@ -67,6 +69,31 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
     })();
   }, [workflowId, isInternal, instances.length, steps.length]);
 
+  useEffect(() => {
+    if (!workflowId || !pausedInstance || !shouldResumePausedWorkflow || autoCreating) return;
+    setAutoCreating(true);
+
+    (async () => {
+      try {
+        const { error } = await supabase
+          .from('workflow_instances')
+          .update({ status: 'active' } as any)
+          .eq('id', pausedInstance.id)
+          .eq('status', 'paused');
+
+        if (error) {
+          console.error('Auto-resume workflow instance failed', error);
+          return;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
+        onStatusChange?.();
+      } finally {
+        setAutoCreating(false);
+      }
+    })();
+  }, [workflowId, pausedInstance?.id, shouldResumePausedWorkflow, autoCreating, queryClient, onStatusChange]);
+
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isFirstLevel = currentStepIdx === 0;
@@ -79,7 +106,7 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   );
 
   // If workflow is paused (waiting for resubmission), show info card
-  if (!activeInstance && pausedInstance && isInternal) {
+  if (!activeInstance && pausedInstance && isInternal && !shouldResumePausedWorkflow) {
     return (
       <Card>
         <CardHeader className="pb-3">

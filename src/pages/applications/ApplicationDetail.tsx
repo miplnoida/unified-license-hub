@@ -240,33 +240,39 @@ export default function ApplicationDetail() {
     if (!app || !user) return;
     setProcessing(true);
 
-    // Resume paused workflow instance
-    const { data: instances } = await supabase
-      .from('workflow_instances')
-      .select('id, current_step_id')
-      .eq('entity_id', app.id)
-      .eq('entity_type', 'application')
-      .eq('status', 'paused');
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-and-submit', {
+        body: { application_id: app.id },
+      });
 
-    if (instances?.length) {
-      await supabase.from('workflow_instances').update({
-        status: 'active',
-      } as any).eq('id', instances[0].id);
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      await supabase.from('approval_actions').insert({
+        application_id: app.id,
+        action: 'resubmitted',
+        actor_id: user.id,
+        comments: actionComment || 'Application resubmitted after revision',
+      } as any);
+
+      await logAudit({
+        action: 'application_resubmitted',
+        entityType: 'application',
+        entityId: app.id,
+        newValue: { status: 'submitted' },
+      });
+
+      toast.success(data?.message || 'Application resubmitted successfully');
+      setActionComment('');
+      loadData();
+    } catch (err: any) {
+      toast.error('Resubmission failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setProcessing(false);
     }
-
-    await supabase.from('applications').update({
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-    } as any).eq('id', app.id);
-    await supabase.from('approval_actions').insert({
-      application_id: app.id, action: 'resubmitted', actor_id: user.id,
-      comments: actionComment || 'Application resubmitted after revision',
-    } as any);
-    await logAudit({ action: 'application_resubmitted', entityType: 'application', entityId: app.id });
-    toast.success('Application resubmitted successfully');
-    setActionComment('');
-    loadData();
-    setProcessing(false);
   };
 
   // Admin/Regulator requests resubmission (without workflow)
@@ -453,6 +459,7 @@ export default function ApplicationDetail() {
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
+                applicationStatus={app.status}
                 onStatusChange={loadData}
               />
             )}
