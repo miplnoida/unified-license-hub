@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
@@ -37,8 +38,35 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const { data: instances = [] } = useWorkflowInstances('application', applicationId);
   const performAction = usePerformAction();
 
+  const [autoCreating, setAutoCreating] = useState(false);
+  const queryClient = useQueryClient();
+
   const activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
+
+  // Auto-create workflow instance if application has workflow_id but no instance
+  useEffect(() => {
+    if (!workflowId || !isInternal || activeInstance || pausedInstance || instances.length > 0 || steps.length === 0 || autoCreating) return;
+    setAutoCreating(true);
+    const firstStep = steps[0];
+    (async () => {
+      try {
+        await supabase.from('workflow_instances').insert({
+          workflow_id: workflowId,
+          entity_type: 'application',
+          entity_id: applicationId,
+          current_step_id: firstStep?.id || null,
+          status: 'active',
+        } as any);
+        queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
+      } catch (e) {
+        console.error('Auto-create workflow instance failed', e);
+      } finally {
+        setAutoCreating(false);
+      }
+    })();
+  }, [workflowId, isInternal, instances.length, steps.length]);
+
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isFirstLevel = currentStepIdx === 0;
@@ -64,6 +92,17 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
           <p className="text-sm text-muted-foreground">
             This application has been sent back to the applicant for resubmission. The workflow will resume once the applicant resubmits.
           </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (autoCreating) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+          <span className="text-sm text-muted-foreground">Initializing workflow...</span>
         </CardContent>
       </Card>
     );
