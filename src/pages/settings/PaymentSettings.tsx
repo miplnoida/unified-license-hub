@@ -10,7 +10,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+
 import { Save, CreditCard, DollarSign, Shield, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
