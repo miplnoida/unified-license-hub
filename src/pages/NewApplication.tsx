@@ -851,7 +851,7 @@ export default function NewApplication() {
                 </div>
 
                 {/* Payment Action */}
-                {paymentStatus === 'pending' && (
+                {paymentStatus === 'pending' && feeAmount > 0 && (
                   <div className="flex flex-col items-center gap-4 py-4">
                     <Button
                       size="lg"
@@ -868,6 +868,14 @@ export default function NewApplication() {
                     <p className="text-xs text-muted-foreground text-center">
                       Payment is mandatory before final submission.
                     </p>
+                  </div>
+                )}
+
+                {/* No fees – skip payment */}
+                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
+                    <p className="text-sm text-muted-foreground">No payment required. You can proceed to submit.</p>
                   </div>
                 )}
 
