@@ -38,58 +38,55 @@ export default function PreLicenseeRegistration() {
     setSubmitting(true);
 
     try {
-      // 1. Create Supabase auth account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: `${form.firstName} ${form.lastName}`,
-            entity_name: form.applicantName,
-            role: 'pre_licensee',
-            user_type: 'primary',
-          },
+      // Use edge function to create user + registration atomically (bypasses RLS issues)
+      const { data, error } = await supabase.functions.invoke('register-pre-licensee', {
+        body: {
+          email: form.email,
+          password: form.password,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          applicant_name: form.applicantName,
+          applicant_name_alt: form.applicantNameAlt,
+          sector_id: form.sectorId,
+          sub_sector_id: form.subSectorId,
+          category_id: form.categoryId,
+          mailing_address: form.mailingAddress,
+          physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
+          same_as_mailing: form.sameAsMailing,
+          telephone: form.telephone,
         },
       });
 
-      if (authError) {
-        toast.error(authError.message);
+      if (error) {
+        toast.error(error.message || 'Registration failed. Please try again.');
         setSubmitting(false);
         return;
       }
 
-      if (!authData.user) {
-        toast.error('Failed to create account. Please try again.');
+      if (data?.error) {
+        toast.error(data.error);
         setSubmitting(false);
         return;
       }
 
-      // 2. Save registration data to DB
-      const { error: regError } = await supabase.from('registrations').insert([{
-        user_id: authData.user.id,
-        sector_id: form.sectorId,
-        sub_sector_id: form.subSectorId,
-        category_id: form.categoryId,
-        applicant_name: form.applicantName,
-        applicant_name_alt: form.applicantNameAlt,
-        mailing_address: JSON.parse(JSON.stringify(form.mailingAddress)),
-        physical_address: JSON.parse(JSON.stringify(form.sameAsMailing ? form.mailingAddress : form.physicalAddress)),
-        same_as_mailing: form.sameAsMailing,
-        first_name: form.firstName,
-        last_name: form.lastName,
-        telephone: form.telephone,
+      if (data?.warning) {
+        toast.warning(data.warning);
+      }
+
+      // Sign in the newly created user
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
-        status: 'pending_verification',
-      }]);
+        password: form.password,
+      });
 
-      if (regError) {
-        console.error('Registration save error:', regError);
-        toast.error('Account created but failed to save registration details. Please contact support.');
-        setSubmitting(false);
+      if (signInError) {
+        toast.error('Account created but sign-in failed. Please log in manually.');
+        reset();
+        navigate('/');
         return;
       }
 
-      // 3. Clear form and navigate to portal
+      // Clear form and navigate to portal
       reset();
       toast.success('Registration successful! You can now fill your application forms.');
       navigate('/registration/portal');
