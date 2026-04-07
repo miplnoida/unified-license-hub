@@ -37,8 +37,37 @@ export function WorkflowPanel({ applicationId, workflowId, onStatusChange }: Pro
   const { data: instances = [] } = useWorkflowInstances('application', applicationId);
   const performAction = usePerformAction();
 
-  const activeInstance = instances.find(i => i.status === 'active');
+  const [autoCreating, setAutoCreating] = useState(false);
+
+  let activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
+
+  // Auto-create workflow instance if application has workflow_id but no instance
+  const queryClient = useQueryClient();
+  const needsAutoCreate = workflowId && isInternal && !activeInstance && !pausedInstance && instances.length === 0 && steps.length > 0 && !autoCreating;
+
+  if (needsAutoCreate && !autoCreating) {
+    // Trigger async creation
+    setAutoCreating(true);
+    (async () => {
+      try {
+        const firstStep = steps[0];
+        await supabase.from('workflow_instances').insert({
+          workflow_id: workflowId,
+          entity_type: 'application',
+          entity_id: applicationId,
+          current_step_id: firstStep?.id || null,
+          status: 'active',
+        } as any);
+        queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
+      } catch (e) {
+        console.error('Auto-create workflow instance failed', e);
+      } finally {
+        setAutoCreating(false);
+      }
+    })();
+  }
+
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isFirstLevel = currentStepIdx === 0;
