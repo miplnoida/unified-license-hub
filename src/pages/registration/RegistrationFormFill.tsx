@@ -31,19 +31,94 @@ export default function RegistrationFormFill() {
   async function loadFormAndData() {
     setLoading(true);
     try {
-      const { data: form } = await supabase
-        .from('forms')
-        .select('name, rows')
+      // First try form_templates (new system)
+      const { data: template } = await supabase
+        .from('form_templates')
+        .select('id, name')
         .eq('id', formId!)
         .single();
 
-      if (form) {
-        setFormDef({
-          name: form.name,
-          sections: (form.rows as unknown as FormSection[]) || [],
-        });
+      if (template) {
+        // Get the latest published version
+        const { data: version } = await supabase
+          .from('form_versions')
+          .select('id, schema_snapshot')
+          .eq('template_id', template.id)
+          .eq('status', 'published')
+          .order('version', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (version) {
+          // Try schema_snapshot first
+          let sections: FormSection[] = [];
+          const snapshot = version.schema_snapshot as any;
+          if (Array.isArray(snapshot) && snapshot.length > 0) {
+            sections = snapshot as FormSection[];
+          } else {
+            // Fallback: build from form_fields
+            const { data: fields } = await supabase
+              .from('form_fields')
+              .select('*')
+              .eq('version_id', version.id)
+              .order('section_order', { ascending: true })
+              .order('sort_order', { ascending: true });
+
+            if (fields && fields.length > 0) {
+              const sectionMap = new Map<string, FormSection>();
+              for (const f of fields) {
+                if (!sectionMap.has(f.section_id)) {
+                  sectionMap.set(f.section_id, {
+                    id: f.section_id,
+                    title: f.section_title,
+                    description: f.section_description || undefined,
+                    isRepeatable: f.section_is_repeatable || false,
+                    sortOrder: f.section_order,
+                    fields: [],
+                  });
+                }
+                const sec = sectionMap.get(f.section_id)!;
+                sec.fields.push({
+                  id: f.id,
+                  fieldName: f.field_name,
+                  label: f.label,
+                  type: f.field_type as any,
+                  required: f.required,
+                  placeholder: f.placeholder || undefined,
+                  helpText: f.help_text || undefined,
+                  defaultValue: f.default_value || undefined,
+                  options: f.options as any,
+                  validation: f.validation as any,
+                  calculatedExpression: f.calculated_expression || undefined,
+                  content: f.content || undefined,
+                  tableColumns: f.table_columns as any,
+                });
+              }
+              sections = Array.from(sectionMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+            }
+          }
+
+          setFormDef({ name: template.name, sections });
+        } else {
+          setFormDef({ name: template.name, sections: [] });
+        }
+      } else {
+        // Fallback: try legacy forms table
+        const { data: form } = await supabase
+          .from('forms')
+          .select('name, rows')
+          .eq('id', formId!)
+          .single();
+
+        if (form) {
+          setFormDef({
+            name: form.name,
+            sections: (form.rows as unknown as FormSection[]) || [],
+          });
+        }
       }
 
+      // Load saved data
       if (submissionId) {
         const { data: sub } = await supabase
           .from('registration_form_submissions')
