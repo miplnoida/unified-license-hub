@@ -285,6 +285,210 @@ export default function ApplicationsList() {
     setCollapsedGroups(new Set());
   };
 
+  const renderAppRow = (app: Application) => {
+    const actions = getAppActions(app.id);
+    const isExpanded = expandedId === app.id;
+    const sectorName = resolveField(app, 'sector_id');
+    const subSectorName = resolveField(app, 'sub_sector_id');
+    const categoryName = resolveField(app, 'category_id');
+    const serviceName = resolveField(app, 'service_id');
+    const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
+    const payment = payments[app.id];
+    return (
+      <Fragment key={app.id}>
+        <TableRow
+          className="cursor-pointer hover:bg-muted/50"
+          onClick={() => navigate(`/applications/${app.id}`)}
+        >
+          <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
+          <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
+          <TableCell className="text-sm">
+            {(app.data as any)?.service_id ? 'Post Licensee' : (app.data as any)?.category_id ? 'Pre Licensee' : '—'}
+          </TableCell>
+          <TableCell className="text-sm">{sectorName}</TableCell>
+          <TableCell className="text-sm">{subSectorName}</TableCell>
+          <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
+          <TableCell>
+            {payment ? (
+              <div
+                className="flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+                onClick={e => {
+                  e.stopPropagation();
+                  setSelectedPaymentApp({
+                    payment,
+                    applicantName: getApplicantName(app.applicant_id),
+                    applicationNumber: app.application_number,
+                    applicantId: app.applicant_id,
+                  });
+                  setPaymentDialogOpen(true);
+                }}
+              >
+                <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
+                <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
+                  {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                </Badge>
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+          </TableCell>
+          <TableCell>
+            <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs">
+              {APPLICATION_STATUS_LABELS[app.status] || app.status}
+            </Badge>
+          </TableCell>
+          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+            {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
+          </TableCell>
+          <TableCell>
+            {actions.length > 0 ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1"
+                onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : app.id); }}
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="text-xs">{actions.length}</span>
+                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
+          </TableCell>
+          <TableCell className="text-right">
+            <div className="flex items-center justify-end gap-1">
+              <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
+                <Eye className="h-4 w-4 mr-1" />View
+              </Button>
+              {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
+                <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
+                  <Pencil className="h-4 w-4 mr-1" />Edit
+                </Button>
+              )}
+              {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={async e => {
+                    e.stopPropagation();
+                    if (!window.confirm('Are you sure you want to cancel this application?')) return;
+                    const { error } = await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
+                    if (error) { toast.error(error.message); return; }
+                    await supabase.from('approval_actions').insert({
+                      application_id: app.id, action: 'cancelled', actor_id: user!.id,
+                      comments: 'Application cancelled by applicant',
+                    } as any);
+                    toast.success('Application cancelled');
+                    setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
+                  }}
+                >
+                  <Ban className="h-4 w-4 mr-1" />Cancel
+                </Button>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+        {isExpanded && actions.length > 0 && (
+          <TableRow key={`${app.id}-history`}>
+            <TableCell colSpan={11} className="bg-muted/30 p-4">
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
+                {actions.map(evt => (
+                  <div key={evt.id} className="flex gap-3 items-start border-l-2 border-primary/30 pl-3 py-1">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {evt.action.replace(/_/g, ' ')}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(evt.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">by {evt.actor_email}</p>
+                      {evt.comments && (
+                        <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-muted pl-2">
+                          "{evt.comments}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </Fragment>
+    );
+  };
+
+  type GroupNode = { label: string; children: GroupNode[] | Application[] };
+
+  const isAppArray = (children: GroupNode[] | Application[]): children is Application[] => {
+    return children.length === 0 || 'application_number' in children[0];
+  };
+
+  const countApps = (node: GroupNode): number => {
+    if (isAppArray(node.children)) return node.children.length;
+    return (node.children as GroupNode[]).reduce((sum, c) => sum + countApps(c), 0);
+  };
+
+  const renderGrouped = (nodes: GroupNode[], depth: number, parentKey: string): React.ReactNode => {
+    const depthColors = ['bg-primary/5', 'bg-accent/5', 'bg-muted/30'];
+    return nodes.map(node => {
+      const groupKey = `${parentKey}/${node.label}`;
+      const isCollapsed = collapsedGroups.has(groupKey);
+      const count = countApps(node);
+      const fieldLabel = GROUP_BY_OPTIONS.find(o => o.value === groupByOrder[depth])?.label || '';
+
+      return (
+        <div key={groupKey}>
+          <button
+            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors ${depthColors[depth] || ''}`}
+            style={{ paddingLeft: `${(depth * 1.5) + 1}rem` }}
+            onClick={() => toggleGroup(groupKey)}
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+            <span className="text-xs text-muted-foreground">{fieldLabel}:</span>
+            <span className="text-sm font-medium text-foreground">{node.label}</span>
+            <Badge variant="secondary" className="text-[10px] ml-auto">{count}</Badge>
+          </button>
+          {!isCollapsed && (
+            isAppArray(node.children) ? (
+              <Card className="mb-2" style={{ marginLeft: `${(depth * 1.5) + 1.5}rem`, marginRight: '1rem' }}>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Application #</TableHead>
+                        <TableHead>Applicant</TableHead>
+                        <TableHead>License Type</TableHead>
+                        <TableHead>Sector</TableHead>
+                        <TableHead>Sub Sector</TableHead>
+                        <TableHead>Category / Service</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>History</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {node.children.map(app => renderAppRow(app))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            ) : (
+              renderGrouped(node.children as GroupNode[], depth + 1, groupKey)
+            )
+          )}
+        </div>
+      );
+    });
+  };
+
   const renderTable = () => (
     <>
       <Card>
@@ -317,144 +521,7 @@ export default function ApplicationsList() {
                       No applications found.
                     </TableCell>
                   </TableRow>
-                ) : paged.map(app => {
-                  const actions = getAppActions(app.id);
-                  const isExpanded = expandedId === app.id;
-                  const sectorName = resolveField(app, 'sector_id');
-                  const subSectorName = resolveField(app, 'sub_sector_id');
-                  const categoryName = resolveField(app, 'category_id');
-                  const serviceName = resolveField(app, 'service_id');
-                  const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
-                  const payment = payments[app.id];
-                  return (
-                    <> 
-                      <TableRow
-                        key={app.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/applications/${app.id}`)}
-                      >
-                        <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
-                        <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
-                        <TableCell className="text-sm">
-                          {(app.data as any)?.service_id ? 'Post Licensee' : (app.data as any)?.category_id ? 'Pre Licensee' : '—'}
-                        </TableCell>
-                        <TableCell className="text-sm">{sectorName}</TableCell>
-                        <TableCell className="text-sm">{subSectorName}</TableCell>
-                        <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
-                        <TableCell>
-                          {payment ? (
-                            <div
-                              className="flex items-center gap-1.5 cursor-pointer hover:opacity-80"
-                              onClick={e => {
-                                e.stopPropagation();
-                                setSelectedPaymentApp({
-                                  payment,
-                                  applicantName: getApplicantName(app.applicant_id),
-                                  applicationNumber: app.application_number,
-                                  applicantId: app.applicant_id,
-                                });
-                                setPaymentDialogOpen(true);
-                              }}
-                            >
-                              <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
-                              <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
-                                {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                              </Badge>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs">
-                            {APPLICATION_STATUS_LABELS[app.status] || app.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          {actions.length > 0 ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="gap-1"
-                              onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : app.id); }}
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                              <span className="text-xs">{actions.length}</span>
-                              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
-                              <Eye className="h-4 w-4 mr-1" />View
-                            </Button>
-                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
-                              <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
-                                <Pencil className="h-4 w-4 mr-1" />Edit
-                              </Button>
-                            )}
-                            {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={async e => {
-                                  e.stopPropagation();
-                                  if (!window.confirm('Are you sure you want to cancel this application?')) return;
-                                  const { error } = await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
-                                  if (error) { toast.error(error.message); return; }
-                                  await supabase.from('approval_actions').insert({
-                                    application_id: app.id, action: 'cancelled', actor_id: user!.id,
-                                    comments: 'Application cancelled by applicant',
-                                  } as any);
-                                  toast.success('Application cancelled');
-                                  setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
-                                }}
-                              >
-                                <Ban className="h-4 w-4 mr-1" />Cancel
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      {isExpanded && actions.length > 0 && (
-                        <TableRow key={`${app.id}-history`}>
-                          <TableCell colSpan={11} className="bg-muted/30 p-4">
-                            <div className="space-y-2 max-h-60 overflow-y-auto">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
-                              {actions.map(evt => (
-                                <div key={evt.id} className="flex gap-3 items-start border-l-2 border-primary/30 pl-3 py-1">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <Badge variant="outline" className="text-[10px] capitalize">
-                                        {evt.action.replace(/_/g, ' ')}
-                                      </Badge>
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {new Date(evt.created_at).toLocaleString()}
-                                      </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-0.5">by {evt.actor_email}</p>
-                                    {evt.comments && (
-                                      <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-muted pl-2">
-                                        "{evt.comments}"
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </>
-                  );
-                })}
+                ) : paged.map(app => renderAppRow(app))}
               </TableBody>
             </Table>
           )}
