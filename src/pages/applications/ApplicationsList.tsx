@@ -117,7 +117,9 @@ export default function ApplicationsList() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPaymentApp, setSelectedPaymentApp] = useState<{ payment: PaymentInfo; applicantName: string; applicationNumber: string; applicantId: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
+  const [groupByOrder, setGroupByOrder] = useState<GroupByField[]>(['license_type', 'sector', 'sub_sector']);
+  const [groupingEnabled, setGroupingEnabled] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
 
   useEffect(() => {
