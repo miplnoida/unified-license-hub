@@ -219,13 +219,71 @@ export default function ApplicationsList() {
     });
   }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = groupingEnabled ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = groupingEnabled ? filtered : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const visibleApps = isInternal ? applications.filter(a => !['draft', 'in_progress'].includes(a.status)) : applications;
   const approved = visibleApps.filter(a => a.status === 'approved').length;
   const pending = visibleApps.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
   const rejected = visibleApps.filter(a => a.status === 'rejected').length;
+
+  const resolveGroupValue = (app: Application, field: GroupByField): string => {
+    const data = app.data as any;
+    switch (field) {
+      case 'license_type':
+        return data?.service_id ? 'Post Licensee' : data?.category_id ? 'Pre Licensee' : 'Unclassified';
+      case 'sector':
+        return data?.sector_id ? (sectors[data.sector_id] || 'Unknown Sector') : 'No Sector';
+      case 'sub_sector':
+        return data?.sub_sector_id ? (subSectors[data.sub_sector_id] || 'Unknown Sub-Sector') : 'No Sub-Sector';
+      default:
+        return 'Other';
+    }
+  };
+
+  const groupedData = useMemo(() => {
+    if (!groupingEnabled) return null;
+    type GroupNode = { label: string; children: GroupNode[] | Application[] };
+    
+    const buildGroups = (items: Application[], levels: GroupByField[], depth: number): GroupNode[] => {
+      if (depth >= levels.length) return [];
+      const field = levels[depth];
+      const map = new Map<string, Application[]>();
+      items.forEach(app => {
+        const key = resolveGroupValue(app, field);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(app);
+      });
+      return Array.from(map.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([label, apps]) => ({
+          label,
+          children: depth + 1 < levels.length ? buildGroups(apps, levels, depth + 1) : apps,
+        }));
+    };
+    return buildGroups(filtered, groupByOrder, 0);
+  }, [filtered, groupingEnabled, groupByOrder, sectors, subSectors]);
+
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const moveGroupField = (field: GroupByField, direction: 'up' | 'down') => {
+    setGroupByOrder(prev => {
+      const idx = prev.indexOf(field);
+      if (idx < 0) return prev;
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const copy = [...prev];
+      [copy[idx], copy[newIdx]] = [copy[newIdx], copy[idx]];
+      return copy;
+    });
+    setCollapsedGroups(new Set());
+  };
 
   const renderTable = () => (
     <>
