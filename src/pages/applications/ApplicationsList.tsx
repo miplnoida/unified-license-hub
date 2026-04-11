@@ -80,6 +80,14 @@ interface PaymentInfo {
 
 type SearchMode = 'contains' | 'starts_with' | 'exact';
 
+type GroupByField = 'license_type' | 'sector' | 'sub_sector';
+
+const GROUP_BY_OPTIONS: { value: GroupByField; label: string }[] = [
+  { value: 'license_type', label: 'License Type' },
+  { value: 'sector', label: 'Sector' },
+  { value: 'sub_sector', label: 'Sub-Sector' },
+];
+
 const TAB_STATUS_MAP: Record<string, ApplicationStatus[]> = {
   submitted: ['submitted', 'in_progress'],
   resubmission: ['resubmission_requested'],
