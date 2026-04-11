@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
     if (payErr || !payments || payments.length === 0) {
       return new Response(
         JSON.stringify({ error: "No completed payment found for this application. Please complete payment first." }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

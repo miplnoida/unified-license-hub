@@ -216,7 +216,11 @@ export default function ApplicationForms() {
       const { data, error } = await supabase.functions.invoke('verify-and-submit', {
         body: { application_id: applicationId },
       });
-      if (error) throw error;
+      if (error) {
+        const errMsg = typeof error === 'object' && error.message ? error.message : String(error);
+        toast.error(errMsg || 'Submission failed');
+        return;
+      }
       if (data?.error) {
         toast.error(data.error);
         return;
