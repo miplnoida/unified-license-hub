@@ -536,16 +536,55 @@ export default function ApplicationsList() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant={groupingEnabled ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => { setGroupingEnabled(g => !g); setPage(0); setCollapsedGroups(new Set()); }}
+              >
+                <Layers className="h-4 w-4 mr-2" />
+                {groupingEnabled ? 'Grouped' : 'Group By'}
+              </Button>
               <Button variant="outline" size="sm" className="ml-auto">
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
+
+            {/* Grouping configuration */}
+            {groupingEnabled && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Grouping Priority (drag order):</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {groupByOrder.map((field, idx) => {
+                    const opt = GROUP_BY_OPTIONS.find(o => o.value === field);
+                    return (
+                      <div key={field} className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-3 py-1.5">
+                        <span className="text-xs font-medium">{idx + 1}. {opt?.label}</span>
+                        <Button
+                          variant="ghost" size="sm" className="h-5 w-5 p-0"
+                          disabled={idx === 0}
+                          onClick={() => moveGroupField(field, 'up')}
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm" className="h-5 w-5 p-0"
+                          disabled={idx === groupByOrder.length - 1}
+                          onClick={() => moveGroupField(field, 'down')}
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Application List */}
         <div className="space-y-4">
-          {renderTable()}
+          {groupingEnabled && groupedData ? renderGrouped(groupedData, 0, '') : renderTable()}
         </div>
 
         <PaymentVerificationDialog
