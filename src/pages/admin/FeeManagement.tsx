@@ -652,6 +652,72 @@ export default function FeeManagement() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="fee-types" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog open={ftDialogOpen} onOpenChange={(v) => { setFtDialogOpen(v); if (!v) resetFtForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee Type</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader><DialogTitle>{ftEditing ? 'Edit Fee Type' : 'New Fee Type'}</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Name *</Label>
+                      <Input value={ftName} onChange={e => setFtName(e.target.value)} placeholder="e.g. Application Fee" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Code</Label>
+                      <Input value={ftCode} onChange={e => setFtCode(e.target.value)} placeholder="e.g. APP_FEE (optional)" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={ftStatus} onValueChange={setFtStatus}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleSaveFt} disabled={saving} className="w-full">
+                      {saving ? 'Saving...' : ftEditing ? 'Update' : 'Create'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {feeTypesData.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No fee types configured</TableCell></TableRow>
+                    ) : feeTypesData.map(ft => (
+                      <TableRow key={ft.id}>
+                        <TableCell className="font-medium">{ft.name}</TableCell>
+                        <TableCell className="font-mono text-sm text-muted-foreground">{ft.code || '—'}</TableCell>
+                        <TableCell><Badge variant={ft.status === 'active' ? 'default' : 'secondary'}>{ft.status === 'active' ? 'Active' : 'Inactive'}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => openEditFt(ft)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteFt(ft.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
