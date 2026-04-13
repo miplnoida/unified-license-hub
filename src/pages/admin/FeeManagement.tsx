@@ -350,12 +350,12 @@ export default function FeeManagement() {
                         <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Application Fee" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Fee Type</Label>
-                        <Select value={feeType} onValueChange={v => setFeeType(v as FeeType)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Label>Fee Type *</Label>
+                        <Select value={feeType} onValueChange={setFeeType}>
+                          <SelectTrigger><SelectValue placeholder="Select fee type..." /></SelectTrigger>
                           <SelectContent>
-                            {Object.entries(FEE_TYPE_LABELS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v}</SelectItem>
+                            {feeTypesData.filter(ft => ft.status === 'active').map(ft => (
+                              <SelectItem key={ft.id} value={ft.name}>{ft.name}{ft.code ? ` (${ft.code})` : ''}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -484,7 +484,7 @@ export default function FeeManagement() {
                       ) : fees.map(fee => (
                         <TableRow key={fee.id}>
                           <TableCell className="font-medium">{fee.name}</TableCell>
-                          <TableCell><Badge variant="outline">{FEE_TYPE_LABELS[fee.fee_type]}</Badge></TableCell>
+                          <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
                           <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
                           <TableCell className="font-mono">
                             {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
