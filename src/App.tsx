@@ -60,6 +60,7 @@ const AdminHub = lazy(() => import("./pages/admin/AdminHub"));
 const NotificationTemplates = lazy(() => import("./pages/admin/NotificationTemplates"));
 const ComplaintTypes = lazy(() => import("./pages/admin/ComplaintTypes"));
 const ApprovedLicensees = lazy(() => import("./pages/admin/ApprovedLicensees"));
+const RegistrationFormBuilder = lazy(() => import("./pages/admin/RegistrationFormBuilder"));
 const ViewReturns = lazy(() => import("./pages/returns-mgmt/ViewReturns"));
 
 // Returns Management - Admin
@@ -193,6 +194,7 @@ function AppRoutes() {
         <Route path="/admin/notification-templates" element={<P><AdminRoute><NotificationTemplates /></AdminRoute></P>} />
         <Route path="/admin/complaint-types" element={<P><AdminRoute><ComplaintTypes /></AdminRoute></P>} />
         <Route path="/admin/approved-licensees" element={<P><AdminRoute><ApprovedLicensees /></AdminRoute></P>} />
+        <Route path="/admin/registration-forms" element={<P><AdminRoute><RegistrationFormBuilder /></AdminRoute></P>} />
 
         <Route path="/settings" element={<P><SettingsRoute><SettingsHub /></SettingsRoute></P>} />
         <Route path="/settings/general" element={<P><SettingsRoute><GeneralSettings /></SettingsRoute></P>} />
