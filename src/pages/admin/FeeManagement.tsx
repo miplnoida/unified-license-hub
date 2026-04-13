@@ -65,6 +65,14 @@ export default function FeeManagement() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('configurations');
 
+  // Fee Types master state
+  const [feeTypesData, setFeeTypesData] = useState<{ id: string; name: string; code: string | null; status: string; created_at: string }[]>([]);
+  const [ftDialogOpen, setFtDialogOpen] = useState(false);
+  const [ftEditing, setFtEditing] = useState<{ id: string; name: string; code: string | null; status: string } | null>(null);
+  const [ftName, setFtName] = useState('');
+  const [ftCode, setFtCode] = useState('');
+  const [ftStatus, setFtStatus] = useState('active');
+
   // Fee form state
   const [name, setName] = useState('');
   const [feeType, setFeeType] = useState<FeeType>('application');
@@ -113,7 +121,40 @@ export default function FeeManagement() {
     if (!error) setRules((data || []) as any);
   };
 
-  useEffect(() => { loadFees(); loadRules(); }, [activeRegulatorId]);
+  const loadFeeTypes = async () => {
+    const { data } = await supabase.from('fee_types' as any).select('*').order('name');
+    if (data) setFeeTypesData(data as any);
+  };
+
+  useEffect(() => { loadFees(); loadRules(); loadFeeTypes(); }, [activeRegulatorId]);
+
+  const resetFtForm = () => { setFtName(''); setFtCode(''); setFtStatus('active'); setFtEditing(null); };
+
+  const openEditFt = (ft: any) => {
+    setFtEditing(ft); setFtName(ft.name); setFtCode(ft.code || ''); setFtStatus(ft.status); setFtDialogOpen(true);
+  };
+
+  const handleSaveFt = async () => {
+    if (!ftName.trim()) { toast.error('Name is required'); return; }
+    setSaving(true);
+    const payload: any = { name: ftName.trim(), code: ftCode.trim() || null, status: ftStatus };
+    if (ftEditing) {
+      const { error } = await supabase.from('fee_types' as any).update(payload).eq('id', ftEditing.id);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success('Fee type updated');
+    } else {
+      const { error } = await supabase.from('fee_types' as any).insert(payload);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success('Fee type created');
+    }
+    setSaving(false); setFtDialogOpen(false); resetFtForm(); loadFeeTypes();
+  };
+
+  const handleDeleteFt = async (id: string) => {
+    const { error } = await supabase.from('fee_types' as any).delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Fee type deleted'); loadFeeTypes();
+  };
 
   const resetForm = () => {
     setName(''); setFeeType('application'); setAmount(''); setCurrency('USD');
@@ -291,6 +332,7 @@ export default function FeeManagement() {
           <TabsList>
             <TabsTrigger value="configurations">Fee Configurations</TabsTrigger>
             <TabsTrigger value="rules">Rules & Exemptions</TabsTrigger>
+            <TabsTrigger value="fee-types">Fee Types</TabsTrigger>
           </TabsList>
 
           <TabsContent value="configurations" className="space-y-4">
@@ -602,6 +644,72 @@ export default function FeeManagement() {
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => openEditRule(rule)}><Pencil className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteRule(rule.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="fee-types" className="space-y-4">
+            <div className="flex justify-end">
+              <Dialog open={ftDialogOpen} onOpenChange={(v) => { setFtDialogOpen(v); if (!v) resetFtForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee Type</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader><DialogTitle>{ftEditing ? 'Edit Fee Type' : 'New Fee Type'}</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Name *</Label>
+                      <Input value={ftName} onChange={e => setFtName(e.target.value)} placeholder="e.g. Application Fee" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Code</Label>
+                      <Input value={ftCode} onChange={e => setFtCode(e.target.value)} placeholder="e.g. APP_FEE (optional)" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select value={ftStatus} onValueChange={setFtStatus}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleSaveFt} disabled={saving} className="w-full">
+                      {saving ? 'Saving...' : ftEditing ? 'Update' : 'Create'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {feeTypesData.length === 0 ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No fee types configured</TableCell></TableRow>
+                    ) : feeTypesData.map(ft => (
+                      <TableRow key={ft.id}>
+                        <TableCell className="font-medium">{ft.name}</TableCell>
+                        <TableCell className="font-mono text-sm text-muted-foreground">{ft.code || '—'}</TableCell>
+                        <TableCell><Badge variant={ft.status === 'active' ? 'default' : 'secondary'}>{ft.status === 'active' ? 'Active' : 'Inactive'}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => openEditFt(ft)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteFt(ft.id)}><Trash2 className="h-4 w-4" /></Button>
                         </TableCell>
                       </TableRow>
                     ))}

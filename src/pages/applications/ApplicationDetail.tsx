@@ -15,6 +15,7 @@ import { startWorkflowForApplication } from '@/lib/workflowService';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
+import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
@@ -354,6 +355,7 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="fees">Fees</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
@@ -414,6 +416,10 @@ export default function ApplicationDetail() {
                     </div>
                   </CardContent>
                 </Card>
+                <FeeComponentsPanel
+                  applicationId={app.id}
+                  editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                />
               </TabsContent>
 
               {hasSubmittedForms && (
@@ -451,6 +457,13 @@ export default function ApplicationDetail() {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="fees" className="mt-4">
+                <FeeComponentsPanel
+                  applicationId={app.id}
+                  editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                />
               </TabsContent>
             </Tabs>
 
