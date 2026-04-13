@@ -8,13 +8,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
 
+interface DeclarationConfig {
+  label: string;
+  required: boolean;
+  linkUrl?: string;
+  linkLabel?: string;
+}
+
 interface Props {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  declarations?: DeclarationConfig[];
+  termsUrl?: string;
+  privacyUrl?: string;
+  dataProtectionUrl?: string;
+  requireOtp?: boolean;
+  requireCaptcha?: boolean;
 }
 
-export function DeclarationsStep({ form, errors, setField }: Props) {
+export function DeclarationsStep({ form, errors, setField, declarations, termsUrl, privacyUrl, dataProtectionUrl, requireOtp = true, requireCaptcha = true }: Props) {
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
