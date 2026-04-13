@@ -355,6 +355,7 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="fees">Fees</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
