@@ -37,6 +37,7 @@ const FORM_TYPES = [
   { value: 'pre_license', label: 'Pre-License' },
   { value: 'post_license', label: 'Post-License' },
   { value: 'returns', label: 'Returns' },
+  { value: 'registration', label: 'Registration' },
 ] as const;
 
 export default function FormManagement() {
