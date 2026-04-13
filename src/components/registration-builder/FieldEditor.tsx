@@ -8,8 +8,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { X, Plus, Trash2 } from 'lucide-react';
-import type { RegField, RegConditionalRule } from '@/types/registrationForm';
+import type { RegField, RegConditionalRule, RegDataSource } from '@/types/registrationForm';
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
+
+const DATA_SOURCES: { value: RegDataSource; label: string }[] = [
+  { value: 'sector', label: 'Sector (Master Data)' },
+  { value: 'sub_sector', label: 'Sub-Sector (Master Data)' },
+  { value: 'category', label: 'Category (Master Data)' },
+];
 
 interface Props {
   field: RegField;
