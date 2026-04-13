@@ -688,6 +688,51 @@ export type Database = {
           },
         ]
       }
+      fee_components: {
+        Row: {
+          amount: number
+          application_id: string
+          created_at: string
+          description: string | null
+          fee_type_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          application_id: string
+          created_at?: string
+          description?: string | null
+          fee_type_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          application_id?: string
+          created_at?: string
+          description?: string | null
+          fee_type_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_components_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_components_fee_type_id_fkey"
+            columns: ["fee_type_id"]
+            isOneToOne: false
+            referencedRelation: "fee_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_configurations: {
         Row: {
           amount: number
@@ -839,6 +884,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fee_types: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       field_conditions: {
         Row: {
