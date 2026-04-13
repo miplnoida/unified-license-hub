@@ -30,6 +30,8 @@ export interface RegConditionalRule {
   action: 'show' | 'hide';
 }
 
+export type RegDataSource = 'sector' | 'sub_sector' | 'category';
+
 export interface RegField {
   id: string;
   type: RegFieldType;
@@ -40,6 +42,8 @@ export interface RegField {
   helpText?: string;
   defaultValue?: string;
   options?: string[];
+  dataSource?: RegDataSource;
+  dependsOn?: string; // fieldName of the parent cascading field
   validation?: RegFieldValidation;
   conditionalLogic?: RegConditionalRule[];
 }

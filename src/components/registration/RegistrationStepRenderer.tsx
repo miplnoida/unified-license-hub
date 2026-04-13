@@ -7,6 +7,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import type { RegStep, RegField } from '@/types/registrationForm';
+import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
+import { useMemo } from 'react';
 
 interface Props {
   step: RegStep;
@@ -21,6 +23,11 @@ interface Props {
  * grid layout. Each column's `span` (out of 12) maps to CSS grid column spans.
  */
 export function RegistrationStepRenderer({ step, data, errors, onChange, readOnly }: Props) {
+  // Collect all fields from the step for dependency lookups
+  const allFields = useMemo(() => {
+    return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
+  }, [step]);
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-4">
@@ -45,6 +52,8 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, readOnl
                     error={errors[col.field.fieldName]}
                     onChange={onChange}
                     readOnly={readOnly}
+                    allData={data}
+                    allFields={allFields}
                   />
                 ) : (
                   <div className="h-10" />
@@ -68,10 +77,56 @@ interface FieldProps {
   error?: string;
   onChange: (fieldName: string, value: any) => void;
   readOnly?: boolean;
+  allData: Record<string, any>;
+  allFields: RegField[];
 }
 
-function InteractiveField({ field, value, error, onChange, readOnly }: FieldProps) {
-  const handleChange = (val: any) => onChange(field.fieldName, val);
+function useDynamicOptions(field: RegField, allData: Record<string, any>, allFields: RegField[]) {
+  const { data: sectors = [] } = useSectors();
+  const { data: allSubSectors = [] } = useSubSectors();
+  const { data: allCategories = [] } = useCategories();
+
+  return useMemo(() => {
+    if (!field.dataSource) return null;
+
+    if (field.dataSource === 'sector') {
+      return sectors.map((s: any) => ({ value: s.id, label: s.name }));
+    }
+
+    if (field.dataSource === 'sub_sector') {
+      const parentFieldName = field.dependsOn;
+      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      if (!parentValue) return [];
+      return allSubSectors
+        .filter((s: any) => s.sector_id === parentValue)
+        .map((s: any) => ({ value: s.id, label: s.name }));
+    }
+
+    if (field.dataSource === 'category') {
+      const parentFieldName = field.dependsOn;
+      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      if (!parentValue) return [];
+      return allCategories
+        .filter((c: any) => c.sub_sector_id === parentValue)
+        .map((c: any) => ({ value: c.id, label: c.name }));
+    }
+
+    return null;
+  }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories]);
+}
+
+function InteractiveField({ field, value, error, onChange, readOnly, allData, allFields }: FieldProps) {
+  const handleChange = (val: any) => {
+    onChange(field.fieldName, val);
+
+    // Clear dependent fields when parent changes
+    if (field.dataSource) {
+      const dependents = allFields.filter(f => f.dependsOn === field.fieldName);
+      dependents.forEach(dep => onChange(dep.fieldName, ''));
+    }
+  };
+
+  const dynamicOptions = useDynamicOptions(field, allData, allFields);
 
   const labelEl = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
     <Label className="text-sm">
@@ -150,20 +205,37 @@ function InteractiveField({ field, value, error, onChange, readOnly }: FieldProp
         />
       );
       break;
-    case 'select':
-      input = (
-        <Select value={value} onValueChange={handleChange} disabled={readOnly}>
-          <SelectTrigger className={error ? 'border-destructive' : ''}>
-            <SelectValue placeholder={field.placeholder || 'Select...'} />
-          </SelectTrigger>
-          <SelectContent>
-            {(field.options || []).map(o => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
+    case 'select': {
+      if (dynamicOptions) {
+        const isDisabled = readOnly || (field.dependsOn && !allData[field.dependsOn]);
+        input = (
+          <Select value={value} onValueChange={handleChange} disabled={!!isDisabled}>
+            <SelectTrigger className={error ? 'border-destructive' : ''}>
+              <SelectValue placeholder={field.placeholder || 'Select...'} />
+            </SelectTrigger>
+            <SelectContent>
+              {dynamicOptions.map((o: { value: string; label: string }) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      } else {
+        input = (
+          <Select value={value} onValueChange={handleChange} disabled={readOnly}>
+            <SelectTrigger className={error ? 'border-destructive' : ''}>
+              <SelectValue placeholder={field.placeholder || 'Select...'} />
+            </SelectTrigger>
+            <SelectContent>
+              {(field.options || []).map(o => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      }
       break;
+    }
     case 'multi_select':
       input = (
         <div className="space-y-1">

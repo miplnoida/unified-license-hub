@@ -99,13 +99,23 @@ function FieldPreview({ field }: { field: RegField }) {
     case 'multi_select':
       return (
         <div className="space-y-1">
-          <Label className="text-sm">{field.label}{field.required && <span className="text-destructive"> *</span>}</Label>
+          <Label className="text-sm">
+            {field.label}{field.required && <span className="text-destructive"> *</span>}
+            {field.dataSource && (
+              <Badge variant="outline" className="ml-2 text-[10px] py-0">
+                {field.dataSource.replace('_', '-')}
+              </Badge>
+            )}
+          </Label>
           <Select disabled>
-            <SelectTrigger className="text-sm"><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
+            <SelectTrigger className="text-sm">
+              <SelectValue placeholder={field.dataSource ? `Dynamic: ${field.dataSource.replace('_', '-')}` : (field.placeholder || 'Select...')} />
+            </SelectTrigger>
             <SelectContent>
               {(field.options || []).map((o, i) => <SelectItem key={i} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
+          {field.dependsOn && <p className="text-[10px] text-muted-foreground">Depends on: {field.dependsOn}</p>}
           {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
         </div>
       );

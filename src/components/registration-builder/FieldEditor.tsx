@@ -8,8 +8,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { X, Plus, Trash2 } from 'lucide-react';
-import type { RegField, RegConditionalRule } from '@/types/registrationForm';
+import type { RegField, RegConditionalRule, RegDataSource } from '@/types/registrationForm';
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
+
+const DATA_SOURCES: { value: RegDataSource; label: string }[] = [
+  { value: 'sector', label: 'Sector (Master Data)' },
+  { value: 'sub_sector', label: 'Sub-Sector (Master Data)' },
+  { value: 'category', label: 'Category (Master Data)' },
+];
 
 interface Props {
   field: RegField;
@@ -102,17 +108,78 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           <Textarea value={field.helpText || ''} onChange={e => update({ helpText: e.target.value })} rows={1} className="text-xs" />
         </div>
 
-        {/* Options */}
+        {/* Data Source or Manual Options */}
         {hasOptions && (
-          <div>
-            <Label className="text-xs">Options (one per line)</Label>
-            <Textarea
-              value={(field.options || []).join('\n')}
-              onChange={e => update({ options: e.target.value.split('\n').filter(Boolean) })}
-              rows={3}
-              className="text-xs"
-              placeholder="Option 1&#10;Option 2&#10;Option 3"
-            />
+          <div className="space-y-2">
+            {['select', 'multi_select'].includes(field.type) && (
+              <div>
+                <Label className="text-xs">Data Source</Label>
+                <Select
+                  value={field.dataSource || '_none'}
+                  onValueChange={v => {
+                    if (v === '_none') {
+                      update({ dataSource: undefined, dependsOn: undefined });
+                    } else {
+                      const ds = v as RegDataSource;
+                      const autoDepends = ds === 'sub_sector'
+                        ? allFields.find(f => f.dataSource === 'sector')?.fieldName
+                        : ds === 'category'
+                          ? allFields.find(f => f.dataSource === 'sub_sector')?.fieldName
+                          : undefined;
+                      update({ dataSource: ds, dependsOn: autoDepends, options: [] });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Manual Options</SelectItem>
+                    {DATA_SOURCES.map(ds => (
+                      <SelectItem key={ds.value} value={ds.value}>{ds.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {field.dataSource && ['sub_sector', 'category'].includes(field.dataSource) && (
+              <div>
+                <Label className="text-xs">Depends On (field name)</Label>
+                <Select
+                  value={field.dependsOn || '_none'}
+                  onValueChange={v => update({ dependsOn: v === '_none' ? undefined : v })}
+                >
+                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select parent field..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">None</SelectItem>
+                    {allFields.filter(f => f.id !== field.id && f.dataSource).map(f => (
+                      <SelectItem key={f.id} value={f.fieldName}>{f.label} ({f.fieldName})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Options will filter based on this parent field's selection.
+                </p>
+              </div>
+            )}
+
+            {field.dataSource && (
+              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                Options populated dynamically from master data ({field.dataSource.replace('_', '-')}).
+              </p>
+            )}
+
+            {!field.dataSource && (
+              <div>
+                <Label className="text-xs">Options (one per line)</Label>
+                <Textarea
+                  value={(field.options || []).join('\n')}
+                  onChange={e => update({ options: e.target.value.split('\n').filter(Boolean) })}
+                  rows={3}
+                  className="text-xs"
+                  placeholder="Option 1&#10;Option 2&#10;Option 3"
+                />
+              </div>
+            )}
           </div>
         )}
 

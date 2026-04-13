@@ -104,9 +104,9 @@ function defaultFormSchema(): RegFormSchema {
       rows: [
         // Sector Selection
         row([
-          { span: 4, field: field('select', 'Sector', 'sector', true, { placeholder: 'Select sector...' }) },
-          { span: 4, field: field('select', 'Sub-Sector', 'sub_sector', true, { placeholder: 'Select sub-sector...' }) },
-          { span: 4, field: field('select', 'Category', 'category', true, { placeholder: 'Select category...' }) },
+          { span: 4, field: field('select', 'Sector', 'sector', true, { placeholder: 'Select sector...', dataSource: 'sector' }) },
+          { span: 4, field: field('select', 'Sub-Sector', 'sub_sector', true, { placeholder: 'Select sub-sector...', dataSource: 'sub_sector', dependsOn: 'sector' }) },
+          { span: 4, field: field('select', 'Category', 'category', true, { placeholder: 'Select category...', dataSource: 'category', dependsOn: 'sub_sector' }) },
         ]),
         // Applicant Info
         row([
