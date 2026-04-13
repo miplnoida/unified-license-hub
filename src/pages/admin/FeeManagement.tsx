@@ -121,7 +121,40 @@ export default function FeeManagement() {
     if (!error) setRules((data || []) as any);
   };
 
-  useEffect(() => { loadFees(); loadRules(); }, [activeRegulatorId]);
+  const loadFeeTypes = async () => {
+    const { data } = await supabase.from('fee_types' as any).select('*').order('name');
+    if (data) setFeeTypesData(data as any);
+  };
+
+  useEffect(() => { loadFees(); loadRules(); loadFeeTypes(); }, [activeRegulatorId]);
+
+  const resetFtForm = () => { setFtName(''); setFtCode(''); setFtStatus('active'); setFtEditing(null); };
+
+  const openEditFt = (ft: any) => {
+    setFtEditing(ft); setFtName(ft.name); setFtCode(ft.code || ''); setFtStatus(ft.status); setFtDialogOpen(true);
+  };
+
+  const handleSaveFt = async () => {
+    if (!ftName.trim()) { toast.error('Name is required'); return; }
+    setSaving(true);
+    const payload: any = { name: ftName.trim(), code: ftCode.trim() || null, status: ftStatus };
+    if (ftEditing) {
+      const { error } = await supabase.from('fee_types' as any).update(payload).eq('id', ftEditing.id);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success('Fee type updated');
+    } else {
+      const { error } = await supabase.from('fee_types' as any).insert(payload);
+      if (error) { toast.error(error.message); setSaving(false); return; }
+      toast.success('Fee type created');
+    }
+    setSaving(false); setFtDialogOpen(false); resetFtForm(); loadFeeTypes();
+  };
+
+  const handleDeleteFt = async (id: string) => {
+    const { error } = await supabase.from('fee_types' as any).delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Fee type deleted'); loadFeeTypes();
+  };
 
   const resetForm = () => {
     setName(''); setFeeType('application'); setAmount(''); setCurrency('USD');
