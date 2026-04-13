@@ -157,7 +157,7 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeType('application'); setAmount(''); setCurrency('USD');
+    setName(''); setFeeType(''); setAmount(''); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
     setIsActive(true); setEditing(null); setCalculationType('fixed');
     setCalculationExpression(''); setMinAmount(''); setMaxAmount('');
