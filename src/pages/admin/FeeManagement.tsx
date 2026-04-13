@@ -830,3 +830,4 @@ export default function FeeManagement() {
     </DashboardLayout>
   );
 }
+
