@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -75,7 +76,7 @@ export default function FeeManagement() {
 
   // Fee form state
   const [name, setName] = useState('');
-  const [feeType, setFeeType] = useState('');
+  const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [sectorId, setSectorId] = useState('');
@@ -157,7 +158,7 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeType(''); setAmount(''); setCurrency('USD');
+    setName(''); setFeeTypesSelected([]); setAmount(''); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
     setIsActive(true); setEditing(null); setCalculationType('fixed');
     setCalculationExpression(''); setMinAmount(''); setMaxAmount('');
@@ -173,7 +174,7 @@ export default function FeeManagement() {
 
   const openEdit = (fee: FeeConfig) => {
     setEditing(fee);
-    setName(fee.name); setFeeType(fee.fee_type); setAmount(String(fee.amount));
+    setName(fee.name); setFeeTypesSelected([fee.fee_type]); setAmount(String(fee.amount));
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
     setServiceId(fee.service_id || ''); setIsActive(fee.is_active);
@@ -198,10 +199,10 @@ export default function FeeManagement() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !amount || !feeType) { toast.error('Name, fee type, and amount are required'); return; }
+    if (!name.trim() || !amount || feeTypes.length === 0) { toast.error('Name, fee type(s), and amount are required'); return; }
     setSaving(true);
-    const payload: any = {
-      name: name.trim(), fee_type: feeType, amount: parseFloat(amount), currency,
+    const basePayload: any = {
+      amount: parseFloat(amount), currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
       category_id: categoryId || null, service_id: serviceId || null, is_active: isActive,
       regulator_id: activeRegulatorId || null,
@@ -211,13 +212,17 @@ export default function FeeManagement() {
       max_amount: maxAmount ? parseFloat(maxAmount) : null,
     };
     if (editing) {
+      // When editing, update with first selected fee type
+      const payload = { ...basePayload, name: name.trim(), fee_type: feeTypes[0] };
       const { error } = await supabase.from('fee_configurations' as any).update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Fee updated');
     } else {
-      const { error } = await supabase.from('fee_configurations' as any).insert(payload);
+      // When creating, batch-insert one config per selected fee type
+      const rows = feeTypes.map(ft => ({ ...basePayload, name: name.trim(), fee_type: ft }));
+      const { error } = await supabase.from('fee_configurations' as any).insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee created');
+      toast.success(`${rows.length} fee configuration(s) created`);
     }
     setSaving(false); setDialogOpen(false); resetForm(); loadFees();
   };
@@ -350,15 +355,15 @@ export default function FeeManagement() {
                         <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Application Fee" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Fee Type *</Label>
-                        <Select value={feeType} onValueChange={setFeeType}>
-                          <SelectTrigger><SelectValue placeholder="Select fee type..." /></SelectTrigger>
-                          <SelectContent>
-                            {feeTypesData.filter(ft => ft.status === 'active').map(ft => (
-                              <SelectItem key={ft.id} value={ft.name}>{ft.name}{ft.code ? ` (${ft.code})` : ''}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label>Fee Type(s) *</Label>
+                        <MultiSelect
+                          options={feeTypesData
+                            .filter(ft => ft.status === 'active')
+                            .map(ft => ({ value: ft.name, label: ft.name + (ft.code ? ` (${ft.code})` : '') }))}
+                          selected={feeTypes}
+                          onChange={setFeeTypesSelected}
+                          placeholder="Select fee types..."
+                        />
                       </div>
                     </div>
 
