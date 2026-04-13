@@ -2203,6 +2203,98 @@ export type Database = {
           },
         ]
       }
+      registration_form_configs: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          data_protection_url: string | null
+          declarations: Json
+          document_types: Json
+          form_template_id: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          privacy_url: string | null
+          require_captcha: boolean
+          require_documents: boolean
+          require_otp: boolean
+          sector_id: string | null
+          sub_sector_id: string | null
+          terms_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          data_protection_url?: string | null
+          declarations?: Json
+          document_types?: Json
+          form_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          privacy_url?: string | null
+          require_captcha?: boolean
+          require_documents?: boolean
+          require_otp?: boolean
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          terms_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          data_protection_url?: string | null
+          declarations?: Json
+          document_types?: Json
+          form_template_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          privacy_url?: string | null
+          require_captcha?: boolean
+          require_documents?: boolean
+          require_otp?: boolean
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          terms_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_form_configs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_form_configs_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_form_configs_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registration_form_configs_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       registration_form_submissions: {
         Row: {
           created_at: string

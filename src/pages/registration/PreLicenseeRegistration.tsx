@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
+import { useRegistrationConfig } from '@/hooks/useRegistrationConfig';
 import { EntityDetailsStep } from '@/components/registration/EntityDetailsStep';
 import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
-import { RegistrationStepper } from '@/components/registration/RegistrationStepper';
-import { ArrowRight, ArrowLeft, FileText, Send } from 'lucide-react';
+import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { ArrowRight, ArrowLeft, FileText, Send, Settings2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
-
-const STEP_COUNT = 4;
 
 export default function PreLicenseeRegistration() {
   const navigate = useNavigate();
@@ -20,16 +22,67 @@ export default function PreLicenseeRegistration() {
     form, errors, setField, setEntityField, setMailingField, setPhysicalField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep, reset,
   } = useRegistrationForm();
+
+  const { config, loading: configLoading } = useRegistrationConfig(
+    form.sectorId || undefined,
+    form.subSectorId || undefined,
+    form.categoryId || undefined,
+  );
+
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
+
+  // Build steps list dynamically based on config
+  const steps = useMemo(() => {
+    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations'; sectionIndex?: number }[] = [];
+
+    if (config?.sections && config.sections.length > 0) {
+      // Dynamic sections from form template become steps
+      config.sections.forEach((section, idx) => {
+        result.push({ id: `dynamic-${idx}`, label: section.title, type: 'dynamic', sectionIndex: idx });
+      });
+    } else {
+      // Fallback to static steps
+      result.push({ id: 'entity', label: 'Entity Details', type: 'static' });
+      result.push({ id: 'user', label: 'Primary User', type: 'static' });
+    }
+
+    // Always add documents step if enabled
+    if (!config || config.requireDocuments) {
+      result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
+    }
+
+    // Always add declarations step
+    result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
+
+    return result;
+  }, [config]);
+
+  const STEP_COUNT = steps.length;
 
   const handleNext = () => {
-    if (!validateStep(currentStep)) {
-      const firstError = document.querySelector('.border-destructive, .text-destructive');
-      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+    const step = steps[currentStep];
+
+    // Validate static steps
+    if (step.type === 'static') {
+      const staticStepIdx = step.id === 'entity' ? 0 : 1;
+      if (!validateStep(staticStepIdx)) {
+        const firstError = document.querySelector('.border-destructive, .text-destructive');
+        firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
     }
+
+    if (step.type === 'declarations') {
+      if (!validateStep(3)) {
+        const firstError = document.querySelector('.border-destructive, .text-destructive');
+        firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
     setCompletedSteps(prev => new Set([...prev, currentStep]));
     setCurrentStep(prev => Math.min(prev + 1, STEP_COUNT - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -41,10 +94,13 @@ export default function PreLicenseeRegistration() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) {
-      const firstError = document.querySelector('.border-destructive, .text-destructive');
-      firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
+    const lastStep = steps[currentStep];
+    if (lastStep.type === 'declarations') {
+      if (!validateStep(3)) {
+        const firstError = document.querySelector('.border-destructive, .text-destructive');
+        firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -66,7 +122,7 @@ export default function PreLicenseeRegistration() {
           telephone: form.telephone,
           username: form.username || null,
           registration_number: form.registrationNumber || null,
-          entity_specific_data: form.entitySpecificData,
+          entity_specific_data: { ...form.entitySpecificData, ...dynamicFormData },
           documents_metadata: form.documents,
           terms_accepted: form.termsAccepted && form.privacyAccepted && form.dataProtectionAccepted,
         },
@@ -85,11 +141,8 @@ export default function PreLicenseeRegistration() {
         return;
       }
 
-      if (data?.warning) {
-        toast.warning(data.warning);
-      }
+      if (data?.warning) toast.warning(data.warning);
 
-      // Sign in the newly created user
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
@@ -115,37 +168,88 @@ export default function PreLicenseeRegistration() {
   };
 
   const renderStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <EntityDetailsStep
-            form={form}
-            errors={errors}
-            setField={setField}
-            setEntityField={setEntityField}
-            setMailingField={setMailingField}
-            setPhysicalField={setPhysicalField}
-            setSectorId={setSectorId}
-            setSubSectorId={setSubSectorId}
-          />
-        );
-      case 1:
+    const step = steps[currentStep];
+    if (!step) return null;
+
+    switch (step.type) {
+      case 'static':
+        if (step.id === 'entity') {
+          return (
+            <EntityDetailsStep
+              form={form} errors={errors} setField={setField}
+              setEntityField={setEntityField} setMailingField={setMailingField}
+              setPhysicalField={setPhysicalField} setSectorId={setSectorId}
+              setSubSectorId={setSubSectorId}
+            />
+          );
+        }
         return <PrimaryUserStep form={form} errors={errors} setField={setField} />;
-      case 2:
+
+      case 'dynamic':
+        if (config?.sections && step.sectionIndex !== undefined) {
+          const section = config.sections[step.sectionIndex];
+          if (section) {
+            return (
+              <Card>
+                <CardContent className="pt-6">
+                  <FormRenderer
+                    formName={section.title}
+                    sections={[section]}
+                    initialData={dynamicFormData}
+                    onSaveDraft={(data) => setDynamicFormData(prev => ({ ...prev, ...data }))}
+                    onSubmit={(data) => {
+                      setDynamicFormData(prev => ({ ...prev, ...data }));
+                      handleNext();
+                    }}
+                    saving={false}
+                  />
+                </CardContent>
+              </Card>
+            );
+          }
+        }
+        return <p className="text-muted-foreground">No form section configured for this step.</p>;
+
+      case 'documents':
         return (
           <DocumentsStep
             documents={form.documents}
             onAddDocument={addDocument}
             onRemoveDocument={removeDocument}
             errors={errors}
+            documentTypes={config?.documentTypes}
           />
         );
-      case 3:
-        return <DeclarationsStep form={form} errors={errors} setField={setField} />;
+
+      case 'declarations':
+        return (
+          <DeclarationsStep
+            form={form} errors={errors} setField={setField}
+            declarations={config?.declarations}
+            termsUrl={config?.termsUrl}
+            privacyUrl={config?.privacyUrl}
+            dataProtectionUrl={config?.dataProtectionUrl}
+            requireOtp={config?.requireOtp ?? true}
+            requireCaptcha={config?.requireCaptcha ?? true}
+          />
+        );
+
       default:
         return null;
     }
   };
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LandingNav />
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <Skeleton className="h-8 w-64 mb-6" />
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full mb-4" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,9 +268,13 @@ export default function PreLicenseeRegistration() {
         </div>
       </div>
 
-      {/* Stepper */}
+      {/* Dynamic Stepper */}
       <div className="max-w-4xl mx-auto px-4 pt-8 pb-4">
-        <RegistrationStepper currentStep={currentStep} completedSteps={completedSteps} />
+        <DynamicRegistrationStepper
+          steps={steps.map(s => s.label)}
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+        />
       </div>
 
       {/* Form Content */}
@@ -193,11 +301,7 @@ export default function PreLicenseeRegistration() {
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              size="lg"
-            >
+            <Button onClick={handleSubmit} disabled={submitting} size="lg">
               {submitting ? 'Submitting...' : 'Submit Registration'}
               {!submitting && <Send className="h-4 w-4 ml-2" />}
             </Button>

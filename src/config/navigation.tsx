@@ -4,6 +4,7 @@ import {
   UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
+  ClipboardEdit,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 
@@ -107,6 +108,7 @@ export const mainNavSections: NavSection[] = [
     label: 'Form Management',
     items: [
       { label: 'Form Management', href: '/admin/forms', icon: <FormInput className="h-5 w-5" />, roles: ['super_admin', 'admin', 'developer'] },
+      { label: 'Registration Forms', href: '/admin/registration-forms', icon: <ClipboardEdit className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
   {
