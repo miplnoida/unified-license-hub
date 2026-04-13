@@ -332,6 +332,7 @@ export default function FeeManagement() {
           <TabsList>
             <TabsTrigger value="configurations">Fee Configurations</TabsTrigger>
             <TabsTrigger value="rules">Rules & Exemptions</TabsTrigger>
+            <TabsTrigger value="fee-types">Fee Types</TabsTrigger>
           </TabsList>
 
           <TabsContent value="configurations" className="space-y-4">
