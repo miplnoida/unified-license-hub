@@ -65,6 +65,14 @@ export default function FeeManagement() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('configurations');
 
+  // Fee Types master state
+  const [feeTypesData, setFeeTypesData] = useState<{ id: string; name: string; code: string | null; status: string; created_at: string }[]>([]);
+  const [ftDialogOpen, setFtDialogOpen] = useState(false);
+  const [ftEditing, setFtEditing] = useState<{ id: string; name: string; code: string | null; status: string } | null>(null);
+  const [ftName, setFtName] = useState('');
+  const [ftCode, setFtCode] = useState('');
+  const [ftStatus, setFtStatus] = useState('active');
+
   // Fee form state
   const [name, setName] = useState('');
   const [feeType, setFeeType] = useState<FeeType>('application');
