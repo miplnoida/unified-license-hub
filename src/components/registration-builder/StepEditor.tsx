@@ -171,24 +171,13 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                   }`}
                 >
                   {col.field ? (
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => setEditingFieldId(col.field!.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium truncate">{col.field.label}</span>
-                        <button
-                          onClick={e => { e.stopPropagation(); removeFieldFromColumn(row.id, colIdx); }}
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <Badge variant="outline" className="text-[9px] px-1">{col.field.type}</Badge>
-                        {col.field.required && <Badge variant="secondary" className="text-[9px] px-1">Required</Badge>}
-                      </div>
-                    </div>
+                    <FieldCard
+                      field={col.field}
+                      isEditing={editingFieldId === col.field.id}
+                      onSelect={() => setEditingFieldId(col.field!.id)}
+                      onRemove={() => removeFieldFromColumn(row.id, colIdx)}
+                      onLabelChange={(label) => updateColumn(row.id, colIdx, { ...col.field!, label })}
+                    />
                   ) : (
                     <Popover>
                       <PopoverTrigger asChild>
