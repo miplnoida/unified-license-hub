@@ -15,6 +15,7 @@ import { startWorkflowForApplication } from '@/lib/workflowService';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
+import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { toast } from 'sonner';
