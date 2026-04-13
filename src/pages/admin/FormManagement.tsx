@@ -243,6 +243,21 @@ export default function FormManagement() {
 
           {FORM_TYPES.map(ft => (
             <TabsContent key={ft.value} value={ft.value}>
+              {ft.value === 'registration' ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Settings2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">Registration Form Configuration</h3>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                      Registration forms are managed through a dedicated builder where you can configure dynamic steps, documents, declarations, and security settings per licensee type.
+                    </p>
+                    <Button className="mt-6" onClick={() => navigate('/admin/registration-forms')}>
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Open Registration Form Builder
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
