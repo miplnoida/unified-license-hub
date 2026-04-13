@@ -237,7 +237,7 @@ export default function RegistrationFormBuilder() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...emptyConfig, form_schema: [] });
+    setForm({ ...emptyConfig, form_schema: defaultFormSchema() });
     setDialogOpen(true);
   }
 
