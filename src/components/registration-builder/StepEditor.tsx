@@ -126,14 +126,26 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
             key={row.id}
             className="border rounded-lg p-3 bg-muted/20 space-y-2"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground font-medium">
-                  Row {rowIdx + 1} — {row.columns.length} col{row.columns.length > 1 ? 's' : ''} ({row.columns.map(c => c.span).join('-')})
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Input
+                  value={row.label ?? `Row ${rowIdx + 1}`}
+                  onChange={e => {
+                    update({
+                      rows: step.rows.map(r =>
+                        r.id === row.id ? { ...r, label: e.target.value } : r
+                      ),
+                    });
+                  }}
+                  className="h-6 text-xs font-medium border-transparent bg-transparent hover:border-input focus:border-input px-1 max-w-[200px]"
+                  placeholder={`Row ${rowIdx + 1}`}
+                />
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {row.columns.length} col{row.columns.length > 1 ? 's' : ''} ({row.columns.map(c => c.span).join('-')})
                 </span>
               </div>
-              <div className="flex gap-0.5">
+              <div className="flex gap-0.5 shrink-0">
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveRow(rowIdx, -1)} disabled={rowIdx === 0}>
                   <ChevronUp className="h-3 w-3" />
                 </Button>
