@@ -163,29 +163,52 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeTypesSelected([]); setAmount(''); setCurrency('USD');
+    setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
-    setIsActive(true); setEditing(null); setCalculationType('fixed');
-    setCalculationExpression(''); setMinAmount(''); setMaxAmount('');
+    setIsActive(true); setEditing(null); setLegacyNote(false);
   };
 
-  const resetRuleForm = () => {
-    setRuleName(''); setRuleType('calculation'); setRuleDescription('');
-    setRuleFeeId(''); setRuleExpression(''); setRuleDiscountPercent('');
-    setRuleDiscountAmount(''); setRulePriority('0'); setRuleConditionField('');
-    setRuleConditionOperator('gte'); setRuleConditionValue(''); setRuleActive(true);
-    setEditingRule(null);
-  };
+  const handleFeeTypesChange = useCallback((selected: string[]) => {
+    setFeeTypesSelected(selected);
+    setFeeTypeAmounts(prev => {
+      const next: Record<string, FeeTypeAmountRow> = {};
+      selected.forEach(ft => {
+        next[ft] = prev[ft] || { calculationType: 'fixed', amount: '', minAmount: '', maxAmount: '' };
+      });
+      return next;
+    });
+  }, []);
+
+  const updateFeeTypeRow = useCallback((ft: string, field: keyof FeeTypeAmountRow, value: string) => {
+    setFeeTypeAmounts(prev => ({
+      ...prev,
+      [ft]: { ...prev[ft], [field]: value, error: undefined },
+    }));
+  }, []);
+
+  const removeFeeTypeRow = useCallback((ft: string) => {
+    setFeeTypesSelected(prev => prev.filter(t => t !== ft));
+    setFeeTypeAmounts(prev => {
+      const next = { ...prev };
+      delete next[ft];
+      return next;
+    });
+  }, []);
 
   const openEdit = (fee: FeeConfig) => {
     setEditing(fee);
-    setName(fee.name); setFeeTypesSelected([fee.fee_type]); setAmount(String(fee.amount));
+    setName(fee.name); setFeeTypesSelected([fee.fee_type]);
+    const row: FeeTypeAmountRow = {
+      calculationType: (fee.calculation_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+      amount: String(fee.amount),
+      minAmount: String(fee.min_amount || ''),
+      maxAmount: String(fee.max_amount || ''),
+    };
+    setFeeTypeAmounts({ [fee.fee_type]: row });
+    setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
     setServiceId(fee.service_id || ''); setIsActive(fee.is_active);
-    setCalculationType(fee.calculation_type || 'fixed');
-    setCalculationExpression(fee.calculation_expression || '');
-    setMinAmount(String(fee.min_amount || '')); setMaxAmount(String(fee.max_amount || ''));
     setDialogOpen(true);
   };
 
