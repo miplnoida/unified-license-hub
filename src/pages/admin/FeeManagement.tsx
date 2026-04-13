@@ -194,8 +194,15 @@ export default function FeeManagement() {
       return next;
     });
   }, []);
+  const resetRuleForm = () => {
+    setRuleName(''); setRuleType('calculation'); setRuleDescription('');
+    setRuleFeeId(''); setRuleExpression(''); setRuleDiscountPercent('');
+    setRuleDiscountAmount(''); setRulePriority('0'); setRuleConditionField('');
+    setRuleConditionOperator('gte'); setRuleConditionValue(''); setRuleActive(true);
+    setEditingRule(null);
+  };
 
-  const openEdit = (fee: FeeConfig) => {
+
     setEditing(fee);
     setName(fee.name); setFeeTypesSelected([fee.fee_type]);
     const row: FeeTypeAmountRow = {
