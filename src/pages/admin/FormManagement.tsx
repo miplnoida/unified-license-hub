@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2 } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -243,6 +243,21 @@ export default function FormManagement() {
 
           {FORM_TYPES.map(ft => (
             <TabsContent key={ft.value} value={ft.value}>
+              {ft.value === 'registration' ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Settings2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold">Registration Form Configuration</h3>
+                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                      Registration forms are managed through a dedicated builder where you can configure dynamic steps, documents, declarations, and security settings per licensee type.
+                    </p>
+                    <Button className="mt-6" onClick={() => navigate('/admin/registration-forms')}>
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Open Registration Form Builder
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
               <div className="space-y-4">
                 <Card>
                   <CardContent className="pt-6">
@@ -386,6 +401,7 @@ export default function FormManagement() {
                   </CardContent>
                 </Card>
               </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
