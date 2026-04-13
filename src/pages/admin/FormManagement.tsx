@@ -401,6 +401,7 @@ export default function FormManagement() {
                   </CardContent>
                 </Card>
               </div>
+              )}
             </TabsContent>
           ))}
         </Tabs>
