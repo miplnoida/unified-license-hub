@@ -126,6 +126,7 @@ export default function AdminHub() {
     { label: 'Complaint Types', desc: 'Configure complaint categories', icon: <Layers className="h-5 w-5" />, href: '/admin/complaint-types' },
     { label: 'Audit Logs', desc: `${metrics.totalAuditLogs} events logged`, icon: <ScrollText className="h-5 w-5" />, href: '/admin/audit-logs', count: metrics.totalAuditLogs },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings' },
+    { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms' },
   ];
 
   return (
