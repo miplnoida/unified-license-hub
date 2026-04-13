@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/u
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
-import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
 
 interface FeeConfig {
   id: string;
