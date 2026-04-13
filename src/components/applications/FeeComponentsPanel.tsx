@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,7 +38,7 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
 
   // Form state for adding/editing
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [feeTypeId, setFeeTypeId] = useState('');
+  const [feeTypeIds, setFeeTypeIds] = useState<string[]>([]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -68,38 +68,52 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
   useEffect(() => { loadData(); }, [applicationId]);
 
   const resetForm = () => {
-    setFeeTypeId(''); setAmount(''); setDescription(''); setEditingId(null); setShowForm(false);
+    setFeeTypeIds([]); setAmount(''); setDescription(''); setEditingId(null); setShowForm(false);
   };
 
   const openEdit = (comp: FeeComponent) => {
     setEditingId(comp.id);
-    setFeeTypeId(comp.fee_type_id);
+    setFeeTypeIds([comp.fee_type_id]);
     setAmount(String(comp.amount));
     setDescription(comp.description || '');
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!feeTypeId) { toast.error('Fee type is required'); return; }
+    if (feeTypeIds.length === 0) { toast.error('Fee type is required'); return; }
+    // Prevent duplicate selection of types already added
+    const existingTypeIds = components.filter(c => c.id !== editingId).map(c => c.fee_type_id);
+    const duplicates = feeTypeIds.filter(id => existingTypeIds.includes(id));
+    if (duplicates.length > 0) {
+      const dupNames = duplicates.map(id => feeTypes.find(ft => ft.id === id)?.name || id).join(', ');
+      toast.error(`Duplicate fee type(s): ${dupNames}`);
+      return;
+    }
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) { toast.error('Amount must be greater than 0'); return; }
 
     setSaving(true);
-    const payload: any = {
-      application_id: applicationId,
-      fee_type_id: feeTypeId,
-      amount: numAmount,
-      description: description.trim() || null,
-    };
 
     if (editingId) {
+      const payload: any = {
+        application_id: applicationId,
+        fee_type_id: feeTypeIds[0],
+        amount: numAmount,
+        description: description.trim() || null,
+      };
       const { error } = await supabase.from('fee_components' as any).update(payload).eq('id', editingId);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Fee component updated');
     } else {
-      const { error } = await supabase.from('fee_components' as any).insert(payload);
+      const rows = feeTypeIds.map(ftId => ({
+        application_id: applicationId,
+        fee_type_id: ftId,
+        amount: numAmount,
+        description: description.trim() || null,
+      }));
+      const { error } = await supabase.from('fee_components' as any).insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee component added');
+      toast.success(`${rows.length} fee component(s) added`);
     }
     setSaving(false); resetForm(); loadData();
   };
@@ -133,15 +147,16 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
             <p className="text-sm font-medium">{editingId ? 'Edit Fee' : 'Add Fee Component'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Fee Type *</Label>
-                <Select value={feeTypeId} onValueChange={setFeeTypeId}>
-                  <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
-                  <SelectContent>
-                    {activeFeeTypes.map(ft => (
-                      <SelectItem key={ft.id} value={ft.id}>{ft.name}{ft.code ? ` (${ft.code})` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">Fee Type(s) *</Label>
+                <MultiSelect
+                  options={activeFeeTypes.map(ft => ({
+                    value: ft.id,
+                    label: ft.name + (ft.code ? ` (${ft.code})` : ''),
+                  }))}
+                  selected={feeTypeIds}
+                  onChange={setFeeTypeIds}
+                  placeholder="Select types..."
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Amount *</Label>
