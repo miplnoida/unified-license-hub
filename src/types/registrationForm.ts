@@ -55,6 +55,7 @@ export interface RegColumn {
 
 export interface RegRow {
   id: string;
+  label?: string;
   columns: RegColumn[];
 }
 
