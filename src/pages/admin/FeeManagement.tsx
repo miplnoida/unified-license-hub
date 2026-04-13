@@ -226,28 +226,62 @@ export default function FeeManagement() {
     setRuleDialogOpen(true);
   };
 
+  const validateRows = (): boolean => {
+    let valid = true;
+    const updated = { ...feeTypeAmounts };
+    for (const ft of feeTypes) {
+      const row = updated[ft];
+      if (!row) continue;
+      const amt = parseFloat(row.amount);
+      if (isNaN(amt) || amt <= 0) { updated[ft] = { ...row, error: 'Amount required and > 0' }; valid = false; continue; }
+      if (row.calculationType === 'percentage' && (amt < 0 || amt > 100)) { updated[ft] = { ...row, error: 'Percentage must be 0–100' }; valid = false; continue; }
+      if (row.calculationType === 'fixed') {
+        const min = parseFloat(row.minAmount) || 0;
+        const max = row.maxAmount ? parseFloat(row.maxAmount) : null;
+        if (min < 0) { updated[ft] = { ...row, error: 'Min must be ≥ 0' }; valid = false; continue; }
+        if (max !== null && max < 0) { updated[ft] = { ...row, error: 'Max must be ≥ 0' }; valid = false; continue; }
+        if (max !== null && min > max) { updated[ft] = { ...row, error: 'Min must be ≤ Max' }; valid = false; continue; }
+        if (max !== null && (amt < min || amt > max)) { updated[ft] = { ...row, error: 'Amount must be between Min and Max' }; valid = false; continue; }
+        if (amt < min) { updated[ft] = { ...row, error: 'Amount must be ≥ Min' }; valid = false; continue; }
+      }
+      updated[ft] = { ...row, error: undefined };
+    }
+    setFeeTypeAmounts(updated);
+    return valid;
+  };
+
   const handleSave = async () => {
-    if (!name.trim() || !amount || feeTypes.length === 0) { toast.error('Name, fee type(s), and amount are required'); return; }
+    if (!name.trim() || feeTypes.length === 0) { toast.error('Name and at least one fee type are required'); return; }
+    if (!validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
     const basePayload: any = {
-      amount: parseFloat(amount), currency,
+      currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
       category_id: categoryId || null, service_id: serviceId || null, is_active: isActive,
       regulator_id: activeRegulatorId || null,
-      calculation_type: calculationType,
-      calculation_expression: calculationExpression || null,
-      min_amount: parseFloat(minAmount) || 0,
-      max_amount: maxAmount ? parseFloat(maxAmount) : null,
+      calculation_expression: null,
     };
     if (editing) {
-      // When editing, update with first selected fee type
-      const payload = { ...basePayload, name: name.trim(), fee_type: feeTypes[0] };
+      const row = feeTypeAmounts[feeTypes[0]];
+      const payload = {
+        ...basePayload, name: name.trim(), fee_type: feeTypes[0],
+        amount: parseFloat(row.amount), calculation_type: row.calculationType,
+        min_amount: parseFloat(row.minAmount) || 0,
+        max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
+      };
       const { error } = await supabase.from('fee_configurations' as any).update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Fee updated');
     } else {
-      // When creating, batch-insert one config per selected fee type
-      const rows = feeTypes.map(ft => ({ ...basePayload, name: name.trim(), fee_type: ft }));
+      const rows = feeTypes.map(ft => {
+        const row = feeTypeAmounts[ft];
+        return {
+          ...basePayload, name: name.trim(), fee_type: ft,
+          amount: parseFloat(row.amount), calculation_type: row.calculationType,
+          min_amount: parseFloat(row.minAmount) || 0,
+          max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
+        };
+      });
       const { error } = await supabase.from('fee_configurations' as any).insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success(`${rows.length} fee configuration(s) created`);
