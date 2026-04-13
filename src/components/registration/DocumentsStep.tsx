@@ -6,19 +6,26 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { DocumentMeta } from '@/hooks/useRegistrationForm';
 
+interface DocTypeConfig {
+  label: string;
+  required: boolean;
+  allowedTypes: string[];
+  maxSizeMB: number;
+}
+
 interface Props {
   documents: DocumentMeta[];
   onAddDocument: (doc: DocumentMeta) => void;
   onRemoveDocument: (docId: string) => void;
   errors: Record<string, string>;
+  documentTypes?: DocTypeConfig[];
 }
 
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
-const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
-const MAX_SIZE_MB = 5;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+const DEFAULT_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const DEFAULT_ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+const DEFAULT_MAX_SIZE_MB = 5;
 
-const DOCUMENT_LABELS = [
+const DEFAULT_DOCUMENT_LABELS = [
   'Certificate of Incorporation',
   'Business Registration Certificate',
   'Tax Identification Certificate',
