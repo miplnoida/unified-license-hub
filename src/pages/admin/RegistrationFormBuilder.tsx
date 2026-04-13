@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -22,10 +20,12 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings2, FileText, ExternalLink,
-  Shield, Mail, Bot, Upload, CheckSquare, GripVertical,
+  Plus, Pencil, Trash2, Settings2, ExternalLink,
+  Shield, Mail, Bot, Upload, CheckSquare,
 } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
+import type { RegFormSchema } from '@/types/registrationForm';
+import { RegistrationFormBuilderEditor } from '@/components/registration-builder/RegistrationFormBuilderEditor';
 
 interface Declaration {
   label: string;
@@ -44,7 +44,6 @@ interface DocType {
 interface ConfigRow {
   id: string;
   name: string;
-  form_template_id: string | null;
   sector_id: string | null;
   sub_sector_id: string | null;
   category_id: string | null;
@@ -58,11 +57,11 @@ interface ConfigRow {
   data_protection_url: string;
   declarations: Declaration[];
   document_types: DocType[];
+  form_schema: RegFormSchema;
 }
 
 const emptyConfig: Omit<ConfigRow, 'id'> = {
   name: '',
-  form_template_id: null,
   sector_id: null,
   sub_sector_id: null,
   category_id: null,
@@ -82,10 +81,10 @@ const emptyConfig: Omit<ConfigRow, 'id'> = {
   document_types: [
     { label: 'Certificate of Incorporation', required: true, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 },
   ],
+  form_schema: [],
 };
 
 export default function RegistrationFormBuilder() {
-  const navigate = useNavigate();
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -93,41 +92,36 @@ export default function RegistrationFormBuilder() {
   const [form, setForm] = useState<Omit<ConfigRow, 'id'>>(emptyConfig);
   const [saving, setSaving] = useState(false);
 
-  // Lookup data
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
   const [subSectors, setSubSectors] = useState<{ id: string; name: string; sector_id: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; sub_sector_id: string }[]>([]);
-  const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
     setLoading(true);
-    const [cfgRes, secRes, subRes, catRes, tplRes] = await Promise.all([
+    const [cfgRes, secRes, subRes, catRes] = await Promise.all([
       supabase.from('registration_form_configs').select('*').order('name'),
       supabase.from('sectors').select('id, name').eq('status', 'active'),
       supabase.from('sub_sectors').select('id, name, sector_id').eq('status', 'active'),
       supabase.from('categories').select('id, name, sub_sector_id').eq('status', 'active'),
-      supabase.from('form_templates').select('id, name').eq('form_type', 'registration').eq('status', 'published'),
     ]);
 
     setConfigs((cfgRes.data || []).map(c => ({
       ...c,
       declarations: (c.declarations as any) || [],
       document_types: (c.document_types as any) || [],
+      form_schema: (c.form_schema as any) || [],
     })));
     setSectors(secRes.data || []);
     setSubSectors(subRes.data || []);
     setCategories(catRes.data || []);
-    setTemplates(tplRes.data || []);
     setLoading(false);
   }
 
   function openCreate() {
     setEditing(null);
-    setForm({ ...emptyConfig });
+    setForm({ ...emptyConfig, form_schema: [] });
     setDialogOpen(true);
   }
 
@@ -143,7 +137,6 @@ export default function RegistrationFormBuilder() {
 
     const payload = {
       name: form.name,
-      form_template_id: form.form_template_id || null,
       sector_id: form.sector_id || null,
       sub_sector_id: form.sub_sector_id || null,
       category_id: form.category_id || null,
@@ -157,6 +150,7 @@ export default function RegistrationFormBuilder() {
       data_protection_url: form.data_protection_url,
       declarations: form.declarations as unknown as Json,
       document_types: form.document_types as unknown as Json,
+      form_schema: form.form_schema as unknown as Json,
     };
 
     if (editing) {
@@ -197,12 +191,8 @@ export default function RegistrationFormBuilder() {
 
   // Declaration helpers
   function addDeclaration() {
-    setForm(prev => ({
-      ...prev,
-      declarations: [...prev.declarations, { label: '', required: true }],
-    }));
+    setForm(prev => ({ ...prev, declarations: [...prev.declarations, { label: '', required: true }] }));
   }
-
   function updateDeclaration(idx: number, field: keyof Declaration, value: any) {
     setForm(prev => {
       const decls = [...prev.declarations];
@@ -210,22 +200,14 @@ export default function RegistrationFormBuilder() {
       return { ...prev, declarations: decls };
     });
   }
-
   function removeDeclaration(idx: number) {
-    setForm(prev => ({
-      ...prev,
-      declarations: prev.declarations.filter((_, i) => i !== idx),
-    }));
+    setForm(prev => ({ ...prev, declarations: prev.declarations.filter((_, i) => i !== idx) }));
   }
 
   // Document type helpers
   function addDocType() {
-    setForm(prev => ({
-      ...prev,
-      document_types: [...prev.document_types, { label: '', required: false, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 }],
-    }));
+    setForm(prev => ({ ...prev, document_types: [...prev.document_types, { label: '', required: false, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 }] }));
   }
-
   function updateDocType(idx: number, field: keyof DocType, value: any) {
     setForm(prev => {
       const docs = [...prev.document_types];
@@ -233,18 +215,17 @@ export default function RegistrationFormBuilder() {
       return { ...prev, document_types: docs };
     });
   }
-
   function removeDocType(idx: number) {
-    setForm(prev => ({
-      ...prev,
-      document_types: prev.document_types.filter((_, i) => i !== idx),
-    }));
+    setForm(prev => ({ ...prev, document_types: prev.document_types.filter((_, i) => i !== idx) }));
   }
 
   const filteredSubSectors = form.sector_id
     ? subSectors.filter(s => s.sector_id === form.sector_id) : subSectors;
   const filteredCategories = form.sub_sector_id
     ? categories.filter(c => c.sub_sector_id === form.sub_sector_id) : categories;
+
+  const totalFields = (schema: RegFormSchema) =>
+    schema.reduce((a, s) => a + s.rows.reduce((b, r) => b + r.columns.filter(c => c.field).length, 0), 0);
 
   return (
     <DashboardLayout>
@@ -282,7 +263,7 @@ export default function RegistrationFormBuilder() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Scope</TableHead>
-                  <TableHead>Form Template</TableHead>
+                  <TableHead>Form</TableHead>
                   <TableHead>Security</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -291,7 +272,7 @@ export default function RegistrationFormBuilder() {
               <TableBody>
                 {configs.map(cfg => {
                   const sectorName = sectors.find(s => s.id === cfg.sector_id)?.name;
-                  const tplName = templates.find(t => t.id === cfg.form_template_id)?.name;
+                  const fields = totalFields(cfg.form_schema);
                   return (
                     <TableRow key={cfg.id}>
                       <TableCell>
@@ -306,14 +287,7 @@ export default function RegistrationFormBuilder() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {tplName ? (
-                          <div className="flex items-center gap-1.5">
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-sm">{tplName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">Static form</span>
-                        )}
+                        <span className="text-sm">{cfg.form_schema.length} steps · {fields} fields</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -348,37 +322,18 @@ export default function RegistrationFormBuilder() {
 
         {/* Create / Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[95vw] w-[1200px] max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editing ? 'Edit Configuration' : 'New Registration Configuration'}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6 py-4">
-              {/* Basic Info */}
+              {/* Basic Info + Scope */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <Label>Configuration Name *</Label>
                   <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Insurance Company Registration" />
                 </div>
-
-                <div>
-                  <Label>Form Template</Label>
-                  <Select value={form.form_template_id || '_none'} onValueChange={v => setForm(p => ({ ...p, form_template_id: v === '_none' ? null : v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select template..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none">Static form (default steps)</SelectItem>
-                      {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Link to a published form template to use dynamic steps, or use static steps.
-                    {' '}
-                    <button className="text-primary underline" onClick={() => navigate('/admin/forms?tab=registration')}>
-                      Manage Registration Templates →
-                    </button>
-                  </p>
-                </div>
-
                 <div className="flex items-end gap-4">
                   <div className="flex items-center gap-2">
                     <Switch checked={form.is_default} onCheckedChange={v => setForm(p => ({ ...p, is_default: v }))} />
@@ -430,6 +385,22 @@ export default function RegistrationFormBuilder() {
                       </Select>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Form Builder */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Settings2 className="h-4 w-4" /> Registration Form Builder
+                  </CardTitle>
+                  <CardDescription>Design your registration steps, rows, columns and fields below.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RegistrationFormBuilderEditor
+                    schema={form.form_schema}
+                    onChange={schema => setForm(p => ({ ...p, form_schema: schema }))}
+                  />
                 </CardContent>
               </Card>
 
@@ -487,22 +458,13 @@ export default function RegistrationFormBuilder() {
                   {form.declarations.map((decl, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
-                        <Input
-                          value={decl.label}
-                          onChange={e => updateDeclaration(idx, 'label', e.target.value)}
-                          placeholder="Declaration text..."
-                        />
+                        <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder="Declaration text..." />
                         <div className="flex gap-4">
                           <div className="flex items-center gap-2">
                             <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
                             <Label className="text-xs">Required</Label>
                           </div>
-                          <Input
-                            value={decl.linkUrl || ''}
-                            onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)}
-                            placeholder="Link URL (optional)"
-                            className="flex-1 h-8 text-xs"
-                          />
+                          <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (optional)" className="flex-1 h-8 text-xs" />
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => removeDeclaration(idx)}>
@@ -526,11 +488,7 @@ export default function RegistrationFormBuilder() {
                   {form.document_types.map((doc, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
-                        <Input
-                          value={doc.label}
-                          onChange={e => updateDocType(idx, 'label', e.target.value)}
-                          placeholder="Document type name..."
-                        />
+                        <Input value={doc.label} onChange={e => updateDocType(idx, 'label', e.target.value)} placeholder="Document type name..." />
                         <div className="flex gap-4 items-center">
                           <div className="flex items-center gap-2">
                             <Switch checked={doc.required} onCheckedChange={v => updateDocType(idx, 'required', v)} />
@@ -538,20 +496,10 @@ export default function RegistrationFormBuilder() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Label className="text-xs">Max MB:</Label>
-                            <Input
-                              type="number"
-                              value={doc.maxSizeMB}
-                              onChange={e => updateDocType(idx, 'maxSizeMB', Number(e.target.value))}
-                              className="w-16 h-8 text-xs"
-                            />
+                            <Input type="number" value={doc.maxSizeMB} onChange={e => updateDocType(idx, 'maxSizeMB', Number(e.target.value))} className="w-16 h-8 text-xs" />
                           </div>
                           <div className="flex-1">
-                            <Input
-                              value={doc.allowedTypes.join(', ')}
-                              onChange={e => updateDocType(idx, 'allowedTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                              placeholder=".pdf, .jpg, .png"
-                              className="h-8 text-xs"
-                            />
+                            <Input value={doc.allowedTypes.join(', ')} onChange={e => updateDocType(idx, 'allowedTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder=".pdf, .jpg, .png" className="h-8 text-xs" />
                           </div>
                         </div>
                       </div>
