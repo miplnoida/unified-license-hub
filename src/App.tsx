@@ -122,6 +122,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
+        <Route path="/registration/success" element={<RegistrationSuccess />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/dashboard" element={<P><Dashboard /></P>} />
