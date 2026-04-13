@@ -109,8 +109,8 @@ export function DeclarationsStep({ form, errors, setField, declarations, termsUr
 
   return (
     <div className="space-y-6">
-      {/* Email OTP Verification */}
-      <div className="form-section">
+      {/* Email OTP Verification - conditionally shown */}
+      {requireOtp && <div className="form-section">
         <h3 className="text-lg font-semibold text-foreground">Email Verification</h3>
         <p className="text-sm text-muted-foreground">
           Verify your email address to proceed with registration.
