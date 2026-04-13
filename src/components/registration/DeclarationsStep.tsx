@@ -170,7 +170,7 @@ export function DeclarationsStep({ form, errors, setField, declarations, termsUr
             {errors.emailVerified && <p className="text-sm text-destructive">{errors.emailVerified}</p>}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Terms & Conditions */}
       <div className="form-section">
