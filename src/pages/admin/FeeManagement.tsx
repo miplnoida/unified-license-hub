@@ -26,7 +26,7 @@ interface FeeConfig {
   sub_sector_id: string | null;
   category_id: string | null;
   service_id: string | null;
-  fee_type: FeeType;
+  fee_type: string;
   name: string;
   amount: number;
   currency: string;
