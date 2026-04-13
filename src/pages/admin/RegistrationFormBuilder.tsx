@@ -81,8 +81,124 @@ const emptyConfig: Omit<ConfigRow, 'id'> = {
   document_types: [
     { label: 'Certificate of Incorporation', required: true, allowedTypes: ['.pdf', '.jpg', '.png'], maxSizeMB: 5 },
   ],
-  form_schema: [],
+  form_schema: defaultFormSchema(),
 };
+
+function defaultFormSchema(): RegFormSchema {
+  const uid = () => crypto.randomUUID();
+
+  const field = (type: string, label: string, fieldName: string, required = false, opts?: Partial<import('@/types/registrationForm').RegField>): import('@/types/registrationForm').RegField => ({
+    id: uid(), type: type as any, label, fieldName, required, ...opts,
+  });
+
+  const row = (cols: { span: number; field: import('@/types/registrationForm').RegField | null }[]): import('@/types/registrationForm').RegRow => ({
+    id: uid(),
+    columns: cols.map(c => ({ span: c.span, field: c.field })),
+  });
+
+  return [
+    {
+      id: uid(),
+      title: 'Entity Details',
+      description: '',
+      rows: [
+        // Sector Selection
+        row([
+          { span: 4, field: field('select', 'Sector', 'sector', true, { placeholder: 'Select sector...' }) },
+          { span: 4, field: field('select', 'Sub-Sector', 'sub_sector', true, { placeholder: 'Select sub-sector...' }) },
+          { span: 4, field: field('select', 'Category', 'category', true, { placeholder: 'Select category...' }) },
+        ]),
+        // Applicant Info
+        row([
+          { span: 6, field: field('text', 'Applicant Name', 'applicant_name', true, { placeholder: 'Enter applicant legal name' }) },
+          { span: 6, field: field('text', 'Applicant Name (if available)', 'applicant_name_alt', false, { placeholder: 'Alternate or trading name' }) },
+        ]),
+        // Business Registration
+        row([
+          { span: 6, field: field('text', 'Business Registration Number', 'registration_number', false, { placeholder: 'Enter registration number' }) },
+          { span: 6, field: null },
+        ]),
+        // Mailing Address
+        row([
+          { span: 12, field: field('text', 'Number / Street / Suite', 'mailing_street', true, { placeholder: 'Enter street address', helpText: 'Mailing Address' }) },
+        ]),
+        row([
+          { span: 6, field: field('text', 'City / Town', 'mailing_city', true, { placeholder: 'Enter city' }) },
+          { span: 6, field: field('text', 'State / Province / Region', 'mailing_state', true, { placeholder: 'Enter state or province' }) },
+        ]),
+        row([
+          { span: 12, field: field('select', 'Country', 'mailing_country', true, { placeholder: 'Select country...' }) },
+        ]),
+        // Physical Address
+        row([
+          { span: 12, field: field('checkbox', 'Same as Mailing Address', 'same_as_mailing', false) },
+        ]),
+        row([
+          { span: 12, field: field('text', 'Number / Street / Suite', 'physical_street', true, { placeholder: 'Enter street address', helpText: 'Physical Address' }) },
+        ]),
+        row([
+          { span: 6, field: field('text', 'City / Town', 'physical_city', true, { placeholder: 'Enter city' }) },
+          { span: 6, field: field('text', 'State / Province / Region', 'physical_state', true, { placeholder: 'Enter state or province' }) },
+        ]),
+        row([
+          { span: 12, field: field('select', 'Country', 'physical_country', true, { placeholder: 'Select country...' }) },
+        ]),
+      ],
+    },
+    {
+      id: uid(),
+      title: 'Primary User',
+      description: 'Details of the primary contact person for this registration.',
+      rows: [
+        row([
+          { span: 6, field: field('text', 'First Name', 'first_name', true, { placeholder: 'Enter first name' }) },
+          { span: 6, field: field('text', 'Last Name', 'last_name', true, { placeholder: 'Enter last name' }) },
+        ]),
+        row([
+          { span: 6, field: field('phone', 'Telephone', 'telephone', true, { placeholder: 'Enter phone number' }) },
+          { span: 6, field: field('email', 'Email Address', 'email', true, { placeholder: 'Enter email address' }) },
+        ]),
+        row([
+          { span: 6, field: field('text', 'Username', 'username', false, { placeholder: 'Choose a username' }) },
+          { span: 6, field: null },
+        ]),
+        row([
+          { span: 6, field: field('text', 'Password', 'password', true, { placeholder: 'Enter password' }) },
+          { span: 6, field: field('text', 'Confirm Password', 'confirm_password', true, { placeholder: 'Re-enter password' }) },
+        ]),
+      ],
+    },
+    {
+      id: uid(),
+      title: 'Supporting Documents',
+      description: 'Upload the required supporting documents for your application.',
+      rows: [
+        row([
+          { span: 12, field: field('file', 'Certificate of Incorporation', 'doc_incorporation', true, { helpText: 'PDF, JPG or PNG, max 5MB' }) },
+        ]),
+        row([
+          { span: 12, field: field('file', 'Business License', 'doc_business_license', false, { helpText: 'PDF, JPG or PNG, max 5MB' }) },
+        ]),
+      ],
+    },
+    {
+      id: uid(),
+      title: 'Declarations',
+      description: 'Review and accept the required declarations to complete your registration.',
+      rows: [
+        row([
+          { span: 12, field: field('checkbox', 'I agree to the Terms & Conditions', 'terms_accepted', true) },
+        ]),
+        row([
+          { span: 12, field: field('checkbox', 'I agree to the Privacy Policy', 'privacy_accepted', true) },
+        ]),
+        row([
+          { span: 12, field: field('checkbox', 'I agree to the Data Protection Notice', 'data_protection_accepted', true) },
+        ]),
+      ],
+    },
+  ];
+}
 
 export default function RegistrationFormBuilder() {
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
