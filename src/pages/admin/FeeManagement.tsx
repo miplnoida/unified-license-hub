@@ -75,7 +75,7 @@ export default function FeeManagement() {
 
   // Fee form state
   const [name, setName] = useState('');
-  const [feeType, setFeeType] = useState<FeeType>('application');
+  const [feeType, setFeeType] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [sectorId, setSectorId] = useState('');
