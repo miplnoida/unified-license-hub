@@ -54,6 +54,14 @@ interface FeeRule {
   created_at: string;
 }
 
+interface FeeTypeAmountRow {
+  calculationType: 'fixed' | 'percentage';
+  amount: string;
+  minAmount: string;
+  maxAmount: string;
+  error?: string;
+}
+
 export default function FeeManagement() {
   const { activeRegulatorId } = useRegulator();
   const [fees, setFees] = useState<FeeConfig[]>([]);
@@ -65,6 +73,7 @@ export default function FeeManagement() {
   const [editingRule, setEditingRule] = useState<FeeRule | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('configurations');
+  const [legacyNote, setLegacyNote] = useState(false);
 
   // Fee Types master state
   const [feeTypesData, setFeeTypesData] = useState<{ id: string; name: string; code: string | null; status: string; created_at: string }[]>([]);
@@ -77,17 +86,13 @@ export default function FeeManagement() {
   // Fee form state
   const [name, setName] = useState('');
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
-  const [amount, setAmount] = useState('');
+  const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
   const [currency, setCurrency] = useState('USD');
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [calculationType, setCalculationType] = useState<CalculationType>('fixed');
-  const [calculationExpression, setCalculationExpression] = useState('');
-  const [minAmount, setMinAmount] = useState('');
-  const [maxAmount, setMaxAmount] = useState('');
 
   // Rule form state
   const [ruleName, setRuleName] = useState('');
