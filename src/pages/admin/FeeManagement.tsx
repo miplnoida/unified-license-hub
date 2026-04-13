@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/u
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
-import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
 
 interface FeeConfig {
   id: string;
@@ -54,6 +54,14 @@ interface FeeRule {
   created_at: string;
 }
 
+interface FeeTypeAmountRow {
+  calculationType: 'fixed' | 'percentage';
+  amount: string;
+  minAmount: string;
+  maxAmount: string;
+  error?: string;
+}
+
 export default function FeeManagement() {
   const { activeRegulatorId } = useRegulator();
   const [fees, setFees] = useState<FeeConfig[]>([]);
@@ -65,6 +73,7 @@ export default function FeeManagement() {
   const [editingRule, setEditingRule] = useState<FeeRule | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('configurations');
+  const [legacyNote, setLegacyNote] = useState(false);
 
   // Fee Types master state
   const [feeTypesData, setFeeTypesData] = useState<{ id: string; name: string; code: string | null; status: string; created_at: string }[]>([]);
@@ -77,17 +86,13 @@ export default function FeeManagement() {
   // Fee form state
   const [name, setName] = useState('');
   const [feeTypes, setFeeTypesSelected] = useState<string[]>([]);
-  const [amount, setAmount] = useState('');
+  const [feeTypeAmounts, setFeeTypeAmounts] = useState<Record<string, FeeTypeAmountRow>>({});
   const [currency, setCurrency] = useState('USD');
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [calculationType, setCalculationType] = useState<CalculationType>('fixed');
-  const [calculationExpression, setCalculationExpression] = useState('');
-  const [minAmount, setMinAmount] = useState('');
-  const [maxAmount, setMaxAmount] = useState('');
 
   // Rule form state
   const [ruleName, setRuleName] = useState('');
@@ -158,12 +163,37 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeTypesSelected([]); setAmount(''); setCurrency('USD');
+    setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
-    setIsActive(true); setEditing(null); setCalculationType('fixed');
-    setCalculationExpression(''); setMinAmount(''); setMaxAmount('');
+    setIsActive(true); setEditing(null); setLegacyNote(false);
   };
 
+  const handleFeeTypesChange = useCallback((selected: string[]) => {
+    setFeeTypesSelected(selected);
+    setFeeTypeAmounts(prev => {
+      const next: Record<string, FeeTypeAmountRow> = {};
+      selected.forEach(ft => {
+        next[ft] = prev[ft] || { calculationType: 'fixed', amount: '', minAmount: '', maxAmount: '' };
+      });
+      return next;
+    });
+  }, []);
+
+  const updateFeeTypeRow = useCallback((ft: string, field: keyof FeeTypeAmountRow, value: string) => {
+    setFeeTypeAmounts(prev => ({
+      ...prev,
+      [ft]: { ...prev[ft], [field]: value, error: undefined },
+    }));
+  }, []);
+
+  const removeFeeTypeRow = useCallback((ft: string) => {
+    setFeeTypesSelected(prev => prev.filter(t => t !== ft));
+    setFeeTypeAmounts(prev => {
+      const next = { ...prev };
+      delete next[ft];
+      return next;
+    });
+  }, []);
   const resetRuleForm = () => {
     setRuleName(''); setRuleType('calculation'); setRuleDescription('');
     setRuleFeeId(''); setRuleExpression(''); setRuleDiscountPercent('');
@@ -172,15 +202,20 @@ export default function FeeManagement() {
     setEditingRule(null);
   };
 
-  const openEdit = (fee: FeeConfig) => {
+
     setEditing(fee);
-    setName(fee.name); setFeeTypesSelected([fee.fee_type]); setAmount(String(fee.amount));
+    setName(fee.name); setFeeTypesSelected([fee.fee_type]);
+    const row: FeeTypeAmountRow = {
+      calculationType: (fee.calculation_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
+      amount: String(fee.amount),
+      minAmount: String(fee.min_amount || ''),
+      maxAmount: String(fee.max_amount || ''),
+    };
+    setFeeTypeAmounts({ [fee.fee_type]: row });
+    setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
     setServiceId(fee.service_id || ''); setIsActive(fee.is_active);
-    setCalculationType(fee.calculation_type || 'fixed');
-    setCalculationExpression(fee.calculation_expression || '');
-    setMinAmount(String(fee.min_amount || '')); setMaxAmount(String(fee.max_amount || ''));
     setDialogOpen(true);
   };
 
@@ -198,28 +233,62 @@ export default function FeeManagement() {
     setRuleDialogOpen(true);
   };
 
+  const validateRows = (): boolean => {
+    let valid = true;
+    const updated = { ...feeTypeAmounts };
+    for (const ft of feeTypes) {
+      const row = updated[ft];
+      if (!row) continue;
+      const amt = parseFloat(row.amount);
+      if (isNaN(amt) || amt <= 0) { updated[ft] = { ...row, error: 'Amount required and > 0' }; valid = false; continue; }
+      if (row.calculationType === 'percentage' && (amt < 0 || amt > 100)) { updated[ft] = { ...row, error: 'Percentage must be 0–100' }; valid = false; continue; }
+      if (row.calculationType === 'fixed') {
+        const min = parseFloat(row.minAmount) || 0;
+        const max = row.maxAmount ? parseFloat(row.maxAmount) : null;
+        if (min < 0) { updated[ft] = { ...row, error: 'Min must be ≥ 0' }; valid = false; continue; }
+        if (max !== null && max < 0) { updated[ft] = { ...row, error: 'Max must be ≥ 0' }; valid = false; continue; }
+        if (max !== null && min > max) { updated[ft] = { ...row, error: 'Min must be ≤ Max' }; valid = false; continue; }
+        if (max !== null && (amt < min || amt > max)) { updated[ft] = { ...row, error: 'Amount must be between Min and Max' }; valid = false; continue; }
+        if (amt < min) { updated[ft] = { ...row, error: 'Amount must be ≥ Min' }; valid = false; continue; }
+      }
+      updated[ft] = { ...row, error: undefined };
+    }
+    setFeeTypeAmounts(updated);
+    return valid;
+  };
+
   const handleSave = async () => {
-    if (!name.trim() || !amount || feeTypes.length === 0) { toast.error('Name, fee type(s), and amount are required'); return; }
+    if (!name.trim() || feeTypes.length === 0) { toast.error('Name and at least one fee type are required'); return; }
+    if (!validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
     const basePayload: any = {
-      amount: parseFloat(amount), currency,
+      currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
       category_id: categoryId || null, service_id: serviceId || null, is_active: isActive,
       regulator_id: activeRegulatorId || null,
-      calculation_type: calculationType,
-      calculation_expression: calculationExpression || null,
-      min_amount: parseFloat(minAmount) || 0,
-      max_amount: maxAmount ? parseFloat(maxAmount) : null,
+      calculation_expression: null,
     };
     if (editing) {
-      // When editing, update with first selected fee type
-      const payload = { ...basePayload, name: name.trim(), fee_type: feeTypes[0] };
+      const row = feeTypeAmounts[feeTypes[0]];
+      const payload = {
+        ...basePayload, name: name.trim(), fee_type: feeTypes[0],
+        amount: parseFloat(row.amount), calculation_type: row.calculationType,
+        min_amount: parseFloat(row.minAmount) || 0,
+        max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
+      };
       const { error } = await supabase.from('fee_configurations' as any).update(payload).eq('id', editing.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Fee updated');
     } else {
-      // When creating, batch-insert one config per selected fee type
-      const rows = feeTypes.map(ft => ({ ...basePayload, name: name.trim(), fee_type: ft }));
+      const rows = feeTypes.map(ft => {
+        const row = feeTypeAmounts[ft];
+        return {
+          ...basePayload, name: name.trim(), fee_type: ft,
+          amount: parseFloat(row.amount), calculation_type: row.calculationType,
+          min_amount: parseFloat(row.minAmount) || 0,
+          max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
+        };
+      });
       const { error } = await supabase.from('fee_configurations' as any).insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success(`${rows.length} fee configuration(s) created`);
@@ -361,28 +430,14 @@ export default function FeeManagement() {
                             .filter(ft => ft.status === 'active')
                             .map(ft => ({ value: ft.name, label: ft.name + (ft.code ? ` (${ft.code})` : '') }))}
                           selected={feeTypes}
-                          onChange={setFeeTypesSelected}
+                          onChange={handleFeeTypesChange}
                           placeholder="Select fee types..."
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Calculation Type</Label>
-                        <Select value={calculationType} onValueChange={v => setCalculationType(v as CalculationType)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(CALCULATION_TYPE_LABELS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{calculationType === 'percentage' ? 'Percentage (%)' : 'Amount'} *</Label>
-                        <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" />
-                      </div>
+                    {/* Currency */}
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Currency</Label>
                         <Select value={currency} onValueChange={setCurrency}>
@@ -394,24 +449,71 @@ export default function FeeManagement() {
                       </div>
                     </div>
 
-                    {calculationType === 'formula' && (
-                      <div className="space-y-2">
-                        <Label>Formula Expression</Label>
-                        <Textarea value={calculationExpression} onChange={e => setCalculationExpression(e.target.value)}
-                          placeholder='{turnover} * 0.01 + 500' className="font-mono text-sm" />
-                        <p className="text-xs text-muted-foreground">Use {'{field_name}'} to reference form inputs. Supported: +, -, *, /, Math functions.</p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Min Amount</Label>
-                        <Input type="number" step="0.01" value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Max Amount (cap)</Label>
-                        <Input type="number" step="0.01" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} placeholder="No cap" />
-                      </div>
+                    {/* Per-fee-type amount rows */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Fee Type Amounts</Label>
+                      {legacyNote && (
+                        <div className="flex items-start gap-2 p-2 rounded-md bg-accent/50 border border-border text-xs text-muted-foreground">
+                          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>Legacy record: values were copied to all rows. Adjust each row individually as needed.</span>
+                        </div>
+                      )}
+                      {feeTypes.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4 border rounded-md bg-muted/20">
+                          Select one or more fee types above to enter amounts.
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {feeTypes.map(ft => {
+                            const row = feeTypeAmounts[ft];
+                            if (!row) return null;
+                            const ftData = feeTypesData.find(d => d.name === ft);
+                            const label = ftData ? ftData.name + (ftData.code ? ` (${ftData.code})` : '') : ft;
+                            return (
+                              <div key={ft} className={`border rounded-lg p-3 space-y-2 ${row.error ? 'border-destructive bg-destructive/5' : 'bg-muted/20'}`}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">{label}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeFeeTypeRow(ft)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Calc Type</Label>
+                                    <Select value={row.calculationType} onValueChange={v => updateFeeTypeRow(ft, 'calculationType', v)}>
+                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="fixed">Fixed</SelectItem>
+                                        <SelectItem value="percentage">Percentage</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">{row.calculationType === 'percentage' ? '% *' : 'Amount *'}</Label>
+                                    <Input className="h-8 text-xs" type="number" step="0.01" value={row.amount}
+                                      onChange={e => updateFeeTypeRow(ft, 'amount', e.target.value)} placeholder="0.00" />
+                                  </div>
+                                  {row.calculationType === 'fixed' && (
+                                    <>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Min</Label>
+                                        <Input className="h-8 text-xs" type="number" step="0.01" value={row.minAmount}
+                                          onChange={e => updateFeeTypeRow(ft, 'minAmount', e.target.value)} placeholder="0" />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Max</Label>
+                                        <Input className="h-8 text-xs" type="number" step="0.01" value={row.maxAmount}
+                                          onChange={e => updateFeeTypeRow(ft, 'maxAmount', e.target.value)} placeholder="No cap" />
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                                {row.error && <p className="text-xs text-destructive">{row.error}</p>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
