@@ -1844,6 +1844,42 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_verifications: {
+        Row: {
+          attempts: number
+          channel: string
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number
+          user_email: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          channel?: string
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number
+          user_email: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number
+          user_email?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       payment_receipts: {
         Row: {
           amount: number
@@ -2214,57 +2250,78 @@ export type Database = {
           applicant_name_alt: string | null
           category_id: string
           created_at: string
+          documents_metadata: Json | null
           email: string
+          email_verified: boolean | null
+          entity_specific_data: Json | null
           first_name: string
           id: string
           last_name: string
           mailing_address: Json
           physical_address: Json
+          registration_number: string | null
+          registration_reference: string | null
           same_as_mailing: boolean
           sector_id: string
           status: string
           sub_sector_id: string
           telephone: string
+          terms_accepted: boolean | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           applicant_name: string
           applicant_name_alt?: string | null
           category_id: string
           created_at?: string
+          documents_metadata?: Json | null
           email: string
+          email_verified?: boolean | null
+          entity_specific_data?: Json | null
           first_name: string
           id?: string
           last_name: string
           mailing_address?: Json
           physical_address?: Json
+          registration_number?: string | null
+          registration_reference?: string | null
           same_as_mailing?: boolean
           sector_id: string
           status?: string
           sub_sector_id: string
           telephone: string
+          terms_accepted?: boolean | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           applicant_name?: string
           applicant_name_alt?: string | null
           category_id?: string
           created_at?: string
+          documents_metadata?: Json | null
           email?: string
+          email_verified?: boolean | null
+          entity_specific_data?: Json | null
           first_name?: string
           id?: string
           last_name?: string
           mailing_address?: Json
           physical_address?: Json
+          registration_number?: string | null
+          registration_reference?: string | null
           same_as_mailing?: boolean
           sector_id?: string
           status?: string
           sub_sector_id?: string
           telephone?: string
+          terms_accepted?: boolean | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -3641,6 +3698,7 @@ export type Database = {
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
       generate_receipt_number: { Args: never; Returns: string }
+      generate_registration_reference: { Args: never; Returns: string }
       generate_return_unique_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
