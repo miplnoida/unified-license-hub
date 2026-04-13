@@ -47,9 +47,15 @@ function getFileIcon(type: string) {
   return <File className="h-5 w-5 text-muted-foreground" />;
 }
 
-export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, errors }: Props) {
+export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, errors, documentTypes }: Props) {
+  const labels = documentTypes ? documentTypes.map(d => d.label) : DEFAULT_DOCUMENT_LABELS;
+  const maxSizeMB = documentTypes?.[0]?.maxSizeMB ?? DEFAULT_MAX_SIZE_MB;
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+  const allowedTypes = DEFAULT_ALLOWED_TYPES;
+  const allowedExtensions = DEFAULT_ALLOWED_EXTENSIONS;
+
   const [uploading, setUploading] = useState(false);
-  const [selectedLabel, setSelectedLabel] = useState(DOCUMENT_LABELS[0]);
+  const [selectedLabel, setSelectedLabel] = useState(labels[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,14 +63,13 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
     if (!file) return;
 
     // Validate type
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(`Invalid file type. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`);
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`Invalid file type. Allowed: ${allowedExtensions.join(', ')}`);
       return;
     }
 
-    // Validate size
-    if (file.size > MAX_SIZE_BYTES) {
-      toast.error(`File too large. Maximum size: ${MAX_SIZE_MB}MB`);
+    if (file.size > maxSizeBytes) {
+      toast.error(`File too large. Maximum size: ${maxSizeMB}MB`);
       return;
     }
 
@@ -128,7 +133,7 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
                 onChange={e => setSelectedLabel(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {DOCUMENT_LABELS.map(label => (
+                {labels.map(label => (
                   <option key={label} value={label}>{label}</option>
                 ))}
               </select>
