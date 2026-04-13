@@ -453,7 +453,7 @@ export default function FeeManagement() {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Fee Type Amounts</Label>
                       {legacyNote && (
-                        <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs text-blue-700 dark:text-blue-300">
+                        <div className="flex items-start gap-2 p-2 rounded-md bg-accent/50 border border-border text-xs text-muted-foreground">
                           <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                           <span>Legacy record: values were copied to all rows. Adjust each row individually as needed.</span>
                         </div>
