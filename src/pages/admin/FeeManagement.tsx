@@ -198,7 +198,7 @@ export default function FeeManagement() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !amount) { toast.error('Name and amount are required'); return; }
+    if (!name.trim() || !amount || !feeType) { toast.error('Name, fee type, and amount are required'); return; }
     setSaving(true);
     const payload: any = {
       name: name.trim(), fee_type: feeType, amount: parseFloat(amount), currency,
