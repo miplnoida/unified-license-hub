@@ -2210,6 +2210,7 @@ export type Database = {
           data_protection_url: string | null
           declarations: Json
           document_types: Json
+          form_schema: Json
           form_template_id: string | null
           id: string
           is_active: boolean
@@ -2230,6 +2231,7 @@ export type Database = {
           data_protection_url?: string | null
           declarations?: Json
           document_types?: Json
+          form_schema?: Json
           form_template_id?: string | null
           id?: string
           is_active?: boolean
@@ -2250,6 +2252,7 @@ export type Database = {
           data_protection_url?: string | null
           declarations?: Json
           document_types?: Json
+          form_schema?: Json
           form_template_id?: string | null
           id?: string
           is_active?: boolean
