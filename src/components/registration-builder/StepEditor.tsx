@@ -9,11 +9,74 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Plus, Trash2, GripVertical, ChevronUp, ChevronDown, Columns,
+  Plus, Trash2, GripVertical, ChevronUp, ChevronDown, Columns, Pencil,
 } from 'lucide-react';
 import type { RegStep, RegRow, RegColumn, RegField, RegFieldType } from '@/types/registrationForm';
 import { COLUMN_PRESETS, REG_FIELD_TYPES } from '@/types/registrationForm';
 import { FieldEditor } from './FieldEditor';
+
+/* Inline-editable field card within a column cell */
+function FieldCard({
+  field, isEditing, onSelect, onRemove, onLabelChange,
+}: {
+  field: RegField;
+  isEditing: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+  onLabelChange: (label: string) => void;
+}) {
+  const [inlineEdit, setInlineEdit] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="cursor-pointer" onClick={() => { if (!inlineEdit) onSelect(); }}>
+      <div className="flex items-center justify-between gap-1">
+        {inlineEdit ? (
+          <input
+            ref={inputRef}
+            autoFocus
+            defaultValue={field.label}
+            className="text-xs font-medium bg-transparent border-b border-primary outline-none w-full mr-1"
+            onBlur={e => { onLabelChange(e.target.value); setInlineEdit(false); }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { onLabelChange((e.target as HTMLInputElement).value); setInlineEdit(false); }
+              if (e.key === 'Escape') setInlineEdit(false);
+            }}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="text-xs font-medium truncate hover:underline"
+            onDoubleClick={e => { e.stopPropagation(); setInlineEdit(true); }}
+            title="Double-click to rename"
+          >
+            {field.label}
+          </span>
+        )}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button
+            onClick={e => { e.stopPropagation(); setInlineEdit(true); }}
+            className="text-muted-foreground hover:text-primary"
+            title="Rename"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); onRemove(); }}
+            className="text-destructive hover:text-destructive/80"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 mt-0.5">
+        <Badge variant="outline" className="text-[9px] px-1">{field.type}</Badge>
+        {field.required && <Badge variant="secondary" className="text-[9px] px-1">Required</Badge>}
+        {field.dataSource && <Badge variant="secondary" className="text-[9px] px-1">🔗 {field.dataSource}</Badge>}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   step: RegStep;
