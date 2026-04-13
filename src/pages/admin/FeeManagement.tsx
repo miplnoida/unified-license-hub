@@ -202,7 +202,7 @@ export default function FeeManagement() {
     setEditingRule(null);
   };
 
-
+  const openEdit = (fee: FeeConfig) => {
     setEditing(fee);
     setName(fee.name); setFeeTypesSelected([fee.fee_type]);
     const row: FeeTypeAmountRow = {
