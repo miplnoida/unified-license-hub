@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
-import { FEE_TYPE_LABELS, FeeType, CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
+import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign } from 'lucide-react';
 
 interface FeeConfig {
@@ -26,7 +26,7 @@ interface FeeConfig {
   sub_sector_id: string | null;
   category_id: string | null;
   service_id: string | null;
-  fee_type: FeeType;
+  fee_type: string;
   name: string;
   amount: number;
   currency: string;
@@ -75,7 +75,7 @@ export default function FeeManagement() {
 
   // Fee form state
   const [name, setName] = useState('');
-  const [feeType, setFeeType] = useState<FeeType>('application');
+  const [feeType, setFeeType] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [sectorId, setSectorId] = useState('');
@@ -157,7 +157,7 @@ export default function FeeManagement() {
   };
 
   const resetForm = () => {
-    setName(''); setFeeType('application'); setAmount(''); setCurrency('USD');
+    setName(''); setFeeType(''); setAmount(''); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
     setIsActive(true); setEditing(null); setCalculationType('fixed');
     setCalculationExpression(''); setMinAmount(''); setMaxAmount('');
@@ -198,7 +198,7 @@ export default function FeeManagement() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !amount) { toast.error('Name and amount are required'); return; }
+    if (!name.trim() || !amount || !feeType) { toast.error('Name, fee type, and amount are required'); return; }
     setSaving(true);
     const payload: any = {
       name: name.trim(), fee_type: feeType, amount: parseFloat(amount), currency,
@@ -350,12 +350,12 @@ export default function FeeManagement() {
                         <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Application Fee" />
                       </div>
                       <div className="space-y-2">
-                        <Label>Fee Type</Label>
-                        <Select value={feeType} onValueChange={v => setFeeType(v as FeeType)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Label>Fee Type *</Label>
+                        <Select value={feeType} onValueChange={setFeeType}>
+                          <SelectTrigger><SelectValue placeholder="Select fee type..." /></SelectTrigger>
                           <SelectContent>
-                            {Object.entries(FEE_TYPE_LABELS).map(([k, v]) => (
-                              <SelectItem key={k} value={k}>{v}</SelectItem>
+                            {feeTypesData.filter(ft => ft.status === 'active').map(ft => (
+                              <SelectItem key={ft.id} value={ft.name}>{ft.name}{ft.code ? ` (${ft.code})` : ''}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -484,7 +484,7 @@ export default function FeeManagement() {
                       ) : fees.map(fee => (
                         <TableRow key={fee.id}>
                           <TableCell className="font-medium">{fee.name}</TableCell>
-                          <TableCell><Badge variant="outline">{FEE_TYPE_LABELS[fee.fee_type]}</Badge></TableCell>
+                          <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
                           <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
                           <TableCell className="font-mono">
                             {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}

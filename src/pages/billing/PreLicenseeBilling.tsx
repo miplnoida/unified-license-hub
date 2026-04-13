@@ -1,61 +1,107 @@
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { FileText, DollarSign, Clock, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { DollarSign, Clock, CheckCircle, FileText, Loader2 } from 'lucide-react';
 
-interface BillingRecord {
+interface BillingRow {
   id: string;
   applicationNumber: string;
   applicant: string;
-  type: string;
+  feeType: string;
   amount: string;
   status: string;
   date: string;
-  dueDate: string;
 }
 
-const data: BillingRecord[] = [
-  { id: '1', applicationNumber: 'APP-2024-0156', applicant: 'Acme Insurance Ltd', type: 'Application Fee', amount: '$500.00', status: 'paid', date: '2024-01-10', dueDate: '2024-01-20' },
-  { id: '2', applicationNumber: 'APP-2024-0155', applicant: 'Global Life Corp', type: 'Application Fee', amount: '$500.00', status: 'pending', date: '2024-01-08', dueDate: '2024-01-18' },
-  { id: '3', applicationNumber: 'APP-2024-0153', applicant: 'Safe Harbor Insurance', type: 'Application Fee', amount: '$500.00', status: 'overdue', date: '2024-01-02', dueDate: '2024-01-12' },
-  { id: '4', applicationNumber: 'APP-2024-0150', applicant: 'Pacific Mutual', type: 'Processing Fee', amount: '$250.00', status: 'paid', date: '2023-12-28', dueDate: '2024-01-07' },
-  { id: '5', applicationNumber: 'APP-2024-0148', applicant: 'Continental Reinsurance', type: 'Application Fee', amount: '$500.00', status: 'paid', date: '2023-12-20', dueDate: '2023-12-30' },
-  { id: '6', applicationNumber: 'APP-2024-0145', applicant: 'Summit Financial', type: 'Application Fee', amount: '$500.00', status: 'waived', date: '2023-12-15', dueDate: '2023-12-25' },
-];
-
-const columns: Column<BillingRecord>[] = [
-  { key: 'applicationNumber', label: 'Application #', render: (r) => <span className="font-medium text-foreground">{r.applicationNumber}</span> },
-  { key: 'applicant', label: 'Applicant' },
-  { key: 'type', label: 'Fee Type' },
-  { key: 'amount', label: 'Amount', render: (r) => <span className="font-semibold">{r.amount}</span> },
-  { key: 'dueDate', label: 'Due Date' },
-  {
-    key: 'status', label: 'Status', render: (r) => {
-      const v = r.status === 'paid' ? 'approved' : r.status === 'pending' ? 'pending' : r.status === 'overdue' ? 'rejected' : 'draft';
-      return <Badge variant={v as any} className="capitalize">{r.status}</Badge>;
-    }
-  },
-];
-
 export default function PreLicenseeBilling() {
+  const [rows, setRows] = useState<BillingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      // Fetch fee components with their application and fee type info
+      const { data: components } = await supabase
+        .from('fee_components' as any)
+        .select('id, amount, description, created_at, application_id, fee_type_id')
+        .order('created_at', { ascending: false });
+
+      if (!components || components.length === 0) { setLoading(false); return; }
+
+      // Get unique application and fee type IDs
+      const appIds = [...new Set((components as any[]).map(c => c.application_id))];
+      const ftIds = [...new Set((components as any[]).map(c => c.fee_type_id))];
+
+      const [appsRes, ftRes] = await Promise.all([
+        supabase.from('applications' as any).select('id, application_number, status, data').in('id', appIds),
+        supabase.from('fee_types' as any).select('id, name').in('id', ftIds),
+      ]);
+
+      const appsMap = new Map((appsRes.data as any[] || []).map(a => [a.id, a]));
+      const ftMap = new Map((ftRes.data as any[] || []).map(f => [f.id, f.name]));
+
+      const mapped: BillingRow[] = (components as any[]).map(c => {
+        const app = appsMap.get(c.application_id);
+        const applicantName = app?.data?.applicant_name || app?.data?.entity_name || '—';
+        const paymentStatus = app?.status === 'approved' ? 'paid' : app?.status === 'submitted' ? 'pending' : 'pending';
+        return {
+          id: c.id,
+          applicationNumber: app?.application_number || '—',
+          applicant: applicantName,
+          feeType: ftMap.get(c.fee_type_id) || '—',
+          amount: `$${Number(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          status: paymentStatus,
+          date: new Date(c.created_at).toLocaleDateString(),
+        };
+      });
+      setRows(mapped);
+      setLoading(false);
+    })();
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = rows.reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
+    const paid = rows.filter(r => r.status === 'paid').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
+    const pending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
+    const overdue = rows.filter(r => r.status === 'overdue').reduce((s, r) => s + parseFloat(r.amount.replace(/[$,]/g, '')), 0);
+    const fmt = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    return { total: fmt(total), paid: fmt(paid), pending: fmt(pending), overdue: fmt(overdue) };
+  }, [rows]);
+
+  const columns: Column<BillingRow>[] = [
+    { key: 'applicationNumber', label: 'Application #', render: r => <span className="font-medium text-foreground">{r.applicationNumber}</span> },
+    { key: 'applicant', label: 'Applicant' },
+    { key: 'feeType', label: 'Fee Type' },
+    { key: 'amount', label: 'Amount', render: r => <span className="font-semibold">{r.amount}</span> },
+    { key: 'date', label: 'Date' },
+    {
+      key: 'status', label: 'Status', render: r => {
+        const v = r.status === 'paid' ? 'approved' : r.status === 'pending' ? 'pending' : 'rejected';
+        return <Badge variant={v as any} className="capitalize">{r.status}</Badge>;
+      }
+    },
+  ];
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader
-          title="Pre-Licensee Billing"
-          description="Manage billing and fee collection for pre-license applications."
-        />
+        <PageHeader title="Pre-Licensee Billing" description="Manage billing and fee collection for pre-license applications." />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up delay-100">
-          <StatCard title="Total Billed" value="$4,250" icon={<DollarSign className="h-6 w-6" />} />
-          <StatCard title="Collected" value="$3,000" icon={<CheckCircle className="h-6 w-6" />} variant="success" />
-          <StatCard title="Pending" value="$750" icon={<Clock className="h-6 w-6" />} variant="warning" />
-          <StatCard title="Overdue" value="$500" icon={<FileText className="h-6 w-6" />} variant="danger" />
+          <StatCard title="Total Billed" value={stats.total} icon={<DollarSign className="h-6 w-6" />} />
+          <StatCard title="Collected" value={stats.paid} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
+          <StatCard title="Pending" value={stats.pending} icon={<Clock className="h-6 w-6" />} variant="warning" />
+          <StatCard title="Overdue" value={stats.overdue} icon={<FileText className="h-6 w-6" />} variant="danger" />
         </div>
         <div className="animate-slide-up delay-200">
-          <DataTableShell columns={columns} data={data} searchPlaceholder="Search billing records..." />
+          {loading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <DataTableShell columns={columns} data={rows} searchPlaceholder="Search billing records..." />
+          )}
         </div>
       </div>
     </DashboardLayout>
