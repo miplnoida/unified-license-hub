@@ -29,6 +29,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const FormDetail = lazy(() => import("./pages/FormDetail"));
 const NewApplication = lazy(() => import("./pages/NewApplication"));
 const PreLicenseeRegistration = lazy(() => import("./pages/registration/PreLicenseeRegistration"));
+const RegistrationSuccess = lazy(() => import("./pages/registration/RegistrationSuccess"));
 const ApplicationsList = lazy(() => import("./pages/applications/ApplicationsList"));
 const ApplicationDetail = lazy(() => import("./pages/applications/ApplicationDetail"));
 const LicensesList = lazy(() => import("./pages/licenses/LicensesList"));
