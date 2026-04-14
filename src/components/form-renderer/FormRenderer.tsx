@@ -434,34 +434,42 @@ export function FormRenderer({
         input = <Textarea value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} rows={3} disabled={readOnly} />;
         break;
       case 'select':
-        input = (
-          <Select value={val} onValueChange={v => onChange(field.fieldName, v)} disabled={readOnly}>
-            <SelectTrigger><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
-            <SelectContent>{(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-          </Select>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <Select value={val} onValueChange={v => onChange(field.fieldName, v)} disabled={readOnly}>
+              <SelectTrigger><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
+              <SelectContent>{(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+            </Select>
+          );
+        }
         break;
       case 'multi_select':
-        input = (
-          <div className="space-y-1">
-            {(field.options || []).map(opt => {
-              const selected = Array.isArray(val) ? val : [];
-              return (
-                <label key={opt} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={selected.includes(opt)}
-                    onCheckedChange={checked => {
-                      const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
-                      onChange(field.fieldName, next);
-                    }}
-                    disabled={readOnly}
-                  />
-                  {opt}
-                </label>
-              );
-            })}
-          </div>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <div className="space-y-1">
+              {(field.options || []).map(opt => {
+                const selected = Array.isArray(val) ? val : [];
+                return (
+                  <label key={opt} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selected.includes(opt)}
+                      onCheckedChange={checked => {
+                        const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
+                        onChange(field.fieldName, next);
+                      }}
+                      disabled={readOnly}
+                    />
+                    {opt}
+                  </label>
+                );
+              })}
+            </div>
+          );
+        }
         break;
       case 'checkbox':
         input = (
@@ -472,16 +480,20 @@ export function FormRenderer({
         );
         break;
       case 'radio':
-        input = (
-          <div className="space-y-1.5">
-            {(field.options || []).map(opt => (
-              <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name={field.fieldName} value={opt} checked={val === opt} onChange={() => onChange(field.fieldName, opt)} disabled={readOnly} className="accent-primary" />
-                {opt}
-              </label>
-            ))}
-          </div>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <div className="space-y-1.5">
+              {(field.options || []).map(opt => (
+                <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name={field.fieldName} value={opt} checked={val === opt} onChange={() => onChange(field.fieldName, opt)} disabled={readOnly} className="accent-primary" />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          );
+        }
         break;
       case 'file':
         input = (
