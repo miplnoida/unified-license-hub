@@ -66,14 +66,28 @@ export function useActiveMasterItems(typeCode: string, parentItemId?: string | n
   return useQuery({
     queryKey: ['master_data_active', typeCode, parentItemId],
     queryFn: async () => {
-      // First get the type
-      const { data: typeData, error: typeErr } = await supabase
+      // First try to find the type by code, then fall back to name
+      let typeData: any = null;
+      const { data: byCode, error: codeErr } = await supabase
         .from('master_data_types' as any)
         .select('id')
         .eq('code', typeCode)
         .eq('status', 'active')
         .maybeSingle();
-      if (typeErr) throw typeErr;
+      if (codeErr) throw codeErr;
+      typeData = byCode;
+
+      if (!typeData) {
+        const { data: byName, error: nameErr } = await supabase
+          .from('master_data_types' as any)
+          .select('id')
+          .eq('name', typeCode)
+          .eq('status', 'active')
+          .maybeSingle();
+        if (nameErr) throw nameErr;
+        typeData = byName;
+      }
+
       if (!typeData) return [];
 
       let query = supabase
