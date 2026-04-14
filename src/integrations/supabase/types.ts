@@ -509,6 +509,30 @@ export type Database = {
           },
         ]
       }
+      countries: {
+        Row: {
+          created_at: string
+          id: string
+          iso_code: string
+          name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          iso_code: string
+          name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          iso_code?: string
+          name?: string
+          status?: string
+        }
+        Relationships: []
+      }
       delegation_rules: {
         Row: {
           condition: Json
@@ -3757,6 +3781,38 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      states: {
+        Row: {
+          country_id: string
+          created_at: string
+          id: string
+          name: string
+          status: string
+        }
+        Insert: {
+          country_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          country_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "states_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sub_sectors: {
         Row: {
