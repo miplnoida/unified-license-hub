@@ -11,9 +11,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Plus, X, Zap, Trash2 } from 'lucide-react';
+import { Settings, Plus, X, Zap, Trash2, Database } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormField, FieldType, ValidationRules, ConditionalRule, TableColumn } from '@/types/formBuilder';
+import { useMasterDataTypes } from '@/hooks/useMasterData';
 
 const COMMON_FILE_TYPES = [
   { value: '.pdf', label: 'PDF' },
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField, onDeleteField }: Props) {
+  const { data: masterDataTypes = [] } = useMasterDataTypes();
   if (!selectedField) {
     return (
       <Card className="sticky top-6">
@@ -167,21 +169,77 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
           </div>
         )}
 
-        {/* Options */}
+        {/* Data Source & Options */}
         {hasOptions && (
-          <div className="space-y-2">
-            <Label className="text-xs">Options</Label>
-            {(f.options || []).map((opt, i) => (
-              <div key={i} className="flex gap-1">
-                <Input value={opt} onChange={e => handleUpdateOption(i, e.target.value)} className="h-7 text-xs" />
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => handleRemoveOption(i)}>
-                  <X className="h-3 w-3" />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1"><Database className="h-3 w-3" /> Data Source</Label>
+              <Select
+                value={f.optionSource || 'manual'}
+                onValueChange={(v: 'manual' | 'master_data') => {
+                  onUpdateField(f.id, {
+                    optionSource: v,
+                    ...(v === 'manual' ? { masterDataTypeCode: undefined, masterDataParentField: undefined } : {}),
+                  });
+                }}
+              >
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual Options</SelectItem>
+                  <SelectItem value="master_data">Master Data</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {f.optionSource === 'master_data' ? (
+              <div className="space-y-2">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Master Data Type</Label>
+                  <Select
+                    value={f.masterDataTypeCode || ''}
+                    onValueChange={v => onUpdateField(f.id, { masterDataTypeCode: v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select master data..." /></SelectTrigger>
+                    <SelectContent>
+                      {masterDataTypes.filter(t => t.status === 'active').map(t => (
+                        <SelectItem key={t.id} value={t.code || t.name}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Parent Field (for cascading)</Label>
+                  <Select
+                    value={f.masterDataParentField || '__none__'}
+                    onValueChange={v => onUpdateField(f.id, { masterDataParentField: v === '__none__' ? undefined : v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {otherFields.filter(of => of.optionSource === 'master_data').map(of => (
+                        <SelectItem key={of.id} value={of.fieldName}>{of.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Filter this list by parent field selection</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-xs">Options</Label>
+                {(f.options || []).map((opt, i) => (
+                  <div key={i} className="flex gap-1">
+                    <Input value={opt} onChange={e => handleUpdateOption(i, e.target.value)} className="h-7 text-xs" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-destructive" onClick={() => handleRemoveOption(i)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleAddOption}>
+                  <Plus className="h-3 w-3 mr-1" /> Add Option
                 </Button>
               </div>
-            ))}
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={handleAddOption}>
-              <Plus className="h-3 w-3 mr-1" /> Add Option
-            </Button>
+            )}
           </div>
         )}
 

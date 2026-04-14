@@ -24,6 +24,7 @@ import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useActiveMasterItems } from '@/hooks/useMasterData';
 
 interface Props {
   formName: string;
@@ -77,6 +78,74 @@ function isFieldRequired(field: FormField, formData: Record<string, any>, allFie
     }
   }
   return required;
+}
+// Component for fields that load options from master data
+function MasterDataField({ field, value, onChange, disabled, placeholder, allFormData }: {
+  field: FormField;
+  value: any;
+  onChange: (fieldName: string, val: any) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  allFormData: Record<string, any>;
+}) {
+  const parentValue = field.masterDataParentField ? allFormData[field.masterDataParentField] : undefined;
+  const { data: items = [] } = useActiveMasterItems(
+    field.masterDataTypeCode || '',
+    field.masterDataParentField ? (parentValue || null) : undefined
+  );
+
+  const options = items.map(i => ({ value: i.id, label: i.name }));
+  const isDisabled = disabled || (field.masterDataParentField && !parentValue);
+
+  if (field.type === 'select') {
+    return (
+      <Select value={value} onValueChange={v => onChange(field.fieldName, v)} disabled={!!isDisabled}>
+        <SelectTrigger><SelectValue placeholder={placeholder || 'Select...'} /></SelectTrigger>
+        <SelectContent>
+          {options.length === 0 && <SelectItem value="__empty" disabled>No options available</SelectItem>}
+          {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  if (field.type === 'multi_select') {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div className="space-y-1">
+        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {options.map(opt => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={selected.includes(opt.value)}
+              onCheckedChange={checked => {
+                const next = checked ? [...selected, opt.value] : selected.filter((v: string) => v !== opt.value);
+                onChange(field.fieldName, next);
+              }}
+              disabled={!!isDisabled}
+            />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  if (field.type === 'radio') {
+    return (
+      <div className="space-y-1.5">
+        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {options.map(opt => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="radio" name={field.fieldName} value={opt.value} checked={value === opt.value} onChange={() => onChange(field.fieldName, opt.value)} disabled={!!isDisabled} className="accent-primary" />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function FormRenderer({
@@ -365,34 +434,42 @@ export function FormRenderer({
         input = <Textarea value={val} onChange={e => onChange(field.fieldName, e.target.value)} placeholder={field.placeholder} rows={3} disabled={readOnly} />;
         break;
       case 'select':
-        input = (
-          <Select value={val} onValueChange={v => onChange(field.fieldName, v)} disabled={readOnly}>
-            <SelectTrigger><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
-            <SelectContent>{(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-          </Select>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <Select value={val} onValueChange={v => onChange(field.fieldName, v)} disabled={readOnly}>
+              <SelectTrigger><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
+              <SelectContent>{(field.options || []).map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+            </Select>
+          );
+        }
         break;
       case 'multi_select':
-        input = (
-          <div className="space-y-1">
-            {(field.options || []).map(opt => {
-              const selected = Array.isArray(val) ? val : [];
-              return (
-                <label key={opt} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={selected.includes(opt)}
-                    onCheckedChange={checked => {
-                      const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
-                      onChange(field.fieldName, next);
-                    }}
-                    disabled={readOnly}
-                  />
-                  {opt}
-                </label>
-              );
-            })}
-          </div>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <div className="space-y-1">
+              {(field.options || []).map(opt => {
+                const selected = Array.isArray(val) ? val : [];
+                return (
+                  <label key={opt} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={selected.includes(opt)}
+                      onCheckedChange={checked => {
+                        const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
+                        onChange(field.fieldName, next);
+                      }}
+                      disabled={readOnly}
+                    />
+                    {opt}
+                  </label>
+                );
+              })}
+            </div>
+          );
+        }
         break;
       case 'checkbox':
         input = (
@@ -403,16 +480,20 @@ export function FormRenderer({
         );
         break;
       case 'radio':
-        input = (
-          <div className="space-y-1.5">
-            {(field.options || []).map(opt => (
-              <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="radio" name={field.fieldName} value={opt} checked={val === opt} onChange={() => onChange(field.fieldName, opt)} disabled={readOnly} className="accent-primary" />
-                {opt}
-              </label>
-            ))}
-          </div>
-        );
+        if (field.optionSource === 'master_data' && field.masterDataTypeCode) {
+          input = <MasterDataField field={field} value={val} onChange={onChange} disabled={readOnly} placeholder={field.placeholder} allFormData={data} />;
+        } else {
+          input = (
+            <div className="space-y-1.5">
+              {(field.options || []).map(opt => (
+                <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="radio" name={field.fieldName} value={opt} checked={val === opt} onChange={() => onChange(field.fieldName, opt)} disabled={readOnly} className="accent-primary" />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          );
+        }
         break;
       case 'file':
         input = (
