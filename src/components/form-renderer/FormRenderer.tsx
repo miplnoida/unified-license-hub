@@ -24,6 +24,7 @@ import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useActiveMasterItems } from '@/hooks/useMasterData';
 
 interface Props {
   formName: string;
