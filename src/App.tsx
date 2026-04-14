@@ -53,6 +53,7 @@ const LicenseeDetailPage = lazy(() => import("./pages/admin/LicenseeDetail"));
 const FormBuilder = lazy(() => import("./pages/admin/FormBuilder"));
 const FormManagement = lazy(() => import("./pages/admin/FormManagement"));
 const MasterConfiguration = lazy(() => import("./pages/admin/MasterConfiguration"));
+const MasterDataManagement = lazy(() => import("./pages/admin/MasterDataManagement"));
 const FeeManagement = lazy(() => import("./pages/admin/FeeManagement"));
 const ReturnConfiguration = lazy(() => import("./pages/admin/ReturnConfiguration"));
 const RegulatorManagement = lazy(() => import("./pages/admin/RegulatorManagement"));
@@ -181,6 +182,7 @@ function AppRoutes() {
         <Route path="/admin/masters/categories" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
         <Route path="/admin/masters/services" element={<P><AdminRoute><MasterConfiguration /></AdminRoute></P>} />
 
+        <Route path="/admin/master-data" element={<P><AdminRoute><MasterDataManagement /></AdminRoute></P>} />
         <Route path="/admin/fees" element={<P><AdminRoute><FeeManagement /></AdminRoute></P>} />
         <Route path="/admin/return-config" element={<P><AdminRoute><ReturnConfiguration /></AdminRoute></P>} />
 

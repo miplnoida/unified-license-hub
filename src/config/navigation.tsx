@@ -123,6 +123,7 @@ export const mainNavSections: NavSection[] = [
           { label: 'Services', href: '/admin/masters/services', icon: <SlidersHorizontal className="h-4 w-4" />, roles: ADMIN_ROLES },
         ],
       },
+      { label: 'Master Data', href: '/admin/master-data', icon: <Database className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Fee Management', href: '/admin/fees', icon: <DollarSign className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },
