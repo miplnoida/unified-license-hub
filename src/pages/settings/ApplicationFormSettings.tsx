@@ -58,9 +58,8 @@ export default function ApplicationFormSettings() {
     onSuccess: () => toast.success('Version dates updated'),
   });
 
-  // Notify users about a new active version
   const notifyVersionChange = useMutation({
-    mutationFn: async ({ versionId, templateName, semanticVersion }: { versionId: string; templateName: string; semanticVersion: string }) => {
+    mutationFn: async ({ templateName, semanticVersion }: { versionId: string; templateName: string; semanticVersion: string }) => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase.functions.invoke('send-notification', {
         body: {
@@ -87,12 +86,13 @@ export default function ApplicationFormSettings() {
   };
 
   const versionColumns: Column<any>[] = [
-    { header: 'Form Name', accessor: (r) => r.form_templates?.name || '—' },
-    { header: 'Type', accessor: (r) => <Badge variant="outline">{r.form_templates?.form_type || '—'}</Badge> },
-    { header: 'Version', accessor: (r) => r.semantic_version || `v${r.version}` },
+    { key: 'name', label: 'Form Name', render: (r) => r.form_templates?.name || '—' },
+    { key: 'type', label: 'Type', render: (r) => <Badge variant="outline">{r.form_templates?.form_type || '—'}</Badge> },
+    { key: 'version', label: 'Version', render: (r) => r.semantic_version || `v${r.version}` },
     {
-      header: 'Effective From',
-      accessor: (r) => (
+      key: 'effective_from',
+      label: 'Effective From',
+      render: (r) => (
         <Input
           type="date"
           className="w-40"
@@ -105,8 +105,9 @@ export default function ApplicationFormSettings() {
       ),
     },
     {
-      header: 'Effective Until',
-      accessor: (r) => (
+      key: 'effective_until',
+      label: 'Effective Until',
+      render: (r) => (
         <Input
           type="date"
           className="w-40"
@@ -119,8 +120,9 @@ export default function ApplicationFormSettings() {
       ),
     },
     {
-      header: 'Notify',
-      accessor: (r) => (
+      key: 'notify',
+      label: 'Notify',
+      render: (r) => (
         <Button
           variant="outline"
           size="sm"
@@ -262,13 +264,19 @@ export default function ApplicationFormSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DataTableShell
-              columns={versionColumns}
-              data={publishedVersions}
-              isLoading={loadingVersions}
-              searchable
-              searchPlaceholder="Search form versions..."
-            />
+            {loadingVersions ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : publishedVersions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No published form versions found.</p>
+            ) : (
+              <DataTableShell
+                columns={versionColumns}
+                data={publishedVersions}
+                searchPlaceholder="Search form versions..."
+              />
+            )}
           </CardContent>
         </Card>
       </div>
