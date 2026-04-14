@@ -39,6 +39,10 @@ export interface FormField {
   tableColumns?: TableColumn[];
   // Calculated field
   calculatedExpression?: string; // e.g. "{field_a} + {field_b}"
+  // Data source for options (select, multi_select, radio, checkbox)
+  optionSource?: 'manual' | 'master_data';
+  masterDataTypeCode?: string; // code from master_data_types table
+  masterDataParentField?: string; // fieldName of the parent cascading field
 }
 
 export type FieldType =
