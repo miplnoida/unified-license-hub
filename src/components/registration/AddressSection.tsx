@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { countries } from '@/data/sectorData';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AddressData {
   street: string;
@@ -27,6 +28,39 @@ interface Props {
   errors: Record<string, string>;
 }
 
+function useCountriesList() {
+  return useQuery({
+    queryKey: ['countries'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('countries' as any)
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; iso_code: string }[];
+    },
+  });
+}
+
+function useStatesList(countryId: string | undefined) {
+  return useQuery({
+    queryKey: ['states', countryId],
+    queryFn: async () => {
+      if (!countryId) return [];
+      const { data, error } = await supabase
+        .from('states' as any)
+        .select('*')
+        .eq('country_id', countryId)
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; country_id: string }[];
+    },
+    enabled: !!countryId,
+  });
+}
+
 function AddressFields({
   prefix,
   address,
@@ -40,6 +74,16 @@ function AddressFields({
   errors: Record<string, string>;
   disabled?: boolean;
 }) {
+  const { data: countries = [] } = useCountriesList();
+  // country field stores the country id for dependency; find it
+  const { data: states = [] } = useStatesList(address.country || undefined);
+
+  const handleCountryChange = (countryId: string) => {
+    onChange('country', countryId);
+    // Clear state when country changes
+    onChange('state', '');
+  };
+
   return (
     <div className="grid md:grid-cols-2 gap-4">
       <div className="space-y-2 md:col-span-2">
@@ -64,30 +108,46 @@ function AddressFields({
         />
         {errors[`${prefix}.city`] && <p className="text-sm text-destructive">{errors[`${prefix}.city`]}</p>}
       </div>
-      <div className="space-y-2">
-        <Label>State / Province / Region *</Label>
-        <Input
-          value={address.state}
-          onChange={e => onChange('state', e.target.value)}
-          placeholder="Enter state or province"
-          disabled={disabled}
-          className={errors[`${prefix}.state`] ? 'border-destructive' : ''}
-        />
-        {errors[`${prefix}.state`] && <p className="text-sm text-destructive">{errors[`${prefix}.state`]}</p>}
-      </div>
       <div className="space-y-2 md:col-span-2">
         <Label>Country *</Label>
-        <Select value={address.country} onValueChange={v => onChange('country', v)} disabled={disabled}>
+        <Select value={address.country} onValueChange={handleCountryChange} disabled={disabled}>
           <SelectTrigger className={errors[`${prefix}.country`] ? 'border-destructive' : ''}>
             <SelectValue placeholder="Select country..." />
           </SelectTrigger>
           <SelectContent>
+            {countries.length === 0 && (
+              <SelectItem value="__empty" disabled>No countries available</SelectItem>
+            )}
             {countries.map(c => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors[`${prefix}.country`] && <p className="text-sm text-destructive">{errors[`${prefix}.country`]}</p>}
+      </div>
+      <div className="space-y-2">
+        <Label>State / Province / Region *</Label>
+        {states.length > 0 ? (
+          <Select value={address.state} onValueChange={v => onChange('state', v)} disabled={disabled || !address.country}>
+            <SelectTrigger className={errors[`${prefix}.state`] ? 'border-destructive' : ''}>
+              <SelectValue placeholder="Select state..." />
+            </SelectTrigger>
+            <SelectContent>
+              {states.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={address.state}
+            onChange={e => onChange('state', e.target.value)}
+            placeholder={address.country ? "Enter state or province" : "Select country first"}
+            disabled={disabled || !address.country}
+            className={errors[`${prefix}.state`] ? 'border-destructive' : ''}
+          />
+        )}
+        {errors[`${prefix}.state`] && <p className="text-sm text-destructive">{errors[`${prefix}.state`]}</p>}
       </div>
     </div>
   );

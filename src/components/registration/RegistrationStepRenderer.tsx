@@ -9,6 +9,8 @@ import {
 import type { RegStep, RegField } from '@/types/registrationForm';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
 import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   step: RegStep;
@@ -81,10 +83,42 @@ interface FieldProps {
   allFields: RegField[];
 }
 
+function useCountries() {
+  return useQuery({
+    queryKey: ['countries'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('countries' as any)
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string; iso_code: string }[];
+    },
+  });
+}
+
+function useStates() {
+  return useQuery({
+    queryKey: ['states'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('states' as any)
+        .select('*')
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; country_id: string; name: string }[];
+    },
+  });
+}
+
 function useDynamicOptions(field: RegField, allData: Record<string, any>, allFields: RegField[]) {
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
   const { data: allCategories = [] } = useCategories();
+  const { data: countries = [] } = useCountries();
+  const { data: allStates = [] } = useStates();
 
   return useMemo(() => {
     if (!field.dataSource) return null;
@@ -111,8 +145,22 @@ function useDynamicOptions(field: RegField, allData: Record<string, any>, allFie
         .map((c: any) => ({ value: c.id, label: c.name }));
     }
 
+    if (field.dataSource === 'country') {
+      if (countries.length === 0) return [{ value: '__empty', label: 'No countries available' }];
+      return countries.map((c) => ({ value: c.id, label: c.name }));
+    }
+
+    if (field.dataSource === 'state') {
+      const parentFieldName = field.dependsOn;
+      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      if (!parentValue) return [];
+      const filtered = allStates.filter((s) => s.country_id === parentValue);
+      if (filtered.length === 0) return [{ value: '__empty', label: 'No states available for this country' }];
+      return filtered.map((s) => ({ value: s.id, label: s.name }));
+    }
+
     return null;
-  }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories]);
+  }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
 function InteractiveField({ field, value, error, onChange, readOnly, allData, allFields }: FieldProps) {

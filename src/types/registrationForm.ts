@@ -30,7 +30,7 @@ export interface RegConditionalRule {
   action: 'show' | 'hide';
 }
 
-export type RegDataSource = 'sector' | 'sub_sector' | 'category';
+export type RegDataSource = 'sector' | 'sub_sector' | 'category' | 'country' | 'state';
 
 export interface RegField {
   id: string;
