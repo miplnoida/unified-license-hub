@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApplicationSettings } from '@/hooks/useApplicationSettings';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,10 +65,29 @@ export default function NewApplication() {
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
 
+  const { data: appSettings } = useApplicationSettings();
+
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
   const { data: allCategories = [] } = useCategories();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
+
+  // Re-application guard: check if user already has an active application
+  const [reappBlocked, setReappBlocked] = useState(false);
+  useEffect(() => {
+    if (!user || appSettings?.allow_reapplication !== false) {
+      setReappBlocked(false);
+      return;
+    }
+    (async () => {
+      const { count } = await supabase
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('applicant_id', user.id)
+        .in('status', ['submitted', 'in_progress']);
+      setReappBlocked((count || 0) > 0);
+    })();
+  }, [user, appSettings]);
 
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
@@ -498,6 +518,19 @@ export default function NewApplication() {
 
   return (
     <DashboardLayout>
+      {reappBlocked ? (
+        <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-xl font-semibold text-foreground">Application Already In Progress</h2>
+          <p className="text-muted-foreground">
+            You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.
+          </p>
+          <div className="flex gap-3 justify-center pt-4">
+            <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
+            <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -1022,6 +1055,7 @@ export default function NewApplication() {
           </div>
         )}
       </div>
+      )}
     </DashboardLayout>
   );
 }

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigate } from 'react-router-dom';
 import {
   Settings, CreditCard, CalendarClock, Bell, Shield, Globe,
-  Database, Mail, Palette,
+  Database, Mail, Palette, FileText,
 } from 'lucide-react';
 
 interface SettingsCard {
@@ -68,6 +68,12 @@ const settingsCards: SettingsCard[] = [
     description: 'Backup schedules, data retention, and export settings.',
     icon: <Database className="h-6 w-6" />,
     href: '/settings/data',
+  },
+  {
+    title: 'Applications & Forms',
+    description: 'Re-application policies, form versioning, and version notifications.',
+    icon: <FileText className="h-6 w-6" />,
+    href: '/settings/applications',
   },
 ];
 

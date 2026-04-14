@@ -91,6 +91,7 @@ const BrandingSettings = lazy(() => import("./pages/settings/BrandingSettings"))
 const EmailSmsSettings = lazy(() => import("./pages/settings/EmailSmsSettings"));
 const IntegrationSettings = lazy(() => import("./pages/settings/IntegrationSettings"));
 const DataManagementSettings = lazy(() => import("./pages/settings/DataManagementSettings"));
+const ApplicationFormSettings = lazy(() => import("./pages/settings/ApplicationFormSettings"));
 const Profile = lazy(() => import("./pages/Profile"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 
@@ -206,6 +207,7 @@ function AppRoutes() {
         <Route path="/settings/email-sms" element={<P><SettingsRoute><EmailSmsSettings /></SettingsRoute></P>} />
         <Route path="/settings/integrations" element={<P><SettingsRoute><IntegrationSettings /></SettingsRoute></P>} />
         <Route path="/settings/data" element={<P><SettingsRoute><DataManagementSettings /></SettingsRoute></P>} />
+        <Route path="/settings/applications" element={<P><SettingsRoute><ApplicationFormSettings /></SettingsRoute></P>} />
 
         <Route path="/profile" element={<P><Profile /></P>} />
         <Route path="/change-password" element={<P><ChangePassword /></P>} />

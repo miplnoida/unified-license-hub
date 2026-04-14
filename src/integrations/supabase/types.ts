@@ -1321,6 +1321,8 @@ export type Database = {
           change_notes: string | null
           created_at: string
           created_by: string | null
+          effective_from: string | null
+          effective_until: string | null
           id: string
           published_at: string | null
           schema_snapshot: Json
@@ -1333,6 +1335,8 @@ export type Database = {
           change_notes?: string | null
           created_at?: string
           created_by?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           published_at?: string | null
           schema_snapshot?: Json
@@ -1345,6 +1349,8 @@ export type Database = {
           change_notes?: string | null
           created_at?: string
           created_by?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           published_at?: string | null
           schema_snapshot?: Json
