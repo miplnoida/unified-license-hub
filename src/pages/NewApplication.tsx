@@ -1055,6 +1055,7 @@ export default function NewApplication() {
           </div>
         )}
       </div>
+      )}
     </DashboardLayout>
   );
 }
