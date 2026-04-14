@@ -518,6 +518,19 @@ export default function NewApplication() {
 
   return (
     <DashboardLayout>
+      {reappBlocked ? (
+        <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <h2 className="text-xl font-semibold text-foreground">Application Already In Progress</h2>
+          <p className="text-muted-foreground">
+            You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.
+          </p>
+          <div className="flex gap-3 justify-center pt-4">
+            <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
+            <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
