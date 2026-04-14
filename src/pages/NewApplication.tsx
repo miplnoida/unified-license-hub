@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApplicationSettings } from '@/hooks/useApplicationSettings';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,10 +65,29 @@ export default function NewApplication() {
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
 
+  const { data: appSettings } = useApplicationSettings();
+
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
   const { data: allCategories = [] } = useCategories();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
+
+  // Re-application guard: check if user already has an active application
+  const [reappBlocked, setReappBlocked] = useState(false);
+  useEffect(() => {
+    if (!user || appSettings?.allow_reapplication !== false) {
+      setReappBlocked(false);
+      return;
+    }
+    (async () => {
+      const { count } = await supabase
+        .from('applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('applicant_id', user.id)
+        .in('status', ['submitted', 'in_progress']);
+      setReappBlocked((count || 0) > 0);
+    })();
+  }, [user, appSettings]);
 
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
