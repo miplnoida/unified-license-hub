@@ -742,6 +742,7 @@ export type Database = {
           created_at: string
           currency: string
           fee_type: string
+          group_id: string
           id: string
           is_active: boolean
           max_amount: number | null
@@ -761,6 +762,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fee_type?: string
+          group_id?: string
           id?: string
           is_active?: boolean
           max_amount?: number | null
@@ -780,6 +782,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fee_type?: string
+          group_id?: string
           id?: string
           is_active?: boolean
           max_amount?: number | null
