@@ -93,7 +93,7 @@ function useCountries() {
         .eq('status', 'active')
         .order('name');
       if (error) throw error;
-      return (data || []) as { id: string; name: string; iso_code: string }[];
+      return (data || []) as unknown as { id: string; name: string; iso_code: string }[];
     },
   });
 }
@@ -108,7 +108,7 @@ function useStates() {
         .eq('status', 'active')
         .order('name');
       if (error) throw error;
-      return (data || []) as { id: string; country_id: string; name: string }[];
+      return (data || []) as unknown as { id: string; country_id: string; name: string }[];
     },
   });
 }

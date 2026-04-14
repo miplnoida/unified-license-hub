@@ -38,7 +38,7 @@ function useCountriesList() {
         .eq('status', 'active')
         .order('name');
       if (error) throw error;
-      return (data || []) as { id: string; name: string; iso_code: string }[];
+      return (data || []) as unknown as { id: string; name: string; iso_code: string }[];
     },
   });
 }
@@ -55,7 +55,7 @@ function useStatesList(countryId: string | undefined) {
         .eq('status', 'active')
         .order('name');
       if (error) throw error;
-      return (data || []) as { id: string; name: string; country_id: string }[];
+      return (data || []) as unknown as { id: string; name: string; country_id: string }[];
     },
     enabled: !!countryId,
   });
