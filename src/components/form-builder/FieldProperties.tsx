@@ -11,9 +11,10 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Settings, Plus, X, Zap, Trash2 } from 'lucide-react';
+import { Settings, Plus, X, Zap, Trash2, Database } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormField, FieldType, ValidationRules, ConditionalRule, TableColumn } from '@/types/formBuilder';
+import { useMasterDataTypes } from '@/hooks/useMasterData';
 
 const COMMON_FILE_TYPES = [
   { value: '.pdf', label: 'PDF' },
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateField, onDeleteField }: Props) {
+  const { data: masterDataTypes = [] } = useMasterDataTypes();
   if (!selectedField) {
     return (
       <Card className="sticky top-6">
