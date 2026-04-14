@@ -268,27 +268,33 @@ export default function FeeManagement() {
       regulator_id: activeRegulatorId || null,
       calculation_expression: null,
     };
-    if (editing) {
-      const row = feeTypeAmounts[feeTypes[0]];
-      const payload = {
-        ...basePayload, name: name.trim(), fee_type: feeTypes[0],
+
+    const buildRow = (ft: string) => {
+      const row = feeTypeAmounts[ft];
+      return {
+        ...basePayload, name: name.trim(), fee_type: ft,
         amount: parseFloat(row.amount), calculation_type: row.calculationType,
         min_amount: parseFloat(row.minAmount) || 0,
         max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
       };
-      const { error } = await supabase.from('fee_configurations' as any).update(payload).eq('id', editing.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success('Fee updated');
+    };
+
+    if (editing) {
+      // Update the existing row with the first fee type
+      const firstFt = feeTypes[0];
+      const updatePayload = buildRow(firstFt);
+      const { error: updateErr } = await supabase.from('fee_configurations' as any).update(updatePayload).eq('id', editing.id);
+      if (updateErr) { toast.error(updateErr.message); setSaving(false); return; }
+
+      // Insert new rows for any additional fee types beyond the first
+      if (feeTypes.length > 1) {
+        const additionalRows = feeTypes.slice(1).map(ft => buildRow(ft));
+        const { error: insertErr } = await supabase.from('fee_configurations' as any).insert(additionalRows);
+        if (insertErr) { toast.error(insertErr.message); setSaving(false); return; }
+      }
+      toast.success(`${feeTypes.length} fee configuration(s) saved`);
     } else {
-      const rows = feeTypes.map(ft => {
-        const row = feeTypeAmounts[ft];
-        return {
-          ...basePayload, name: name.trim(), fee_type: ft,
-          amount: parseFloat(row.amount), calculation_type: row.calculationType,
-          min_amount: parseFloat(row.minAmount) || 0,
-          max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
-        };
-      });
+      const rows = feeTypes.map(ft => buildRow(ft));
       const { error } = await supabase.from('fee_configurations' as any).insert(rows);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success(`${rows.length} fee configuration(s) created`);
