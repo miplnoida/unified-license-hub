@@ -4,7 +4,7 @@ import {
   UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit,
+  ClipboardEdit, Database,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 
@@ -123,6 +123,7 @@ export const mainNavSections: NavSection[] = [
           { label: 'Services', href: '/admin/masters/services', icon: <SlidersHorizontal className="h-4 w-4" />, roles: ADMIN_ROLES },
         ],
       },
+      { label: 'Master Data', href: '/admin/master-data', icon: <Database className="h-5 w-5" />, roles: ADMIN_ROLES },
       { label: 'Fee Management', href: '/admin/fees', icon: <DollarSign className="h-5 w-5" />, roles: ADMIN_ROLES },
     ],
   },

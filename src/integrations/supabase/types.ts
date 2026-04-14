@@ -1860,6 +1860,93 @@ export type Database = {
           },
         ]
       }
+      master_data_items: {
+        Row: {
+          code: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          name: string
+          parent_item_id: string | null
+          sort_order: number
+          status: string
+          type_id: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          name: string
+          parent_item_id?: string | null
+          sort_order?: number
+          status?: string
+          type_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          name?: string
+          parent_item_id?: string | null
+          sort_order?: number
+          status?: string
+          type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_data_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "master_data_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_data_items_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "master_data_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_data_types: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_templates: {
         Row: {
           body: string
