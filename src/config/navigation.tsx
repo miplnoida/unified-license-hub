@@ -4,7 +4,7 @@ import {
   UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
-  ClipboardEdit,
+  ClipboardEdit, Database,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 
