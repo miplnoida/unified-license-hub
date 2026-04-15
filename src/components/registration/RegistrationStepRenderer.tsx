@@ -11,6 +11,7 @@ import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfi
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useActiveMasterItems } from '@/hooks/useMasterData';
 
 interface Props {
   step: RegStep;
@@ -168,13 +169,18 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
     onChange(field.fieldName, val);
 
     // Clear dependent fields when parent changes
-    if (field.dataSource) {
-      const dependents = allFields.filter(f => f.dependsOn === field.fieldName);
+    if (field.dataSource || field.optionSource === 'master_data') {
+      const dependents = allFields.filter(f =>
+        f.dependsOn === field.fieldName || f.masterDataParentField === field.fieldName
+      );
       dependents.forEach(dep => onChange(dep.fieldName, ''));
     }
   };
 
   const dynamicOptions = useDynamicOptions(field, allData, allFields);
+
+  // Check if this field should use the generic master data hook
+  const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
   const labelEl = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
     <Label className="text-sm">
@@ -254,7 +260,17 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       );
       break;
     case 'select': {
-      if (dynamicOptions) {
+      if (isMasterData) {
+        input = (
+          <MasterDataRegField
+            field={field}
+            value={value}
+            onChange={handleChange}
+            disabled={readOnly}
+            allData={allData}
+          />
+        );
+      } else if (dynamicOptions) {
         const isDisabled = readOnly || (field.dependsOn && !allData[field.dependsOn]);
         input = (
           <Select value={value} onValueChange={handleChange} disabled={!!isDisabled}>
@@ -285,26 +301,39 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       break;
     }
     case 'multi_select':
-      input = (
-        <div className="space-y-1">
-          {(field.options || []).map(opt => {
-            const selected = Array.isArray(value) ? value : [];
-            return (
-              <label key={opt} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={selected.includes(opt)}
-                  onCheckedChange={checked => {
-                    const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
-                    handleChange(next);
-                  }}
-                  disabled={readOnly}
-                />
-                {opt}
-              </label>
-            );
-          })}
-        </div>
-      );
+      if (isMasterData) {
+        input = (
+          <MasterDataRegField
+            field={field}
+            value={value}
+            onChange={handleChange}
+            disabled={readOnly}
+            allData={allData}
+            isMulti
+          />
+        );
+      } else {
+        input = (
+          <div className="space-y-1">
+            {(field.options || []).map(opt => {
+              const selected = Array.isArray(value) ? value : [];
+              return (
+                <label key={opt} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={selected.includes(opt)}
+                    onCheckedChange={checked => {
+                      const next = checked ? [...selected, opt] : selected.filter((v: string) => v !== opt);
+                      handleChange(next);
+                    }}
+                    disabled={readOnly}
+                  />
+                  {opt}
+                </label>
+              );
+            })}
+          </div>
+        );
+      }
       break;
     case 'checkbox':
       input = (
@@ -322,24 +351,37 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       );
       break;
     case 'radio':
-      input = (
-        <div className="space-y-1.5">
-          {(field.options || []).map(opt => (
-            <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="radio"
-                name={field.fieldName}
-                value={opt}
-                checked={value === opt}
-                onChange={() => handleChange(opt)}
-                disabled={readOnly}
-                className="accent-primary"
-              />
-              {opt}
-            </label>
-          ))}
-        </div>
-      );
+      if (isMasterData) {
+        input = (
+          <MasterDataRegField
+            field={field}
+            value={value}
+            onChange={handleChange}
+            disabled={readOnly}
+            allData={allData}
+            isRadio
+          />
+        );
+      } else {
+        input = (
+          <div className="space-y-1.5">
+            {(field.options || []).map(opt => (
+              <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  name={field.fieldName}
+                  value={opt}
+                  checked={value === opt}
+                  onChange={() => handleChange(opt)}
+                  disabled={readOnly}
+                  className="accent-primary"
+                />
+                {opt}
+              </label>
+            ))}
+          </div>
+        );
+      }
       break;
     case 'file':
       input = (
@@ -380,5 +422,74 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
+  );
+}
+
+/** Renders select/multi/radio fields backed by the generic master data system */
+function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti, isRadio }: {
+  field: RegField;
+  value: any;
+  onChange: (val: any) => void;
+  disabled?: boolean;
+  allData: Record<string, any>;
+  isMulti?: boolean;
+  isRadio?: boolean;
+}) {
+  const parentValue = field.masterDataParentField ? allData[field.masterDataParentField] : undefined;
+  const { data: items = [] } = useActiveMasterItems(
+    field.masterDataTypeCode || '',
+    field.masterDataParentField ? (parentValue || null) : undefined
+  );
+
+  const options = items.map(i => ({ value: i.id, label: i.name }));
+  const isDisabled = disabled || (field.masterDataParentField && !parentValue);
+
+  if (isRadio) {
+    return (
+      <div className="space-y-1.5">
+        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {options.map(opt => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="radio" name={field.fieldName} value={opt.value} checked={value === opt.value} onChange={() => onChange(opt.value)} disabled={!!isDisabled} className="accent-primary" />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  if (isMulti) {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div className="space-y-1">
+        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {options.map(opt => (
+          <label key={opt.value} className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={selected.includes(opt.value)}
+              onCheckedChange={checked => {
+                const next = checked ? [...selected, opt.value] : selected.filter((v: string) => v !== opt.value);
+                onChange(next);
+              }}
+              disabled={!!isDisabled}
+            />
+            {opt.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  // Default: single select
+  return (
+    <Select value={value} onValueChange={onChange} disabled={!!isDisabled}>
+      <SelectTrigger>
+        <SelectValue placeholder={field.placeholder || 'Select...'} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.length === 0 && <SelectItem value="__empty" disabled>No options available</SelectItem>}
+        {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 }

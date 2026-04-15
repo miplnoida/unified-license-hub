@@ -44,6 +44,10 @@ export interface RegField {
   options?: string[];
   dataSource?: RegDataSource;
   dependsOn?: string; // fieldName of the parent cascading field
+  // Generic master data support (shared with main form builder)
+  optionSource?: 'manual' | 'legacy_data_source' | 'master_data';
+  masterDataTypeCode?: string;
+  masterDataParentField?: string;
   validation?: RegFieldValidation;
   conditionalLogic?: RegConditionalRule[];
 }
