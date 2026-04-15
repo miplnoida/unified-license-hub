@@ -122,62 +122,124 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           <div className="space-y-2">
             {['select', 'multi_select'].includes(field.type) && (
               <div>
-                <Label className="text-xs">Data Source</Label>
+                <Label className="text-xs flex items-center gap-1"><Database className="h-3 w-3" /> Data Source</Label>
                 <Select
-                  value={field.dataSource || '_none'}
+                  value={effectiveSource}
                   onValueChange={v => {
-                    if (v === '_none') {
-                      update({ dataSource: undefined, dependsOn: undefined });
-                    } else {
-                      const ds = v as RegDataSource;
-                      const autoDepends = ds === 'sub_sector'
-                        ? allFields.find(f => f.dataSource === 'sector')?.fieldName
-                        : ds === 'category'
-                          ? allFields.find(f => f.dataSource === 'sub_sector')?.fieldName
-                          : undefined;
-                      update({ dataSource: ds, dependsOn: autoDepends, options: [] });
+                    if (v === 'manual') {
+                      update({ optionSource: 'manual', dataSource: undefined, dependsOn: undefined, masterDataTypeCode: undefined, masterDataParentField: undefined });
+                    } else if (v === 'legacy_data_source') {
+                      update({ optionSource: 'legacy_data_source', masterDataTypeCode: undefined, masterDataParentField: undefined, options: [] });
+                    } else if (v === 'master_data') {
+                      update({ optionSource: 'master_data', dataSource: undefined, dependsOn: undefined, options: [] });
                     }
                   }}
                 >
                   <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">Manual Options</SelectItem>
-                    {DATA_SOURCES.map(ds => (
-                      <SelectItem key={ds.value} value={ds.value}>{ds.label}</SelectItem>
-                    ))}
+                    <SelectItem value="manual">Manual Options</SelectItem>
+                    <SelectItem value="legacy_data_source">Built-in (Sector/Country)</SelectItem>
+                    <SelectItem value="master_data">Master Data</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {field.dataSource && ['sub_sector', 'category'].includes(field.dataSource) && (
-              <div>
-                <Label className="text-xs">Depends On (field name)</Label>
-                <Select
-                  value={field.dependsOn || '_none'}
-                  onValueChange={v => update({ dependsOn: v === '_none' ? undefined : v })}
-                >
-                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select parent field..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">None</SelectItem>
-                    {allFields.filter(f => f.id !== field.id && f.dataSource).map(f => (
-                      <SelectItem key={f.id} value={f.fieldName}>{f.label} ({f.fieldName})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Options will filter based on this parent field's selection.
-                </p>
+            {/* Legacy data source: sector/sub_sector/category/country/state */}
+            {effectiveSource === 'legacy_data_source' && (
+              <>
+                <div>
+                  <Label className="text-xs">Built-in Source</Label>
+                  <Select
+                    value={field.dataSource || '_none'}
+                    onValueChange={v => {
+                      if (v === '_none') {
+                        update({ dataSource: undefined, dependsOn: undefined });
+                      } else {
+                        const ds = v as RegDataSource;
+                        const autoDepends = ds === 'sub_sector'
+                          ? allFields.find(f => f.dataSource === 'sector')?.fieldName
+                          : ds === 'category'
+                            ? allFields.find(f => f.dataSource === 'sub_sector')?.fieldName
+                            : ds === 'state'
+                              ? allFields.find(f => f.dataSource === 'country')?.fieldName
+                              : undefined;
+                        update({ dataSource: ds, dependsOn: autoDepends, options: [] });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Select source...</SelectItem>
+                      {LEGACY_DATA_SOURCES.map(ds => (
+                        <SelectItem key={ds.value} value={ds.value}>{ds.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {field.dataSource && ['sub_sector', 'category', 'state'].includes(field.dataSource) && (
+                  <div>
+                    <Label className="text-xs">Depends On (field name)</Label>
+                    <Select
+                      value={field.dependsOn || '_none'}
+                      onValueChange={v => update({ dependsOn: v === '_none' ? undefined : v })}
+                    >
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select parent field..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">None</SelectItem>
+                        {allFields.filter(f => f.id !== field.id && (f.dataSource || f.optionSource === 'master_data')).map(f => (
+                          <SelectItem key={f.id} value={f.fieldName}>{f.label} ({f.fieldName})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {field.dataSource && (
+                  <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                    Options populated dynamically from built-in source ({field.dataSource.replace('_', '-')}).
+                  </p>
+                )}
+              </>
+            )}
+
+            {/* Master Data source */}
+            {effectiveSource === 'master_data' && (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Master Data Type</Label>
+                  <Select
+                    value={field.masterDataTypeCode || ''}
+                    onValueChange={v => update({ masterDataTypeCode: v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Select master data..." /></SelectTrigger>
+                    <SelectContent>
+                      {masterDataTypes.filter(t => t.status === 'active').map(t => (
+                        <SelectItem key={t.id} value={t.code || t.name}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">Parent Field (for cascading)</Label>
+                  <Select
+                    value={field.masterDataParentField || '__none__'}
+                    onValueChange={v => update({ masterDataParentField: v === '__none__' ? undefined : v })}
+                  >
+                    <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {allFields.filter(f => f.id !== field.id && (f.optionSource === 'master_data' || f.dataSource)).map(f => (
+                        <SelectItem key={f.id} value={f.fieldName}>{f.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Filter options based on parent field selection</p>
+                </div>
               </div>
             )}
 
-            {field.dataSource && (
-              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                Options populated dynamically from master data ({field.dataSource.replace('_', '-')}).
-              </p>
-            )}
-
-            {!field.dataSource && (
+            {/* Manual options */}
+            {effectiveSource === 'manual' && (
               <div>
                 <Label className="text-xs">Options (one per line)</Label>
                 <Textarea
@@ -188,6 +250,7 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
                   placeholder="Option 1&#10;Option 2&#10;Option 3"
                 />
               </div>
+            )}
             )}
           </div>
         )}
