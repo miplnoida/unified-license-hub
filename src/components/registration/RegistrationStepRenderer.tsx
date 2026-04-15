@@ -44,56 +44,27 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, readOnl
         {step.rows.map(row => (
           <div
             key={row.id}
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns: `repeat(12, minmax(0, 1fr))`,
-            }}
+            className="grid gap-4 grid-cols-1 md:grid-cols-12"
           >
             {row.columns.map((col, colIdx) => (
               <div
                 key={colIdx}
-                className="col-span-12 md:col-span-[var(--col-span)]"
-                style={{
-                  '--col-span': col.span,
-                  gridColumn: undefined,
-                } as React.CSSProperties}
+                className="col-span-1"
+                style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
               >
-                {/* Responsive: full-width on mobile, use span on md+ */}
-                <div
-                  className="block md:hidden"
-                >
-                  {col.field ? (
-                    <InteractiveField
-                      field={col.field}
-                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                      error={errors[col.field.fieldName]}
-                      onChange={onChange}
-                      readOnly={readOnly}
-                      allData={data}
-                      allFields={allFields}
-                    />
-                  ) : (
-                    <div className="h-10" />
-                  )}
-                </div>
-                <div
-                  className="hidden md:block"
-                  style={{ gridColumn: `span ${col.span}` }}
-                >
-                  {col.field ? (
-                    <InteractiveField
-                      field={col.field}
-                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                      error={errors[col.field.fieldName]}
-                      onChange={onChange}
-                      readOnly={readOnly}
-                      allData={data}
-                      allFields={allFields}
-                    />
-                  ) : (
-                    <div className="h-10" />
-                  )}
-                </div>
+                {col.field ? (
+                  <InteractiveField
+                    field={col.field}
+                    value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                    error={errors[col.field.fieldName]}
+                    onChange={onChange}
+                    readOnly={readOnly}
+                    allData={data}
+                    allFields={allFields}
+                  />
+                ) : (
+                  <div className="h-10" />
+                )}
               </div>
             ))}
           </div>
