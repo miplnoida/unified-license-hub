@@ -11,16 +11,27 @@ import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
 import { RegistrationStepRenderer } from '@/components/registration/RegistrationStepRenderer';
-import { ArrowRight, ArrowLeft, FileText, Send } from 'lucide-react';
+import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep } from '@/types/registrationForm';
+
+/** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
+function declFieldKey(label: string, idx: number): string {
+  const slug = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+    .slice(0, 40);
+  return slug || `declaration_${idx}`;
+}
 
 export default function PreLicenseeRegistration() {
   const navigate = useNavigate();
   const {
     form, errors, setField, setEntityField, setMailingField, setPhysicalField,
-    setSectorId, setSubSectorId, addDocument, removeDocument, validateStep, reset,
+    setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
+    validateDeclarations, reset,
   } = useRegistrationForm();
 
   const { config, loading: configLoading } = useRegistrationConfig(
@@ -32,7 +43,7 @@ export default function PreLicenseeRegistration() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
-  const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
 
   // Build steps list dynamically based on config
@@ -40,22 +51,18 @@ export default function PreLicenseeRegistration() {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations'; stepData?: RegStep }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
-      // Dynamic steps from builder JSON
       config.formSchema.forEach((regStep) => {
         result.push({ id: regStep.id, label: regStep.title, type: 'dynamic', stepData: regStep });
       });
     } else {
-      // Fallback to static steps
       result.push({ id: 'entity', label: 'Entity Details', type: 'static' });
       result.push({ id: 'user', label: 'Primary User', type: 'static' });
     }
 
-    // Always add documents step if enabled
     if (!config || config.requireDocuments) {
       result.push({ id: 'documents', label: 'Supporting Documents', type: 'documents' });
     }
 
-    // Always add declarations step
     result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
 
     return result;
@@ -98,11 +105,34 @@ export default function PreLicenseeRegistration() {
         if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
           errs[field.fieldName] = 'Invalid phone number';
         }
+        // File field: must be an uploaded object, not just a filename string
+        if (field.type === 'file' && field.required) {
+          if (!val || typeof val !== 'object' || !('path' in (val as Record<string, unknown>))) {
+            errs[field.fieldName] = `${field.label} is required`;
+          }
+        }
       }
     }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
   }, [dynamicFormData]);
+
+  // Build declaration keys for validation
+  const effectiveDeclarations = useMemo(() => {
+    if (config?.declarations && config.declarations.length > 0) {
+      return config.declarations.map((d, idx) => ({
+        fieldKey: declFieldKey(d.label, idx),
+        label: d.label,
+        required: d.required,
+      }));
+    }
+    // Hardcoded fallback
+    return [
+      { fieldKey: 'termsAccepted', label: 'Terms & Conditions', required: true },
+      { fieldKey: 'privacyAccepted', label: 'Privacy Policy', required: true },
+      { fieldKey: 'dataProtectionAccepted', label: 'Data Protection Notice', required: true },
+    ];
+  }, [config]);
 
   const validateCurrentStep = useCallback((): boolean => {
     const step = steps[currentStep];
@@ -113,14 +143,34 @@ export default function PreLicenseeRegistration() {
         return validateStep(step.id === 'entity' ? 0 : 1);
       case 'dynamic':
         return step.stepData ? validateDynamicStep(step.stepData) : true;
-      case 'declarations':
+      case 'declarations': {
+        const useDynamic = config?.declarations && config.declarations.length > 0;
+        if (useDynamic) {
+          return validateDeclarations(
+            effectiveDeclarations,
+            config?.requireOtp ?? true,
+            config?.requireCaptcha ?? true,
+          );
+        }
         return validateStep(3);
+      }
       case 'documents':
-        return true; // no strict requirement
+        // Validate required document types
+        if (config?.documentTypes) {
+          const requiredTypes = config.documentTypes.filter(dt => dt.required);
+          const missingDocs = requiredTypes.filter(
+            rt => !form.documents.some(d => d.label === rt.label)
+          );
+          if (missingDocs.length > 0) {
+            toast.error(`Required documents missing: ${missingDocs.map(d => d.label).join(', ')}`);
+            return false;
+          }
+        }
+        return true;
       default:
         return true;
     }
-  }, [currentStep, steps, validateStep, validateDynamicStep]);
+  }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents]);
 
   const handleNext = () => {
     if (!validateCurrentStep()) {
@@ -138,7 +188,7 @@ export default function PreLicenseeRegistration() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDynamicFieldChange = useCallback((fieldName: string, value: any) => {
+  const handleDynamicFieldChange = useCallback((fieldName: string, value: unknown) => {
     setDynamicFormData(prev => ({ ...prev, [fieldName]: value }));
     setDynamicErrors(prev => {
       const next = { ...prev };
@@ -156,26 +206,35 @@ export default function PreLicenseeRegistration() {
 
     setSubmitting(true);
     try {
+      const emailVal = form.email || String(dynamicFormData.email || '');
+      const passwordVal = form.password || String(dynamicFormData.password || '');
+
+      if (!emailVal || !passwordVal) {
+        toast.error('Email and password are required to complete registration.');
+        setSubmitting(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('register-pre-licensee', {
         body: {
-          email: form.email || dynamicFormData.email,
-          password: form.password || dynamicFormData.password,
-          first_name: form.firstName || dynamicFormData.first_name,
-          last_name: form.lastName || dynamicFormData.last_name,
-          applicant_name: form.applicantName || dynamicFormData.applicant_name,
-          applicant_name_alt: form.applicantNameAlt || dynamicFormData.applicant_name_alt,
-          sector_id: form.sectorId || dynamicFormData.sector,
-          sub_sector_id: form.subSectorId || dynamicFormData.sub_sector,
-          category_id: form.categoryId || dynamicFormData.category,
+          email: emailVal,
+          password: passwordVal,
+          first_name: form.firstName || String(dynamicFormData.first_name || ''),
+          last_name: form.lastName || String(dynamicFormData.last_name || ''),
+          applicant_name: form.applicantName || String(dynamicFormData.applicant_name || ''),
+          applicant_name_alt: form.applicantNameAlt || String(dynamicFormData.applicant_name_alt || ''),
+          sector_id: form.sectorId || String(dynamicFormData.sector || ''),
+          sub_sector_id: form.subSectorId || String(dynamicFormData.sub_sector || ''),
+          category_id: form.categoryId || String(dynamicFormData.category || ''),
           mailing_address: form.mailingAddress,
           physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
           same_as_mailing: form.sameAsMailing,
-          telephone: form.telephone || dynamicFormData.telephone,
-          username: form.username || dynamicFormData.username || null,
-          registration_number: form.registrationNumber || dynamicFormData.registration_number || null,
+          telephone: form.telephone || String(dynamicFormData.telephone || ''),
+          username: form.username || String(dynamicFormData.username || '') || null,
+          registration_number: form.registrationNumber || String(dynamicFormData.registration_number || '') || null,
           entity_specific_data: { ...form.entitySpecificData, ...dynamicFormData },
           documents_metadata: form.documents,
-          terms_accepted: form.termsAccepted && form.privacyAccepted && form.dataProtectionAccepted,
+          terms_accepted: true, // validated before reaching submit
         },
       });
 
@@ -193,9 +252,6 @@ export default function PreLicenseeRegistration() {
       }
 
       if (data?.warning) toast.warning(data.warning);
-
-      const emailVal = form.email || dynamicFormData.email;
-      const passwordVal = form.password || dynamicFormData.password;
 
       if (emailVal && passwordVal) {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -299,20 +355,20 @@ export default function PreLicenseeRegistration() {
       <LandingNav />
 
       {/* Header Banner */}
-      <div className="hero-gradient text-primary-foreground py-8 px-4">
+      <div className="hero-gradient text-primary-foreground py-6 sm:py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
-            <FileText className="h-8 w-8" />
-            <h1 className="text-2xl font-bold">Pre-Licensee Registration</h1>
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8" />
+            <h1 className="text-xl sm:text-2xl font-bold">Pre-Licensee Registration</h1>
           </div>
-          <p className="text-primary-foreground/80">
+          <p className="text-sm sm:text-base text-primary-foreground/80">
             Complete the registration form below. All fields marked with * are required.
           </p>
         </div>
       </div>
 
       {/* Dynamic Stepper */}
-      <div className="max-w-4xl mx-auto px-4 pt-8 pb-4">
+      <div className="max-w-4xl mx-auto px-4 pt-6 sm:pt-8 pb-4">
         <DynamicRegistrationStepper
           steps={steps.map(s => s.label)}
           currentStep={currentStep}
@@ -326,8 +382,8 @@ export default function PreLicenseeRegistration() {
           {renderStep()}
         </div>
 
-        {/* Navigation: Previous / Next or Submit */}
-        <div className="flex items-center justify-between pt-8 border-t border-border mt-8">
+        {/* Navigation */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 sm:pt-8 border-t border-border mt-6 sm:mt-8">
           <Button
             variant="outline"
             onClick={handlePrev}
@@ -339,14 +395,17 @@ export default function PreLicenseeRegistration() {
           </Button>
 
           {!isLastStep ? (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="sm:ml-auto">
               Next
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting} size="lg">
-              {submitting ? 'Submitting...' : 'Submit Registration'}
-              {!submitting && <Send className="h-4 w-4 ml-2" />}
+            <Button onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
+              {submitting ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
+              ) : (
+                <>Submit Registration<Send className="h-4 w-4 ml-2" /></>
+              )}
             </Button>
           )}
         </div>

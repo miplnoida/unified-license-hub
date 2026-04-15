@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, CheckCircle2, XCircle, Loader2, Mail, Phone, User } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { RegistrationFormData } from '@/hooks/useRegistrationForm';
 
@@ -11,10 +11,17 @@ interface Props {
   setField: (field: string, value: string | boolean) => void;
 }
 
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'Uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Lowercase letter', test: (p: string) => /[a-z]/.test(p) },
+  { label: 'Number', test: (p: string) => /\d/.test(p) },
+  { label: 'Special character (!@#$...)', test: (p: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p) },
+];
+
 export function PrimaryUserStep({ form, errors, setField }: Props) {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
-  // Real-time username availability check
   useEffect(() => {
     if (!form.username.trim() || form.username.trim().length < 3) {
       setUsernameStatus('idle');
@@ -24,7 +31,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
       setUsernameStatus('checking');
       try {
         const { data } = await supabase
-          .from('registrations' as any)
+          .from('registrations' as never)
           .select('id')
           .eq('username', form.username.trim())
           .limit(1);
@@ -36,11 +43,19 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
     return () => clearTimeout(timer);
   }, [form.username]);
 
-  // Real-time validation helpers
   const emailValid = form.email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) : null;
   const phoneValid = form.telephone ? /^[+]?[\d\s\-()]{7,20}$/.test(form.telephone.trim()) : null;
-  const passwordStrong = form.password ? form.password.length >= 8 : null;
   const passwordsMatch = form.confirmPassword ? form.password === form.confirmPassword : null;
+
+  const passwordChecks = useMemo(() => {
+    if (!form.password) return null;
+    return PASSWORD_RULES.map(rule => ({
+      ...rule,
+      passed: rule.test(form.password),
+    }));
+  }, [form.password]);
+
+  const allPasswordRulesPassed = passwordChecks?.every(r => r.passed) ?? false;
 
   return (
     <div className="space-y-6">
@@ -48,7 +63,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
         <h3 className="text-lg font-semibold text-foreground">Contact Information</h3>
         <p className="text-sm text-muted-foreground">Details of the primary contact person for this application.</p>
 
-        <div className="grid md:grid-cols-2 gap-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name *</Label>
             <Input
@@ -119,7 +134,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
       {/* Username */}
       <div className="form-section">
         <h3 className="text-lg font-semibold text-foreground">Account Details</h3>
-        <div className="grid md:grid-cols-2 gap-6 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
@@ -142,7 +157,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
           <div className="space-y-2">
             <Label htmlFor="password">Password *</Label>
             <div className="relative">
@@ -152,17 +167,33 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
                 type="password"
                 value={form.password}
                 onChange={e => setField('password', e.target.value)}
-                placeholder="Min. 8 characters"
+                placeholder="Create a strong password"
                 className={`pl-10 ${errors.password ? 'border-destructive' : ''}`}
               />
-              {passwordStrong !== null && (
+              {form.password && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {passwordStrong ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-amber-500" />}
+                  {allPasswordRulesPassed ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-amber-500" />}
                 </div>
               )}
             </div>
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-            {passwordStrong === false && <p className="text-xs text-amber-600">At least 8 characters required</p>}
+            {/* Password strength indicators */}
+            {passwordChecks && (
+              <div className="space-y-1 mt-2">
+                {passwordChecks.map((rule) => (
+                  <div key={rule.label} className="flex items-center gap-1.5 text-xs">
+                    {rule.passed ? (
+                      <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
+                    ) : (
+                      <XCircle className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                    <span className={rule.passed ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}>
+                      {rule.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password *</Label>
