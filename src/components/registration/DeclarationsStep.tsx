@@ -98,7 +98,7 @@ export function DeclarationsStep({
               <div key={idx} className="flex items-start gap-3 rounded-lg border border-border p-4">
                 <Checkbox
                   id={`decl-${idx}`}
-                  checked={!!(form as Record<string, unknown>)[fieldKey]}
+                  checked={!!(form as unknown as Record<string, unknown>)[fieldKey]}
                   onCheckedChange={(v) => setField(fieldKey, v === true)}
                   className="mt-0.5"
                 />
