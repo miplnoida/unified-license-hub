@@ -10,11 +10,15 @@ import {
 import { X, Plus, Trash2 } from 'lucide-react';
 import type { RegField, RegConditionalRule, RegDataSource } from '@/types/registrationForm';
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
+import { useMasterDataTypes } from '@/hooks/useMasterData';
+import { Database } from 'lucide-react';
 
-const DATA_SOURCES: { value: RegDataSource; label: string }[] = [
-  { value: 'sector', label: 'Sector (Master Data)' },
-  { value: 'sub_sector', label: 'Sub-Sector (Master Data)' },
-  { value: 'category', label: 'Category (Master Data)' },
+const LEGACY_DATA_SOURCES: { value: RegDataSource; label: string }[] = [
+  { value: 'sector', label: 'Sector' },
+  { value: 'sub_sector', label: 'Sub-Sector' },
+  { value: 'category', label: 'Category' },
+  { value: 'country', label: 'Country' },
+  { value: 'state', label: 'State' },
 ];
 
 interface Props {
