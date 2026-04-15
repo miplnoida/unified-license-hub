@@ -1,0 +1,39 @@
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
+import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
+
+/**
+ * Protected route wrapper that:
+ * - Shows a skeleton during auth resolution (no blank screen)
+ * - Redirects unauthenticated users to /
+ * - Enforces force-password-change redirect
+ * - Restricts pre-licensee to allowed routes
+ */
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, session, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <AuthLoadingScreen />;
+
+  // No session = not logged in
+  if (!session) return <Navigate to="/" replace />;
+
+  // Session exists but user profile not yet hydrated — keep showing skeleton
+  if (!user) return <AuthLoadingScreen />;
+
+  if (user.forcePasswordChange && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  if (user.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/** Shorthand wrapper */
+export function P({ children }: { children: React.ReactNode }) {
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+}
