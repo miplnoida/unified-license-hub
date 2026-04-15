@@ -29,9 +29,14 @@ interface Props {
 }
 
 export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
+  const { data: masterDataTypes = [] } = useMasterDataTypes();
+
   const update = (partial: Partial<RegField>) => {
     onChange({ ...field, ...partial });
   };
+
+  // Determine effective option source for backward compat
+  const effectiveSource = field.optionSource || (field.dataSource ? 'legacy_data_source' : 'manual');
 
   const hasOptions = ['select', 'multi_select', 'radio', 'checkbox'].includes(field.type);
 
