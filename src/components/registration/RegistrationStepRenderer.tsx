@@ -8,25 +8,28 @@ import {
 } from '@/components/ui/select';
 import type { RegStep, RegField } from '@/types/registrationForm';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
+import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 
 interface Props {
   step: RegStep;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   errors: Record<string, string>;
-  onChange: (fieldName: string, value: any) => void;
+  onChange: (fieldName: string, value: unknown) => void;
   readOnly?: boolean;
 }
 
 /**
  * Renders a single registration step using the builder's row → column → field
- * grid layout. Each column's `span` (out of 12) maps to CSS grid column spans.
+ * grid layout. Responsive: columns collapse on mobile.
  */
 export function RegistrationStepRenderer({ step, data, errors, onChange, readOnly }: Props) {
-  // Collect all fields from the step for dependency lookups
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
@@ -47,20 +50,50 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, readOnl
             }}
           >
             {row.columns.map((col, colIdx) => (
-              <div key={colIdx} style={{ gridColumn: `span ${col.span}` }}>
-                {col.field ? (
-                  <InteractiveField
-                    field={col.field}
-                    value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                    error={errors[col.field.fieldName]}
-                    onChange={onChange}
-                    readOnly={readOnly}
-                    allData={data}
-                    allFields={allFields}
-                  />
-                ) : (
-                  <div className="h-10" />
-                )}
+              <div
+                key={colIdx}
+                className="col-span-12 md:col-span-[var(--col-span)]"
+                style={{
+                  '--col-span': col.span,
+                  gridColumn: undefined,
+                } as React.CSSProperties}
+              >
+                {/* Responsive: full-width on mobile, use span on md+ */}
+                <div
+                  className="block md:hidden"
+                >
+                  {col.field ? (
+                    <InteractiveField
+                      field={col.field}
+                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                      error={errors[col.field.fieldName]}
+                      onChange={onChange}
+                      readOnly={readOnly}
+                      allData={data}
+                      allFields={allFields}
+                    />
+                  ) : (
+                    <div className="h-10" />
+                  )}
+                </div>
+                <div
+                  className="hidden md:block"
+                  style={{ gridColumn: `span ${col.span}` }}
+                >
+                  {col.field ? (
+                    <InteractiveField
+                      field={col.field}
+                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                      error={errors[col.field.fieldName]}
+                      onChange={onChange}
+                      readOnly={readOnly}
+                      allData={data}
+                      allFields={allFields}
+                    />
+                  ) : (
+                    <div className="h-10" />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -76,11 +109,11 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, readOnl
 
 interface FieldProps {
   field: RegField;
-  value: any;
+  value: unknown;
   error?: string;
-  onChange: (fieldName: string, value: any) => void;
+  onChange: (fieldName: string, value: unknown) => void;
   readOnly?: boolean;
-  allData: Record<string, any>;
+  allData: Record<string, unknown>;
   allFields: RegField[];
 }
 
@@ -89,7 +122,7 @@ function useCountries() {
     queryKey: ['countries'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('countries' as any)
+        .from('countries' as never)
         .select('*')
         .eq('status', 'active')
         .order('name');
@@ -104,7 +137,7 @@ function useStates() {
     queryKey: ['states'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('states' as any)
+        .from('states' as never)
         .select('*')
         .eq('status', 'active')
         .order('name');
@@ -114,7 +147,7 @@ function useStates() {
   });
 }
 
-function useDynamicOptions(field: RegField, allData: Record<string, any>, allFields: RegField[]) {
+function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
   const { data: allCategories = [] } = useCategories();
@@ -125,25 +158,25 @@ function useDynamicOptions(field: RegField, allData: Record<string, any>, allFie
     if (!field.dataSource) return null;
 
     if (field.dataSource === 'sector') {
-      return sectors.map((s: any) => ({ value: s.id, label: s.name }));
+      return sectors.map((s: { id: string; name: string }) => ({ value: s.id, label: s.name }));
     }
 
     if (field.dataSource === 'sub_sector') {
       const parentFieldName = field.dependsOn;
-      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      const parentValue = parentFieldName ? String(allData[parentFieldName] || '') : '';
       if (!parentValue) return [];
       return allSubSectors
-        .filter((s: any) => s.sector_id === parentValue)
-        .map((s: any) => ({ value: s.id, label: s.name }));
+        .filter((s: { sector_id: string }) => s.sector_id === parentValue)
+        .map((s: { id: string; name: string }) => ({ value: s.id, label: s.name }));
     }
 
     if (field.dataSource === 'category') {
       const parentFieldName = field.dependsOn;
-      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      const parentValue = parentFieldName ? String(allData[parentFieldName] || '') : '';
       if (!parentValue) return [];
       return allCategories
-        .filter((c: any) => c.sub_sector_id === parentValue)
-        .map((c: any) => ({ value: c.id, label: c.name }));
+        .filter((c: { sub_sector_id: string }) => c.sub_sector_id === parentValue)
+        .map((c: { id: string; name: string }) => ({ value: c.id, label: c.name }));
     }
 
     if (field.dataSource === 'country') {
@@ -153,7 +186,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, any>, allFie
 
     if (field.dataSource === 'state') {
       const parentFieldName = field.dependsOn;
-      const parentValue = parentFieldName ? allData[parentFieldName] : null;
+      const parentValue = parentFieldName ? String(allData[parentFieldName] || '') : '';
       if (!parentValue) return [];
       const filtered = allStates.filter((s) => s.country_id === parentValue);
       if (filtered.length === 0) return [{ value: '__empty', label: 'No states available for this country' }];
@@ -165,7 +198,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, any>, allFie
 }
 
 function InteractiveField({ field, value, error, onChange, readOnly, allData, allFields }: FieldProps) {
-  const handleChange = (val: any) => {
+  const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
     // Clear dependent fields when parent changes
@@ -177,9 +210,8 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
     }
   };
 
-  const dynamicOptions = useDynamicOptions(field, allData, allFields);
+  const dynamicOptions = useDynamicOptions(field, allData);
 
-  // Check if this field should use the generic master data hook
   const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
   const labelEl = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
@@ -190,6 +222,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
   ) : null;
 
   let input: React.ReactNode;
+  const strValue = typeof value === 'string' ? value : (value === null || value === undefined ? '' : String(value));
 
   switch (field.type) {
     case 'text':
@@ -197,7 +230,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       input = (
         <Input
           type={field.type === 'email' ? 'email' : 'text'}
-          value={value}
+          value={strValue}
           onChange={e => handleChange(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
@@ -209,7 +242,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       input = (
         <Input
           type="tel"
-          value={value}
+          value={strValue}
           onChange={e => handleChange(e.target.value)}
           placeholder={field.placeholder || '+1 (555) 123-4567'}
           disabled={readOnly}
@@ -221,7 +254,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       input = (
         <Input
           type="number"
-          value={value}
+          value={strValue}
           onChange={e => {
             const raw = e.target.value;
             if (raw === '' || raw === '-') handleChange(raw);
@@ -240,7 +273,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       input = (
         <Input
           type="date"
-          value={value}
+          value={strValue}
           onChange={e => handleChange(e.target.value)}
           disabled={readOnly}
           className={error ? 'border-destructive' : ''}
@@ -250,7 +283,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
     case 'textarea':
       input = (
         <Textarea
-          value={value}
+          value={strValue}
           onChange={e => handleChange(e.target.value)}
           placeholder={field.placeholder}
           rows={3}
@@ -264,29 +297,44 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
         input = (
           <MasterDataRegField
             field={field}
-            value={value}
+            value={strValue}
             onChange={handleChange}
             disabled={readOnly}
             allData={allData}
           />
         );
       } else if (dynamicOptions) {
-        const isDisabled = readOnly || (field.dependsOn && !allData[field.dependsOn]);
+        const parentMissing = field.dependsOn && !allData[field.dependsOn];
+        const isDisabled = readOnly || !!parentMissing;
         input = (
-          <Select value={value} onValueChange={handleChange} disabled={!!isDisabled}>
-            <SelectTrigger className={error ? 'border-destructive' : ''}>
-              <SelectValue placeholder={field.placeholder || 'Select...'} />
-            </SelectTrigger>
-            <SelectContent>
-              {dynamicOptions.map((o: { value: string; label: string }) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div>
+            <Select value={strValue} onValueChange={handleChange} disabled={isDisabled}>
+              <SelectTrigger className={error ? 'border-destructive' : ''}>
+                <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
+              </SelectTrigger>
+              <SelectContent>
+                {dynamicOptions.length === 0 ? (
+                  <SelectItem value="__empty" disabled>
+                    {parentMissing ? 'Select parent field first' : 'No options available'}
+                  </SelectItem>
+                ) : (
+                  dynamicOptions.map((o: { value: string; label: string }) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {parentMissing && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Please select the parent field first
+              </p>
+            )}
+          </div>
         );
       } else {
         input = (
-          <Select value={value} onValueChange={handleChange} disabled={readOnly}>
+          <Select value={strValue} onValueChange={handleChange} disabled={readOnly}>
             <SelectTrigger className={error ? 'border-destructive' : ''}>
               <SelectValue placeholder={field.placeholder || 'Select...'} />
             </SelectTrigger>
@@ -371,7 +419,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
                   type="radio"
                   name={field.fieldName}
                   value={opt}
-                  checked={value === opt}
+                  checked={strValue === opt}
                   onChange={() => handleChange(opt)}
                   disabled={readOnly}
                   className="accent-primary"
@@ -385,14 +433,12 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       break;
     case 'file':
       input = (
-        <Input
-          type="file"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handleChange(file.name);
-          }}
-          disabled={readOnly}
-          className={error ? 'border-destructive' : ''}
+        <FileUploadField
+          field={field}
+          value={value}
+          onChange={handleChange}
+          readOnly={readOnly}
+          error={error}
         />
       );
       break;
@@ -406,7 +452,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       input = (
         <Input
           type="text"
-          value={value}
+          value={strValue}
           onChange={e => handleChange(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
@@ -425,32 +471,142 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
   );
 }
 
+/** File upload field that actually uploads to secure storage */
+function FileUploadField({ field, value, onChange, readOnly, error }: {
+  field: RegField;
+  value: unknown;
+  onChange: (val: unknown) => void;
+  readOnly?: boolean;
+  error?: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const fileData = value && typeof value === 'object' && 'name' in (value as Record<string, unknown>)
+    ? value as { name: string; path: string; size: number }
+    : null;
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const filePath = `registrations/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('secure-documents')
+        .upload(filePath, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) {
+        toast.error('Upload failed: ' + uploadError.message);
+        return;
+      }
+
+      onChange({
+        name: file.name,
+        path: filePath,
+        size: file.size,
+        type: file.type,
+      });
+      toast.success(`${file.name} uploaded`);
+    } catch (err) {
+      console.error('File upload error:', err);
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const handleRemove = async () => {
+    if (fileData?.path) {
+      try {
+        await supabase.storage.from('secure-documents').remove([fileData.path]);
+      } catch {}
+    }
+    onChange('');
+  };
+
+  if (fileData) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border border-border p-2 bg-muted/30">
+        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="text-sm truncate flex-1">{fileData.name}</span>
+        {!readOnly && (
+          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={handleRemove}>
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPT_STRING}
+        onChange={handleFileSelect}
+        className="hidden"
+        id={`file-${field.fieldName}`}
+        disabled={readOnly || uploading}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        className={`w-full ${error ? 'border-destructive' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        disabled={readOnly || uploading}
+      >
+        {uploading ? (
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+        ) : (
+          <><Upload className="h-4 w-4 mr-2" />Choose File</>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 /** Renders select/multi/radio fields backed by the generic master data system */
 function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti, isRadio }: {
   field: RegField;
-  value: any;
-  onChange: (val: any) => void;
+  value: unknown;
+  onChange: (val: unknown) => void;
   disabled?: boolean;
-  allData: Record<string, any>;
+  allData: Record<string, unknown>;
   isMulti?: boolean;
   isRadio?: boolean;
 }) {
-  const parentValue = field.masterDataParentField ? allData[field.masterDataParentField] : undefined;
+  const parentValue = field.masterDataParentField ? String(allData[field.masterDataParentField] || '') : '';
+  const parentMissing = !!field.masterDataParentField && !parentValue;
   const { data: items = [] } = useActiveMasterItems(
     field.masterDataTypeCode || '',
     field.masterDataParentField ? (parentValue || null) : undefined
   );
 
   const options = items.map(i => ({ value: i.id, label: i.name }));
-  const isDisabled = disabled || (field.masterDataParentField && !parentValue);
+  const isDisabled = disabled || parentMissing;
+  const strValue = typeof value === 'string' ? value : '';
 
   if (isRadio) {
     return (
       <div className="space-y-1.5">
-        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {parentMissing && <p className="text-xs text-muted-foreground">Select parent field first</p>}
+        {!parentMissing && options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
         {options.map(opt => (
           <label key={opt.value} className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" name={field.fieldName} value={opt.value} checked={value === opt.value} onChange={() => onChange(opt.value)} disabled={!!isDisabled} className="accent-primary" />
+            <input type="radio" name={field.fieldName} value={opt.value} checked={strValue === opt.value} onChange={() => onChange(opt.value)} disabled={!!isDisabled} className="accent-primary" />
             {opt.label}
           </label>
         ))}
@@ -462,7 +618,8 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
     const selected = Array.isArray(value) ? value : [];
     return (
       <div className="space-y-1">
-        {options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
+        {parentMissing && <p className="text-xs text-muted-foreground">Select parent field first</p>}
+        {!parentMissing && options.length === 0 && <p className="text-xs text-muted-foreground">No options available</p>}
         {options.map(opt => (
           <label key={opt.value} className="flex items-center gap-2 text-sm">
             <Checkbox
@@ -480,16 +637,27 @@ function MasterDataRegField({ field, value, onChange, disabled, allData, isMulti
     );
   }
 
-  // Default: single select
   return (
-    <Select value={value} onValueChange={onChange} disabled={!!isDisabled}>
-      <SelectTrigger>
-        <SelectValue placeholder={field.placeholder || 'Select...'} />
-      </SelectTrigger>
-      <SelectContent>
-        {options.length === 0 && <SelectItem value="__empty" disabled>No options available</SelectItem>}
-        {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-      </SelectContent>
-    </Select>
+    <div>
+      <Select value={strValue} onValueChange={onChange} disabled={!!isDisabled}>
+        <SelectTrigger>
+          <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.length === 0 && (
+            <SelectItem value="__empty" disabled>
+              {parentMissing ? 'Select parent field first' : 'No options available'}
+            </SelectItem>
+          )}
+          {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      {parentMissing && (
+        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" />
+          Please select the parent field first
+        </p>
+      )}
+    </div>
   );
 }

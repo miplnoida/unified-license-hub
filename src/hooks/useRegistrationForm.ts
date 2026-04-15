@@ -37,12 +37,15 @@ export interface RegistrationFormData {
   // Step 3: Supporting Documents
   documents: DocumentMeta[];
 
-  // Step 4: Declarations
+  // Step 4: Declarations (dynamic keys stored here)
   termsAccepted: boolean;
   privacyAccepted: boolean;
   dataProtectionAccepted: boolean;
   captchaChecked: boolean;
   emailVerified: boolean;
+
+  // Dynamic declaration keys
+  [key: string]: unknown;
 }
 
 const emptyAddress: AddressData = { street: '', city: '', state: '', country: '' };
@@ -73,6 +76,8 @@ const initialState: RegistrationFormData = {
   emailVerified: false,
 };
 
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+
 function loadFromStorage(): RegistrationFormData {
   try {
     const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -81,7 +86,7 @@ function loadFromStorage(): RegistrationFormData {
       return { ...initialState, ...parsed, password: '', confirmPassword: '', emailVerified: false };
     }
   } catch {}
-  return initialState;
+  return { ...initialState };
 }
 
 export function useRegistrationForm() {
@@ -168,7 +173,6 @@ export function useRegistrationForm() {
     const errs: Record<string, string> = {};
 
     if (step === 0) {
-      // Entity Details
       if (!form.sectorId) errs.sectorId = 'Sector is required';
       if (!form.subSectorId) errs.subSectorId = 'Sub-sector is required';
       if (!form.categoryId) errs.categoryId = 'Category is required';
@@ -184,7 +188,6 @@ export function useRegistrationForm() {
         if (!form.physicalAddress.country) errs['physical.country'] = 'Country is required';
       }
     } else if (step === 1) {
-      // Primary User Details
       if (!form.firstName.trim()) errs.firstName = 'First name is required';
       if (!form.lastName.trim()) errs.lastName = 'Last name is required';
       if (!form.telephone.trim()) {
@@ -199,8 +202,8 @@ export function useRegistrationForm() {
       }
       if (!form.password) {
         errs.password = 'Password is required';
-      } else if (form.password.length < 8) {
-        errs.password = 'Password must be at least 8 characters';
+      } else if (!PASSWORD_REGEX.test(form.password)) {
+        errs.password = 'Password must be 8+ characters with uppercase, lowercase, number, and special character';
       }
       if (!form.confirmPassword) {
         errs.confirmPassword = 'Please confirm your password';
@@ -208,7 +211,7 @@ export function useRegistrationForm() {
         errs.confirmPassword = 'Passwords do not match';
       }
     } else if (step === 2) {
-      // Supporting Documents - no strict requirement for now
+      // Documents — no strict requirement unless config says otherwise
     } else if (step === 3) {
       // Declarations
       if (!form.termsAccepted) errs.termsAccepted = 'You must accept the Terms & Conditions';
@@ -222,8 +225,35 @@ export function useRegistrationForm() {
     return Object.keys(errs).length === 0;
   }, [form]);
 
+  /**
+   * Validate dynamic declarations by their computed field keys.
+   * Called from the registration page when declarations come from config.
+   */
+  const validateDeclarations = useCallback((
+    declarationKeys: { fieldKey: string; label: string; required: boolean }[],
+    requireOtp: boolean,
+    requireCaptcha: boolean,
+  ): boolean => {
+    const errs: Record<string, string> = {};
+
+    for (const decl of declarationKeys) {
+      if (decl.required && !form[decl.fieldKey]) {
+        errs[decl.fieldKey] = `You must accept: ${decl.label}`;
+      }
+    }
+
+    if (requireCaptcha && !form.captchaChecked) {
+      errs.captcha = 'Please verify the captcha';
+    }
+    if (requireOtp && !form.emailVerified) {
+      errs.emailVerified = 'Email verification is required';
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }, [form]);
+
   const validate = useCallback((): boolean => {
-    // Validate all steps
     for (let i = 0; i < 4; i++) {
       if (!validateStep(i)) return false;
     }
@@ -231,7 +261,7 @@ export function useRegistrationForm() {
   }, [validateStep]);
 
   const reset = useCallback(() => {
-    setForm(initialState);
+    setForm({ ...initialState });
     setErrors({});
     sessionStorage.removeItem(STORAGE_KEY);
   }, []);
@@ -249,6 +279,7 @@ export function useRegistrationForm() {
     removeDocument,
     validate,
     validateStep,
+    validateDeclarations,
     reset,
   };
 }
