@@ -11,6 +11,7 @@ import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfi
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useActiveMasterItems } from '@/hooks/useMasterData';
 
 interface Props {
   step: RegStep;
