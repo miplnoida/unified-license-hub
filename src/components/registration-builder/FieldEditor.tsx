@@ -251,7 +251,6 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
                 />
               </div>
             )}
-            )}
           </div>
         )}
 
