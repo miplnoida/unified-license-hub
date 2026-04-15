@@ -574,13 +574,19 @@ export default function RegistrationFormBuilder() {
                   {form.declarations.map((decl, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
                       <div className="flex-1 space-y-2">
-                        <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder="Declaration text..." />
-                        <div className="flex gap-4">
-                          <div className="flex items-center gap-2">
-                            <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
-                            <Label className="text-xs">Required</Label>
-                          </div>
-                          <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (optional)" className="flex-1 h-8 text-xs" />
+                        <Input value={decl.label} onChange={e => updateDeclaration(idx, 'label', e.target.value)} placeholder='Full label, e.g. "I agree to the Terms & Conditions"' />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input value={decl.linkLabel || ''} onChange={e => updateDeclaration(idx, 'linkLabel', e.target.value)} placeholder='Clickable text, e.g. "Terms & Conditions"' className="h-8 text-xs" />
+                          <Input value={decl.linkUrl || ''} onChange={e => updateDeclaration(idx, 'linkUrl', e.target.value)} placeholder="Link URL (opens in new tab)" className="h-8 text-xs" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={decl.required} onCheckedChange={v => updateDeclaration(idx, 'required', v)} />
+                          <Label className="text-xs">Required</Label>
+                          {decl.linkLabel && decl.linkUrl && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              Preview: "{decl.label?.replace(decl.linkLabel, `[${decl.linkLabel}]`)}"
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Button variant="ghost" size="icon" onClick={() => removeDeclaration(idx)}>
