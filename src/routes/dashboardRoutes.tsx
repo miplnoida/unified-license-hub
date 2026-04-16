@@ -22,6 +22,7 @@ const FormDetail = lazy(() => import('@/pages/FormDetail'));
 const ViewReturns = lazy(() => import('@/pages/returns-mgmt/ViewReturns'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
+const FormPreview = lazy(() => import('@/pages/FormPreview'));
 
 export const dashboardRoutes = (
   <>
@@ -54,5 +55,6 @@ export const dashboardRoutes = (
 
     <Route path="/profile" element={<P><Profile /></P>} />
     <Route path="/change-password" element={<P><ChangePassword /></P>} />
+    <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
   </>
 );

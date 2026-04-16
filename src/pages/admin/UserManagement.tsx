@@ -74,6 +74,7 @@ export default function UserManagement() {
   const [editDialog, setEditDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
   const [newRole, setNewRole] = useState('');
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [generatedPassword, setGeneratedPassword] = useState('');
@@ -122,31 +123,43 @@ export default function UserManagement() {
 
   const openRoleEdit = (u: UserRecord) => {
     setEditingUser(u);
-    setNewRole(u.role_id || '');
+    // Load existing roles for this user
+    supabase.from('user_roles').select('role').eq('user_id', u.id).then(({ data }) => {
+      const existingRoles = (data || []).map((r: any) => r.role);
+      const matchedIds = dynamicRoles.filter(dr => existingRoles.includes(dr.system_role)).map(dr => dr.id);
+      setSelectedRoleIds(matchedIds.length > 0 ? matchedIds : u.role_id ? [u.role_id] : []);
+    });
     setEditDialog(true);
   };
 
   const handleRoleSave = async () => {
-    if (!editingUser || !newRole) return;
+    if (!editingUser || selectedRoleIds.length === 0) {
+      toast.error('Please select at least one role');
+      return;
+    }
     setSaving(true);
 
-    const role = dynamicRoles.find(r => r.id === newRole);
-    if (!role) { toast.error('Invalid role'); setSaving(false); return; }
+    const selectedDynamicRoles = dynamicRoles.filter(r => selectedRoleIds.includes(r.id));
+    const primaryRole = selectedDynamicRoles[0];
 
-    // Update user_roles with system_role
+    // Replace all user_roles entries
     await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
-    const { error: e2 } = await supabase.from('user_roles').insert({
-      user_id: editingUser.id, role: role.system_role as any,
-    });
-    if (e2) { toast.error(e2.message); setSaving(false); return; }
+    for (const role of selectedDynamicRoles) {
+      await supabase.from('user_roles').insert({
+        user_id: editingUser.id, role: role.system_role as any,
+      });
+    }
 
-    // Update profile role_id
-    await supabase.from('profiles').update({ role_id: newRole, role: role.system_role } as any).eq('id', editingUser.id);
+    // Update profile with primary role
+    await supabase.from('profiles').update({
+      role_id: primaryRole.id,
+      role: primaryRole.system_role,
+    } as any).eq('id', editingUser.id);
 
     setUsers(prev => prev.map(x => x.id === editingUser.id ? {
-      ...x, app_role: role.system_role, role_id: newRole,
+      ...x, app_role: primaryRole.system_role, role_id: primaryRole.id,
     } : x));
-    toast.success('Role updated');
+    toast.success(`${selectedDynamicRoles.length} role(s) assigned`);
     setSaving(false);
     setEditDialog(false);
   };
@@ -440,29 +453,45 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Edit Role Dialog ─── */}
+      {/* ─── Edit Roles Dialog (Multi-role) ─── */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Change User Role</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage User Roles</DialogTitle>
+            <DialogDescription>Assign one or more roles to this user.</DialogDescription>
+          </DialogHeader>
           {editingUser && (
             <div className="space-y-4 py-2">
               <p className="text-sm"><strong>{editingUser.full_name}</strong> ({editingUser.email})</p>
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={newRole} onValueChange={setNewRole}>
-                  <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                  <SelectContent>
-                    {dynamicRoles.map(r => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Roles</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                  {dynamicRoles.map(r => {
+                    const isSelected = selectedRoleIds.includes(r.id);
+                    return (
+                      <label key={r.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'}`}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedRoleIds(prev =>
+                              prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]
+                            );
+                          }}
+                          className="rounded"
+                        />
+                        <span>{r.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">{selectedRoleIds.length} role(s) selected</p>
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog(false)}>Cancel</Button>
-            <Button onClick={handleRoleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button onClick={handleRoleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Roles'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

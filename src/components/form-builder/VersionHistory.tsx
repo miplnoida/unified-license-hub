@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
-import { History, Eye, GitBranch, Calendar } from 'lucide-react';
+import { History, Eye, GitBranch, Calendar, ExternalLink } from 'lucide-react';
 import { useFormVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import type { FormSection } from '@/types/formBuilder';
@@ -54,6 +54,14 @@ export function VersionHistory({ templateId, formName }: VersionHistoryProps) {
                           <Calendar className="h-3 w-3" />
                           {new Date(v.created_at).toLocaleDateString()}
                         </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(`/preview/${v.id}`, '_blank')}
+                          title="Preview in new tab"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" /> Preview
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
