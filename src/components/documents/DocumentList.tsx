@@ -57,16 +57,18 @@ export function DocumentList({ entityType, entityId }: DocumentListProps) {
   }, [entityType, entityId]);
 
   const handleDownload = async (doc: Doc) => {
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .download(doc.file_path);
+    // Try secure-documents first, then documents bucket
+    let result = await supabase.storage.from('secure-documents').download(doc.file_path);
+    if (result.error || !result.data) {
+      result = await supabase.storage.from('documents').download(doc.file_path);
+    }
 
-    if (error || !data) {
-      toast.error('Download failed');
+    if (result.error || !result.data) {
+      toast.error('Download failed: ' + (result.error?.message || 'File not found'));
       return;
     }
 
-    const url = URL.createObjectURL(data);
+    const url = URL.createObjectURL(result.data);
     const a = document.createElement('a');
     a.href = url;
     a.download = doc.file_name;
