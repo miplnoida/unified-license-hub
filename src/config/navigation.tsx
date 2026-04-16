@@ -88,7 +88,7 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Payments',
     items: [
-      { label: 'Payment History', href: '/payments', icon: <CreditCard className="h-5 w-5" />, roles: ['licensee_primary', ...ADMIN_ROLES] },
+      { label: 'Payment History', href: '/payments', icon: <CreditCard className="h-5 w-5" />, roles: ['licensee_primary', 'licensee_secondary', 'pre_licensee', 'applicant', ...ADMIN_ROLES] },
     ],
   },
   {
