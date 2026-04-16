@@ -28,13 +28,14 @@ export default function PaymentDetail() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const { data } = await supabase.from('payments' as any).select('*').eq('id', id).single();
-      setPayment(data);
-      if (data?.application_id) {
+      const { data: pData } = await supabase.from('payments' as any).select('*').eq('id', id).single();
+      const p = pData as any;
+      setPayment(p);
+      if (p?.application_id) {
         const { data: fees } = await supabase
           .from('fee_components')
           .select('*, fee_types(name)')
-          .eq('application_id', data.application_id);
+          .eq('application_id', p.application_id);
         setFeeComponents(fees || []);
       }
       setLoading(false);
@@ -135,7 +136,7 @@ export default function PaymentDetail() {
               </div>
               {payment.paid_at && (
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <div className="h-2 w-2 rounded-full bg-primary/70" />
                   <span>Paid: {new Date(payment.paid_at).toLocaleDateString()}</span>
                 </div>
               )}
