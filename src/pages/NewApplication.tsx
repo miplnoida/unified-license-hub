@@ -74,18 +74,28 @@ export default function NewApplication() {
 
   // Re-application guard: check if user already has an active application
   const [reappBlocked, setReappBlocked] = useState(false);
+  const [sectorBlockMessage, setSectorBlockMessage] = useState('');
   useEffect(() => {
-    if (!user || appSettings?.allow_reapplication !== false) {
+    if (!user) {
       setReappBlocked(false);
       return;
     }
     (async () => {
-      const { count } = await supabase
-        .from('applications')
-        .select('id', { count: 'exact', head: true })
-        .eq('applicant_id', user.id)
-        .in('status', ['submitted', 'in_progress']);
-      setReappBlocked((count || 0) > 0);
+      // Check global re-application setting
+      if (appSettings?.allow_reapplication === false) {
+        const { count } = await supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('applicant_id', user.id)
+          .in('status', ['submitted', 'in_progress']);
+        if ((count || 0) > 0) {
+          setReappBlocked(true);
+          setSectorBlockMessage('You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.');
+          return;
+        }
+      }
+      setReappBlocked(false);
+      setSectorBlockMessage('');
     })();
   }, [user, appSettings]);
 
