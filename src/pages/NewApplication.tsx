@@ -74,18 +74,28 @@ export default function NewApplication() {
 
   // Re-application guard: check if user already has an active application
   const [reappBlocked, setReappBlocked] = useState(false);
+  const [sectorBlockMessage, setSectorBlockMessage] = useState('');
   useEffect(() => {
-    if (!user || appSettings?.allow_reapplication !== false) {
+    if (!user) {
       setReappBlocked(false);
       return;
     }
     (async () => {
-      const { count } = await supabase
-        .from('applications')
-        .select('id', { count: 'exact', head: true })
-        .eq('applicant_id', user.id)
-        .in('status', ['submitted', 'in_progress']);
-      setReappBlocked((count || 0) > 0);
+      // Check global re-application setting
+      if (appSettings?.allow_reapplication === false) {
+        const { count } = await supabase
+          .from('applications')
+          .select('id', { count: 'exact', head: true })
+          .eq('applicant_id', user.id)
+          .in('status', ['submitted', 'in_progress']);
+        if ((count || 0) > 0) {
+          setReappBlocked(true);
+          setSectorBlockMessage('You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.');
+          return;
+        }
+      }
+      setReappBlocked(false);
+      setSectorBlockMessage('');
     })();
   }, [user, appSettings]);
 
@@ -208,11 +218,29 @@ export default function NewApplication() {
       return;
     }
 
+    // Check if user already has a non-cancelled/non-rejected application for this sector
+    if (user) {
+      const { data: existingApps } = await supabase
+        .from('applications')
+        .select('id, status, data')
+        .eq('applicant_id', user.id)
+        .not('status', 'in', '("cancelled","rejected","draft")');
+
+      const sectorDupe = (existingApps || []).find((a: any) => {
+        const d = (a.data || {}) as Record<string, any>;
+        return d.sector_id === selectedSector;
+      });
+
+      if (sectorDupe) {
+        toast.error('You already have an active application for this sector. You can only re-apply if the previous application is Cancelled or Rejected.');
+        return;
+      }
+    }
+
     setSaving(true);
     const appId = await createDraftApplication();
     if (appId) {
       setApplicationId(appId);
-      // Initialize progress for all forms
       const initial: Record<string, FormProgress> = {};
       matchedTemplates.forEach(t => {
         initial[t.id] = { templateId: t.id, status: 'not_started', data: {} };
@@ -523,7 +551,7 @@ export default function NewApplication() {
           <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
           <h2 className="text-xl font-semibold text-foreground">Application Already In Progress</h2>
           <p className="text-muted-foreground">
-            You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.
+            {sectorBlockMessage || 'You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.'}
           </p>
           <div className="flex gap-3 justify-center pt-4">
             <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
