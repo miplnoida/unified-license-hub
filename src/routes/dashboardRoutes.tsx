@@ -11,6 +11,7 @@ const LicenseDetail = lazy(() => import('@/pages/licenses/LicenseDetail'));
 const ComplianceReturns = lazy(() => import('@/pages/compliance/ComplianceReturns'));
 const ReturnSubmission = lazy(() => import('@/pages/compliance/ReturnSubmission'));
 const PaymentHistory = lazy(() => import('@/pages/payments/PaymentHistory'));
+const PaymentDetail = lazy(() => import('@/pages/payments/PaymentDetail'));
 const ComplaintsList = lazy(() => import('@/pages/complaints/ComplaintsList'));
 const WorkflowList = lazy(() => import('@/pages/workflows/WorkflowList'));
 const DelegationRules = lazy(() => import('@/pages/delegation/DelegationRules'));
@@ -42,6 +43,7 @@ export const dashboardRoutes = (
     <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
 
     <Route path="/payments" element={<P><PaymentHistory /></P>} />
+    <Route path="/payments/:id" element={<P><PaymentDetail /></P>} />
     <Route path="/complaints" element={<P><ComplaintsList /></P>} />
     <Route path="/workflows" element={<P><WorkflowList /></P>} />
     <Route path="/delegation-rules" element={<P><DelegationRules /></P>} />

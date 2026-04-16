@@ -2090,6 +2090,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_attachments: {
+        Row: {
+          bucket_name: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          payment_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          bucket_name?: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          payment_id: string
+          uploaded_by: string
+        }
+        Update: {
+          bucket_name?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          payment_id?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       payment_receipts: {
         Row: {
           amount: number

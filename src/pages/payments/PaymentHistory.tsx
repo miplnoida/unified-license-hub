@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,6 +65,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function PaymentHistory() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
@@ -197,10 +199,15 @@ export default function PaymentHistory() {
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
-                              <Eye className="h-3 w-3 mr-1" />View
+                          <TableCell className="text-right space-x-1">
+                            <Button variant="ghost" size="sm" onClick={() => navigate(`/payments/${p.id}`)}>
+                              <Eye className="h-3 w-3 mr-1" />Details
                             </Button>
+                            {isAdmin && (
+                              <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
+                                <Eye className="h-3 w-3 mr-1" />Verify
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}

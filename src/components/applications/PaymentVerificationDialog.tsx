@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 
 export interface PaymentInfo {
   id?: string;
@@ -98,7 +99,7 @@ export function PaymentVerificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -182,10 +183,18 @@ export function PaymentVerificationDialog({
                 />
                 <p className="text-xs text-muted-foreground">
                   This message will be sent as a notification to the licensee.
-                </p>
-              </div>
-            </>
-          )}
+                 </p>
+               </div>
+             </>
+           )}
+
+           {/* Attachments from licensee/user */}
+           {payment.id && (
+             <>
+               <Separator />
+               <PaymentAttachments paymentId={payment.id} readOnly={isAdminView} />
+             </>
+           )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
