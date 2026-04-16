@@ -537,7 +537,11 @@ export type Database = {
         Row: {
           condition: Json
           created_at: string
+          delegate_from_user_id: string | null
+          delegate_to_user_id: string | null
           description: string | null
+          effective_from: string | null
+          effective_until: string | null
           id: string
           is_active: boolean
           name: string
@@ -547,7 +551,11 @@ export type Database = {
         Insert: {
           condition: Json
           created_at?: string
+          delegate_from_user_id?: string | null
+          delegate_to_user_id?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -557,7 +565,11 @@ export type Database = {
         Update: {
           condition?: Json
           created_at?: string
+          delegate_from_user_id?: string | null
+          delegate_to_user_id?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -2002,7 +2014,9 @@ export type Database = {
       }
       notifications: {
         Row: {
+          channel: string
           created_at: string
+          delivery_status: string
           entity_id: string | null
           entity_type: string | null
           id: string
@@ -2013,7 +2027,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          channel?: string
           created_at?: string
+          delivery_status?: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
@@ -2024,7 +2040,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          channel?: string
           created_at?: string
+          delivery_status?: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
@@ -2208,6 +2226,41 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      ppoc_entity_mappings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          licensee_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          licensee_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          licensee_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ppoc_entity_mappings_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pre_license_users: {
         Row: {
