@@ -68,6 +68,7 @@ export function useCanPay(): boolean {
 export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/dashboard',
   '/applications',
+  '/payments',
   '/profile',
   '/change-password',
   '/notifications',
