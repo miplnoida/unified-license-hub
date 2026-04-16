@@ -218,11 +218,29 @@ export default function NewApplication() {
       return;
     }
 
+    // Check if user already has a non-cancelled/non-rejected application for this sector
+    if (user) {
+      const { data: existingApps } = await supabase
+        .from('applications')
+        .select('id, status, data')
+        .eq('applicant_id', user.id)
+        .not('status', 'in', '("cancelled","rejected","draft")');
+
+      const sectorDupe = (existingApps || []).find((a: any) => {
+        const d = (a.data || {}) as Record<string, any>;
+        return d.sector_id === selectedSector;
+      });
+
+      if (sectorDupe) {
+        toast.error('You already have an active application for this sector. You can only re-apply if the previous application is Cancelled or Rejected.');
+        return;
+      }
+    }
+
     setSaving(true);
     const appId = await createDraftApplication();
     if (appId) {
       setApplicationId(appId);
-      // Initialize progress for all forms
       const initial: Record<string, FormProgress> = {};
       matchedTemplates.forEach(t => {
         initial[t.id] = { templateId: t.id, status: 'not_started', data: {} };
