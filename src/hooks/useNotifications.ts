@@ -58,7 +58,7 @@ export function useNotifications() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ read: true } as any).eq('id', id);
+    await supabase.from('notifications').update({ read: true }).eq('id', id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
@@ -66,7 +66,7 @@ export function useNotifications() {
     if (!user) return;
     const ids = notifications.filter(n => !n.read).map(n => n.id);
     if (ids.length === 0) return;
-    await supabase.from('notifications').update({ read: true } as any).in('id', ids);
+    await supabase.from('notifications').update({ read: true }).in('id', ids);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
