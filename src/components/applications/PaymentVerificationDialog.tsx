@@ -98,7 +98,7 @@ export function PaymentVerificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -177,7 +177,8 @@ export function PaymentVerificationDialog({
                   placeholder="Enter verification remarks or message to send to the licensee..."
                   value={message}
                   onChange={e => setMessage(e.target.value)}
-                  rows={3}
+                  rows={6}
+                  className="min-h-[120px]"
                 />
                 <p className="text-xs text-muted-foreground">
                   This message will be sent as a notification to the licensee.

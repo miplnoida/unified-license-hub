@@ -440,29 +440,45 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Edit Role Dialog ─── */}
+      {/* ─── Edit Roles Dialog (Multi-role) ─── */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Change User Role</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Manage User Roles</DialogTitle>
+            <DialogDescription>Assign one or more roles to this user.</DialogDescription>
+          </DialogHeader>
           {editingUser && (
             <div className="space-y-4 py-2">
               <p className="text-sm"><strong>{editingUser.full_name}</strong> ({editingUser.email})</p>
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={newRole} onValueChange={setNewRole}>
-                  <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                  <SelectContent>
-                    {dynamicRoles.map(r => (
-                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Roles</Label>
+                <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto border rounded-lg p-3">
+                  {dynamicRoles.map(r => {
+                    const isSelected = selectedRoleIds.includes(r.id);
+                    return (
+                      <label key={r.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'}`}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedRoleIds(prev =>
+                              prev.includes(r.id) ? prev.filter(id => id !== r.id) : [...prev, r.id]
+                            );
+                          }}
+                          className="rounded"
+                        />
+                        <span>{r.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">{selectedRoleIds.length} role(s) selected</p>
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialog(false)}>Cancel</Button>
-            <Button onClick={handleRoleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button onClick={handleRoleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Roles'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
