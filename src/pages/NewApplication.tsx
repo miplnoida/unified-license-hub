@@ -551,7 +551,7 @@ export default function NewApplication() {
           <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
           <h2 className="text-xl font-semibold text-foreground">Application Already In Progress</h2>
           <p className="text-muted-foreground">
-            You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.
+            {sectorBlockMessage || 'You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.'}
           </p>
           <div className="flex gap-3 justify-center pt-4">
             <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
