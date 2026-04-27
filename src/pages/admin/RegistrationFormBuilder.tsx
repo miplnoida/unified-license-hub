@@ -355,6 +355,23 @@ export default function RegistrationFormBuilder() {
     }
   }
 
+  function openPreviewForConfig(cfg: ConfigRow) {
+    try {
+      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+        name: cfg.name,
+        schema: cfg.form_schema,
+        documentTypes: cfg.document_types,
+        declarations: cfg.declarations,
+        requireOtp: cfg.require_otp,
+        requireCaptcha: cfg.require_captcha,
+        requireDocuments: cfg.require_documents,
+      }));
+      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+    } catch {
+      toast.error('Unable to open preview');
+    }
+  }
+
   const filteredSubSectors = form.sector_id
     ? subSectors.filter(s => s.sector_id === form.sector_id) : subSectors;
   const filteredCategories = form.sub_sector_id
@@ -435,6 +452,14 @@ export default function RegistrationFormBuilder() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Preview"
+                            onClick={() => openPreviewForConfig(cfg)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => openEdit(cfg)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
