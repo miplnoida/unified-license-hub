@@ -99,6 +99,9 @@ export default function Dashboard() {
             <Card>
               <CardHeader><CardTitle className="text-base">Quick Actions</CardTitle></CardHeader>
               <CardContent className="space-y-2">
+                <Button variant="default" className="w-full justify-start gap-2" onClick={() => navigate('/applications/new')}>
+                  <Plus className="h-4 w-4" /> New Application
+                </Button>
                 <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/applications')}>
                   <FileText className="h-4 w-4" /> My Applications
                 </Button>
