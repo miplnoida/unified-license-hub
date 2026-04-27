@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
 
-/**
- * PPOC on-behalf-of audit shape: when a PPOC user files a return for one of
- * their mapped licensees, on_behalf_of_licensee_id is recorded explicitly,
- * separate from submitter_id (the acting user).
- */
 interface ReturnRow {
   submitter_id: string;
   on_behalf_of_licensee_id: string | null;
@@ -12,7 +7,7 @@ interface ReturnRow {
 }
 
 function buildReturnRow(actingUserId: string, licenseeId: string, mappedLicensees: string[]): ReturnRow {
-  const isPpocAction = mappedLicensees.length > 1; // PPOC implies multi-entity scope
+  const isPpocAction = mappedLicensees.length > 1;
   return {
     submitter_id: actingUserId,
     license_id: licenseeId,
