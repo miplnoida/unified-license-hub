@@ -51,6 +51,34 @@ export default function MasterConfiguration() {
   const [formSectorId, setFormSectorId] = useState('');
   const [formSubSectorId, setFormSubSectorId] = useState('');
 
+  // Import dialog state
+  const [importOpen, setImportOpen] = useState(false);
+  const [importEntity, setImportEntity] = useState<ImportEntity>('sectors');
+
+  const openImport = (entity: ImportEntity) => { setImportEntity(entity); setImportOpen(true); };
+
+  const handleImportRows = async (rows: ParsedRow[]) => {
+    let success = 0; let failed = 0; const errors: string[] = [];
+    for (const r of rows) {
+      try {
+        if (importEntity === 'sectors') {
+          await mutations.upsertSector.mutateAsync({ name: r.name, status: r.status, regulator_id: activeRegulatorId });
+        } else if (importEntity === 'sub-sectors') {
+          await mutations.upsertSubSector.mutateAsync({ sector_id: r.sector_id!, name: r.name, status: r.status });
+        } else if (importEntity === 'categories') {
+          await mutations.upsertCategory.mutateAsync({ sector_id: r.sector_id!, sub_sector_id: r.sub_sector_id!, name: r.name, status: r.status });
+        } else {
+          await mutations.upsertService.mutateAsync({ sector_id: r.sector_id!, sub_sector_id: r.sub_sector_id!, name: r.name, status: r.status });
+        }
+        success++;
+      } catch (e: any) {
+        failed++; errors.push(`Row ${r.rowNumber}: ${e.message}`);
+      }
+    }
+    return { success, failed, errors };
+  };
+
+
   const openAdd = (entity: EntityType) => {
     setDialogEntity(entity);
     setEditId(null);
