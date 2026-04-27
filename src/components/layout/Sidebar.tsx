@@ -8,6 +8,7 @@ import { mainNavSections, NavItem } from '@/config/navigation';
 import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
