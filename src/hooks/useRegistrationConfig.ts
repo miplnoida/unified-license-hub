@@ -84,7 +84,14 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
         .select('*')
         .eq('is_active', true);
 
-      const { data: configs } = await query;
+      const { data: configs, error: queryError } = await query;
+      if (queryError) {
+        console.error('Failed to fetch registration configs:', queryError);
+        setError(queryError.message);
+        setConfig(null);
+        setLoading(false);
+        return;
+      }
       if (!configs || configs.length === 0) {
         setConfig(null);
         setLoading(false);
