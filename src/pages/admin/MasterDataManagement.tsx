@@ -10,12 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Database } from 'lucide-react';
+import { Plus, Edit, Trash2, Database, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   useMasterDataTypes, useMasterDataItems, useMasterDataMutations,
   type MasterDataType, type MasterDataItem,
 } from '@/hooks/useMasterData';
+import {
+  MasterDataItemsImportDialog, downloadItemSampleExcel, type ParsedItemRow,
+} from '@/components/admin/MasterDataItemsImportDialog';
 
 export default function MasterDataManagement() {
   const { toast } = useToast();
