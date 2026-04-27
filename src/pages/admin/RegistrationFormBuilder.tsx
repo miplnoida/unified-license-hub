@@ -355,6 +355,23 @@ export default function RegistrationFormBuilder() {
     }
   }
 
+  function openPreviewForConfig(cfg: ConfigRow) {
+    try {
+      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+        name: cfg.name,
+        schema: cfg.form_schema,
+        documentTypes: cfg.document_types,
+        declarations: cfg.declarations,
+        requireOtp: cfg.require_otp,
+        requireCaptcha: cfg.require_captcha,
+        requireDocuments: cfg.require_documents,
+      }));
+      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+    } catch {
+      toast.error('Unable to open preview');
+    }
+  }
+
   const filteredSubSectors = form.sector_id
     ? subSectors.filter(s => s.sector_id === form.sector_id) : subSectors;
   const filteredCategories = form.sub_sector_id
