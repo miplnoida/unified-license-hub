@@ -14,9 +14,11 @@ import type { RegFormSchema, RegField } from '@/types/registrationForm';
 
 interface Props {
   schema: RegFormSchema;
+  showNavigation?: boolean;
+  showStepper?: boolean;
 }
 
-export function FormPreview({ schema }: Props) {
+export function FormPreview({ schema, showNavigation = true, showStepper = true }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
 
   if (schema.length === 0) {
@@ -34,11 +36,13 @@ export function FormPreview({ schema }: Props) {
 
   return (
     <div className="space-y-6">
-      <DynamicRegistrationStepper
-        steps={stepNames}
-        currentStep={currentStep}
-        completedSteps={new Set(Array.from({ length: currentStep }, (_, i) => i))}
-      />
+      {showStepper && (
+        <DynamicRegistrationStepper
+          steps={stepNames}
+          currentStep={currentStep}
+          completedSteps={new Set(Array.from({ length: currentStep }, (_, i) => i))}
+        />
+      )}
 
       <Card>
         <CardContent className="pt-6 space-y-4">
@@ -72,14 +76,16 @@ export function FormPreview({ schema }: Props) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0}>
-          Previous
-        </Button>
-        <Button onClick={() => setCurrentStep(Math.min(schema.length - 1, currentStep + 1))} disabled={currentStep === schema.length - 1}>
-          Next
-        </Button>
-      </div>
+      {showNavigation && (
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={() => setCurrentStep(Math.max(0, currentStep - 1))} disabled={currentStep === 0}>
+            Previous
+          </Button>
+          <Button onClick={() => setCurrentStep(Math.min(schema.length - 1, currentStep + 1))} disabled={currentStep === schema.length - 1}>
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

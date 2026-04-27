@@ -81,7 +81,7 @@ export function FullRegistrationPreview({
       />
 
       {isFormStep && (
-        <FormPreview schema={[schema[current]]} />
+        <FormPreview schema={[schema[current]]} showNavigation={false} showStepper={false} />
       )}
 
       {isDocStep && (
