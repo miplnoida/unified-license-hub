@@ -13,11 +13,12 @@ import {
 } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
