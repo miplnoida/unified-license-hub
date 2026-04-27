@@ -21,6 +21,7 @@ const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTempl
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
 const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFormBuilder'));
+const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 
 // Returns Management - Admin
