@@ -350,6 +350,34 @@ export default function PreLicenseeRegistration() {
     );
   }
 
+  if (configError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LandingNav />
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-2">Unable to load registration form</h2>
+          <p className="text-sm text-muted-foreground mb-6">{configError}</p>
+          <Button onClick={() => reloadConfig()}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LandingNav />
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-2">Registration is currently unavailable</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            No active registration form has been configured. Please check back soon or contact the administrator.
+          </p>
+          <Button variant="outline" onClick={() => reloadConfig()}>Refresh</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <LandingNav />
