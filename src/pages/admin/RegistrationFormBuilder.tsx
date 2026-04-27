@@ -371,11 +371,6 @@ export default function RegistrationFormBuilder() {
           description="Configure dynamic registration flows for different licensee types."
         />
 
-        <div className="flex justify-end">
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" /> New Configuration
-          </Button>
-        </div>
 
         {loading ? (
           <div className="space-y-3">
