@@ -20,7 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings2, ExternalLink,
+  Plus, Pencil, Trash2, Settings2,
   Shield, Mail, Bot, Upload, CheckSquare,
 } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
