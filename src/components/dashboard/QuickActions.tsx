@@ -119,7 +119,7 @@ interface QuickActionsProps {
 
 function getActions(userRole: UserRole): QuickAction[] {
   if (userRole === 'post_licensee') return postLicenseeActions;
-  if (userRole === 'admin' || userRole === 'super_admin') return adminActions;
+  if (userRole === 'admin' || userRole === 'reviewer' || userRole === 'approver' || userRole === 'supervisor') return adminActions;
   return applicantActions;
 }
 
