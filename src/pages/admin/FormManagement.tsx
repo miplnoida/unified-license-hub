@@ -388,7 +388,12 @@ export default function FormManagement() {
                               <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><Eye className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" title="Preview in new tab" onClick={async () => {
+                                    const { data } = await supabase.from('form_versions').select('id').eq('template_id', tpl.id).order('version', { ascending: false }).limit(1).maybeSingle();
+                                    if ((data as any)?.id) window.open(`/preview/${(data as any).id}`, '_blank', 'noopener');
+                                    else toast.info('No version exists yet for this form.');
+                                  }}><Eye className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><FileText className="h-4 w-4" /></Button>
                                   <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`)}><Pencil className="h-4 w-4" /></Button>
                                   <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(tpl.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                 </div>
