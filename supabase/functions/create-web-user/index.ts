@@ -33,20 +33,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determine the system role
-    let effectiveRole = role || 'analyst';
-    
-    if (role_id) {
+    // Determine the auth role (app_role enum) for the new user.
+    // SAFETY: When a dynamic role_id is provided, do NOT inherit elevated
+    // privileges from the role's system_role mapping. Module-level access
+    // is enforced separately via the role_id + dynamic permissions system.
+    // Only assign privileged app_roles when the caller explicitly passes
+    // a `role` (e.g., for system-managed accounts like licensee users).
+    let effectiveRole = role;
+
+    if (!effectiveRole) {
+      if (role_id) {
+        // Dynamic role: assign safe baseline; real access controlled by role_id.
+        effectiveRole = 'analyst';
+      } else if (user_type) {
+        effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
+      } else {
+        return new Response(JSON.stringify({ error: "A role must be selected" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Guard: if a role_id was provided but the caller also passed an elevated
+    // `role` derived from the dynamic role's system_role, downgrade to baseline
+    // to prevent privilege escalation through misconfigured dynamic roles.
+    if (role_id && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
       const { data: roleData } = await supabaseAdmin
         .from("roles")
-        .select("system_role")
+        .select("is_system, system_role")
         .eq("id", role_id)
         .single();
-      if (roleData) {
-        effectiveRole = roleData.system_role;
+      // Only allow admin/super_admin auth role if the dynamic role is a built-in system role.
+      if (!roleData?.is_system) {
+        effectiveRole = 'analyst';
       }
-    } else if (!role && user_type) {
-      effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
     }
 
     // Create the auth user with metadata
