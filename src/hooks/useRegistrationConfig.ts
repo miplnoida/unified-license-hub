@@ -91,17 +91,25 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
         return;
       }
 
-      // Score-based matching: most specific match wins
+      // Score-based matching: most specific match wins.
+      // A config can only match if every taxonomy constraint it sets is satisfied
+      // by the requested taxonomy (a config that pins category=X cannot match a
+      // request without that category). Higher specificity beats lower.
       let best: typeof configs[0] | null = null;
       let bestScore = -1;
 
       for (const c of configs) {
+        // Reject if config requires a taxonomy that doesn't match the request
+        if (c.category_id && c.category_id !== categoryId) continue;
+        if (c.sub_sector_id && c.sub_sector_id !== subSectorId) continue;
+        if (c.sector_id && c.sector_id !== sectorId) continue;
+
         let score = 0;
-        if (categoryId && c.category_id === categoryId) score = 3;
-        else if (subSectorId && c.sub_sector_id === subSectorId && !c.category_id) score = 2;
-        else if (sectorId && c.sector_id === sectorId && !c.sub_sector_id && !c.category_id) score = 1;
-        else if (!c.sector_id && !c.sub_sector_id && !c.category_id && c.is_default) score = 0;
-        else continue;
+        if (c.category_id) score = 3;
+        else if (c.sub_sector_id) score = 2;
+        else if (c.sector_id) score = 1;
+        else if (c.is_default) score = 0;
+        else score = -0.5; // catch-all (no taxonomy, not default) — last resort
 
         if (score > bestScore) {
           bestScore = score;
