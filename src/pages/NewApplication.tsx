@@ -468,7 +468,7 @@ export default function NewApplication() {
     setPaymentId(null);
   };
 
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (ackText?: string) => {
     if (!applicationId || !user) return;
     if (!allFormsCompleted) {
       toast.error('Please complete all required forms before submitting.');
@@ -484,18 +484,16 @@ export default function NewApplication() {
     try {
       // Use server-side edge function for secure submission
       const { data, error } = await supabase.functions.invoke('verify-and-submit', {
-        body: { application_id: applicationId },
+        body: { application_id: applicationId, ack_text: ackText },
       });
 
       if (error) {
-        // Edge function invocation error
         toast.error('Submission failed: ' + (error.message || 'Server error'));
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
-        // Business logic error from edge function
         toast.error(data.error);
         setSubmitting(false);
         return;
