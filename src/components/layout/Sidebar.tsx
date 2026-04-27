@@ -82,6 +82,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
+  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((label: string) => {
