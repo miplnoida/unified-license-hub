@@ -34,7 +34,7 @@ export default function PreLicenseeRegistration() {
     validateDeclarations, reset,
   } = useRegistrationForm();
 
-  const { config, loading: configLoading } = useRegistrationConfig(
+  const { config, loading: configLoading, error: configError, reload: reloadConfig } = useRegistrationConfig(
     form.sectorId || undefined,
     form.subSectorId || undefined,
     form.categoryId || undefined,
