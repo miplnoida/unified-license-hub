@@ -37,6 +37,8 @@ export interface FormVersion {
   schema_snapshot: FormSection[];
   status: string;
   published_at: string | null;
+  effective_from?: string | null;
+  effective_until?: string | null;
   created_by: string | null;
   change_notes: string | null;
   created_at: string;
