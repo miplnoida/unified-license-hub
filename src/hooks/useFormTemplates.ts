@@ -295,21 +295,36 @@ export function useLatestVersion(templateId: string | null) {
   });
 }
 
+/**
+ * Returns the published version that is currently effective per
+ * `effective_from` / `effective_until`. If multiple are effective, the
+ * highest version wins. Falls back to the latest published version if none
+ * are explicitly scheduled (back-compat for legacy rows).
+ */
 export function useLatestPublishedVersion(templateId: string | null) {
   return useQuery({
-    queryKey: ['form_versions', 'latest-published', templateId],
+    queryKey: ['form_versions', 'latest-published-effective', templateId],
     queryFn: async () => {
       if (!templateId) return null;
+      const nowIso = new Date().toISOString();
       const { data, error } = await supabase
         .from('form_versions')
         .select('*')
         .eq('template_id', templateId)
         .eq('status', 'published')
-        .order('version', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('version', { ascending: false });
       if (error) throw error;
-      return data as unknown as FormVersion | null;
+      const rows = (data || []) as unknown as FormVersion[];
+      if (rows.length === 0) return null;
+
+      // Filter by effective window when provided
+      const effective = rows.filter(v => {
+        const fromOk = !v.effective_from || v.effective_from <= nowIso;
+        const untilOk = !v.effective_until || v.effective_until >= nowIso;
+        return fromOk && untilOk;
+      });
+      // Prefer effective rows; otherwise fall back to latest published
+      return (effective[0] || rows[0]) ?? null;
     },
     enabled: !!templateId,
   });
