@@ -197,7 +197,17 @@ export default function MasterDataManagement() {
               </div>
               {selectedTypeId ? (
                 <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Search items..."
-                  actions={<Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>} />
+                  actions={
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
+                      </Button>
+                      <Button variant="outline" onClick={() => setImportOpen(true)}>
+                        <Upload className="h-4 w-4 mr-2" />Import Excel
+                      </Button>
+                      <Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>
+                    </div>
+                  } />
               ) : (
                 <div className="text-center py-12 text-muted-foreground">Select a data type to manage its items.</div>
               )}
