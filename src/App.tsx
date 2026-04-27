@@ -8,6 +8,7 @@ import { RegulatorProvider } from "@/contexts/RegulatorContext";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { Suspense } from "react";
 import { AuthLoadingScreen } from "@/components/shared/AuthLoadingScreen";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 import { publicRoutes } from "@/routes/publicRoutes";
 import { dashboardRoutes } from "@/routes/dashboardRoutes";
@@ -24,15 +25,17 @@ const queryClient = new QueryClient({
 
 function AppRoutes() {
   return (
-    <Suspense fallback={<AuthLoadingScreen />}>
-      <Routes>
-        {publicRoutes}
-        {dashboardRoutes}
-        {adminRoutes}
-        {settingsRoutes}
-        {returnsRoutes}
-      </Routes>
-    </Suspense>
+    <ErrorBoundary context="AppRoutes">
+      <Suspense fallback={<AuthLoadingScreen />}>
+        <Routes>
+          {publicRoutes}
+          {dashboardRoutes}
+          {adminRoutes}
+          {settingsRoutes}
+          {returnsRoutes}
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
