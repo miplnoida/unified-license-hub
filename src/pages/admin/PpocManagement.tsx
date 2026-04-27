@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTableShell, Column } from '@/components/shared/DataTableShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Users, Link2 } from 'lucide-react';
+import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
 
 interface PpocMapping {
   id: string;
@@ -32,6 +32,7 @@ export default function PpocManagement() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
   const [users, setUsers] = useState<{ id: string; full_name: string; email: string }[]>([]);
@@ -44,7 +45,6 @@ export default function PpocManagement() {
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Enrich with names
     const rows = (data || []) as any[];
     const userIds = [...new Set(rows.map(r => r.ppoc_user_id))];
     const licIds = [...new Set(rows.map(r => r.licensee_id))];
@@ -77,22 +77,45 @@ export default function PpocManagement() {
 
   useEffect(() => { load(); loadOptions(); }, []);
 
-  const handleCreate = async () => {
+  const openCreate = () => {
+    setEditingId(null);
+    setPpocUserId('');
+    setLicenseeId('');
+    setDialogOpen(true);
+  };
+
+  const openEdit = (m: PpocMapping) => {
+    setEditingId(m.id);
+    setPpocUserId(m.ppoc_user_id);
+    setLicenseeId(m.licensee_id);
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!ppocUserId || !licenseeId) {
       toast.error('Please select both a PPOC user and a licensee');
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from('ppoc_entity_mappings' as any).insert({
-      ppoc_user_id: ppocUserId,
-      licensee_id: licenseeId,
-      is_active: true,
-    });
+    let error;
+    if (editingId) {
+      ({ error } = await supabase
+        .from('ppoc_entity_mappings' as any)
+        .update({ ppoc_user_id: ppocUserId, licensee_id: licenseeId })
+        .eq('id', editingId));
+    } else {
+      ({ error } = await supabase.from('ppoc_entity_mappings' as any).insert({
+        ppoc_user_id: ppocUserId,
+        licensee_id: licenseeId,
+        is_active: true,
+      }));
+    }
     if (error) {
       toast.error(error.message?.includes('duplicate') ? 'This mapping already exists' : error.message);
     } else {
-      toast.success('PPOC mapping created');
+      toast.success(editingId ? 'PPOC mapping updated' : 'PPOC mapping created');
       setDialogOpen(false);
+      setEditingId(null);
       setPpocUserId('');
       setLicenseeId('');
       load();
@@ -101,14 +124,43 @@ export default function PpocManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: 'Delete mapping?',
+      text: 'This PPOC mapping will be permanently removed.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'hsl(var(--destructive))',
+    });
+    if (!result.isConfirmed) return;
     await supabase.from('ppoc_entity_mappings' as any).delete().eq('id', id);
     toast.success('Mapping removed');
     load();
   };
 
   const handleToggle = async (m: PpocMapping) => {
-    await supabase.from('ppoc_entity_mappings' as any).update({ is_active: !m.is_active }).eq('id', m.id);
-    toast.success(m.is_active ? 'Mapping deactivated' : 'Mapping activated');
+    const next = !m.is_active;
+    const result = await Swal.fire({
+      title: next ? 'Activate mapping?' : 'Deactivate mapping?',
+      text: next
+        ? 'This PPOC will regain access to the licensee entity.'
+        : 'This PPOC will lose access to the licensee entity.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: next ? 'Activate' : 'Deactivate',
+      cancelButtonText: 'Cancel',
+    });
+    if (!result.isConfirmed) return;
+    const { error } = await supabase
+      .from('ppoc_entity_mappings' as any)
+      .update({ is_active: next })
+      .eq('id', m.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(next ? 'Mapping activated' : 'Mapping deactivated');
     load();
   };
 
@@ -136,9 +188,14 @@ export default function PpocManagement() {
     },
     {
       key: 'actions' as any, label: '', render: (r) => (
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)} title="Edit mapping">
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)} title="Delete mapping">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ),
     },
   ];
@@ -150,7 +207,7 @@ export default function PpocManagement() {
           title="PPOC Entity Mappings"
           description="Manage Primary Point of Contact assignments to licensee entities. A PPOC can be mapped to multiple entities."
           actions={
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
             </Button>
           }
@@ -159,10 +216,12 @@ export default function PpocManagement() {
         <DataTableShell columns={columns} data={mappings} searchPlaceholder="Search PPOC mappings..." />
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingId(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Link2 className="h-5 w-5" /> Map PPOC to Entity</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
+            </DialogTitle>
             <DialogDescription>Assign a user as Primary Point of Contact for a licensee entity.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -191,7 +250,9 @@ export default function PpocManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving}>{saving ? 'Saving...' : 'Create Mapping'}</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : editingId ? 'Update Mapping' : 'Create Mapping'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
