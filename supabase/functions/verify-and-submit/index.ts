@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { application_id } = await req.json();
+    const { application_id, ack_text } = await req.json();
     if (!application_id) {
       return new Response(
         JSON.stringify({ error: "application_id is required" }),
