@@ -10,12 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Database } from 'lucide-react';
+import { Plus, Edit, Trash2, Database, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   useMasterDataTypes, useMasterDataItems, useMasterDataMutations,
   type MasterDataType, type MasterDataItem,
 } from '@/hooks/useMasterData';
+import {
+  MasterDataItemsImportDialog, downloadItemSampleExcel, type ParsedItemRow,
+} from '@/components/admin/MasterDataItemsImportDialog';
 
 export default function MasterDataManagement() {
   const { toast } = useToast();
@@ -43,6 +46,28 @@ export default function MasterDataManagement() {
   const [itemStatus, setItemStatus] = useState('active');
   const [itemParentId, setItemParentId] = useState('');
   const [itemSortOrder, setItemSortOrder] = useState(0);
+
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImportItems = async (rows: ParsedItemRow[]) => {
+    if (!selectedTypeId) return { success: 0, failed: rows.length, errors: ['No data type selected'] };
+    let success = 0; let failed = 0; const errors: string[] = [];
+    for (const r of rows) {
+      try {
+        await mutations.upsertItem.mutateAsync({
+          type_id: selectedTypeId, name: r.name, code: r.code,
+          status: r.status, parent_item_id: r.parent_item_id,
+          sort_order: r.sort_order,
+        });
+        success++;
+      } catch (e: any) {
+        failed++;
+        errors.push(`Row ${r.rowNumber}: ${e.message}`);
+      }
+    }
+    return { success, failed, errors };
+  };
 
   const selectedType = types.find(t => t.id === selectedTypeId);
 
@@ -172,7 +197,17 @@ export default function MasterDataManagement() {
               </div>
               {selectedTypeId ? (
                 <DataTableShell columns={itemColumns} data={items} searchPlaceholder="Search items..."
-                  actions={<Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>} />
+                  actions={
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" onClick={() => downloadItemSampleExcel(selectedType?.name || 'Items')}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
+                      </Button>
+                      <Button variant="outline" onClick={() => setImportOpen(true)}>
+                        <Upload className="h-4 w-4 mr-2" />Import Excel
+                      </Button>
+                      <Button onClick={openAddItem}><Plus className="h-4 w-4 mr-2" />Add Item</Button>
+                    </div>
+                  } />
               ) : (
                 <div className="text-center py-12 text-muted-foreground">Select a data type to manage its items.</div>
               )}
@@ -270,6 +305,14 @@ export default function MasterDataManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MasterDataItemsImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        typeName={selectedType?.name || 'Items'}
+        existingItems={items}
+        onImport={handleImportItems}
+      />
     </DashboardLayout>
   );
 }
