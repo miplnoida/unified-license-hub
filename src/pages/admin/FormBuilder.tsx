@@ -457,7 +457,18 @@ export default function FormBuilder() {
                 <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
               )}
               <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
-              <Button variant="outline" onClick={() => setShowPreview(true)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (latestVersion?.id) {
+                    window.open(`/preview/${latestVersion.id}`, '_blank', 'noopener');
+                  } else {
+                    toast.info('Save the form first to preview it in a new tab.');
+                    setShowPreview(true);
+                  }
+                }}
+                title={latestVersion?.id ? 'Open preview in new tab' : 'Save first to enable new-tab preview'}
+              >
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
               {!isViewMode && (

@@ -13,11 +13,12 @@ import {
 } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
@@ -220,7 +221,7 @@ export default function FillReturnPage() {
     setSaving(false);
   }, [id, allData, returnData, saving]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (ackText?: string) => {
     const result = await Swal.fire({
       title: 'Submit Return?',
       html: `<p>You are about to submit <strong>${returnData?.unique_id}</strong> for review.</p><p>This action cannot be undone.</p>`,
@@ -236,6 +237,18 @@ export default function FillReturnPage() {
     const now = new Date();
     const dueDate = returnData?.due_date ? new Date(returnData.due_date) : null;
     const ontime = dueDate ? (now <= dueDate ? 'ON_TIME' : 'LATE') : null;
+
+    // Persist acknowledgement metadata on compliance_returns (best-effort)
+    if (id && ackText) {
+      await supabase
+        .from('compliance_returns' as any)
+        .update({
+          ack_by: user?.id,
+          ack_at: now.toISOString(),
+          ack_text: String(ackText).slice(0, 4000),
+        })
+        .eq('id', id);
+    }
 
     updateReturn.mutate({
       id,
@@ -321,7 +334,7 @@ export default function FillReturnPage() {
           </Alert>
         )}
 
-        {/* Tabbed forms using FormRenderer */}
+        {/* Tabbed forms using FormRenderer + final Review tab */}
         {(tabs.length > 0 || loadingFallbackForms) && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex-wrap h-auto">
@@ -330,6 +343,11 @@ export default function FillReturnPage() {
                   {tab}
                 </TabsTrigger>
               ))}
+              {isEditable && (
+                <TabsTrigger value="__review__" className="gap-1">
+                  <Eye className="h-3 w-3" /> Review &amp; Submit
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {tabs.map(tab => {
@@ -363,6 +381,41 @@ export default function FillReturnPage() {
                 </TabsContent>
               );
             })}
+
+            {isEditable && (
+              <TabsContent value="__review__" className="space-y-4">
+                <ReviewAcknowledgement
+                  mode="readonly"
+                  loading={saving || updateReturn.isPending}
+                  onAcknowledge={() =>
+                    handleSubmit(
+                      'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
+                    )
+                  }
+                  title="Review & Submit Return"
+                  description="Verify each tab is filled correctly. Submission is final."
+                  sections={[
+                    {
+                      title: 'Return Details',
+                      fields: [
+                        { label: 'Reference', value: returnData?.unique_id || null },
+                        { label: 'Return Type', value: returnData?.return_configs?.name || null },
+                        { label: 'Period', value: `${returnData?.return_period || ''} ${returnData?.return_year || ''}`.trim() || null },
+                        { label: 'Due Date', value: returnData?.due_date ? format(new Date(returnData.due_date), 'PP') : null },
+                      ],
+                    },
+                    {
+                      title: 'Forms',
+                      fields: tabs.map(tab => {
+                        const formsInTab = effectiveConfigForms.filter((f: any) => (f.tab_name || 'General') === tab);
+                        const filled = formsInTab.filter((f: any) => Object.keys(allData[f.form_id] || {}).length > 0).length;
+                        return { label: tab, value: `${filled}/${formsInTab.length} filled` };
+                      }),
+                    },
+                  ]}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         )}
 
@@ -375,7 +428,7 @@ export default function FillReturnPage() {
         )}
 
         {/* Navigation + Actions */}
-        {isEditable && (
+        {isEditable && activeTab !== '__review__' && (
           <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4 sticky bottom-0 z-10">
             <div className="flex gap-2">
               {tabIndex > 0 && (
@@ -388,16 +441,16 @@ export default function FillReturnPage() {
                   Next<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
+              {tabIndex === tabs.length - 1 && (
+                <Button variant="outline" onClick={() => setActiveTab('__review__')}>
+                  Review &amp; Submit<ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
                 <Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Draft'}
               </Button>
-              {tabIndex === tabs.length - 1 && (
-                <Button onClick={handleSubmit} disabled={saving}>
-                  <Send className="h-4 w-4 mr-2" />Submit Return
-                </Button>
-              )}
             </div>
           </div>
         )}

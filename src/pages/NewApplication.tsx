@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
-import { DocumentList } from '@/components/documents/DocumentList';
+import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ import {
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
   CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
@@ -468,7 +469,7 @@ export default function NewApplication() {
     setPaymentId(null);
   };
 
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (ackText?: string) => {
     if (!applicationId || !user) return;
     if (!allFormsCompleted) {
       toast.error('Please complete all required forms before submitting.');
@@ -484,18 +485,16 @@ export default function NewApplication() {
     try {
       // Use server-side edge function for secure submission
       const { data, error } = await supabase.functions.invoke('verify-and-submit', {
-        body: { application_id: applicationId },
+        body: { application_id: applicationId, ack_text: ackText },
       });
 
       if (error) {
-        // Edge function invocation error
         toast.error('Submission failed: ' + (error.message || 'Server error'));
         setSubmitting(false);
         return;
       }
 
       if (data?.error) {
-        // Business logic error from edge function
         toast.error(data.error);
         setSubmitting(false);
         return;
@@ -833,7 +832,7 @@ export default function NewApplication() {
                 onUploaded={() => setDocRefresh(p => p + 1)}
               />
               <div key={docRefresh}>
-                <DocumentList entityType="application" entityId={applicationId} />
+                <AttachmentList entityType="application" entityId={applicationId} />
               </div>
 
               <div className="flex justify-between pt-4 border-t">
@@ -994,60 +993,6 @@ export default function NewApplication() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-muted-foreground">Sector</span>
-                    </div>
-                    <p className="text-sm font-medium">{sectorObj?.name || '—'}</p>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Layers className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-muted-foreground">Sub-Sector</span>
-                    </div>
-                    <p className="text-sm font-medium">{subSectorObj?.name || '—'}</p>
-                  </div>
-                  <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Tag className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-muted-foreground">Category</span>
-                    </div>
-                    <p className="text-sm font-medium">{categoryObj?.name || '—'}</p>
-                  </div>
-                </div>
-
-                {/* Forms summary */}
-                <div className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ClipboardList className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Forms ({completedCount}/{matchedTemplates.length} completed)
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {matchedTemplates.map(tmpl => (
-                      <div key={tmpl.id} className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{tmpl.name}</span>
-                        {getFormStatusBadge(formProgressMap[tmpl.id]?.status || 'not_started')}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Payment summary */}
-                <div className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-primary" />
-                      <span className="text-xs font-medium text-muted-foreground">Payment</span>
-                    </div>
-                    {getPaymentStatusBadge()}
-                  </div>
-                  <p className="text-sm font-medium mt-2">Amount: ${feeAmount.toFixed(2)}</p>
-                </div>
-
                 {applicationId && (
                   <div className="rounded-lg border p-4">
                     <div className="flex items-center gap-2 mb-1">
@@ -1055,7 +1000,7 @@ export default function NewApplication() {
                       <span className="text-xs font-medium text-muted-foreground">Documents</span>
                     </div>
                     <div className="mt-2">
-                      <DocumentList entityType="application" entityId={applicationId} />
+                      <AttachmentList entityType="application" entityId={applicationId} />
                     </div>
                   </div>
                 )}
@@ -1071,13 +1016,43 @@ export default function NewApplication() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-between">
+            <ReviewAcknowledgement
+              mode="readonly"
+              loading={submitting}
+              onAcknowledge={() =>
+                handleFinalSubmit(
+                  'I have reviewed all the information and confirm the details provided are accurate and complete.'
+                )
+              }
+              sections={[
+                {
+                  title: 'Category Selection',
+                  fields: [
+                    { label: 'Sector', value: sectorObj?.name || null },
+                    { label: 'Sub-Sector', value: subSectorObj?.name || null },
+                    { label: 'Category', value: categoryObj?.name || null },
+                  ],
+                },
+                {
+                  title: `Forms (${completedCount}/${matchedTemplates.length} completed)`,
+                  fields: matchedTemplates.map(t => ({
+                    label: t.name,
+                    value: formProgressMap[t.id]?.status === 'completed' ? 'Completed' : 'Incomplete',
+                  })),
+                },
+                {
+                  title: 'Payment',
+                  fields: [
+                    { label: 'Status', value: paymentStatus === 'success' ? 'Paid' : 'Pending' },
+                    { label: 'Amount', value: `$${feeAmount.toFixed(2)}` },
+                  ],
+                },
+              ]}
+            />
+
+            <div className="flex justify-start">
               <Button variant="outline" onClick={() => setCurrentStep('payment')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
-              </Button>
-              <Button onClick={handleFinalSubmit} disabled={submitting || !allFormsCompleted || !paymentComplete} size="lg">
-                {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                {submitting ? 'Submitting...' : 'Submit Application'}
               </Button>
             </div>
           </div>
