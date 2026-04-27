@@ -8,8 +8,7 @@ import {
 import { toast } from 'sonner';
 import type { RegFormSchema, RegStep } from '@/types/registrationForm';
 import { StepEditor } from './StepEditor';
-
-const PREVIEW_STORAGE_KEY = 'registration-form-preview';
+import { buildRegistrationPreviewUrl, storeRegistrationPreview } from '@/lib/registrationPreview';
 
 interface Props {
   schema: RegFormSchema;
@@ -52,7 +51,7 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
 
   const openPreviewInNewTab = () => {
     try {
-      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+      storeRegistrationPreview({
         name: 'Form Preview',
         schema,
         documentTypes: [],
@@ -60,8 +59,8 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
         requireOtp: false,
         requireCaptcha: false,
         requireDocuments: false,
-      }));
-      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+      });
+      window.open(buildRegistrationPreviewUrl(), '_blank', 'noopener,noreferrer');
     } catch {
       toast.error('Unable to open preview');
     }
