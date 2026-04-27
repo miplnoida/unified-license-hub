@@ -204,15 +204,35 @@ export default function RegistrationFormFill() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <FormRenderer
           formName={formDef.name}
           sections={formDef.sections}
           initialData={initialData}
           onSaveDraft={handleSave}
-          onSubmit={handleComplete}
+          onSubmit={handleSubmitClick}
           saving={saving}
         />
+
+        {pendingData && (
+          <ReviewAcknowledgement
+            mode="editable"
+            loading={saving}
+            onAcknowledge={handleConfirm}
+            onEdit={() => setPendingData(null)}
+            title="Review Your Submission"
+            description="Confirm the details below. Click 'Edit Section' to make changes."
+            sections={formDef.sections.map(section => ({
+              title: section.title,
+              fields: section.fields
+                .filter(f => f.type !== 'paragraph')
+                .map(f => ({
+                  label: f.label,
+                  value: pendingData?.[f.fieldName] ?? null,
+                })),
+            }))}
+          />
+        )}
       </div>
     </div>
   );
