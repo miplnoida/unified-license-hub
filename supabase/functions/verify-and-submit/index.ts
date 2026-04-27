@@ -144,12 +144,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Update application status to submitted
+    // 4. Update application status to submitted (with acknowledgment metadata)
+    const submittedAt = new Date().toISOString();
+    const ackUpdate = ack_text
+      ? { ack_by: user.id, ack_at: submittedAt, ack_text: String(ack_text).slice(0, 4000) }
+      : {};
     const { error: updateErr } = await adminClient
       .from("applications")
       .update({
         status: "submitted",
-        submitted_at: new Date().toISOString(),
+        submitted_at: submittedAt,
+        ...ackUpdate,
       })
       .eq("id", application_id);
 
