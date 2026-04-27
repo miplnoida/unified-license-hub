@@ -26,8 +26,9 @@ import {
 import type { Json } from '@/integrations/supabase/types';
 import type { RegFormSchema } from '@/types/registrationForm';
 import { RegistrationFormBuilderEditor } from '@/components/registration-builder/RegistrationFormBuilderEditor';
-import { FullRegistrationPreview } from '@/components/registration-builder/FullRegistrationPreview';
 import { Eye } from 'lucide-react';
+
+const PREVIEW_STORAGE_KEY = 'registration-form-preview';
 
 interface Declaration {
   label: string;
