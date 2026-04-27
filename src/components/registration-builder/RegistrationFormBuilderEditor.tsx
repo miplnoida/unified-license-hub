@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Plus, Trash2, GripVertical, ChevronUp, ChevronDown, Eye,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { RegFormSchema, RegStep } from '@/types/registrationForm';
 import { StepEditor } from './StepEditor';
-import { FormPreview } from './FormPreview';
+
+const PREVIEW_STORAGE_KEY = 'registration-form-preview';
 
 interface Props {
   schema: RegFormSchema;
@@ -19,7 +18,6 @@ interface Props {
 
 export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
   const [activeStepId, setActiveStepId] = useState<string | null>(schema[0]?.id || null);
-  const [previewMode, setPreviewMode] = useState(false);
 
   const addStep = () => {
     const newStep: RegStep = {
