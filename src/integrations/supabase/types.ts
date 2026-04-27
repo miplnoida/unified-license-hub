@@ -2300,24 +2300,24 @@ export type Database = {
           id: string
           is_active: boolean
           licensee_id: string
+          ppoc_user_id: string
           updated_at: string
-          user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           is_active?: boolean
           licensee_id: string
+          ppoc_user_id: string
           updated_at?: string
-          user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           is_active?: boolean
           licensee_id?: string
+          ppoc_user_id?: string
           updated_at?: string
-          user_id?: string
         }
         Relationships: [
           {
