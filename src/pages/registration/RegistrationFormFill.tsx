@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import type { FormSection } from '@/types/formBuilder';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -21,6 +22,7 @@ export default function RegistrationFormFill() {
   const [initialData, setInitialData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pendingData, setPendingData] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -149,12 +151,22 @@ export default function RegistrationFormFill() {
     else toast.success('Progress saved!');
   }
 
-  async function handleComplete(data: Record<string, any>) {
-    if (!submissionId) return;
+  // Step 1: collect data from form, then show review/ack
+  function handleSubmitClick(data: Record<string, any>) {
+    setPendingData(data);
+  }
+
+  // Step 2: persist after acknowledgement
+  async function handleConfirm() {
+    if (!submissionId || !pendingData) return;
     setSaving(true);
     const { error } = await supabase
       .from('registration_form_submissions')
-      .update({ form_data: data as unknown as Json, status: 'completed', updated_at: new Date().toISOString() })
+      .update({
+        form_data: pendingData as unknown as Json,
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', submissionId);
     setSaving(false);
     if (error) toast.error('Failed to submit.');
