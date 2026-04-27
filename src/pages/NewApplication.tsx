@@ -832,7 +832,7 @@ export default function NewApplication() {
                 onUploaded={() => setDocRefresh(p => p + 1)}
               />
               <div key={docRefresh}>
-                <DocumentList entityType="application" entityId={applicationId} />
+                <AttachmentList entityType="application" entityId={applicationId} />
               </div>
 
               <div className="flex justify-between pt-4 border-t">
@@ -1054,7 +1054,7 @@ export default function NewApplication() {
                       <span className="text-xs font-medium text-muted-foreground">Documents</span>
                     </div>
                     <div className="mt-2">
-                      <DocumentList entityType="application" entityId={applicationId} />
+                      <AttachmentList entityType="application" entityId={applicationId} />
                     </div>
                   </div>
                 )}
