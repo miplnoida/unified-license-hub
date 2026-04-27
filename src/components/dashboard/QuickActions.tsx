@@ -82,12 +82,49 @@ const adminActions: QuickAction[] = [
   },
 ];
 
+const applicantActions: QuickAction[] = [
+  {
+    label: 'New Application',
+    description: 'Apply for a new license',
+    href: '/applications/new',
+    icon: <FilePlus className="h-6 w-6" />,
+    color: 'primary',
+  },
+  {
+    label: 'My Applications',
+    description: 'View your applications',
+    href: '/applications',
+    icon: <ClipboardList className="h-6 w-6" />,
+    color: 'secondary',
+  },
+  {
+    label: 'Payment History',
+    description: 'View your payments',
+    href: '/payments',
+    icon: <CreditCard className="h-6 w-6" />,
+    color: 'success',
+  },
+  {
+    label: 'Help & Support',
+    description: 'Access documentation and guides',
+    href: '/help',
+    icon: <HelpCircle className="h-6 w-6" />,
+    color: 'warning',
+  },
+];
+
 interface QuickActionsProps {
   userRole: UserRole;
 }
 
+function getActions(userRole: UserRole): QuickAction[] {
+  if (userRole === 'post_licensee') return postLicenseeActions;
+  if (userRole === 'admin' || userRole === 'reviewer' || userRole === 'approver' || userRole === 'supervisor') return adminActions;
+  return applicantActions;
+}
+
 export function QuickActions({ userRole }: QuickActionsProps) {
-  const actions = userRole === 'post_licensee' ? postLicenseeActions : adminActions;
+  const actions = getActions(userRole);
 
   const colorStyles = {
     primary: 'bg-primary/5 text-primary hover:bg-primary/10 border-primary/20',
