@@ -1,7 +1,8 @@
 import { Route, Navigate } from 'react-router-dom';
 import { lazy } from 'react';
 import { P } from '@/routes/routeHelpers';
-import { AdminRoute } from '@/components/auth/RouteGuards';
+import { AdminRoute, ModuleRoute } from '@/components/auth/RouteGuards';
+import type { PermissionModule } from '@/lib/permissionModules';
 
 const AdminHub = lazy(() => import('@/pages/admin/AdminHub'));
 const FormManagement = lazy(() => import('@/pages/admin/FormManagement'));
@@ -38,46 +39,51 @@ function A({ children }: { children: React.ReactNode }) {
   return <P><AdminRoute>{children}</AdminRoute></P>;
 }
 
+/** Admin route + dynamic module permission check */
+function M({ module, children }: { module: PermissionModule; children: React.ReactNode }) {
+  return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
+}
+
 export const adminRoutes = (
   <>
     <Route path="/admin" element={<A><AdminHub /></A>} />
 
-    <Route path="/admin/forms" element={<A><FormManagement /></A>} />
+    <Route path="/admin/forms" element={<M module="form_management"><FormManagement /></M>} />
     <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
     <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
-    <Route path="/admin/forms/create" element={<A><FormBuilder /></A>} />
+    <Route path="/admin/forms/create" element={<M module="form_management"><FormBuilder /></M>} />
 
     <Route path="/admin/masters" element={<Navigate to="/admin/masters/sectors" replace />} />
-    <Route path="/admin/masters/sectors" element={<A><MasterConfiguration /></A>} />
-    <Route path="/admin/masters/sub-sectors" element={<A><MasterConfiguration /></A>} />
-    <Route path="/admin/masters/categories" element={<A><MasterConfiguration /></A>} />
-    <Route path="/admin/masters/services" element={<A><MasterConfiguration /></A>} />
+    <Route path="/admin/masters/sectors" element={<M module="settings"><MasterConfiguration /></M>} />
+    <Route path="/admin/masters/sub-sectors" element={<M module="settings"><MasterConfiguration /></M>} />
+    <Route path="/admin/masters/categories" element={<M module="settings"><MasterConfiguration /></M>} />
+    <Route path="/admin/masters/services" element={<M module="settings"><MasterConfiguration /></M>} />
 
-    <Route path="/admin/master-data" element={<A><MasterDataManagement /></A>} />
-    <Route path="/admin/fees" element={<A><FeeManagement /></A>} />
-    <Route path="/admin/return-config" element={<A><ReturnConfiguration /></A>} />
-    <Route path="/admin/regulators" element={<A><RegulatorManagement /></A>} />
-    <Route path="/admin/licensees" element={<A><ManageLicensees /></A>} />
-    <Route path="/admin/licensees/:id" element={<A><LicenseeDetailPage /></A>} />
-    <Route path="/admin/users" element={<A><UserManagement /></A>} />
-    <Route path="/admin/web-users" element={<A><ManageWebUsers /></A>} />
-    <Route path="/admin/roles" element={<A><RoleManagement /></A>} />
-    <Route path="/admin/audit-logs" element={<A><AuditLogs /></A>} />
-    <Route path="/admin/notification-templates" element={<A><NotificationTemplates /></A>} />
-    <Route path="/admin/complaint-types" element={<A><ComplaintTypes /></A>} />
-    <Route path="/admin/approved-licensees" element={<A><ApprovedLicensees /></A>} />
-    <Route path="/admin/registration-forms" element={<A><RegistrationFormBuilder /></A>} />
-    <Route path="/admin/registration-forms/preview" element={<A><RegistrationFormPreviewPage /></A>} />
-    <Route path="/admin/ppoc-mappings" element={<A><PpocManagement /></A>} />
+    <Route path="/admin/master-data" element={<M module="settings"><MasterDataManagement /></M>} />
+    <Route path="/admin/fees" element={<M module="fee_management"><FeeManagement /></M>} />
+    <Route path="/admin/return-config" element={<M module="returns_management"><ReturnConfiguration /></M>} />
+    <Route path="/admin/regulators" element={<M module="settings"><RegulatorManagement /></M>} />
+    <Route path="/admin/licensees" element={<M module="license_management"><ManageLicensees /></M>} />
+    <Route path="/admin/licensees/:id" element={<M module="license_management"><LicenseeDetailPage /></M>} />
+    <Route path="/admin/users" element={<M module="user_management"><UserManagement /></M>} />
+    <Route path="/admin/web-users" element={<M module="user_management"><ManageWebUsers /></M>} />
+    <Route path="/admin/roles" element={<M module="role_management"><RoleManagement /></M>} />
+    <Route path="/admin/audit-logs" element={<M module="settings"><AuditLogs /></M>} />
+    <Route path="/admin/notification-templates" element={<M module="settings"><NotificationTemplates /></M>} />
+    <Route path="/admin/complaint-types" element={<M module="complaint_management"><ComplaintTypes /></M>} />
+    <Route path="/admin/approved-licensees" element={<M module="license_management"><ApprovedLicensees /></M>} />
+    <Route path="/admin/registration-forms" element={<M module="form_management"><RegistrationFormBuilder /></M>} />
+    <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
+    <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
 
     {/* Returns Management - Admin */}
-    <Route path="/admin/returns/types" element={<A><ReturnTypesPage /></A>} />
-    <Route path="/admin/returns/configurations" element={<A><ReturnConfigsPage /></A>} />
-    <Route path="/admin/returns/cutoff" element={<A><CutoffConfigPage /></A>} />
-    <Route path="/admin/returns/due-dates" element={<A><DueDatesPage /></A>} />
-    <Route path="/admin/returns/late-fees" element={<A><LateFeesPage /></A>} />
-    <Route path="/admin/returns/notifications/templates" element={<A><NotifTemplatesPage /></A>} />
-    <Route path="/admin/returns/notifications/log" element={<A><NotifLogPage /></A>} />
-    <Route path="/admin/returns/schedule" element={<A><ScheduleCalendarPage /></A>} />
+    <Route path="/admin/returns/types" element={<M module="returns_management"><ReturnTypesPage /></M>} />
+    <Route path="/admin/returns/configurations" element={<M module="returns_management"><ReturnConfigsPage /></M>} />
+    <Route path="/admin/returns/cutoff" element={<M module="returns_management"><CutoffConfigPage /></M>} />
+    <Route path="/admin/returns/due-dates" element={<M module="returns_management"><DueDatesPage /></M>} />
+    <Route path="/admin/returns/late-fees" element={<M module="returns_management"><LateFeesPage /></M>} />
+    <Route path="/admin/returns/notifications/templates" element={<M module="returns_management"><NotifTemplatesPage /></M>} />
+    <Route path="/admin/returns/notifications/log" element={<M module="returns_management"><NotifLogPage /></M>} />
+    <Route path="/admin/returns/schedule" element={<M module="returns_management"><ScheduleCalendarPage /></M>} />
   </>
 );
