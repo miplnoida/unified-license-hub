@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2 } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
