@@ -338,6 +338,23 @@ export default function RegistrationFormBuilder() {
     setForm(prev => ({ ...prev, document_types: prev.document_types.filter((_, i) => i !== idx) }));
   }
 
+  function openPreview() {
+    try {
+      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+        name: form.name,
+        schema: form.form_schema,
+        documentTypes: form.document_types,
+        declarations: form.declarations,
+        requireOtp: form.require_otp,
+        requireCaptcha: form.require_captcha,
+        requireDocuments: form.require_documents,
+      }));
+      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      toast.error('Unable to open preview');
+    }
+  }
+
   const filteredSubSectors = form.sector_id
     ? subSectors.filter(s => s.sector_id === form.sector_id) : subSectors;
   const filteredCategories = form.sub_sector_id
