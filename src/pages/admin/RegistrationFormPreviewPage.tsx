@@ -1,34 +1,62 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FullRegistrationPreview } from '@/components/registration-builder/FullRegistrationPreview';
 import { Badge } from '@/components/ui/badge';
 import { Eye } from 'lucide-react';
-
-const STORAGE_KEY = 'registration-form-preview';
-
-interface PreviewPayload {
-  name?: string;
-  schema: any;
-  documentTypes: any;
-  declarations: any;
-  requireOtp: boolean;
-  requireCaptcha: boolean;
-  requireDocuments: boolean;
-}
+import { supabase } from '@/integrations/supabase/client';
+import { readStoredRegistrationPreview, type RegistrationPreviewPayload } from '@/lib/registrationPreview';
 
 export default function RegistrationFormPreviewPage() {
-  const [data, setData] = useState<PreviewPayload | null>(null);
+  const [searchParams] = useSearchParams();
+  const [data, setData] = useState<RegistrationPreviewPayload | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     document.title = 'Registration Form Preview';
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
-      if (!raw) { setMissing(true); return; }
-      setData(JSON.parse(raw));
-    } catch {
-      setMissing(true);
-    }
-  }, []);
+    const configId = searchParams.get('configId');
+
+    const loadPreview = async () => {
+      try {
+        if (configId) {
+          const { data: config, error } = await supabase
+            .from('registration_form_configs')
+            .select('name, form_schema, document_types, declarations, require_otp, require_captcha, require_documents')
+            .eq('id', configId)
+            .maybeSingle();
+
+          if (error || !config) {
+            setMissing(true);
+            return;
+          }
+
+          setData({
+            name: config.name,
+            schema: (config.form_schema as any) || [],
+            documentTypes: (config.document_types as any) || [],
+            declarations: (config.declarations as any) || [],
+            requireOtp: !!config.require_otp,
+            requireCaptcha: !!config.require_captcha,
+            requireDocuments: !!config.require_documents,
+          });
+          setMissing(false);
+          return;
+        }
+
+        const stored = readStoredRegistrationPreview();
+        if (!stored) {
+          setMissing(true);
+          return;
+        }
+
+        setData(stored);
+        setMissing(false);
+      } catch {
+        setMissing(true);
+      }
+    };
+
+    void loadPreview();
+  }, [searchParams]);
 
   if (missing) {
     return (
@@ -36,7 +64,7 @@ export default function RegistrationFormPreviewPage() {
         <div className="max-w-md text-center space-y-2">
           <h1 className="text-xl font-semibold">No preview data</h1>
           <p className="text-sm text-muted-foreground">
-            Open the preview from the Registration Form Builder to see the public applicant view.
+            Open preview from the registration form list or builder to see the public applicant view.
           </p>
         </div>
       </div>
