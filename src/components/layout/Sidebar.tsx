@@ -115,7 +115,12 @@ export function Sidebar() {
     if (isMobile) setMobileOpen(false);
   }, [location.pathname, isMobile]);
 
-  const isItemVisible = (item: NavItem) => user && item.roles.includes(user.role);
+  const isItemVisible = (item: NavItem) => {
+    if (!user || !item.roles.includes(user.role)) return false;
+    // If dynamic role permissions are configured, also enforce module access
+    if (enforceDynamic && item.module && !hasModuleAccess(item.module)) return false;
+    return true;
+  };
 
   // Mobile: hamburger button rendered outside sidebar
   if (isMobile) {
