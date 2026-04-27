@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import {
   useSectors, useSubSectors, useCategories, useServices, useMasterMutations,
   type SectorRow, type SubSectorRow, type CategoryRow, type ServiceRow,
 } from '@/hooks/useMasterConfig';
+import { MasterDataImportDialog, downloadSampleExcel, type ImportEntity, type ParsedRow } from '@/components/admin/MasterDataImportDialog';
 
 type EntityType = 'sectors' | 'sub-sectors' | 'categories' | 'services';
 
