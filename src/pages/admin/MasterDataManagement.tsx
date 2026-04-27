@@ -47,6 +47,28 @@ export default function MasterDataManagement() {
   const [itemParentId, setItemParentId] = useState('');
   const [itemSortOrder, setItemSortOrder] = useState(0);
 
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImportItems = async (rows: ParsedItemRow[]) => {
+    if (!selectedTypeId) return { success: 0, failed: rows.length, errors: ['No data type selected'] };
+    let success = 0; let failed = 0; const errors: string[] = [];
+    for (const r of rows) {
+      try {
+        await mutations.upsertItem.mutateAsync({
+          type_id: selectedTypeId, name: r.name, code: r.code,
+          status: r.status, parent_item_id: r.parent_item_id,
+          sort_order: r.sort_order,
+        });
+        success++;
+      } catch (e: any) {
+        failed++;
+        errors.push(`Row ${r.rowNumber}: ${e.message}`);
+      }
+    }
+    return { success, failed, errors };
+  };
+
   const selectedType = types.find(t => t.id === selectedTypeId);
 
   // Type CRUD
