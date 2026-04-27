@@ -7,6 +7,7 @@ import {
   ClipboardEdit, Database,
 } from 'lucide-react';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
+import type { PermissionModule } from '@/lib/permissionModules';
 
 export interface NavItem {
   label: string;
@@ -14,6 +15,8 @@ export interface NavItem {
   icon: React.ReactNode;
   badge?: number;
   roles: AppRole[];
+  /** If set, item is also gated by the dynamic role having access to this module */
+  module?: PermissionModule;
   children?: NavItem[];
 }
 
