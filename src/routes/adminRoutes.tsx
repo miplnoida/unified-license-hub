@@ -67,6 +67,7 @@ export const adminRoutes = (
     <Route path="/admin/complaint-types" element={<A><ComplaintTypes /></A>} />
     <Route path="/admin/approved-licensees" element={<A><ApprovedLicensees /></A>} />
     <Route path="/admin/registration-forms" element={<A><RegistrationFormBuilder /></A>} />
+    <Route path="/admin/registration-forms/preview" element={<A><RegistrationFormPreviewPage /></A>} />
     <Route path="/admin/ppoc-mappings" element={<A><PpocManagement /></A>} />
 
     {/* Returns Management - Admin */}
