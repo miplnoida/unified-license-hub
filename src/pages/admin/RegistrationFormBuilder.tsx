@@ -207,7 +207,6 @@ export default function RegistrationFormBuilder() {
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [form, setForm] = useState<Omit<ConfigRow, 'id'>>(emptyConfig);
   const [saving, setSaving] = useState(false);
