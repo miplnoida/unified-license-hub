@@ -3,6 +3,9 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { INTERNAL_ROLES, type AppRole } from '@/types/platform';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { AccessDenied } from '@/components/shared/AccessDenied';
+import type { PermissionModule } from '@/lib/permissionModules';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -24,6 +27,41 @@ export function RoleGuard({ children, allowedRoles, fallbackPath = '/dashboard' 
 
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to={fallbackPath} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+/**
+ * Module-based route guard. Combines role check with dynamic permission
+ * enforcement. If the user is mapped to a dynamic role with explicit
+ * permissions, they must have access to the specified module.
+ */
+export function ModuleRoute({
+  children,
+  module,
+  allowedRoles = ['super_admin', 'admin'],
+}: {
+  children: React.ReactNode;
+  module: PermissionModule;
+  allowedRoles?: AppRole[];
+}) {
+  const { user, session, loading } = useAuth();
+  const { hasModuleAccess, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!session) return <Navigate to="/" replace />;
+  if (!user) return <AuthLoadingScreen />;
+
+  if (!allowedRoles.includes(user.role)) {
+    return <AccessDenied />;
+  }
+
+  // Wait for permissions to resolve before deciding
+  if (permsLoading) return <AuthLoadingScreen />;
+
+  if (enforceDynamic && !hasModuleAccess(module)) {
+    return <AccessDenied />;
   }
 
   return <>{children}</>;

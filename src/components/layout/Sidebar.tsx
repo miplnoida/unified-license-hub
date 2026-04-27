@@ -8,6 +8,7 @@ import { mainNavSections, NavItem } from '@/config/navigation';
 import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-react';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -81,6 +82,7 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const { branding } = useSiteSettings();
+  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((label: string) => {
@@ -113,7 +115,12 @@ export function Sidebar() {
     if (isMobile) setMobileOpen(false);
   }, [location.pathname, isMobile]);
 
-  const isItemVisible = (item: NavItem) => user && item.roles.includes(user.role);
+  const isItemVisible = (item: NavItem) => {
+    if (!user || !item.roles.includes(user.role)) return false;
+    // If dynamic role permissions are configured, also enforce module access
+    if (enforceDynamic && item.module && !hasModuleAccess(item.module)) return false;
+    return true;
+  };
 
   // Mobile: hamburger button rendered outside sidebar
   if (isMobile) {
