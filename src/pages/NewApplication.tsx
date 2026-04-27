@@ -220,7 +220,8 @@ export default function NewApplication() {
     }
 
     // Check if user already has a non-cancelled/non-rejected application for this sector
-    if (user) {
+    // Honor the admin "Allow Re-Application" setting: if enabled, skip the block entirely.
+    if (user && appSettings?.allow_reapplication !== true) {
       const { data: existingApps } = await supabase
         .from('applications')
         .select('id, status, data')
