@@ -305,6 +305,17 @@ export default function MasterConfiguration() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MasterDataImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        entity={importEntity}
+        sectors={sectors}
+        subSectors={subSectors}
+        categories={categories}
+        services={services}
+        onImport={handleImportRows}
+      />
     </DashboardLayout>
   );
 }
