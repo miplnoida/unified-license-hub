@@ -305,6 +305,14 @@ export default function MasterDataManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MasterDataItemsImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        typeName={selectedType?.name || 'Items'}
+        existingItems={items}
+        onImport={handleImportItems}
+      />
     </DashboardLayout>
   );
 }
