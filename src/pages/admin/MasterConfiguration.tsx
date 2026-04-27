@@ -224,22 +224,30 @@ export default function MasterConfiguration() {
             <TabsTrigger value="services">Services</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sectors">
-            <DataTableShell columns={sectorColumns} data={sectors} searchPlaceholder="Search sectors..."
-              actions={<Button onClick={() => openAdd('sectors')}><Plus className="h-4 w-4 mr-2" />Add Sector</Button>} />
-          </TabsContent>
-          <TabsContent value="sub-sectors">
-            <DataTableShell columns={subSectorColumns} data={subSectors} searchPlaceholder="Search sub-sectors..."
-              actions={<Button onClick={() => openAdd('sub-sectors')}><Plus className="h-4 w-4 mr-2" />Add Sub-Sector</Button>} />
-          </TabsContent>
-          <TabsContent value="categories">
-            <DataTableShell columns={categoryColumns} data={categories} searchPlaceholder="Search categories..."
-              actions={<Button onClick={() => openAdd('categories')}><Plus className="h-4 w-4 mr-2" />Add Category</Button>} />
-          </TabsContent>
-          <TabsContent value="services">
-            <DataTableShell columns={serviceColumns} data={services} searchPlaceholder="Search services..."
-              actions={<Button onClick={() => openAdd('services')}><Plus className="h-4 w-4 mr-2" />Add Service</Button>} />
-          </TabsContent>
+          {(['sectors','sub-sectors','categories','services'] as EntityType[]).map(ent => {
+            const cfg = {
+              'sectors': { cols: sectorColumns, data: sectors, ph: 'Search sectors...', label: 'Sector' },
+              'sub-sectors': { cols: subSectorColumns, data: subSectors, ph: 'Search sub-sectors...', label: 'Sub-Sector' },
+              'categories': { cols: categoryColumns, data: categories, ph: 'Search categories...', label: 'Category' },
+              'services': { cols: serviceColumns, data: services, ph: 'Search services...', label: 'Service' },
+            }[ent] as any;
+            return (
+              <TabsContent key={ent} value={ent}>
+                <DataTableShell columns={cfg.cols} data={cfg.data} searchPlaceholder={cfg.ph}
+                  actions={
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => downloadSampleExcel(ent)}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />Sample Excel
+                      </Button>
+                      <Button variant="outline" onClick={() => openImport(ent)}>
+                        <Upload className="h-4 w-4 mr-2" />Import Excel
+                      </Button>
+                      <Button onClick={() => openAdd(ent)}><Plus className="h-4 w-4 mr-2" />Add {cfg.label}</Button>
+                    </div>
+                  } />
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
 
