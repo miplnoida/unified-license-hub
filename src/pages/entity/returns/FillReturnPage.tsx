@@ -221,7 +221,7 @@ export default function FillReturnPage() {
     setSaving(false);
   }, [id, allData, returnData, saving]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (ackText?: string) => {
     const result = await Swal.fire({
       title: 'Submit Return?',
       html: `<p>You are about to submit <strong>${returnData?.unique_id}</strong> for review.</p><p>This action cannot be undone.</p>`,
@@ -237,6 +237,18 @@ export default function FillReturnPage() {
     const now = new Date();
     const dueDate = returnData?.due_date ? new Date(returnData.due_date) : null;
     const ontime = dueDate ? (now <= dueDate ? 'ON_TIME' : 'LATE') : null;
+
+    // Persist acknowledgement metadata on compliance_returns (best-effort)
+    if (id && ackText) {
+      await supabase
+        .from('compliance_returns' as any)
+        .update({
+          ack_by: user?.id,
+          ack_at: now.toISOString(),
+          ack_text: String(ackText).slice(0, 4000),
+        })
+        .eq('id', id);
+    }
 
     updateReturn.mutate({
       id,
