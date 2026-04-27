@@ -661,6 +661,7 @@ export default function ApplicationsList() {
           applicantName={selectedPaymentApp?.applicantName || ''}
           applicationNumber={selectedPaymentApp?.applicationNumber || ''}
           applicantId={selectedPaymentApp?.applicantId || ''}
+          isAdminView={isInternal}
           onVerified={() => {
             setRefreshKey(k => k + 1);
           }}
