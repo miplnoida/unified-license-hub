@@ -1,0 +1,1 @@
+ALTER TABLE public.ppoc_entity_mappings RENAME COLUMN user_id TO ppoc_user_id;
