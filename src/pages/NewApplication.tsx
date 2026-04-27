@@ -224,7 +224,7 @@ export default function NewApplication() {
         .from('applications')
         .select('id, status, data')
         .eq('applicant_id', user.id)
-        .not('status', 'in', '("cancelled","rejected","draft")');
+        .not('status', 'in', '("cancelled","rejected","withdrawn","draft")');
 
       const sectorDupe = (existingApps || []).find((a: any) => {
         const d = (a.data || {}) as Record<string, any>;

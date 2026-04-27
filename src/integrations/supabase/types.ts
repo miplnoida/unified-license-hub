@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
+          ack_at: string | null
+          ack_by: string | null
+          ack_text: string | null
           applicant_id: string
           application_number: string
           approved_at: string | null
@@ -33,6 +36,9 @@ export type Database = {
           workflow_id: string | null
         }
         Insert: {
+          ack_at?: string | null
+          ack_by?: string | null
+          ack_text?: string | null
           applicant_id: string
           application_number?: string
           approved_at?: string | null
@@ -50,6 +56,9 @@ export type Database = {
           workflow_id?: string | null
         }
         Update: {
+          ack_at?: string | null
+          ack_by?: string | null
+          ack_text?: string | null
           applicant_id?: string
           application_number?: string
           approved_at?: string | null
@@ -84,6 +93,7 @@ export type Database = {
           application_id: string
           comments: string | null
           created_at: string
+          delegated_from: string | null
           delegated_to: string | null
           id: string
           responded_at: string | null
@@ -98,6 +108,7 @@ export type Database = {
           application_id: string
           comments?: string | null
           created_at?: string
+          delegated_from?: string | null
           delegated_to?: string | null
           id?: string
           responded_at?: string | null
@@ -112,6 +123,7 @@ export type Database = {
           application_id?: string
           comments?: string | null
           created_at?: string
+          delegated_from?: string | null
           delegated_to?: string | null
           id?: string
           responded_at?: string | null
@@ -442,11 +454,15 @@ export type Database = {
       }
       compliance_returns: {
         Row: {
+          ack_at: string | null
+          ack_by: string | null
+          ack_text: string | null
           created_at: string
           due_date: string
           form_data: Json | null
           id: string
           license_id: string | null
+          on_behalf_of_licensee_id: string | null
           period_end: string
           period_start: string
           return_config_id: string | null
@@ -459,11 +475,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ack_at?: string | null
+          ack_by?: string | null
+          ack_text?: string | null
           created_at?: string
           due_date: string
           form_data?: Json | null
           id?: string
           license_id?: string | null
+          on_behalf_of_licensee_id?: string | null
           period_end: string
           period_start: string
           return_config_id?: string | null
@@ -476,11 +496,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ack_at?: string | null
+          ack_by?: string | null
+          ack_text?: string | null
           created_at?: string
           due_date?: string
           form_data?: Json | null
           id?: string
           license_id?: string | null
+          on_behalf_of_licensee_id?: string | null
           period_end?: string
           period_start?: string
           return_config_id?: string | null
@@ -496,6 +520,13 @@ export type Database = {
           {
             foreignKeyName: "compliance_returns_license_id_fkey"
             columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_returns_on_behalf_of_licensee_id_fkey"
+            columns: ["on_behalf_of_licensee_id"]
             isOneToOne: false
             referencedRelation: "licenses"
             referencedColumns: ["id"]
@@ -4102,6 +4133,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_delegation_rules: { Args: never; Returns: number }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }

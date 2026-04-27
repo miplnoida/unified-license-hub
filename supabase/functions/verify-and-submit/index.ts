@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { application_id } = await req.json();
+    const { application_id, ack_text } = await req.json();
     if (!application_id) {
       return new Response(
         JSON.stringify({ error: "application_id is required" }),
@@ -79,6 +79,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 1b. Server-side duplicate-application guard (defense in depth — DB trigger also enforces)
+    if (!isResubmission) {
+      const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
+      if (sectorId) {
+        const { data: setting } = await adminClient
+          .from("site_settings")
+          .select("value")
+          .eq("key", "allow_reapplication")
+          .maybeSingle();
+        const allowReapply = setting?.value === true || setting?.value === "true";
+
+        if (!allowReapply) {
+          const { data: dupes } = await adminClient
+            .from("applications")
+            .select("id, status, data")
+            .eq("applicant_id", user.id)
+            .neq("id", application_id)
+            .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
+          const realDupe = (dupes || []).find((a: { data?: { sector_id?: string } | null }) => a.data?.sector_id === sectorId);
+          if (realDupe) {
+            return new Response(
+              JSON.stringify({
+                error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
+                code: "DUPLICATE_SECTOR_APPLICATION",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+    }
+
     // 2. Verify payment exists and is completed
     const { data: payments, error: payErr } = await adminClient
       .from("payments")
@@ -112,12 +144,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Update application status to submitted
+    // 4. Update application status to submitted (with acknowledgment metadata)
+    const submittedAt = new Date().toISOString();
+    const ackUpdate = ack_text
+      ? { ack_by: user.id, ack_at: submittedAt, ack_text: String(ack_text).slice(0, 4000) }
+      : {};
     const { error: updateErr } = await adminClient
       .from("applications")
       .update({
         status: "submitted",
-        submitted_at: new Date().toISOString(),
+        submitted_at: submittedAt,
+        ...ackUpdate,
       })
       .eq("id", application_id);
 
