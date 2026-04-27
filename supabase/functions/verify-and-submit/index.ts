@@ -79,6 +79,53 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 1b. Server-side duplicate-application guard (defense in depth — DB trigger also enforces)
+    if (!isResubmission) {
+      const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
+      if (sectorId) {
+        // Check global allow-reapplication setting
+        const { data: setting } = await adminClient
+          .from("site_settings")
+          .select("value")
+          .eq("key", "allow_reapplication")
+          .maybeSingle();
+        const allowReapply = setting?.value === true || setting?.value === "true";
+
+        if (!allowReapply) {
+          const { data: dupes } = await adminClient
+            .from("applications")
+            .select("id, status")
+            .eq("applicant_id", user.id)
+            .neq("id", application_id)
+            .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
+          const dupe = (dupes || []).find((a) => {
+            const otherSector = (a as any).data?.sector_id ||
+              null;
+            return otherSector === sectorId;
+          });
+          // Re-fetch with data column for sector comparison
+          if (!dupe) {
+            const { data: fullDupes } = await adminClient
+              .from("applications")
+              .select("id, status, data")
+              .eq("applicant_id", user.id)
+              .neq("id", application_id)
+              .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
+            const realDupe = (fullDupes || []).find((a: any) => a.data?.sector_id === sectorId);
+            if (realDupe) {
+              return new Response(
+                JSON.stringify({
+                  error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
+                  code: "DUPLICATE_SECTOR_APPLICATION",
+                }),
+                { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        }
+      }
+    }
+
     // 2. Verify payment exists and is completed
     const { data: payments, error: payErr } = await adminClient
       .from("payments")
