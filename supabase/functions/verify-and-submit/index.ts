@@ -86,9 +86,10 @@ Deno.serve(async (req) => {
         const { data: setting } = await adminClient
           .from("site_settings")
           .select("value")
-          .eq("key", "allow_reapplication")
+          .eq("key", "application_settings")
           .maybeSingle();
-        const allowReapply = setting?.value === true || setting?.value === "true";
+        const settingsObj = (setting?.value || {}) as { allow_reapplication?: boolean };
+        const allowReapply = settingsObj.allow_reapplication === true;
 
         if (!allowReapply) {
           const { data: dupes } = await adminClient
