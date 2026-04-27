@@ -27,8 +27,7 @@ import type { Json } from '@/integrations/supabase/types';
 import type { RegFormSchema } from '@/types/registrationForm';
 import { RegistrationFormBuilderEditor } from '@/components/registration-builder/RegistrationFormBuilderEditor';
 import { Eye } from 'lucide-react';
-
-const PREVIEW_STORAGE_KEY = 'registration-form-preview';
+import { buildRegistrationPreviewUrl, storeRegistrationPreview } from '@/lib/registrationPreview';
 
 interface Declaration {
   label: string;
@@ -340,7 +339,7 @@ export default function RegistrationFormBuilder() {
 
   function openPreview() {
     try {
-      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+      storeRegistrationPreview({
         name: form.name,
         schema: form.form_schema,
         documentTypes: form.document_types,
@@ -348,8 +347,8 @@ export default function RegistrationFormBuilder() {
         requireOtp: form.require_otp,
         requireCaptcha: form.require_captcha,
         requireDocuments: form.require_documents,
-      }));
-      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+      });
+      window.open(buildRegistrationPreviewUrl(), '_blank', 'noopener,noreferrer');
     } catch (e) {
       toast.error('Unable to open preview');
     }
@@ -357,16 +356,7 @@ export default function RegistrationFormBuilder() {
 
   function openPreviewForConfig(cfg: ConfigRow) {
     try {
-      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
-        name: cfg.name,
-        schema: cfg.form_schema,
-        documentTypes: cfg.document_types,
-        declarations: cfg.declarations,
-        requireOtp: cfg.require_otp,
-        requireCaptcha: cfg.require_captcha,
-        requireDocuments: cfg.require_documents,
-      }));
-      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+      window.open(buildRegistrationPreviewUrl(cfg.id), '_blank', 'noopener,noreferrer');
     } catch {
       toast.error('Unable to open preview');
     }
