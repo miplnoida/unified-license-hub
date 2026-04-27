@@ -83,7 +83,6 @@ Deno.serve(async (req) => {
     if (!isResubmission) {
       const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
       if (sectorId) {
-        // Check global allow-reapplication setting
         const { data: setting } = await adminClient
           .from("site_settings")
           .select("value")
@@ -94,33 +93,19 @@ Deno.serve(async (req) => {
         if (!allowReapply) {
           const { data: dupes } = await adminClient
             .from("applications")
-            .select("id, status")
+            .select("id, status, data")
             .eq("applicant_id", user.id)
             .neq("id", application_id)
             .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
-          const dupe = (dupes || []).find((a) => {
-            const otherSector = (a as any).data?.sector_id ||
-              null;
-            return otherSector === sectorId;
-          });
-          // Re-fetch with data column for sector comparison
-          if (!dupe) {
-            const { data: fullDupes } = await adminClient
-              .from("applications")
-              .select("id, status, data")
-              .eq("applicant_id", user.id)
-              .neq("id", application_id)
-              .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
-            const realDupe = (fullDupes || []).find((a: any) => a.data?.sector_id === sectorId);
-            if (realDupe) {
-              return new Response(
-                JSON.stringify({
-                  error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
-                  code: "DUPLICATE_SECTOR_APPLICATION",
-                }),
-                { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-              );
-            }
+          const realDupe = (dupes || []).find((a: { data?: { sector_id?: string } | null }) => a.data?.sector_id === sectorId);
+          if (realDupe) {
+            return new Response(
+              JSON.stringify({
+                error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
+                code: "DUPLICATE_SECTOR_APPLICATION",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
         }
       }
