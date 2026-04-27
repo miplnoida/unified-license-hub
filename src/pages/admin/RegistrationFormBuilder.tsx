@@ -20,7 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings2, ExternalLink,
+  Plus, Pencil, Trash2, Settings2,
   Shield, Mail, Bot, Upload, CheckSquare,
 } from 'lucide-react';
 import type { Json } from '@/integrations/supabase/types';
@@ -261,9 +261,9 @@ export default function RegistrationFormBuilder() {
       require_otp: form.require_otp,
       require_captcha: form.require_captcha,
       require_documents: form.require_documents,
-      terms_url: form.terms_url,
-      privacy_url: form.privacy_url,
-      data_protection_url: form.data_protection_url,
+      terms_url: '',
+      privacy_url: '',
+      data_protection_url: '',
       declarations: form.declarations as unknown as Json,
       document_types: form.document_types as unknown as Json,
       form_schema: form.form_schema as unknown as Json,
@@ -543,24 +543,39 @@ export default function RegistrationFormBuilder() {
                 </CardContent>
               </Card>
 
-              {/* Legal Links */}
+              {/* Document Types */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2"><ExternalLink className="h-4 w-4" /> Legal Page URLs</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2"><Upload className="h-4 w-4" /> Required Document Types</CardTitle>
+                  <CardDescription>Define what documents applicants must upload.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div>
-                    <Label>Terms & Conditions URL</Label>
-                    <Input value={form.terms_url} onChange={e => setForm(p => ({ ...p, terms_url: e.target.value }))} placeholder="https://..." />
-                  </div>
-                  <div>
-                    <Label>Privacy Policy URL</Label>
-                    <Input value={form.privacy_url} onChange={e => setForm(p => ({ ...p, privacy_url: e.target.value }))} placeholder="https://..." />
-                  </div>
-                  <div>
-                    <Label>Data Protection Notice URL</Label>
-                    <Input value={form.data_protection_url} onChange={e => setForm(p => ({ ...p, data_protection_url: e.target.value }))} placeholder="https://..." />
-                  </div>
+                  {form.document_types.map((doc, idx) => (
+                    <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
+                      <div className="flex-1 space-y-2">
+                        <Input value={doc.label} onChange={e => updateDocType(idx, 'label', e.target.value)} placeholder="Document type name..." />
+                        <div className="flex gap-4 items-center">
+                          <div className="flex items-center gap-2">
+                            <Switch checked={doc.required} onCheckedChange={v => updateDocType(idx, 'required', v)} />
+                            <Label className="text-xs">Required</Label>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Label className="text-xs">Max MB:</Label>
+                            <Input type="number" value={doc.maxSizeMB} onChange={e => updateDocType(idx, 'maxSizeMB', Number(e.target.value))} className="w-16 h-8 text-xs" />
+                          </div>
+                          <div className="flex-1">
+                            <Input value={doc.allowedTypes.join(', ')} onChange={e => updateDocType(idx, 'allowedTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder=".pdf, .jpg, .png" className="h-8 text-xs" />
+                          </div>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => removeDocType(idx)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addDocType}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Document Type
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -596,42 +611,6 @@ export default function RegistrationFormBuilder() {
                   ))}
                   <Button variant="outline" size="sm" onClick={addDeclaration}>
                     <Plus className="h-4 w-4 mr-1" /> Add Declaration
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Document Types */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2"><Upload className="h-4 w-4" /> Required Document Types</CardTitle>
-                  <CardDescription>Define what documents applicants must upload.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {form.document_types.map((doc, idx) => (
-                    <div key={idx} className="flex items-start gap-2 p-3 rounded-lg border bg-muted/30">
-                      <div className="flex-1 space-y-2">
-                        <Input value={doc.label} onChange={e => updateDocType(idx, 'label', e.target.value)} placeholder="Document type name..." />
-                        <div className="flex gap-4 items-center">
-                          <div className="flex items-center gap-2">
-                            <Switch checked={doc.required} onCheckedChange={v => updateDocType(idx, 'required', v)} />
-                            <Label className="text-xs">Required</Label>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Label className="text-xs">Max MB:</Label>
-                            <Input type="number" value={doc.maxSizeMB} onChange={e => updateDocType(idx, 'maxSizeMB', Number(e.target.value))} className="w-16 h-8 text-xs" />
-                          </div>
-                          <div className="flex-1">
-                            <Input value={doc.allowedTypes.join(', ')} onChange={e => updateDocType(idx, 'allowedTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder=".pdf, .jpg, .png" className="h-8 text-xs" />
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" onClick={() => removeDocType(idx)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" onClick={addDocType}>
-                    <Plus className="h-4 w-4 mr-1" /> Add Document Type
                   </Button>
                 </CardContent>
               </Card>
