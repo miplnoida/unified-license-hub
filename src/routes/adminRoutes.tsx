@@ -21,6 +21,7 @@ const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTempl
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
 const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFormBuilder'));
+const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 
 // Returns Management - Admin
@@ -66,6 +67,7 @@ export const adminRoutes = (
     <Route path="/admin/complaint-types" element={<A><ComplaintTypes /></A>} />
     <Route path="/admin/approved-licensees" element={<A><ApprovedLicensees /></A>} />
     <Route path="/admin/registration-forms" element={<A><RegistrationFormBuilder /></A>} />
+    <Route path="/admin/registration-forms/preview" element={<A><RegistrationFormPreviewPage /></A>} />
     <Route path="/admin/ppoc-mappings" element={<A><PpocManagement /></A>} />
 
     {/* Returns Management - Admin */}

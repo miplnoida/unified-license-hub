@@ -26,8 +26,9 @@ import {
 import type { Json } from '@/integrations/supabase/types';
 import type { RegFormSchema } from '@/types/registrationForm';
 import { RegistrationFormBuilderEditor } from '@/components/registration-builder/RegistrationFormBuilderEditor';
-import { FullRegistrationPreview } from '@/components/registration-builder/FullRegistrationPreview';
 import { Eye } from 'lucide-react';
+
+const PREVIEW_STORAGE_KEY = 'registration-form-preview';
 
 interface Declaration {
   label: string;
@@ -206,7 +207,6 @@ export default function RegistrationFormBuilder() {
   const [configs, setConfigs] = useState<ConfigRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [form, setForm] = useState<Omit<ConfigRow, 'id'>>(emptyConfig);
   const [saving, setSaving] = useState(false);
@@ -336,6 +336,23 @@ export default function RegistrationFormBuilder() {
   }
   function removeDocType(idx: number) {
     setForm(prev => ({ ...prev, document_types: prev.document_types.filter((_, i) => i !== idx) }));
+  }
+
+  function openPreview() {
+    try {
+      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+        name: form.name,
+        schema: form.form_schema,
+        documentTypes: form.document_types,
+        declarations: form.declarations,
+        requireOtp: form.require_otp,
+        requireCaptcha: form.require_captcha,
+        requireDocuments: form.require_documents,
+      }));
+      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      toast.error('Unable to open preview');
+    }
   }
 
   const filteredSubSectors = form.sector_id
@@ -621,32 +638,12 @@ export default function RegistrationFormBuilder() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+              <Button variant="outline" onClick={openPreview}>
                 <Eye className="h-4 w-4 mr-1" /> Preview
               </Button>
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Full preview dialog */}
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-[95vw] w-[1100px] max-h-[92vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Registration Form Preview</DialogTitle>
-            </DialogHeader>
-            <FullRegistrationPreview
-              schema={form.form_schema}
-              documentTypes={form.document_types}
-              declarations={form.declarations}
-              requireOtp={form.require_otp}
-              requireCaptcha={form.require_captcha}
-              requireDocuments={form.require_documents}
-            />
-            <DialogFooter>
-              <Button onClick={() => setPreviewOpen(false)}>Close Preview</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
