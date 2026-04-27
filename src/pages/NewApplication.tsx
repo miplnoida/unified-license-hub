@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
-import { DocumentList } from '@/components/documents/DocumentList';
+import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
@@ -26,6 +26,7 @@ import {
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
   CreditCard, AlertCircle, RefreshCw, Receipt,
 } from 'lucide-react';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
