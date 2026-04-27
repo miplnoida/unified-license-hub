@@ -22,7 +22,7 @@ export default function RegistrationFormPreviewPage() {
   useEffect(() => {
     document.title = 'Registration Form Preview';
     try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
       if (!raw) { setMissing(true); return; }
       setData(JSON.parse(raw));
     } catch {

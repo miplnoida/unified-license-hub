@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Plus, Trash2, GripVertical, ChevronUp, ChevronDown, Eye,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { RegFormSchema, RegStep } from '@/types/registrationForm';
 import { StepEditor } from './StepEditor';
-import { FormPreview } from './FormPreview';
+
+const PREVIEW_STORAGE_KEY = 'registration-form-preview';
 
 interface Props {
   schema: RegFormSchema;
@@ -19,7 +18,6 @@ interface Props {
 
 export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
   const [activeStepId, setActiveStepId] = useState<string | null>(schema[0]?.id || null);
-  const [previewMode, setPreviewMode] = useState(false);
 
   const addStep = () => {
     const newStep: RegStep = {
@@ -52,19 +50,22 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
 
   const activeStep = schema.find(s => s.id === activeStepId);
 
-  if (previewMode) {
-    return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-semibold">Live Preview</h3>
-          <Button variant="outline" size="sm" onClick={() => setPreviewMode(false)}>
-            ← Back to Editor
-          </Button>
-        </div>
-        <FormPreview schema={schema} />
-      </div>
-    );
-  }
+  const openPreviewInNewTab = () => {
+    try {
+      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+        name: 'Form Preview',
+        schema,
+        documentTypes: [],
+        declarations: [],
+        requireOtp: false,
+        requireCaptcha: false,
+        requireDocuments: false,
+      }));
+      window.open('/admin/registration-forms/preview', '_blank', 'noopener,noreferrer');
+    } catch {
+      toast.error('Unable to open preview');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -76,7 +77,7 @@ export function RegistrationFormBuilderEditor({ schema, onChange }: Props) {
           </Badge>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPreviewMode(true)}>
+          <Button variant="outline" size="sm" onClick={openPreviewInNewTab}>
             <Eye className="h-3.5 w-3.5 mr-1" /> Preview
           </Button>
           <Button size="sm" onClick={addStep}>

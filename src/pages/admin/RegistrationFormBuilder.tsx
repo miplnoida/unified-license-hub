@@ -340,7 +340,7 @@ export default function RegistrationFormBuilder() {
 
   function openPreview() {
     try {
-      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
         name: form.name,
         schema: form.form_schema,
         documentTypes: form.document_types,
@@ -357,7 +357,7 @@ export default function RegistrationFormBuilder() {
 
   function openPreviewForConfig(cfg: ConfigRow) {
     try {
-      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({
         name: cfg.name,
         schema: cfg.form_schema,
         documentTypes: cfg.document_types,
