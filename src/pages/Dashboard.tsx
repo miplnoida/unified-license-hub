@@ -37,7 +37,7 @@ export default function Dashboard() {
 
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
   const isLicensee = user && LICENSEE_ROLES.includes(user.role);
-  const isPreLicensee = user?.isPreLicensee;
+  const isPreLicensee = user?.isPreLicensee || user?.role === 'pre_licensee';
 
   useEffect(() => {
     async function load() {
