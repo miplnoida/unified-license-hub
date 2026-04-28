@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     // Update profile with additional fields
     if (userData.user) {
       const updates: Record<string, any> = { force_password_change: true };
-      if (role_id) updates.role_id = role_id;
+      if (primaryRoleId) updates.role_id = primaryRoleId;
       if (gender) updates.gender = gender;
       if (licensee_id) updates.licensee_id = licensee_id;
 
@@ -109,6 +109,17 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error("Failed to update profile:", updateError.message);
+      }
+
+      // Persist all dynamic role assignments to user_dynamic_roles (source of truth for RBAC)
+      if (dynamicRoleIds.length > 0) {
+        const rows = dynamicRoleIds.map((rid) => ({ user_id: userData.user!.id, role_id: rid }));
+        const { error: udrError } = await supabaseAdmin
+          .from("user_dynamic_roles")
+          .upsert(rows, { onConflict: "user_id,role_id" });
+        if (udrError) {
+          console.error("Failed to insert user_dynamic_roles:", udrError.message);
+        }
       }
 
       // Send credentials email
