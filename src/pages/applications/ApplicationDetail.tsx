@@ -14,6 +14,7 @@ import { logAudit } from '@/hooks/useAuditLog';
 import { startWorkflowForApplication } from '@/lib/workflowService';
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
+import { AttachmentList } from '@/components/shared/AttachmentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
@@ -454,8 +455,15 @@ export default function ApplicationDetail() {
                         onUploaded={() => setDocRefresh(p => p + 1)}
                       />
                     )}
-                    <div key={docRefresh}>
-                      <DocumentList entityType="application" entityId={app.id} />
+                    <div key={docRefresh} className="space-y-4">
+                      <AttachmentList
+                        entityType="application"
+                        entityId={app.id}
+                        includeFormFields
+                        showHeader
+                        title="All Application Documents"
+                        emptyText="No documents uploaded yet"
+                      />
                     </div>
                   </CardContent>
                 </Card>
