@@ -110,7 +110,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         action: 'payment_completed',
         entityType: 'payment',
         entityId: (created as any).id,
-        details: { application_id: applicationId, amount: totalDue },
+        metadata: { application_id: applicationId, amount: totalDue },
       });
 
       toast.success('Payment completed successfully');
