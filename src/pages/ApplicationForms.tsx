@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
+import { AttachmentList } from '@/components/shared/AttachmentList';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
@@ -306,6 +307,26 @@ export default function ApplicationForms() {
             )}
           </CardContent>
         </Card>
+
+        {/* Uploaded Documents (visible to applicant + admin) */}
+        {applicationId && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Uploaded Documents
+              </CardTitle>
+              <CardDescription>All documents attached to this application — including those uploaded inside form fields.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AttachmentList
+                entityType="application"
+                entityId={applicationId}
+                includeFormFields
+                emptyText="No documents uploaded yet. Documents you attach inside form fields will appear here."
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {matchedTemplates.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">

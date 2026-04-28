@@ -21,6 +21,9 @@ interface AttachmentListProps {
   className?: string;
   showHeader?: boolean;
   title?: string;
+  /** Also include file_uploads rows where entity_type='form_field' and entity_id=this entityId.
+   *  Useful for applications/returns to surface files uploaded inside form fields. */
+  includeFormFields?: boolean;
 }
 
 function formatFileSize(bytes: number): string {
@@ -42,6 +45,7 @@ export function AttachmentList({
   className,
   showHeader = false,
   title = 'Attachments',
+  includeFormFields = false,
 }: AttachmentListProps) {
   const [items, setItems] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,22 +55,40 @@ export function AttachmentList({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [{ data: legacy }, { data: secure }] = await Promise.all([
-        supabase
-          .from('documents')
-          .select('id, file_name, file_path, file_size, mime_type, created_at')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId),
-        supabase
-          .from('file_uploads')
-          .select('id, file_name, file_path, file_size, mime_type, created_at')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId),
-      ]);
+      const queries: Promise<any>[] = [
+        Promise.resolve(
+          supabase
+            .from('documents')
+            .select('id, file_name, file_path, file_size, mime_type, created_at')
+            .eq('entity_type', entityType)
+            .eq('entity_id', entityId),
+        ),
+        Promise.resolve(
+          supabase
+            .from('file_uploads')
+            .select('id, file_name, file_path, file_size, mime_type, created_at')
+            .eq('entity_type', entityType)
+            .eq('entity_id', entityId),
+        ),
+      ];
+      if (includeFormFields) {
+        queries.push(
+          Promise.resolve(
+            supabase
+              .from('file_uploads')
+              .select('id, file_name, file_path, file_size, mime_type, created_at')
+              .eq('entity_type', 'form_field')
+              .eq('entity_id', entityId),
+          ),
+        );
+      }
+      const results = await Promise.all(queries);
       if (cancelled) return;
+      const [legacyRes, secureRes, formFieldRes] = results;
       const merged: Attachment[] = [
-        ...((legacy || []) as any[]).map(d => ({ ...d, source: 'documents' as const })),
-        ...((secure || []) as any[]).map(d => ({ ...d, source: 'file_uploads' as const })),
+        ...(((legacyRes?.data) || []) as any[]).map(d => ({ ...d, source: 'documents' as const })),
+        ...(((secureRes?.data) || []) as any[]).map(d => ({ ...d, source: 'file_uploads' as const })),
+        ...(((formFieldRes?.data) || []) as any[]).map(d => ({ ...d, source: 'file_uploads' as const })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setItems(merged);
       setLoading(false);
@@ -74,7 +96,7 @@ export function AttachmentList({
     return () => {
       cancelled = true;
     };
-  }, [entityType, entityId]);
+  }, [entityType, entityId, includeFormFields]);
 
   const handleDownload = async (att: Attachment) => {
     setDownloadingId(att.id);
