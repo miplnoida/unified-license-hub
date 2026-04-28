@@ -101,13 +101,24 @@ export default function UserManagement() {
       return;
     }
 
-    const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+    const [{ data: roles }, { data: udr }] = await Promise.all([
+      supabase.from('user_roles').select('user_id, role'),
+      supabase.from('user_dynamic_roles' as any).select('user_id, role_id'),
+    ]);
+
     const roleMap: Record<string, string> = {};
     (roles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+
+    const dynMap: Record<string, string[]> = {};
+    ((udr as any[]) || []).forEach((r: any) => {
+      if (!dynMap[r.user_id]) dynMap[r.user_id] = [];
+      dynMap[r.user_id].push(r.role_id);
+    });
 
     setUsers((profiles || []).map((p: any) => ({
       ...p,
       app_role: roleMap[p.id] || 'applicant',
+      dynamic_role_ids: dynMap[p.id] || (p.role_id ? [p.role_id] : []),
     })));
     setLoading(false);
   };
