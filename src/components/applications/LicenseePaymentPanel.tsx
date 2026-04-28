@@ -82,14 +82,16 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     }
     setProcessing(true);
     try {
+      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const { data: created, error: createErr } = await supabase
         .from('payments')
         .insert({
+          user_id: user.id,
           application_id: applicationId,
           amount: totalDue,
           status: 'pending',
           payment_method: 'online',
-          payer_id: user.id,
+          transaction_ref: txnRef,
         } as any)
         .select('id')
         .single();
@@ -101,7 +103,6 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         .update({
           status: 'completed',
           paid_at: new Date().toISOString(),
-          transaction_reference: `TXN-${Date.now()}`,
         } as any)
         .eq('id', (created as any).id);
       if (updErr) throw updErr;
