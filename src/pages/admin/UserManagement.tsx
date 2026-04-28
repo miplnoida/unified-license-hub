@@ -162,6 +162,11 @@ export default function UserManagement() {
 
     const selectedDynamicRoles = dynamicRoles.filter(r => selectedRoleIds.includes(r.id));
     const primaryRole = selectedDynamicRoles[0];
+    if (!primaryRole) {
+      toast.error('Selected role(s) could not be resolved. Please reload and try again.');
+      setSaving(false);
+      return;
+    }
 
     // 1) Replace user_dynamic_roles (source of truth for dynamic RBAC).
     await supabase.from('user_dynamic_roles' as any).delete().eq('user_id', editingUser.id);
