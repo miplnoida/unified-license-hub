@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { File, Download, Loader2, Paperclip } from 'lucide-react';
+import { File, Download, Loader2, Paperclip, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Attachment {
@@ -122,6 +122,25 @@ export function AttachmentList({
     }
   };
 
+  const handleView = async (att: Attachment) => {
+    setDownloadingId(att.id);
+    try {
+      const primary = att.source === 'file_uploads' ? 'secure-documents' : 'documents';
+      const fallback = primary === 'secure-documents' ? 'documents' : 'secure-documents';
+      let signed = await supabase.storage.from(primary).createSignedUrl(att.file_path, 300);
+      if (signed.error || !signed.data?.signedUrl) {
+        signed = await supabase.storage.from(fallback).createSignedUrl(att.file_path, 300);
+      }
+      if (signed.error || !signed.data?.signedUrl) {
+        toast.error('Unable to open file: ' + (signed.error?.message || 'File not found'));
+        return;
+      }
+      window.open(signed.data.signedUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -158,20 +177,34 @@ export function AttachmentList({
                 <span>{new Date(att.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => handleDownload(att)}
-              disabled={downloadingId === att.id}
-              aria-label={`Download ${att.file_name}`}
-            >
-              {downloadingId === att.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleView(att)}
+                disabled={downloadingId === att.id}
+                aria-label={`View ${att.file_name}`}
+                title="View in new tab"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleDownload(att)}
+                disabled={downloadingId === att.id}
+                aria-label={`Download ${att.file_name}`}
+                title="Download"
+              >
+                {downloadingId === att.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         ))}
       </div>
