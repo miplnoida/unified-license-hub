@@ -313,9 +313,16 @@ export default function UserManagement() {
       )
     },
     {
-      key: 'app_role' as any, label: 'Role', render: (r) => (
-        <Badge variant="outline" className="capitalize">{getRoleName(r)}</Badge>
-      )
+      key: 'app_role' as any, label: 'Roles', render: (r) => {
+        const names = getRoleNames(r);
+        return (
+          <div className="flex flex-wrap gap-1">
+            {names.map((n, i) => (
+              <Badge key={i} variant="outline" className="capitalize">{n}</Badge>
+            ))}
+          </div>
+        );
+      }
     },
     {
       key: 'user_type', label: 'Type', render: (r) => (
