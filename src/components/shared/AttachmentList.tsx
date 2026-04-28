@@ -122,6 +122,25 @@ export function AttachmentList({
     }
   };
 
+  const handleView = async (att: Attachment) => {
+    setDownloadingId(att.id);
+    try {
+      const primary = att.source === 'file_uploads' ? 'secure-documents' : 'documents';
+      const fallback = primary === 'secure-documents' ? 'documents' : 'secure-documents';
+      let signed = await supabase.storage.from(primary).createSignedUrl(att.file_path, 300);
+      if (signed.error || !signed.data?.signedUrl) {
+        signed = await supabase.storage.from(fallback).createSignedUrl(att.file_path, 300);
+      }
+      if (signed.error || !signed.data?.signedUrl) {
+        toast.error('Unable to open file: ' + (signed.error?.message || 'File not found'));
+        return;
+      }
+      window.open(signed.data.signedUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
