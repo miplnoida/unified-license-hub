@@ -479,10 +479,18 @@ export default function ApplicationDetail() {
               </TabsContent>
 
               <TabsContent value="fees" className="mt-4">
-                <FeeComponentsPanel
-                  applicationId={app.id}
-                  editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                />
+                {isInternal ? (
+                  <FeeComponentsPanel
+                    applicationId={app.id}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                  />
+                ) : (
+                  <LicenseePaymentPanel
+                    applicationId={app.id}
+                    canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    onPaid={loadData}
+                  />
+                )}
               </TabsContent>
             </Tabs>
 
