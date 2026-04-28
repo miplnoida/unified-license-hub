@@ -281,12 +281,17 @@ export default function UserManagement() {
     toast.success('Copied to clipboard');
   };
 
-  const getRoleName = (u: UserRecord) => {
-    if (u.role_id) {
-      const role = dynamicRoles.find(r => r.id === u.role_id);
-      if (role) return role.name;
+  const getRoleNames = (u: UserRecord): string[] => {
+    const ids = u.dynamic_role_ids && u.dynamic_role_ids.length > 0
+      ? u.dynamic_role_ids
+      : (u.role_id ? [u.role_id] : []);
+    if (ids.length > 0) {
+      const names = ids
+        .map(id => dynamicRoles.find(r => r.id === id)?.name)
+        .filter(Boolean) as string[];
+      if (names.length > 0) return names;
     }
-    return (u.app_role || 'applicant').replace(/_/g, ' ');
+    return [(u.app_role || 'applicant').replace(/_/g, ' ')];
   };
 
   const activeCount = users.filter(u => u.status === 'active').length;
