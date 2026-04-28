@@ -1372,10 +1372,14 @@ interface FileImportProps {
   onImport: (sections: FormSection[]) => void;
   /** Multi-sheet import: creates multiple forms under a return template */
   onMultiSheetImport?: (result: MultiSheetParseResult) => void;
+  /** Optionally open the dialog automatically on mount (e.g. via query param). */
+  autoOpen?: boolean;
+  /** Custom button label */
+  buttonLabel?: string;
 }
 
-export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportProps) {
-  const [open, setOpen] = useState(false);
+export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, buttonLabel }: FileImportProps) {
+  const [open, setOpen] = useState(!!autoOpen);
   const [parsing, setParsing] = useState(false);
   const [step, setStep] = useState<ImportStep>('upload');
   const [multiResult, setMultiResult] = useState<MultiSheetParseResult | null>(null);
