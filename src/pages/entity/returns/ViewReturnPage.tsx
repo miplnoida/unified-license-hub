@@ -2,18 +2,13 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnAuditLog, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
+import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
-import { format } from 'date-fns';
 import { useState } from 'react';
 
 function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
@@ -50,7 +45,6 @@ export default function ViewReturnPage() {
   const { data: returnData, isLoading } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
   const { data: formData = [] } = useReturnFormData(id);
-  const { data: auditLog = [] } = useReturnAuditLog(id);
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
   const [activeTab, setActiveTab] = useState('');
@@ -134,26 +128,6 @@ export default function ViewReturnPage() {
             ))}
           </Tabs>
         )}
-
-        {/* Audit Log */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Audit History</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {auditLog.map(a => (
-                <div key={a.id} className="flex items-start gap-3">
-                  <div className={`h-2 w-2 mt-2 rounded-full ${a.action === 'validated' ? 'bg-green-500' : a.action === 'rejected' ? 'bg-red-500' : a.action === 'submitted' ? 'bg-blue-500' : 'bg-gray-400'}`} />
-                  <div>
-                    <p className="text-sm font-medium capitalize">{a.action.replace('_', ' ')}</p>
-                    {a.comments && <p className="text-xs text-muted-foreground">{a.comments}</p>}
-                    <p className="text-xs text-muted-foreground">{format(new Date(a.created_at), 'MMM dd, yyyy HH:mm')}</p>
-                  </div>
-                </div>
-              ))}
-              {auditLog.length === 0 && <p className="text-sm text-muted-foreground">No audit history</p>}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );
