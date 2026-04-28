@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 /**
  * Protected route wrapper that:
