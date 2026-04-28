@@ -99,7 +99,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
       const { error: updErr } = await supabase
         .from('payments')
         .update({
-          status: 'success',
+          status: 'completed',
           paid_at: new Date().toISOString(),
           transaction_reference: `TXN-${Date.now()}`,
         } as any)
