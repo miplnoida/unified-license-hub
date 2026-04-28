@@ -18,6 +18,7 @@ import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit } from 'lucide-react';
@@ -48,6 +49,7 @@ interface TimelineEvent {
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [app, setApp] = useState<Application | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -56,7 +58,7 @@ export default function ApplicationDetail() {
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
 
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
 
   const appData = app?.data as any || {};
