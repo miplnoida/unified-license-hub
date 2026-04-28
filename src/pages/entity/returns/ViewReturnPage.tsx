@@ -160,7 +160,7 @@ export default function ViewReturnPage() {
             </TabsList>
             {tabs.map(tab => (
               <TabsContent key={tab} value={tab} className="space-y-4">
-                {configForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
+                {effectiveConfigForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
                   const formComments = comments.filter(c => c.form_id === cf.form_id);
                   return (
                     <div key={cf.id} className="space-y-2">
