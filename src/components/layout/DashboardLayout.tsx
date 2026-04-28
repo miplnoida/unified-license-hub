@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ActingOnBehalfOfBanner } from '@/components/shared/ActingOnBehalfOfBanner';
+import { LicenseeSwitcher } from '@/components/ppoc/LicenseeSwitcher';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
@@ -46,6 +47,7 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
         style={{ paddingLeft: sidebarWidth }}
       >
         <Header />
+        <LicenseeSwitcher />
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           <div className="max-w-[1440px] mx-auto space-y-4">
             <ActingOnBehalfOfBanner />
