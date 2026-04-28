@@ -32,6 +32,8 @@ interface Props {
   initialData?: Record<string, any>;
   onSaveDraft: (data: Record<string, any>) => void;
   onSubmit: (data: Record<string, any>) => void;
+  /** Optional: fires on every field change with merged data (used for live state sync to parent). */
+  onChange?: (data: Record<string, any>) => void;
   saving?: boolean;
   readOnly?: boolean;
   applicationId?: string;
