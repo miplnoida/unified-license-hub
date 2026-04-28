@@ -21,6 +21,9 @@ interface AttachmentListProps {
   className?: string;
   showHeader?: boolean;
   title?: string;
+  /** Also include file_uploads rows where entity_type='form_field' and entity_id=this entityId.
+   *  Useful for applications/returns to surface files uploaded inside form fields. */
+  includeFormFields?: boolean;
 }
 
 function formatFileSize(bytes: number): string {
