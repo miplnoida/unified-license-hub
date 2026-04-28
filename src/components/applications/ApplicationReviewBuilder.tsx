@@ -1,0 +1,105 @@
+import { useMemo } from 'react';
+import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { ReviewAcknowledgement } from './ReviewAcknowledgement';
+import type { FormSection, FormField } from '@/types/formBuilder';
+
+interface TemplateLite {
+  id: string;
+  name: string;
+}
+
+interface Props {
+  templates: TemplateLite[];
+  formProgressMap: Record<string, { data: Record<string, any> }>;
+  mode: 'readonly' | 'editable';
+  loading?: boolean;
+  onAcknowledge: () => void;
+  onEdit?: (templateIndex: number) => void;
+  title?: string;
+  description?: string;
+}
+
+/**
+ * Wrapper that loads the published schema for each form template and renders
+ * the ReviewAcknowledgement with proper field labels (instead of raw keys).
+ */
+export function ApplicationReviewBuilder(props: Props) {
+  return (
+    <ReviewBuilderInner {...props} />
+  );
+}
+
+function ReviewBuilderInner({
+  templates, formProgressMap, mode, loading, onAcknowledge, onEdit, title, description,
+}: Props) {
+  // Fetch sections for each template (hooks called in stable order)
+  const templateSections = templates.map(t => useTemplateSections(t.id));
+
+  const sections = useMemo(() => {
+    return templates.map((t, idx) => {
+      const secs = templateSections[idx] || [];
+      const data = formProgressMap[t.id]?.data || {};
+      const fields: { label: string; value: any }[] = [];
+
+      secs.forEach((sec: FormSection) => {
+        (sec.fields || []).forEach((f: FormField) => {
+          if (f.type === 'paragraph') return;
+          const raw = data[f.fieldName];
+          fields.push({
+            label: f.label || f.fieldName,
+            value: formatValue(raw, f),
+          });
+        });
+      });
+
+      // Fallback: if no schema fields resolved yet, dump raw entries
+      if (fields.length === 0) {
+        Object.entries(data)
+          .filter(([k]) => !k.startsWith('_'))
+          .forEach(([k, v]) => {
+            fields.push({
+              label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+              value: typeof v === 'object' && v !== null ? JSON.stringify(v) : (v as any),
+            });
+          });
+      }
+
+      return { title: t.name, fields };
+    });
+  }, [templates, templateSections, formProgressMap]);
+
+  return (
+    <ReviewAcknowledgement
+      mode={mode}
+      loading={loading}
+      onAcknowledge={onAcknowledge}
+      onEdit={onEdit}
+      title={title}
+      description={description}
+      sections={sections}
+    />
+  );
+}
+
+function useTemplateSections(templateId: string) {
+  const { data: version } = useLatestPublishedVersion(templateId);
+  const { data: sections = [] } = useVersionSections(version?.id || null);
+  return sections;
+}
+
+function formatValue(value: any, field: FormField): any {
+  if (value == null || value === '') return null;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null;
+    if (field.type === 'table') {
+      return `${value.length} row(s)`;
+    }
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    if ((value as any).fileName) return (value as any).fileName;
+    if ((value as any).name) return (value as any).name;
+    return JSON.stringify(value);
+  }
+  return value;
+}
