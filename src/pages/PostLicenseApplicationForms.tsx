@@ -10,6 +10,8 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { useReviewSettings } from '@/hooks/useReviewSettings';
 import {
   ArrowLeft, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
