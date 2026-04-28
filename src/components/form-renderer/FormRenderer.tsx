@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,8 @@ interface Props {
   initialData?: Record<string, any>;
   onSaveDraft: (data: Record<string, any>) => void;
   onSubmit: (data: Record<string, any>) => void;
+  /** Optional: fires on every field change with merged data (used for live state sync to parent). */
+  onChange?: (data: Record<string, any>) => void;
   saving?: boolean;
   readOnly?: boolean;
   applicationId?: string;
@@ -149,7 +151,7 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId, showFullTabTitles,
+  formName, sections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -243,6 +245,16 @@ export function FormRenderer({
     }
     return merged;
   }, [formData, repeatableData]);
+
+  // Bubble live changes up to parent (used by Returns to keep allData in sync for Save/Next)
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!onChangeRef.current) return;
+    if (!didMountRef.current) { didMountRef.current = true; return; }
+    onChangeRef.current(getMergedData());
+  }, [formData, repeatableData, getMergedData]);
 
   const validateCurrentStep = (): boolean => {
     if (!currentSection) return true;
