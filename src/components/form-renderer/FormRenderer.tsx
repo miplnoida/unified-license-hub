@@ -246,6 +246,16 @@ export function FormRenderer({
     return merged;
   }, [formData, repeatableData]);
 
+  // Bubble live changes up to parent (used by Returns to keep allData in sync for Save/Next)
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!onChangeRef.current) return;
+    if (!didMountRef.current) { didMountRef.current = true; return; }
+    onChangeRef.current(getMergedData());
+  }, [formData, repeatableData, getMergedData]);
+
   const validateCurrentStep = (): boolean => {
     if (!currentSection) return true;
     const stepErrors: Record<string, string> = {};
