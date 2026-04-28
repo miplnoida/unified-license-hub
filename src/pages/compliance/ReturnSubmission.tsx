@@ -11,10 +11,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Loader2, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, Save, XCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, Save, XCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface ReturnConfig {
@@ -50,6 +52,9 @@ interface LicenseOption {
   id: string;
   license_number: string;
   license_type: string;
+  holder_id: string;
+  licensee_id?: string | null;
+  licensee_name?: string;
 }
 
 function makeField(overrides: Partial<FormField> & { id: string; label: string; fieldName: string; type: FormField['type'] }): FormField {
@@ -69,6 +74,7 @@ type Step = 'create' | 'fill';
 
 export default function ReturnSubmission() {
   const { user } = useAuth();
+  const { isPpoc, activeLicensee, activeLicenseeId, mappedLicensees } = usePpoc();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnId = searchParams.get('returnId');
@@ -100,16 +106,58 @@ export default function ReturnSubmission() {
 
   useEffect(() => {
     loadInitial();
-  }, []);
+    // Reload license list whenever the PPOC switches active licensee.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLicenseeId]);
+
+  // When PPOC switches licensee, reset license/period selections so they don't
+  // accidentally submit against the previous entity.
+  useEffect(() => {
+    if (isPpoc && step === 'create') {
+      setSelectedLicenseId('');
+    }
+  }, [activeLicenseeId, isPpoc, step]);
 
   const loadInitial = async () => {
     setLoading(true);
     const [configRes, licenseRes] = await Promise.all([
       supabase.from('return_configurations' as any).select('*').eq('is_active', true),
-      supabase.from('licenses').select('id, license_number, license_type').eq('status', 'active'),
+      supabase
+        .from('licenses')
+        .select('id, license_number, license_type, holder_id')
+        .eq('status', 'active'),
     ]);
     setConfigs((configRes.data || []) as any);
-    setLicenses((licenseRes.data || []) as any);
+
+    // Resolve licensee_id for each license via holder_id -> profile.licensee_id
+    const rawLicenses = (licenseRes.data || []) as any[];
+    let enrichedLicenses: LicenseOption[] = rawLicenses.map(l => ({ ...l }));
+    const holderIds = Array.from(new Set(rawLicenses.map(l => l.holder_id).filter(Boolean)));
+    if (holderIds.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, licensee_id')
+        .in('id', holderIds);
+      const profMap = Object.fromEntries(((profs || []) as any[]).map(p => [p.id, p.licensee_id]));
+      const licenseeIds = Array.from(new Set(Object.values(profMap).filter(Boolean) as string[]));
+      const licMap: Record<string, string> = {};
+      if (licenseeIds.length > 0) {
+        const { data: lics } = await supabase.from('licensees').select('id, name').in('id', licenseeIds);
+        for (const l of (lics || []) as any[]) licMap[l.id] = l.name;
+      }
+      enrichedLicenses = rawLicenses.map(l => {
+        const lid = profMap[l.holder_id] || null;
+        return {
+          id: l.id,
+          license_number: l.license_number,
+          license_type: l.license_type,
+          holder_id: l.holder_id,
+          licensee_id: lid,
+          licensee_name: lid ? licMap[lid] : undefined,
+        };
+      });
+    }
+    setLicenses(enrichedLicenses);
 
     if (returnId) {
       const { data: retData } = await supabase.from('compliance_returns' as any).select('*').eq('id', returnId).single();
@@ -162,6 +210,24 @@ export default function ReturnSubmission() {
     }
     if (!user) return;
 
+    // PPOC must select a license for an entity, and the license must belong to
+    // the currently active mapped licensee.
+    if (isPpoc) {
+      if (!activeLicenseeId) {
+        toast.error('Select a licensee in the header switcher before creating a return');
+        return;
+      }
+      if (!selectedLicenseId) {
+        toast.error('Please select the license to file this return for');
+        return;
+      }
+      const lic = licenses.find(l => l.id === selectedLicenseId);
+      if (!lic || lic.licensee_id !== activeLicenseeId) {
+        toast.error('Selected license does not belong to the active licensee');
+        return;
+      }
+    }
+
     setCreating(true);
     const config = configs.find(c => c.id === selectedConfigId);
     const dateObj = new Date(periodEnd);
@@ -183,6 +249,9 @@ export default function ReturnSubmission() {
       return_config_id: selectedConfigId,
       license_id: selectedLicenseId || null,
       submitter_id: user.id,
+      // Tag the submission to the licensee the PPOC is acting for. Stays null for
+      // licensee_primary/secondary users acting for their own entity.
+      on_behalf_of_licensee_id: isPpoc ? selectedLicenseId || null : null,
       period_start: periodStart,
       period_end: periodEnd,
       due_date: dueDate,
@@ -609,22 +678,49 @@ export default function ReturnSubmission() {
             actions={<Button variant="outline" onClick={() => navigate('/compliance/returns')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>}
           />
 
+          {/* PPOC must select a licensee from the header before proceeding */}
+          {isPpoc && !activeLicenseeId && (
+            <Alert variant="destructive" className="max-w-2xl">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Select a licensee from the switcher at the top of the page before creating a return.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Card className="max-w-2xl">
             <CardHeader>
-              <CardTitle className="text-base">Return Details</CardTitle>
+              <CardTitle className="text-base">
+                Return Details
+                {isPpoc && activeLicensee && (
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    — for <strong className="text-foreground">{activeLicensee.licensee_name}</strong>
+                  </span>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Return For (License) */}
               <div className="space-y-2">
-                <Label>Return For</Label>
+                <Label>
+                  Return For {isPpoc && <span className="text-destructive">*</span>}
+                </Label>
                 <Select value={selectedLicenseId} onValueChange={setSelectedLicenseId}>
-                  <SelectTrigger><SelectValue placeholder="Select license..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={isPpoc ? `Select license of ${activeLicensee?.licensee_name || 'licensee'}...` : 'Select license...'} /></SelectTrigger>
                   <SelectContent>
-                    {licenses.map(l => (
+                    {(isPpoc
+                      ? licenses.filter(l => l.licensee_id === activeLicenseeId)
+                      : licenses
+                    ).map(l => (
                       <SelectItem key={l.id} value={l.id}>
                         {l.license_number} — {l.license_type}
                       </SelectItem>
                     ))}
+                    {isPpoc && licenses.filter(l => l.licensee_id === activeLicenseeId).length === 0 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No active licenses found for this licensee.
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -688,7 +784,7 @@ export default function ReturnSubmission() {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={creating || !selectedConfigId || !periodEnd}
+                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!activeLicenseeId || !selectedLicenseId))}
                   className="gap-2"
                 >
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

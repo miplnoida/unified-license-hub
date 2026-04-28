@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,10 +56,12 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function ComplianceReturns() {
   const { user } = useAuth();
+  const { isPpoc, activeLicensee, activeLicenseeId } = usePpoc();
   const navigate = useNavigate();
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [licenseLicenseeMap, setLicenseLicenseeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,7 +71,10 @@ export default function ComplianceReturns() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+    // Reload list when PPOC switches active licensee so the dataset always
+    // represents the licensee the user is currently acting for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLicenseeId]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -80,19 +86,53 @@ export default function ComplianceReturns() {
     if (!returnsRes.error) setReturns((returnsRes.data || []) as any);
     if (!configsRes.error) setConfigs((configsRes.data || []) as any);
     if (!penaltiesRes.error) setPenalties((penaltiesRes.data || []) as any);
+
+    // Build license → licensee map (only needed for PPOC filtering; cheap query)
+    const licenseIds = Array.from(new Set(((returnsRes.data || []) as any[]).map(r => r.license_id).filter(Boolean)));
+    if (licenseIds.length > 0) {
+      const { data: lics } = await supabase
+        .from('licenses')
+        .select('id, holder_id')
+        .in('id', licenseIds);
+      const holderIds = Array.from(new Set(((lics || []) as any[]).map(l => l.holder_id).filter(Boolean)));
+      let profMap: Record<string, string> = {};
+      if (holderIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, licensee_id')
+          .in('id', holderIds);
+        profMap = Object.fromEntries(((profs || []) as any[]).map(p => [p.id, p.licensee_id]));
+      }
+      const map: Record<string, string> = {};
+      for (const l of (lics || []) as any[]) {
+        const lid = profMap[l.holder_id];
+        if (lid) map[l.id] = lid;
+      }
+      setLicenseLicenseeMap(map);
+    } else {
+      setLicenseLicenseeMap({});
+    }
     setLoading(false);
   };
 
-  // Mark overdue returns
+  // Mark overdue + apply PPOC active-licensee filter
   const processedReturns = useMemo(() => {
     const now = new Date();
-    return returns.map(r => {
+    let list = returns.map(r => {
       if ((r.status === 'pending' || r.status === 'draft') && new Date(r.due_date) < now) {
         return { ...r, status: 'overdue' as ReturnStatus };
       }
       return r;
     });
-  }, [returns]);
+    // PPOC: only show returns belonging to the actively-selected licensee
+    if (isPpoc && activeLicenseeId) {
+      list = list.filter(r => {
+        if (!r.license_id) return false;
+        return licenseLicenseeMap[r.license_id] === activeLicenseeId;
+      });
+    }
+    return list;
+  }, [returns, isPpoc, activeLicenseeId, licenseLicenseeMap]);
 
   const stats = useMemo(() => {
     const total = processedReturns.length;
@@ -158,11 +198,15 @@ export default function ComplianceReturns() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title={isInternal ? 'Returns Management' : 'My Returns'}
-          description={isInternal ? 'Monitor compliance returns, track penalties, and review submissions' : 'Submit and track your periodic compliance returns'}
+          title={isInternal ? 'Returns Management' : isPpoc && activeLicensee ? `Returns — ${activeLicensee.licensee_name}` : 'My Returns'}
+          description={isInternal ? 'Monitor compliance returns, track penalties, and review submissions' : isPpoc ? 'Submit and track returns on behalf of the selected licensee' : 'Submit and track your periodic compliance returns'}
           actions={
             !isInternal ? (
-              <Button onClick={() => navigate('/compliance/returns/submit')}>
+              <Button
+                onClick={() => navigate('/compliance/returns/submit')}
+                disabled={isPpoc && !activeLicenseeId}
+                title={isPpoc && !activeLicenseeId ? 'Select a licensee first' : undefined}
+              >
                 <Send className="h-4 w-4 mr-2" />New Submission
               </Button>
             ) : undefined
