@@ -227,7 +227,7 @@ export default function FormManagement() {
     if (!result.isConfirmed) return;
     deleteTemplateMutation.mutate(id, {
       onSuccess: () => Swal.fire({ title: 'Deleted!', text: 'Form template has been deleted.', icon: 'success', timer: 1500, showConfirmButton: false }),
-      onError: () => Swal.fire({ title: 'Error', text: 'Failed to delete form template.', icon: 'error' }),
+      onError: (err: any) => Swal.fire({ title: 'Error', text: err?.message || 'Failed to delete form template.', icon: 'error' }),
     });
   };
 
