@@ -212,7 +212,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="Manage Primary Point of Contact assignments to licensee entities. A PPOC can be mapped to multiple entities."
+          description="A Primary Point of Contact (PPOC) is an external person who acts as the primary user for one or more licensee entities. The same PPOC can be linked to multiple entities (e.g. one person serving as PPOC for both ABC Ltd and DEF Ltd)."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
