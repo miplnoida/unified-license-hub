@@ -349,11 +349,31 @@ export default function FormManagement() {
                 {someSelected && (
                   <Card>
                     <CardContent className="py-3 flex items-center gap-3 flex-wrap">
-                      <span className="text-sm font-medium">{selectedIds.size} form(s) selected</span>
-                      <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
-                        {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                        Publish Selected
-                      </Button>
+                      <span className="text-sm font-medium">
+                        {selectedIds.size} form(s) selected
+                        {selectedPublishedIds.length !== selectedIds.size && (
+                          <span className="text-muted-foreground font-normal ml-2">
+                            ({selectedPublishedIds.length} published eligible to unpublish)
+                          </span>
+                        )}
+                      </span>
+                      {canEditForms && (
+                        <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
+                          {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                          Publish Selected
+                        </Button>
+                      )}
+                      {canEditForms && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleBulkUnpublish}
+                          disabled={bulkLoading || selectedPublishedIds.length === 0}
+                        >
+                          {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                          Unpublish Selected
+                        </Button>
+                      )}
                       <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkLoading}>
                         {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
                         Delete Selected
