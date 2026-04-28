@@ -181,6 +181,7 @@ export default function FormManagement() {
     }
   };
 
+  const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     const result = await Swal.fire({
       title: 'Bulk Delete',
