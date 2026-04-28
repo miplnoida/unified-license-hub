@@ -177,20 +177,34 @@ export function AttachmentList({
                 <span>{new Date(att.created_at).toLocaleDateString()}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={() => handleDownload(att)}
-              disabled={downloadingId === att.id}
-              aria-label={`Download ${att.file_name}`}
-            >
-              {downloadingId === att.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleView(att)}
+                disabled={downloadingId === att.id}
+                aria-label={`View ${att.file_name}`}
+                title="View in new tab"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handleDownload(att)}
+                disabled={downloadingId === att.id}
+                aria-label={`Download ${att.file_name}`}
+                title="Download"
+              >
+                {downloadingId === att.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         ))}
       </div>
