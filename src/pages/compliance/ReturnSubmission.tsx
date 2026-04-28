@@ -210,6 +210,24 @@ export default function ReturnSubmission() {
     }
     if (!user) return;
 
+    // PPOC must select a license for an entity, and the license must belong to
+    // the currently active mapped licensee.
+    if (isPpoc) {
+      if (!activeLicenseeId) {
+        toast.error('Select a licensee in the header switcher before creating a return');
+        return;
+      }
+      if (!selectedLicenseId) {
+        toast.error('Please select the license to file this return for');
+        return;
+      }
+      const lic = licenses.find(l => l.id === selectedLicenseId);
+      if (!lic || lic.licensee_id !== activeLicenseeId) {
+        toast.error('Selected license does not belong to the active licensee');
+        return;
+      }
+    }
+
     setCreating(true);
     const config = configs.find(c => c.id === selectedConfigId);
     const dateObj = new Date(periodEnd);
@@ -231,6 +249,9 @@ export default function ReturnSubmission() {
       return_config_id: selectedConfigId,
       license_id: selectedLicenseId || null,
       submitter_id: user.id,
+      // Tag the submission to the licensee the PPOC is acting for. Stays null for
+      // licensee_primary/secondary users acting for their own entity.
+      on_behalf_of_licensee_id: isPpoc ? selectedLicenseId || null : null,
       period_start: periodStart,
       period_end: periodEnd,
       due_date: dueDate,
