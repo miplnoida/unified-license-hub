@@ -572,6 +572,23 @@ export function useDeleteFormTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Clean up dependent rows that have NO ACTION FKs and would block delete.
+      // Order matters: child data first, then linking config rows, then responses.
+      const cleanups: Array<{ table: string; col: string }> = [
+        { table: 'return_form_data', col: 'form_id' },
+        { table: 'return_comments', col: 'form_id' },
+        { table: 'return_config_forms', col: 'form_id' },
+        { table: 'form_responses', col: 'template_id' },
+      ];
+      for (const { table, col } of cleanups) {
+        const { error: cErr } = await supabase.from(table as any).delete().eq(col, id);
+        if (cErr && cErr.code !== '42P01') {
+          // Ignore "table does not exist"; surface anything else
+          throw new Error(`${table}: ${cErr.message}`);
+        }
+      }
+      // registration_form_configs has ON DELETE SET NULL — safe to leave.
+      // form_versions / form_field_dependencies cascade automatically.
       const { error } = await supabase.from('form_templates').delete().eq('id', id);
       if (error) throw error;
     },
