@@ -17,6 +17,7 @@ import { DocumentList } from '@/components/documents/DocumentList';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
+import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
