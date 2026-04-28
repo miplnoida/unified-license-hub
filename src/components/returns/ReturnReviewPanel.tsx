@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Loader2 } from 'lucide-react';
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
 interface ReturnReviewPanelProps {
   returnSummary: { label: string; value: string | number | null | undefined }[];
@@ -25,88 +25,43 @@ interface FormReviewBlockProps {
   data: Record<string, any>;
 }
 
-function formatValue(val: any): React.ReactNode {
-  if (val == null || val === '') {
-    return <span className="text-muted-foreground/60 italic">Not provided</span>;
-  }
-  if (typeof val === 'boolean') {
-    return val ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—';
-  }
-  if (typeof val === 'object') {
-    try { return <code className="text-xs">{JSON.stringify(val)}</code>; }
-    catch { return String(val); }
-  }
-  // Try parse JSON-string objects (saved by FillReturnPage.handleSave)
-  if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
-    try {
-      const parsed = JSON.parse(val);
-      if (typeof parsed === 'object') return <code className="text-xs">{JSON.stringify(parsed)}</code>;
-    } catch { /* fall-through */ }
-  }
-  return String(val);
-}
-
 function FormReviewBlock({ formId, name, tabName, data }: FormReviewBlockProps) {
   const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
 
   const loading = vLoading || sLoading;
 
-  // Build a label map: fieldName → label
-  const labelMap = new Map<string, string>();
-  sections.forEach((sec: any) => {
-    (sec.fields || []).forEach((f: any) => {
-      if (f?.fieldName) labelMap.set(f.fieldName, f.label || f.fieldName);
-    });
-  });
-
-  // Filter out internal/repeatable scaffolding keys
-  const entries = Object.entries(data || {}).filter(
-    ([k]) => k !== '__repeatable' && !k.startsWith('_repeatable_')
-  );
-
-  const filledCount = entries.filter(([, v]) => v != null && v !== '').length;
-
   return (
-    <AccordionItem value={`form-${formId}`}>
-      <AccordionTrigger className="text-sm font-semibold">
-        <div className="flex items-center gap-2 flex-wrap">
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2 flex-wrap">
           <FileText className="h-4 w-4 text-primary" />
           <span>{name}</span>
           <Badge variant="outline" className="text-[10px]">{tabName}</Badge>
-          <Badge variant="outline" className="text-[10px]">
-            {filledCount}/{entries.length || 0} filled
-          </Badge>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
         {loading ? (
           <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading fields...
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading form...
           </div>
-        ) : entries.length === 0 ? (
+        ) : sections.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-2">
-            No data entered for this form yet.
+            No fields defined for this form.
           </p>
         ) : (
-          <div className="grid gap-2 py-2">
-            {entries.map(([fieldName, value]) => (
-              <div
-                key={fieldName}
-                className="flex items-start justify-between gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50 border-b border-border/40 last:border-0"
-              >
-                <span className="text-muted-foreground min-w-[180px] shrink-0">
-                  {labelMap.get(fieldName) || fieldName}
-                </span>
-                <span className="font-medium text-right break-words max-w-[60%]">
-                  {formatValue(value)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <FormRenderer
+            formName=""
+            sections={sections}
+            initialData={data}
+            onSaveDraft={() => {}}
+            onSubmit={() => {}}
+            readOnly
+            showFullTabTitles
+          />
         )}
-      </AccordionContent>
-    </AccordionItem>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -150,27 +105,21 @@ export function ReturnReviewPanel({
           </div>
         </div>
 
-        {/* Per-form filled values */}
-        <div>
-          <div className="text-sm font-semibold mb-2">Submitted Form Data</div>
+        {/* Per-form filled values rendered as read-only forms */}
+        <div className="space-y-4">
+          <div className="text-sm font-semibold">Submitted Form Data</div>
           {forms.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">No forms to review.</p>
           ) : (
-            <Accordion
-              type="multiple"
-              defaultValue={forms.map(f => `form-${f.formId}`)}
-              className="border rounded-md divide-y"
-            >
-              {forms.map(f => (
-                <FormReviewBlock
-                  key={f.formId}
-                  formId={f.formId}
-                  name={f.name}
-                  tabName={f.tabName}
-                  data={allData[f.formId] || {}}
-                />
-              ))}
-            </Accordion>
+            forms.map(f => (
+              <FormReviewBlock
+                key={f.formId}
+                formId={f.formId}
+                name={f.name}
+                tabName={f.tabName}
+                data={allData[f.formId] || {}}
+              />
+            ))
           )}
         </div>
 
@@ -192,7 +141,7 @@ export function ReturnReviewPanel({
               onClick={onAcknowledge}
               disabled={!acknowledged || loading}
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
               Acknowledge & Submit
             </Button>
           </div>
