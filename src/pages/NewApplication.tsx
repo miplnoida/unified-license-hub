@@ -60,6 +60,7 @@ export default function NewApplication() {
   const [formProgressMap, setFormProgressMap] = useState<Record<string, FormProgress>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { data: reviewSettings } = useReviewSettings();
   const [submitting, setSubmitting] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
