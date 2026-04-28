@@ -1,6 +1,8 @@
 import { Route } from 'react-router-dom';
 import { lazy } from 'react';
 import { P } from '@/routes/routeHelpers';
+import { ModuleRoute } from '@/components/auth/RouteGuards';
+import type { PermissionModule } from '@/lib/permissionModules';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
@@ -25,33 +27,37 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
 
+function M({ module, children }: { module: PermissionModule; children: React.ReactNode }) {
+  return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
+}
+
 export const dashboardRoutes = (
   <>
     <Route path="/dashboard" element={<P><Dashboard /></P>} />
 
     <Route path="/applications" element={<P><ApplicationsList /></P>} />
     <Route path="/applications/new" element={<P><NewApplication /></P>} />
-    <Route path="/applications/queue" element={<P><ApplicationsList /></P>} />
+    <Route path="/applications/queue" element={<M module="application_management"><ApplicationsList /></M>} />
     <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
 
     <Route path="/licenses" element={<P><LicensesList /></P>} />
     <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
 
-    <Route path="/returns-management" element={<P><ViewReturns /></P>} />
+    <Route path="/returns-management" element={<M module="returns_management"><ViewReturns /></M>} />
 
     <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
     <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
 
     <Route path="/payments" element={<P><PaymentHistory /></P>} />
     <Route path="/payments/:id" element={<P><PaymentDetail /></P>} />
-    <Route path="/complaints" element={<P><ComplaintsList /></P>} />
-    <Route path="/workflows" element={<P><WorkflowList /></P>} />
-    <Route path="/delegation-rules" element={<P><DelegationRules /></P>} />
+    <Route path="/complaints" element={<M module="complaint_management"><ComplaintsList /></M>} />
+    <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
+    <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
     <Route path="/documents" element={<P><DocumentStore /></P>} />
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
-    <Route path="/analytics" element={<P><AnalyticsDashboard /></P>} />
-    <Route path="/reports" element={<P><ReportsDashboard /></P>} />
-    <Route path="/reports/*" element={<P><ReportsDashboard /></P>} />
+    <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
+    <Route path="/reports" element={<M module="report_management"><ReportsDashboard /></M>} />
+    <Route path="/reports/*" element={<M module="report_management"><ReportsDashboard /></M>} />
 
     <Route path="/forms/:formId" element={<P><FormDetail /></P>} />
 

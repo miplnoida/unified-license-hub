@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
@@ -25,6 +26,7 @@ interface Props {
 
 export function WorkflowPanel({ applicationId, workflowId, applicationStatus, onStatusChange }: Props) {
   const { user } = useAuth();
+  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
   const [processing, setProcessing] = useState(false);
   const [approvalResult, setApprovalResult] = useState<{
@@ -34,7 +36,7 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
     web_user_created?: boolean;
   } | null>(null);
 
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
   const { data: instances = [] } = useWorkflowInstances('application', applicationId);
   const performAction = usePerformAction();
