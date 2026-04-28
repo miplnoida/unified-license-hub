@@ -193,16 +193,24 @@ export default function FormManagement() {
     });
     if (!result.isConfirmed) return;
     setBulkLoading(true);
-    try {
-      for (const id of ids) {
+    const failures: string[] = [];
+    for (const id of ids) {
+      try {
         await deleteTemplateMutation.mutateAsync(id);
+      } catch (e: any) {
+        failures.push(`${id.slice(0, 8)}: ${e?.message || 'unknown error'}`);
       }
+    }
+    setSelectedIds(new Set());
+    setBulkLoading(false);
+    if (failures.length === 0) {
       toast.success(`${ids.length} form(s) deleted successfully.`);
-      setSelectedIds(new Set());
-    } catch {
-      toast.error('Failed to delete some forms.');
-    } finally {
-      setBulkLoading(false);
+    } else {
+      Swal.fire({
+        title: 'Some deletes failed',
+        html: `<div style="text-align:left;font-size:12px"><b>${ids.length - failures.length}</b> deleted, <b>${failures.length}</b> failed:<br/><pre style="white-space:pre-wrap">${failures.join('\n')}</pre></div>`,
+        icon: 'warning',
+      });
     }
   };
 
