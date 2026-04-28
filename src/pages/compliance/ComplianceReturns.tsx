@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,10 +56,12 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function ComplianceReturns() {
   const { user } = useAuth();
+  const { isPpoc, activeLicensee, activeLicenseeId } = usePpoc();
   const navigate = useNavigate();
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
+  const [licenseLicenseeMap, setLicenseLicenseeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,7 +71,10 @@ export default function ComplianceReturns() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+    // Reload list when PPOC switches active licensee so the dataset always
+    // represents the licensee the user is currently acting for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLicenseeId]);
 
   const loadAll = async () => {
     setLoading(true);
