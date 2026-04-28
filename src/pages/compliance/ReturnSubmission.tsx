@@ -106,16 +106,58 @@ export default function ReturnSubmission() {
 
   useEffect(() => {
     loadInitial();
-  }, []);
+    // Reload license list whenever the PPOC switches active licensee.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLicenseeId]);
+
+  // When PPOC switches licensee, reset license/period selections so they don't
+  // accidentally submit against the previous entity.
+  useEffect(() => {
+    if (isPpoc && step === 'create') {
+      setSelectedLicenseId('');
+    }
+  }, [activeLicenseeId, isPpoc, step]);
 
   const loadInitial = async () => {
     setLoading(true);
     const [configRes, licenseRes] = await Promise.all([
       supabase.from('return_configurations' as any).select('*').eq('is_active', true),
-      supabase.from('licenses').select('id, license_number, license_type').eq('status', 'active'),
+      supabase
+        .from('licenses')
+        .select('id, license_number, license_type, holder_id')
+        .eq('status', 'active'),
     ]);
     setConfigs((configRes.data || []) as any);
-    setLicenses((licenseRes.data || []) as any);
+
+    // Resolve licensee_id for each license via holder_id -> profile.licensee_id
+    const rawLicenses = (licenseRes.data || []) as any[];
+    let enrichedLicenses: LicenseOption[] = rawLicenses.map(l => ({ ...l }));
+    const holderIds = Array.from(new Set(rawLicenses.map(l => l.holder_id).filter(Boolean)));
+    if (holderIds.length > 0) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, licensee_id')
+        .in('id', holderIds);
+      const profMap = Object.fromEntries(((profs || []) as any[]).map(p => [p.id, p.licensee_id]));
+      const licenseeIds = Array.from(new Set(Object.values(profMap).filter(Boolean) as string[]));
+      const licMap: Record<string, string> = {};
+      if (licenseeIds.length > 0) {
+        const { data: lics } = await supabase.from('licensees').select('id, name').in('id', licenseeIds);
+        for (const l of (lics || []) as any[]) licMap[l.id] = l.name;
+      }
+      enrichedLicenses = rawLicenses.map(l => {
+        const lid = profMap[l.holder_id] || null;
+        return {
+          id: l.id,
+          license_number: l.license_number,
+          license_type: l.license_type,
+          holder_id: l.holder_id,
+          licensee_id: lid,
+          licensee_name: lid ? licMap[lid] : undefined,
+        };
+      });
+    }
+    setLicenses(enrichedLicenses);
 
     if (returnId) {
       const { data: retData } = await supabase.from('compliance_returns' as any).select('*').eq('id', returnId).single();
