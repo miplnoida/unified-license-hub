@@ -120,7 +120,7 @@ export default function ViewReturnPage() {
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
   if (!returnData) return <DashboardLayout><p className="text-center py-20">Return not found</p></DashboardLayout>;
 
-  const tabs = [...new Set(configForms.map(f => f.tab_name))];
+  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
   if (!activeTab && tabs.length > 0) setActiveTab(tabs[0]);
   const activeRequest = requests.find(r => r.status === 'active');
 
