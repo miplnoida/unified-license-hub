@@ -1020,39 +1020,41 @@ export default function NewApplication() {
               </CardContent>
             </Card>
 
-            <ReviewAcknowledgement
-              mode="readonly"
+            <ApplicationReviewBuilder
+              templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
+              formProgressMap={formProgressMap}
+              mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
               onAcknowledge={() =>
                 handleFinalSubmit(
                   'I have reviewed all the information and confirm the details provided are accurate and complete.'
                 )
               }
-              sections={[
-                {
-                  title: 'Category Selection',
-                  fields: [
-                    { label: 'Sector', value: sectorObj?.name || null },
-                    { label: 'Sub-Sector', value: subSectorObj?.name || null },
-                    { label: 'Category', value: categoryObj?.name || null },
-                  ],
-                },
-                {
-                  title: `Forms (${completedCount}/${matchedTemplates.length} completed)`,
-                  fields: matchedTemplates.map(t => ({
-                    label: t.name,
-                    value: formProgressMap[t.id]?.status === 'completed' ? 'Completed' : 'Incomplete',
-                  })),
-                },
-                {
-                  title: 'Payment',
-                  fields: [
-                    { label: 'Status', value: paymentStatus === 'success' ? 'Paid' : 'Pending' },
-                    { label: 'Amount', value: `$${feeAmount.toFixed(2)}` },
-                  ],
-                },
-              ]}
+              onEdit={(idx) => {
+                const tmpl = matchedTemplates[idx];
+                if (tmpl) {
+                  setActiveFormTemplateId(tmpl.id);
+                  setCurrentStep('forms');
+                }
+              }}
+              title="Review Your Application"
+              description="Please review all entered information before final submission."
             />
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Sector</span><span className="font-medium">{sectorObj?.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Sub-Sector</span><span className="font-medium">{subSectorObj?.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Category</span><span className="font-medium">{categoryObj?.name || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Forms Completed</span><span className="font-medium">{completedCount}/{matchedTemplates.length}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Payment</span><span className="font-medium">{paymentStatus === 'success' ? 'Paid' : 'Pending'} (${feeAmount.toFixed(2)})</span></div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex justify-start">
               <Button variant="outline" onClick={() => setCurrentStep('payment')}>
