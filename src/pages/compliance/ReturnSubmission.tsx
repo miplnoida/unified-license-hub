@@ -52,6 +52,9 @@ interface LicenseOption {
   id: string;
   license_number: string;
   license_type: string;
+  holder_id: string;
+  licensee_id?: string | null;
+  licensee_name?: string;
 }
 
 function makeField(overrides: Partial<FormField> & { id: string; label: string; fieldName: string; type: FormField['type'] }): FormField {
@@ -71,6 +74,7 @@ type Step = 'create' | 'fill';
 
 export default function ReturnSubmission() {
   const { user } = useAuth();
+  const { isPpoc, activeLicensee, activeLicenseeId, mappedLicensees } = usePpoc();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnId = searchParams.get('returnId');
