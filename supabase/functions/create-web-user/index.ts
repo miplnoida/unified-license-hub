@@ -24,7 +24,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, gender, send_email, position, username } = await req.json();
+    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, role_ids, gender, send_email, position, username } = await req.json();
+
+    // Normalize role_ids: accept array (preferred) or single role_id (back-compat)
+    const dynamicRoleIds: string[] = Array.isArray(role_ids) && role_ids.length > 0
+      ? role_ids.filter((x: any) => typeof x === 'string' && x.length > 0)
+      : (role_id ? [role_id] : []);
+    const primaryRoleId: string | null = dynamicRoleIds[0] || null;
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -42,8 +48,8 @@ Deno.serve(async (req) => {
     let effectiveRole = role;
 
     if (!effectiveRole) {
-      if (role_id) {
-        // Dynamic role: assign safe baseline; real access controlled by role_id.
+      if (primaryRoleId) {
+        // Dynamic role(s): assign safe baseline; real access controlled via user_dynamic_roles.
         effectiveRole = 'analyst';
       } else if (user_type) {
         effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
@@ -55,17 +61,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Guard: if a role_id was provided but the caller also passed an elevated
-    // `role` derived from the dynamic role's system_role, downgrade to baseline
-    // to prevent privilege escalation through misconfigured dynamic roles.
-    if (role_id && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
-      const { data: roleData } = await supabaseAdmin
+    // Guard: if dynamic role(s) provided but caller passed elevated `role`,
+    // downgrade unless ALL provided dynamic roles are built-in system roles.
+    if (primaryRoleId && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
+      const { data: roleRows } = await supabaseAdmin
         .from("roles")
-        .select("is_system, system_role")
-        .eq("id", role_id)
-        .single();
-      // Only allow admin/super_admin auth role if the dynamic role is a built-in system role.
-      if (!roleData?.is_system) {
+        .select("id, is_system")
+        .in("id", dynamicRoleIds);
+      const allSystem = (roleRows || []).length === dynamicRoleIds.length
+        && (roleRows || []).every((r: any) => r.is_system);
+      if (!allSystem) {
         effectiveRole = 'analyst';
       }
     }
@@ -93,7 +98,7 @@ Deno.serve(async (req) => {
     // Update profile with additional fields
     if (userData.user) {
       const updates: Record<string, any> = { force_password_change: true };
-      if (role_id) updates.role_id = role_id;
+      if (primaryRoleId) updates.role_id = primaryRoleId;
       if (gender) updates.gender = gender;
       if (licensee_id) updates.licensee_id = licensee_id;
 
@@ -104,6 +109,17 @@ Deno.serve(async (req) => {
 
       if (updateError) {
         console.error("Failed to update profile:", updateError.message);
+      }
+
+      // Persist all dynamic role assignments to user_dynamic_roles (source of truth for RBAC)
+      if (dynamicRoleIds.length > 0) {
+        const rows = dynamicRoleIds.map((rid) => ({ user_id: userData.user!.id, role_id: rid }));
+        const { error: udrError } = await supabaseAdmin
+          .from("user_dynamic_roles")
+          .upsert(rows, { onConflict: "user_id,role_id" });
+        if (udrError) {
+          console.error("Failed to insert user_dynamic_roles:", udrError.message);
+        }
       }
 
       // Send credentials email
