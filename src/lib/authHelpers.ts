@@ -51,7 +51,7 @@ function mapPreLicenseeProfile(userId: string, email: string, profile: PreLicens
 /**
  * Build a PlatformUser from a profiles row.
  */
-function mapSystemProfile(userId: string, email: string, role: AppRole, profile: ProfileRow): PlatformUser {
+function mapSystemProfile(userId: string, email: string, role: AppRole, profile: ProfileRow, dynamicRoleName?: string): PlatformUser {
   return {
     id: userId,
     email,
@@ -62,6 +62,7 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
     licenseeId: profile.licensee_id || undefined,
     isPreLicensee: false,
     forcePasswordChange: profile.force_password_change || false,
+    dynamicRoleName,
   };
 }
 
@@ -112,7 +113,29 @@ export async function fetchPlatformUser(userId: string, email: string): Promise<
   }
 
   if (data) {
-    return mapSystemProfile(userId, email, role, data);
+    // Resolve dynamic role name (preferred display label) from user_dynamic_roles → roles.name.
+    let dynamicRoleName: string | undefined;
+    try {
+      const { data: udr } = await supabase
+        .from('user_dynamic_roles' as any)
+        .select('role_id')
+        .eq('user_id', userId);
+      let roleIds: string[] = ((udr as any[]) || []).map(r => r.role_id).filter(Boolean);
+      if (roleIds.length === 0 && (data as any).role_id) {
+        roleIds = [(data as any).role_id];
+      }
+      if (roleIds.length > 0) {
+        const { data: roleRows } = await supabase
+          .from('roles' as any)
+          .select('name')
+          .in('id', roleIds);
+        const names = ((roleRows as any[]) || []).map(r => r.name).filter(Boolean);
+        if (names.length > 0) dynamicRoleName = names.join(', ');
+      }
+    } catch (e) {
+      console.warn('[Auth] Could not resolve dynamic role name:', e);
+    }
+    return mapSystemProfile(userId, email, role, data, dynamicRoleName);
   }
 
   // Fallback: no profile row found

@@ -64,6 +64,8 @@ export interface PlatformUser {
   licenseeId?: string;
   isPreLicensee: boolean;
   forcePasswordChange?: boolean;
+  /** Display name of the assigned dynamic role (from roles.name), if any. */
+  dynamicRoleName?: string;
 }
 
 // Application statuses - simplified lifecycle
