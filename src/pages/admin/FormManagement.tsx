@@ -19,6 +19,7 @@ import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText }
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,8 @@ export default function FormManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeRegulatorId } = useRegulator();
   const queryClient = useQueryClient();
+  const { hasPermission } = useUserDynamicPermissions();
+  const canEditForms = hasPermission('form_management', 'edit');
 
   const activeTab = searchParams.get('tab') || 'pre_license';
   const setActiveTab = (tab: string) => {
@@ -138,6 +141,41 @@ export default function FormManagement() {
       setSelectedIds(new Set());
     } catch {
       toast.error('Failed to bulk publish forms.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const selectedPublishedIds = useMemo(
+    () => filtered.filter(t => selectedIds.has(t.id) && t.status === 'published').map(t => t.id),
+    [filtered, selectedIds]
+  );
+
+  const handleBulkUnpublish = async () => {
+    const ids = selectedPublishedIds;
+    const skipped = selectedIds.size - ids.length;
+    if (ids.length === 0) {
+      toast.error('No published forms selected. Only published forms can be unpublished.');
+      return;
+    }
+    const result = await Swal.fire({
+      title: 'Bulk Unpublish',
+      html: `Unpublish <b>${ids.length}</b> selected published form(s)?` +
+        (skipped > 0 ? `<br/><span style="color:hsl(var(--muted-foreground));font-size:0.875rem">${skipped} non-published form(s) will be skipped.</span>` : ''),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, unpublish all',
+    });
+    if (!result.isConfirmed) return;
+    setBulkLoading(true);
+    try {
+      const { error } = await supabase.from('form_templates').update({ status: 'draft' } as any).in('id', ids);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['form_templates'] });
+      toast.success(`${ids.length} form(s) unpublished successfully.`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error('Failed to bulk unpublish forms.');
     } finally {
       setBulkLoading(false);
     }
@@ -311,11 +349,31 @@ export default function FormManagement() {
                 {someSelected && (
                   <Card>
                     <CardContent className="py-3 flex items-center gap-3 flex-wrap">
-                      <span className="text-sm font-medium">{selectedIds.size} form(s) selected</span>
-                      <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
-                        {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                        Publish Selected
-                      </Button>
+                      <span className="text-sm font-medium">
+                        {selectedIds.size} form(s) selected
+                        {selectedPublishedIds.length !== selectedIds.size && (
+                          <span className="text-muted-foreground font-normal ml-2">
+                            ({selectedPublishedIds.length} published eligible to unpublish)
+                          </span>
+                        )}
+                      </span>
+                      {canEditForms && (
+                        <Button size="sm" onClick={handleBulkPublish} disabled={bulkLoading}>
+                          {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                          Publish Selected
+                        </Button>
+                      )}
+                      {canEditForms && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={handleBulkUnpublish}
+                          disabled={bulkLoading || selectedPublishedIds.length === 0}
+                        >
+                          {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                          Unpublish Selected
+                        </Button>
+                      )}
                       <Button size="sm" variant="destructive" onClick={handleBulkDelete} disabled={bulkLoading}>
                         {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
                         Delete Selected
