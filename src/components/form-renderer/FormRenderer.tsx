@@ -151,7 +151,7 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, saving, readOnly, applicationId, showFullTabTitles,
+  formName, sections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
