@@ -86,19 +86,53 @@ export default function ComplianceReturns() {
     if (!returnsRes.error) setReturns((returnsRes.data || []) as any);
     if (!configsRes.error) setConfigs((configsRes.data || []) as any);
     if (!penaltiesRes.error) setPenalties((penaltiesRes.data || []) as any);
+
+    // Build license → licensee map (only needed for PPOC filtering; cheap query)
+    const licenseIds = Array.from(new Set(((returnsRes.data || []) as any[]).map(r => r.license_id).filter(Boolean)));
+    if (licenseIds.length > 0) {
+      const { data: lics } = await supabase
+        .from('licenses')
+        .select('id, holder_id')
+        .in('id', licenseIds);
+      const holderIds = Array.from(new Set(((lics || []) as any[]).map(l => l.holder_id).filter(Boolean)));
+      let profMap: Record<string, string> = {};
+      if (holderIds.length > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, licensee_id')
+          .in('id', holderIds);
+        profMap = Object.fromEntries(((profs || []) as any[]).map(p => [p.id, p.licensee_id]));
+      }
+      const map: Record<string, string> = {};
+      for (const l of (lics || []) as any[]) {
+        const lid = profMap[l.holder_id];
+        if (lid) map[l.id] = lid;
+      }
+      setLicenseLicenseeMap(map);
+    } else {
+      setLicenseLicenseeMap({});
+    }
     setLoading(false);
   };
 
-  // Mark overdue returns
+  // Mark overdue + apply PPOC active-licensee filter
   const processedReturns = useMemo(() => {
     const now = new Date();
-    return returns.map(r => {
+    let list = returns.map(r => {
       if ((r.status === 'pending' || r.status === 'draft') && new Date(r.due_date) < now) {
         return { ...r, status: 'overdue' as ReturnStatus };
       }
       return r;
     });
-  }, [returns]);
+    // PPOC: only show returns belonging to the actively-selected licensee
+    if (isPpoc && activeLicenseeId) {
+      list = list.filter(r => {
+        if (!r.license_id) return false;
+        return licenseLicenseeMap[r.license_id] === activeLicenseeId;
+      });
+    }
+    return list;
+  }, [returns, isPpoc, activeLicenseeId, licenseLicenseeMap]);
 
   const stats = useMemo(() => {
     const total = processedReturns.length;
