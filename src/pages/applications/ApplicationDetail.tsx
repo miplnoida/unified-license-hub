@@ -17,6 +17,7 @@ import { DocumentList } from '@/components/documents/DocumentList';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
+import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
@@ -358,7 +359,7 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
-                <TabsTrigger value="fees">Fees</TabsTrigger>
+                <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
@@ -419,10 +420,18 @@ export default function ApplicationDetail() {
                     </div>
                   </CardContent>
                 </Card>
-                <FeeComponentsPanel
-                  applicationId={app.id}
-                  editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                />
+                {isInternal ? (
+                  <FeeComponentsPanel
+                    applicationId={app.id}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                  />
+                ) : (
+                  <LicenseePaymentPanel
+                    applicationId={app.id}
+                    canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    onPaid={loadData}
+                  />
+                )}
               </TabsContent>
 
               {hasSubmittedForms && (
@@ -470,10 +479,18 @@ export default function ApplicationDetail() {
               </TabsContent>
 
               <TabsContent value="fees" className="mt-4">
-                <FeeComponentsPanel
-                  applicationId={app.id}
-                  editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                />
+                {isInternal ? (
+                  <FeeComponentsPanel
+                    applicationId={app.id}
+                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                  />
+                ) : (
+                  <LicenseePaymentPanel
+                    applicationId={app.id}
+                    canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    onPaid={loadData}
+                  />
+                )}
               </TabsContent>
             </Tabs>
 
