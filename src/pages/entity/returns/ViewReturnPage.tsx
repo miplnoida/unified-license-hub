@@ -10,6 +10,8 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
   const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
@@ -44,12 +46,64 @@ export default function ViewReturnPage() {
   const navigate = useNavigate();
   const { data: returnData, isLoading } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
+  const { data: fallbackConfigForms = [] } = useQuery({
+    queryKey: [
+      'fallback_return_forms_view',
+      returnData?.return_configuration_id,
+      returnData?.return_configs?.sector_id,
+      returnData?.return_configs?.subsector_id,
+    ],
+    enabled: !!returnData?.return_configuration_id && configForms.length === 0,
+    queryFn: async () => {
+      const config = returnData?.return_configs;
+      if (!config?.sector_id) return [];
+      const fetchTemplates = async (matchSubSector: boolean) => {
+        let query = supabase
+          .from('form_templates')
+          .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, created_at')
+          .eq('status', 'published')
+          .eq('form_type', 'returns')
+          .eq('sector_id', config.sector_id);
+        if (matchSubSector && config.subsector_id) {
+          query = query.eq('sub_sector_id', config.subsector_id);
+        }
+        const { data, error } = await query.order('form_order', { ascending: true }).order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      };
+      const exactMatches = await fetchTemplates(true);
+      const sectorMatches = exactMatches.length > 0 ? exactMatches : await fetchTemplates(false);
+      if (sectorMatches.length === 0) return [];
+      const grouped = sectorMatches.reduce<Record<string, any[]>>((acc, template) => {
+        const key = template.return_template_id || '__ungrouped__';
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(template);
+        return acc;
+      }, {});
+      const bestGroup = Object.values(grouped)
+        .sort((a, b) => {
+          if (b.length !== a.length) return b.length - a.length;
+          return new Date(b[0]?.created_at || 0).getTime() - new Date(a[0]?.created_at || 0).getTime();
+        })[0] || [];
+      return bestGroup
+        .sort((a, b) => (a.form_order || 0) - (b.form_order || 0))
+        .map((template, index) => ({
+          id: `fallback-${template.id}`,
+          form_id: template.id,
+          return_configuration_id: returnData!.return_configuration_id,
+          tab_name: (template.tab_name || template.name || 'General').trim() || 'General',
+          display_order: template.form_order ?? index,
+          status: 'active',
+          form_templates: { id: template.id, name: template.name, description: template.description, status: template.status },
+        }));
+    },
+  });
   const { data: formData = [] } = useReturnFormData(id);
   const { data: requests = [] } = useReturnRequests(id);
   const { data: comments = [] } = useReturnComments(id);
   const [activeTab, setActiveTab] = useState('');
 
-  const formIds = configForms.map(f => f.form_id);
+  const effectiveConfigForms = configForms.length > 0 ? configForms : fallbackConfigForms;
 
   // Build per-form data map keyed by field_name (matches FormRenderer initialData)
   const valuesByForm: Record<string, Record<string, any>> = {};
@@ -66,7 +120,7 @@ export default function ViewReturnPage() {
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
   if (!returnData) return <DashboardLayout><p className="text-center py-20">Return not found</p></DashboardLayout>;
 
-  const tabs = [...new Set(configForms.map(f => f.tab_name))];
+  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
   if (!activeTab && tabs.length > 0) setActiveTab(tabs[0]);
   const activeRequest = requests.find(r => r.status === 'active');
 
@@ -106,7 +160,7 @@ export default function ViewReturnPage() {
             </TabsList>
             {tabs.map(tab => (
               <TabsContent key={tab} value={tab} className="space-y-4">
-                {configForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
+                {effectiveConfigForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
                   const formComments = comments.filter(c => c.form_id === cf.form_id);
                   return (
                     <div key={cf.id} className="space-y-2">
