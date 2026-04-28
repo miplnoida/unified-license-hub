@@ -429,7 +429,7 @@ export default function FillReturnPage() {
 
         {/* Navigation + Actions */}
         {isEditable && activeTab !== '__review__' && (
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4 sticky bottom-0 z-10">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
             <div className="flex gap-2">
               {tabIndex > 0 && (
                 <Button variant="outline" onClick={() => setActiveTab(tabs[tabIndex - 1])}>
