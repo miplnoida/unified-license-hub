@@ -9,12 +9,40 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnAuditLog, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
+
+function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
+  const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
+  const loading = vLoading || sLoading;
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />{name}</CardTitle></CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading form...</div>
+        ) : sections.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic py-2">No fields defined for this form.</p>
+        ) : (
+          <FormRenderer
+            formName=""
+            sections={sections}
+            initialData={data}
+            onSaveDraft={() => {}}
+            onSubmit={() => {}}
+            readOnly
+            showFullTabTitles
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ViewReturnPage() {
   const { id } = useParams<{ id: string }>();
