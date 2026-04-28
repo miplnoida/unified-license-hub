@@ -308,10 +308,10 @@ export default function UserManagement() {
       key: 'full_name', label: 'Employee', render: (r) => (
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
-            {r.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            {(r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium text-foreground">{r.full_name}</p>
+            <p className="font-medium text-foreground">{r.full_name || '—'}</p>
             <p className="text-sm text-muted-foreground">{r.email}</p>
           </div>
         </div>
