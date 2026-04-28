@@ -67,8 +67,15 @@ export default function PpocManagement() {
   };
 
   const loadOptions = async () => {
+    // PPOC must be a licensee-side primary user (an entity contact),
+    // NOT an internal employee/admin of the regulator.
     const [{ data: p }, { data: l }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email').eq('status', 'active').order('full_name'),
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, role, user_type')
+        .eq('status', 'active')
+        .in('role', ['licensee_primary', 'licensee_secondary'])
+        .order('full_name'),
       supabase.from('licensees').select('id, name').eq('status', 'active').order('name'),
     ]);
     setUsers((p || []) as any[]);
