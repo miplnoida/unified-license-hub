@@ -56,26 +56,17 @@ export default function ViewReturnPage() {
   const [activeTab, setActiveTab] = useState('');
 
   const formIds = configForms.map(f => f.form_id);
-  const { data: allFields = [] } = useQuery({
-    queryKey: ['return_form_fields_view', formIds],
-    enabled: formIds.length > 0,
-    queryFn: async () => {
-      const results: any[] = [];
-      for (const fid of formIds) {
-        const { data: versions } = await supabase.from('form_versions').select('id').eq('template_id', fid).eq('status', 'published').order('version', { ascending: false }).limit(1);
-        if (versions?.[0]) {
-          const { data: fields } = await supabase.from('form_fields').select('*').eq('version_id', versions[0].id).order('section_order').order('sort_order');
-          if (fields) results.push(...fields.map(f => ({ ...f, _form_id: fid })));
-        }
-      }
-      return results;
-    },
-  });
 
-  const valuesMap: Record<string, Record<string, string>> = {};
+  // Build per-form data map keyed by field_name (matches FormRenderer initialData)
+  const valuesByForm: Record<string, Record<string, any>> = {};
   formData.forEach(d => {
-    if (!valuesMap[d.form_id]) valuesMap[d.form_id] = {};
-    valuesMap[d.form_id][d.field_id] = d.field_value || '';
+    if (!valuesByForm[d.form_id]) valuesByForm[d.form_id] = {};
+    const key = d.field_name || d.field_id;
+    let val: any = d.field_value ?? '';
+    if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+      try { val = JSON.parse(val); } catch { /* keep string */ }
+    }
+    valuesByForm[d.form_id][key] = val;
   });
 
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
