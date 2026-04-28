@@ -308,6 +308,26 @@ export default function ApplicationForms() {
           </CardContent>
         </Card>
 
+        {/* Uploaded Documents (visible to applicant + admin) */}
+        {applicationId && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Uploaded Documents
+              </CardTitle>
+              <CardDescription>All documents attached to this application — including those uploaded inside form fields.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AttachmentList
+                entityType="application"
+                entityId={applicationId}
+                includeFormFields
+                emptyText="No documents uploaded yet. Documents you attach inside form fields will appear here."
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {matchedTemplates.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             No forms have been configured for this application type yet.
