@@ -10,6 +10,8 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
   const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
