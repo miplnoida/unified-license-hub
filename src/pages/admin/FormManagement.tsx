@@ -146,7 +146,41 @@ export default function FormManagement() {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const selectedPublishedIds = useMemo(
+    () => filtered.filter(t => selectedIds.has(t.id) && t.status === 'published').map(t => t.id),
+    [filtered, selectedIds]
+  );
+
+  const handleBulkUnpublish = async () => {
+    const ids = selectedPublishedIds;
+    const skipped = selectedIds.size - ids.length;
+    if (ids.length === 0) {
+      toast.error('No published forms selected. Only published forms can be unpublished.');
+      return;
+    }
+    const result = await Swal.fire({
+      title: 'Bulk Unpublish',
+      html: `Unpublish <b>${ids.length}</b> selected published form(s)?` +
+        (skipped > 0 ? `<br/><span style="color:hsl(var(--muted-foreground));font-size:0.875rem">${skipped} non-published form(s) will be skipped.</span>` : ''),
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, unpublish all',
+    });
+    if (!result.isConfirmed) return;
+    setBulkLoading(true);
+    try {
+      const { error } = await supabase.from('form_templates').update({ status: 'draft' } as any).in('id', ids);
+      if (error) throw error;
+      await queryClient.invalidateQueries({ queryKey: ['form_templates'] });
+      toast.success(`${ids.length} form(s) unpublished successfully.`);
+      setSelectedIds(new Set());
+    } catch {
+      toast.error('Failed to bulk unpublish forms.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
     const ids = Array.from(selectedIds);
     const result = await Swal.fire({
       title: 'Bulk Delete',
