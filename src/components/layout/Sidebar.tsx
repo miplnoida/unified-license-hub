@@ -116,9 +116,15 @@ export function Sidebar() {
   }, [location.pathname, isMobile]);
 
   const isItemVisible = (item: NavItem) => {
-    if (!user || !item.roles.includes(user.role)) return false;
-    // If dynamic role permissions are configured, also enforce module access
-    if (enforceDynamic && item.module && !hasModuleAccess(item.module)) return false;
+    if (!user) return false;
+    // Dynamic-role users: gate purely by module permission. If the item has no
+    // module mapping, fall back to the legacy role list so portal-specific
+    // items (e.g. licensee-only links) stay correctly scoped.
+    if (enforceDynamic) {
+      if (item.module) return hasModuleAccess(item.module);
+      return item.roles.includes(user.role);
+    }
+    if (!item.roles.includes(user.role)) return false;
     return true;
   };
 
