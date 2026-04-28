@@ -53,7 +53,7 @@ export function Header() {
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium leading-none">{user.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{ROLE_LABELS[user.role]}</p>
+                  <p className="text-xs text-muted-foreground">{user.dynamicRoleName || ROLE_LABELS[user.role]}</p>
                 </div>
               </button>
             </DropdownMenuTrigger>
