@@ -53,14 +53,17 @@ export function ModuleRoute({
   if (!session) return <Navigate to="/" replace />;
   if (!user) return <AuthLoadingScreen />;
 
-  if (!allowedRoles.includes(user.role)) {
-    return <AccessDenied />;
-  }
-
   // Wait for permissions to resolve before deciding
   if (permsLoading) return <AuthLoadingScreen />;
 
-  if (enforceDynamic && !hasModuleAccess(module)) {
+  // Dynamic-role users: module permission is the sole source of truth.
+  if (enforceDynamic) {
+    if (!hasModuleAccess(module)) return <AccessDenied />;
+    return <>{children}</>;
+  }
+
+  // Legacy enforcement: fall back to the static role list.
+  if (!allowedRoles.includes(user.role)) {
     return <AccessDenied />;
   }
 
