@@ -64,7 +64,7 @@ const emptyForm = {
   middle_name: '',
   last_name: '',
   email: '',
-  role_id: '',
+  role_ids: [] as string[],
   gender: '',
 };
 
