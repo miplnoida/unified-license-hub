@@ -34,6 +34,7 @@ interface UserRecord {
   app_role?: string;
   gender?: string;
   role_id?: string;
+  dynamic_role_ids?: string[];
 }
 
 function generatePassword(length = 14): string {
