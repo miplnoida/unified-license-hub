@@ -34,7 +34,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** Shorthand wrapper */
+/** Shorthand wrapper — also isolates per-route render errors. */
 export function P({ children }: { children: React.ReactNode }) {
-  return <ProtectedRoute>{children}</ProtectedRoute>;
+  return (
+    <ErrorBoundary context="Route">
+      <ProtectedRoute>{children}</ProtectedRoute>
+    </ErrorBoundary>
+  );
 }
