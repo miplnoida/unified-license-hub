@@ -51,7 +51,7 @@ function mapPreLicenseeProfile(userId: string, email: string, profile: PreLicens
 /**
  * Build a PlatformUser from a profiles row.
  */
-function mapSystemProfile(userId: string, email: string, role: AppRole, profile: ProfileRow): PlatformUser {
+function mapSystemProfile(userId: string, email: string, role: AppRole, profile: ProfileRow, dynamicRoleName?: string): PlatformUser {
   return {
     id: userId,
     email,
@@ -62,6 +62,7 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
     licenseeId: profile.licensee_id || undefined,
     isPreLicensee: false,
     forcePasswordChange: profile.force_password_change || false,
+    dynamicRoleName,
   };
 }
 
