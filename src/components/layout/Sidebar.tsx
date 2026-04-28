@@ -9,6 +9,7 @@ import { Layers, ChevronLeft, ChevronRight, ChevronDown, Menu, X } from 'lucide-
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { getModuleForPath } from '@/lib/permissionModules';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -117,11 +118,13 @@ export function Sidebar() {
 
   const isItemVisible = (item: NavItem) => {
     if (!user) return false;
-    // Dynamic-role users: gate purely by module permission. If the item has no
-    // module mapping, fall back to the legacy role list so portal-specific
-    // items (e.g. licensee-only links) stay correctly scoped.
     if (enforceDynamic) {
       if (item.module) return hasModuleAccess(item.module);
+      if (item.href) {
+        const mappedModule = getModuleForPath(item.href);
+        if (mappedModule) return hasModuleAccess(mappedModule);
+      }
+      if (item.children?.length) return item.children.some(isItemVisible);
       return item.roles.includes(user.role);
     }
     if (!item.roles.includes(user.role)) return false;
