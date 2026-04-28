@@ -133,14 +133,23 @@ export default function UserManagement() {
     toast.success(`User ${next === 'active' ? 'activated' : 'deactivated'}`);
   };
 
-  const openRoleEdit = (u: UserRecord) => {
+  const openRoleEdit = async (u: UserRecord) => {
     setEditingUser(u);
-    // Load existing roles for this user
-    supabase.from('user_roles').select('role').eq('user_id', u.id).then(({ data }) => {
-      const existingRoles = (data || []).map((r: any) => r.role);
-      const matchedIds = dynamicRoles.filter(dr => existingRoles.includes(dr.system_role)).map(dr => dr.id);
-      setSelectedRoleIds(matchedIds.length > 0 ? matchedIds : u.role_id ? [u.role_id] : []);
-    });
+    // Prefer authoritative user_dynamic_roles, fallback to row-cached IDs.
+    const { data: udr } = await supabase
+      .from('user_dynamic_roles' as any)
+      .select('role_id')
+      .eq('user_id', u.id);
+    const ids = ((udr as any[]) || []).map(r => r.role_id);
+    if (ids.length > 0) {
+      setSelectedRoleIds(ids);
+    } else if (u.dynamic_role_ids && u.dynamic_role_ids.length > 0) {
+      setSelectedRoleIds(u.dynamic_role_ids);
+    } else if (u.role_id) {
+      setSelectedRoleIds([u.role_id]);
+    } else {
+      setSelectedRoleIds([]);
+    }
     setEditDialog(true);
   };
 
@@ -154,22 +163,35 @@ export default function UserManagement() {
     const selectedDynamicRoles = dynamicRoles.filter(r => selectedRoleIds.includes(r.id));
     const primaryRole = selectedDynamicRoles[0];
 
-    // Replace all user_roles entries
+    // 1) Replace user_dynamic_roles (source of truth for dynamic RBAC).
+    await supabase.from('user_dynamic_roles' as any).delete().eq('user_id', editingUser.id);
+    if (selectedDynamicRoles.length > 0) {
+      await supabase.from('user_dynamic_roles' as any).insert(
+        selectedDynamicRoles.map(r => ({ user_id: editingUser.id, role_id: r.id }))
+      );
+    }
+
+    // 2) Keep user_roles in sync with system_roles (for legacy has_role checks),
+    //    de-duplicating since multiple dynamic roles may share the same system_role.
     await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
-    for (const role of selectedDynamicRoles) {
+    const uniqueSystemRoles = Array.from(new Set(selectedDynamicRoles.map(r => r.system_role)));
+    for (const sysRole of uniqueSystemRoles) {
       await supabase.from('user_roles').insert({
-        user_id: editingUser.id, role: role.system_role as any,
+        user_id: editingUser.id, role: sysRole as any,
       });
     }
 
-    // Update profile with primary role
+    // 3) Update profile with primary role for back-compat.
     await supabase.from('profiles').update({
       role_id: primaryRole.id,
       role: primaryRole.system_role,
     } as any).eq('id', editingUser.id);
 
     setUsers(prev => prev.map(x => x.id === editingUser.id ? {
-      ...x, app_role: primaryRole.system_role, role_id: primaryRole.id,
+      ...x,
+      app_role: primaryRole.system_role,
+      role_id: primaryRole.id,
+      dynamic_role_ids: selectedDynamicRoles.map(r => r.id),
     } : x));
     toast.success(`${selectedDynamicRoles.length} role(s) assigned`);
     setSaving(false);
@@ -183,13 +205,14 @@ export default function UserManagement() {
   };
 
   const handleCreate = async () => {
-    if (!form.first_name || !form.last_name || !form.email || !form.role_id) {
-      toast.error('First Name, Last Name, Email, and Role are required');
+    if (!form.first_name || !form.last_name || !form.email || form.role_ids.length === 0) {
+      toast.error('First Name, Last Name, Email, and at least one Role are required');
       return;
     }
 
-    const role = dynamicRoles.find(r => r.id === form.role_id);
-    if (!role) { toast.error('Please select a valid role'); return; }
+    const selected = dynamicRoles.filter(r => form.role_ids.includes(r.id));
+    if (selected.length === 0) { toast.error('Please select a valid role'); return; }
+    const primary = selected[0];
 
     const fullName = [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(' ');
     setSaving(true);
@@ -203,8 +226,10 @@ export default function UserManagement() {
           full_name: fullName,
           user_type: 'primary',
           entity_name: '',
-          role: role.system_role,
-          role_id: form.role_id,
+          // Do NOT pass elevated `role`; let the edge function pick a safe baseline
+          // and rely on user_dynamic_roles for actual permissions.
+          role_id: primary.id,
+          role_ids: form.role_ids,
           gender: form.gender || null,
         },
         headers: { Authorization: `Bearer ${session?.access_token || ''}` },
