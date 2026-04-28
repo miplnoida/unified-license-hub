@@ -4177,6 +4177,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      ppoc_accessible_license_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
+      ppoc_mapped_licensee_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
     }
     Enums: {
       app_role:
