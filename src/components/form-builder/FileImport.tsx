@@ -1387,7 +1387,9 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
     try {
       const ext = file.name.split('.').pop()?.toLowerCase();
 
-      if (ext === 'xlsx' || ext === 'xls') {
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
+        // .xlsm = macro-enabled workbook. We only read sheets/cells/formulas;
+        // VBA macros are NEVER executed.
         const result = await parseExcelMultiSheet(file);
         if (result.sheets.length === 0) {
           toast.error('No form fields could be detected in the uploaded file.');
@@ -1421,7 +1423,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
         setStep('preview');
         toast.success(`Detected ${sections.reduce((a, s) => a + s.fields.length, 0)} fields from ${sections.length} section(s).`);
       } else {
-        toast.error('Unsupported file type. Please upload .xlsx or .docx files.');
+        toast.error('Unsupported file type. Please upload .xlsx, .xlsm, .xls or .docx files.');
         setParsing(false);
         return;
       }
@@ -1570,7 +1572,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
               )}
             </DialogTitle>
             <DialogDescription>
-              {step === 'upload' && 'Upload an Excel (.xlsx) or Word (.docx) file. Each Excel sheet becomes a separate form.'}
+              {step === 'upload' && 'Upload an Excel (.xlsx, .xlsm, .xls) or Word (.docx) file. Each Excel sheet becomes a separate form. Macro-enabled workbooks (.xlsm) are read safely — VBA macros are never executed.'}
               {step === 'select_sheets' && `Found ${multiResult?.sheets.length} sheets. Select which ones to import as forms.`}
               {step === 'preview' && (legacyPreview ? 'Review and edit detected fields before importing.' : 'Review fields per sheet before creating forms.')}
             </DialogDescription>
@@ -1584,7 +1586,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
                   className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => fileRef.current?.click()}
                 >
-                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.docx" className="hidden" onChange={handleFile} />
+                  <input ref={fileRef} type="file" accept=".xlsx,.xlsm,.xls,.docx" className="hidden" onChange={handleFile} />
                   {parsing ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1598,7 +1600,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
                       </div>
                       <div>
                         <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                        <p className="text-xs text-muted-foreground mt-1">.xlsx or .docx files supported</p>
+                        <p className="text-xs text-muted-foreground mt-1">.xlsx, .xlsm, .xls or .docx files supported (macros are never executed)</p>
                       </div>
                     </div>
                   )}
