@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { File, Download, Loader2, Paperclip } from 'lucide-react';
+import { File, Download, Loader2, Paperclip, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Attachment {
