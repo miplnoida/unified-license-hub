@@ -127,19 +127,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3. Verify form responses exist
+    // 3. Verify form responses exist (check both form_responses table AND inline forms_data)
     const appData = app.data as Record<string, unknown> | null;
     const formTemplateIds = (appData?.form_template_ids as string[]) || [];
     if (formTemplateIds.length > 0) {
+      // Check inline forms_data (used by pre/post licensee flows)
+      const formsData = (appData?.forms_data as Record<string, unknown>) || {};
+      const inlineCount = Object.keys(formsData).filter(
+        (k) => formsData[k] && typeof formsData[k] === "object" && Object.keys(formsData[k] as object).length > 0
+      ).length;
+
+      // Check form_responses table (used by other flows)
       const { count } = await adminClient
         .from("form_responses")
         .select("*", { count: "exact", head: true })
         .eq("entity_id", application_id)
         .eq("entity_type", "application");
 
-      if (!count || count < formTemplateIds.length) {
+      const totalSubmitted = Math.max(inlineCount, count || 0);
+
+      if (totalSubmitted < formTemplateIds.length) {
         return new Response(
-          JSON.stringify({ error: `Incomplete forms: ${count || 0}/${formTemplateIds.length} submitted` }),
+          JSON.stringify({ error: `Incomplete forms: ${totalSubmitted}/${formTemplateIds.length} submitted` }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
