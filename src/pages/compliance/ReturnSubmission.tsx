@@ -784,7 +784,7 @@ export default function ReturnSubmission() {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={creating || !selectedConfigId || !periodEnd}
+                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!activeLicenseeId || !selectedLicenseId))}
                   className="gap-2"
                 >
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
