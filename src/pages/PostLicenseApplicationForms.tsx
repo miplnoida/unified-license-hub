@@ -10,7 +10,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import {
   ArrowLeft, CheckCircle2, FileText, Loader2,
@@ -377,7 +377,9 @@ export default function PostLicenseApplicationForms() {
 
             {allFormsCompleted && showReview && (
               <div className="space-y-4 pt-4 border-t">
-                <ReviewAcknowledgement
+                <ApplicationReviewBuilder
+                  templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
+                  formProgressMap={formProgressMap}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
                   onAcknowledge={handleSubmitApplication}
@@ -390,15 +392,6 @@ export default function PostLicenseApplicationForms() {
                   }}
                   title="Review Your Application"
                   description="Please review all entered information before final submission."
-                  sections={matchedTemplates.map(t => ({
-                    title: t.name,
-                    fields: Object.entries(formProgressMap[t.id]?.data || {})
-                      .filter(([k]) => !k.startsWith('_'))
-                      .map(([k, v]) => ({
-                        label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-                        value: typeof v === 'object' && v !== null ? JSON.stringify(v) : (v as any),
-                      })),
-                  }))}
                 />
                 <div className="flex justify-start">
                   <Button variant="outline" onClick={() => setShowReview(false)}>
