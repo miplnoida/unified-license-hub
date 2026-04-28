@@ -35,7 +35,7 @@ export default function PpocManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
-  const [users, setUsers] = useState<{ id: string; full_name: string; email: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; full_name: string; email: string; role?: string }[]>([]);
   const [licensees, setLicensees] = useState<{ id: string; name: string }[]>([]);
 
   const load = async () => {
