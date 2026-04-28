@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { UserCheck, Calendar } from 'lucide-react';
+import { UserCheck, Calendar, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ActiveDelegation {
@@ -23,6 +24,7 @@ interface ActiveDelegation {
  */
 export function ActingOnBehalfOfBanner() {
   const { user } = useAuth();
+  const { isPpoc, mappedLicensees, activeLicensee } = usePpoc();
   const [delegations, setDelegations] = useState<ActiveDelegation[]>([]);
   const [loading, setLoading] = useState(true);
 
