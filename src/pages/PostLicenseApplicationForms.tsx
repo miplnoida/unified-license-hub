@@ -351,6 +351,14 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
+            {!showReview && reviewSettings?.application_review_enabled && completedCount > 0 && !allFormsCompleted && (
+              <div className="flex justify-end pt-4 border-t">
+                <Button size="lg" variant="outline" onClick={() => setShowReview(true)}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review Entered Data
+                </Button>
+              </div>
+            )}
+
             {allFormsCompleted && !showReview && (
               <div className="flex justify-end pt-4 border-t">
                 <Button
