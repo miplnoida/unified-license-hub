@@ -35,7 +35,7 @@ export default function PpocManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
-  const [users, setUsers] = useState<{ id: string; full_name: string; email: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; full_name: string; email: string; role?: string }[]>([]);
   const [licensees, setLicensees] = useState<{ id: string; name: string }[]>([]);
 
   const load = async () => {
@@ -67,8 +67,15 @@ export default function PpocManagement() {
   };
 
   const loadOptions = async () => {
+    // PPOC must be a licensee-side primary user (an entity contact),
+    // NOT an internal employee/admin of the regulator.
     const [{ data: p }, { data: l }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email').eq('status', 'active').order('full_name'),
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, role, user_type')
+        .eq('status', 'active')
+        .in('role', ['licensee_primary', 'licensee_secondary'])
+        .order('full_name'),
       supabase.from('licensees').select('id, name').eq('status', 'active').order('name'),
     ]);
     setUsers((p || []) as any[]);
@@ -205,7 +212,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="Manage Primary Point of Contact assignments to licensee entities. A PPOC can be mapped to multiple entities."
+          description="A Primary Point of Contact (PPOC) is an external person who acts as the primary user for one or more licensee entities. The same PPOC can be linked to multiple entities (e.g. one person serving as PPOC for both ABC Ltd and DEF Ltd)."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
@@ -222,16 +229,23 @@ export default function PpocManagement() {
             <DialogTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
             </DialogTitle>
-            <DialogDescription>Assign a user as Primary Point of Contact for a licensee entity.</DialogDescription>
+            <DialogDescription>
+              Select an external licensee user (entity contact) to act as Primary Point of Contact for a licensee entity. Internal staff/employees cannot be assigned as PPOC.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User *</Label>
+              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary/secondary users only)</span></Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select licensee user..." /></SelectTrigger>
                 <SelectContent>
-                  {users.map(u => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.email})</SelectItem>
+                  {users.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">No active licensee users available.</div>
+                  ) : users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name} ({u.email})
+                      {u.role ? <span className="text-xs text-muted-foreground ml-1">— {u.role.replace(/_/g, ' ')}</span> : null}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
