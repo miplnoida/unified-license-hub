@@ -411,21 +411,10 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="space-y-2">
                   <Label>Email (Username) <span className="text-destructive">*</span></Label>
                   <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="employee@company.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Role <span className="text-destructive">*</span></Label>
-                  <Select value={form.role_id} onValueChange={v => setForm(p => ({ ...p, role_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                    <SelectContent>
-                      {dynamicRoles.map(r => (
-                        <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Gender</Label>
@@ -438,6 +427,34 @@ export default function UserManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <Label>Roles <span className="text-destructive">*</span></Label>
+                <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto border rounded-lg p-3">
+                  {dynamicRoles.map(r => {
+                    const isSelected = form.role_ids.includes(r.id);
+                    return (
+                      <label key={r.id} className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${isSelected ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted'}`}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setForm(p => ({
+                              ...p,
+                              role_ids: p.role_ids.includes(r.id)
+                                ? p.role_ids.filter(id => id !== r.id)
+                                : [...p.role_ids, r.id],
+                            }));
+                          }}
+                          className="rounded"
+                        />
+                        <span>{r.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">{form.role_ids.length} role(s) selected</p>
               </div>
 
               <div className="mt-4 space-y-2">
