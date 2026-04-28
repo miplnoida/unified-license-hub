@@ -151,17 +151,42 @@ export function useDeleteRole() {
   });
 }
 
-/** Count users per role by checking user_roles + roles mapping */
+/**
+ * Count users per dynamic role using user_dynamic_roles as source of truth.
+ * Falls back to profiles.role_id (legacy) only for roles that have zero
+ * dynamic-role assignments, so existing data is not lost.
+ */
 export function useRoleUserCounts() {
   return useQuery({
     queryKey: ['role-user-counts'],
     queryFn: async () => {
-      const { data: userRoles } = await supabase.from('user_roles').select('role');
-      const { data: roles } = await supabase.from('roles' as any).select('id, system_role');
-      
+      const { data: udr } = await supabase
+        .from('user_dynamic_roles' as any)
+        .select('role_id, user_id');
+      const { data: roles } = await supabase.from('roles' as any).select('id');
+
       const counts: Record<string, number> = {};
-      for (const r of (roles || []) as any[]) {
-        counts[r.id] = (userRoles || []).filter((ur: any) => ur.role === r.system_role).length;
+      const seenPerRole: Record<string, Set<string>> = {};
+      for (const row of ((udr as any[]) || [])) {
+        if (!row.role_id) continue;
+        seenPerRole[row.role_id] ??= new Set();
+        seenPerRole[row.role_id].add(row.user_id);
+      }
+      for (const r of ((roles as any[]) || [])) {
+        counts[r.id] = seenPerRole[r.id]?.size ?? 0;
+      }
+
+      // Legacy fallback: include profiles.role_id assignments not yet migrated
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, role_id')
+        .not('role_id', 'is', null);
+      for (const p of ((profs as any[]) || [])) {
+        if (!p.role_id) continue;
+        if (seenPerRole[p.role_id]?.has(p.id)) continue;
+        counts[p.role_id] = (counts[p.role_id] ?? 0) + 1;
+        seenPerRole[p.role_id] ??= new Set();
+        seenPerRole[p.role_id].add(p.id);
       }
       return counts;
     },
