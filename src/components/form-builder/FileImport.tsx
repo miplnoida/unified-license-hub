@@ -1579,7 +1579,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Upload className="h-4 w-4 mr-1" /> Import File
+        <Upload className="h-4 w-4 mr-1" /> {buttonLabel || 'Import File'}
       </Button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
