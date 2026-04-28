@@ -21,53 +21,53 @@ export function useUserDynamicPermissions() {
     queryKey: ['user-permissions', user?.id],
     enabled: !!user,
     queryFn: async () => {
-      // Get user's system role
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user!.id);
+      // 1) Collect all dynamic role IDs assigned to this user from user_dynamic_roles.
+      let dynRoleIds: string[] = [];
 
-      if (!userRoles || userRoles.length === 0) {
-        return { permissions: [], hasDynamicRole: false };
-      }
-
-      const primaryRole = userRoles[0].role;
-
-      // Look up dynamic role(s) matching this system_role.
-      // Multiple dynamic roles can share the same system_role (e.g. several
-      // 'admin'-backed roles). We attempt to find the one this user is
-      // explicitly assigned to via user_dynamic_roles, falling back to first.
-      let dynRoleId: string | null = null;
-
-      // Try explicit mapping first (table may not exist; ignore errors)
-      const { data: explicit } = await supabase
+      const { data: udr } = await supabase
         .from('user_dynamic_roles' as any)
         .select('role_id')
-        .eq('user_id', user!.id)
-        .maybeSingle();
+        .eq('user_id', user!.id);
 
-      if (explicit && (explicit as any).role_id) {
-        dynRoleId = (explicit as any).role_id;
+      if (udr && (udr as any[]).length > 0) {
+        dynRoleIds = (udr as any[]).map(r => r.role_id).filter(Boolean);
       } else {
-        const { data: dynRoles } = await supabase
-          .from('roles' as any)
-          .select('id')
-          .eq('system_role', primaryRole);
-        const list = (dynRoles as any[]) || [];
-        // If exactly one dynamic role matches, use it as the user's role.
-        if (list.length === 1) dynRoleId = list[0].id;
+        // Back-compat: derive from profiles.role_id, then from system_role mapping.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role_id')
+          .eq('id', user!.id)
+          .maybeSingle();
+        if (profile?.role_id) {
+          dynRoleIds = [profile.role_id];
+        } else {
+          const { data: userRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user!.id);
+          const sysRoles = ((userRoles as any[]) || []).map(r => r.role);
+          if (sysRoles.length > 0) {
+            const { data: dynRoles } = await supabase
+              .from('roles' as any)
+              .select('id')
+              .in('system_role', sysRoles);
+            const list = (dynRoles as any[]) || [];
+            if (list.length === 1) dynRoleIds = [list[0].id];
+          }
+        }
       }
 
-      if (!dynRoleId) {
+      if (dynRoleIds.length === 0) {
         return { permissions: [], hasDynamicRole: false };
       }
 
+      // 2) Fetch permission IDs across all assigned dynamic roles.
       const { data: rp } = await supabase
         .from('role_permissions' as any)
         .select('permission_id')
-        .eq('role_id', dynRoleId);
+        .in('role_id', dynRoleIds);
 
-      const permIds = ((rp as any[]) || []).map(r => r.permission_id);
+      const permIds = Array.from(new Set(((rp as any[]) || []).map(r => r.permission_id)));
       if (permIds.length === 0) {
         return { permissions: [], hasDynamicRole: true };
       }
@@ -77,10 +77,18 @@ export function useUserDynamicPermissions() {
         .select('name, module')
         .in('id', permIds);
 
-      return {
-        permissions: ((perms || []) as unknown as { name: string; module: string }[]),
-        hasDynamicRole: true,
-      };
+      // De-duplicate (module, name) pairs.
+      const seen = new Set<string>();
+      const unique: { name: string; module: string }[] = [];
+      for (const p of (perms || []) as any[]) {
+        const key = `${p.module}::${p.name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push({ name: p.name, module: p.module });
+        }
+      }
+
+      return { permissions: unique, hasDynamicRole: true };
     },
     staleTime: 60_000,
   });
