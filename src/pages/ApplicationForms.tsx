@@ -80,8 +80,8 @@ export default function ApplicationForms() {
   const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Load application data
+  const [showReview, setShowReview] = useState(false);
+  const { data: reviewSettings } = useReviewSettings();
   useEffect(() => {
     if (!applicationId) return;
     (async () => {
