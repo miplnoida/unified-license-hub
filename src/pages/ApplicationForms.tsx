@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
+import { AttachmentList } from '@/components/shared/AttachmentList';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
