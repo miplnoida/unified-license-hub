@@ -14,6 +14,7 @@ import { PaymentVerificationDialog } from '@/components/applications/PaymentVeri
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -99,6 +100,7 @@ const PAGE_SIZE = 10;
 
 export default function ApplicationsList() {
   const { user } = useAuth();
+  const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -120,7 +122,7 @@ export default function ApplicationsList() {
   const [groupByOrder, setGroupByOrder] = useState<GroupByField[]>(['license_type', 'sector', 'sub_sector']);
   const [groupingEnabled, setGroupingEnabled] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
     async function load() {
