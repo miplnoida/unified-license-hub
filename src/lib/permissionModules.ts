@@ -28,6 +28,9 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/forms', 'form_management'],
   ['/admin/registration-forms', 'form_management'],
 
+  // Application management (admin queue)
+  ['/applications/queue', 'application_management'],
+
   // User & role
   ['/admin/users', 'user_management'],
   ['/admin/web-users', 'user_management'],
