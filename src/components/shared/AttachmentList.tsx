@@ -56,24 +56,30 @@ export function AttachmentList({
     (async () => {
       setLoading(true);
       const queries: Promise<any>[] = [
-        supabase
-          .from('documents')
-          .select('id, file_name, file_path, file_size, mime_type, created_at')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId),
-        supabase
-          .from('file_uploads')
-          .select('id, file_name, file_path, file_size, mime_type, created_at')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId),
-      ];
-      if (includeFormFields) {
-        queries.push(
+        Promise.resolve(
+          supabase
+            .from('documents')
+            .select('id, file_name, file_path, file_size, mime_type, created_at')
+            .eq('entity_type', entityType)
+            .eq('entity_id', entityId),
+        ),
+        Promise.resolve(
           supabase
             .from('file_uploads')
             .select('id, file_name, file_path, file_size, mime_type, created_at')
-            .eq('entity_type', 'form_field')
+            .eq('entity_type', entityType)
             .eq('entity_id', entityId),
+        ),
+      ];
+      if (includeFormFields) {
+        queries.push(
+          Promise.resolve(
+            supabase
+              .from('file_uploads')
+              .select('id, file_name, file_path, file_size, mime_type, created_at')
+              .eq('entity_type', 'form_field')
+              .eq('entity_id', entityId),
+          ),
         );
       }
       const results = await Promise.all(queries);
