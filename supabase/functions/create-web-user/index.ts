@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
     let effectiveRole = role;
 
     if (!effectiveRole) {
-      if (role_id) {
-        // Dynamic role: assign safe baseline; real access controlled by role_id.
+      if (primaryRoleId) {
+        // Dynamic role(s): assign safe baseline; real access controlled via user_dynamic_roles.
         effectiveRole = 'analyst';
       } else if (user_type) {
         effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
@@ -61,17 +61,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Guard: if a role_id was provided but the caller also passed an elevated
-    // `role` derived from the dynamic role's system_role, downgrade to baseline
-    // to prevent privilege escalation through misconfigured dynamic roles.
-    if (role_id && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
-      const { data: roleData } = await supabaseAdmin
+    // Guard: if dynamic role(s) provided but caller passed elevated `role`,
+    // downgrade unless ALL provided dynamic roles are built-in system roles.
+    if (primaryRoleId && (effectiveRole === 'admin' || effectiveRole === 'super_admin')) {
+      const { data: roleRows } = await supabaseAdmin
         .from("roles")
-        .select("is_system, system_role")
-        .eq("id", role_id)
-        .single();
-      // Only allow admin/super_admin auth role if the dynamic role is a built-in system role.
-      if (!roleData?.is_system) {
+        .select("id, is_system")
+        .in("id", dynamicRoleIds);
+      const allSystem = (roleRows || []).length === dynamicRoleIds.length
+        && (roleRows || []).every((r: any) => r.is_system);
+      if (!allSystem) {
         effectiveRole = 'analyst';
       }
     }
