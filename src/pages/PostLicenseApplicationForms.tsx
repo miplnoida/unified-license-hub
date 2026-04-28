@@ -351,19 +351,60 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
-            {allFormsCompleted && (
+            {allFormsCompleted && !showReview && (
               <div className="flex justify-end pt-4 border-t">
                 <Button
                   size="lg"
-                  onClick={handleSubmitApplication}
+                  onClick={() => {
+                    if (reviewSettings?.application_review_enabled) {
+                      setShowReview(true);
+                    } else {
+                      handleSubmitApplication();
+                    }
+                  }}
                   disabled={submitting}
                 >
                   {submitting ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
+                  ) : reviewSettings?.application_review_enabled ? (
+                    <><CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit</>
                   ) : (
                     <><Send className="h-4 w-4 mr-2" /> Submit Application</>
                   )}
                 </Button>
+              </div>
+            )}
+
+            {allFormsCompleted && showReview && (
+              <div className="space-y-4 pt-4 border-t">
+                <ReviewAcknowledgement
+                  mode={reviewSettings?.review_mode || 'readonly'}
+                  loading={submitting}
+                  onAcknowledge={handleSubmitApplication}
+                  onEdit={(idx) => {
+                    const tmpl = matchedTemplates[idx];
+                    if (tmpl) {
+                      setShowReview(false);
+                      setActiveFormTemplateId(tmpl.id);
+                    }
+                  }}
+                  title="Review Your Application"
+                  description="Please review all entered information before final submission."
+                  sections={matchedTemplates.map(t => ({
+                    title: t.name,
+                    fields: Object.entries(formProgressMap[t.id]?.data || {})
+                      .filter(([k]) => !k.startsWith('_'))
+                      .map(([k, v]) => ({
+                        label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                        value: typeof v === 'object' && v !== null ? JSON.stringify(v) : (v as any),
+                      })),
+                  }))}
+                />
+                <div className="flex justify-start">
+                  <Button variant="outline" onClick={() => setShowReview(false)}>
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back to Forms
+                  </Button>
+                </div>
               </div>
             )}
           </>
