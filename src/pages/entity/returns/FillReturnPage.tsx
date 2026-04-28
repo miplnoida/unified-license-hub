@@ -385,35 +385,25 @@ export default function FillReturnPage() {
 
             {isEditable && (
               <TabsContent value="__review__" className="space-y-4">
-                <ReviewAcknowledgement
-                  mode="readonly"
+                <ReturnReviewPanel
                   loading={saving || updateReturn.isPending}
                   onAcknowledge={() =>
                     handleSubmit(
                       'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
                     )
                   }
-                  title="Review & Submit Return"
-                  description="Verify each tab is filled correctly. Submission is final."
-                  sections={[
-                    {
-                      title: 'Return Details',
-                      fields: [
-                        { label: 'Reference', value: returnData?.unique_id || null },
-                        { label: 'Return Type', value: returnData?.return_configs?.name || null },
-                        { label: 'Period', value: `${returnData?.return_period || ''} ${returnData?.return_year || ''}`.trim() || null },
-                        { label: 'Due Date', value: returnData?.due_date ? format(new Date(returnData.due_date), 'PP') : null },
-                      ],
-                    },
-                    {
-                      title: 'Forms',
-                      fields: tabs.map(tab => {
-                        const formsInTab = effectiveConfigForms.filter((f: any) => (f.tab_name || 'General') === tab);
-                        const filled = formsInTab.filter((f: any) => Object.keys(allData[f.form_id] || {}).length > 0).length;
-                        return { label: tab, value: `${filled}/${formsInTab.length} filled` };
-                      }),
-                    },
+                  returnSummary={[
+                    { label: 'Reference', value: returnData?.unique_id || null },
+                    { label: 'Return Type', value: returnData?.return_configs?.name || null },
+                    { label: 'Period', value: `${returnData?.return_period || ''} ${returnData?.return_year || ''}`.trim() || null },
+                    { label: 'Due Date', value: returnData?.due_date ? format(new Date(returnData.due_date), 'PP') : null },
                   ]}
+                  forms={effectiveConfigForms.map((cf: any) => ({
+                    formId: cf.form_id,
+                    name: cf.form_templates?.name || 'Form',
+                    tabName: cf.tab_name || 'General',
+                  }))}
+                  allData={allData}
                 />
               </TabsContent>
             )}
