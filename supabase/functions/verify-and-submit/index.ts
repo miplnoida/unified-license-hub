@@ -112,12 +112,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Verify payment exists and is completed
+    // 2. Verify payment exists and is completed (accept both 'completed' and 'success' for legacy compatibility)
     const { data: payments, error: payErr } = await adminClient
       .from("payments")
       .select("id, status, amount")
       .eq("application_id", application_id)
-      .eq("status", "completed")
+      .in("status", ["completed", "success", "paid"])
       .limit(1);
 
     if (payErr || !payments || payments.length === 0) {
