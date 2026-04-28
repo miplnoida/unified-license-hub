@@ -198,11 +198,15 @@ export default function ComplianceReturns() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title={isInternal ? 'Returns Management' : 'My Returns'}
-          description={isInternal ? 'Monitor compliance returns, track penalties, and review submissions' : 'Submit and track your periodic compliance returns'}
+          title={isInternal ? 'Returns Management' : isPpoc && activeLicensee ? `Returns — ${activeLicensee.licensee_name}` : 'My Returns'}
+          description={isInternal ? 'Monitor compliance returns, track penalties, and review submissions' : isPpoc ? 'Submit and track returns on behalf of the selected licensee' : 'Submit and track your periodic compliance returns'}
           actions={
             !isInternal ? (
-              <Button onClick={() => navigate('/compliance/returns/submit')}>
+              <Button
+                onClick={() => navigate('/compliance/returns/submit')}
+                disabled={isPpoc && !activeLicenseeId}
+                title={isPpoc && !activeLicenseeId ? 'Select a licensee first' : undefined}
+              >
                 <Send className="h-4 w-4 mr-2" />New Submission
               </Button>
             ) : undefined
