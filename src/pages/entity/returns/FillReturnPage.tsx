@@ -58,6 +58,7 @@ function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange,
       initialData={initialData}
       onSaveDraft={(data) => onDataChange(formTemplateId, data)}
       onSubmit={(data) => onDataChange(formTemplateId, data)}
+      onChange={(data) => onDataChange(formTemplateId, data)}
       readOnly={readOnly}
       saving={saving}
       showFullTabTitles
