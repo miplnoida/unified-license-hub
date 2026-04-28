@@ -113,26 +113,21 @@ export default function ViewReturnPage() {
             {tabs.map(tab => (
               <TabsContent key={tab} value={tab} className="space-y-4">
                 {configForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
-                  const formFields = allFields.filter(f => f._form_id === cf.form_id);
                   const formComments = comments.filter(c => c.form_id === cf.form_id);
                   return (
-                    <Card key={cf.id}>
-                      <CardHeader className="pb-3"><CardTitle className="text-base">{cf.form_templates?.name || 'Form'}</CardTitle></CardHeader>
-                      <CardContent className="space-y-3">
-                        {formFields.map(field => (
-                          <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-sm text-muted-foreground min-w-[200px]">{field.label}</Label>
-                            <p className="text-sm font-medium">{valuesMap[cf.form_id]?.[field.id] || '—'}</p>
-                          </div>
-                        ))}
-                        {formComments.length > 0 && (
-                          <div className="mt-3 border-t pt-3 space-y-2">
-                            <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
-                            {formComments.map(c => <p key={c.id} className="text-sm bg-yellow-50 p-2 rounded">• {c.comment_text}</p>)}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <div key={cf.id} className="space-y-2">
+                      <ReadOnlyFormBlock
+                        formId={cf.form_id}
+                        name={cf.form_templates?.name || 'Form'}
+                        data={valuesByForm[cf.form_id] || {}}
+                      />
+                      {formComments.length > 0 && (
+                        <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
+                          <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
+                          {formComments.map(c => <p key={c.id} className="text-sm">• {c.comment_text}</p>)}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </TabsContent>
