@@ -19,6 +19,7 @@ import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText }
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
