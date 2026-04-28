@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 /**
  * Protected route wrapper that:
@@ -33,7 +34,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** Shorthand wrapper */
+/** Shorthand wrapper — also isolates per-route render errors. */
 export function P({ children }: { children: React.ReactNode }) {
-  return <ProtectedRoute>{children}</ProtectedRoute>;
+  return (
+    <ErrorBoundary context="Route">
+      <ProtectedRoute>{children}</ProtectedRoute>
+    </ErrorBoundary>
+  );
 }

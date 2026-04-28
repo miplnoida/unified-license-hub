@@ -162,6 +162,11 @@ export default function UserManagement() {
 
     const selectedDynamicRoles = dynamicRoles.filter(r => selectedRoleIds.includes(r.id));
     const primaryRole = selectedDynamicRoles[0];
+    if (!primaryRole) {
+      toast.error('Selected role(s) could not be resolved. Please reload and try again.');
+      setSaving(false);
+      return;
+    }
 
     // 1) Replace user_dynamic_roles (source of truth for dynamic RBAC).
     await supabase.from('user_dynamic_roles' as any).delete().eq('user_id', editingUser.id);
@@ -303,10 +308,10 @@ export default function UserManagement() {
       key: 'full_name', label: 'Employee', render: (r) => (
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
-            {r.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            {(r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
           </div>
           <div>
-            <p className="font-medium text-foreground">{r.full_name}</p>
+            <p className="font-medium text-foreground">{r.full_name || '—'}</p>
             <p className="text-sm text-muted-foreground">{r.email}</p>
           </div>
         </div>
