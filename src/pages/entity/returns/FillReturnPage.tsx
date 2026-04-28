@@ -14,6 +14,7 @@ import {
 import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
