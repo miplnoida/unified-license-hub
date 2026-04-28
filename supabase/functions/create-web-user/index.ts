@@ -24,7 +24,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, gender, send_email, position, username } = await req.json();
+    const { email, password, full_name, user_type, entity_name, role, licensee_id, role_id, role_ids, gender, send_email, position, username } = await req.json();
+
+    // Normalize role_ids: accept array (preferred) or single role_id (back-compat)
+    const dynamicRoleIds: string[] = Array.isArray(role_ids) && role_ids.length > 0
+      ? role_ids.filter((x: any) => typeof x === 'string' && x.length > 0)
+      : (role_id ? [role_id] : []);
+    const primaryRoleId: string | null = dynamicRoleIds[0] || null;
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
