@@ -9,12 +9,40 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnAuditLog, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
+
+function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
+  const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
+  const loading = vLoading || sLoading;
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />{name}</CardTitle></CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading form...</div>
+        ) : sections.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic py-2">No fields defined for this form.</p>
+        ) : (
+          <FormRenderer
+            formName=""
+            sections={sections}
+            initialData={data}
+            onSaveDraft={() => {}}
+            onSubmit={() => {}}
+            readOnly
+            showFullTabTitles
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ViewReturnPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,26 +56,17 @@ export default function ViewReturnPage() {
   const [activeTab, setActiveTab] = useState('');
 
   const formIds = configForms.map(f => f.form_id);
-  const { data: allFields = [] } = useQuery({
-    queryKey: ['return_form_fields_view', formIds],
-    enabled: formIds.length > 0,
-    queryFn: async () => {
-      const results: any[] = [];
-      for (const fid of formIds) {
-        const { data: versions } = await supabase.from('form_versions').select('id').eq('template_id', fid).eq('status', 'published').order('version', { ascending: false }).limit(1);
-        if (versions?.[0]) {
-          const { data: fields } = await supabase.from('form_fields').select('*').eq('version_id', versions[0].id).order('section_order').order('sort_order');
-          if (fields) results.push(...fields.map(f => ({ ...f, _form_id: fid })));
-        }
-      }
-      return results;
-    },
-  });
 
-  const valuesMap: Record<string, Record<string, string>> = {};
+  // Build per-form data map keyed by field_name (matches FormRenderer initialData)
+  const valuesByForm: Record<string, Record<string, any>> = {};
   formData.forEach(d => {
-    if (!valuesMap[d.form_id]) valuesMap[d.form_id] = {};
-    valuesMap[d.form_id][d.field_id] = d.field_value || '';
+    if (!valuesByForm[d.form_id]) valuesByForm[d.form_id] = {};
+    const key = d.field_name || d.field_id;
+    let val: any = d.field_value ?? '';
+    if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+      try { val = JSON.parse(val); } catch { /* keep string */ }
+    }
+    valuesByForm[d.form_id][key] = val;
   });
 
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
@@ -94,26 +113,21 @@ export default function ViewReturnPage() {
             {tabs.map(tab => (
               <TabsContent key={tab} value={tab} className="space-y-4">
                 {configForms.filter(f => f.tab_name === tab).sort((a, b) => a.display_order - b.display_order).map(cf => {
-                  const formFields = allFields.filter(f => f._form_id === cf.form_id);
                   const formComments = comments.filter(c => c.form_id === cf.form_id);
                   return (
-                    <Card key={cf.id}>
-                      <CardHeader className="pb-3"><CardTitle className="text-base">{cf.form_templates?.name || 'Form'}</CardTitle></CardHeader>
-                      <CardContent className="space-y-3">
-                        {formFields.map(field => (
-                          <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-sm text-muted-foreground min-w-[200px]">{field.label}</Label>
-                            <p className="text-sm font-medium">{valuesMap[cf.form_id]?.[field.id] || '—'}</p>
-                          </div>
-                        ))}
-                        {formComments.length > 0 && (
-                          <div className="mt-3 border-t pt-3 space-y-2">
-                            <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
-                            {formComments.map(c => <p key={c.id} className="text-sm bg-yellow-50 p-2 rounded">• {c.comment_text}</p>)}
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <div key={cf.id} className="space-y-2">
+                      <ReadOnlyFormBlock
+                        formId={cf.form_id}
+                        name={cf.form_templates?.name || 'Form'}
+                        data={valuesByForm[cf.form_id] || {}}
+                      />
+                      {formComments.length > 0 && (
+                        <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
+                          <p className="text-xs font-semibold text-muted-foreground">Reviewer Comments</p>
+                          {formComments.map(c => <p key={c.id} className="text-sm">• {c.comment_text}</p>)}
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </TabsContent>
