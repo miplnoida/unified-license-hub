@@ -229,16 +229,23 @@ export default function PpocManagement() {
             <DialogTitle className="flex items-center gap-2">
               <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
             </DialogTitle>
-            <DialogDescription>Assign a user as Primary Point of Contact for a licensee entity.</DialogDescription>
+            <DialogDescription>
+              Select an external licensee user (entity contact) to act as Primary Point of Contact for a licensee entity. Internal staff/employees cannot be assigned as PPOC.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User *</Label>
+              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary/secondary users only)</span></Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select licensee user..." /></SelectTrigger>
                 <SelectContent>
-                  {users.map(u => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.email})</SelectItem>
+                  {users.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">No active licensee users available.</div>
+                  ) : users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.full_name} ({u.email})
+                      {u.role ? <span className="text-xs text-muted-foreground ml-1">— {u.role.replace(/_/g, ' ')}</span> : null}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
