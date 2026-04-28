@@ -46,6 +46,8 @@ export default function FormManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeRegulatorId } = useRegulator();
   const queryClient = useQueryClient();
+  const { hasPermission } = useUserDynamicPermissions();
+  const canEditForms = hasPermission('form_management', 'edit');
 
   const activeTab = searchParams.get('tab') || 'pre_license';
   const setActiveTab = (tab: string) => {
