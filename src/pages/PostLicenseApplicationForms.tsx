@@ -81,6 +81,8 @@ export default function PostLicenseApplicationForms() {
   const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const { data: reviewSettings } = useReviewSettings();
 
   const serviceName = searchParams.get('service') || '';
 
