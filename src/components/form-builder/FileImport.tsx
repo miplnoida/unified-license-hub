@@ -590,13 +590,31 @@ function parseFinancialSheet(
         }
       }
 
+      // Detect Excel number format → percentage / currency / ratio hints
+      const numFmt: string = (cell && (cell.z as string)) || '';
+      let placeholder: string | undefined = fieldType === 'number' ? '0' : undefined;
+      let helpText: string | undefined;
+      if (numFmt) {
+        if (/%/.test(numFmt)) {
+          placeholder = '0.00%';
+          helpText = 'Enter as percentage (e.g. 12.5 for 12.5%)';
+        } else if (/[$£€¥]|"\$"|"USD"|"EUR"|"GBP"/i.test(numFmt)) {
+          placeholder = '0.00';
+          helpText = 'Currency amount';
+        } else if (/0\.0+x/i.test(numFmt)) {
+          placeholder = '0.0';
+          helpText = 'Ratio / multiple';
+        }
+      }
+
       const field: FormField = {
         id: crypto.randomUUID(),
         type: fieldType,
         label: fieldLabel,
         fieldName,
         required: false,
-        placeholder: fieldType === 'number' ? '0' : undefined,
+        placeholder,
+        helpText,
         calculatedExpression,
       };
       currentFields.push(field);
