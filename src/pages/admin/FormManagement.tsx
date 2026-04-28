@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText, FileSpreadsheet } from 'lucide-react';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -266,9 +266,20 @@ export default function FormManagement() {
           title="Form Management"
           description="Manage all form templates across Pre-License, Post-License, and Returns."
           actions={
-            <Button onClick={() => navigate(`/admin/forms/create?type=${activeTab}`)}>
-              <PlusCircle className="h-4 w-4 mr-2" />Add {activeTypeLabel} Form
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeTab === 'returns' && canEditForms && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/admin/forms/create?type=returns&import=excel`)}
+                  title="Import a workbook (.xlsx, .xlsm, .xls). Each sheet becomes a return form with formulas preserved."
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />Import from Excel
+                </Button>
+              )}
+              <Button onClick={() => navigate(`/admin/forms/create?type=${activeTab}`)}>
+                <PlusCircle className="h-4 w-4 mr-2" />Add {activeTypeLabel} Form
+              </Button>
+            </div>
           }
         />
 

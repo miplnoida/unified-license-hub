@@ -456,7 +456,12 @@ export default function FormBuilder() {
               {editId && (
                 <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
               )}
-              <FileImportDialog onImport={handleFileImport} onMultiSheetImport={handleMultiSheetImport} />
+              <FileImportDialog
+                onImport={handleFileImport}
+                onMultiSheetImport={handleMultiSheetImport}
+                autoOpen={searchParams.get('import') === 'excel'}
+                buttonLabel={formType === 'returns' ? 'Import from Excel' : 'Import File'}
+              />
               <Button
                 variant="outline"
                 onClick={() => {

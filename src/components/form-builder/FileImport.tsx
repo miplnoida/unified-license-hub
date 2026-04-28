@@ -590,13 +590,31 @@ function parseFinancialSheet(
         }
       }
 
+      // Detect Excel number format → percentage / currency / ratio hints
+      const numFmt: string = (cell && (cell.z as string)) || '';
+      let placeholder: string | undefined = fieldType === 'number' ? '0' : undefined;
+      let helpText: string | undefined;
+      if (numFmt) {
+        if (/%/.test(numFmt)) {
+          placeholder = '0.00%';
+          helpText = 'Enter as percentage (e.g. 12.5 for 12.5%)';
+        } else if (/[$£€¥]|"\$"|"USD"|"EUR"|"GBP"/i.test(numFmt)) {
+          placeholder = '0.00';
+          helpText = 'Currency amount';
+        } else if (/0\.0+x/i.test(numFmt)) {
+          placeholder = '0.0';
+          helpText = 'Ratio / multiple';
+        }
+      }
+
       const field: FormField = {
         id: crypto.randomUUID(),
         type: fieldType,
         label: fieldLabel,
         fieldName,
         required: false,
-        placeholder: fieldType === 'number' ? '0' : undefined,
+        placeholder,
+        helpText,
         calculatedExpression,
       };
       currentFields.push(field);
@@ -1354,10 +1372,14 @@ interface FileImportProps {
   onImport: (sections: FormSection[]) => void;
   /** Multi-sheet import: creates multiple forms under a return template */
   onMultiSheetImport?: (result: MultiSheetParseResult) => void;
+  /** Optionally open the dialog automatically on mount (e.g. via query param). */
+  autoOpen?: boolean;
+  /** Custom button label */
+  buttonLabel?: string;
 }
 
-export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportProps) {
-  const [open, setOpen] = useState(false);
+export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, buttonLabel }: FileImportProps) {
+  const [open, setOpen] = useState(!!autoOpen);
   const [parsing, setParsing] = useState(false);
   const [step, setStep] = useState<ImportStep>('upload');
   const [multiResult, setMultiResult] = useState<MultiSheetParseResult | null>(null);
@@ -1387,7 +1409,9 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
     try {
       const ext = file.name.split('.').pop()?.toLowerCase();
 
-      if (ext === 'xlsx' || ext === 'xls') {
+      if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
+        // .xlsm = macro-enabled workbook. We only read sheets/cells/formulas;
+        // VBA macros are NEVER executed.
         const result = await parseExcelMultiSheet(file);
         if (result.sheets.length === 0) {
           toast.error('No form fields could be detected in the uploaded file.');
@@ -1421,7 +1445,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
         setStep('preview');
         toast.success(`Detected ${sections.reduce((a, s) => a + s.fields.length, 0)} fields from ${sections.length} section(s).`);
       } else {
-        toast.error('Unsupported file type. Please upload .xlsx or .docx files.');
+        toast.error('Unsupported file type. Please upload .xlsx, .xlsm, .xls or .docx files.');
         setParsing(false);
         return;
       }
@@ -1555,7 +1579,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Upload className="h-4 w-4 mr-1" /> Import File
+        <Upload className="h-4 w-4 mr-1" /> {buttonLabel || 'Import File'}
       </Button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
@@ -1570,7 +1594,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
               )}
             </DialogTitle>
             <DialogDescription>
-              {step === 'upload' && 'Upload an Excel (.xlsx) or Word (.docx) file. Each Excel sheet becomes a separate form.'}
+              {step === 'upload' && 'Upload an Excel (.xlsx, .xlsm, .xls) or Word (.docx) file. Each Excel sheet becomes a separate form. Macro-enabled workbooks (.xlsm) are read safely — VBA macros are never executed.'}
               {step === 'select_sheets' && `Found ${multiResult?.sheets.length} sheets. Select which ones to import as forms.`}
               {step === 'preview' && (legacyPreview ? 'Review and edit detected fields before importing.' : 'Review fields per sheet before creating forms.')}
             </DialogDescription>
@@ -1584,7 +1608,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
                   className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => fileRef.current?.click()}
                 >
-                  <input ref={fileRef} type="file" accept=".xlsx,.xls,.docx" className="hidden" onChange={handleFile} />
+                  <input ref={fileRef} type="file" accept=".xlsx,.xlsm,.xls,.docx" className="hidden" onChange={handleFile} />
                   {parsing ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1598,7 +1622,7 @@ export function FileImportDialog({ onImport, onMultiSheetImport }: FileImportPro
                       </div>
                       <div>
                         <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                        <p className="text-xs text-muted-foreground mt-1">.xlsx or .docx files supported</p>
+                        <p className="text-xs text-muted-foreground mt-1">.xlsx, .xlsm, .xls or .docx files supported (macros are never executed)</p>
                       </div>
                     </div>
                   )}
