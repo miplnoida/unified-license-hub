@@ -11,10 +11,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Loader2, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, Save, XCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle, ChevronLeft, ChevronRight, Save, XCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface ReturnConfig {
