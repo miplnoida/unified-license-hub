@@ -95,7 +95,7 @@ export default function CreateReturnPage() {
     return { start: format(new Date(y, mi, 1), 'yyyy-MM-dd'), end: format(lastDayOfMonth(new Date(y, mi)), 'yyyy-MM-dd') };
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!configId || !period || !year) return;
     if (isPpoc && !selectedLicenseeId) {
       toast.error('Please select a licensee to file the return for.');
@@ -108,6 +108,32 @@ export default function CreateReturnPage() {
     }
     const dates = getPeriodDates();
     const dueDate = getDueDate();
+
+    // Pre-check: a return already exists for this entity/config/year/period.
+    // The DB has a unique constraint on (entity_id, return_configuration_id, return_year, return_period);
+    // resume the existing draft (or notify) instead of surfacing the raw error.
+    try {
+      const { data: existing } = await (supabase as any)
+        .from('returns_filed')
+        .select('id, workflow_status')
+        .eq('entity_id', effectiveLicenseeId)
+        .eq('return_configuration_id', configId)
+        .eq('return_year', parseInt(year))
+        .eq('return_period', period)
+        .maybeSingle();
+      if (existing?.id) {
+        const status = (existing.workflow_status || '').toString().toUpperCase();
+        const isOpen = ['TEMP', 'DRAFT', 'RETURNED', 'REJECTED'].includes(status);
+        if (isOpen) {
+          toast.info('A return already exists for this period. Resuming the existing draft.');
+          navigate(`/entity/returns/${existing.id}/fill`);
+        } else {
+          toast.error('A return for this period has already been submitted for this entity.');
+        }
+        return;
+      }
+    } catch (_) { /* fall through to insert; mutation will handle errors */ }
+
     createReturn.mutate({
       entity_id: effectiveLicenseeId,
       ...(isPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
