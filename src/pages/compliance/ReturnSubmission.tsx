@@ -74,7 +74,7 @@ type Step = 'create' | 'fill';
 
 export default function ReturnSubmission() {
   const { user } = useAuth();
-  const { isPpoc, activeLicensee, activeLicenseeId, mappedLicensees } = usePpoc();
+  const { isPpoc, mappedLicensees } = usePpoc();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnId = searchParams.get('returnId');
@@ -85,6 +85,7 @@ export default function ReturnSubmission() {
 
   // Creation form state
   const [step, setStep] = useState<Step>(returnId ? 'fill' : 'create');
+  const [selectedLicenseeId, setSelectedLicenseeId] = useState('');
   const [selectedLicenseId, setSelectedLicenseId] = useState('');
   const [selectedConfigId, setSelectedConfigId] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
@@ -103,20 +104,34 @@ export default function ReturnSubmission() {
   const [formLoading, setFormLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const selectedLicensee = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId) || null;
+  const availableLicenses = isPpoc
+    ? licenses.filter(l => l.licensee_id === selectedLicenseeId)
+    : licenses;
 
   useEffect(() => {
     loadInitial();
-    // Reload license list whenever the PPOC switches active licensee.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLicenseeId]);
+  }, []);
 
-  // When PPOC switches licensee, reset license/period selections so they don't
-  // accidentally submit against the previous entity.
   useEffect(() => {
-    if (isPpoc && step === 'create') {
+    if (!isPpoc) return;
+
+    const validSelectedLicensee = mappedLicensees.some(l => l.licensee_id === selectedLicenseeId);
+    if (!selectedLicenseeId || !validSelectedLicensee) {
+      setSelectedLicenseeId(mappedLicensees[0]?.licensee_id || '');
+    }
+  }, [isPpoc, mappedLicensees, selectedLicenseeId]);
+
+  useEffect(() => {
+    if (!isPpoc || step !== 'create') return;
+
+    if (!selectedLicenseId) return;
+    const selectedLicense = licenses.find(l => l.id === selectedLicenseId);
+    if (!selectedLicense || selectedLicense.licensee_id !== selectedLicenseeId) {
       setSelectedLicenseId('');
     }
-  }, [activeLicenseeId, isPpoc, step]);
+  }, [isPpoc, step, selectedLicenseeId, selectedLicenseId, licenses]);
 
   const loadInitial = async () => {
     setLoading(true);
@@ -164,6 +179,10 @@ export default function ReturnSubmission() {
       if (retData) {
         setExistingReturn(retData as any);
         setSelectedConfigId((retData as any).return_config_id || '');
+        setSelectedLicenseId((retData as any).license_id || '');
+        if ((retData as any).on_behalf_of_licensee_id) {
+          setSelectedLicenseeId((retData as any).on_behalf_of_licensee_id);
+        }
         const config = (configRes.data || []).find((c: any) => c.id === (retData as any).return_config_id) as any;
         if (config) {
           const existingFormData = (retData as any).form_data || {};
@@ -210,11 +229,10 @@ export default function ReturnSubmission() {
     }
     if (!user) return;
 
-    // PPOC must select a license for an entity, and the license must belong to
-    // the currently active mapped licensee.
+    // PPOC must select both a mapped licensee and a license under that licensee.
     if (isPpoc) {
-      if (!activeLicenseeId) {
-        toast.error('Select a licensee in the header switcher before creating a return');
+      if (!selectedLicenseeId) {
+        toast.error('Please select the licensee to file this return for');
         return;
       }
       if (!selectedLicenseId) {
@@ -222,8 +240,8 @@ export default function ReturnSubmission() {
         return;
       }
       const lic = licenses.find(l => l.id === selectedLicenseId);
-      if (!lic || lic.licensee_id !== activeLicenseeId) {
-        toast.error('Selected license does not belong to the active licensee');
+      if (!lic || lic.licensee_id !== selectedLicenseeId) {
+        toast.error('Selected license does not belong to the chosen licensee');
         return;
       }
     }
@@ -251,7 +269,7 @@ export default function ReturnSubmission() {
       submitter_id: user.id,
       // Tag the submission to the licensee the PPOC is acting for. Stays null for
       // licensee_primary/secondary users acting for their own entity.
-      on_behalf_of_licensee_id: isPpoc ? selectedLicenseId || null : null,
+      on_behalf_of_licensee_id: isPpoc ? selectedLicenseeId || null : null,
       period_start: periodStart,
       period_end: periodEnd,
       due_date: dueDate,
@@ -583,7 +601,9 @@ export default function ReturnSubmission() {
 
       const { data: newReturn, error } = await supabase.from('compliance_returns' as any).insert({
         return_config_id: selectedConfigId || null,
+        license_id: selectedLicenseId || null,
         submitter_id: user.id,
+        on_behalf_of_licensee_id: isPpoc ? selectedLicenseeId || null : null,
         period_start: pStart,
         period_end: pEnd,
         due_date: dueDate,
@@ -625,7 +645,9 @@ export default function ReturnSubmission() {
 
       const { error } = await supabase.from('compliance_returns' as any).insert({
         return_config_id: selectedConfigId || null,
+        license_id: selectedLicenseId || null,
         submitter_id: user.id,
+        on_behalf_of_licensee_id: isPpoc ? selectedLicenseeId || null : null,
         period_start: pStart,
         period_end: pEnd,
         due_date: dueDate,
@@ -678,12 +700,12 @@ export default function ReturnSubmission() {
             actions={<Button variant="outline" onClick={() => navigate('/compliance/returns')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>}
           />
 
-          {/* PPOC must select a licensee from the header before proceeding */}
-          {isPpoc && !activeLicenseeId && (
+          {/* PPOC must choose which mapped entity this return is for */}
+          {isPpoc && !selectedLicenseeId && (
             <Alert variant="destructive" className="max-w-2xl">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Select a licensee from the switcher at the top of the page before creating a return.
+                Select the licensee you want to file for before creating a return.
               </AlertDescription>
             </Alert>
           )}
@@ -692,31 +714,46 @@ export default function ReturnSubmission() {
             <CardHeader>
               <CardTitle className="text-base">
                 Return Details
-                {isPpoc && activeLicensee && (
+                {isPpoc && selectedLicensee && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    — for <strong className="text-foreground">{activeLicensee.licensee_name}</strong>
+                    — for <strong className="text-foreground">{selectedLicensee.licensee_name}</strong>
                   </span>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
+              {isPpoc && (
+                <div className="space-y-2">
+                  <Label>Licensee <span className="text-destructive">*</span></Label>
+                  <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select licensee..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mappedLicensees.map(licensee => (
+                        <SelectItem key={licensee.licensee_id} value={licensee.licensee_id}>
+                          {licensee.licensee_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Return For (License) */}
               <div className="space-y-2">
                 <Label>
                   Return For {isPpoc && <span className="text-destructive">*</span>}
                 </Label>
                 <Select value={selectedLicenseId} onValueChange={setSelectedLicenseId}>
-                  <SelectTrigger><SelectValue placeholder={isPpoc ? `Select license of ${activeLicensee?.licensee_name || 'licensee'}...` : 'Select license...'} /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={isPpoc ? `Select license of ${selectedLicensee?.licensee_name || 'licensee'}...` : 'Select license...'} /></SelectTrigger>
                   <SelectContent>
-                    {(isPpoc
-                      ? licenses.filter(l => l.licensee_id === activeLicenseeId)
-                      : licenses
-                    ).map(l => (
+                    {availableLicenses.map(l => (
                       <SelectItem key={l.id} value={l.id}>
                         {l.license_number} — {l.license_type}
                       </SelectItem>
                     ))}
-                    {isPpoc && licenses.filter(l => l.licensee_id === activeLicenseeId).length === 0 && (
+                    {isPpoc && selectedLicenseeId && availableLicenses.length === 0 && (
                       <div className="px-3 py-2 text-sm text-muted-foreground">
                         No active licenses found for this licensee.
                       </div>
@@ -784,7 +821,7 @@ export default function ReturnSubmission() {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!activeLicenseeId || !selectedLicenseId))}
+                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!selectedLicenseeId || !selectedLicenseId))}
                   className="gap-2"
                 >
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

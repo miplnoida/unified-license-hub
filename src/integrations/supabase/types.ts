@@ -528,7 +528,7 @@ export type Database = {
             foreignKeyName: "compliance_returns_on_behalf_of_licensee_id_fkey"
             columns: ["on_behalf_of_licensee_id"]
             isOneToOne: false
-            referencedRelation: "licenses"
+            referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
           {
