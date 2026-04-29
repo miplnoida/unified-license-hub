@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useReturnConfigs, useReturnTypes, useMutateReturn, useInsertReturnAudit } from '@/hooks/useReturnsManagement';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from 'date-fns';
 
@@ -20,12 +21,13 @@ const QUARTERS = ['Q1','Q2','Q3','Q4'];
 export default function CreateReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isPpoc, mappedLicensees, activeLicenseeId, setActiveLicenseeId } = usePpoc();
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
   const insertAudit = useInsertReturnAudit();
 
-  // Get user's profile to find entity
+  // Get user's profile to find entity (for non-PPOC users)
   const { data: profile } = useQuery({
     queryKey: ['my_profile', user?.id],
     enabled: !!user?.id,
@@ -34,6 +36,18 @@ export default function CreateReturnPage() {
       return data;
     },
   });
+
+  // PPOC users with multiple mapped licensees must pick one explicitly here
+  const requiresEntityPick = isPpoc && mappedLicensees.length > 1;
+  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>(
+    requiresEntityPick ? '' : (activeLicenseeId || '')
+  );
+  // Keep local selection in sync if PPOC switches via header
+  useEffect(() => {
+    if (!requiresEntityPick && activeLicenseeId) {
+      setSelectedLicenseeId(activeLicenseeId);
+    }
+  }, [activeLicenseeId, requiresEntityPick]);
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
@@ -44,6 +58,9 @@ export default function CreateReturnPage() {
   const typeName = selectedConfig?.return_types?.name || '';
 
   const activeConfigs = configs.filter(c => c.status === 'active');
+  const selectedLicenseeName = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId)?.licensee_name;
+  // Resolve the entity to file the return for: PPOC-picked, else profile's licensee
+  const effectiveLicenseeId = isPpoc ? selectedLicenseeId : (profile?.licensee_id || null);
 
   const periodOptions = useMemo(() => {
     if (typeName === 'Annual') return ['Annual'];
@@ -80,10 +97,20 @@ export default function CreateReturnPage() {
 
   const handleCreate = () => {
     if (!configId || !period || !year) return;
+    if (isPpoc && !selectedLicenseeId) {
+      toast.error('Please select a licensee to file the return for.');
+      return;
+    }
+    // Sync the global PPOC active licensee with the chosen entity so downstream
+    // pages (fill/view) stay consistent with the user's selection here.
+    if (isPpoc && selectedLicenseeId && selectedLicenseeId !== activeLicenseeId) {
+      setActiveLicenseeId(selectedLicenseeId);
+    }
     const dates = getPeriodDates();
     const dueDate = getDueDate();
     createReturn.mutate({
-      entity_id: profile?.licensee_id || null,
+      entity_id: effectiveLicenseeId,
+      ...(isPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
       return_configuration_id: configId,
       sector_id: selectedConfig?.sector_id || null,
       subsector_id: selectedConfig?.subsector_id || null,
@@ -95,7 +122,7 @@ export default function CreateReturnPage() {
       workflow_status: 'TEMP',
       created_by: user?.id,
       updated_by: user?.id,
-    }, {
+    } as any, {
       onSuccess: (data: any) => {
         insertAudit.mutate({ return_id: data.id, action: 'created', new_status: 'TEMP', performed_by: user?.id });
         toast.success('Return created! Start filling the form.');
@@ -129,6 +156,31 @@ export default function CreateReturnPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Select Return Configuration</h3>
+
+                {isPpoc && mappedLicensees.length > 1 && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-amber-700" />
+                      Filing on behalf of (Licensee) *
+                    </Label>
+                    <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select the licensee to file for" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mappedLicensees.map(l => (
+                          <SelectItem key={l.licensee_id} value={l.licensee_id}>
+                            {l.licensee_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      You are mapped as PPOC for {mappedLicensees.length} licensees. Pick which one this return is for.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Return Configuration *</Label>
                   <Select value={configId} onValueChange={v => { setConfigId(v); setPeriod(''); }}>
@@ -149,7 +201,14 @@ export default function CreateReturnPage() {
                     <p><strong>Version:</strong> {selectedConfig.version}</p>
                   </div>
                 )}
-                <div className="flex justify-end"><Button disabled={!configId} onClick={() => setStep(2)}>Next <ArrowRight className="h-4 w-4 ml-2" /></Button></div>
+                <div className="flex justify-end">
+                  <Button
+                    disabled={!configId || (isPpoc && mappedLicensees.length > 1 && !selectedLicenseeId)}
+                    onClick={() => setStep(2)}
+                  >
+                    Next <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -183,6 +242,9 @@ export default function CreateReturnPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Confirmation</h3>
                 <div className="p-4 bg-muted/50 rounded-lg space-y-2 text-sm">
+                  {isPpoc && selectedLicenseeName && (
+                    <p><strong>Licensee:</strong> {selectedLicenseeName}</p>
+                  )}
                   <p><strong>Return:</strong> {selectedConfig?.name}</p>
                   <p><strong>Type:</strong> {typeName}</p>
                   <p><strong>Period:</strong> {period} {year}</p>
