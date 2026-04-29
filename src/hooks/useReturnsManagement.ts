@@ -191,7 +191,14 @@ export function useMutateReturn() {
         return data;
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: ['returns_filed'] }); qc.invalidateQueries({ queryKey: ['my_returns'] }); },
-      onError: (e: any) => toast.error(e.message),
+      onError: (e: any) => {
+        const msg = (e?.message || '').toString();
+        if (e?.code === '23505' || /duplicate key|unique constraint/i.test(msg)) {
+          toast.error('A return for this entity, configuration, year and period already exists.');
+        } else {
+          toast.error(msg || 'Failed to create return');
+        }
+      },
     }),
     update: useMutation({
       mutationFn: async ({ id, ...payload }: any) => {
