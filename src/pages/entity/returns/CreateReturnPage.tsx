@@ -21,12 +21,13 @@ const QUARTERS = ['Q1','Q2','Q3','Q4'];
 export default function CreateReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isPpoc, mappedLicensees, activeLicenseeId, setActiveLicenseeId } = usePpoc();
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
   const insertAudit = useInsertReturnAudit();
 
-  // Get user's profile to find entity
+  // Get user's profile to find entity (for non-PPOC users)
   const { data: profile } = useQuery({
     queryKey: ['my_profile', user?.id],
     enabled: !!user?.id,
@@ -35,6 +36,18 @@ export default function CreateReturnPage() {
       return data;
     },
   });
+
+  // PPOC users with multiple mapped licensees must pick one explicitly here
+  const requiresEntityPick = isPpoc && mappedLicensees.length > 1;
+  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>(
+    requiresEntityPick ? '' : (activeLicenseeId || '')
+  );
+  // Keep local selection in sync if PPOC switches via header
+  useEffect(() => {
+    if (!requiresEntityPick && activeLicenseeId) {
+      setSelectedLicenseeId(activeLicenseeId);
+    }
+  }, [activeLicenseeId, requiresEntityPick]);
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
@@ -45,6 +58,9 @@ export default function CreateReturnPage() {
   const typeName = selectedConfig?.return_types?.name || '';
 
   const activeConfigs = configs.filter(c => c.status === 'active');
+  const selectedLicenseeName = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId)?.licensee_name;
+  // Resolve the entity to file the return for: PPOC-picked, else profile's licensee
+  const effectiveLicenseeId = isPpoc ? selectedLicenseeId : (profile?.licensee_id || null);
 
   const periodOptions = useMemo(() => {
     if (typeName === 'Annual') return ['Annual'];
