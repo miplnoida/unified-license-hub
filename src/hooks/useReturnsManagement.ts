@@ -174,9 +174,33 @@ export function useMyReturns() {
     queryKey: ['my_returns', user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('returns_filed').select('*, return_configs(name, return_types(name, code)), sectors(name), licensees(name)').eq('created_by', user!.id).order('created_at', { ascending: false });
+      // Resolve the set of entity (licensee) IDs the user can see returns for:
+      //  - PPOC: all licensees they're actively mapped to
+      //  - Regular user: their own profile.licensee_id
+      const [{ data: mappings }, { data: prof }] = await Promise.all([
+        (supabase as any).from('ppoc_entity_mappings').select('licensee_id').eq('ppoc_user_id', user!.id).eq('is_active', true),
+        (supabase as any).from('profiles').select('licensee_id').eq('id', user!.id).maybeSingle(),
+      ]);
+      const entityIds = Array.from(new Set([
+        ...((mappings || []).map((m: any) => m.licensee_id).filter(Boolean)),
+        ...(prof?.licensee_id ? [prof.licensee_id] : []),
+      ]));
+
+      // Build OR filter: returns this user created OR for any entity they manage
+      let query = (supabase as any)
+        .from('returns_filed')
+        .select('*, return_configs(name, return_types(name, code)), sectors(name), licensees(name)')
+        .order('created_at', { ascending: false });
+
+      if (entityIds.length > 0) {
+        query = query.or(`created_by.eq.${user!.id},entity_id.in.(${entityIds.join(',')})`);
+      } else {
+        query = query.eq('created_by', user!.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
-      return data as any[];
+      return (data || []) as any[];
     },
   });
 }
