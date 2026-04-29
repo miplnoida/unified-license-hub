@@ -39,15 +39,22 @@ export default function CreateReturnPage() {
 
   // PPOC users with multiple mapped licensees must pick one explicitly here
   const requiresEntityPick = isPpoc && mappedLicensees.length > 1;
-  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>(
-    requiresEntityPick ? '' : (activeLicenseeId || '')
-  );
-  // Keep local selection in sync if PPOC switches via header
+  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>('');
+
+  // Resolve PPOC licensee selection:
+  //  - multi-mapped: user picks; default to active selection if any
+  //  - single-mapped: auto-pick the only mapping (don't wait for header context)
   useEffect(() => {
-    if (!requiresEntityPick && activeLicenseeId) {
-      setSelectedLicenseeId(activeLicenseeId);
+    if (!isPpoc) return;
+    if (mappedLicensees.length === 1) {
+      setSelectedLicenseeId(mappedLicensees[0].licensee_id);
+    } else if (mappedLicensees.length > 1 && activeLicenseeId) {
+      // honour header switcher selection only if it's still in the mapping list
+      if (mappedLicensees.some(l => l.licensee_id === activeLicenseeId)) {
+        setSelectedLicenseeId(prev => prev || activeLicenseeId);
+      }
     }
-  }, [activeLicenseeId, requiresEntityPick]);
+  }, [isPpoc, mappedLicensees, activeLicenseeId]);
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
@@ -99,6 +106,10 @@ export default function CreateReturnPage() {
     if (!configId || !period || !year) return;
     if (isPpoc && !selectedLicenseeId) {
       toast.error('Please select a licensee to file the return for.');
+      return;
+    }
+    if (!effectiveLicenseeId) {
+      toast.error('No licensee context found. Please select a licensee or contact your administrator.');
       return;
     }
     // Sync the global PPOC active licensee with the chosen entity so downstream
@@ -204,6 +215,13 @@ export default function CreateReturnPage() {
                     <p className="text-xs text-muted-foreground">
                       You are mapped as PPOC for {mappedLicensees.length} licensees. Pick which one this return is for.
                     </p>
+                  </div>
+                )}
+
+                {isPpoc && mappedLicensees.length === 1 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900">
+                    <Building2 className="h-4 w-4 text-amber-700" />
+                    <span>Filing as PPOC on behalf of <strong>{mappedLicensees[0].licensee_name}</strong>.</span>
                   </div>
                 )}
 
