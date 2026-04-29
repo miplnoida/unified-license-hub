@@ -239,11 +239,20 @@ export function useFormTemplate(id: string | null) {
       if (!id) return null;
       const { data, error } = await supabase
         .from('form_templates')
-        .select('*')
+        .select('*, sectors:sector_id(name), sub_sectors:sub_sector_id(name), categories:category_id(name), services:service_id(name), return_types:return_type_id(id, name, code)')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
-      return data as unknown as FormTemplate | null;
+      if (!data) return null;
+      return {
+        ...(data as any),
+        sector_name: (data as any).sectors?.name || (data as any).sector || null,
+        sub_sector_name: (data as any).sub_sectors?.name || (data as any).sub_sector || null,
+        category_name: (data as any).categories?.name || (data as any).category || null,
+        service_name: (data as any).services?.name || (data as any).service || null,
+        return_type_name: (data as any).return_types?.name || null,
+        return_type_code: (data as any).return_types?.code || null,
+      } as FormTemplate;
     },
     enabled: !!id,
   });
@@ -500,6 +509,7 @@ export function useSaveFormTemplate() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
+      queryClient.invalidateQueries({ queryKey: ['form_templates', 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
       queryClient.invalidateQueries({ queryKey: ['form_fields'] });
       queryClient.invalidateQueries({ queryKey: ['field_conditions'] });
