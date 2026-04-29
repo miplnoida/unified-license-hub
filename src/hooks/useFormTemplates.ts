@@ -205,6 +205,88 @@ function fieldRowsToSections(
     }) }));
 }
 
+function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
+  const newSections = JSON.parse(JSON.stringify(sections)) as FormSection[];
+  const idMap = new Map<string, string>();
+
+  for (const section of newSections) {
+    for (const field of section.fields) {
+      const newId = crypto.randomUUID();
+      idMap.set(field.id, newId);
+      field.id = newId;
+    }
+  }
+
+  for (const section of newSections) {
+    for (const field of section.fields) {
+      if (!field.conditionalLogic) continue;
+      for (const rule of field.conditionalLogic) {
+        if (rule.fieldId && idMap.has(rule.fieldId)) {
+          rule.fieldId = idMap.get(rule.fieldId)!;
+        }
+      }
+    }
+  }
+
+  return newSections;
+}
+
+async function replaceVersionFields(versionId: string, sections: FormSection[]) {
+  const { data: existingFields } = await supabase
+    .from('form_fields')
+    .select('id')
+    .eq('version_id', versionId);
+
+  const existingFieldIds = (existingFields || []).map((row: any) => row.id).filter(Boolean);
+  if (existingFieldIds.length > 0) {
+    const { error: condErr } = await supabase
+      .from('field_conditions')
+      .delete()
+      .in('field_id', existingFieldIds);
+    if (condErr) throw condErr;
+  }
+
+  const { error: delFieldsErr } = await supabase
+    .from('form_fields')
+    .delete()
+    .eq('version_id', versionId);
+  if (delFieldsErr) throw delFieldsErr;
+
+  const { fields, conditions } = sectionsToFieldRows(versionId, sections);
+
+  if (fields.length > 0) {
+    const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
+    if (fErr) throw fErr;
+  }
+
+  if (conditions.length > 0) {
+    const { error: cErr } = await supabase.from('field_conditions').insert(conditions as any);
+    if (cErr) throw cErr;
+  }
+}
+
+async function deleteVersionDraft(versionId: string) {
+  const { data: existingFields } = await supabase
+    .from('form_fields')
+    .select('id')
+    .eq('version_id', versionId);
+
+  const existingFieldIds = (existingFields || []).map((row: any) => row.id).filter(Boolean);
+  if (existingFieldIds.length > 0) {
+    const { error: condErr } = await supabase
+      .from('field_conditions')
+      .delete()
+      .in('field_id', existingFieldIds);
+    if (condErr) throw condErr;
+  }
+
+  const { error: fieldErr } = await supabase.from('form_fields').delete().eq('version_id', versionId);
+  if (fieldErr) throw fieldErr;
+
+  const { error: versionErr } = await supabase.from('form_versions').delete().eq('id', versionId);
+  if (versionErr) throw versionErr;
+}
+
 // ─── Queries ───
 
 export function useFormTemplates(formType?: string, regulatorId?: string | null) {
