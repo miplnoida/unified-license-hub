@@ -27,6 +27,9 @@ export interface FormTemplate {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  return_type_id?: string | null;
+  return_type_name?: string | null;
+  return_type_code?: string | null;
 }
 
 export interface FormVersion {
