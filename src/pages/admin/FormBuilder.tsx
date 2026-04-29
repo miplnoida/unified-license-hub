@@ -108,7 +108,8 @@ export default function FormBuilder() {
     setSelectedCategory(catId);
     const svcId = existingTemplate.service_id || dbServices.find(s => s.name === existingTemplate.service)?.id || '';
     setSelectedService(svcId);
-    setSelectedReturnTypeId((existingTemplate as any).return_type_id || '');
+    const resolvedReturnTypeId = (existingTemplate as any).return_type_id || '';
+    setSelectedReturnTypeId(resolvedReturnTypeId);
     setInitialized(true);
   }, [
     existingTemplate,
@@ -553,9 +554,15 @@ export default function FormBuilder() {
                   {formType === 'returns' && (
                     <div className="space-y-1.5">
                       <Label className="text-xs">Return Type <span className="text-destructive">*</span></Label>
-                      <Select value={selectedReturnTypeId} onValueChange={setSelectedReturnTypeId} disabled={isViewMode}>
+                      <Select
+                        key={`${editId || 'new'}-${selectedReturnTypeId || 'none'}`}
+                        value={selectedReturnTypeId || 'none'}
+                        onValueChange={(value) => setSelectedReturnTypeId(value === 'none' ? '' : value)}
+                        disabled={isViewMode}
+                      >
                         <SelectTrigger className="h-9"><SelectValue placeholder="Select return type" /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
                           {activeReturnTypes.map((rt: any) => (
                             <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
                           ))}
