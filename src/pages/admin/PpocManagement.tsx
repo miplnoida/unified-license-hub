@@ -74,7 +74,7 @@ export default function PpocManagement() {
         .from('profiles')
         .select('id, full_name, email, role, user_type')
         .eq('status', 'active')
-        .in('role', ['licensee_primary', 'licensee_secondary'])
+        .eq('role', 'licensee_primary')
         .order('full_name'),
       supabase.from('licensees').select('id, name').eq('status', 'active').order('name'),
     ]);
@@ -235,16 +235,15 @@ export default function PpocManagement() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary/secondary users only)</span></Label>
+              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary users only)</span></Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select licensee user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select primary user..." /></SelectTrigger>
                 <SelectContent>
                   {users.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No active licensee users available.</div>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">No active primary users available.</div>
                   ) : users.map(u => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.full_name} ({u.email})
-                      {u.role ? <span className="text-xs text-muted-foreground ml-1">— {u.role.replace(/_/g, ' ')}</span> : null}
                     </SelectItem>
                   ))}
                 </SelectContent>
