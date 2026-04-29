@@ -97,10 +97,20 @@ export default function CreateReturnPage() {
 
   const handleCreate = () => {
     if (!configId || !period || !year) return;
+    if (isPpoc && !selectedLicenseeId) {
+      toast.error('Please select a licensee to file the return for.');
+      return;
+    }
+    // Sync the global PPOC active licensee with the chosen entity so downstream
+    // pages (fill/view) stay consistent with the user's selection here.
+    if (isPpoc && selectedLicenseeId && selectedLicenseeId !== activeLicenseeId) {
+      setActiveLicenseeId(selectedLicenseeId);
+    }
     const dates = getPeriodDates();
     const dueDate = getDueDate();
     createReturn.mutate({
-      entity_id: profile?.licensee_id || null,
+      entity_id: effectiveLicenseeId,
+      ...(isPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
       return_configuration_id: configId,
       sector_id: selectedConfig?.sector_id || null,
       subsector_id: selectedConfig?.subsector_id || null,
@@ -112,7 +122,7 @@ export default function CreateReturnPage() {
       workflow_status: 'TEMP',
       created_by: user?.id,
       updated_by: user?.id,
-    }, {
+    } as any, {
       onSuccess: (data: any) => {
         insertAudit.mutate({ return_id: data.id, action: 'created', new_status: 'TEMP', performed_by: user?.id });
         toast.success('Return created! Start filling the form.');
