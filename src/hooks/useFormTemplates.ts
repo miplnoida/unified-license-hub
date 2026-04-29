@@ -760,17 +760,18 @@ export function useUpdateTemplateStatus() {
       }
 
       // ── Publish path ──
-      // Find the latest version (the working draft) and the last published
-      // version (if any) so we can decide whether structural changes require
-      // a NEW version row, or if a cosmetic bump on the existing row is enough.
-      const { data: latestRows } = await supabase
+      // Publish from the latest draft when one exists; otherwise re-publish the
+      // current published version in place. Published rows must never be edited
+      // by Save actions — only Publish can promote draft changes.
+      const { data: draftRows } = await supabase
         .from('form_versions')
         .select('*')
         .eq('template_id', id)
+        .eq('status', 'draft')
         .order('version', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1);
-      const latest: any = latestRows?.[0] || null;
-      if (!latest) return; // nothing to publish
+      const latestDraft: any = draftRows?.[0] || null;
 
       const { data: publishedRows } = await supabase
         .from('form_versions')
@@ -781,12 +782,15 @@ export function useUpdateTemplateStatus() {
         .limit(1);
       const lastPublished: any = publishedRows?.[0] || null;
 
-      const draftSections = (latest.schema_snapshot || []) as FormSection[];
+      const publishSource = latestDraft || lastPublished;
+      if (!publishSource) return;
+
+      const draftSections = (publishSource.schema_snapshot || []) as FormSection[];
       const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
 
-      // If the latest version IS the last published one (republish without
-      // edits), just refresh its published_at — no version change needed.
-      if (lastPublished && latest.id === lastPublished.id) {
+      // If there is no draft and we're just re-publishing the current live
+      // version, refresh its publish timestamp only.
+      if (!latestDraft && lastPublished) {
         await supabase.from('form_versions').update({
           status: 'published',
           published_at: new Date().toISOString(),
@@ -808,30 +812,10 @@ export function useUpdateTemplateStatus() {
         // so prior submissions stay tied to the previous published version.
         const [maj] = currentSemver.split('.').map(Number);
         const newSemver = `${maj + 1}.0`;
-        const newVersionNum = (latest.version || lastPublished.version || 1) + 1;
+        const newVersionNum = Math.max(lastPublished.version || 1, publishSource.version || 1) + 1;
         const newVid = crypto.randomUUID();
 
-        // Re-id fields so they're independent of the prior version's rows.
-        const newSections = JSON.parse(JSON.stringify(draftSections)) as FormSection[];
-        const idMap = new Map<string, string>();
-        for (const section of newSections) {
-          for (const field of section.fields) {
-            const newId = crypto.randomUUID();
-            idMap.set(field.id, newId);
-            field.id = newId;
-          }
-        }
-        for (const section of newSections) {
-          for (const field of section.fields) {
-            if (field.conditionalLogic) {
-              for (const rule of field.conditionalLogic) {
-                if (rule.fieldId && idMap.has(rule.fieldId)) {
-                  rule.fieldId = idMap.get(rule.fieldId)!;
-                }
-              }
-            }
-          }
-        }
+        const newSections = cloneSectionsWithNewFieldIds(draftSections);
 
         const { error: vErr } = await supabase.from('form_versions').insert({
           id: newVid,
@@ -845,30 +829,46 @@ export function useUpdateTemplateStatus() {
         } as any);
         if (vErr) throw vErr;
 
-        const { fields, conditions } = sectionsToFieldRows(newVid, newSections);
-        if (fields.length > 0) {
-          await supabase.from('form_fields').insert(fields as any);
-        }
-        if (conditions.length > 0) {
-          await supabase.from('field_conditions').insert(conditions as any);
+        await replaceVersionFields(newVid, newSections);
+
+        if (latestDraft) {
+          await deleteVersionDraft(latestDraft.id);
         }
       } else {
-        // Cosmetic change OR first publish → publish the existing latest row
-        // in place. Bump minor only if there were any cosmetic edits vs the
-        // prior published snapshot.
-        let newSemver = latest.semantic_version || `${latest.version}.0`;
-        if (lastPublished) {
+        // Cosmetic-only edits update the current published version in place so
+        // existing submissions remain linked to the same published row.
+        if (!lastPublished) {
+          await supabase.from('form_versions').update({
+            status: 'published',
+            published_at: new Date().toISOString(),
+          } as any).eq('id', publishSource.id);
+          return;
+        }
+
+        let newSemver = lastPublished.semantic_version || `${lastPublished.version}.0`;
+        if (latestDraft) {
           const [maj, min] = currentSemver.split('.').map(Number);
-          // Cosmetic edits detected (not structural) → minor bump.
-          // No diff at all → keep the same semver.
           const anyDiff = JSON.stringify(publishedSections) !== JSON.stringify(draftSections);
           newSemver = anyDiff ? `${maj}.${(min || 0) + 1}` : currentSemver;
+
+          await supabase.from('form_versions').update({
+            schema_snapshot: JSON.parse(JSON.stringify(draftSections)),
+            published_at: new Date().toISOString(),
+            semantic_version: newSemver,
+            change_notes: latestDraft.change_notes ?? lastPublished.change_notes ?? null,
+            effective_from: latestDraft.effective_from ?? lastPublished.effective_from ?? null,
+            effective_until: latestDraft.effective_until ?? lastPublished.effective_until ?? null,
+          } as any).eq('id', lastPublished.id);
+
+          await replaceVersionFields(lastPublished.id, draftSections);
+          await deleteVersionDraft(latestDraft.id);
+        } else {
+          await supabase.from('form_versions').update({
+            status: 'published',
+            published_at: new Date().toISOString(),
+            semantic_version: newSemver,
+          } as any).eq('id', lastPublished.id);
         }
-        await supabase.from('form_versions').update({
-          status: 'published',
-          published_at: new Date().toISOString(),
-          semantic_version: newSemver,
-        } as any).eq('id', latest.id);
       }
     },
     onSuccess: () => {
@@ -904,8 +904,8 @@ export function hasStructuralChanges(oldSections: FormSection[], newSections: Fo
       const old = oldFieldMap.get(f.id);
       if (!old) continue;
       if (old.type !== f.type) return true;
-      // `name` is the data key — changing it breaks submission shape
-      if ((old as any).name && (f as any).name && (old as any).name !== (f as any).name) return true;
+      if (old.fieldName !== f.fieldName) return true;
+      if (old.type === 'table' && JSON.stringify(old.tableColumns || []) !== JSON.stringify(f.tableColumns || [])) return true;
     }
   }
   return false;
