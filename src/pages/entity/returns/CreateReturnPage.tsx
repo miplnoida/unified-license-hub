@@ -218,6 +218,13 @@ export default function CreateReturnPage() {
                   </div>
                 )}
 
+                {isPpoc && mappedLicensees.length === 1 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900">
+                    <Building2 className="h-4 w-4 text-amber-700" />
+                    <span>Filing as PPOC on behalf of <strong>{mappedLicensees[0].licensee_name}</strong>.</span>
+                  </div>
+                )}
+
                 {activeConfigs.length === 0 ? (
                   <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
                     <p className="font-medium">No return form is currently configured.</p>
