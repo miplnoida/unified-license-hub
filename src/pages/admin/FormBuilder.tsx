@@ -76,6 +76,9 @@ export default function FormBuilder() {
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedService, setSelectedService] = useState('');
+  const [selectedReturnTypeId, setSelectedReturnTypeId] = useState<string>('');
+  const { data: returnTypes = [] } = useReturnTypes();
+  const activeReturnTypes = (returnTypes || []).filter((rt: any) => rt.status === 'active');
   const [initialized, setInitialized] = useState(false);
 
   // Populate state when existing template + version loads
