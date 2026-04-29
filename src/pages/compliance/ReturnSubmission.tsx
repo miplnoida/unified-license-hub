@@ -104,6 +104,10 @@ export default function ReturnSubmission() {
   const [formLoading, setFormLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const selectedLicensee = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId) || null;
+  const availableLicenses = isPpoc
+    ? licenses.filter(l => l.licensee_id === selectedLicenseeId)
+    : licenses;
 
   useEffect(() => {
     loadInitial();
@@ -696,12 +700,12 @@ export default function ReturnSubmission() {
             actions={<Button variant="outline" onClick={() => navigate('/compliance/returns')}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>}
           />
 
-          {/* PPOC must select a licensee from the header before proceeding */}
-          {isPpoc && !activeLicenseeId && (
+          {/* PPOC must choose which mapped entity this return is for */}
+          {isPpoc && !selectedLicenseeId && (
             <Alert variant="destructive" className="max-w-2xl">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Select a licensee from the switcher at the top of the page before creating a return.
+                Select the licensee you want to file for before creating a return.
               </AlertDescription>
             </Alert>
           )}
@@ -710,31 +714,46 @@ export default function ReturnSubmission() {
             <CardHeader>
               <CardTitle className="text-base">
                 Return Details
-                {isPpoc && activeLicensee && (
+                {isPpoc && selectedLicensee && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    — for <strong className="text-foreground">{activeLicensee.licensee_name}</strong>
+                    — for <strong className="text-foreground">{selectedLicensee.licensee_name}</strong>
                   </span>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
+              {isPpoc && (
+                <div className="space-y-2">
+                  <Label>Licensee <span className="text-destructive">*</span></Label>
+                  <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select licensee..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mappedLicensees.map(licensee => (
+                        <SelectItem key={licensee.licensee_id} value={licensee.licensee_id}>
+                          {licensee.licensee_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Return For (License) */}
               <div className="space-y-2">
                 <Label>
                   Return For {isPpoc && <span className="text-destructive">*</span>}
                 </Label>
                 <Select value={selectedLicenseId} onValueChange={setSelectedLicenseId}>
-                  <SelectTrigger><SelectValue placeholder={isPpoc ? `Select license of ${activeLicensee?.licensee_name || 'licensee'}...` : 'Select license...'} /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={isPpoc ? `Select license of ${selectedLicensee?.licensee_name || 'licensee'}...` : 'Select license...'} /></SelectTrigger>
                   <SelectContent>
-                    {(isPpoc
-                      ? licenses.filter(l => l.licensee_id === activeLicenseeId)
-                      : licenses
-                    ).map(l => (
+                    {availableLicenses.map(l => (
                       <SelectItem key={l.id} value={l.id}>
                         {l.license_number} — {l.license_type}
                       </SelectItem>
                     ))}
-                    {isPpoc && licenses.filter(l => l.licensee_id === activeLicenseeId).length === 0 && (
+                    {isPpoc && selectedLicenseeId && availableLicenses.length === 0 && (
                       <div className="px-3 py-2 text-sm text-muted-foreground">
                         No active licenses found for this licensee.
                       </div>
@@ -802,7 +821,7 @@ export default function ReturnSubmission() {
                 </Button>
                 <Button
                   onClick={handleCreate}
-                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!activeLicenseeId || !selectedLicenseId))}
+                  disabled={creating || !selectedConfigId || !periodEnd || (isPpoc && (!selectedLicenseeId || !selectedLicenseId))}
                   className="gap-2"
                 >
                   {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
