@@ -242,6 +242,9 @@ export default function CreateReturnPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Confirmation</h3>
                 <div className="p-4 bg-muted/50 rounded-lg space-y-2 text-sm">
+                  {isPpoc && selectedLicenseeName && (
+                    <p><strong>Licensee:</strong> {selectedLicenseeName}</p>
+                  )}
                   <p><strong>Return:</strong> {selectedConfig?.name}</p>
                   <p><strong>Type:</strong> {typeName}</p>
                   <p><strong>Period:</strong> {period} {year}</p>
