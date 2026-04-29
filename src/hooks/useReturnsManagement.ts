@@ -145,7 +145,16 @@ export function useReturnsFiled(filters?: { entityId?: string; status?: string; 
   return useQuery({
     queryKey: ['returns_filed', filters],
     queryFn: async () => {
-      let q = (supabase as any).from('returns_filed').select('*, return_configs(name, return_types(name, code)), sectors(name), licensees(name)').order('created_at', { ascending: false });
+      let q = (supabase as any)
+        .from('returns_filed')
+        .select(`
+          *,
+          return_configs(name, return_types(name, code)),
+          sectors(name),
+          licensees:licensees!returns_filed_entity_id_fkey(name),
+          on_behalf_of_licensees:licensees!returns_filed_on_behalf_of_licensee_id_fkey(name)
+        `)
+        .order('created_at', { ascending: false });
       if (filters?.entityId) q = q.eq('entity_id', filters.entityId);
       if (filters?.status) q = q.eq('workflow_status', filters.status);
       if (filters?.year) q = q.eq('return_year', filters.year);
@@ -161,7 +170,17 @@ export function useReturnById(id: string | undefined) {
     queryKey: ['returns_filed', id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('returns_filed').select('*, return_configs(*, return_types(name, code)), sectors(name), licensees(name)').eq('id', id).single();
+      const { data, error } = await (supabase as any)
+        .from('returns_filed')
+        .select(`
+          *,
+          return_configs(*, return_types(name, code)),
+          sectors(name),
+          licensees:licensees!returns_filed_entity_id_fkey(name),
+          on_behalf_of_licensees:licensees!returns_filed_on_behalf_of_licensee_id_fkey(name)
+        `)
+        .eq('id', id)
+        .single();
       if (error) throw error;
       return data as any;
     },
@@ -189,7 +208,13 @@ export function useMyReturns() {
       // Build OR filter: returns this user created OR for any entity they manage
       let query = (supabase as any)
         .from('returns_filed')
-        .select('*, return_configs(name, return_types(name, code)), sectors(name), licensees(name)')
+        .select(`
+          *,
+          return_configs(name, return_types(name, code)),
+          sectors(name),
+          licensees:licensees!returns_filed_entity_id_fkey(name),
+          on_behalf_of_licensees:licensees!returns_filed_on_behalf_of_licensee_id_fkey(name)
+        `)
         .order('created_at', { ascending: false });
 
       if (entityIds.length > 0) {
