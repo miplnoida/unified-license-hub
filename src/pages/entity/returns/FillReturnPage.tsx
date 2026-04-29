@@ -81,49 +81,46 @@ export default function FillReturnPage() {
       returnData?.return_configuration_id,
       returnData?.return_configs?.sector_id,
       returnData?.return_configs?.subsector_id,
+      returnData?.return_configs?.return_type_id,
     ],
     enabled: !!returnData?.return_configuration_id && configForms.length === 0,
     queryFn: async () => {
       const config = returnData?.return_configs;
-      if (!config?.sector_id) return [];
+      if (!config) return [];
 
-      const fetchTemplates = async (matchSubSector: boolean) => {
-        let query = supabase
-          .from('form_templates')
-          .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, created_at')
-          .eq('status', 'published')
-          .eq('form_type', 'returns')
-          .eq('sector_id', config.sector_id);
+      // Primary match: by return_type_id (the explicit tagging on form_templates).
+      // Sector / sub-sector on a form template act as scope filters: NULL means
+      // "applies to all sectors / sub-sectors".
+      let query = supabase
+        .from('form_templates')
+        .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, return_type_id, created_at')
+        .eq('status', 'published')
+        .eq('form_type', 'returns');
 
-        if (matchSubSector && config.subsector_id) {
-          query = query.eq('sub_sector_id', config.subsector_id);
-        }
+      if (config.return_type_id) {
+        query = query.eq('return_type_id', config.return_type_id);
+      }
 
-        const { data, error } = await query.order('form_order', { ascending: true }).order('created_at', { ascending: false });
-        if (error) throw error;
-        return data || [];
-      };
+      const { data, error } = await query
+        .order('form_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
 
-      const exactMatches = await fetchTemplates(true);
-      const sectorMatches = exactMatches.length > 0 ? exactMatches : await fetchTemplates(false);
+      const all = data || [];
+      if (all.length === 0) return [];
 
-      if (sectorMatches.length === 0) return [];
+      // Filter: keep templates whose sector / sub-sector is either NULL ("all")
+      // or matches the configuration's sector / sub-sector.
+      const matches = all.filter(t => {
+        const sectorOk = !t.sector_id || (config.sector_id && t.sector_id === config.sector_id);
+        const subOk = !t.sub_sector_id || (config.subsector_id && t.sub_sector_id === config.subsector_id);
+        return sectorOk && subOk;
+      });
 
-      const grouped = sectorMatches.reduce<Record<string, any[]>>((acc, template) => {
-        const key = template.return_template_id || '__ungrouped__';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(template);
-        return acc;
-      }, {});
+      if (matches.length === 0) return [];
 
-      const bestGroup = Object.values(grouped)
-        .sort((a, b) => {
-          if (b.length !== a.length) return b.length - a.length;
-          return new Date(b[0]?.created_at || 0).getTime() - new Date(a[0]?.created_at || 0).getTime();
-        })[0] || [];
-
-      return bestGroup
-        .sort((a, b) => (a.form_order || 0) - (b.form_order || 0))
+      return matches
+        .sort((a, b) => (a.form_order ?? 0) - (b.form_order ?? 0))
         .map((template, index) => ({
           id: `fallback-${template.id}`,
           form_id: template.id,
