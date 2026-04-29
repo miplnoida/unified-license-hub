@@ -794,7 +794,7 @@ export function useUpdateTemplateStatus() {
         await supabase.from('form_versions').update({
           status: 'published',
           published_at: new Date().toISOString(),
-        } as any).eq('id', latest.id);
+        } as any).eq('id', lastPublished.id);
         queryClient.invalidateQueries({ queryKey: ['form_templates'] });
         queryClient.invalidateQueries({ queryKey: ['form_versions'] });
         return;
