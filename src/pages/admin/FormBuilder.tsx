@@ -550,6 +550,20 @@ export default function FormBuilder() {
               </div>
               {(formType === 'post_license' || formType === 'returns') && (
                 <>
+                  {formType === 'returns' && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Return Type <span className="text-destructive">*</span></Label>
+                      <Select value={selectedReturnTypeId} onValueChange={setSelectedReturnTypeId} disabled={isViewMode}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select return type" /></SelectTrigger>
+                        <SelectContent>
+                          {activeReturnTypes.map((rt: any) => (
+                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground">Pulled from the Return Types master configuration</p>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label className="text-xs">Tab Name</Label>
                     <Input value={tabName} onChange={e => setTabName(e.target.value)} placeholder="e.g. B1, B2, Q14" disabled={isViewMode} className="h-9" />
