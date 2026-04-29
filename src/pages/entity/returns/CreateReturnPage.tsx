@@ -156,6 +156,31 @@ export default function CreateReturnPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Select Return Configuration</h3>
+
+                {isPpoc && mappedLicensees.length > 1 && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-amber-700" />
+                      Filing on behalf of (Licensee) *
+                    </Label>
+                    <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select the licensee to file for" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mappedLicensees.map(l => (
+                          <SelectItem key={l.licensee_id} value={l.licensee_id}>
+                            {l.licensee_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      You are mapped as PPOC for {mappedLicensees.length} licensees. Pick which one this return is for.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label>Return Configuration *</Label>
                   <Select value={configId} onValueChange={v => { setConfigId(v); setPeriod(''); }}>
@@ -176,7 +201,14 @@ export default function CreateReturnPage() {
                     <p><strong>Version:</strong> {selectedConfig.version}</p>
                   </div>
                 )}
-                <div className="flex justify-end"><Button disabled={!configId} onClick={() => setStep(2)}>Next <ArrowRight className="h-4 w-4 ml-2" /></Button></div>
+                <div className="flex justify-end">
+                  <Button
+                    disabled={!configId || (isPpoc && mappedLicensees.length > 1 && !selectedLicenseeId)}
+                    onClick={() => setStep(2)}
+                  >
+                    Next <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
               </div>
             )}
 
