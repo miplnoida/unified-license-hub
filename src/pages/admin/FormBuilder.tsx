@@ -286,7 +286,7 @@ export default function FormBuilder() {
         rows: JSON.parse(JSON.stringify(sections)),
       } as any);
 
-      toast.success(`Form saved — Version ${semanticVersion}`);
+      toast.success(`Form saved — Version ${currentVersionStr} (versions only change on Publish)`);
       navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
