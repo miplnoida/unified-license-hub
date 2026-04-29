@@ -181,29 +181,46 @@ export default function CreateReturnPage() {
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label>Return Configuration *</Label>
-                  <Select value={configId} onValueChange={v => { setConfigId(v); setPeriod(''); }}>
-                    <SelectTrigger><SelectValue placeholder="Choose a return configuration" /></SelectTrigger>
-                    <SelectContent>
-                      {activeConfigs.map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.return_types?.name || ''} • v{c.version})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedConfig && (
-                  <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1">
-                    <p><strong>Type:</strong> {selectedConfig.return_types?.name}</p>
-                    <p><strong>Sector:</strong> {selectedConfig.sectors?.name || 'All'}</p>
-                    <p><strong>Version:</strong> {selectedConfig.version}</p>
+                {activeConfigs.length === 0 ? (
+                  <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
+                    <p className="font-medium">No return form is currently configured.</p>
+                    <p className="mt-1 text-amber-800">
+                      An admin must configure a return form (Sector, Sub-Sector and Return Type) from
+                      <strong> Admin → Form Management → Returns </strong> and link it to a return configuration before you can file a return.
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Return Configuration *</Label>
+                      <Select value={configId} onValueChange={v => { setConfigId(v); setPeriod(''); }}>
+                        <SelectTrigger><SelectValue placeholder="Choose a return configuration" /></SelectTrigger>
+                        <SelectContent>
+                          {activeConfigs.map(c => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name} ({c.return_types?.name || 'Untyped'} • v{c.version})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedConfig && (
+                      <div className="p-3 bg-muted/50 rounded-lg text-sm space-y-1">
+                        <p><strong>Return Type:</strong> {selectedConfig.return_types?.name || '—'}</p>
+                        <p><strong>Sector:</strong> {selectedConfig.sectors?.name || 'All'}</p>
+                        <p><strong>Sub-Sector:</strong> {(selectedConfig as any).sub_sectors?.name || 'All'}</p>
+                        <p><strong>Version:</strong> {selectedConfig.version}</p>
+                      </div>
+                    )}
+                  </>
                 )}
                 <div className="flex justify-end">
                   <Button
-                    disabled={!configId || (isPpoc && mappedLicensees.length > 1 && !selectedLicenseeId)}
+                    disabled={
+                      activeConfigs.length === 0 ||
+                      !configId ||
+                      (isPpoc && mappedLicensees.length > 1 && !selectedLicenseeId)
+                    }
                     onClick={() => setStep(2)}
                   >
                     Next <ArrowRight className="h-4 w-4 ml-2" />
