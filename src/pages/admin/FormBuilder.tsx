@@ -108,6 +108,7 @@ export default function FormBuilder() {
     setSelectedCategory(catId);
     const svcId = existingTemplate.service_id || dbServices.find(s => s.name === existingTemplate.service)?.id || '';
     setSelectedService(svcId);
+    setSelectedReturnTypeId((existingTemplate as any).return_type_id || '');
     setInitialized(true);
   }, [
     existingTemplate,
