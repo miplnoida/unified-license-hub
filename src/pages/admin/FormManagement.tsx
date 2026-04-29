@@ -450,11 +450,7 @@ export default function FormManagement() {
                               <TableCell>{tpl.service_name || tpl.service || '—'}</TableCell>
                               {activeTab === 'returns' && (
                                 <TableCell>
-                                  {(tpl as any).return_type_name ? (
-                                    <Badge variant="outline" className="capitalize">{(tpl as any).return_type_name}</Badge>
-                                  ) : (
-                                    <Badge variant="secondary" className="text-[10px]">Not set</Badge>
-                                  )}
+                                  <span className="text-sm">{(tpl as any).return_type_name || '—'}</span>
                                 </TableCell>
                               )}
                               <TableCell>
