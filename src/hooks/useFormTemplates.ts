@@ -333,10 +333,19 @@ export function useLatestPublishedVersion(templateId: string | null) {
       const rows = (data || []) as unknown as FormVersion[];
       if (rows.length === 0) return null;
 
-      // Filter by effective window when provided
+      // Filter by effective window when provided.
+      // Treat `effective_until` as INCLUSIVE end-of-day (admins pick a date,
+      // not a timestamp) — otherwise a date saved as "2026-04-29T00:00:00Z"
+      // would expire instantly during the same day.
       const effective = rows.filter(v => {
         const fromOk = !v.effective_from || v.effective_from <= nowIso;
-        const untilOk = !v.effective_until || v.effective_until >= nowIso;
+        let untilOk = true;
+        if (v.effective_until) {
+          const until = new Date(v.effective_until);
+          // Push to end-of-day UTC for inclusive comparison
+          until.setUTCHours(23, 59, 59, 999);
+          untilOk = until.toISOString() >= nowIso;
+        }
         return fromOk && untilOk;
       });
       // Prefer effective rows; otherwise fall back to latest published
