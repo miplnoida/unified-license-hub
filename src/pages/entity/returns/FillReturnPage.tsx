@@ -429,7 +429,8 @@ export default function FillReturnPage() {
                     handleSubmit(
                       'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
                     )
-                  }
+}
+
                   returnSummary={[
                     { label: 'Reference', value: returnData?.unique_id || null },
                     { label: 'Return Type', value: returnData?.return_configs?.name || null },
