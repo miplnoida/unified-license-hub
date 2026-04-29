@@ -263,6 +263,7 @@ export default function FormBuilder() {
           created_by: existingTemplate?.created_by || null,
           tab_name: tabName.trim() || null,
           form_order: formOrder,
+          return_type_id: formType === 'returns' ? (selectedReturnTypeId || null) : null,
         } as any,
         sections,
         versionId,
