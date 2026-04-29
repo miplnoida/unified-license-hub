@@ -424,6 +424,7 @@ export default function FormManagement() {
                             <TableHead>Category</TableHead>
                             <TableHead>Form Name</TableHead>
                             <TableHead>Service</TableHead>
+                            {activeTab === 'returns' && <TableHead>Return Type</TableHead>}
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Created Date</TableHead>
