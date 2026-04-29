@@ -477,19 +477,40 @@ export function useSaveFormTemplate() {
       } as any);
       if (tErr) throw tErr;
 
-      // Upsert version
+      // Upsert version. IMPORTANT: Save/Draft must NOT bump semantic_version,
+      // mark a version as published, or change the version's status. Versioning
+      // is handled exclusively at Publish time so existing submissions stay
+      // linked to their original published version.
       const vid = versionId || crypto.randomUUID();
-      const { error: vErr } = await supabase.from('form_versions').upsert({
+
+      // If a version row already exists, fetch its current values so we don't
+      // overwrite version/semantic_version/status/published_at on a Save.
+      let existingRow: any = null;
+      if (versionId) {
+        const { data } = await supabase
+          .from('form_versions')
+          .select('version, semantic_version, status, published_at')
+          .eq('id', vid)
+          .maybeSingle();
+        existingRow = data || null;
+      }
+
+      const versionRow: any = {
         id: vid,
         template_id: template.id,
-        version,
+        version: existingRow?.version ?? version,
         schema_snapshot: JSON.parse(JSON.stringify(sections)),
-        status: template.status,
-        published_at: template.status === 'published' ? new Date().toISOString() : null,
+        // Preserve existing version status — Save never publishes/unpublishes.
+        status: existingRow?.status ?? 'draft',
+        published_at: existingRow?.published_at ?? null,
         created_by: template.created_by,
         change_notes: changeNotes || null,
-        semantic_version: semanticVersion || `${version}.0`,
-      } as any);
+        semantic_version:
+          existingRow?.semantic_version ??
+          (semanticVersion || `${existingRow?.version ?? version}.0`),
+      };
+
+      const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
       if (vErr) throw vErr;
 
       // Delete old fields & conditions for this version, then insert new
