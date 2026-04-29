@@ -134,10 +134,20 @@ export default function FormManagement() {
     if (!result.isConfirmed) return;
     setBulkLoading(true);
     try {
-      const { error } = await supabase.from('form_templates').update({ status: 'published' } as any).in('id', ids);
-      if (error) throw error;
+      // Route each publish through the status mutation so version-handling
+      // logic (structural-change detection, semantic bumping, snapshotting)
+      // runs per template — preserving links to existing submissions.
+      const results = await Promise.allSettled(
+        ids.map((id) => updateStatusMutation.mutateAsync({ id, status: 'published' }))
+      );
+      const failed = results.filter(r => r.status === 'rejected').length;
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
-      toast.success(`${ids.length} form(s) published successfully.`);
+      queryClient.invalidateQueries({ queryKey: ['form_versions'] });
+      if (failed > 0) {
+        toast.error(`${failed} form(s) failed to publish.`);
+      } else {
+        toast.success(`${ids.length} form(s) published successfully.`);
+      }
       setSelectedIds(new Set());
     } catch {
       toast.error('Failed to bulk publish forms.');

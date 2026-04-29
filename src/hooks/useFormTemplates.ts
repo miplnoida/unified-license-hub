@@ -477,19 +477,40 @@ export function useSaveFormTemplate() {
       } as any);
       if (tErr) throw tErr;
 
-      // Upsert version
+      // Upsert version. IMPORTANT: Save/Draft must NOT bump semantic_version,
+      // mark a version as published, or change the version's status. Versioning
+      // is handled exclusively at Publish time so existing submissions stay
+      // linked to their original published version.
       const vid = versionId || crypto.randomUUID();
-      const { error: vErr } = await supabase.from('form_versions').upsert({
+
+      // If a version row already exists, fetch its current values so we don't
+      // overwrite version/semantic_version/status/published_at on a Save.
+      let existingRow: any = null;
+      if (versionId) {
+        const { data } = await supabase
+          .from('form_versions')
+          .select('version, semantic_version, status, published_at')
+          .eq('id', vid)
+          .maybeSingle();
+        existingRow = data || null;
+      }
+
+      const versionRow: any = {
         id: vid,
         template_id: template.id,
-        version,
+        version: existingRow?.version ?? version,
         schema_snapshot: JSON.parse(JSON.stringify(sections)),
-        status: template.status,
-        published_at: template.status === 'published' ? new Date().toISOString() : null,
+        // Preserve existing version status — Save never publishes/unpublishes.
+        status: existingRow?.status ?? 'draft',
+        published_at: existingRow?.published_at ?? null,
         created_by: template.created_by,
         change_notes: changeNotes || null,
-        semantic_version: semanticVersion || `${version}.0`,
-      } as any);
+        semantic_version:
+          existingRow?.semantic_version ??
+          (semanticVersion || `${existingRow?.version ?? version}.0`),
+      };
+
+      const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
       if (vErr) throw vErr;
 
       // Delete old fields & conditions for this version, then insert new
@@ -629,27 +650,178 @@ export function useUpdateTemplateStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // Always update the template's status first.
       const { error } = await supabase.from('form_templates').update({ status } as any).eq('id', id);
       if (error) throw error;
-      // Also update latest version status
-      const { data: versions } = await supabase
+
+      // For non-publish transitions (draft / archived), just sync the latest
+      // version's status — never create new version rows.
+      if (status !== 'published') {
+        const { data: versions } = await supabase
+          .from('form_versions')
+          .select('id')
+          .eq('template_id', id)
+          .order('version', { ascending: false })
+          .limit(1);
+        if (versions?.[0]) {
+          await supabase.from('form_versions').update({
+            status,
+            published_at: null,
+          } as any).eq('id', (versions[0] as any).id);
+        }
+        return;
+      }
+
+      // ── Publish path ──
+      // Find the latest version (the working draft) and the last published
+      // version (if any) so we can decide whether structural changes require
+      // a NEW version row, or if a cosmetic bump on the existing row is enough.
+      const { data: latestRows } = await supabase
         .from('form_versions')
-        .select('id')
+        .select('*')
         .eq('template_id', id)
         .order('version', { ascending: false })
         .limit(1);
-      if (versions?.[0]) {
+      const latest: any = latestRows?.[0] || null;
+      if (!latest) return; // nothing to publish
+
+      const { data: publishedRows } = await supabase
+        .from('form_versions')
+        .select('*')
+        .eq('template_id', id)
+        .eq('status', 'published')
+        .order('version', { ascending: false })
+        .limit(1);
+      const lastPublished: any = publishedRows?.[0] || null;
+
+      const draftSections = (latest.schema_snapshot || []) as FormSection[];
+      const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
+
+      // If the latest version IS the last published one (republish without
+      // edits), just refresh its published_at — no version change needed.
+      if (lastPublished && latest.id === lastPublished.id) {
         await supabase.from('form_versions').update({
-          status,
-          published_at: status === 'published' ? new Date().toISOString() : null,
-        } as any).eq('id', (versions[0] as any).id);
+          status: 'published',
+          published_at: new Date().toISOString(),
+        } as any).eq('id', latest.id);
+        queryClient.invalidateQueries({ queryKey: ['form_templates'] });
+        queryClient.invalidateQueries({ queryKey: ['form_versions'] });
+        return;
+      }
+
+      const currentSemver =
+        lastPublished?.semantic_version ||
+        (lastPublished ? `${lastPublished.version}.0` : '1.0');
+      const isStructural = lastPublished
+        ? hasStructuralChanges(publishedSections, draftSections)
+        : true; // first-ever publish counts as structural
+
+      if (isStructural && lastPublished) {
+        // Structural change → snapshot the draft as a NEW published version
+        // so prior submissions stay tied to the previous published version.
+        const [maj] = currentSemver.split('.').map(Number);
+        const newSemver = `${maj + 1}.0`;
+        const newVersionNum = (latest.version || lastPublished.version || 1) + 1;
+        const newVid = crypto.randomUUID();
+
+        // Re-id fields so they're independent of the prior version's rows.
+        const newSections = JSON.parse(JSON.stringify(draftSections)) as FormSection[];
+        const idMap = new Map<string, string>();
+        for (const section of newSections) {
+          for (const field of section.fields) {
+            const newId = crypto.randomUUID();
+            idMap.set(field.id, newId);
+            field.id = newId;
+          }
+        }
+        for (const section of newSections) {
+          for (const field of section.fields) {
+            if (field.conditionalLogic) {
+              for (const rule of field.conditionalLogic) {
+                if (rule.fieldId && idMap.has(rule.fieldId)) {
+                  rule.fieldId = idMap.get(rule.fieldId)!;
+                }
+              }
+            }
+          }
+        }
+
+        const { error: vErr } = await supabase.from('form_versions').insert({
+          id: newVid,
+          template_id: id,
+          version: newVersionNum,
+          schema_snapshot: JSON.parse(JSON.stringify(newSections)),
+          status: 'published',
+          published_at: new Date().toISOString(),
+          change_notes: `Published v${newSemver} (structural changes)`,
+          semantic_version: newSemver,
+        } as any);
+        if (vErr) throw vErr;
+
+        const { fields, conditions } = sectionsToFieldRows(newVid, newSections);
+        if (fields.length > 0) {
+          await supabase.from('form_fields').insert(fields as any);
+        }
+        if (conditions.length > 0) {
+          await supabase.from('field_conditions').insert(conditions as any);
+        }
+      } else {
+        // Cosmetic change OR first publish → publish the existing latest row
+        // in place. Bump minor only if there were any cosmetic edits vs the
+        // prior published snapshot.
+        let newSemver = latest.semantic_version || `${latest.version}.0`;
+        if (lastPublished) {
+          const [maj, min] = currentSemver.split('.').map(Number);
+          // Cosmetic edits detected (not structural) → minor bump.
+          // No diff at all → keep the same semver.
+          const anyDiff = JSON.stringify(publishedSections) !== JSON.stringify(draftSections);
+          newSemver = anyDiff ? `${maj}.${(min || 0) + 1}` : currentSemver;
+        }
+        await supabase.from('form_versions').update({
+          status: 'published',
+          published_at: new Date().toISOString(),
+          semantic_version: newSemver,
+        } as any).eq('id', latest.id);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
+      queryClient.invalidateQueries({ queryKey: ['form_fields'] });
+      queryClient.invalidateQueries({ queryKey: ['field_conditions'] });
     },
   });
+}
+
+/**
+ * Returns true when two schemas differ in ways that affect submitted data
+ * structure: fields added/removed, sections added/removed, field type changed,
+ * or field name (`id` mapping) changed. Label/placeholder/help/order/styling
+ * changes are NOT considered structural.
+ */
+export function hasStructuralChanges(oldSections: FormSection[], newSections: FormSection[]): boolean {
+  const oldFieldIds = new Set(oldSections.flatMap(s => s.fields.map(f => f.id)));
+  const newFieldIds = new Set(newSections.flatMap(s => s.fields.map(f => f.id)));
+  if ([...newFieldIds].some(id => !oldFieldIds.has(id))) return true; // added
+  if ([...oldFieldIds].some(id => !newFieldIds.has(id))) return true; // removed
+
+  const oldSectionIds = new Set(oldSections.map(s => s.id));
+  const newSectionIds = new Set(newSections.map(s => s.id));
+  if ([...newSectionIds].some(id => !oldSectionIds.has(id))) return true;
+  if ([...oldSectionIds].some(id => !newSectionIds.has(id))) return true;
+
+  const oldFieldMap = new Map<string, FormField>();
+  oldSections.forEach(s => s.fields.forEach(f => oldFieldMap.set(f.id, f)));
+  for (const s of newSections) {
+    for (const f of s.fields) {
+      const old = oldFieldMap.get(f.id);
+      if (!old) continue;
+      if (old.type !== f.type) return true;
+      // `name` is the data key — changing it breaks submission shape
+      if ((old as any).name && (f as any).name && (old as any).name !== (f as any).name) return true;
+    }
+  }
+  return false;
 }
 
 export function useSaveFormResponse() {

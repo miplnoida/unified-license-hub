@@ -234,12 +234,9 @@ export default function FormBuilder() {
       const versionId = latestVersion?.id || crypto.randomUUID();
       const intVersion = latestVersion?.version || 1;
 
-      // Compute semantic version based on changes
-      let semanticVersion = currentVersionStr;
-      if (editId && initialSections.length > 0) {
-        semanticVersion = computeSemanticVersion(currentVersionStr, initialSections, sections);
-      }
-
+      // Save never bumps the version. Versioning is handled exclusively at
+      // Publish time so submissions stay linked to their original published
+      // version and version history stays clean.
       await saveTemplateMutation.mutateAsync({
         template: {
           id: templateId,
@@ -269,8 +266,7 @@ export default function FormBuilder() {
         sections,
         versionId,
         version: intVersion,
-        changeNotes: `Version ${semanticVersion}`,
-        semanticVersion,
+        // Intentionally omit changeNotes / semanticVersion: existing values are preserved.
       });
 
       // Also save to legacy forms table for backward compatibility
@@ -290,7 +286,7 @@ export default function FormBuilder() {
         rows: JSON.parse(JSON.stringify(sections)),
       } as any);
 
-      toast.success(`Form saved — Version ${semanticVersion}`);
+      toast.success(`Form saved — Version ${currentVersionStr} (versions only change on Publish)`);
       navigate(`/admin/forms?tab=${formType}`);
     } catch (error) {
       console.error(error);
