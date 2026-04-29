@@ -21,6 +21,7 @@ import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
+import { useReturnTypes } from '@/hooks/useReturnsManagement';
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
