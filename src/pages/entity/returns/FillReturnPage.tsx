@@ -119,7 +119,47 @@ export default function FillReturnPage() {
 
       if (matches.length === 0) return [];
 
-      return matches
+      // Effective-window enforcement: hide templates whose latest published
+      // version is not currently effective (per admin-set effective dates).
+      const ids = matches.map(t => t.id);
+      const { data: versions } = await supabase
+        .from('form_versions')
+        .select('template_id, version, status, effective_from, effective_until')
+        .in('template_id', ids)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+
+      const nowIso = new Date().toISOString();
+      const isEffective = (v: any): boolean => {
+        const fromOk = !v.effective_from || v.effective_from <= nowIso;
+        let untilOk = true;
+        if (v.effective_until) {
+          const until = new Date(v.effective_until);
+          until.setUTCHours(23, 59, 59, 999);
+          untilOk = until.toISOString() >= nowIso;
+        }
+        return fromOk && untilOk;
+      };
+
+      // Keep templates that have at least one published version, and where
+      // the highest effective version (or latest published, if none have dates)
+      // is effective right now. Templates with NO published version rows are
+      // also kept (back-compat: legacy rows skip versioning).
+      const versionsByTpl = new Map<string, any[]>();
+      for (const v of (versions || []) as any[]) {
+        if (!versionsByTpl.has(v.template_id)) versionsByTpl.set(v.template_id, []);
+        versionsByTpl.get(v.template_id)!.push(v);
+      }
+      const effectiveMatches = matches.filter(t => {
+        const vs = versionsByTpl.get(t.id);
+        if (!vs || vs.length === 0) return true; // legacy: no versions tracked
+        const eff = vs.filter(isEffective);
+        return eff.length > 0;
+      });
+
+      if (effectiveMatches.length === 0) return [];
+
+      return effectiveMatches
         .sort((a, b) => (a.form_order ?? 0) - (b.form_order ?? 0))
         .map((template, index) => ({
           id: `fallback-${template.id}`,
