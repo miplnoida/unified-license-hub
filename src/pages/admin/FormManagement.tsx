@@ -424,6 +424,7 @@ export default function FormManagement() {
                             <TableHead>Category</TableHead>
                             <TableHead>Form Name</TableHead>
                             <TableHead>Service</TableHead>
+                            {activeTab === 'returns' && <TableHead>Return Type</TableHead>}
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Created Date</TableHead>
@@ -432,7 +433,7 @@ export default function FormManagement() {
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={activeTab === 'returns' ? 11 : 10} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id} className={selectedIds.has(tpl.id) ? 'bg-muted/50' : ''}>
                               <TableCell>
@@ -447,6 +448,15 @@ export default function FormManagement() {
                               <TableCell>{tpl.category_name || tpl.category || '—'}</TableCell>
                               <TableCell className="font-medium">{tpl.name}</TableCell>
                               <TableCell>{tpl.service_name || tpl.service || '—'}</TableCell>
+                              {activeTab === 'returns' && (
+                                <TableCell>
+                                  {(tpl as any).return_type_name ? (
+                                    <Badge variant="outline" className="capitalize">{(tpl as any).return_type_name}</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-[10px]">Not set</Badge>
+                                  )}
+                                </TableCell>
+                              )}
                               <TableCell>
                                 <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
                                   {tpl.is_reusable ? 'Yes' : 'No'}

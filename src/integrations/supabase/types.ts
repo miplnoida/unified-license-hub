@@ -1279,6 +1279,7 @@ export type Database = {
           name: string
           regulator_id: string | null
           return_template_id: string | null
+          return_type_id: string | null
           sector: string
           sector_id: string | null
           service: string
@@ -1303,6 +1304,7 @@ export type Database = {
           name: string
           regulator_id?: string | null
           return_template_id?: string | null
+          return_type_id?: string | null
           sector?: string
           sector_id?: string | null
           service?: string
@@ -1327,6 +1329,7 @@ export type Database = {
           name?: string
           regulator_id?: string | null
           return_template_id?: string | null
+          return_type_id?: string | null
           sector?: string
           sector_id?: string | null
           service?: string
@@ -1358,6 +1361,13 @@ export type Database = {
             columns: ["return_template_id"]
             isOneToOne: false
             referencedRelation: "return_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_templates_return_type_id_fkey"
+            columns: ["return_type_id"]
+            isOneToOne: false
+            referencedRelation: "return_types"
             referencedColumns: ["id"]
           },
           {
@@ -3681,6 +3691,7 @@ export type Database = {
           due_date: string | null
           entity_id: string | null
           id: string
+          on_behalf_of_licensee_id: string | null
           ontime_status:
             | Database["public"]["Enums"]["ontime_status_enum"]
             | null
@@ -3705,6 +3716,7 @@ export type Database = {
           due_date?: string | null
           entity_id?: string | null
           id?: string
+          on_behalf_of_licensee_id?: string | null
           ontime_status?:
             | Database["public"]["Enums"]["ontime_status_enum"]
             | null
@@ -3729,6 +3741,7 @@ export type Database = {
           due_date?: string | null
           entity_id?: string | null
           id?: string
+          on_behalf_of_licensee_id?: string | null
           ontime_status?:
             | Database["public"]["Enums"]["ontime_status_enum"]
             | null
@@ -3751,6 +3764,13 @@ export type Database = {
           {
             foreignKeyName: "returns_filed_entity_id_fkey"
             columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_on_behalf_of_licensee_id_fkey"
+            columns: ["on_behalf_of_licensee_id"]
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]

@@ -27,6 +27,9 @@ export interface FormTemplate {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  return_type_id?: string | null;
+  return_type_name?: string | null;
+  return_type_code?: string | null;
 }
 
 export interface FormVersion {
@@ -210,7 +213,7 @@ export function useFormTemplates(formType?: string, regulatorId?: string | null)
     queryFn: async () => {
       let query = supabase
         .from('form_templates')
-        .select('*, sectors:sector_id(name), sub_sectors:sub_sector_id(name), categories:category_id(name), services:service_id(name)')
+        .select('*, sectors:sector_id(name), sub_sectors:sub_sector_id(name), categories:category_id(name), services:service_id(name), return_types:return_type_id(id, name, code)')
         .order('created_at', { ascending: false });
       if (formType) query = query.eq('form_type', formType);
       if (regulatorId) query = query.eq('regulator_id', regulatorId);
@@ -222,6 +225,8 @@ export function useFormTemplates(formType?: string, regulatorId?: string | null)
         sub_sector_name: row.sub_sectors?.name || row.sub_sector || null,
         category_name: row.categories?.name || row.category || null,
         service_name: row.services?.name || row.service || null,
+        return_type_name: row.return_types?.name || null,
+        return_type_code: row.return_types?.code || null,
       })) as FormTemplate[];
     },
   });

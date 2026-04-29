@@ -21,6 +21,7 @@ import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
+import { useReturnTypes } from '@/hooks/useReturnsManagement';
 import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette';
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
@@ -75,6 +76,9 @@ export default function FormBuilder() {
   const [selectedSubSector, setSelectedSubSector] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedService, setSelectedService] = useState('');
+  const [selectedReturnTypeId, setSelectedReturnTypeId] = useState<string>('');
+  const { data: returnTypes = [] } = useReturnTypes();
+  const activeReturnTypes = (returnTypes || []).filter((rt: any) => rt.status === 'active');
   const [initialized, setInitialized] = useState(false);
 
   // Populate state when existing template + version loads
@@ -104,6 +108,7 @@ export default function FormBuilder() {
     setSelectedCategory(catId);
     const svcId = existingTemplate.service_id || dbServices.find(s => s.name === existingTemplate.service)?.id || '';
     setSelectedService(svcId);
+    setSelectedReturnTypeId((existingTemplate as any).return_type_id || '');
     setInitialized(true);
   }, [
     existingTemplate,
@@ -258,6 +263,7 @@ export default function FormBuilder() {
           created_by: existingTemplate?.created_by || null,
           tab_name: tabName.trim() || null,
           form_order: formOrder,
+          return_type_id: formType === 'returns' ? (selectedReturnTypeId || null) : null,
         } as any,
         sections,
         versionId,
@@ -544,6 +550,20 @@ export default function FormBuilder() {
               </div>
               {(formType === 'post_license' || formType === 'returns') && (
                 <>
+                  {formType === 'returns' && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Return Type <span className="text-destructive">*</span></Label>
+                      <Select value={selectedReturnTypeId} onValueChange={setSelectedReturnTypeId} disabled={isViewMode}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select return type" /></SelectTrigger>
+                        <SelectContent>
+                          {activeReturnTypes.map((rt: any) => (
+                            <SelectItem key={rt.id} value={rt.id}>{rt.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-muted-foreground">Pulled from the Return Types master configuration</p>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label className="text-xs">Tab Name</Label>
                     <Input value={tabName} onChange={e => setTabName(e.target.value)} placeholder="e.g. B1, B2, Q14" disabled={isViewMode} className="h-9" />
