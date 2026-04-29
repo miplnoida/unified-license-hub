@@ -384,6 +384,7 @@ export function useLatestVersion(templateId: string | null) {
         .select('*')
         .eq('template_id', templateId)
         .order('version', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -563,59 +564,63 @@ export function useSaveFormTemplate() {
       // mark a version as published, or change the version's status. Versioning
       // is handled exclusively at Publish time so existing submissions stay
       // linked to their original published version.
-      const vid = versionId || crypto.randomUUID();
-
-      // If a version row already exists, fetch its current values so we don't
-      // overwrite version/semantic_version/status/published_at on a Save.
-      let existingRow: any = null;
+      let sourceRow: any = null;
       if (versionId) {
-        const { data } = await supabase
+        const { data, error: existingErr } = await supabase
           .from('form_versions')
-          .select('version, semantic_version, status, published_at')
-          .eq('id', vid)
+          .select('*')
+          .eq('id', versionId)
           .maybeSingle();
-        existingRow = data || null;
+        if (existingErr) throw existingErr;
+        sourceRow = data || null;
+      }
+
+      let workingRow = sourceRow;
+      let vid = versionId || crypto.randomUUID();
+
+      if (sourceRow?.status === 'published') {
+        const { data: latestDraft, error: draftErr } = await supabase
+          .from('form_versions')
+          .select('*')
+          .eq('template_id', template.id)
+          .eq('status', 'draft')
+          .order('version', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (draftErr) throw draftErr;
+
+        if (latestDraft) {
+          workingRow = latestDraft;
+          vid = latestDraft.id;
+        } else {
+          workingRow = null;
+          vid = crypto.randomUUID();
+        }
       }
 
       const versionRow: any = {
         id: vid,
         template_id: template.id,
-        version: existingRow?.version ?? version,
+        version: workingRow?.version ?? sourceRow?.version ?? version,
         schema_snapshot: JSON.parse(JSON.stringify(sections)),
-        // Preserve existing version status — Save never publishes/unpublishes.
-        status: existingRow?.status ?? 'draft',
-        published_at: existingRow?.published_at ?? null,
+        status: 'draft',
+        published_at: null,
         created_by: template.created_by,
-        change_notes: changeNotes || null,
+        change_notes: changeNotes ?? workingRow?.change_notes ?? sourceRow?.change_notes ?? null,
         semantic_version:
-          existingRow?.semantic_version ??
-          (semanticVersion || `${existingRow?.version ?? version}.0`),
+          workingRow?.semantic_version ??
+          sourceRow?.semantic_version ??
+          semanticVersion ??
+          `${workingRow?.version ?? sourceRow?.version ?? version}.0`,
+        effective_from: workingRow?.effective_from ?? sourceRow?.effective_from ?? null,
+        effective_until: workingRow?.effective_until ?? sourceRow?.effective_until ?? null,
       };
 
       const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
       if (vErr) throw vErr;
 
-      // Delete old fields & conditions for this version, then insert new
-      const { error: delFieldsErr } = await supabase.from('form_fields').delete().eq('version_id', vid);
-      if (delFieldsErr) console.warn('Could not delete old fields:', delFieldsErr);
-
-      const { fields, conditions } = sectionsToFieldRows(vid, sections);
-
-      // Delete old conditions for fields that belong to this version
-      if (fields.length > 0) {
-        const fieldIds = fields.map(f => f.id);
-        await supabase.from('field_conditions').delete().in('field_id', fieldIds);
-      }
-
-      if (fields.length > 0) {
-        // Use upsert to handle cases where delete didn't remove old rows
-        const { error: fErr } = await supabase.from('form_fields').upsert(fields as any);
-        if (fErr) throw fErr;
-      }
-      if (conditions.length > 0) {
-        const { error: cErr } = await supabase.from('field_conditions').insert(conditions as any);
-        if (cErr) throw cErr;
-      }
+      await replaceVersionFields(vid, sections);
 
       return { templateId: template.id, versionId: vid };
     },
