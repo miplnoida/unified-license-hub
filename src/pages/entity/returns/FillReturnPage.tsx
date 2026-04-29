@@ -452,7 +452,7 @@ export default function FillReturnPage() {
         {!loadingFallbackForms && tabs.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No published return forms are linked to this return configuration yet.
+              No active return forms are available for this return configuration. Either no forms are linked, or all matching forms are outside their effective date window. Please contact your administrator.
             </CardContent>
           </Card>
         )}
