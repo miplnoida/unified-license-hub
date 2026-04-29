@@ -453,6 +453,9 @@ export function useSaveFormTemplate() {
         is_reusable: template.is_reusable,
         status: template.status,
         created_by: template.created_by,
+        tab_name: (template as any).tab_name ?? null,
+        form_order: (template as any).form_order ?? 0,
+        return_type_id: (template as any).return_type_id ?? null,
       } as any);
       if (tErr) throw tErr;
 
