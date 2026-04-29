@@ -108,6 +108,10 @@ export default function CreateReturnPage() {
       toast.error('Please select a licensee to file the return for.');
       return;
     }
+    if (!effectiveLicenseeId) {
+      toast.error('No licensee context found. Please select a licensee or contact your administrator.');
+      return;
+    }
     // Sync the global PPOC active licensee with the chosen entity so downstream
     // pages (fill/view) stay consistent with the user's selection here.
     if (isPpoc && selectedLicenseeId && selectedLicenseeId !== activeLicenseeId) {
