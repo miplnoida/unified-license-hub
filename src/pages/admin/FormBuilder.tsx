@@ -26,8 +26,8 @@ import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette'
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
-  useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
-  computeSemanticVersion, useFormFields, useFieldConditions, fieldRowsToSections,
+  useFormTemplate, useLatestVersion, useSaveFormTemplate,
+  useFormFields, useFieldConditions, fieldRowsToSections,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
