@@ -284,7 +284,7 @@ export function useReturnFormData(returnId: string | undefined) {
 export function useSaveReturnFormData() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ returnId, formId, fields }: { returnId: string; formId: string; fields: { field_id: string; field_name: string; field_value: string }[] }) => {
+    mutationFn: async ({ returnId, formId, fields, formVersionId }: { returnId: string; formId: string; fields: { field_id: string; field_name: string; field_value: string }[]; formVersionId?: string | null }) => {
       for (const f of fields) {
         const { error } = await (supabase as any).from('return_form_data').upsert({
           return_id: returnId,
@@ -292,6 +292,7 @@ export function useSaveReturnFormData() {
           field_id: f.field_id,
           field_name: f.field_name,
           field_value: f.field_value,
+          form_version_id: formVersionId || null,
         }, { onConflict: 'return_id,form_id,field_id' });
         if (error) throw error;
       }

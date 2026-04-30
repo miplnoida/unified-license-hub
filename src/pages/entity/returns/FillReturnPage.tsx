@@ -11,7 +11,9 @@ import {
   useSaveReturnFormData, useMutateReturn, useInsertReturnAudit,
   useReturnRequests, useReturnComments,
 } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GitBranch } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
@@ -31,15 +33,32 @@ interface SingleReturnFormProps {
   formTemplateId: string;
   initialData: Record<string, any>;
   readOnly: boolean;
-  onDataChange: (formId: string, data: Record<string, any>) => void;
+  onDataChange: (formId: string, data: Record<string, any>, versionId: string | null) => void;
   saving?: boolean;
+  pinnedVersionId?: string | null;
 }
 
-function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange, saving }: SingleReturnFormProps) {
+function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange, saving, pinnedVersionId }: SingleReturnFormProps) {
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(formTemplateId);
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(latestVersion?.id || null);
+  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(formTemplateId);
 
-  if (lvLoading || sLoading) {
+  // Pin to a previously-saved version when present (so a draft started against
+  // v2 keeps showing v2 even if v3 becomes available). Otherwise default to
+  // the latest active version and let the user switch.
+  const defaultVersionId = pinnedVersionId
+    || activeVersions[0]?.id
+    || latestVersion?.id
+    || null;
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
+
+  // Re-sync when defaults arrive
+  useEffect(() => {
+    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
+  }, [defaultVersionId, selectedVersionId]);
+
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(selectedVersionId);
+
+  if (lvLoading || avLoading || sLoading) {
     return (
       <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading form...
@@ -51,18 +70,50 @@ function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange,
     return <p className="text-sm text-muted-foreground py-2">No fields defined for this form.</p>;
   }
 
+  const showSwitcher = !readOnly && activeVersions.length > 1 && !pinnedVersionId;
+
   return (
-    <FormRenderer
-      formName=""
-      sections={sections}
-      initialData={initialData}
-      onSaveDraft={(data) => onDataChange(formTemplateId, data)}
-      onSubmit={(data) => onDataChange(formTemplateId, data)}
-      onChange={(data) => onDataChange(formTemplateId, data)}
-      readOnly={readOnly}
-      saving={saving}
-      showFullTabTitles
-    />
+    <div className="space-y-3">
+      {(showSwitcher || pinnedVersionId) && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Form version:</span>
+          {showSwitcher ? (
+            <Select value={selectedVersionId || ''} onValueChange={(v) => setSelectedVersionId(v)}>
+              <SelectTrigger className="h-7 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {activeVersions.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                    v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">
+              v{(activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.semantic_version
+                || (activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.version
+                || ''}
+            </Badge>
+          )}
+          {pinnedVersionId && (
+            <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
+          )}
+        </div>
+      )}
+
+      <FormRenderer
+        formName=""
+        sections={sections}
+        initialData={initialData}
+        onSaveDraft={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        onSubmit={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        onChange={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        readOnly={readOnly}
+        saving={saving}
+        showFullTabTitles
+      />
+    </div>
   );
 }
 
@@ -188,23 +239,26 @@ export default function FillReturnPage() {
 
   // Store all form data keyed by formTemplateId → { [fieldName]: value }
   const [allData, setAllData] = useState<Record<string, Record<string, any>>>({});
+  // Track which form_version_id each form is pinned to (from saved data or selection)
+  const [versionByForm, setVersionByForm] = useState<Record<string, string | null>>({});
   const [activeTab, setActiveTab] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
 
-  // Build initial data from saved return_form_data rows
-  // return_form_data stores field_name (the fieldName key) and field_value
+  // Build initial data + pinned versions from saved return_form_data rows
   useEffect(() => {
     if (savedFormData.length > 0 && !initializedRef.current) {
       const init: Record<string, Record<string, any>> = {};
+      const versions: Record<string, string | null> = {};
       for (const row of savedFormData) {
         if (!init[row.form_id]) init[row.form_id] = {};
-        // field_name is the fieldName key used by FormRenderer
         init[row.form_id][row.field_name] = row.field_value || '';
+        if ((row as any).form_version_id) versions[row.form_id] = (row as any).form_version_id;
       }
       setAllData(init);
+      setVersionByForm(versions);
       initializedRef.current = true;
     }
   }, [savedFormData]);
@@ -227,8 +281,9 @@ export default function FillReturnPage() {
     return () => clearInterval(autoSaveRef.current);
   }, [allData, id]);
 
-  const handleDataChange = useCallback((formId: string, data: Record<string, any>) => {
+  const handleDataChange = useCallback((formId: string, data: Record<string, any>, versionId: string | null) => {
     setAllData(prev => ({ ...prev, [formId]: data }));
+    if (versionId) setVersionByForm(prev => (prev[formId] === versionId ? prev : { ...prev, [formId]: versionId }));
   }, []);
 
   const handleSave = useCallback(async (auto = false) => {
@@ -239,12 +294,12 @@ export default function FillReturnPage() {
         const fields = Object.entries(dataMap)
           .filter(([key]) => key !== '__repeatable' && !key.startsWith('_repeatable_'))
           .map(([fieldName, val]) => ({
-            field_id: fieldName, // using fieldName as field_id for upsert
+            field_id: fieldName,
             field_name: fieldName,
             field_value: typeof val === 'object' ? JSON.stringify(val) : String(val ?? ''),
           }));
         if (fields.length > 0) {
-          await saveFormData.mutateAsync({ returnId: id, formId, fields });
+          await saveFormData.mutateAsync({ returnId: id, formId, fields, formVersionId: versionByForm[formId] || null });
         }
       }
       // Transition TEMP → WIP on first save
@@ -410,6 +465,7 @@ export default function FillReturnPage() {
                           readOnly={!isEditable}
                           onDataChange={handleDataChange}
                           saving={saving}
+                          pinnedVersionId={versionByForm[cf.form_id] || null}
                         />
                       </CardContent>
                     </Card>
