@@ -438,6 +438,7 @@ export default function FormManagement() {
                             {activeTab === 'returns' && <TableHead>Return Type</TableHead>}
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Version</TableHead>
                             <TableHead>Created Date</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
