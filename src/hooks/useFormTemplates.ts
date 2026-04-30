@@ -889,16 +889,43 @@ export function useUpdateTemplateStatus() {
       //   minor change → bump minor (v1.2 → v1.3)
       //   major change → bump major, reset minor (v1.2 → v2.0)
       //   first publish → 1.0
-      const [maj, min] = (lastPublished
-        ? (lastPublished.semantic_version || `${lastPublished.version}.0`)
-        : '1.0'
-      ).split('.').map((n: string) => Number(n) || 0);
+      // IMPORTANT: derive baseline from the highest *semantic* version across
+      // all published rows — never from the integer DB `version` column. The
+      // integer column auto-increments on every publish, so using it as a
+      // fallback caused jumps like v2.1 → v7.0.
+      let baseMaj = 0;
+      let baseMin = 0;
+      if (lastPublished) {
+        const { data: pubRows } = await supabase
+          .from('form_versions')
+          .select('semantic_version')
+          .eq('template_id', id)
+          .eq('status', 'published');
+        const parsed = (pubRows || [])
+          .map((r: any) => {
+            const sv = (r?.semantic_version || '').toString().trim();
+            if (!sv) return null;
+            const [a, b] = sv.split('.').map((n: string) => Number(n));
+            if (!Number.isFinite(a)) return null;
+            return { maj: a, min: Number.isFinite(b) ? b : 0 };
+          })
+          .filter(Boolean) as Array<{ maj: number; min: number }>;
+        if (parsed.length > 0) {
+          parsed.sort((a, b) => (b.maj - a.maj) || (b.min - a.min));
+          baseMaj = parsed[0].maj;
+          baseMin = parsed[0].min;
+        } else {
+          // No semantic_version recorded anywhere → start from 1.0 baseline.
+          baseMaj = 1;
+          baseMin = 0;
+        }
+      }
 
       const newSemver = !lastPublished
         ? '1.0'
         : changeKind === 'major'
-          ? `${maj + 1}.0`
-          : `${maj}.${min + 1}`;
+          ? `${baseMaj + 1}.0`
+          : `${baseMaj}.${baseMin + 1}`;
 
       // Compute next integer version (DB unique on template_id+version).
       // Both major and minor publishes create a NEW row so prior published
