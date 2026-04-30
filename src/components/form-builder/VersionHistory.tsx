@@ -154,9 +154,6 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                           </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => window.open(`/preview/${v.id}`, '_blank')} title="Preview in new tab">
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -168,6 +165,23 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {v.status === 'published' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const count = await notifyVersionToLicensees(v.id);
+                                  toast.success(count > 0 ? `Notification sent to ${count} user(s).` : 'No licensee/PPOC users to notify.');
+                                } catch (e: any) {
+                                  toast.error(e?.message || 'Failed to send notification.');
+                                }
+                              }}
+                              title="Send notification to licensees/PPOC"
+                            >
+                              <Send className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
                           {v.status !== 'draft' && (
                             <Button variant="ghost" size="sm" onClick={() => openSchedule(v)} title="Schedule effective dates">
                               <CalendarClock className="h-4 w-4" />
