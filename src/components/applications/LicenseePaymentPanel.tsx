@@ -21,10 +21,9 @@ interface Props {
 interface FeeComponentRow {
   id: string;
   amount: number;
-  currency?: string | null;
   description?: string | null;
-  fee_type?: string | null;
-  fee_types?: { name?: string | null; fee_type?: string | null } | null;
+  fee_type_id?: string | null;
+  fee_type_name?: string | null;
 }
 
 interface PaymentRow {
@@ -64,7 +63,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     const [feesRes, payRes] = await Promise.all([
       supabase
         .from('fee_components' as any)
-        .select('id, amount, currency, description, fee_type, fee_types(name, fee_type)')
+        .select('id, amount, description, fee_type_id')
         .eq('application_id', applicationId),
       supabase
         .from('payments')
@@ -74,10 +73,24 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     ]);
 
     const feeRows = (feesRes.data || []) as unknown as FeeComponentRow[];
-    // Deduplicate by fee_type (case-insensitive) — same logic as NewApplication breakdown.
+    const feeTypeIds = [...new Set(feeRows.map(f => f.fee_type_id).filter(Boolean))] as string[];
+    let feeTypeNameById = new Map<string, string>();
+    if (feeTypeIds.length > 0) {
+      const { data: feeTypes } = await supabase
+        .from('fee_types' as any)
+        .select('id, name')
+        .in('id', feeTypeIds);
+      feeTypeNameById = new Map((feeTypes || []).map((row: any) => [row.id, row.name]));
+    }
+
+    const hydratedRows = feeRows.map((row) => ({
+      ...row,
+      fee_type_name: row.fee_type_id ? feeTypeNameById.get(row.fee_type_id) || null : null,
+    }));
+
     const seen = new Set<string>();
-    const deduped = feeRows.filter(f => {
-      const key = (f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description || '').trim().toLowerCase();
+    const deduped = hydratedRows.filter(f => {
+      const key = (f.fee_type_name || f.description || '').trim().toLowerCase();
       if (!key) return true;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -85,8 +98,6 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     });
     setFees(deduped);
     setTotalDue(deduped.reduce((sum, f) => sum + Number(f.amount || 0), 0));
-    const cur = deduped.find(f => f.currency)?.currency;
-    if (cur) setCurrency(cur);
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
@@ -179,14 +190,12 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
             <p className="text-sm font-medium">Fee Breakdown</p>
             <div className="space-y-1.5">
               {fees.map((f) => {
-                const label = formatFeeLabel(
-                  f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description,
-                );
+                const label = formatFeeLabel(f.fee_type_name || f.description);
                 return (
                   <div key={f.id} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{label}</span>
                     <span className="font-mono">
-                      {(f.currency || currency)} {Number(f.amount).toFixed(2)}
+                      {currency} {Number(f.amount).toFixed(2)}
                     </span>
                   </div>
                 );
