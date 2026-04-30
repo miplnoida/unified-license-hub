@@ -476,11 +476,7 @@ export default function ApplicationsList() {
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y">
                     {versionEntries.map(({ templateId, versionId }) => {
-                      const v = versionId ? versions[versionId] : null;
                       const tmplName = templates[templateId]?.name || 'Form';
-                      const range = v?.effective_from
-                        ? `${new Date(v.effective_from).toLocaleDateString()}${v.effective_until ? ' – ' + new Date(v.effective_until).toLocaleDateString() : ' – present'}`
-                        : null;
                       return (
                         <div key={templateId} className="px-3 py-2 space-y-1">
                           <p className="text-xs font-medium truncate" title={tmplName}>{tmplName}</p>
@@ -488,10 +484,6 @@ export default function ApplicationsList() {
                             <Badge variant="outline" className="text-[10px]">
                               <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
                             </Badge>
-                            {v?.status && (
-                              <Badge variant={versionStatusVariant(v.status)} className="text-[10px] capitalize">{v.status}</Badge>
-                            )}
-                            {range && <span className="text-[10px] text-muted-foreground">{range}</span>}
                           </div>
                         </div>
                       );
