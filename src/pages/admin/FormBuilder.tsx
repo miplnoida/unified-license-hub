@@ -579,45 +579,61 @@ export default function FormBuilder() {
           </CardContent>
         </Card>
 
+        {/* Read-only banner in View mode */}
+        {isViewMode && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-800">
+            View-only mode — editing, saving, and structural changes are disabled. Use History to compare or export versions.
+          </div>
+        )}
+
         {/* Builder: 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" style={{ minHeight: 'calc(100vh - 400px)' }}>
-          {/* Left: Field Palette */}
-          <div className="lg:col-span-2">
+          {/* Left: Field Palette — hidden in view mode */}
+          {!isViewMode && (
+            <div className="lg:col-span-2">
+              <ScrollArea className="h-[calc(100vh-400px)]">
+                <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Center: Section Manager (wider in view mode since palette/props are hidden) */}
+          <div className={isViewMode ? 'lg:col-span-12' : 'lg:col-span-7'}>
             <ScrollArea className="h-[calc(100vh-400px)]">
-              <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+              <div
+                className={isViewMode ? 'pointer-events-none opacity-90 select-none' : ''}
+                aria-disabled={isViewMode}
+              >
+                <SectionManager
+                  sections={sections}
+                  selectedFieldId={selectedField?.id || null}
+                  onSelectField={isViewMode ? () => {} : handleSelectField}
+                  onSectionsChange={isViewMode ? () => {} : setSections}
+                  onAddField={isViewMode ? () => {} : handleAddField}
+                  onDeleteField={isViewMode ? () => {} : handleDeleteField}
+                  onDuplicateField={isViewMode ? () => {} : handleDuplicateField}
+                />
+              </div>
             </ScrollArea>
           </div>
 
-          {/* Center: Section Manager */}
-          <div className="lg:col-span-7">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <SectionManager
-                sections={sections}
-                selectedFieldId={selectedField?.id || null}
-                onSelectField={handleSelectField}
-                onSectionsChange={setSections}
-                onAddField={handleAddField}
-                onDeleteField={handleDeleteField}
-                onDuplicateField={handleDuplicateField}
-              />
-            </ScrollArea>
-          </div>
-
-          {/* Right: Field Properties */}
-          <div className="lg:col-span-3">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <FormBuilderFieldProperties
-                selectedField={selectedField}
-                allFields={allFields}
-                onUpdateField={handleUpdateField}
-                onDeleteField={selectedField && selectedSectionId ? () => {
-                  handleDeleteField(selectedSectionId, selectedField.id);
-                  setSelectedField(null);
-                  setSelectedSectionId(null);
-                } : undefined}
-              />
-            </ScrollArea>
-          </div>
+          {/* Right: Field Properties — hidden in view mode */}
+          {!isViewMode && (
+            <div className="lg:col-span-3">
+              <ScrollArea className="h-[calc(100vh-400px)]">
+                <FormBuilderFieldProperties
+                  selectedField={selectedField}
+                  allFields={allFields}
+                  onUpdateField={handleUpdateField}
+                  onDeleteField={selectedField && selectedSectionId ? () => {
+                    handleDeleteField(selectedSectionId, selectedField.id);
+                    setSelectedField(null);
+                    setSelectedSectionId(null);
+                  } : undefined}
+                />
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </div>
 
