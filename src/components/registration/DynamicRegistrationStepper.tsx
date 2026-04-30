@@ -5,9 +5,10 @@ interface Props {
   steps: string[];
   currentStep: number;
   completedSteps: Set<number>;
+  onStepClick?: (idx: number) => void;
 }
 
-export function DynamicRegistrationStepper({ steps, currentStep, completedSteps }: Props) {
+export function DynamicRegistrationStepper({ steps, currentStep, completedSteps, onStepClick }: Props) {
   return (
     <div className="w-full">
       {/* Desktop stepper */}
@@ -15,24 +16,31 @@ export function DynamicRegistrationStepper({ steps, currentStep, completedSteps 
         {steps.map((label, idx) => {
           const isCompleted = completedSteps.has(idx);
           const isCurrent = idx === currentStep;
+          const isClickable = !!onStepClick && (isCompleted || idx < currentStep) && !isCurrent;
 
           return (
             <div key={idx} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
-                <div
+                <button
+                  type="button"
+                  onClick={isClickable ? () => onStepClick!(idx) : undefined}
+                  disabled={!isClickable}
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300 text-sm font-semibold',
                     isCurrent && 'border-primary bg-primary text-primary-foreground shadow-md',
                     isCompleted && !isCurrent && 'border-primary bg-primary/10 text-primary',
                     !isCurrent && !isCompleted && 'border-muted-foreground/30 text-muted-foreground',
+                    isClickable && 'cursor-pointer hover:ring-2 hover:ring-primary/40',
+                    !isClickable && 'cursor-default',
                   )}
+                  aria-label={`Go to step ${idx + 1}: ${label}`}
                 >
                   {isCompleted && !isCurrent ? (
                     <Check className="h-5 w-5" />
                   ) : (
                     idx + 1
                   )}
-                </div>
+                </button>
                 <span
                   className={cn(
                     'mt-2 text-xs font-medium transition-colors text-center max-w-[100px]',

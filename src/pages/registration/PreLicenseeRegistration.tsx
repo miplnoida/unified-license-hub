@@ -401,6 +401,12 @@ export default function PreLicenseeRegistration() {
           steps={steps.map(s => s.label)}
           currentStep={currentStep}
           completedSteps={completedSteps}
+          onStepClick={(idx) => {
+            // Allow jumping back to any previously completed/visited step
+            if (idx < currentStep || completedSteps.has(idx)) {
+              setCurrentStep(idx);
+            }
+          }}
         />
       </div>
 
