@@ -22,6 +22,7 @@ import Swal from 'sweetalert2';
 interface VersionHistoryProps {
   templateId: string;
   formName: string;
+  trigger?: React.ReactNode;
 }
 
 function toDateInput(iso?: string | null): string {
@@ -35,7 +36,7 @@ function fromDateInput(value: string): string | null {
   return new Date(`${value}T00:00:00Z`).toISOString();
 }
 
-export function VersionHistory({ templateId, formName }: VersionHistoryProps) {
+export function VersionHistory({ templateId, formName, trigger }: VersionHistoryProps) {
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<{ sections: FormSection[]; label: string } | null>(null);
   const [scheduleVersion, setScheduleVersion] = useState<any | null>(null);
@@ -101,10 +102,14 @@ export function VersionHistory({ templateId, formName }: VersionHistoryProps) {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <History className="h-4 w-4 mr-1" />
-        History
-      </Button>
+      {trigger ? (
+        <span onClick={() => setOpen(true)} className="inline-flex cursor-pointer">{trigger}</span>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <History className="h-4 w-4 mr-1" />
+          History
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh]">

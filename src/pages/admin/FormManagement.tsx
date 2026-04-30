@@ -481,13 +481,16 @@ export default function FormManagement() {
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-[11px] font-mono">
-                                    <GitBranch className="h-3 w-3 mr-1" />
-                                    v{(tpl as any).semantic_version || '1.0'}
-                                  </Badge>
-                                  <VersionHistory templateId={tpl.id} formName={tpl.name} />
-                                </div>
+                                <VersionHistory
+                                  templateId={tpl.id}
+                                  formName={tpl.name}
+                                  trigger={
+                                    <Badge variant="outline" className="text-[11px] font-mono cursor-pointer hover:bg-accent" title="View version history">
+                                      <GitBranch className="h-3 w-3 mr-1" />
+                                      v{(tpl as any).semantic_version || '1.0'}
+                                    </Badge>
+                                  }
+                                />
                               </TableCell>
                               <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                               <TableCell className="text-right">
