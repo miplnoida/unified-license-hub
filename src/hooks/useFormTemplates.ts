@@ -1338,7 +1338,8 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
   }));
   const CHUNK = 500;
   for (let i = 0; i < rows.length; i += CHUNK) {
-    await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+    const { error: insErr } = await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+    if (insErr) throw insErr;
   }
   return recipients.length;
 }
