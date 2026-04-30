@@ -668,11 +668,19 @@ export default function ApplicationsList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {compareMode && <TableHead className="w-10"></TableHead>}
                   <TableHead>Application #</TableHead>
                   <TableHead>Applicant</TableHead>
                   <TableHead>License Type</TableHead>
                   <TableHead>Sector</TableHead>
                   <TableHead>Sub Sector</TableHead>
+                  <TableHead
+                    className={versionSort !== 'none' ? 'cursor-pointer select-none' : 'cursor-pointer select-none'}
+                    onClick={() => setVersionSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
+                    title="Click to sort by version"
+                  >
+                    Form Version {versionSort === 'asc' ? '▲' : versionSort === 'desc' ? '▼' : ''}
+                  </TableHead>
                   <TableHead>Category / Service</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
@@ -684,7 +692,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={compareMode ? 13 : 12} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
