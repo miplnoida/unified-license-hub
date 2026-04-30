@@ -557,7 +557,7 @@ export default function ApplicationsList() {
         </TableRow>
         {isExpanded && actions.length > 0 && (
           <TableRow key={`${app.id}-history`}>
-            <TableCell colSpan={11} className="bg-muted/30 p-4">
+            <TableCell colSpan={compareMode ? 13 : 12} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                 {actions.map(evt => (
