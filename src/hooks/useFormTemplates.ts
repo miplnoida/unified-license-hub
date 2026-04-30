@@ -231,6 +231,24 @@ function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
   return newSections;
 }
 
+async function ensureVersionScopedFieldIds(versionId: string, sections: FormSection[]): Promise<FormSection[]> {
+  const fieldIds = sections.flatMap((section) => section.fields.map((field) => field.id)).filter(Boolean);
+  if (fieldIds.length === 0) return sections;
+
+  if (new Set(fieldIds).size !== fieldIds.length) {
+    return cloneSectionsWithNewFieldIds(sections);
+  }
+
+  const { data, error } = await supabase
+    .from('form_fields')
+    .select('id, version_id')
+    .in('id', fieldIds);
+  if (error) throw error;
+
+  const hasCrossVersionCollision = (data || []).some((row: any) => row.version_id !== versionId);
+  return hasCrossVersionCollision ? cloneSectionsWithNewFieldIds(sections) : sections;
+}
+
 async function replaceVersionFields(versionId: string, sections: FormSection[]) {
   const { data: existingFields } = await supabase
     .from('form_fields')
@@ -646,11 +664,12 @@ export function useSaveFormTemplate() {
           : sourceRow?.semantic_version ?? semanticVersion ?? `${resolvedVersion}.0`);
 
       // CRITICAL: when branching a brand-new draft off a published version,
-      // we must reassign field IDs. Otherwise inserting into form_fields
-      // (PK = id) collides with the published version's existing field rows.
-      const sectionsForDraft = createNewDraftFromPublished
+      // we must reassign field IDs. Also repair legacy drafts that still carry
+      // IDs already used by another version of the same form.
+      const baseSectionsForDraft = createNewDraftFromPublished
         ? cloneSectionsWithNewFieldIds(sections)
         : sections;
+      const sectionsForDraft = await ensureVersionScopedFieldIds(vid, baseSectionsForDraft);
 
       const versionRow: any = {
         id: vid,
