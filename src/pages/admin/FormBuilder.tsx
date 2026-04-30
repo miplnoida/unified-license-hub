@@ -450,12 +450,8 @@ export default function FormBuilder() {
                   <GitBranch className="h-3 w-3" /> v{currentVersionStr}
                 </Badge>
               )}
-              {editId && (
-                <Button variant="outline" size="sm" onClick={handleCreateVersion} disabled={createVersionMutation.isPending}>
-                  <GitBranch className="h-4 w-4 mr-1" />
-                  New Version
-                </Button>
-              )}
+              {/* "New Version" button removed — versions are managed automatically on Publish.
+                  Structural changes auto-create a new version; cosmetic changes keep the same version. */}
               {editId && (
                 <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
               )}
