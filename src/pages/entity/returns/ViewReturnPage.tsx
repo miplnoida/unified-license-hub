@@ -9,13 +9,14 @@ import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { VersionInfoBadge } from '@/components/form-builder/VersionInfoBadge';
 import { MigrationCheckDialog } from '@/components/form-builder/MigrationCheckDialog';
+import { CompareReturnsPicker } from '@/components/form-builder/CompareReturnsPicker';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, GitMerge } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, GitMerge, GitCompareArrows } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, returnLabel }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null; returnId: string; returnLabel: string }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   const { data: pinnedVersion } = useFormVersion(pinnedVersionId || null);
   // Prefer the version this submission was filed on; fall back to latest published.
@@ -23,6 +24,7 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
   const [migrationOpen, setMigrationOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   const showOutdatedBanner = !!pinnedVersionId && !!latestVersion && latestVersion.id !== pinnedVersionId;
 
@@ -33,11 +35,16 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
           <FileText className="h-4 w-4 text-primary" />
           <span>{name}</span>
           {pinnedVersionId && <VersionInfoBadge versionId={pinnedVersionId} templateId={formId} showLatestComparison />}
-          {pinnedVersionId && (
-            <Button size="sm" variant="ghost" className="h-7 ml-auto text-xs" onClick={() => setMigrationOpen(true)}>
-              <GitMerge className="h-3 w-3 mr-1" /> Migration check
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
+              <GitCompareArrows className="h-3 w-3 mr-1" /> Compare
             </Button>
-          )}
+            {pinnedVersionId && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setMigrationOpen(true)}>
+                <GitMerge className="h-3 w-3 mr-1" /> Migration check
+              </Button>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
