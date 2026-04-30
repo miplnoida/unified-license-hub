@@ -351,6 +351,7 @@ export default function ApplicationForms() {
             applicationId={applicationId}
             pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
             onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
+            versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
           />
         </div>
       </DashboardLayout>
