@@ -158,6 +158,17 @@ export default function NewApplication() {
   const publishedVersion = activeVersions.find((v: any) => v.id === selectedVersionId) || latestPublishedVersion || null;
   const { data: sections = [] } = useVersionSections(selectedVersionId);
 
+  // Hydrate previously-pinned versions from an existing draft application so
+  // the user keeps editing the version they started on.
+  useEffect(() => {
+    if (!applicationId) return;
+    (async () => {
+      const { data } = await supabase.from('applications').select('data').eq('id', applicationId).maybeSingle();
+      const pinned = (data?.data as any)?.form_version_ids as Record<string, string> | undefined;
+      if (pinned) setSelectedVersionByTemplate(prev => ({ ...pinned, ...prev }));
+    })();
+  }, [applicationId]);
+
   // Progress calculations
   const completedCount = matchedTemplates.filter(t => formProgressMap[t.id]?.status === 'completed').length;
   const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
