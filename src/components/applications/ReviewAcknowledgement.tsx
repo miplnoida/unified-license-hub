@@ -14,7 +14,7 @@ interface ReviewField {
 }
 
 interface ReviewSection {
-  title: string;
+  title: React.ReactNode;
   fields: ReviewField[];
 }
 
