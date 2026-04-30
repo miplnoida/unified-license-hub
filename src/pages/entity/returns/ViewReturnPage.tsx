@@ -143,7 +143,9 @@ export default function ViewReturnPage() {
   const effectiveConfigForms = configForms.length > 0 ? configForms : fallbackConfigForms;
 
   // Build per-form data map keyed by field_name (matches FormRenderer initialData)
+  // Also collect the pinned form_version_id per form (last write wins; all rows share it).
   const valuesByForm: Record<string, Record<string, any>> = {};
+  const versionByForm: Record<string, string | null> = {};
   formData.forEach(d => {
     if (!valuesByForm[d.form_id]) valuesByForm[d.form_id] = {};
     const key = d.field_name || d.field_id;
@@ -152,6 +154,7 @@ export default function ViewReturnPage() {
       try { val = JSON.parse(val); } catch { /* keep string */ }
     }
     valuesByForm[d.form_id][key] = val;
+    if ((d as any).form_version_id) versionByForm[d.form_id] = (d as any).form_version_id;
   });
 
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
