@@ -104,6 +104,9 @@ export default function FormManagement() {
     });
   }, [templates, searchName, filterStatus, filterSectorId, filterSubSectorId, filterCategoryId, filterServiceId]);
 
+  const templateIds = useMemo(() => filtered.map(t => t.id), [filtered]);
+  const { data: latestVersionsMap = {} } = useLatestVersionsByTemplates(templateIds);
+
   const allSelected = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id));
   const someSelected = selectedIds.size > 0;
 
