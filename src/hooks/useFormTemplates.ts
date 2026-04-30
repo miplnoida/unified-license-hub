@@ -389,6 +389,41 @@ export function useFormVersions(templateId: string | null) {
   });
 }
 
+/**
+ * Returns a map of templateId -> latest version row (preferring the most recent
+ * published version, falling back to highest version number). Used by the Form
+ * Management list to show the live "current" version regardless of template row state.
+ */
+export function useLatestVersionsByTemplates(templateIds: string[]) {
+  const key = [...templateIds].sort().join(',');
+  return useQuery({
+    queryKey: ['form_versions', 'latest_map', key],
+    queryFn: async () => {
+      const map: Record<string, { semantic_version?: string | null; version: number; status: string; id: string }> = {};
+      if (templateIds.length === 0) return map;
+      const { data, error } = await supabase
+        .from('form_versions')
+        .select('id, template_id, semantic_version, version, status, created_at')
+        .in('template_id', templateIds)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      // Prefer latest published; fall back to latest of any status.
+      for (const r of rows) {
+        const tid = r.template_id as string;
+        const existing = map[tid];
+        if (!existing) { map[tid] = r; continue; }
+        const existingPub = existing.status === 'published';
+        const rPub = r.status === 'published';
+        if (rPub && !existingPub) map[tid] = r;
+        else if (rPub === existingPub && r.version > existing.version) map[tid] = r;
+      }
+      return map;
+    },
+    enabled: templateIds.length > 0,
+  });
+}
+
 export function useFormVersion(versionId: string | null) {
   return useQuery({
     queryKey: ['form_versions', 'detail', versionId],
