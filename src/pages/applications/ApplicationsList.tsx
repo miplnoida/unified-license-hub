@@ -751,7 +751,7 @@ export default function ApplicationsList() {
               <div className="relative flex-1 min-w-[220px] max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by App #, Company, Sector, Sub Sector..."
+                  placeholder="Search by App #, Company, Sector, Sub Sector, Version..."
                   className="pl-10"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
