@@ -223,6 +223,50 @@ export default function ApplicationsList() {
     }
   };
 
+  /** Returns the form-template → version-id map embedded in app.data, with backward-compat for legacy form_version_id. */
+  const getAppVersionEntries = (app: Application): { templateId: string; versionId: string | null }[] => {
+    const data = (app.data || {}) as any;
+    const map: Record<string, string> = data.form_version_ids || {};
+    const templateIds: string[] = Array.isArray(data.form_template_ids) ? data.form_template_ids : Object.keys(map);
+    if (templateIds.length === 0 && app.form_version_id) {
+      const v = versions[app.form_version_id];
+      return [{ templateId: v?.template_id || '—', versionId: app.form_version_id }];
+    }
+    return templateIds.map(tid => ({ templateId: tid, versionId: map[tid] || null }));
+  };
+
+  const formatVersionLabel = (versionId: string | null): string => {
+    if (!versionId) return 'v?';
+    const v = versions[versionId];
+    if (!v) return 'v?';
+    return v.semantic_version || `v${v.version}`;
+  };
+
+  const versionStatusVariant = (status?: string): any => {
+    switch (status) {
+      case 'published': return 'approved';
+      case 'draft': return 'draft';
+      case 'archived': return 'secondary';
+      case 'scheduled': return 'pending';
+      default: return 'outline';
+    }
+  };
+
+  /** Distinct versions referenced by current applications — for filter dropdown */
+  const versionFilterOptions = useMemo(() => {
+    const seen = new Map<string, { id: string; label: string; templateName: string }>();
+    applications.forEach(app => {
+      getAppVersionEntries(app).forEach(({ templateId, versionId }) => {
+        if (!versionId || seen.has(versionId)) return;
+        const tmpl = templates[templateId]?.name || 'Form';
+        seen.set(versionId, { id: versionId, label: formatVersionLabel(versionId), templateName: tmpl });
+      });
+    });
+    return Array.from(seen.values()).sort((a, b) =>
+      `${a.templateName} ${a.label}`.localeCompare(`${b.templateName} ${b.label}`)
+    );
+  }, [applications, versions, templates]);
+
   const matchSearch = (value: string, query: string, mode: SearchMode): boolean => {
     const v = value.toLowerCase();
     const q = query.toLowerCase();
