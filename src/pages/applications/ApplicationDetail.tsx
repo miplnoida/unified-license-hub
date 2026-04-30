@@ -59,6 +59,7 @@ export default function ApplicationDetail() {
   const [processing, setProcessing] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
@@ -88,6 +89,15 @@ export default function ApplicationDetail() {
         actor_email: emailMap[a.actor_id] || a.actor_id,
       })));
     }
+
+    // Check if a successful payment exists for this application
+    const { data: pays } = await supabase
+      .from('payments')
+      .select('id, status')
+      .eq('application_id', id)
+      .in('status', ['completed', 'success', 'paid']);
+    setPaymentComplete(!!(pays && pays.length > 0));
+
     setLoading(false);
   };
 
@@ -95,27 +105,28 @@ export default function ApplicationDetail() {
 
   const handleSubmit = async () => {
     if (!app || !user) return;
+    if (!paymentComplete) {
+      toast.error('Please complete the payment before submitting the application.');
+      return;
+    }
     setProcessing(true);
-
-    // Use centralized workflow service (prevents duplicates)
-    const wfResult = await startWorkflowForApplication(app.id, app.license_type);
-
-    // Update application status
-    const updates: any = {
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-      workflow_id: wfResult.workflowId,
-      current_step_id: wfResult.firstStepId,
-    };
-    const { error } = await supabase.from('applications').update(updates).eq('id', app.id);
-    if (error) { toast.error(error.message); setProcessing(false); return; }
-
-    await logAudit({ action: 'application_submitted', entityType: 'application', entityId: app.id });
-    toast.success(wfResult.matched
-      ? 'Application submitted and routed to workflow'
-      : 'Application submitted (no matching workflow found)');
-    loadData();
-    setProcessing(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-and-submit', {
+        body: { application_id: app.id },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        setProcessing(false);
+        return;
+      }
+      toast.success(data?.message || 'Application submitted');
+      loadData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to submit application');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleStageTransition = async (newStatus: ApplicationStatus, actionType: string, comment: string) => {
@@ -563,9 +574,15 @@ export default function ApplicationDetail() {
               });
               return (
                 <div className="flex gap-2">
-                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted} className="flex-1">
+                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted || !paymentComplete} className="flex-1">
                     <Send className="h-4 w-4 mr-2" />
-                    {processing ? 'Submitting...' : allFormsCompleted ? 'Submit Application' : `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`}
+                    {processing
+                      ? 'Submitting...'
+                      : !allFormsCompleted
+                        ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                        : !paymentComplete
+                          ? 'Complete payment to submit'
+                          : 'Submit Application'}
                   </Button>
                   <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                     <Ban className="h-4 w-4 mr-2" />Cancel
