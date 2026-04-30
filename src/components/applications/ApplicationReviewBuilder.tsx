@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { ReviewAcknowledgement } from './ReviewAcknowledgement';
+import { Badge } from '@/components/ui/badge';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface TemplateLite {
@@ -11,6 +12,8 @@ interface TemplateLite {
 interface Props {
   templates: TemplateLite[];
   formProgressMap: Record<string, { data: Record<string, any> }>;
+  /** Optional pinned version per template (overrides latest published) */
+  versionIdByTemplate?: Record<string, string>;
   mode: 'readonly' | 'editable';
   loading?: boolean;
   onAcknowledge: () => void;
@@ -30,14 +33,16 @@ export function ApplicationReviewBuilder(props: Props) {
 }
 
 function ReviewBuilderInner({
-  templates, formProgressMap, mode, loading, onAcknowledge, onEdit, title, description,
+  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description,
 }: Props) {
-  // Fetch sections for each template (hooks called in stable order)
-  const templateSections = templates.map(t => useTemplateSections(t.id));
+  // Fetch sections + version info for each template (hooks called in stable order)
+  const templateSections = templates.map(t =>
+    useTemplateSections(t.id, versionIdByTemplate?.[t.id])
+  );
 
   const sections = useMemo(() => {
     return templates.map((t, idx) => {
-      const secs = templateSections[idx] || [];
+      const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
       const fields: { label: string; value: any }[] = [];
 
@@ -64,7 +69,14 @@ function ReviewBuilderInner({
           });
       }
 
-      return { title: t.name, fields };
+      const titleNode = versionLabel ? (
+        <span className="flex items-center gap-2">
+          {t.name}
+          <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
+        </span>
+      ) : t.name;
+
+      return { title: titleNode as any, fields };
     });
   }, [templates, templateSections, formProgressMap]);
 
@@ -81,10 +93,13 @@ function ReviewBuilderInner({
   );
 }
 
-function useTemplateSections(templateId: string) {
-  const { data: version } = useLatestPublishedVersion(templateId);
-  const { data: sections = [] } = useVersionSections(version?.id || null);
-  return sections;
+function useTemplateSections(templateId: string, pinnedVersionId?: string) {
+  const { data: latest } = useLatestPublishedVersion(templateId);
+  const resolvedVersionId = pinnedVersionId || latest?.id || null;
+  const { data: sections = [] } = useVersionSections(resolvedVersionId);
+  const { data: versionInfo } = useFormVersion(resolvedVersionId);
+  const versionLabel = versionInfo?.semantic_version || (versionInfo?.version ? String(versionInfo.version) : null);
+  return { sections, versionLabel };
 }
 
 function formatValue(value: any, field: FormField): any {

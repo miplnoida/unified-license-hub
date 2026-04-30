@@ -659,23 +659,44 @@ export default function NewApplication() {
         <div className="space-y-3">
           <Progress value={progress} className="h-2" />
           <div className="flex justify-between">
-            {WIZARD_STEPS.map((step, i) => (
-              <div
-                key={step.key}
-                className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${
-                  i <= stepIndex ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
-                  i < stepIndex ? 'bg-primary border-primary text-primary-foreground'
-                  : i === stepIndex ? 'border-primary text-primary'
-                  : 'border-muted-foreground/30'
-                }`}>
-                  {i < stepIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
-                </div>
-                <span className="hidden sm:inline">{step.label}</span>
-              </div>
-            ))}
+            {WIZARD_STEPS.map((step, i) => {
+              const reachable = (() => {
+                if (i === 0) return true;
+                const target = WIZARD_STEPS[i].key;
+                if (target === 'forms') return !!applicationId;
+                if (target === 'documents') return allFormsCompleted;
+                if (target === 'payment') return allFormsCompleted;
+                if (target === 'review') return allFormsCompleted && paymentComplete;
+                return false;
+              })();
+              const isCurrent = i === stepIndex;
+              const clickable = reachable && !isCurrent && currentStep !== 'filling';
+              return (
+                <button
+                  key={step.key}
+                  type="button"
+                  onClick={() => {
+                    if (!clickable) return;
+                    setActiveFormTemplateId(null);
+                    setCurrentStep(WIZARD_STEPS[i].key);
+                  }}
+                  disabled={!clickable}
+                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors rounded-md px-1 py-0.5 ${
+                    i <= stepIndex ? 'text-primary' : 'text-muted-foreground'
+                  } ${clickable ? 'cursor-pointer hover:bg-primary/5' : 'cursor-default'}`}
+                  aria-label={`Go to step ${i + 1}: ${step.label}`}
+                >
+                  <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors ${
+                    i < stepIndex ? 'bg-primary border-primary text-primary-foreground'
+                    : i === stepIndex ? 'border-primary text-primary'
+                    : 'border-muted-foreground/30'
+                  }`}>
+                    {i < stepIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : step.icon}
+                  </div>
+                  <span className="hidden sm:inline">{step.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -1128,6 +1149,7 @@ export default function NewApplication() {
             <ApplicationReviewBuilder
               templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
               formProgressMap={formProgressMap}
+              versionIdByTemplate={selectedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
               onAcknowledge={() =>
