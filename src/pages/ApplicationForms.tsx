@@ -219,49 +219,73 @@ export default function ApplicationForms() {
     }));
   };
 
-  const persistFormsData = async (templateId: string, data: Record<string, any>, markCompleted: boolean) => {
+  const persistFormsData = async (
+    templateId: string,
+    data: Record<string, any>,
+    markCompleted: boolean,
+    versionId: string | null,
+  ) => {
     if (!applicationId || !appData) return;
     const appJson = (appData as any).data || {};
     const existingFormsData = appJson.forms_data || {};
+    const existingVersionIds = appJson.form_version_ids || {};
     const updatedFormsData = { ...existingFormsData, [templateId]: data };
+    const updatedVersionIds = versionId
+      ? { ...existingVersionIds, [templateId]: versionId }
+      : existingVersionIds;
 
     await supabase.from('applications').update({
       data: {
         ...appJson,
         forms_data: updatedFormsData,
+        form_version_ids: updatedVersionIds,
       },
     } as any).eq('id', applicationId);
 
-    // Update local appData
     setAppData((prev: any) => ({
       ...prev,
-      data: { ...appJson, forms_data: updatedFormsData },
+      data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     }));
   };
 
-  const handleFormSaveDraft = async (data: Record<string, any>) => {
+  const handleFormSaveDraft = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
     setFormProgressMap(prev => ({
       ...prev,
       [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data },
     }));
-    await persistFormsData(activeFormTemplateId, data, false);
+    await persistFormsData(activeFormTemplateId, data, false, versionId);
     toast.success('Draft saved');
     setSaving(false);
   };
 
-  const handleFormSubmit = async (data: Record<string, any>) => {
+  const handleFormSubmit = async (data: Record<string, any>, versionId: string | null) => {
     if (!activeFormTemplateId) return;
     setSaving(true);
     setFormProgressMap(prev => ({
       ...prev,
       [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data },
     }));
-    await persistFormsData(activeFormTemplateId, data, true);
+    await persistFormsData(activeFormTemplateId, data, true, versionId);
     toast.success('Form completed!');
     setActiveFormTemplateId(null);
     setSaving(false);
+  };
+
+  const handleVersionPin = async (templateId: string, versionId: string) => {
+    if (!applicationId || !appData) return;
+    const appJson = (appData as any).data || {};
+    const existingVersionIds = appJson.form_version_ids || {};
+    if (existingVersionIds[templateId] === versionId) return;
+    const updatedVersionIds = { ...existingVersionIds, [templateId]: versionId };
+    await supabase.from('applications').update({
+      data: { ...appJson, form_version_ids: updatedVersionIds },
+    } as any).eq('id', applicationId);
+    setAppData((prev: any) => ({
+      ...prev,
+      data: { ...appJson, form_version_ids: updatedVersionIds },
+    }));
   };
 
   const handleSubmitApplication = async () => {
