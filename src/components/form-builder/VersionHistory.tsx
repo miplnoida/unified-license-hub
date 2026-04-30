@@ -22,6 +22,7 @@ import Swal from 'sweetalert2';
 interface VersionHistoryProps {
   templateId: string;
   formName: string;
+  trigger?: React.ReactNode;
 }
 
 function toDateInput(iso?: string | null): string {
