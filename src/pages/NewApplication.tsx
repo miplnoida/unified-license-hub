@@ -1128,6 +1128,7 @@ export default function NewApplication() {
             <ApplicationReviewBuilder
               templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
               formProgressMap={formProgressMap}
+              versionIdByTemplate={selectedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
               onAcknowledge={() =>
