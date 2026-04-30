@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
-import { useFormTemplates, useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
@@ -144,8 +144,19 @@ export default function NewApplication() {
     return matchedTemplates.find(t => t.id === activeFormTemplateId) || null;
   }, [activeFormTemplateId, matchedTemplates]);
 
-  const { data: publishedVersion } = useLatestPublishedVersion(activeTemplate?.id || null);
-  const { data: sections = [] } = useVersionSections(publishedVersion?.id || null);
+  const { data: latestPublishedVersion } = useLatestPublishedVersion(activeTemplate?.id || null);
+  const { data: activeVersions = [] } = useActiveVersions(activeTemplate?.id || null);
+  // Per-template selected version (allow user to switch between active versions).
+  // Falls back to a previously-pinned version (from existing draft data) when present.
+  const [selectedVersionByTemplate, setSelectedVersionByTemplate] = useState<Record<string, string>>({});
+  const selectedVersionId = activeTemplate
+    ? selectedVersionByTemplate[activeTemplate.id]
+      || activeVersions[0]?.id
+      || latestPublishedVersion?.id
+      || null
+    : null;
+  const publishedVersion = activeVersions.find((v: any) => v.id === selectedVersionId) || latestPublishedVersion || null;
+  const { data: sections = [] } = useVersionSections(selectedVersionId);
 
   // Progress calculations
   const completedCount = matchedTemplates.filter(t => formProgressMap[t.id]?.status === 'completed').length;
