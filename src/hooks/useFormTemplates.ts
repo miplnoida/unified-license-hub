@@ -868,45 +868,41 @@ export function useUpdateTemplateStatus() {
       const draftSections = (latestDraft.schema_snapshot || []) as FormSection[];
       const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
 
-      const currentSemver =
-        lastPublished?.semantic_version ||
-        (lastPublished ? `${lastPublished.version}.0` : '1.0');
 
-      const isStructural = lastPublished
-        ? hasStructuralChanges(publishedSections, draftSections)
-        : true; // first-ever publish counts as structural
 
-      // ── Non-structural republish: keep the SAME version ──
-      // Label/placeholder/help/order/styling-only changes must not create a
-      // new version row. Update the existing published row's snapshot in
-      // place so submissions continue to reference the same version.
-      if (lastPublished && !isStructural) {
-        const refreshedSections = JSON.parse(JSON.stringify(draftSections));
-        const { error: upErr } = await supabase.from('form_versions').update({
-          schema_snapshot: refreshedSections,
+      const changeKind: SchemaChangeKind = lastPublished
+        ? classifySchemaChange(publishedSections, draftSections)
+        : 'major'; // first-ever publish
+
+      // ── No meaningful change at all → just refresh the existing published row's timestamp ──
+      if (lastPublished && changeKind === 'none') {
+        await supabase.from('form_versions').update({
+          status: 'published',
           published_at: new Date().toISOString(),
-          change_notes:
-            latestDraft.change_notes ||
-            lastPublished.change_notes ||
-            `Updated v${currentSemver} (non-structural changes)`,
         } as any).eq('id', lastPublished.id);
-        if (upErr) throw upErr;
-
-        // Keep normalized field rows in sync with the updated snapshot,
-        // preserving stable field IDs from the published version.
-        await replaceVersionFields(lastPublished.id, refreshedSections);
-
         // Discard the working draft so the next edit starts fresh.
         await deleteVersionDraft(latestDraft.id);
         return;
       }
 
-      const [maj, min] = currentSemver.split('.').map(Number);
-      const newSemver = lastPublished
-        ? `${maj + 1}.0`
-        : '1.0';
+      // Compute new semantic version per spec:
+      //   minor change → bump minor (v1.2 → v1.3)
+      //   major change → bump major, reset minor (v1.2 → v2.0)
+      //   first publish → 1.0
+      const [maj, min] = (lastPublished
+        ? (lastPublished.semantic_version || `${lastPublished.version}.0`)
+        : '1.0'
+      ).split('.').map((n: string) => Number(n) || 0);
 
-      // Compute next integer version (DB unique on template_id+version)
+      const newSemver = !lastPublished
+        ? '1.0'
+        : changeKind === 'major'
+          ? `${maj + 1}.0`
+          : `${maj}.${min + 1}`;
+
+      // Compute next integer version (DB unique on template_id+version).
+      // Both major and minor publishes create a NEW row so prior published
+      // versions remain unchanged and submissions stay linked correctly.
       const { data: maxRows } = await supabase
         .from('form_versions')
         .select('version')
@@ -931,7 +927,7 @@ export function useUpdateTemplateStatus() {
         change_notes:
           latestDraft.change_notes ||
           (lastPublished
-            ? `Published v${newSemver}${isStructural ? ' (structural changes)' : ''}`
+            ? `Published v${newSemver} (${changeKind} update)`
             : 'Initial publish'),
         semantic_version: newSemver,
         effective_from: latestDraft.effective_from ?? null,
@@ -963,29 +959,83 @@ export function useUpdateTemplateStatus() {
  * or field name (`id` mapping) changed. Label/placeholder/help/order/styling
  * changes are NOT considered structural.
  */
-export function hasStructuralChanges(oldSections: FormSection[], newSections: FormSection[]): boolean {
-  const oldFieldIds = new Set(oldSections.flatMap(s => s.fields.map(f => f.id)));
-  const newFieldIds = new Set(newSections.flatMap(s => s.fields.map(f => f.id)));
-  if ([...newFieldIds].some(id => !oldFieldIds.has(id))) return true; // added
-  if ([...oldFieldIds].some(id => !newFieldIds.has(id))) return true; // removed
+/**
+ * Classify the diff between two form schemas.
+ * - 'major'   : structural change (added/removed field or section, type/validation/required/options/data-mapping change)
+ * - 'minor'   : cosmetic only (label, placeholder, help text, description, section title, order, styling)
+ * - 'none'    : no meaningful change
+ *
+ * Field identity is matched by `fieldName` (stable across version branching),
+ * NOT by `id`, because branching a draft from a published version assigns
+ * fresh field IDs and would otherwise always look "structural".
+ */
+export type SchemaChangeKind = 'major' | 'minor' | 'none';
 
+export function classifySchemaChange(
+  oldSections: FormSection[],
+  newSections: FormSection[],
+): SchemaChangeKind {
+  // Section-level structural diffs (by section id is fine — sections don't get re-id'd on branching)
   const oldSectionIds = new Set(oldSections.map(s => s.id));
   const newSectionIds = new Set(newSections.map(s => s.id));
-  if ([...newSectionIds].some(id => !oldSectionIds.has(id))) return true;
-  if ([...oldSectionIds].some(id => !newSectionIds.has(id))) return true;
+  if ([...newSectionIds].some(id => !oldSectionIds.has(id))) return 'major';
+  if ([...oldSectionIds].some(id => !newSectionIds.has(id))) return 'major';
 
-  const oldFieldMap = new Map<string, FormField>();
-  oldSections.forEach(s => s.fields.forEach(f => oldFieldMap.set(f.id, f)));
-  for (const s of newSections) {
-    for (const f of s.fields) {
-      const old = oldFieldMap.get(f.id);
-      if (!old) continue;
-      if (old.type !== f.type) return true;
-      if (old.fieldName !== f.fieldName) return true;
-      if (old.type === 'table' && JSON.stringify(old.tableColumns || []) !== JSON.stringify(f.tableColumns || [])) return true;
-    }
+  // Build field maps keyed by fieldName (stable identifier).
+  // Skip fields without a fieldName as unidentifiable.
+  const collect = (sections: FormSection[]) => {
+    const map = new Map<string, { field: FormField; sectionId: string; index: number }>();
+    sections.forEach(s => s.fields.forEach((f, idx) => {
+      if (f.fieldName) map.set(f.fieldName, { field: f, sectionId: s.id, index: idx });
+    }));
+    return map;
+  };
+  const oldMap = collect(oldSections);
+  const newMap = collect(newSections);
+
+  // Added / removed fields → structural (major)
+  for (const k of newMap.keys()) if (!oldMap.has(k)) return 'major';
+  for (const k of oldMap.keys()) if (!newMap.has(k)) return 'major';
+
+  // Per-field structural checks
+  let anyCosmeticChange = false;
+  for (const [name, n] of newMap.entries()) {
+    const o = oldMap.get(name)!;
+    const of = o.field;
+    const nf = n.field;
+
+    // Structural attributes
+    if (of.type !== nf.type) return 'major';
+    if (!!of.required !== !!nf.required) return 'major';
+    if (JSON.stringify(of.validation || {}) !== JSON.stringify(nf.validation || {})) return 'major';
+    if (JSON.stringify(of.options || []) !== JSON.stringify(nf.options || [])) return 'major';
+    if (of.type === 'table' && JSON.stringify(of.tableColumns || []) !== JSON.stringify(nf.tableColumns || [])) return 'major';
+
+    // Cosmetic-only attributes
+    if ((of.label || '') !== (nf.label || '')) anyCosmeticChange = true;
+    if ((of.placeholder || '') !== (nf.placeholder || '')) anyCosmeticChange = true;
+    if ((of.helpText || '') !== (nf.helpText || '')) anyCosmeticChange = true;
+    if (((of as any).description || '') !== ((nf as any).description || '')) anyCosmeticChange = true;
+    if (o.sectionId !== n.sectionId || o.index !== n.index) anyCosmeticChange = true;
   }
-  return false;
+
+  // Section title / ordering changes → cosmetic
+  for (let i = 0; i < newSections.length; i++) {
+    const ns = newSections[i];
+    const os = oldSections.find(s => s.id === ns.id);
+    if (!os) continue;
+    if ((os.title || '') !== (ns.title || '')) anyCosmeticChange = true;
+    if (oldSections.indexOf(os) !== i) anyCosmeticChange = true;
+  }
+
+  return anyCosmeticChange ? 'minor' : 'none';
+}
+
+/**
+ * @deprecated Use classifySchemaChange() instead. Kept for backward compatibility.
+ */
+export function hasStructuralChanges(oldSections: FormSection[], newSections: FormSection[]): boolean {
+  return classifySchemaChange(oldSections, newSections) === 'major';
 }
 
 export function useSaveFormResponse() {
