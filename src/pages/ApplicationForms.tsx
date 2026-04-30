@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useFormTemplates, useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -33,18 +35,34 @@ function ActiveFormFiller({
   onSaveDraft,
   onSubmit,
   applicationId,
+  pinnedVersionId,
+  onVersionChange,
 }: {
   templateId: string;
   initialData: Record<string, any>;
   saving: boolean;
-  onSaveDraft: (data: Record<string, any>) => Promise<void>;
-  onSubmit: (data: Record<string, any>) => Promise<void>;
+  onSaveDraft: (data: Record<string, any>, versionId: string | null) => Promise<void>;
+  onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   applicationId?: string;
+  pinnedVersionId?: string | null;
+  onVersionChange?: (versionId: string) => void;
 }) {
   const { data: publishedVersion } = useLatestPublishedVersion(templateId);
-  const { data: sections = [] } = useVersionSections(publishedVersion?.id || null);
+  const { data: activeVersions = [] } = useActiveVersions(templateId);
 
-  if (!publishedVersion || sections.length === 0) {
+  const defaultVersionId = pinnedVersionId
+    || activeVersions[0]?.id
+    || publishedVersion?.id
+    || null;
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
+
+  useEffect(() => {
+    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
+  }, [defaultVersionId, selectedVersionId]);
+
+  const { data: sections = [] } = useVersionSections(selectedVersionId);
+
+  if (!selectedVersionId || sections.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -55,17 +73,51 @@ function ActiveFormFiller({
     );
   }
 
+  const showSwitcher = activeVersions.length > 1 && !pinnedVersionId;
+
   return (
-    <FormRenderer
-      formName=""
-      sections={sections}
-      initialData={initialData}
-      onSaveDraft={onSaveDraft}
-      onSubmit={onSubmit}
-      saving={saving}
-      applicationId={applicationId}
-      showFullTabTitles
-    />
+    <div className="space-y-3">
+      {(showSwitcher || pinnedVersionId) && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Form version:</span>
+          {showSwitcher ? (
+            <Select
+              value={selectedVersionId || ''}
+              onValueChange={(v) => { setSelectedVersionId(v); onVersionChange?.(v); }}
+            >
+              <SelectTrigger className="h-7 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {activeVersions.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                    v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">
+              v{(activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.semantic_version
+                || (activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.version
+                || ''}
+            </Badge>
+          )}
+          {pinnedVersionId && (
+            <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
+          )}
+        </div>
+      )}
+      <FormRenderer
+        formName=""
+        sections={sections}
+        initialData={initialData}
+        onSaveDraft={(d) => onSaveDraft(d, selectedVersionId)}
+        onSubmit={(d) => onSubmit(d, selectedVersionId)}
+        saving={saving}
+        applicationId={applicationId}
+        showFullTabTitles
+      />
+    </div>
   );
 }
 
