@@ -574,9 +574,15 @@ export default function ApplicationDetail() {
               });
               return (
                 <div className="flex gap-2">
-                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted} className="flex-1">
+                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted || !paymentComplete} className="flex-1">
                     <Send className="h-4 w-4 mr-2" />
-                    {processing ? 'Submitting...' : allFormsCompleted ? 'Submit Application' : `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`}
+                    {processing
+                      ? 'Submitting...'
+                      : !allFormsCompleted
+                        ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                        : !paymentComplete
+                          ? 'Complete payment to submit'
+                          : 'Submit Application'}
                   </Button>
                   <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                     <Ban className="h-4 w-4 mr-2" />Cancel
