@@ -820,6 +820,7 @@ export default function NewApplication() {
                       templateId={tmpl.id}
                       selectedVersionId={selectedVersionByTemplate[tmpl.id]}
                       onChange={(v) => setSelectedVersionByTemplate(prev => ({ ...prev, [tmpl.id]: v }))}
+                      locked={status === 'completed'}
                     />
                   </CardContent>
                 </Card>
