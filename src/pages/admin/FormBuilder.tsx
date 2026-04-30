@@ -254,7 +254,9 @@ export default function FormBuilder() {
           sub_sector_name: subSectorName || null,
           category_name: categoryName || null,
           service_name: serviceName || null,
-          status: existingTemplate?.status || 'draft',
+          // Editing always reverts the template to draft. Status changes
+          // (publish/archive) are performed exclusively from the form list.
+          status: 'draft',
           regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
           is_reusable: true,
           created_by: existingTemplate?.created_by || null,
@@ -278,14 +280,14 @@ export default function FormBuilder() {
         service: serviceName,
         sector: sectorName,
         sub_sector: subSectorName,
-        status: existingTemplate?.status || 'draft',
+        status: 'draft',
         version: intVersion,
         parent_form_id: null,
         regulator_id: activeRegulatorId || existingTemplate?.regulator_id || null,
         rows: JSON.parse(JSON.stringify(sections)),
       } as any);
 
-      toast.success(`Form saved — Version ${currentVersionStr} (versions only change on Publish)`);
+      toast.success(`Form saved as Draft — publish from the form list to make it live.`);
       navigate(`/admin/forms?tab=${formType}`);
     } catch (error: any) {
       console.error('[FormBuilder] save failed:', error);
