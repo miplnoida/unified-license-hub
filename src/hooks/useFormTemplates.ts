@@ -1312,12 +1312,15 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
     .maybeSingle();
   if (!tpl) throw new Error('Form template not found');
 
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('id')
+  // Use the canonical user_roles table (profiles.role can be stale/missing).
+  const { data: roleRows, error: rolesErr } = await supabase
+    .from('user_roles')
+    .select('user_id, role')
     .in('role', ['licensee_primary', 'licensee_secondary', 'ppoc'] as any);
-  const recipients = (users || []) as any[];
-  if (recipients.length === 0) return 0;
+  if (rolesErr) throw rolesErr;
+  const userIds = Array.from(new Set((roleRows || []).map((r: any) => r.user_id))).filter(Boolean);
+  if (userIds.length === 0) return 0;
+  const recipients = userIds.map(id => ({ id }));
 
   const semver = v.semantic_version || `${v.version}.0`;
   const effectiveLine = v.effective_from
