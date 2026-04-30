@@ -173,6 +173,35 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Fee breakdown — shown in both paid and unpaid states */}
+        {fees.length > 0 && (
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+            <p className="text-sm font-medium">Fee Breakdown</p>
+            <div className="space-y-1.5">
+              {fees.map((f) => {
+                const label = formatFeeLabel(
+                  f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description,
+                );
+                return (
+                  <div key={f.id} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-mono">
+                      {(f.currency || currency)} {Number(f.amount).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Total</span>
+                <span className="font-mono">
+                  {currency} {totalDue.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isPaid && payment ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-3 dark:border-emerald-900/40 dark:bg-emerald-950/30">
             <div className="flex items-start gap-3">
@@ -189,12 +218,12 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               <div>
                 <p className="text-xs text-muted-foreground">Amount Paid</p>
                 <p className="font-mono font-semibold">
-                  {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {(payment.currency || currency)} {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Method</p>
-                <p className="font-medium capitalize">{payment.payment_method || 'Online'}</p>
+                <p className="font-medium capitalize">{payment.payment_method?.replace('_', ' ') || 'Online'}</p>
               </div>
               {payment.paid_at && (
                 <div>
@@ -204,7 +233,13 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               )}
               <div>
                 <p className="text-xs text-muted-foreground">Reference</p>
-                <p className="font-mono text-xs">{payment.id.substring(0, 8).toUpperCase()}</p>
+                <Link
+                  to={`/payments/${payment.id}`}
+                  className="font-mono text-xs text-primary hover:underline"
+                  title="View payment details"
+                >
+                  {payment.transaction_ref || payment.receipt_number || payment.id.substring(0, 8).toUpperCase()}
+                </Link>
               </div>
             </div>
           </div>
@@ -227,7 +262,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               <div>
                 <p className="text-xs text-muted-foreground">Total Amount Due</p>
                 <p className="text-2xl font-bold font-mono">
-                  {totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {currency} {totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               {canPay ? (
