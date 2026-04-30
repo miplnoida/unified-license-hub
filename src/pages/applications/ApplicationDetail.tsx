@@ -105,27 +105,28 @@ export default function ApplicationDetail() {
 
   const handleSubmit = async () => {
     if (!app || !user) return;
+    if (!paymentComplete) {
+      toast.error('Please complete the payment before submitting the application.');
+      return;
+    }
     setProcessing(true);
-
-    // Use centralized workflow service (prevents duplicates)
-    const wfResult = await startWorkflowForApplication(app.id, app.license_type);
-
-    // Update application status
-    const updates: any = {
-      status: 'submitted',
-      submitted_at: new Date().toISOString(),
-      workflow_id: wfResult.workflowId,
-      current_step_id: wfResult.firstStepId,
-    };
-    const { error } = await supabase.from('applications').update(updates).eq('id', app.id);
-    if (error) { toast.error(error.message); setProcessing(false); return; }
-
-    await logAudit({ action: 'application_submitted', entityType: 'application', entityId: app.id });
-    toast.success(wfResult.matched
-      ? 'Application submitted and routed to workflow'
-      : 'Application submitted (no matching workflow found)');
-    loadData();
-    setProcessing(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-and-submit', {
+        body: { application_id: app.id },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        setProcessing(false);
+        return;
+      }
+      toast.success(data?.message || 'Application submitted');
+      loadData();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to submit application');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleStageTransition = async (newStatus: ApplicationStatus, actionType: string, comment: string) => {
