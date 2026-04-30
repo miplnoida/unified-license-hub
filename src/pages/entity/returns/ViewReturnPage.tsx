@@ -208,6 +208,7 @@ export default function ViewReturnPage() {
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
+                        pinnedVersionId={versionByForm[cf.form_id] || null}
                       />
                       {formComments.length > 0 && (
                         <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
