@@ -89,6 +89,15 @@ export default function ApplicationDetail() {
         actor_email: emailMap[a.actor_id] || a.actor_id,
       })));
     }
+
+    // Check if a successful payment exists for this application
+    const { data: pays } = await supabase
+      .from('payments')
+      .select('id, status')
+      .eq('application_id', id)
+      .in('status', ['completed', 'success', 'paid']);
+    setPaymentComplete(!!(pays && pays.length > 0));
+
     setLoading(false);
   };
 
