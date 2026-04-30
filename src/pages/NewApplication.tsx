@@ -811,6 +811,11 @@ export default function NewApplication() {
                         )}
                       </Button>
                     </div>
+                    <FormCardVersionPicker
+                      templateId={tmpl.id}
+                      selectedVersionId={selectedVersionByTemplate[tmpl.id]}
+                      onChange={(v) => setSelectedVersionByTemplate(prev => ({ ...prev, [tmpl.id]: v }))}
+                    />
                   </CardContent>
                 </Card>
               );
