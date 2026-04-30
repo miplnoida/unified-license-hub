@@ -607,7 +607,7 @@ export function useSaveFormTemplate() {
       let resolvedVersion: number;
       if (workingRow?.version != null) {
         resolvedVersion = workingRow.version;
-      } else if (createNewDraftFromPublished || !sourceRow) {
+      } else {
         const { data: maxRows } = await supabase
           .from('form_versions')
           .select('version')
@@ -615,9 +615,14 @@ export function useSaveFormTemplate() {
           .order('version', { ascending: false })
           .limit(1);
         const maxV = (maxRows?.[0] as any)?.version ?? 0;
-        resolvedVersion = maxV + 1;
-      } else {
-        resolvedVersion = sourceRow.version ?? version;
+        if (createNewDraftFromPublished) {
+          resolvedVersion = maxV + 1;
+        } else if (!sourceRow) {
+          // Brand-new template save: use requested version if free, else max+1
+          resolvedVersion = maxV >= version ? maxV + 1 : version;
+        } else {
+          resolvedVersion = sourceRow.version ?? version;
+        }
       }
 
       const baseSemver =
