@@ -626,11 +626,13 @@ export default function ApplicationsList() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {compareMode && <TableHead className="w-10"></TableHead>}
                         <TableHead>Application #</TableHead>
                         <TableHead>Applicant</TableHead>
                         <TableHead>License Type</TableHead>
                         <TableHead>Sector</TableHead>
                         <TableHead>Sub Sector</TableHead>
+                        <TableHead>Form Version</TableHead>
                         <TableHead>Category / Service</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead>Status</TableHead>
