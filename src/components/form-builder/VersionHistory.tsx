@@ -102,10 +102,14 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <History className="h-4 w-4 mr-1" />
-        History
-      </Button>
+      {trigger ? (
+        <span onClick={() => setOpen(true)} className="inline-flex cursor-pointer">{trigger}</span>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          <History className="h-4 w-4 mr-1" />
+          History
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh]">
