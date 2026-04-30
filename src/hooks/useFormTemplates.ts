@@ -254,14 +254,28 @@ async function replaceVersionFields(versionId: string, sections: FormSection[]) 
 
   const { fields, conditions } = sectionsToFieldRows(versionId, sections);
 
-  if (fields.length > 0) {
-    const { error: fErr } = await supabase.from('form_fields').insert(fields as any);
+  // Defensive: dedupe any field IDs that might collide within the payload
+  // (legacy data or accidental duplications can produce repeats which would
+  // otherwise trip the form_fields PK constraint).
+  const seenFieldIds = new Set<string>();
+  const dedupedFields = fields.filter((f) => {
+    if (seenFieldIds.has(f.id)) return false;
+    seenFieldIds.add(f.id);
+    return true;
+  });
+
+  if (dedupedFields.length > 0) {
+    const { error: fErr } = await supabase.from('form_fields').insert(dedupedFields as any);
     if (fErr) throw fErr;
   }
 
   if (conditions.length > 0) {
-    const { error: cErr } = await supabase.from('field_conditions').insert(conditions as any);
-    if (cErr) throw cErr;
+    // Only keep conditions whose field_id was actually inserted
+    const validConditions = conditions.filter((c) => seenFieldIds.has(c.field_id));
+    if (validConditions.length > 0) {
+      const { error: cErr } = await supabase.from('field_conditions').insert(validConditions as any);
+      if (cErr) throw cErr;
+    }
   }
 }
 
