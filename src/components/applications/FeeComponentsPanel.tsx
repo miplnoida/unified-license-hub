@@ -35,6 +35,7 @@ interface Props {
 export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
   const [feeTypes, setFeeTypes] = useState<FeeType[]>([]);
   const [components, setComponents] = useState<FeeComponent[]>([]);
+  const [resolvedFallback, setResolvedFallback] = useState<ApplicationFeeLine[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form state for adding/editing
