@@ -19,7 +19,7 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     .select('id, amount, description, fee_type_id')
     .eq('application_id', applicationId);
 
-  const componentRows = (feeRows || []) as Array<{ id: string; amount: number; description?: string | null; fee_type_id?: string | null }>;
+  const componentRows = ((feeRows || []) as unknown) as Array<{ id: string; amount: number; description?: string | null; fee_type_id?: string | null }>;
   if (componentRows.length > 0) {
     const feeTypeIds = [...new Set(componentRows.map(f => f.fee_type_id).filter(Boolean))] as string[];
     let feeTypeNameById = new Map<string, string>();
