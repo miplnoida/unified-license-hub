@@ -37,6 +37,7 @@ function ActiveFormFiller({
   applicationId,
   pinnedVersionId,
   onVersionChange,
+  versionLocked = false,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -46,6 +47,7 @@ function ActiveFormFiller({
   applicationId?: string;
   pinnedVersionId?: string | null;
   onVersionChange?: (versionId: string) => void;
+  versionLocked?: boolean;
 }) {
   const { data: publishedVersion } = useLatestPublishedVersion(templateId);
   const { data: activeVersions = [] } = useActiveVersions(templateId);
