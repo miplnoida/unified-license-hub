@@ -11,7 +11,9 @@ import {
   useSaveReturnFormData, useMutateReturn, useInsertReturnAudit,
   useReturnRequests, useReturnComments,
 } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GitBranch } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
