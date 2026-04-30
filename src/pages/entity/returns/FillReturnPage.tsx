@@ -33,15 +33,32 @@ interface SingleReturnFormProps {
   formTemplateId: string;
   initialData: Record<string, any>;
   readOnly: boolean;
-  onDataChange: (formId: string, data: Record<string, any>) => void;
+  onDataChange: (formId: string, data: Record<string, any>, versionId: string | null) => void;
   saving?: boolean;
+  pinnedVersionId?: string | null;
 }
 
-function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange, saving }: SingleReturnFormProps) {
+function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange, saving, pinnedVersionId }: SingleReturnFormProps) {
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(formTemplateId);
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(latestVersion?.id || null);
+  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(formTemplateId);
 
-  if (lvLoading || sLoading) {
+  // Pin to a previously-saved version when present (so a draft started against
+  // v2 keeps showing v2 even if v3 becomes available). Otherwise default to
+  // the latest active version and let the user switch.
+  const defaultVersionId = pinnedVersionId
+    || activeVersions[0]?.id
+    || latestVersion?.id
+    || null;
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
+
+  // Re-sync when defaults arrive
+  useEffect(() => {
+    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
+  }, [defaultVersionId, selectedVersionId]);
+
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(selectedVersionId);
+
+  if (lvLoading || avLoading || sLoading) {
     return (
       <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading form...
@@ -53,18 +70,50 @@ function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange,
     return <p className="text-sm text-muted-foreground py-2">No fields defined for this form.</p>;
   }
 
+  const showSwitcher = !readOnly && activeVersions.length > 1 && !pinnedVersionId;
+
   return (
-    <FormRenderer
-      formName=""
-      sections={sections}
-      initialData={initialData}
-      onSaveDraft={(data) => onDataChange(formTemplateId, data)}
-      onSubmit={(data) => onDataChange(formTemplateId, data)}
-      onChange={(data) => onDataChange(formTemplateId, data)}
-      readOnly={readOnly}
-      saving={saving}
-      showFullTabTitles
-    />
+    <div className="space-y-3">
+      {(showSwitcher || pinnedVersionId) && (
+        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Form version:</span>
+          {showSwitcher ? (
+            <Select value={selectedVersionId || ''} onValueChange={(v) => setSelectedVersionId(v)}>
+              <SelectTrigger className="h-7 w-[220px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {activeVersions.map((v: any) => (
+                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                    v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="outline" className="text-[10px]">
+              v{(activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.semantic_version
+                || (activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.version
+                || ''}
+            </Badge>
+          )}
+          {pinnedVersionId && (
+            <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
+          )}
+        </div>
+      )}
+
+      <FormRenderer
+        formName=""
+        sections={sections}
+        initialData={initialData}
+        onSaveDraft={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        onSubmit={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        onChange={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        readOnly={readOnly}
+        saving={saving}
+        showFullTabTitles
+      />
+    </div>
   );
 }
 
