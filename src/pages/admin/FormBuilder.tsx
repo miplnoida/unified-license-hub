@@ -48,7 +48,6 @@ export default function FormBuilder() {
   const { activeRegulatorId } = useRegulator();
 
   const saveTemplateMutation = useSaveFormTemplate();
-  const createVersionMutation = useCreateNewFormVersion();
 
   const { data: existingTemplate } = useFormTemplate(editId);
   const { data: latestVersion } = useLatestVersion(editId);
