@@ -577,6 +577,7 @@ export function useSaveFormTemplate() {
 
       let workingRow = sourceRow;
       let vid = versionId || crypto.randomUUID();
+      let createNewDraftFromPublished = false;
 
       if (sourceRow?.status === 'published') {
         const { data: latestDraft, error: draftErr } = await supabase
@@ -596,25 +597,47 @@ export function useSaveFormTemplate() {
         } else {
           workingRow = null;
           vid = crypto.randomUUID();
+          createNewDraftFromPublished = true;
         }
       }
+
+      // Compute version number. For brand-new drafts (no source row, or a new
+      // draft branched from a published row), pick max(version)+1 to satisfy
+      // the (template_id, version) uniqueness constraint.
+      let resolvedVersion: number;
+      if (workingRow?.version != null) {
+        resolvedVersion = workingRow.version;
+      } else if (createNewDraftFromPublished || !sourceRow) {
+        const { data: maxRows } = await supabase
+          .from('form_versions')
+          .select('version')
+          .eq('template_id', template.id)
+          .order('version', { ascending: false })
+          .limit(1);
+        const maxV = (maxRows?.[0] as any)?.version ?? 0;
+        resolvedVersion = maxV + 1;
+      } else {
+        resolvedVersion = sourceRow.version ?? version;
+      }
+
+      const baseSemver =
+        workingRow?.semantic_version ??
+        (createNewDraftFromPublished
+          ? `${resolvedVersion}.0`
+          : sourceRow?.semantic_version ?? semanticVersion ?? `${resolvedVersion}.0`);
 
       const versionRow: any = {
         id: vid,
         template_id: template.id,
-        version: workingRow?.version ?? sourceRow?.version ?? version,
+        version: resolvedVersion,
         schema_snapshot: JSON.parse(JSON.stringify(sections)),
         status: 'draft',
         published_at: null,
         created_by: template.created_by,
-        change_notes: changeNotes ?? workingRow?.change_notes ?? sourceRow?.change_notes ?? null,
-        semantic_version:
-          workingRow?.semantic_version ??
-          sourceRow?.semantic_version ??
-          semanticVersion ??
-          `${workingRow?.version ?? sourceRow?.version ?? version}.0`,
-        effective_from: workingRow?.effective_from ?? sourceRow?.effective_from ?? null,
-        effective_until: workingRow?.effective_until ?? sourceRow?.effective_until ?? null,
+        change_notes: changeNotes ?? workingRow?.change_notes ?? (createNewDraftFromPublished ? null : sourceRow?.change_notes) ?? null,
+        semantic_version: baseSemver,
+        effective_from: workingRow?.effective_from ?? (createNewDraftFromPublished ? null : sourceRow?.effective_from) ?? null,
+        effective_until: workingRow?.effective_until ?? (createNewDraftFromPublished ? null : sourceRow?.effective_until) ?? null,
       };
 
       const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
