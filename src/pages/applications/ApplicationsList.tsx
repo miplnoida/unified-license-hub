@@ -650,60 +650,67 @@ export default function ApplicationsList() {
   };
 
   const renderGrouped = (nodes: GroupNode[], depth: number, parentKey: string): React.ReactNode => {
-    const depthColors = ['bg-primary/5', 'bg-accent/5', 'bg-muted/30'];
-    return nodes.map(node => {
-      const groupKey = `${parentKey}/${node.label}`;
-      const isCollapsed = collapsedGroups.has(groupKey);
-      const count = countApps(node);
-      const fieldLabel = GROUP_BY_OPTIONS.find(o => o.value === groupByOrder[depth])?.label || '';
+    const isLeafLevel = depth === groupByOrder.length - 1;
+    return (
+      <div className={depth === 0 ? 'rounded-lg border bg-card divide-y' : 'divide-y border-l border-border/60 ml-4'}>
+        {nodes.map(node => {
+          const groupKey = `${parentKey}/${node.label}`;
+          const isCollapsed = collapsedGroups.has(groupKey);
+          const count = countApps(node);
+          const fieldLabel = GROUP_BY_OPTIONS.find(o => o.value === groupByOrder[depth])?.label || '';
 
-      return (
-        <div key={groupKey}>
-          <button
-            className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors ${depthColors[depth] || ''}`}
-            style={{ paddingLeft: `${(depth * 1.5) + 1}rem` }}
-            onClick={() => toggleGroup(groupKey)}
-          >
-            {isCollapsed ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-            <span className="text-xs text-muted-foreground">{fieldLabel}:</span>
-            <span className="text-sm font-medium text-foreground">{node.label}</span>
-            <Badge variant="secondary" className="text-[10px] ml-auto">{count}</Badge>
-          </button>
-          {!isCollapsed && (
-            isAppArray(node.children) ? (
-              <Card className="mb-2" style={{ marginLeft: `${(depth * 1.5) + 1.5}rem`, marginRight: '1rem' }}>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {compareMode && <TableHead className="w-10"></TableHead>}
-                        <TableHead>Application #</TableHead>
-                        <TableHead>Applicant</TableHead>
-                        <TableHead>License Type</TableHead>
-                        <TableHead>Sector</TableHead>
-                        <TableHead>Sub Sector</TableHead>
-                        <TableHead>Form Version</TableHead>
-                        <TableHead>Category / Service</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>History</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {node.children.map(app => renderAppRow(app))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            ) : (
-              renderGrouped(node.children as GroupNode[], depth + 1, groupKey)
-            )
-          )}
-        </div>
-      );
-    });
+          return (
+            <div key={groupKey}>
+              <button
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/40 transition-colors"
+                onClick={() => toggleGroup(groupKey)}
+                title={`${fieldLabel}: ${node.label}`}
+              >
+                {isCollapsed
+                  ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                <span className={`truncate ${depth === 0 ? 'text-sm font-semibold' : 'text-xs font-medium'} text-foreground`}>
+                  {node.label}
+                </span>
+                <span className="text-[11px] text-muted-foreground">({count})</span>
+              </button>
+              {!isCollapsed && (
+                isAppArray(node.children) ? (
+                  <div className="bg-muted/10 px-2 py-1">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {compareMode && <TableHead className="w-10"></TableHead>}
+                          <TableHead>Application #</TableHead>
+                          <TableHead>Applicant</TableHead>
+                          <TableHead>License Type</TableHead>
+                          <TableHead>Sector</TableHead>
+                          <TableHead>Sub Sector</TableHead>
+                          <TableHead>Form Version</TableHead>
+                          <TableHead>Category / Service</TableHead>
+                          <TableHead>Payment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>History</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {node.children.map(app => renderAppRow(app))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="pb-1">
+                    {renderGrouped(node.children as GroupNode[], depth + 1, groupKey)}
+                  </div>
+                )
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderTable = () => (
