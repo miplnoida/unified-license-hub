@@ -25,6 +25,7 @@ export type Database = {
           created_at: string
           current_step_id: string | null
           data: Json | null
+          form_version_id: string | null
           id: string
           license_type: string
           regulator_id: string | null
@@ -45,6 +46,7 @@ export type Database = {
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
+          form_version_id?: string | null
           id?: string
           license_type: string
           regulator_id?: string | null
@@ -65,6 +67,7 @@ export type Database = {
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
+          form_version_id?: string | null
           id?: string
           license_type?: string
           regulator_id?: string | null
@@ -76,6 +79,13 @@ export type Database = {
           workflow_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "applications_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "applications_regulator_id_fkey"
             columns: ["regulator_id"]
@@ -1401,6 +1411,7 @@ export type Database = {
           effective_from: string | null
           effective_until: string | null
           id: string
+          notified_for_upcoming: boolean
           published_at: string | null
           schema_snapshot: Json
           semantic_version: string | null
@@ -1415,6 +1426,7 @@ export type Database = {
           effective_from?: string | null
           effective_until?: string | null
           id?: string
+          notified_for_upcoming?: boolean
           published_at?: string | null
           schema_snapshot?: Json
           semantic_version?: string | null
@@ -1429,6 +1441,7 @@ export type Database = {
           effective_from?: string | null
           effective_until?: string | null
           id?: string
+          notified_for_upcoming?: boolean
           published_at?: string | null
           schema_snapshot?: Json
           semantic_version?: string | null
@@ -3448,6 +3461,7 @@ export type Database = {
           field_name: string
           field_value: string | null
           form_id: string
+          form_version_id: string | null
           id: string
           return_id: string
           updated_at: string
@@ -3458,6 +3472,7 @@ export type Database = {
           field_name: string
           field_value?: string | null
           form_id: string
+          form_version_id?: string | null
           id?: string
           return_id: string
           updated_at?: string
@@ -3468,6 +3483,7 @@ export type Database = {
           field_name?: string
           field_value?: string | null
           form_id?: string
+          form_version_id?: string | null
           id?: string
           return_id?: string
           updated_at?: string
@@ -3478,6 +3494,13 @@ export type Database = {
             columns: ["form_id"]
             isOneToOne: false
             referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_form_data_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
             referencedColumns: ["id"]
           },
           {
