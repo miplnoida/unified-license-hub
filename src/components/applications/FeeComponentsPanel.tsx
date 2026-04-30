@@ -49,12 +49,14 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
   const activeFeeTypes = useMemo(() => feeTypes.filter(ft => ft.status === 'active'), [feeTypes]);
 
   const total = useMemo(() => components.reduce((sum, c) => sum + Number(c.amount), 0), [components]);
+  const fallbackTotal = useMemo(() => resolvedFallback.reduce((sum, c) => sum + Number(c.amount), 0), [resolvedFallback]);
 
   const loadData = async () => {
     setLoading(true);
-    const [ftRes, fcRes] = await Promise.all([
+    const [ftRes, fcRes, resolved] = await Promise.all([
       supabase.from('fee_types' as any).select('*').order('name'),
       supabase.from('fee_components' as any).select('*').eq('application_id', applicationId).order('created_at'),
+      resolveApplicationFeeBreakdown(applicationId).catch(() => [] as ApplicationFeeLine[]),
     ]);
     if (ftRes.data) setFeeTypes(ftRes.data as any);
     if (fcRes.data) {
@@ -64,6 +66,7 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
       }));
       setComponents(comps);
     }
+    setResolvedFallback(resolved || []);
     setLoading(false);
   };
 
