@@ -239,23 +239,26 @@ export default function FillReturnPage() {
 
   // Store all form data keyed by formTemplateId → { [fieldName]: value }
   const [allData, setAllData] = useState<Record<string, Record<string, any>>>({});
+  // Track which form_version_id each form is pinned to (from saved data or selection)
+  const [versionByForm, setVersionByForm] = useState<Record<string, string | null>>({});
   const [activeTab, setActiveTab] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
 
-  // Build initial data from saved return_form_data rows
-  // return_form_data stores field_name (the fieldName key) and field_value
+  // Build initial data + pinned versions from saved return_form_data rows
   useEffect(() => {
     if (savedFormData.length > 0 && !initializedRef.current) {
       const init: Record<string, Record<string, any>> = {};
+      const versions: Record<string, string | null> = {};
       for (const row of savedFormData) {
         if (!init[row.form_id]) init[row.form_id] = {};
-        // field_name is the fieldName key used by FormRenderer
         init[row.form_id][row.field_name] = row.field_value || '';
+        if ((row as any).form_version_id) versions[row.form_id] = (row as any).form_version_id;
       }
       setAllData(init);
+      setVersionByForm(versions);
       initializedRef.current = true;
     }
   }, [savedFormData]);
@@ -278,8 +281,9 @@ export default function FillReturnPage() {
     return () => clearInterval(autoSaveRef.current);
   }, [allData, id]);
 
-  const handleDataChange = useCallback((formId: string, data: Record<string, any>) => {
+  const handleDataChange = useCallback((formId: string, data: Record<string, any>, versionId: string | null) => {
     setAllData(prev => ({ ...prev, [formId]: data }));
+    if (versionId) setVersionByForm(prev => (prev[formId] === versionId ? prev : { ...prev, [formId]: versionId }));
   }, []);
 
   const handleSave = useCallback(async (auto = false) => {
@@ -290,12 +294,12 @@ export default function FillReturnPage() {
         const fields = Object.entries(dataMap)
           .filter(([key]) => key !== '__repeatable' && !key.startsWith('_repeatable_'))
           .map(([fieldName, val]) => ({
-            field_id: fieldName, // using fieldName as field_id for upsert
+            field_id: fieldName,
             field_name: fieldName,
             field_value: typeof val === 'object' ? JSON.stringify(val) : String(val ?? ''),
           }));
         if (fields.length > 0) {
-          await saveFormData.mutateAsync({ returnId: id, formId, fields });
+          await saveFormData.mutateAsync({ returnId: id, formId, fields, formVersionId: versionByForm[formId] || null });
         }
       }
       // Transition TEMP → WIP on first save
