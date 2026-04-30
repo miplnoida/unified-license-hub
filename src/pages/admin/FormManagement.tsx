@@ -15,7 +15,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText, FileSpreadsheet } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText, FileSpreadsheet, GitBranch } from 'lucide-react';
+import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -437,13 +438,14 @@ export default function FormManagement() {
                             {activeTab === 'returns' && <TableHead>Return Type</TableHead>}
                             <TableHead>Reusable</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Version</TableHead>
                             <TableHead>Created Date</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={activeTab === 'returns' ? 11 : 10} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={activeTab === 'returns' ? 12 : 11} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id} className={selectedIds.has(tpl.id) ? 'bg-muted/50' : ''}>
                               <TableCell>
@@ -477,6 +479,15 @@ export default function FormManagement() {
                                     {statusOptions.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
                                   </SelectContent>
                                 </Select>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[11px] font-mono">
+                                    <GitBranch className="h-3 w-3 mr-1" />
+                                    v{(tpl as any).semantic_version || '1.0'}
+                                  </Badge>
+                                  <VersionHistory templateId={tpl.id} formName={tpl.name} />
+                                </div>
                               </TableCell>
                               <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                               <TableCell className="text-right">
