@@ -59,6 +59,7 @@ export default function ApplicationDetail() {
   const [processing, setProcessing] = useState(false);
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
