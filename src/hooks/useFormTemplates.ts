@@ -868,9 +868,7 @@ export function useUpdateTemplateStatus() {
       const draftSections = (latestDraft.schema_snapshot || []) as FormSection[];
       const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
 
-      const currentSemver =
-        lastPublished?.semantic_version ||
-        (lastPublished ? `${lastPublished.version}.0` : '1.0');
+
 
       const changeKind: SchemaChangeKind = lastPublished
         ? classifySchemaChange(publishedSections, draftSections)
