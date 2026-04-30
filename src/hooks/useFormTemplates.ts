@@ -1019,7 +1019,7 @@ export function classifySchemaChange(
     if ((of.label || '') !== (nf.label || '')) anyCosmeticChange = true;
     if ((of.placeholder || '') !== (nf.placeholder || '')) anyCosmeticChange = true;
     if ((of.helpText || '') !== (nf.helpText || '')) anyCosmeticChange = true;
-    if ((of.description || '') !== (nf.description || '')) anyCosmeticChange = true;
+    if (((of as any).description || '') !== ((nf as any).description || '')) anyCosmeticChange = true;
     if (o.sectionId !== n.sectionId || o.index !== n.index) anyCosmeticChange = true;
   }
 
