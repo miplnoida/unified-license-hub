@@ -19,6 +19,7 @@ import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTr
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 
 const statusBadgeVariant = (s: string) => {
