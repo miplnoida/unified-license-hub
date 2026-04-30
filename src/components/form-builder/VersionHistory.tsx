@@ -76,6 +76,19 @@ export function VersionHistory({ templateId, formName }: VersionHistoryProps) {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: next === 'published' ? 'Activate' : 'Deactivate',
+      cancelButtonText: 'Cancel',
+      heightAuto: false,
+      target: document.body,
+      customClass: { container: 'swal2-on-top' },
+      didOpen: () => {
+        // Radix Dialog sets pointer-events:none on body; restore for Swal layer.
+        const c = document.querySelector('.swal2-container') as HTMLElement | null;
+        if (c) {
+          c.style.zIndex = '99999';
+          c.style.pointerEvents = 'auto';
+        }
+        document.body.style.pointerEvents = 'auto';
+      },
     });
     if (!res.isConfirmed) return;
     try {
