@@ -295,23 +295,8 @@ export default function FormBuilder() {
     }
   };
 
-  const handleCreateVersion = async () => {
-    if (!editId) return;
-    try {
-      const newSemVer = computeSemanticVersion(currentVersionStr, initialSections, sections);
-      const result = await createVersionMutation.mutateAsync({
-        templateId: editId,
-        sections,
-        changeNotes: `Version ${newSemVer}`,
-        semanticVersion: newSemVer,
-      });
-      toast.success(`Version ${newSemVer} created!`);
-      navigate(`/admin/forms/create?type=${formType}&id=${editId}`);
-      setInitialized(false);
-    } catch (error) {
-      toast.error('Failed to create new version.');
-    }
-  };
+  // handleCreateVersion removed: versions are now created automatically on Publish
+  // when structural changes are detected. See useUpdateTemplateStatus.
 
   const handleFileImport = useCallback((imported: FormSection[]) => {
     setSections(prev => {
