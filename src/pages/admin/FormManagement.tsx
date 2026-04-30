@@ -480,6 +480,15 @@ export default function FormManagement() {
                                   </SelectContent>
                                 </Select>
                               </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[11px] font-mono">
+                                    <GitBranch className="h-3 w-3 mr-1" />
+                                    v{(tpl as any).semantic_version || '1.0'}
+                                  </Badge>
+                                  <VersionHistory templateId={tpl.id} formName={tpl.name} />
+                                </div>
+                              </TableCell>
                               <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
