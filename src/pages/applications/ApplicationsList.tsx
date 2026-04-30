@@ -778,6 +778,17 @@ export default function ApplicationsList() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              {isInternal && (
+                <Select value={versionFilter} onValueChange={v => { setVersionFilter(v); setPage(0); }}>
+                  <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by form version" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Form Versions</SelectItem>
+                    {versionFilterOptions.map(opt => (
+                      <SelectItem key={opt.id} value={opt.id}>{opt.templateName} — {opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 variant={groupingEnabled ? 'default' : 'outline'}
                 size="sm"
@@ -786,10 +797,59 @@ export default function ApplicationsList() {
                 <Layers className="h-4 w-4 mr-2" />
                 {groupingEnabled ? 'Grouped' : 'Group By'}
               </Button>
+              {isInternal && (
+                <Button
+                  variant={compareMode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setCompareMode(m => !m);
+                    setSelectedForCompare([]);
+                  }}
+                >
+                  <GitCompareArrows className="h-4 w-4 mr-2" />
+                  {compareMode ? 'Comparing' : 'Compare'}
+                </Button>
+              )}
               <Button variant="outline" size="sm" className="ml-auto">
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
+
+            {compareMode && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                <GitCompareArrows className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">
+                  Select two submissions to compare ({selectedForCompare.length}/2 selected)
+                </span>
+                {selectedForCompare.map(id => {
+                  const a = applications.find(x => x.id === id);
+                  return (
+                    <Badge key={id} variant="secondary" className="text-[10px] gap-1">
+                      {a?.application_number || id}
+                      <button
+                        onClick={() => setSelectedForCompare(prev => prev.filter(x => x !== id))}
+                        className="hover:text-destructive"
+                        aria-label="Remove from comparison"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                <div className="flex-1" />
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={selectedForCompare.length !== 2}
+                  onClick={() => setComparePickerOpen(true)}
+                >
+                  Compare submissions
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setCompareMode(false); setSelectedForCompare([]); }}>
+                  Cancel
+                </Button>
+              </div>
+            )}
 
             {/* Grouping configuration */}
             {groupingEnabled && (
