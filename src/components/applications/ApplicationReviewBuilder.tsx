@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { ReviewAcknowledgement } from './ReviewAcknowledgement';
+import { Badge } from '@/components/ui/badge';
 import type { FormSection, FormField } from '@/types/formBuilder';
 
 interface TemplateLite {
@@ -11,6 +12,8 @@ interface TemplateLite {
 interface Props {
   templates: TemplateLite[];
   formProgressMap: Record<string, { data: Record<string, any> }>;
+  /** Optional pinned version per template (overrides latest published) */
+  versionIdByTemplate?: Record<string, string>;
   mode: 'readonly' | 'editable';
   loading?: boolean;
   onAcknowledge: () => void;
