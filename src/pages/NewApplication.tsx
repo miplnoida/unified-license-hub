@@ -48,6 +48,40 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
 ];
 
+function FormCardVersionPicker({
+  templateId,
+  selectedVersionId,
+  onChange,
+}: {
+  templateId: string;
+  selectedVersionId?: string;
+  onChange: (versionId: string) => void;
+}) {
+  const { data: activeVersions = [] } = useActiveVersions(templateId);
+  if (activeVersions.length === 0) return null;
+  const value = selectedVersionId || activeVersions[0]?.id || '';
+  const single = activeVersions.length === 1;
+  return (
+    <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap">
+      <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+      <span className="text-[11px] text-muted-foreground">Form version:</span>
+      <Select value={value} onValueChange={onChange} disabled={single}>
+        <SelectTrigger className="h-7 w-[200px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {activeVersions.map((v: any) => (
+            <SelectItem key={v.id} value={v.id} className="text-xs">
+              v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {!single && (
+        <span className="text-[10px] text-muted-foreground">Choose which version to file against.</span>
+      )}
+    </div>
+  );
+}
+
 export default function NewApplication() {
   const navigate = useNavigate();
   const { user } = useAuth();
