@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText, FileSpreadsheet, GitBranch } from 'lucide-react';
 import { VersionHistory } from '@/components/form-builder/VersionHistory';
-import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, useLatestVersionsByTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
