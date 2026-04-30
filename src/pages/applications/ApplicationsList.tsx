@@ -396,12 +396,48 @@ export default function ApplicationsList() {
     const serviceName = resolveField(app, 'service_id');
     const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
     const payment = payments[app.id];
+    const versionEntries = getAppVersionEntries(app);
+    const isSelectedForCompare = selectedForCompare.includes(app.id);
     return (
       <Fragment key={app.id}>
         <TableRow
           className="cursor-pointer hover:bg-muted/50"
-          onClick={() => navigate(`/applications/${app.id}`)}
+          onClick={() => {
+            if (compareMode) {
+              setSelectedForCompare(prev => {
+                if (prev.includes(app.id)) return prev.filter(id => id !== app.id);
+                if (prev.length >= 2) {
+                  toast.info('Only two submissions can be compared. Deselect one first.');
+                  return prev;
+                }
+                return [...prev, app.id];
+              });
+              return;
+            }
+            navigate(`/applications/${app.id}`);
+          }}
         >
+          {compareMode && (
+            <TableCell onClick={e => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelectedForCompare}
+                onCheckedChange={(v) => {
+                  setSelectedForCompare(prev => {
+                    if (v) {
+                      if (prev.includes(app.id)) return prev;
+                      if (prev.length >= 2) {
+                        toast.info('Only two submissions can be compared.');
+                        return prev;
+                      }
+                      return [...prev, app.id];
+                    }
+                    return prev.filter(id => id !== app.id);
+                  });
+                }}
+                aria-label={`Select ${app.application_number} for comparison`}
+              />
+            </TableCell>
+          )}
           <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
           <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
           <TableCell className="text-sm">
@@ -409,6 +445,33 @@ export default function ApplicationsList() {
           </TableCell>
           <TableCell className="text-sm">{sectorName}</TableCell>
           <TableCell className="text-sm">{subSectorName}</TableCell>
+          <TableCell className="text-sm">
+            {versionEntries.length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {versionEntries.map(({ templateId, versionId }) => {
+                  const v = versionId ? versions[versionId] : null;
+                  const tmplName = templates[templateId]?.name || 'Form';
+                  const range = v?.effective_from
+                    ? `${new Date(v.effective_from).toLocaleDateString()}${v.effective_until ? ' – ' + new Date(v.effective_until).toLocaleDateString() : ' – present'}`
+                    : null;
+                  return (
+                    <div key={templateId} className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground max-w-[110px] truncate" title={tmplName}>{tmplName}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
+                      </Badge>
+                      {v?.status && (
+                        <Badge variant={versionStatusVariant(v.status)} className="text-[10px] capitalize">{v.status}</Badge>
+                      )}
+                      {range && <span className="text-[10px] text-muted-foreground">{range}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TableCell>
           <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
           <TableCell>
             {payment ? (
