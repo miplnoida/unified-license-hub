@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { logAudit } from '@/hooks/useAuditLog';
+import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 interface Props {
   applicationId: string;
@@ -16,15 +17,6 @@ interface Props {
   canPay?: boolean;
   /** Optional callback fired after a successful payment. */
   onPaid?: () => void;
-}
-
-interface FeeComponentRow {
-  id: string;
-  amount: number;
-  currency?: string | null;
-  description?: string | null;
-  fee_type?: string | null;
-  fee_types?: { name?: string | null; fee_type?: string | null } | null;
 }
 
 interface PaymentRow {
@@ -39,12 +31,6 @@ interface PaymentRow {
   currency?: string | null;
 }
 
-const formatFeeLabel = (t?: string | null) => {
-  if (!t) return 'Fee';
-  const titled = t.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
-  return /fee$/i.test(titled) ? titled : `${titled} Fee`;
-};
-
 /**
  * Licensee-facing payment panel.
  * - If unpaid → shows itemised fee breakdown, total, and a Pay Now button.
@@ -53,7 +39,7 @@ const formatFeeLabel = (t?: string | null) => {
 export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [fees, setFees] = useState<FeeComponentRow[]>([]);
+  const [fees, setFees] = useState<ApplicationFeeLine[]>([]);
   const [totalDue, setTotalDue] = useState(0);
   const [currency, setCurrency] = useState<string>('USD');
   const [payment, setPayment] = useState<PaymentRow | null>(null);
@@ -61,11 +47,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
 
   const loadData = async () => {
     setLoading(true);
-    const [feesRes, payRes] = await Promise.all([
-      supabase
-        .from('fee_components' as any)
-        .select('id, amount, currency, description, fee_type, fee_types(name, fee_type)')
-        .eq('application_id', applicationId),
+    const [resolvedFees, payRes] = await Promise.all([
+      resolveApplicationFeeBreakdown(applicationId),
       supabase
         .from('payments')
         .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
@@ -73,20 +56,8 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         .order('created_at', { ascending: false }),
     ]);
 
-    const feeRows = (feesRes.data || []) as unknown as FeeComponentRow[];
-    // Deduplicate by fee_type (case-insensitive) — same logic as NewApplication breakdown.
-    const seen = new Set<string>();
-    const deduped = feeRows.filter(f => {
-      const key = (f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description || '').trim().toLowerCase();
-      if (!key) return true;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-    setFees(deduped);
-    setTotalDue(deduped.reduce((sum, f) => sum + Number(f.amount || 0), 0));
-    const cur = deduped.find(f => f.currency)?.currency;
-    if (cur) setCurrency(cur);
+    setFees(resolvedFees);
+    setTotalDue(resolvedFees.reduce((sum, f) => sum + Number(f.amount || 0), 0));
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
@@ -179,14 +150,11 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
             <p className="text-sm font-medium">Fee Breakdown</p>
             <div className="space-y-1.5">
               {fees.map((f) => {
-                const label = formatFeeLabel(
-                  f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description,
-                );
                 return (
                   <div key={f.id} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{label}</span>
+                    <span className="text-muted-foreground">{f.name}</span>
                     <span className="font-mono">
-                      {(f.currency || currency)} {Number(f.amount).toFixed(2)}
+                      {currency} {Number(f.amount).toFixed(2)}
                     </span>
                   </div>
                 );
