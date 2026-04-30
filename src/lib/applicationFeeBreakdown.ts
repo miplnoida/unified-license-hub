@@ -9,8 +9,7 @@ export interface ApplicationFeeLine {
 const formatFeeType = (t?: string | null) => {
   if (!t) return 'Fee';
   const cleaned = t.replace(/[_-]+/g, ' ').trim();
-  const titled = cleaned.replace(/\b\w/g, c => c.toUpperCase());
-  return /fee$/i.test(titled) ? titled : `${titled} Fee`;
+  return cleaned.replace(/\b\w/g, c => c.toUpperCase());
 };
 
 export async function resolveApplicationFeeBreakdown(applicationId: string): Promise<ApplicationFeeLine[]> {
