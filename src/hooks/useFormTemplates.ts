@@ -389,6 +389,41 @@ export function useFormVersions(templateId: string | null) {
   });
 }
 
+/**
+ * Returns a map of templateId -> latest version row (preferring the most recent
+ * published version, falling back to highest version number). Used by the Form
+ * Management list to show the live "current" version regardless of template row state.
+ */
+export function useLatestVersionsByTemplates(templateIds: string[]) {
+  const key = [...templateIds].sort().join(',');
+  return useQuery({
+    queryKey: ['form_versions', 'latest_map', key],
+    queryFn: async () => {
+      const map: Record<string, { semantic_version?: string | null; version: number; status: string; id: string }> = {};
+      if (templateIds.length === 0) return map;
+      const { data, error } = await supabase
+        .from('form_versions')
+        .select('id, template_id, semantic_version, version, status, created_at')
+        .in('template_id', templateIds)
+        .order('version', { ascending: false });
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      // Prefer latest published; fall back to latest of any status.
+      for (const r of rows) {
+        const tid = r.template_id as string;
+        const existing = map[tid];
+        if (!existing) { map[tid] = r; continue; }
+        const existingPub = existing.status === 'published';
+        const rPub = r.status === 'published';
+        if (rPub && !existingPub) map[tid] = r;
+        else if (rPub === existingPub && r.version > existing.version) map[tid] = r;
+      }
+      return map;
+    },
+    enabled: templateIds.length > 0,
+  });
+}
+
 export function useFormVersion(versionId: string | null) {
   return useQuery({
     queryKey: ['form_versions', 'detail', versionId],
@@ -1277,12 +1312,15 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
     .maybeSingle();
   if (!tpl) throw new Error('Form template not found');
 
-  const { data: users } = await supabase
-    .from('profiles')
-    .select('id')
+  // Use the canonical user_roles table (profiles.role can be stale/missing).
+  const { data: roleRows, error: rolesErr } = await supabase
+    .from('user_roles')
+    .select('user_id, role')
     .in('role', ['licensee_primary', 'licensee_secondary', 'ppoc'] as any);
-  const recipients = (users || []) as any[];
-  if (recipients.length === 0) return 0;
+  if (rolesErr) throw rolesErr;
+  const userIds = Array.from(new Set((roleRows || []).map((r: any) => r.user_id))).filter(Boolean);
+  if (userIds.length === 0) return 0;
+  const recipients = userIds.map(id => ({ id }));
 
   const semver = v.semantic_version || `${v.version}.0`;
   const effectiveLine = v.effective_from
@@ -1300,7 +1338,8 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
   }));
   const CHUNK = 500;
   for (let i = 0; i < rows.length; i += CHUNK) {
-    await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+    const { error: insErr } = await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+    if (insErr) throw insErr;
   }
   return recipients.length;
 }
