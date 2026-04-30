@@ -287,9 +287,10 @@ export default function FormBuilder() {
 
       toast.success(`Form saved — Version ${currentVersionStr} (versions only change on Publish)`);
       navigate(`/admin/forms?tab=${formType}`);
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to save form.');
+    } catch (error: any) {
+      console.error('[FormBuilder] save failed:', error);
+      const msg = error?.message || error?.error_description || 'Unknown error';
+      toast.error(`Failed to save form: ${msg}`);
     } finally {
       setIsSaving(false);
     }
