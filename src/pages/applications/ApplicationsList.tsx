@@ -901,6 +901,31 @@ export default function ApplicationsList() {
             setRefreshKey(k => k + 1);
           }}
         />
+
+        <CompareSubmissionPicker
+          open={comparePickerOpen}
+          onOpenChange={setComparePickerOpen}
+          appA={applications.find(a => a.id === selectedForCompare[0]) || null}
+          appB={applications.find(a => a.id === selectedForCompare[1]) || null}
+          templates={templates}
+          getApplicantName={getApplicantName}
+          getAppVersionEntries={getAppVersionEntries}
+          onConfirm={(payload) => {
+            setComparePayload(payload);
+            setComparePickerOpen(false);
+            setCompareDialogOpen(true);
+          }}
+        />
+
+        {comparePayload && (
+          <SubmissionCompareDialog
+            open={compareDialogOpen}
+            onOpenChange={setCompareDialogOpen}
+            formName={comparePayload.formName}
+            left={comparePayload.left}
+            right={comparePayload.right}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
