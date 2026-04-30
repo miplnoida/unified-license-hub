@@ -338,6 +338,8 @@ export default function PostLicenseApplicationForms() {
             onSaveDraft={handleFormSaveDraft}
             onSubmit={handleFormSubmit}
             applicationId={applicationId}
+            pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
+            onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
           />
         </div>
       </DashboardLayout>
