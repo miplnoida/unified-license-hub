@@ -37,6 +37,7 @@ function ActiveFormFiller({
   applicationId,
   pinnedVersionId,
   onVersionChange,
+  versionLocked = false,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -46,6 +47,7 @@ function ActiveFormFiller({
   applicationId?: string;
   pinnedVersionId?: string | null;
   onVersionChange?: (versionId: string) => void;
+  versionLocked?: boolean;
 }) {
   const { data: publishedVersion } = useLatestPublishedVersion(templateId);
   const { data: activeVersions = [] } = useActiveVersions(templateId);
@@ -73,11 +75,12 @@ function ActiveFormFiller({
     );
   }
 
-  const showSwitcher = activeVersions.length > 1 && !pinnedVersionId;
+  const showSwitcher = activeVersions.length > 1 && !pinnedVersionId && !versionLocked;
+  const showVersionBar = showSwitcher || pinnedVersionId || versionLocked;
 
   return (
     <div className="space-y-3">
-      {(showSwitcher || pinnedVersionId) && (
+      {showVersionBar && (
         <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
           <GitBranch className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Form version:</span>
@@ -102,7 +105,9 @@ function ActiveFormFiller({
                 || ''}
             </Badge>
           )}
-          {pinnedVersionId && (
+          {versionLocked ? (
+            <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
+          ) : pinnedVersionId && (
             <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
           )}
         </div>
@@ -340,6 +345,7 @@ export default function PostLicenseApplicationForms() {
             applicationId={applicationId}
             pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
             onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
+            versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
           />
         </div>
       </DashboardLayout>
