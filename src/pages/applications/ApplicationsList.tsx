@@ -278,7 +278,7 @@ export default function ApplicationsList() {
   };
 
   const filtered = useMemo(() => {
-    return applications.filter(a => {
+    const list = applications.filter(a => {
       // Hide draft and in_progress from internal/admin users
       if (isInternal && ['draft', 'in_progress'].includes(a.status)) return false;
       if (statusFilter !== 'all') {
@@ -286,21 +286,40 @@ export default function ApplicationsList() {
           if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
         } else if (a.status !== statusFilter) return false;
       }
+      const versionEntries = getAppVersionEntries(a);
+      if (versionFilter !== 'all') {
+        if (!versionEntries.some(e => e.versionId === versionFilter)) return false;
+      }
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
         const sector = resolveField(a, 'sector_id');
         const subSector = resolveField(a, 'sub_sector_id');
+        const versionLabels = versionEntries.map(e => formatVersionLabel(e.versionId)).join(' ');
         if (
           !matchSearch(a.application_number, q, searchMode) &&
           !matchSearch(name, q, searchMode) &&
           !matchSearch(sector, q, searchMode) &&
-          !matchSearch(subSector, q, searchMode)
+          !matchSearch(subSector, q, searchMode) &&
+          !matchSearch(versionLabels, q, searchMode)
         ) return false;
       }
       return true;
     });
-  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors]);
+
+    if (versionSort !== 'none') {
+      const versionScore = (app: Application): number => {
+        const entries = getAppVersionEntries(app);
+        const nums = entries.map(e => versions[e.versionId || '']?.version ?? -1);
+        return nums.length ? Math.max(...nums) : -1;
+      };
+      list.sort((a, b) => {
+        const diff = versionScore(a) - versionScore(b);
+        return versionSort === 'asc' ? diff : -diff;
+      });
+    }
+    return list;
+  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors, versions, templates, versionFilter, versionSort]);
 
   const totalPages = groupingEnabled ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
   const paged = groupingEnabled ? filtered : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
