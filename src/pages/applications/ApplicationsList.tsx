@@ -181,6 +181,8 @@ export default function ApplicationsList() {
       if (subSectorRes.data) setSubSectors(Object.fromEntries((subSectorRes.data as any[]).map(s => [s.id, s.name])));
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
+      if (fvRes.data) setVersions(Object.fromEntries((fvRes.data as any[]).map(v => [v.id, v as FormVersionRow])));
+      if (ftRes.data) setTemplates(Object.fromEntries((ftRes.data as any[]).map(t => [t.id, t as FormTemplateRow])));
 
       if (payRes.data) {
         const payMap: Record<string, PaymentInfo> = {};
