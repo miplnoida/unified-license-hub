@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
+import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'outline', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
@@ -22,7 +23,7 @@ export default function PaymentDetail() {
   const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
 
   const [payment, setPayment] = useState<any>(null);
-  const [feeComponents, setFeeComponents] = useState<any[]>([]);
+  const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,11 +33,8 @@ export default function PaymentDetail() {
       const p = pData as any;
       setPayment(p);
       if (p?.application_id) {
-        const { data: fees } = await supabase
-          .from('fee_components')
-          .select('*, fee_types(name)')
-          .eq('application_id', p.application_id);
-        setFeeComponents(fees || []);
+        const fees = await resolveApplicationFeeBreakdown(p.application_id);
+        setFeeComponents(fees);
       }
       setLoading(false);
     })();
@@ -106,9 +104,9 @@ export default function PaymentDetail() {
                   <div>
                     <h4 className="text-sm font-medium mb-2">Fee Breakdown</h4>
                     <div className="space-y-1.5">
-                      {feeComponents.map((fc: any) => (
+                      {feeComponents.map((fc) => (
                         <div key={fc.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{fc.fee_types?.name || fc.description || 'Fee'}</span>
+                          <span className="text-muted-foreground">{fc.name}</span>
                           <span className="font-mono">{payment.currency} {Number(fc.amount).toFixed(2)}</span>
                         </div>
                       ))}
