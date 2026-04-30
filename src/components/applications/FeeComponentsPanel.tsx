@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PlusCircle, Pencil, Trash2, Loader2, DollarSign } from 'lucide-react';
+import { resolveApplicationFeeBreakdown, ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 interface FeeType {
   id: string;
