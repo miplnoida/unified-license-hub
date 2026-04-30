@@ -5,22 +5,58 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { VersionInfoBadge } from '@/components/form-builder/VersionInfoBadge';
+import { MigrationCheckDialog } from '@/components/form-builder/MigrationCheckDialog';
+import { CompareReturnsPicker } from '@/components/form-builder/CompareReturnsPicker';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, GitMerge, GitCompareArrows } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
-  const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
+function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, returnLabel }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null; returnId: string; returnLabel: string }) {
+  const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
+  const { data: pinnedVersion } = useFormVersion(pinnedVersionId || null);
+  // Prefer the version this submission was filed on; fall back to latest published.
+  const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
+  const [migrationOpen, setMigrationOpen] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  const showOutdatedBanner = !!pinnedVersionId && !!latestVersion && latestVersion.id !== pinnedVersionId;
+
   return (
     <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />{name}</CardTitle></CardHeader>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+          <FileText className="h-4 w-4 text-primary" />
+          <span>{name}</span>
+          {pinnedVersionId && <VersionInfoBadge versionId={pinnedVersionId} templateId={formId} showLatestComparison />}
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
+              <GitCompareArrows className="h-3 w-3 mr-1" /> Compare
+            </Button>
+            {pinnedVersionId && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setMigrationOpen(true)}>
+                <GitMerge className="h-3 w-3 mr-1" /> Migration check
+              </Button>
+            )}
+          </div>
+        </CardTitle>
+      </CardHeader>
       <CardContent>
+        {showOutdatedBanner && (
+          <Alert className="mb-3 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
+              This submission was filed on v{(pinnedVersion as any)?.semantic_version || (pinnedVersion as any)?.version || '?'}.
+              A newer version is now available — click <strong>Migration check</strong> to preview field-level differences.
+            </AlertDescription>
+          </Alert>
+        )}
         {loading ? (
           <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading form...</div>
         ) : sections.length === 0 ? (
@@ -37,6 +73,23 @@ function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: strin
           />
         )}
       </CardContent>
+      <MigrationCheckDialog
+        open={migrationOpen}
+        onOpenChange={setMigrationOpen}
+        templateId={formId}
+        submittedVersionId={pinnedVersionId || null}
+        submittedData={data}
+        formName={name}
+      />
+      <CompareReturnsPicker
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        leftReturnId={returnId}
+        leftReturnLabel={returnLabel}
+        templateId={formId}
+        formId={formId}
+        formName={name}
+      />
     </Card>
   );
 }
@@ -106,7 +159,9 @@ export default function ViewReturnPage() {
   const effectiveConfigForms = configForms.length > 0 ? configForms : fallbackConfigForms;
 
   // Build per-form data map keyed by field_name (matches FormRenderer initialData)
+  // Also collect the pinned form_version_id per form (last write wins; all rows share it).
   const valuesByForm: Record<string, Record<string, any>> = {};
+  const versionByForm: Record<string, string | null> = {};
   formData.forEach(d => {
     if (!valuesByForm[d.form_id]) valuesByForm[d.form_id] = {};
     const key = d.field_name || d.field_id;
@@ -115,6 +170,7 @@ export default function ViewReturnPage() {
       try { val = JSON.parse(val); } catch { /* keep string */ }
     }
     valuesByForm[d.form_id][key] = val;
+    if ((d as any).form_version_id) versionByForm[d.form_id] = (d as any).form_version_id;
   });
 
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
@@ -168,6 +224,9 @@ export default function ViewReturnPage() {
                         formId={cf.form_id}
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
+                        pinnedVersionId={versionByForm[cf.form_id] || null}
+                        returnId={returnData.id}
+                        returnLabel={returnData.unique_id || returnData.id.slice(0, 8)}
                       />
                       {formComments.length > 0 && (
                         <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
