@@ -1257,5 +1257,53 @@ export async function notifyUpcomingVersionIfNeeded(versionId: string) {
   await supabase.from('form_versions').update({ notified_for_upcoming: true } as any).eq('id', versionId);
 }
 
+/**
+ * Manually notify licensee/PPOC users about a form version (admin-triggered).
+ * Returns the number of recipients notified.
+ */
+export async function notifyVersionToLicensees(versionId: string): Promise<number> {
+  const { data: version } = await supabase
+    .from('form_versions')
+    .select('id, template_id, semantic_version, version, effective_from, status')
+    .eq('id', versionId)
+    .maybeSingle();
+  if (!version) throw new Error('Version not found');
+  const v: any = version;
+
+  const { data: tpl } = await supabase
+    .from('form_templates')
+    .select('id, name')
+    .eq('id', v.template_id)
+    .maybeSingle();
+  if (!tpl) throw new Error('Form template not found');
+
+  const { data: users } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('role', ['licensee_primary', 'licensee_secondary', 'ppoc'] as any);
+  const recipients = (users || []) as any[];
+  if (recipients.length === 0) return 0;
+
+  const semver = v.semantic_version || `${v.version}.0`;
+  const effectiveLine = v.effective_from
+    ? ` It becomes effective on ${new Date(v.effective_from).toLocaleDateString()}.`
+    : '';
+  const rows = recipients.map(u => ({
+    user_id: u.id,
+    title: `Form version update: ${(tpl as any).name}`,
+    message: `Version v${semver} of "${(tpl as any).name}" is now available.${effectiveLine}`,
+    type: 'info',
+    channel: 'in_app',
+    delivery_status: 'delivered',
+    entity_type: 'form_version',
+    entity_id: versionId,
+  }));
+  const CHUNK = 500;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+  }
+  return recipients.length;
+}
+
 // Re-export helpers for use in FormBuilder
 export { sectionsToFieldRows, fieldRowsToSections };
