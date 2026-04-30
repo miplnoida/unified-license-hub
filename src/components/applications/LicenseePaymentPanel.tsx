@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -19,6 +21,10 @@ interface Props {
 interface FeeComponentRow {
   id: string;
   amount: number;
+  currency?: string | null;
+  description?: string | null;
+  fee_type?: string | null;
+  fee_types?: { name?: string | null; fee_type?: string | null } | null;
 }
 
 interface PaymentRow {
@@ -28,17 +34,28 @@ interface PaymentRow {
   payment_method: string | null;
   paid_at: string | null;
   created_at: string;
+  transaction_ref?: string | null;
+  receipt_number?: string | null;
+  currency?: string | null;
 }
 
+const formatFeeLabel = (t?: string | null) => {
+  if (!t) return 'Fee';
+  const titled = t.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
+  return /fee$/i.test(titled) ? titled : `${titled} Fee`;
+};
+
 /**
- * Licensee-facing payment panel. Hides itemised fee breakdown.
- * - If unpaid → shows total amount due and a Pay Now button.
- * - If paid  → shows payment confirmation (amount, date, reference).
+ * Licensee-facing payment panel.
+ * - If unpaid → shows itemised fee breakdown, total, and a Pay Now button.
+ * - If paid  → shows payment confirmation with breakdown; reference links to payment detail.
  */
 export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [fees, setFees] = useState<FeeComponentRow[]>([]);
   const [totalDue, setTotalDue] = useState(0);
+  const [currency, setCurrency] = useState<string>('USD');
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -47,21 +64,35 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     const [feesRes, payRes] = await Promise.all([
       supabase
         .from('fee_components' as any)
-        .select('id, amount')
+        .select('id, amount, currency, description, fee_type, fee_types(name, fee_type)')
         .eq('application_id', applicationId),
       supabase
         .from('payments')
-        .select('id, amount, status, payment_method, paid_at, created_at')
+        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false }),
     ]);
 
-    const fees = (feesRes.data || []) as unknown as FeeComponentRow[];
-    setTotalDue(fees.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    const feeRows = (feesRes.data || []) as unknown as FeeComponentRow[];
+    // Deduplicate by fee_type (case-insensitive) — same logic as NewApplication breakdown.
+    const seen = new Set<string>();
+    const deduped = feeRows.filter(f => {
+      const key = (f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description || '').trim().toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setFees(deduped);
+    setTotalDue(deduped.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    const cur = deduped.find(f => f.currency)?.currency;
+    if (cur) setCurrency(cur);
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
-    setPayment(successful || payments[0] || null);
+    const chosen = successful || payments[0] || null;
+    setPayment(chosen);
+    if (chosen?.currency) setCurrency(chosen.currency);
     setLoading(false);
   };
 
@@ -142,6 +173,35 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Fee breakdown — shown in both paid and unpaid states */}
+        {fees.length > 0 && (
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+            <p className="text-sm font-medium">Fee Breakdown</p>
+            <div className="space-y-1.5">
+              {fees.map((f) => {
+                const label = formatFeeLabel(
+                  f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description,
+                );
+                return (
+                  <div key={f.id} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-mono">
+                      {(f.currency || currency)} {Number(f.amount).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+              <Separator />
+              <div className="flex justify-between font-semibold text-sm">
+                <span>Total</span>
+                <span className="font-mono">
+                  {currency} {totalDue.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isPaid && payment ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-3 dark:border-emerald-900/40 dark:bg-emerald-950/30">
             <div className="flex items-start gap-3">
@@ -158,12 +218,12 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               <div>
                 <p className="text-xs text-muted-foreground">Amount Paid</p>
                 <p className="font-mono font-semibold">
-                  {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {(payment.currency || currency)} {Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Method</p>
-                <p className="font-medium capitalize">{payment.payment_method || 'Online'}</p>
+                <p className="font-medium capitalize">{payment.payment_method?.replace('_', ' ') || 'Online'}</p>
               </div>
               {payment.paid_at && (
                 <div>
@@ -173,7 +233,13 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               )}
               <div>
                 <p className="text-xs text-muted-foreground">Reference</p>
-                <p className="font-mono text-xs">{payment.id.substring(0, 8).toUpperCase()}</p>
+                <Link
+                  to={`/payments/${payment.id}`}
+                  className="font-mono text-xs text-primary hover:underline"
+                  title="View payment details"
+                >
+                  {payment.transaction_ref || payment.receipt_number || payment.id.substring(0, 8).toUpperCase()}
+                </Link>
               </div>
             </div>
           </div>
@@ -196,7 +262,7 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               <div>
                 <p className="text-xs text-muted-foreground">Total Amount Due</p>
                 <p className="text-2xl font-bold font-mono">
-                  {totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {currency} {totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
               {canPay ? (
