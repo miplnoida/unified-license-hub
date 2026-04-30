@@ -980,5 +980,132 @@ export function computeSemanticVersion(
   return `${major}.${minor + 1}`;
 }
 
+// ─── Multi-Active Versions: helpers + hooks ───
+
+/**
+ * Returns true when a published version is currently within its
+ * effective_from / effective_until window. Effective_until is treated as an
+ * inclusive end-of-day to match the admin's date picker semantics.
+ */
+export function isVersionEffective(v: { effective_from?: string | null; effective_until?: string | null }, atIso?: string): boolean {
+  const nowIso = atIso || new Date().toISOString();
+  const fromOk = !v.effective_from || v.effective_from <= nowIso;
+  let untilOk = true;
+  if (v.effective_until) {
+    const until = new Date(v.effective_until);
+    until.setUTCHours(23, 59, 59, 999);
+    untilOk = until.toISOString() >= nowIso;
+  }
+  return fromOk && untilOk;
+}
+
+/**
+ * Returns ALL currently-active (published + within effective window) versions
+ * for a template, sorted by version desc. The first item is the default for
+ * licensees; they may switch to any other returned version.
+ */
+export function useActiveVersions(templateId: string | null) {
+  return useQuery({
+    queryKey: ['form_versions', 'active-multi', templateId],
+    queryFn: async () => {
+      if (!templateId) return [];
+      const { data, error } = await supabase
+        .from('form_versions')
+        .select('*')
+        .eq('template_id', templateId)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+      if (error) throw error;
+      const rows = (data || []) as unknown as FormVersion[];
+      const eff = rows.filter(v => isVersionEffective(v));
+      // If none are within an effective window, fall back to all published rows
+      // so existing legacy templates (no dates configured) keep working.
+      return eff.length > 0 ? eff : rows;
+    },
+    enabled: !!templateId,
+  });
+}
+
+/**
+ * Admin-only: update activation/scheduling of a published version. Allows
+ * toggling between `published` (active) and `archived` (deactivated) and
+ * setting effective_from / effective_until.
+ */
+export function useUpdateVersionSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      versionId: string;
+      status?: 'published' | 'archived';
+      effective_from?: string | null;
+      effective_until?: string | null;
+    }) => {
+      const patch: any = {};
+      if (params.status) patch.status = params.status;
+      if (params.effective_from !== undefined) patch.effective_from = params.effective_from;
+      if (params.effective_until !== undefined) patch.effective_until = params.effective_until;
+      // Reset notification flag when the schedule moves so a newly-future
+      // version can re-trigger an upcoming notification.
+      if (params.effective_from !== undefined) patch.notified_for_upcoming = false;
+      const { error } = await supabase.from('form_versions').update(patch).eq('id', params.versionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form_versions'] });
+    },
+  });
+}
+
+/**
+ * Idempotent helper: if a version has a future effective_from and hasn't
+ * been announced yet, create one in-app notification per licensee user.
+ */
+export async function notifyUpcomingVersionIfNeeded(versionId: string) {
+  const { data: version } = await supabase
+    .from('form_versions')
+    .select('id, template_id, semantic_version, version, effective_from, notified_for_upcoming, status')
+    .eq('id', versionId)
+    .maybeSingle();
+  if (!version) return;
+  const v: any = version;
+  if (v.status !== 'published') return;
+  if (v.notified_for_upcoming) return;
+  if (!v.effective_from || v.effective_from <= new Date().toISOString()) return;
+
+  const { data: tpl } = await supabase
+    .from('form_templates')
+    .select('id, name')
+    .eq('id', v.template_id)
+    .maybeSingle();
+  if (!tpl) return;
+
+  const { data: users } = await supabase
+    .from('profiles')
+    .select('id')
+    .in('role', ['licensee_primary', 'licensee_secondary'] as any);
+  const recipients = (users || []) as any[];
+
+  if (recipients.length > 0) {
+    const friendlyDate = new Date(v.effective_from).toLocaleDateString();
+    const semver = v.semantic_version || `${v.version}.0`;
+    const rows = recipients.map(u => ({
+      user_id: u.id,
+      title: `Upcoming form version: ${(tpl as any).name}`,
+      message: `A new version (v${semver}) of "${(tpl as any).name}" becomes effective on ${friendlyDate}. Please review before the activation date.`,
+      type: 'info',
+      channel: 'in_app',
+      delivery_status: 'delivered',
+      entity_type: 'form_version',
+      entity_id: versionId,
+    }));
+    const CHUNK = 500;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      await supabase.from('notifications').insert(rows.slice(i, i + CHUNK) as any);
+    }
+  }
+
+  await supabase.from('form_versions').update({ notified_for_upcoming: true } as any).eq('id', versionId);
+}
+
 // Re-export helpers for use in FormBuilder
 export { sectionsToFieldRows, fieldRowsToSections };
