@@ -879,6 +879,9 @@ export function useUpdateTemplateStatus() {
 
       // Discard the working draft after a successful publish.
       await deleteVersionDraft(latestDraft.id);
+
+      // Best-effort: announce upcoming version if it's scheduled for the future.
+      try { await notifyUpcomingVersionIfNeeded(newVid); } catch (_) { /* non-blocking */ }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
