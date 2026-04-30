@@ -26,8 +26,8 @@ import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette'
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
-  useFormTemplate, useLatestVersion, useSaveFormTemplate, useCreateNewFormVersion,
-  computeSemanticVersion, useFormFields, useFieldConditions, fieldRowsToSections,
+  useFormTemplate, useLatestVersion, useSaveFormTemplate,
+  useFormFields, useFieldConditions, fieldRowsToSections,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
@@ -48,7 +48,6 @@ export default function FormBuilder() {
   const { activeRegulatorId } = useRegulator();
 
   const saveTemplateMutation = useSaveFormTemplate();
-  const createVersionMutation = useCreateNewFormVersion();
 
   const { data: existingTemplate } = useFormTemplate(editId);
   const { data: latestVersion } = useLatestVersion(editId);
@@ -296,23 +295,8 @@ export default function FormBuilder() {
     }
   };
 
-  const handleCreateVersion = async () => {
-    if (!editId) return;
-    try {
-      const newSemVer = computeSemanticVersion(currentVersionStr, initialSections, sections);
-      const result = await createVersionMutation.mutateAsync({
-        templateId: editId,
-        sections,
-        changeNotes: `Version ${newSemVer}`,
-        semanticVersion: newSemVer,
-      });
-      toast.success(`Version ${newSemVer} created!`);
-      navigate(`/admin/forms/create?type=${formType}&id=${editId}`);
-      setInitialized(false);
-    } catch (error) {
-      toast.error('Failed to create new version.');
-    }
-  };
+  // handleCreateVersion removed: versions are now created automatically on Publish
+  // when structural changes are detected. See useUpdateTemplateStatus.
 
   const handleFileImport = useCallback((imported: FormSection[]) => {
     setSections(prev => {
@@ -450,12 +434,8 @@ export default function FormBuilder() {
                   <GitBranch className="h-3 w-3" /> v{currentVersionStr}
                 </Badge>
               )}
-              {editId && (
-                <Button variant="outline" size="sm" onClick={handleCreateVersion} disabled={createVersionMutation.isPending}>
-                  <GitBranch className="h-4 w-4 mr-1" />
-                  New Version
-                </Button>
-              )}
+              {/* "New Version" button removed — versions are managed automatically on Publish.
+                  Structural changes auto-create a new version; cosmetic changes keep the same version. */}
               {editId && (
                 <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
               )}
@@ -583,45 +563,61 @@ export default function FormBuilder() {
           </CardContent>
         </Card>
 
+        {/* Read-only banner in View mode */}
+        {isViewMode && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-800">
+            View-only mode — editing, saving, and structural changes are disabled. Use History to compare or export versions.
+          </div>
+        )}
+
         {/* Builder: 3-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" style={{ minHeight: 'calc(100vh - 400px)' }}>
-          {/* Left: Field Palette */}
-          <div className="lg:col-span-2">
+          {/* Left: Field Palette — hidden in view mode */}
+          {!isViewMode && (
+            <div className="lg:col-span-2">
+              <ScrollArea className="h-[calc(100vh-400px)]">
+                <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Center: Section Manager (wider in view mode since palette/props are hidden) */}
+          <div className={isViewMode ? 'lg:col-span-12' : 'lg:col-span-7'}>
             <ScrollArea className="h-[calc(100vh-400px)]">
-              <FormBuilderFieldPalette onAddField={handleAddFieldFromPalette} />
+              <div
+                className={isViewMode ? 'pointer-events-none opacity-90 select-none' : ''}
+                aria-disabled={isViewMode}
+              >
+                <SectionManager
+                  sections={sections}
+                  selectedFieldId={selectedField?.id || null}
+                  onSelectField={isViewMode ? () => {} : handleSelectField}
+                  onSectionsChange={isViewMode ? () => {} : setSections}
+                  onAddField={isViewMode ? () => {} : handleAddField}
+                  onDeleteField={isViewMode ? () => {} : handleDeleteField}
+                  onDuplicateField={isViewMode ? () => {} : handleDuplicateField}
+                />
+              </div>
             </ScrollArea>
           </div>
 
-          {/* Center: Section Manager */}
-          <div className="lg:col-span-7">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <SectionManager
-                sections={sections}
-                selectedFieldId={selectedField?.id || null}
-                onSelectField={handleSelectField}
-                onSectionsChange={setSections}
-                onAddField={handleAddField}
-                onDeleteField={handleDeleteField}
-                onDuplicateField={handleDuplicateField}
-              />
-            </ScrollArea>
-          </div>
-
-          {/* Right: Field Properties */}
-          <div className="lg:col-span-3">
-            <ScrollArea className="h-[calc(100vh-400px)]">
-              <FormBuilderFieldProperties
-                selectedField={selectedField}
-                allFields={allFields}
-                onUpdateField={handleUpdateField}
-                onDeleteField={selectedField && selectedSectionId ? () => {
-                  handleDeleteField(selectedSectionId, selectedField.id);
-                  setSelectedField(null);
-                  setSelectedSectionId(null);
-                } : undefined}
-              />
-            </ScrollArea>
-          </div>
+          {/* Right: Field Properties — hidden in view mode */}
+          {!isViewMode && (
+            <div className="lg:col-span-3">
+              <ScrollArea className="h-[calc(100vh-400px)]">
+                <FormBuilderFieldProperties
+                  selectedField={selectedField}
+                  allFields={allFields}
+                  onUpdateField={handleUpdateField}
+                  onDeleteField={selectedField && selectedSectionId ? () => {
+                    handleDeleteField(selectedSectionId, selectedField.id);
+                    setSelectedField(null);
+                    setSelectedSectionId(null);
+                  } : undefined}
+                />
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </div>
 

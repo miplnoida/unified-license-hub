@@ -836,9 +836,34 @@ export function useUpdateTemplateStatus() {
         ? hasStructuralChanges(publishedSections, draftSections)
         : true; // first-ever publish counts as structural
 
+      // ── Non-structural republish: keep the SAME version ──
+      // Label/placeholder/help/order/styling-only changes must not create a
+      // new version row. Update the existing published row's snapshot in
+      // place so submissions continue to reference the same version.
+      if (lastPublished && !isStructural) {
+        const refreshedSections = JSON.parse(JSON.stringify(draftSections));
+        const { error: upErr } = await supabase.from('form_versions').update({
+          schema_snapshot: refreshedSections,
+          published_at: new Date().toISOString(),
+          change_notes:
+            latestDraft.change_notes ||
+            lastPublished.change_notes ||
+            `Updated v${currentSemver} (non-structural changes)`,
+        } as any).eq('id', lastPublished.id);
+        if (upErr) throw upErr;
+
+        // Keep normalized field rows in sync with the updated snapshot,
+        // preserving stable field IDs from the published version.
+        await replaceVersionFields(lastPublished.id, refreshedSections);
+
+        // Discard the working draft so the next edit starts fresh.
+        await deleteVersionDraft(latestDraft.id);
+        return;
+      }
+
       const [maj, min] = currentSemver.split('.').map(Number);
       const newSemver = lastPublished
-        ? (isStructural ? `${maj + 1}.0` : `${maj}.${(min || 0) + 1}`)
+        ? `${maj + 1}.0`
         : '1.0';
 
       // Compute next integer version (DB unique on template_id+version)
