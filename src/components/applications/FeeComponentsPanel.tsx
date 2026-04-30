@@ -183,7 +183,37 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
 
         {/* Components table */}
         {components.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No fee components added yet.</p>
+          resolvedFallback.length > 0 ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Auto-resolved from fee configuration (no manual fee components added).
+              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fee Type</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resolvedFallback.map(line => (
+                    <TableRow key={line.id}>
+                      <TableCell className="font-medium">{line.name}</TableCell>
+                      <TableCell className="text-right font-mono">{Number(line.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex justify-end border-t pt-3">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total</p>
+                  <p className="text-lg font-bold font-mono">{fallbackTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No fee components added yet.</p>
+          )
         ) : (
           <>
             <Table>
