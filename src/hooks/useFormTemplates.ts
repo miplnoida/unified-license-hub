@@ -1312,13 +1312,24 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
     .maybeSingle();
   if (!tpl) throw new Error('Form template not found');
 
-  // Use the canonical user_roles table (profiles.role can be stale/missing).
-  const { data: roleRows, error: rolesErr } = await supabase
-    .from('user_roles')
-    .select('user_id, role')
-    .in('role', ['licensee_primary', 'licensee_secondary', 'ppoc'] as any);
-  if (rolesErr) throw rolesErr;
-  const userIds = Array.from(new Set((roleRows || []).map((r: any) => r.user_id))).filter(Boolean);
+  // Licensees come from user_roles (canonical); PPOC users come from ppoc_entity_mappings
+  // because 'ppoc' is not a value in the app_role enum.
+  const [licenseesRes, ppocRes] = await Promise.all([
+    supabase
+      .from('user_roles')
+      .select('user_id')
+      .in('role', ['licensee_primary', 'licensee_secondary'] as any),
+    supabase
+      .from('ppoc_entity_mappings')
+      .select('ppoc_user_id')
+      .eq('is_active', true),
+  ]);
+  if (licenseesRes.error) throw licenseesRes.error;
+  if (ppocRes.error) throw ppocRes.error;
+  const ids = new Set<string>();
+  (licenseesRes.data || []).forEach((r: any) => r.user_id && ids.add(r.user_id));
+  (ppocRes.data || []).forEach((r: any) => r.ppoc_user_id && ids.add(r.ppoc_user_id));
+  const userIds = Array.from(ids);
   if (userIds.length === 0) return 0;
   const recipients = userIds.map(id => ({ id }));
 
