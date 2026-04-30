@@ -872,41 +872,39 @@ export function useUpdateTemplateStatus() {
         lastPublished?.semantic_version ||
         (lastPublished ? `${lastPublished.version}.0` : '1.0');
 
-      const isStructural = lastPublished
-        ? hasStructuralChanges(publishedSections, draftSections)
-        : true; // first-ever publish counts as structural
+      const changeKind: SchemaChangeKind = lastPublished
+        ? classifySchemaChange(publishedSections, draftSections)
+        : 'major'; // first-ever publish
 
-      // ── Non-structural republish: keep the SAME version ──
-      // Label/placeholder/help/order/styling-only changes must not create a
-      // new version row. Update the existing published row's snapshot in
-      // place so submissions continue to reference the same version.
-      if (lastPublished && !isStructural) {
-        const refreshedSections = JSON.parse(JSON.stringify(draftSections));
-        const { error: upErr } = await supabase.from('form_versions').update({
-          schema_snapshot: refreshedSections,
+      // ── No meaningful change at all → just refresh the existing published row's timestamp ──
+      if (lastPublished && changeKind === 'none') {
+        await supabase.from('form_versions').update({
+          status: 'published',
           published_at: new Date().toISOString(),
-          change_notes:
-            latestDraft.change_notes ||
-            lastPublished.change_notes ||
-            `Updated v${currentSemver} (non-structural changes)`,
         } as any).eq('id', lastPublished.id);
-        if (upErr) throw upErr;
-
-        // Keep normalized field rows in sync with the updated snapshot,
-        // preserving stable field IDs from the published version.
-        await replaceVersionFields(lastPublished.id, refreshedSections);
-
         // Discard the working draft so the next edit starts fresh.
         await deleteVersionDraft(latestDraft.id);
         return;
       }
 
-      const [maj, min] = currentSemver.split('.').map(Number);
-      const newSemver = lastPublished
-        ? `${maj + 1}.0`
-        : '1.0';
+      // Compute new semantic version per spec:
+      //   minor change → bump minor (v1.2 → v1.3)
+      //   major change → bump major, reset minor (v1.2 → v2.0)
+      //   first publish → 1.0
+      const [maj, min] = (lastPublished
+        ? (lastPublished.semantic_version || `${lastPublished.version}.0`)
+        : '1.0'
+      ).split('.').map((n: string) => Number(n) || 0);
 
-      // Compute next integer version (DB unique on template_id+version)
+      const newSemver = !lastPublished
+        ? '1.0'
+        : changeKind === 'major'
+          ? `${maj + 1}.0`
+          : `${maj}.${min + 1}`;
+
+      // Compute next integer version (DB unique on template_id+version).
+      // Both major and minor publishes create a NEW row so prior published
+      // versions remain unchanged and submissions stay linked correctly.
       const { data: maxRows } = await supabase
         .from('form_versions')
         .select('version')
@@ -931,7 +929,7 @@ export function useUpdateTemplateStatus() {
         change_notes:
           latestDraft.change_notes ||
           (lastPublished
-            ? `Published v${newSemver}${isStructural ? ' (structural changes)' : ''}`
+            ? `Published v${newSemver} (${changeKind} update)`
             : 'Initial publish'),
         semantic_version: newSemver,
         effective_from: latestDraft.effective_from ?? null,
