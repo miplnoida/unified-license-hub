@@ -142,12 +142,25 @@ export default function ApplicationsList() {
   const [groupByOrder, setGroupByOrder] = useState<GroupByField[]>(['license_type', 'sector', 'sub_sector']);
   const [groupingEnabled, setGroupingEnabled] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [versions, setVersions] = useState<Record<string, FormVersionRow>>({});
+  const [templates, setTemplates] = useState<Record<string, FormTemplateRow>>({});
+  const [versionFilter, setVersionFilter] = useState<string>('all');
+  const [versionSort, setVersionSort] = useState<'none' | 'asc' | 'desc'>('none');
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [comparePickerOpen, setComparePickerOpen] = useState(false);
+  const [comparePayload, setComparePayload] = useState<{
+    formName: string;
+    left: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+    right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+  } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes] = await Promise.all([
+      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes, fvRes, ftRes] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
@@ -157,6 +170,8 @@ export default function ApplicationsList() {
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
         supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
+        supabase.from('form_versions').select('id, template_id, version, semantic_version, status, effective_from, effective_until, published_at'),
+        supabase.from('form_templates').select('id, name'),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
