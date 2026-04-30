@@ -19,6 +19,7 @@ import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTr
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 
 const statusBadgeVariant = (s: string) => {
@@ -449,27 +450,84 @@ export default function ApplicationsList() {
             {versionEntries.length === 0 ? (
               <span className="text-xs text-muted-foreground">—</span>
             ) : (
-              <div className="flex flex-col gap-1">
-                {versionEntries.map(({ templateId, versionId }) => {
-                  const v = versionId ? versions[versionId] : null;
-                  const tmplName = templates[templateId]?.name || 'Form';
-                  const range = v?.effective_from
-                    ? `${new Date(v.effective_from).toLocaleDateString()}${v.effective_until ? ' – ' + new Date(v.effective_until).toLocaleDateString() : ' – present'}`
-                    : null;
-                  return (
-                    <div key={templateId} className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] text-muted-foreground max-w-[110px] truncate" title={tmplName}>{tmplName}</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
-                      </Badge>
-                      {v?.status && (
-                        <Badge variant={versionStatusVariant(v.status)} className="text-[10px] capitalize">{v.status}</Badge>
-                      )}
-                      {range && <span className="text-[10px] text-muted-foreground">{range}</span>}
+              <Popover>
+                <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 gap-1.5 text-[11px] font-normal"
+                    title="View form/version details"
+                  >
+                    <FileText className="h-3 w-3" />
+                    <span>{versionEntries.length} {versionEntries.length === 1 ? 'Form' : 'Forms'}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <GitBranch className="h-3 w-3" />
+                    <span>{versionEntries.filter(e => e.versionId).length} {versionEntries.filter(e => e.versionId).length === 1 ? 'Ver' : 'Vers'}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[360px] p-0"
+                  align="start"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="px-3 py-2 border-b bg-muted/30">
+                    <p className="text-xs font-semibold">Submitted Forms & Versions</p>
+                    <p className="text-[10px] text-muted-foreground">{app.application_number}</p>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto divide-y">
+                    {versionEntries.map(({ templateId, versionId }) => {
+                      const v = versionId ? versions[versionId] : null;
+                      const tmplName = templates[templateId]?.name || 'Form';
+                      const range = v?.effective_from
+                        ? `${new Date(v.effective_from).toLocaleDateString()}${v.effective_until ? ' – ' + new Date(v.effective_until).toLocaleDateString() : ' – present'}`
+                        : null;
+                      return (
+                        <div key={templateId} className="px-3 py-2 space-y-1">
+                          <p className="text-xs font-medium truncate" title={tmplName}>{tmplName}</p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px]">
+                              <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
+                            </Badge>
+                            {v?.status && (
+                              <Badge variant={versionStatusVariant(v.status)} className="text-[10px] capitalize">{v.status}</Badge>
+                            )}
+                            {range && <span className="text-[10px] text-muted-foreground">{range}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {isInternal && versionEntries.length > 0 && (
+                    <div className="px-3 py-2 border-t bg-muted/20">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-full justify-start text-xs"
+                        onClick={() => {
+                          if (!compareMode) setCompareMode(true);
+                          setSelectedForCompare(prev => {
+                            if (prev.includes(app.id)) return prev;
+                            if (prev.length >= 2) {
+                              toast.info('Two submissions already selected. Open Compare to proceed.');
+                              return prev;
+                            }
+                            const next = [...prev, app.id];
+                            if (next.length === 2) setComparePickerOpen(true);
+                            return next;
+                          });
+                        }}
+                      >
+                        <GitCompareArrows className="h-3.5 w-3.5 mr-2" />
+                        {selectedForCompare.includes(app.id)
+                          ? 'Selected for compare'
+                          : selectedForCompare.length === 1
+                            ? 'Compare with selected submission'
+                            : 'Select for comparison'}
+                      </Button>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             )}
           </TableCell>
           <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
