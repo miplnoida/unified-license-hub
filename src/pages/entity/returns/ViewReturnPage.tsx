@@ -81,6 +81,15 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
         submittedData={data}
         formName={name}
       />
+      <CompareReturnsPicker
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        leftReturnId={returnId}
+        leftReturnLabel={returnLabel}
+        templateId={formId}
+        formId={formId}
+        formName={name}
+      />
     </Card>
   );
 }
@@ -216,6 +225,8 @@ export default function ViewReturnPage() {
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
                         pinnedVersionId={versionByForm[cf.form_id] || null}
+                        returnId={returnData.id}
+                        returnLabel={returnData.unique_id || returnData.id.slice(0, 8)}
                       />
                       {formComments.length > 0 && (
                         <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">
