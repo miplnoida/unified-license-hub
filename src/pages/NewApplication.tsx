@@ -801,13 +801,14 @@ export default function NewApplication() {
         {/* Filling a specific form */}
         {currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
-            {activeVersions.length > 1 && (
+            {activeVersions.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
                 <Layers className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Form version:</span>
                 <Select
                   value={selectedVersionId || ''}
                   onValueChange={(v) => setSelectedVersionByTemplate(prev => ({ ...prev, [activeTemplate.id]: v }))}
+                  disabled={activeVersions.length <= 1}
                 >
                   <SelectTrigger className="h-8 w-[240px] text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -819,7 +820,9 @@ export default function NewApplication() {
                   </SelectContent>
                 </Select>
                 <span className="text-[11px] text-muted-foreground">
-                  Multiple active versions are available — pick which one to file against.
+                  {activeVersions.length > 1
+                    ? 'Multiple active versions are available — pick which one to file against.'
+                    : 'Filing against the only active version of this form.'}
                 </span>
               </div>
             )}
