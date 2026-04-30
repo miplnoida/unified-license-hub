@@ -302,6 +302,32 @@ export function useSaveReturnFormData() {
   });
 }
 
+// ─── Return → form_version_id summary (for listings) ───
+// Returns a map: return_id → { [form_id]: form_version_id }. Useful to show
+// which version was used for each form in a listing without N+1 calls.
+export function useReturnsVersionMap(returnIds: string[]) {
+  const idsKey = [...returnIds].sort().join(',');
+  return useQuery({
+    queryKey: ['returns_version_map', idsKey],
+    enabled: returnIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('return_form_data')
+        .select('return_id, form_id, form_version_id')
+        .in('return_id', returnIds)
+        .not('form_version_id', 'is', null);
+      if (error) throw error;
+      const map: Record<string, Record<string, string>> = {};
+      for (const row of (data || []) as any[]) {
+        if (!map[row.return_id]) map[row.return_id] = {};
+        // Last write wins for the same form (all rows share a version once pinned).
+        map[row.return_id][row.form_id] = row.form_version_id;
+      }
+      return map;
+    },
+  });
+}
+
 // ─── Return Comments ───
 export function useReturnComments(returnId: string | undefined) {
   return useQuery({
