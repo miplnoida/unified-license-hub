@@ -631,11 +631,18 @@ export function useSaveFormTemplate() {
           ? `${resolvedVersion}.0`
           : sourceRow?.semantic_version ?? semanticVersion ?? `${resolvedVersion}.0`);
 
+      // CRITICAL: when branching a brand-new draft off a published version,
+      // we must reassign field IDs. Otherwise inserting into form_fields
+      // (PK = id) collides with the published version's existing field rows.
+      const sectionsForDraft = createNewDraftFromPublished
+        ? cloneSectionsWithNewFieldIds(sections)
+        : sections;
+
       const versionRow: any = {
         id: vid,
         template_id: template.id,
         version: resolvedVersion,
-        schema_snapshot: JSON.parse(JSON.stringify(sections)),
+        schema_snapshot: JSON.parse(JSON.stringify(sectionsForDraft)),
         status: 'draft',
         published_at: null,
         created_by: template.created_by,
@@ -648,9 +655,9 @@ export function useSaveFormTemplate() {
       const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
       if (vErr) throw vErr;
 
-      await replaceVersionFields(vid, sections);
+      await replaceVersionFields(vid, sectionsForDraft);
 
-      return { templateId: template.id, versionId: vid };
+      return { templateId: template.id, versionId: vid, sections: sectionsForDraft };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
