@@ -465,6 +465,7 @@ export default function FillReturnPage() {
                           readOnly={!isEditable}
                           onDataChange={handleDataChange}
                           saving={saving}
+                          pinnedVersionId={versionByForm[cf.form_id] || null}
                         />
                       </CardContent>
                     </Card>
