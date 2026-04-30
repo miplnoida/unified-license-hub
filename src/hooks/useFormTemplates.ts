@@ -657,11 +657,16 @@ export function useSaveFormTemplate() {
         }
       }
 
+      // The draft inherits the source/published semver as a placeholder. The
+      // FINAL semver is recomputed at publish time based on change kind, so
+      // this value is only used for display while the draft is being edited.
+      // Never derive from the integer `resolvedVersion` — that desyncs from
+      // the semantic version line (e.g. integer=7 while semver is still 2.x).
       const baseSemver =
         workingRow?.semantic_version ??
-        (createNewDraftFromPublished
-          ? `${resolvedVersion}.0`
-          : sourceRow?.semantic_version ?? semanticVersion ?? `${resolvedVersion}.0`);
+        sourceRow?.semantic_version ??
+        semanticVersion ??
+        '1.0';
 
       // CRITICAL: when branching a brand-new draft off a published version,
       // we must reassign field IDs. Also repair legacy drafts that still carry
