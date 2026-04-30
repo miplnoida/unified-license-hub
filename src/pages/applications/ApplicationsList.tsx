@@ -15,8 +15,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -52,9 +55,26 @@ interface Application {
   applicant_id: string;
   license_type: string;
   status: ApplicationStatus;
-  data: Record<string, unknown>;
+  data: Record<string, any>;
   submitted_at: string | null;
   created_at: string;
+  form_version_id?: string | null;
+}
+
+interface FormVersionRow {
+  id: string;
+  template_id: string;
+  version: number;
+  semantic_version: string | null;
+  status: string;
+  effective_from: string | null;
+  effective_until: string | null;
+  published_at: string | null;
+}
+
+interface FormTemplateRow {
+  id: string;
+  name: string;
 }
 
 interface ActionEvent {
@@ -122,12 +142,25 @@ export default function ApplicationsList() {
   const [groupByOrder, setGroupByOrder] = useState<GroupByField[]>(['license_type', 'sector', 'sub_sector']);
   const [groupingEnabled, setGroupingEnabled] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [versions, setVersions] = useState<Record<string, FormVersionRow>>({});
+  const [templates, setTemplates] = useState<Record<string, FormTemplateRow>>({});
+  const [versionFilter, setVersionFilter] = useState<string>('all');
+  const [versionSort, setVersionSort] = useState<'none' | 'asc' | 'desc'>('none');
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [compareDialogOpen, setCompareDialogOpen] = useState(false);
+  const [comparePickerOpen, setComparePickerOpen] = useState(false);
+  const [comparePayload, setComparePayload] = useState<{
+    formName: string;
+    left: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+    right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+  } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes] = await Promise.all([
+      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes, fvRes, ftRes] = await Promise.all([
         supabase.from('applications').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
@@ -137,6 +170,8 @@ export default function ApplicationsList() {
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
         supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
+        supabase.from('form_versions').select('id, template_id, version, semantic_version, status, effective_from, effective_until, published_at'),
+        supabase.from('form_templates').select('id, name'),
       ]);
       if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
@@ -146,6 +181,8 @@ export default function ApplicationsList() {
       if (subSectorRes.data) setSubSectors(Object.fromEntries((subSectorRes.data as any[]).map(s => [s.id, s.name])));
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
+      if (fvRes.data) setVersions(Object.fromEntries((fvRes.data as any[]).map(v => [v.id, v as FormVersionRow])));
+      if (ftRes.data) setTemplates(Object.fromEntries((ftRes.data as any[]).map(t => [t.id, t as FormTemplateRow])));
 
       if (payRes.data) {
         const payMap: Record<string, PaymentInfo> = {};
@@ -186,6 +223,50 @@ export default function ApplicationsList() {
     }
   };
 
+  /** Returns the form-template → version-id map embedded in app.data, with backward-compat for legacy form_version_id. */
+  const getAppVersionEntries = (app: Application): { templateId: string; versionId: string | null }[] => {
+    const data = (app.data || {}) as any;
+    const map: Record<string, string> = data.form_version_ids || {};
+    const templateIds: string[] = Array.isArray(data.form_template_ids) ? data.form_template_ids : Object.keys(map);
+    if (templateIds.length === 0 && app.form_version_id) {
+      const v = versions[app.form_version_id];
+      return [{ templateId: v?.template_id || '—', versionId: app.form_version_id }];
+    }
+    return templateIds.map(tid => ({ templateId: tid, versionId: map[tid] || null }));
+  };
+
+  const formatVersionLabel = (versionId: string | null): string => {
+    if (!versionId) return 'v?';
+    const v = versions[versionId];
+    if (!v) return 'v?';
+    return v.semantic_version || `v${v.version}`;
+  };
+
+  const versionStatusVariant = (status?: string): any => {
+    switch (status) {
+      case 'published': return 'approved';
+      case 'draft': return 'draft';
+      case 'archived': return 'secondary';
+      case 'scheduled': return 'pending';
+      default: return 'outline';
+    }
+  };
+
+  /** Distinct versions referenced by current applications — for filter dropdown */
+  const versionFilterOptions = useMemo(() => {
+    const seen = new Map<string, { id: string; label: string; templateName: string }>();
+    applications.forEach(app => {
+      getAppVersionEntries(app).forEach(({ templateId, versionId }) => {
+        if (!versionId || seen.has(versionId)) return;
+        const tmpl = templates[templateId]?.name || 'Form';
+        seen.set(versionId, { id: versionId, label: formatVersionLabel(versionId), templateName: tmpl });
+      });
+    });
+    return Array.from(seen.values()).sort((a, b) =>
+      `${a.templateName} ${a.label}`.localeCompare(`${b.templateName} ${b.label}`)
+    );
+  }, [applications, versions, templates]);
+
   const matchSearch = (value: string, query: string, mode: SearchMode): boolean => {
     const v = value.toLowerCase();
     const q = query.toLowerCase();
@@ -197,7 +278,7 @@ export default function ApplicationsList() {
   };
 
   const filtered = useMemo(() => {
-    return applications.filter(a => {
+    const list = applications.filter(a => {
       // Hide draft and in_progress from internal/admin users
       if (isInternal && ['draft', 'in_progress'].includes(a.status)) return false;
       if (statusFilter !== 'all') {
@@ -205,21 +286,40 @@ export default function ApplicationsList() {
           if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
         } else if (a.status !== statusFilter) return false;
       }
+      const versionEntries = getAppVersionEntries(a);
+      if (versionFilter !== 'all') {
+        if (!versionEntries.some(e => e.versionId === versionFilter)) return false;
+      }
       if (search) {
         const q = search;
         const name = getApplicantName(a.applicant_id);
         const sector = resolveField(a, 'sector_id');
         const subSector = resolveField(a, 'sub_sector_id');
+        const versionLabels = versionEntries.map(e => formatVersionLabel(e.versionId)).join(' ');
         if (
           !matchSearch(a.application_number, q, searchMode) &&
           !matchSearch(name, q, searchMode) &&
           !matchSearch(sector, q, searchMode) &&
-          !matchSearch(subSector, q, searchMode)
+          !matchSearch(subSector, q, searchMode) &&
+          !matchSearch(versionLabels, q, searchMode)
         ) return false;
       }
       return true;
     });
-  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors]);
+
+    if (versionSort !== 'none') {
+      const versionScore = (app: Application): number => {
+        const entries = getAppVersionEntries(app);
+        const nums = entries.map(e => versions[e.versionId || '']?.version ?? -1);
+        return nums.length ? Math.max(...nums) : -1;
+      };
+      list.sort((a, b) => {
+        const diff = versionScore(a) - versionScore(b);
+        return versionSort === 'asc' ? diff : -diff;
+      });
+    }
+    return list;
+  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors, versions, templates, versionFilter, versionSort]);
 
   const totalPages = groupingEnabled ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
   const paged = groupingEnabled ? filtered : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -296,12 +396,48 @@ export default function ApplicationsList() {
     const serviceName = resolveField(app, 'service_id');
     const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
     const payment = payments[app.id];
+    const versionEntries = getAppVersionEntries(app);
+    const isSelectedForCompare = selectedForCompare.includes(app.id);
     return (
       <Fragment key={app.id}>
         <TableRow
           className="cursor-pointer hover:bg-muted/50"
-          onClick={() => navigate(`/applications/${app.id}`)}
+          onClick={() => {
+            if (compareMode) {
+              setSelectedForCompare(prev => {
+                if (prev.includes(app.id)) return prev.filter(id => id !== app.id);
+                if (prev.length >= 2) {
+                  toast.info('Only two submissions can be compared. Deselect one first.');
+                  return prev;
+                }
+                return [...prev, app.id];
+              });
+              return;
+            }
+            navigate(`/applications/${app.id}`);
+          }}
         >
+          {compareMode && (
+            <TableCell onClick={e => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelectedForCompare}
+                onCheckedChange={(v) => {
+                  setSelectedForCompare(prev => {
+                    if (v) {
+                      if (prev.includes(app.id)) return prev;
+                      if (prev.length >= 2) {
+                        toast.info('Only two submissions can be compared.');
+                        return prev;
+                      }
+                      return [...prev, app.id];
+                    }
+                    return prev.filter(id => id !== app.id);
+                  });
+                }}
+                aria-label={`Select ${app.application_number} for comparison`}
+              />
+            </TableCell>
+          )}
           <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
           <TableCell>{getApplicantName(app.applicant_id)}</TableCell>
           <TableCell className="text-sm">
@@ -309,6 +445,33 @@ export default function ApplicationsList() {
           </TableCell>
           <TableCell className="text-sm">{sectorName}</TableCell>
           <TableCell className="text-sm">{subSectorName}</TableCell>
+          <TableCell className="text-sm">
+            {versionEntries.length === 0 ? (
+              <span className="text-xs text-muted-foreground">—</span>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {versionEntries.map(({ templateId, versionId }) => {
+                  const v = versionId ? versions[versionId] : null;
+                  const tmplName = templates[templateId]?.name || 'Form';
+                  const range = v?.effective_from
+                    ? `${new Date(v.effective_from).toLocaleDateString()}${v.effective_until ? ' – ' + new Date(v.effective_until).toLocaleDateString() : ' – present'}`
+                    : null;
+                  return (
+                    <div key={templateId} className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-muted-foreground max-w-[110px] truncate" title={tmplName}>{tmplName}</span>
+                      <Badge variant="outline" className="text-[10px]">
+                        <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
+                      </Badge>
+                      {v?.status && (
+                        <Badge variant={versionStatusVariant(v.status)} className="text-[10px] capitalize">{v.status}</Badge>
+                      )}
+                      {range && <span className="text-[10px] text-muted-foreground">{range}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TableCell>
           <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
           <TableCell>
             {payment ? (
@@ -394,7 +557,7 @@ export default function ApplicationsList() {
         </TableRow>
         {isExpanded && actions.length > 0 && (
           <TableRow key={`${app.id}-history`}>
-            <TableCell colSpan={11} className="bg-muted/30 p-4">
+            <TableCell colSpan={compareMode ? 13 : 12} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                 {actions.map(evt => (
@@ -463,11 +626,13 @@ export default function ApplicationsList() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        {compareMode && <TableHead className="w-10"></TableHead>}
                         <TableHead>Application #</TableHead>
                         <TableHead>Applicant</TableHead>
                         <TableHead>License Type</TableHead>
                         <TableHead>Sector</TableHead>
                         <TableHead>Sub Sector</TableHead>
+                        <TableHead>Form Version</TableHead>
                         <TableHead>Category / Service</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead>Status</TableHead>
@@ -503,11 +668,19 @@ export default function ApplicationsList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {compareMode && <TableHead className="w-10"></TableHead>}
                   <TableHead>Application #</TableHead>
                   <TableHead>Applicant</TableHead>
                   <TableHead>License Type</TableHead>
                   <TableHead>Sector</TableHead>
                   <TableHead>Sub Sector</TableHead>
+                  <TableHead
+                    className={versionSort !== 'none' ? 'cursor-pointer select-none' : 'cursor-pointer select-none'}
+                    onClick={() => setVersionSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
+                    title="Click to sort by version"
+                  >
+                    Form Version {versionSort === 'asc' ? '▲' : versionSort === 'desc' ? '▼' : ''}
+                  </TableHead>
                   <TableHead>Category / Service</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
@@ -519,7 +692,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={compareMode ? 13 : 12} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
@@ -578,7 +751,7 @@ export default function ApplicationsList() {
               <div className="relative flex-1 min-w-[220px] max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by App #, Company, Sector, Sub Sector..."
+                  placeholder="Search by App #, Company, Sector, Sub Sector, Version..."
                   className="pl-10"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
@@ -605,6 +778,17 @@ export default function ApplicationsList() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              {isInternal && (
+                <Select value={versionFilter} onValueChange={v => { setVersionFilter(v); setPage(0); }}>
+                  <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter by form version" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Form Versions</SelectItem>
+                    {versionFilterOptions.map(opt => (
+                      <SelectItem key={opt.id} value={opt.id}>{opt.templateName} — {opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 variant={groupingEnabled ? 'default' : 'outline'}
                 size="sm"
@@ -613,10 +797,59 @@ export default function ApplicationsList() {
                 <Layers className="h-4 w-4 mr-2" />
                 {groupingEnabled ? 'Grouped' : 'Group By'}
               </Button>
+              {isInternal && (
+                <Button
+                  variant={compareMode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setCompareMode(m => !m);
+                    setSelectedForCompare([]);
+                  }}
+                >
+                  <GitCompareArrows className="h-4 w-4 mr-2" />
+                  {compareMode ? 'Comparing' : 'Compare'}
+                </Button>
+              )}
               <Button variant="outline" size="sm" className="ml-auto">
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
+
+            {compareMode && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2">
+                <GitCompareArrows className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium">
+                  Select two submissions to compare ({selectedForCompare.length}/2 selected)
+                </span>
+                {selectedForCompare.map(id => {
+                  const a = applications.find(x => x.id === id);
+                  return (
+                    <Badge key={id} variant="secondary" className="text-[10px] gap-1">
+                      {a?.application_number || id}
+                      <button
+                        onClick={() => setSelectedForCompare(prev => prev.filter(x => x !== id))}
+                        className="hover:text-destructive"
+                        aria-label="Remove from comparison"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                <div className="flex-1" />
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={selectedForCompare.length !== 2}
+                  onClick={() => setComparePickerOpen(true)}
+                >
+                  Compare submissions
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setCompareMode(false); setSelectedForCompare([]); }}>
+                  Cancel
+                </Button>
+              </div>
+            )}
 
             {/* Grouping configuration */}
             {groupingEnabled && (
@@ -668,7 +901,173 @@ export default function ApplicationsList() {
             setRefreshKey(k => k + 1);
           }}
         />
+
+        <CompareSubmissionPicker
+          open={comparePickerOpen}
+          onOpenChange={setComparePickerOpen}
+          appA={applications.find(a => a.id === selectedForCompare[0]) || null}
+          appB={applications.find(a => a.id === selectedForCompare[1]) || null}
+          templates={templates}
+          getApplicantName={getApplicantName}
+          getAppVersionEntries={getAppVersionEntries}
+          onConfirm={(payload) => {
+            setComparePayload(payload);
+            setComparePickerOpen(false);
+            setCompareDialogOpen(true);
+          }}
+        />
+
+        {comparePayload && (
+          <SubmissionCompareDialog
+            open={compareDialogOpen}
+            onOpenChange={setCompareDialogOpen}
+            formName={comparePayload.formName}
+            left={comparePayload.left}
+            right={comparePayload.right}
+          />
+        )}
       </div>
     </DashboardLayout>
+  );
+}
+
+interface PickerProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  appA: Application | null;
+  appB: Application | null;
+  templates: Record<string, FormTemplateRow>;
+  getApplicantName: (id: string) => string;
+  getAppVersionEntries: (app: Application) => { templateId: string; versionId: string | null }[];
+  onConfirm: (payload: {
+    formName: string;
+    left: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+    right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+  }) => void;
+}
+
+function CompareSubmissionPicker({
+  open, onOpenChange, appA, appB, templates,
+  getApplicantName, getAppVersionEntries, onConfirm,
+}: PickerProps) {
+  const entriesA = appA ? getAppVersionEntries(appA) : [];
+  const entriesB = appB ? getAppVersionEntries(appB) : [];
+
+  // Templates present in BOTH submissions are easy 1-click compare; the rest can still be picked individually.
+  const templateIdsA = new Set(entriesA.map(e => e.templateId));
+  const templateIdsB = new Set(entriesB.map(e => e.templateId));
+  const sharedTemplateIds = Array.from(templateIdsA).filter(t => templateIdsB.has(t));
+  const allTemplateIds = Array.from(new Set([...templateIdsA, ...templateIdsB]));
+
+  const [templateA, setTemplateA] = useState<string>('');
+  const [templateB, setTemplateB] = useState<string>('');
+
+  // Auto-pick when shared templates exist
+  useEffect(() => {
+    if (!open) return;
+    if (sharedTemplateIds.length > 0) {
+      setTemplateA(sharedTemplateIds[0]);
+      setTemplateB(sharedTemplateIds[0]);
+    } else {
+      setTemplateA(entriesA[0]?.templateId || '');
+      setTemplateB(entriesB[0]?.templateId || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, appA?.id, appB?.id]);
+
+  if (!appA || !appB) return null;
+
+  const dataFor = (app: Application, templateId: string): Record<string, any> => {
+    const data = (app.data || {}) as any;
+    const fd = data.forms_data || {};
+    if (fd[templateId] && typeof fd[templateId] === 'object') return fd[templateId];
+    // Legacy: data itself is the single-form payload
+    return data;
+  };
+
+  const versionIdFor = (app: Application, templateId: string): string | null => {
+    const data = (app.data || {}) as any;
+    const map = data.form_version_ids || {};
+    return map[templateId] || (app as any).form_version_id || null;
+  };
+
+  const handleConfirm = () => {
+    if (!templateA || !templateB) {
+      toast.error('Please select a form for each submission.');
+      return;
+    }
+    const formName = templates[templateA]?.name || templates[templateB]?.name || 'Form';
+    onConfirm({
+      formName,
+      left: {
+        id: appA.id,
+        label: `${appA.application_number} (${getApplicantName(appA.applicant_id)})`,
+        versionId: versionIdFor(appA, templateA),
+        data: dataFor(appA, templateA),
+      },
+      right: {
+        id: appB.id,
+        label: `${appB.application_number} (${getApplicantName(appB.applicant_id)})`,
+        versionId: versionIdFor(appB, templateB),
+        data: dataFor(appB, templateB),
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Compare submissions</DialogTitle>
+          <DialogDescription>
+            Choose which form to compare from each submission. Shared templates are listed first.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {appA.application_number} — {getApplicantName(appA.applicant_id)}
+            </p>
+            <Select value={templateA} onValueChange={setTemplateA}>
+              <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+              <SelectContent>
+                {entriesA.map(({ templateId, versionId }) => (
+                  <SelectItem key={templateId} value={templateId}>
+                    {templates[templateId]?.name || 'Form'} — {versionId ? 'v' : 'no version'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {appB.application_number} — {getApplicantName(appB.applicant_id)}
+            </p>
+            <Select value={templateB} onValueChange={setTemplateB}>
+              <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+              <SelectContent>
+                {entriesB.map(({ templateId, versionId }) => (
+                  <SelectItem key={templateId} value={templateId}>
+                    {templates[templateId]?.name || 'Form'} — {versionId ? 'v' : 'no version'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {sharedTemplateIds.length === 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            These submissions don't share a common form template. Comparison may show all fields as added/removed.
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleConfirm}>Open comparison</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
