@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +100,20 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
 
   const leftVersion = versions.find((v: any) => v.id === leftId);
   const rightVersion = versions.find((v: any) => v.id === rightId);
+
+  // Auto-default: Old (Base) = oldest, New (Compare) = latest
+  useEffect(() => {
+    if (!open || versions.length < 2) return;
+    const sorted = [...versions].sort((a: any, b: any) => {
+      const av = parseFloat(a.semantic_version || String(a.version || 0));
+      const bv = parseFloat(b.semantic_version || String(b.version || 0));
+      return av - bv;
+    });
+    const oldest = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    if (!leftId && oldest) setLeftId(oldest.id);
+    if (!rightId && latest) setRightId(latest.id);
+  }, [open, versions, leftId, rightId]);
 
   const diff = useMemo(() => {
     if (!leftVersion || !rightVersion) return [];
