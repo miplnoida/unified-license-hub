@@ -443,15 +443,28 @@ export default function NewApplication() {
         )
         .sort((a, b) => b.specificity - a.specificity);
 
-      // De-duplicate by fee_type – keep the most specific
+      // De-duplicate by fee_type (case-insensitive) – keep the most specific
       const seen = new Set<string>();
       const deduped = ranked.filter(f => {
-        if (seen.has(f.fee_type)) return false;
-        seen.add(f.fee_type);
+        const key = (f.fee_type || '').trim().toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       });
 
-      const breakdown = deduped.map(f => ({ name: f.name, amount: Number(f.amount), currency: f.currency }));
+      // Display the fee TYPE (e.g. "Application Fee", "Processing Fee") as the line label,
+      // not the configuration's internal name (e.g. "Insurance Pre MLRO").
+      const formatFeeType = (t: string) => {
+        if (!t) return 'Fee';
+        const cleaned = t.replace(/[_-]+/g, ' ').trim();
+        const titled = cleaned.replace(/\b\w/g, c => c.toUpperCase());
+        return /fee$/i.test(titled) ? titled : `${titled} Fee`;
+      };
+      const breakdown = deduped.map(f => ({
+        name: formatFeeType(f.fee_type),
+        amount: Number(f.amount),
+        currency: f.currency,
+      }));
       setFeeBreakdown(breakdown);
       setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
     } else {
