@@ -5,22 +5,51 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { VersionInfoBadge } from '@/components/form-builder/VersionInfoBadge';
+import { MigrationCheckDialog } from '@/components/form-builder/MigrationCheckDialog';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, GitMerge } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: string; data: Record<string, any> }) {
-  const { data: version, isLoading: vLoading } = useLatestPublishedVersion(formId);
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(version?.id || null);
+function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
+  const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
+  const { data: pinnedVersion } = useFormVersion(pinnedVersionId || null);
+  // Prefer the version this submission was filed on; fall back to latest published.
+  const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
+  const [migrationOpen, setMigrationOpen] = useState(false);
+
+  const showOutdatedBanner = !!pinnedVersionId && !!latestVersion && latestVersion.id !== pinnedVersionId;
+
   return (
     <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" />{name}</CardTitle></CardHeader>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+          <FileText className="h-4 w-4 text-primary" />
+          <span>{name}</span>
+          {pinnedVersionId && <VersionInfoBadge versionId={pinnedVersionId} templateId={formId} showLatestComparison />}
+          {pinnedVersionId && (
+            <Button size="sm" variant="ghost" className="h-7 ml-auto text-xs" onClick={() => setMigrationOpen(true)}>
+              <GitMerge className="h-3 w-3 mr-1" /> Migration check
+            </Button>
+          )}
+        </CardTitle>
+      </CardHeader>
       <CardContent>
+        {showOutdatedBanner && (
+          <Alert className="mb-3 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
+              This submission was filed on v{(pinnedVersion as any)?.semantic_version || (pinnedVersion as any)?.version || '?'}.
+              A newer version is now available — click <strong>Migration check</strong> to preview field-level differences.
+            </AlertDescription>
+          </Alert>
+        )}
         {loading ? (
           <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading form...</div>
         ) : sections.length === 0 ? (
@@ -37,6 +66,14 @@ function ReadOnlyFormBlock({ formId, name, data }: { formId: string; name: strin
           />
         )}
       </CardContent>
+      <MigrationCheckDialog
+        open={migrationOpen}
+        onOpenChange={setMigrationOpen}
+        templateId={formId}
+        submittedVersionId={pinnedVersionId || null}
+        submittedData={data}
+        formName={name}
+      />
     </Card>
   );
 }
