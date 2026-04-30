@@ -21,6 +21,10 @@ interface Props {
 interface FeeComponentRow {
   id: string;
   amount: number;
+  currency?: string | null;
+  description?: string | null;
+  fee_type?: string | null;
+  fee_types?: { name?: string | null; fee_type?: string | null } | null;
 }
 
 interface PaymentRow {
@@ -30,17 +34,28 @@ interface PaymentRow {
   payment_method: string | null;
   paid_at: string | null;
   created_at: string;
+  transaction_ref?: string | null;
+  receipt_number?: string | null;
+  currency?: string | null;
 }
 
+const formatFeeLabel = (t?: string | null) => {
+  if (!t) return 'Fee';
+  const titled = t.replace(/[_-]+/g, ' ').trim().replace(/\b\w/g, c => c.toUpperCase());
+  return /fee$/i.test(titled) ? titled : `${titled} Fee`;
+};
+
 /**
- * Licensee-facing payment panel. Hides itemised fee breakdown.
- * - If unpaid → shows total amount due and a Pay Now button.
- * - If paid  → shows payment confirmation (amount, date, reference).
+ * Licensee-facing payment panel.
+ * - If unpaid → shows itemised fee breakdown, total, and a Pay Now button.
+ * - If paid  → shows payment confirmation with breakdown; reference links to payment detail.
  */
 export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [fees, setFees] = useState<FeeComponentRow[]>([]);
   const [totalDue, setTotalDue] = useState(0);
+  const [currency, setCurrency] = useState<string>('USD');
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [processing, setProcessing] = useState(false);
 
@@ -49,21 +64,35 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     const [feesRes, payRes] = await Promise.all([
       supabase
         .from('fee_components' as any)
-        .select('id, amount')
+        .select('id, amount, currency, description, fee_type, fee_types(name, fee_type)')
         .eq('application_id', applicationId),
       supabase
         .from('payments')
-        .select('id, amount, status, payment_method, paid_at, created_at')
+        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false }),
     ]);
 
-    const fees = (feesRes.data || []) as unknown as FeeComponentRow[];
-    setTotalDue(fees.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    const feeRows = (feesRes.data || []) as unknown as FeeComponentRow[];
+    // Deduplicate by fee_type (case-insensitive) — same logic as NewApplication breakdown.
+    const seen = new Set<string>();
+    const deduped = feeRows.filter(f => {
+      const key = (f.fee_type || f.fee_types?.fee_type || f.fee_types?.name || f.description || '').trim().toLowerCase();
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    setFees(deduped);
+    setTotalDue(deduped.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    const cur = deduped.find(f => f.currency)?.currency;
+    if (cur) setCurrency(cur);
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
-    setPayment(successful || payments[0] || null);
+    const chosen = successful || payments[0] || null;
+    setPayment(chosen);
+    if (chosen?.currency) setCurrency(chosen.currency);
     setLoading(false);
   };
 
