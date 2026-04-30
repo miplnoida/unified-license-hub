@@ -52,20 +52,23 @@ function FormCardVersionPicker({
   templateId,
   selectedVersionId,
   onChange,
+  locked = false,
 }: {
   templateId: string;
   selectedVersionId?: string;
   onChange: (versionId: string) => void;
+  locked?: boolean;
 }) {
   const { data: activeVersions = [] } = useActiveVersions(templateId);
   if (activeVersions.length === 0) return null;
   const value = selectedVersionId || activeVersions[0]?.id || '';
   const single = activeVersions.length === 1;
+  const disabled = single || locked;
   return (
     <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap">
       <Layers className="h-3.5 w-3.5 text-muted-foreground" />
       <span className="text-[11px] text-muted-foreground">Form version:</span>
-      <Select value={value} onValueChange={onChange} disabled={single}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="h-7 w-[200px] text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
           {activeVersions.map((v: any) => (
@@ -75,7 +78,9 @@ function FormCardVersionPicker({
           ))}
         </SelectContent>
       </Select>
-      {!single && (
+      {locked ? (
+        <span className="text-[10px] text-muted-foreground">Form completed — version is locked.</span>
+      ) : !single && (
         <span className="text-[10px] text-muted-foreground">Choose which version to file against.</span>
       )}
     </div>
