@@ -930,3 +930,144 @@ export default function ApplicationsList() {
     </DashboardLayout>
   );
 }
+
+interface PickerProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  appA: Application | null;
+  appB: Application | null;
+  templates: Record<string, FormTemplateRow>;
+  getApplicantName: (id: string) => string;
+  getAppVersionEntries: (app: Application) => { templateId: string; versionId: string | null }[];
+  onConfirm: (payload: {
+    formName: string;
+    left: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+    right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
+  }) => void;
+}
+
+function CompareSubmissionPicker({
+  open, onOpenChange, appA, appB, templates,
+  getApplicantName, getAppVersionEntries, onConfirm,
+}: PickerProps) {
+  const entriesA = appA ? getAppVersionEntries(appA) : [];
+  const entriesB = appB ? getAppVersionEntries(appB) : [];
+
+  // Templates present in BOTH submissions are easy 1-click compare; the rest can still be picked individually.
+  const templateIdsA = new Set(entriesA.map(e => e.templateId));
+  const templateIdsB = new Set(entriesB.map(e => e.templateId));
+  const sharedTemplateIds = Array.from(templateIdsA).filter(t => templateIdsB.has(t));
+  const allTemplateIds = Array.from(new Set([...templateIdsA, ...templateIdsB]));
+
+  const [templateA, setTemplateA] = useState<string>('');
+  const [templateB, setTemplateB] = useState<string>('');
+
+  // Auto-pick when shared templates exist
+  useEffect(() => {
+    if (!open) return;
+    if (sharedTemplateIds.length > 0) {
+      setTemplateA(sharedTemplateIds[0]);
+      setTemplateB(sharedTemplateIds[0]);
+    } else {
+      setTemplateA(entriesA[0]?.templateId || '');
+      setTemplateB(entriesB[0]?.templateId || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, appA?.id, appB?.id]);
+
+  if (!appA || !appB) return null;
+
+  const dataFor = (app: Application, templateId: string): Record<string, any> => {
+    const data = (app.data || {}) as any;
+    const fd = data.forms_data || {};
+    if (fd[templateId] && typeof fd[templateId] === 'object') return fd[templateId];
+    // Legacy: data itself is the single-form payload
+    return data;
+  };
+
+  const versionIdFor = (app: Application, templateId: string): string | null => {
+    const data = (app.data || {}) as any;
+    const map = data.form_version_ids || {};
+    return map[templateId] || (app as any).form_version_id || null;
+  };
+
+  const handleConfirm = () => {
+    if (!templateA || !templateB) {
+      toast.error('Please select a form for each submission.');
+      return;
+    }
+    const formName = templates[templateA]?.name || templates[templateB]?.name || 'Form';
+    onConfirm({
+      formName,
+      left: {
+        id: appA.id,
+        label: `${appA.application_number} (${getApplicantName(appA.applicant_id)})`,
+        versionId: versionIdFor(appA, templateA),
+        data: dataFor(appA, templateA),
+      },
+      right: {
+        id: appB.id,
+        label: `${appB.application_number} (${getApplicantName(appB.applicant_id)})`,
+        versionId: versionIdFor(appB, templateB),
+        data: dataFor(appB, templateB),
+      },
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Compare submissions</DialogTitle>
+          <DialogDescription>
+            Choose which form to compare from each submission. Shared templates are listed first.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {appA.application_number} — {getApplicantName(appA.applicant_id)}
+            </p>
+            <Select value={templateA} onValueChange={setTemplateA}>
+              <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+              <SelectContent>
+                {entriesA.map(({ templateId, versionId }) => (
+                  <SelectItem key={templateId} value={templateId}>
+                    {templates[templateId]?.name || 'Form'} — {versionId ? 'v' : 'no version'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {appB.application_number} — {getApplicantName(appB.applicant_id)}
+            </p>
+            <Select value={templateB} onValueChange={setTemplateB}>
+              <SelectTrigger><SelectValue placeholder="Select form" /></SelectTrigger>
+              <SelectContent>
+                {entriesB.map(({ templateId, versionId }) => (
+                  <SelectItem key={templateId} value={templateId}>
+                    {templates[templateId]?.name || 'Form'} — {versionId ? 'v' : 'no version'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {sharedTemplateIds.length === 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            These submissions don't share a common form template. Comparison may show all fields as added/removed.
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleConfirm}>Open comparison</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
