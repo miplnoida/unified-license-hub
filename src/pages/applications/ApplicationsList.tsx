@@ -55,9 +55,26 @@ interface Application {
   applicant_id: string;
   license_type: string;
   status: ApplicationStatus;
-  data: Record<string, unknown>;
+  data: Record<string, any>;
   submitted_at: string | null;
   created_at: string;
+  form_version_id?: string | null;
+}
+
+interface FormVersionRow {
+  id: string;
+  template_id: string;
+  version: number;
+  semantic_version: string | null;
+  status: string;
+  effective_from: string | null;
+  effective_until: string | null;
+  published_at: string | null;
+}
+
+interface FormTemplateRow {
+  id: string;
+  name: string;
 }
 
 interface ActionEvent {
