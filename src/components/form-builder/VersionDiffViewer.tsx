@@ -133,7 +133,21 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Old Version (Base)</label>
-              <Select value={leftId} onValueChange={setLeftId}>
+              <Select value={leftId} onValueChange={(val) => {
+                // Auto-swap if user picks a version newer than current "new"
+                if (rightId) {
+                  const selected = versions.find((v: any) => v.id === val);
+                  const right = versions.find((v: any) => v.id === rightId);
+                  const sNum = parseFloat(selected?.semantic_version || String(selected?.version || 0));
+                  const rNum = parseFloat(right?.semantic_version || String(right?.version || 0));
+                  if (sNum > rNum) {
+                    setLeftId(rightId);
+                    setRightId(val);
+                    return;
+                  }
+                }
+                setLeftId(val);
+              }}>
                 <SelectTrigger><SelectValue placeholder="Select base version" /></SelectTrigger>
                 <SelectContent>
                   {versions.filter((v: any) => v.id !== rightId).map((v: any) => (
@@ -144,7 +158,21 @@ export function VersionDiffViewer({ templateId, formName }: VersionDiffViewerPro
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">New Version (Compare)</label>
-              <Select value={rightId} onValueChange={setRightId}>
+              <Select value={rightId} onValueChange={(val) => {
+                // Auto-swap if user picks a version older than current "old"
+                if (leftId) {
+                  const selected = versions.find((v: any) => v.id === val);
+                  const left = versions.find((v: any) => v.id === leftId);
+                  const sNum = parseFloat(selected?.semantic_version || String(selected?.version || 0));
+                  const lNum = parseFloat(left?.semantic_version || String(left?.version || 0));
+                  if (sNum < lNum) {
+                    setRightId(leftId);
+                    setLeftId(val);
+                    return;
+                  }
+                }
+                setRightId(val);
+              }}>
                 <SelectTrigger><SelectValue placeholder="Select compare version" /></SelectTrigger>
                 <SelectContent>
                   {versions.filter((v: any) => v.id !== leftId).map((v: any) => (
