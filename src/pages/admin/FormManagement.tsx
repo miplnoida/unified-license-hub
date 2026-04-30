@@ -490,7 +490,10 @@ export default function FormManagement() {
                                   trigger={
                                     <Badge variant="outline" className="text-[11px] font-mono cursor-pointer hover:bg-accent" title="View version history">
                                       <GitBranch className="h-3 w-3 mr-1" />
-                                      v{(tpl as any).semantic_version || '1.0'}
+                                      v{(latestVersionsMap as any)[tpl.id]?.semantic_version
+                                          || ((latestVersionsMap as any)[tpl.id]?.version != null ? `${(latestVersionsMap as any)[tpl.id].version}.0` : null)
+                                          || (tpl as any).semantic_version
+                                          || '1.0'}
                                     </Badge>
                                   }
                                 />
