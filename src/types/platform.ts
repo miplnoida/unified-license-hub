@@ -66,6 +66,16 @@ export interface PlatformUser {
   forcePasswordChange?: boolean;
   /** Display name of the assigned dynamic role (from roles.name), if any. */
   dynamicRoleName?: string;
+  /** Original role from user_roles, before delegation override. */
+  baseRole?: AppRole;
+  /** When this user is currently acting under a delegation, the delegated role. */
+  delegatedRole?: AppRole;
+  /** Display name of the user who delegated their role. */
+  delegatedFromName?: string;
+  /** ISO timestamp when the active delegation expires (end-of-day inclusive). */
+  delegationUntil?: string;
+  /** ISO timestamp when the active delegation became effective. */
+  delegationFrom?: string;
 }
 
 // Application statuses - simplified lifecycle
