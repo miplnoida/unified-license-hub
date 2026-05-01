@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from '@/components/ui/card';
@@ -17,9 +16,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  GitBranch, Plus, Trash2, ArrowRight, ArrowDown, CheckCircle2,
-  Users, BookmarkPlus, LayoutList, Workflow as WorkflowIcon,
-  ChevronUp, ChevronDown, Save, FileStack, Sparkles,
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  GitBranch, Plus, Trash2, ArrowDown, CheckCircle2, FileInput,
+  Users, BookmarkPlus, Workflow as WorkflowIcon, Search,
+  ChevronUp, ChevronDown, FileStack, Sparkles, Settings2, Info, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -35,7 +37,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 
-// ─── Templates hook (lightweight, kept here for cohesion) ───
+// ─── Templates ───
 type TemplateStep = { name: string; approver_role: string; sla_hours?: number };
 type WorkflowTemplate = {
   id: string;
@@ -78,7 +80,6 @@ export default function WorkflowList() {
   const reorderSteps = useReorderSteps();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [view, setView] = useState<'stack' | 'flow'>('stack');
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -96,9 +97,12 @@ export default function WorkflowList() {
 
   const firstRoleSystem = dynamicRoles[0]?.system_role || 'licensing_officer';
 
+  const roleLabel = (sysRole: string) =>
+    dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
+
   const handleCreate = async () => {
     if (!newName.trim() || !newLicenseType.trim()) {
-      toast.error('Workflow name and applicable type are required');
+      toast.error('Please give the workflow a name and a category');
       return;
     }
     try {
@@ -112,7 +116,7 @@ export default function WorkflowList() {
         category_id: null,
       });
 
-      // Seed steps from template
+      // Seed steps from template OR add a default Step 1
       if (seedFromTemplateId !== 'blank') {
         const tpl = templates.find(t => t.id === seedFromTemplateId);
         if (tpl?.steps?.length) {
@@ -121,13 +125,23 @@ export default function WorkflowList() {
             await createStep.mutateAsync({
               workflow_id: wf.id,
               step_order: i + 1,
-              name: s.name || `Level ${i + 1}`,
+              name: s.name || `Step ${i + 1}`,
               approver_role: (s.approver_role || firstRoleSystem) as any,
               sla_hours: s.sla_hours || 48,
               allowed_actions: ['approve', 'reject', 'send_back'],
             });
           }
         }
+      } else {
+        // Smart default: start with Step 1
+        await createStep.mutateAsync({
+          workflow_id: wf.id,
+          step_order: 1,
+          name: 'Step 1',
+          approver_role: firstRoleSystem as any,
+          sla_hours: 48,
+          allowed_actions: ['approve', 'reject', 'send_back'],
+        });
       }
 
       toast.success('Workflow created');
@@ -143,7 +157,7 @@ export default function WorkflowList() {
   const handleDelete = async (wf: Workflow) => {
     const res = await Swal.fire({
       title: 'Delete workflow?',
-      text: `"${wf.name}" and all its approval levels will be removed.`,
+      text: `"${wf.name}" and all its steps will be removed.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
@@ -161,17 +175,19 @@ export default function WorkflowList() {
 
   const handleToggleActive = async (wf: Workflow) => {
     await updateWorkflow.mutateAsync({ id: wf.id, is_active: !wf.is_active } as any);
-    toast.success(wf.is_active ? 'Workflow deactivated' : 'Workflow activated');
+    toast.success(wf.is_active ? 'Workflow turned off' : 'Workflow turned on');
   };
 
   const handleAddStep = async () => {
     if (!selectedId) return;
+    // Prevent duplicate empty steps for the same role at the end
+    const lastStep = steps[steps.length - 1];
     try {
       await createStep.mutateAsync({
         workflow_id: selectedId,
         step_order: steps.length + 1,
-        name: `Level ${steps.length + 1}`,
-        approver_role: firstRoleSystem as any,
+        name: `Step ${steps.length + 1}`,
+        approver_role: (lastStep?.approver_role || firstRoleSystem) as any,
         sla_hours: 48,
         allowed_actions: ['approve', 'reject', 'send_back'],
       });
@@ -196,7 +212,7 @@ export default function WorkflowList() {
 
   const handleSaveAsTemplate = async () => {
     if (!selectedWorkflow || steps.length === 0) {
-      toast.error('Add at least one approval level first');
+      toast.error('Add at least one step first');
       return;
     }
     const { value: name } = await Swal.fire({
@@ -242,15 +258,12 @@ export default function WorkflowList() {
     toast.success('Template deleted');
   };
 
-  const roleLabel = (sysRole: string) =>
-    dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Approval Workflows"
-          description="Configure simple, role-driven approval flows. Each level uses dynamic roles — anyone in the role can approve."
+          description="Define who approves what — in plain steps. Anyone with the chosen role can approve."
           actions={
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
@@ -307,7 +320,7 @@ export default function WorkflowList() {
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                            {wf.is_active ? 'Active' : 'Inactive'}
+                            {wf.is_active ? 'On' : 'Off'}
                           </Badge>
                           <Button
                             variant="ghost"
@@ -338,38 +351,20 @@ export default function WorkflowList() {
                     {selectedWorkflow && (
                       <CardDescription className="mt-1">
                         {ENTITY_TYPE_LABELS[selectedWorkflow.entity_type as WorkflowEntityType]} ·
-                        {' '}{steps.length} approval level(s) · Any user holding the level's role can approve
+                        {' '}{steps.length} step{steps.length === 1 ? '' : 's'} · Anyone in the chosen role can approve
                       </CardDescription>
                     )}
                   </div>
                   {selectedWorkflow && (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <div className="inline-flex rounded-md border p-0.5">
-                        <Button
-                          variant={view === 'stack' ? 'default' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2"
-                          onClick={() => setView('stack')}
-                        >
-                          <LayoutList className="h-3.5 w-3.5 mr-1" /> Stack
-                        </Button>
-                        <Button
-                          variant={view === 'flow' ? 'default' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2"
-                          onClick={() => setView('flow')}
-                        >
-                          <ArrowRight className="h-3.5 w-3.5 mr-1" /> Flow
-                        </Button>
-                      </div>
                       <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
-                        {selectedWorkflow.is_active ? 'Deactivate' : 'Activate'}
+                        {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
                       </Button>
                       <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>
                         <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
                       </Button>
                       <Button size="sm" onClick={handleAddStep}>
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Level
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
                       </Button>
                     </div>
                   )}
@@ -379,28 +374,20 @@ export default function WorkflowList() {
                 {!selectedWorkflow ? (
                   <div className="text-center py-12">
                     <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
-                    <p className="text-sm text-muted-foreground">Select a workflow to configure its approval levels</p>
+                    <p className="text-sm text-muted-foreground">Pick a workflow on the left, or create a new one</p>
                   </div>
                 ) : stepsLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
-                ) : steps.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Sparkles className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
-                    <p className="text-sm text-muted-foreground mb-3">No approval levels yet</p>
-                    <Button variant="outline" size="sm" onClick={handleAddStep}>
-                      <Plus className="h-3.5 w-3.5 mr-1" /> Add First Level
-                    </Button>
-                  </div>
-                ) : view === 'stack' ? (
-                  <StackView
+                ) : (
+                  <TimelineBuilder
                     steps={steps}
                     dynamicRoles={dynamicRoles}
+                    roleLabel={roleLabel}
                     onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
+                    onAdd={handleAddStep}
                   />
-                ) : (
-                  <FlowView steps={steps} roleLabel={roleLabel} />
                 )}
               </CardContent>
             </Card>
@@ -413,7 +400,7 @@ export default function WorkflowList() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>New Workflow</DialogTitle>
-            <DialogDescription>Set the basics. You can add approval levels next.</DialogDescription>
+            <DialogDescription>Just the basics — you can add steps next.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -422,7 +409,7 @@ export default function WorkflowList() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Applies To <span className="text-destructive">*</span></Label>
+                <Label>Used For <span className="text-destructive">*</span></Label>
                 <Select value={newEntityType} onValueChange={v => setNewEntityType(v as WorkflowEntityType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -433,7 +420,7 @@ export default function WorkflowList() {
                 </Select>
               </div>
               <div>
-                <Label>Type / Category <span className="text-destructive">*</span></Label>
+                <Label>Category <span className="text-destructive">*</span></Label>
                 <Input
                   value={newLicenseType}
                   onChange={e => setNewLicenseType(e.target.value)}
@@ -446,17 +433,17 @@ export default function WorkflowList() {
               <Select value={seedFromTemplateId} onValueChange={setSeedFromTemplateId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="blank">Blank workflow</SelectItem>
+                  <SelectItem value="blank">Blank workflow (recommended)</SelectItem>
                   {templates.map(t => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.name} ({t.steps.length} level{t.steps.length === 1 ? '' : 's'})
+                      {t.name} ({t.steps.length} step{t.steps.length === 1 ? '' : 's'})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>Description (optional)</Label>
               <Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2} />
             </div>
           </div>
@@ -475,7 +462,7 @@ export default function WorkflowList() {
           <DialogHeader>
             <DialogTitle>Workflow Templates</DialogTitle>
             <DialogDescription>
-              Reuse common approval flows. Select one when creating a new workflow.
+              Reuse common approval flows. Pick one when creating a new workflow.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
@@ -525,101 +512,158 @@ export default function WorkflowList() {
   );
 }
 
-// ─── Stack View (editable cards) ───
+// ─── Timeline Builder (request → steps → final approval) ───
 
-interface StackViewProps {
+interface TimelineBuilderProps {
   steps: WorkflowStep[];
   dynamicRoles: { id: string; name: string; system_role: string }[];
+  roleLabel: (sysRole: string) => string;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
+  onAdd: () => void;
 }
 
-function StackView({ steps, dynamicRoles, onUpdate, onDelete, onMove }: StackViewProps) {
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+  // Validation: detect duplicate consecutive roles
+  const duplicateIdx = useMemo(() => {
+    for (let i = 1; i < steps.length; i++) {
+      if (steps[i].approver_role === steps[i - 1].approver_role) return i;
+    }
+    return -1;
+  }, [steps]);
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/10 border border-success/20">
-        <CheckCircle2 className="h-4 w-4 text-success" />
-        <span className="text-xs font-medium text-success">Request Submitted</span>
-      </div>
+    <div className="space-y-1">
+      {/* Start node */}
+      <TimelineNode
+        icon={<FileInput className="h-4 w-4" />}
+        title="Request Submitted"
+        subtitle="The journey begins here"
+        tone="muted"
+      />
 
-      {steps.map((step, idx) => (
-        <div key={step.id}>
-          <div className="flex justify-center py-0.5">
-            <ArrowDown className="h-4 w-4 text-muted-foreground" />
+      {steps.length === 0 ? (
+        <>
+          <Connector />
+          <div className="border-2 border-dashed rounded-lg p-6 text-center">
+            <Sparkles className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground mb-3">No steps yet — add your first approver</p>
+            <Button variant="outline" size="sm" onClick={onAdd}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
+            </Button>
           </div>
-          <LevelCard
-            step={step}
-            index={idx}
-            total={steps.length}
-            dynamicRoles={dynamicRoles}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onMove={onMove}
-          />
-        </div>
-      ))}
+        </>
+      ) : (
+        steps.map((step, idx) => (
+          <div key={step.id}>
+            <Connector />
+            <StepCard
+              step={step}
+              index={idx}
+              total={steps.length}
+              dynamicRoles={dynamicRoles}
+              roleLabel={roleLabel}
+              isDuplicate={idx === duplicateIdx}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              onMove={onMove}
+            />
+          </div>
+        ))
+      )}
 
-      <div className="flex justify-center py-0.5">
-        <ArrowDown className="h-4 w-4 text-muted-foreground" />
+      {steps.length > 0 && (
+        <>
+          <div className="flex justify-center py-1">
+            <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
+              <Plus className="h-3 w-3 mr-1" /> Add another step
+            </Button>
+          </div>
+          <Connector />
+          <TimelineNode
+            icon={<CheckCircle2 className="h-4 w-4" />}
+            title="Final Approval"
+            subtitle="Request is approved and completed"
+            tone="primary"
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function Connector() {
+  return (
+    <div className="flex justify-center">
+      <div className="h-6 w-0.5 bg-border" />
+    </div>
+  );
+}
+
+function TimelineNode({
+  icon, title, subtitle, tone,
+}: { icon: React.ReactNode; title: string; subtitle?: string; tone: 'muted' | 'primary' }) {
+  const cls = tone === 'primary'
+    ? 'bg-primary/5 border-primary/30 text-primary'
+    : 'bg-muted/40 border-border text-foreground';
+  return (
+    <div className={`flex items-center gap-3 rounded-lg border-2 px-4 py-3 ${cls}`}>
+      <div className={tone === 'primary' ? 'text-primary' : 'text-muted-foreground'}>
+        {icon}
       </div>
-      <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
-        <CheckCircle2 className="h-4 w-4 text-primary" />
-        <span className="text-xs font-medium text-primary">Final Approval</span>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
     </div>
   );
 }
 
-interface LevelCardProps {
+// ─── Step Card ───
+
+interface StepCardProps {
   step: WorkflowStep;
   index: number;
   total: number;
   dynamicRoles: { id: string; name: string; system_role: string }[];
+  roleLabel: (sysRole: string) => string;
+  isDuplicate: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function LevelCard({ step, index, total, dynamicRoles, onUpdate, onDelete, onMove }: LevelCardProps) {
+function StepCard({ step, index, total, dynamicRoles, roleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [roleSearch, setRoleSearch] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const roleExists = dynamicRoles.some(r => r.system_role === step.approver_role);
+
+  const filteredRoles = useMemo(
+    () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
+    [dynamicRoles, roleSearch]
+  );
+
   return (
-    <div className="border rounded-lg bg-card p-3 hover:shadow-sm transition-shadow">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge className="shrink-0" variant="default">Level {index + 1}</Badge>
+    <div className="border-2 rounded-lg bg-card p-4 hover:border-primary/40 transition-colors">
+      {/* Header: step number + name + reorder/delete */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
+          {index + 1}
+        </div>
         <Input
-          className="h-8 text-sm font-medium flex-1 min-w-[180px]"
+          className="h-9 text-sm font-medium flex-1 border-none shadow-none focus-visible:ring-1 px-2"
           value={step.name}
           onChange={e => onUpdate(step.id, { name: e.target.value })}
-          placeholder="Level name (e.g., Reviewer)"
+          placeholder={`Step ${index + 1}`}
         />
-        <Select
-          value={step.approver_role}
-          onValueChange={val => onUpdate(step.id, { approver_role: val as any })}
-        >
-          <SelectTrigger className="h-8 w-[200px] text-xs">
-            <Users className="h-3 w-3 mr-1" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {dynamicRoles.map(r => (
-              <SelectItem key={r.id} value={r.system_role}>{r.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="number"
-          className="h-8 w-20 text-xs"
-          value={step.sla_hours || 48}
-          onChange={e => onUpdate(step.id, { sla_hours: parseInt(e.target.value) || 48 } as any)}
-          title="SLA in hours"
-        />
-        <span className="text-[10px] text-muted-foreground">hrs SLA</span>
-        <div className="flex items-center gap-0.5 ml-auto">
+        <div className="flex items-center gap-0.5 shrink-0">
           <Button
             variant="ghost" size="icon" className="h-7 w-7"
             disabled={index === 0}
             onClick={() => onMove(index, -1)}
+            title="Move up"
           >
             <ChevronUp className="h-3.5 w-3.5" />
           </Button>
@@ -627,91 +671,120 @@ function LevelCard({ step, index, total, dynamicRoles, onUpdate, onDelete, onMov
             variant="ghost" size="icon" className="h-7 w-7"
             disabled={index === total - 1}
             onClick={() => onMove(index, 1)}
+            title="Move down"
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost" size="icon" className="h-7 w-7 text-destructive"
             onClick={() => onDelete(step.id)}
+            title="Remove step"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
-      {!roleExists && (
-        <p className="text-[11px] text-destructive mt-2">
-          ⚠ The selected role no longer exists in Role Management. Please reassign.
-        </p>
-      )}
-    </div>
-  );
-}
 
-// ─── Flow View (read-only diagram) ───
+      {/* Role chip + change */}
+      <div className="pl-11 space-y-2">
+        <div>
+          <Label className="text-xs text-muted-foreground mb-1.5 block">Who approves</Label>
+          {!pickerOpen ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
+                <Users className="h-3 w-3" />
+                {roleLabel(step.approver_role)}
+              </Badge>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
+                Change role
+              </Button>
+            </div>
+          ) : (
+            <div className="border rounded-md p-2 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  className="h-8 pl-7 text-xs"
+                  placeholder="Search roles..."
+                  value={roleSearch}
+                  onChange={e => setRoleSearch(e.target.value)}
+                />
+                <Button
+                  variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                  onClick={() => { setPickerOpen(false); setRoleSearch(''); }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                {filteredRoles.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">No roles match.</p>
+                ) : filteredRoles.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => {
+                      onUpdate(step.id, { approver_role: r.system_role as any });
+                      setPickerOpen(false); setRoleSearch('');
+                    }}
+                    className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
+                      step.approver_role === r.system_role
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background hover:border-primary/50'
+                    }`}
+                  >
+                    {r.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
+            <Info className="h-3 w-3" />
+            Any user assigned to this role can approve.
+          </p>
+        </div>
 
-function FlowView({
-  steps,
-  roleLabel,
-}: {
-  steps: WorkflowStep[];
-  roleLabel: (sysRole: string) => string;
-}) {
-  return (
-    <div className="overflow-x-auto pb-2">
-      <div className="flex items-stretch gap-2 min-w-max py-2">
-        <FlowNode label="Submitted" tone="success" />
-        <FlowArrow />
-        {steps.map((s, i) => (
-          <div key={s.id} className="flex items-stretch gap-2">
-            <FlowNode
-              label={s.name || `Level ${i + 1}`}
-              sub={roleLabel(s.approver_role)}
-              tone="info"
-              level={i + 1}
-            />
-            <FlowArrow />
-          </div>
-        ))}
-        <FlowNode label="Approved" tone="primary" />
+        {!roleExists && (
+          <p className="text-xs text-destructive">
+            ⚠ This role no longer exists. Please pick another role.
+          </p>
+        )}
+
+        {isDuplicate && (
+          <p className="text-xs text-warning">
+            ⚠ Same role as the previous step. Consider merging or changing one.
+          </p>
+        )}
+
+        {/* Advanced Options */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground -ml-2">
+              <Settings2 className="h-3 w-3 mr-1" />
+              Advanced Options
+              {advancedOpen ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground min-w-[90px]">Due Within</Label>
+                <Input
+                  type="number"
+                  className="h-8 w-24 text-xs"
+                  value={step.sla_hours || 48}
+                  onChange={e => onUpdate(step.id, { sla_hours: parseInt(e.target.value) || 48 } as any)}
+                />
+                <span className="text-xs text-muted-foreground">hours</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Escalation, parallel approvals, and conditional rules can be configured here in future updates.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
-      <p className="text-[11px] text-muted-foreground mt-2">
-        Read-only diagram. Switch to <strong>Stack</strong> view to edit.
-      </p>
-    </div>
-  );
-}
-
-function FlowNode({
-  label, sub, tone, level,
-}: {
-  label: string;
-  sub?: string;
-  tone: 'success' | 'info' | 'primary';
-  level?: number;
-}) {
-  const toneClasses =
-    tone === 'success' ? 'bg-success/10 border-success/30 text-success' :
-    tone === 'primary' ? 'bg-primary/10 border-primary/30 text-primary' :
-    'bg-card border-border';
-  return (
-    <div className={`min-w-[160px] rounded-lg border-2 px-3 py-2.5 ${toneClasses}`}>
-      {level !== undefined && (
-        <Badge variant="outline" className="text-[9px] mb-1">Level {level}</Badge>
-      )}
-      <p className="text-sm font-medium leading-tight">{label}</p>
-      {sub && (
-        <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-          <Users className="h-2.5 w-2.5" /> {sub}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function FlowArrow() {
-  return (
-    <div className="flex items-center self-center">
-      <ArrowRight className="h-5 w-5 text-muted-foreground" />
     </div>
   );
 }
