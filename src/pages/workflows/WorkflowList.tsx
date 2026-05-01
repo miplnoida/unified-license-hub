@@ -65,6 +65,47 @@ function useTemplates() {
   });
 }
 
+// ─── Smart default role resolver ───
+// Maps a sector to the most relevant regulator role purely by NAME match
+// (no hardcoded ids). Falls back to "Super Admin" role if nothing matches.
+function resolveDefaultRoleForSector(
+  sectorName: string | null | undefined,
+  roles: DynamicRole[],
+): { role: DynamicRole | null; matched: boolean } {
+  const superAdmin =
+    roles.find(r => r.name.trim().toLowerCase() === 'super admin') ||
+    roles.find(r => r.system_role === 'super_admin') ||
+    null;
+
+  if (!sectorName) return { role: superAdmin, matched: false };
+
+  // Tokenize sector (e.g. "Credit Union", "Cooperatives") and try to find
+  // a role whose name contains a sector token, preferring "regulator" roles.
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim();
+  const sectorTokens = norm(sectorName)
+    .split(/\s+/)
+    .filter(t => t.length >= 4); // avoid noise words like "of", "and"
+
+  if (sectorTokens.length === 0) return { role: superAdmin, matched: false };
+
+  // Strip plural "s" for loose matching (Cooperatives -> cooperative)
+  const stems = sectorTokens.map(t => t.endsWith('s') ? t.slice(0, -1) : t);
+
+  const candidates = roles.filter(r => {
+    const rn = norm(r.name);
+    return stems.some(stem => rn.includes(stem));
+  });
+
+  if (candidates.length === 0) return { role: superAdmin, matched: false };
+
+  // Prefer roles containing "regulator" (handles common typos like "regualtor" too)
+  const preferred =
+    candidates.find(r => /regul[au]tor/i.test(r.name)) ||
+    candidates[0];
+
+  return { role: preferred, matched: true };
+}
+
 export default function WorkflowList() {
   const { activeRegulatorId } = useRegulator();
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
