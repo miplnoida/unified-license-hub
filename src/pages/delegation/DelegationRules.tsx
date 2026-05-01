@@ -36,17 +36,7 @@ interface DelegationRule {
 export default function DelegationRules() {
   const [rules, setRules] = useState<DelegationRule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('routing');
   const [users, setUsers] = useState<{ id: string; full_name: string; email: string }[]>([]);
-
-  // Routing rule form
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [condField, setCondField] = useState('amount');
-  const [condOp, setCondOp] = useState('>');
-  const [condValue, setCondValue] = useState('');
-  const [targetRole, setTargetRole] = useState<AppRole>('supervisor');
   const [creating, setCreating] = useState(false);
 
   // Date-range delegation form
