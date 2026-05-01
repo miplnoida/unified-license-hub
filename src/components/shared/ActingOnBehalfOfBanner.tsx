@@ -90,12 +90,16 @@ export function ActingOnBehalfOfBanner() {
 
   if (loading || (delegations.length === 0 && !showPpocSoloBanner)) return null;
 
+  const delegatedRoleLabel = user?.delegatedRole ? ROLE_LABELS[user.delegatedRole] : null;
+
   return (
     <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
       <UserCheck className="h-4 w-4 text-amber-700 dark:text-amber-400" />
       <AlertTitle className="text-amber-900 dark:text-amber-200">
         {showPpocSoloBanner
           ? `Acting as PPOC for ${activeLicensee!.licensee_name}`
+          : delegatedRoleLabel
+          ? `Acting as ${delegatedRoleLabel}${user?.delegatedFromName ? ` (delegated by ${user.delegatedFromName})` : ''}`
           : `Acting on behalf of ${delegations.length === 1 ? 'another user' : `${delegations.length} users`}`}
       </AlertTitle>
       <AlertDescription className="text-amber-800 dark:text-amber-300 space-y-1 mt-1">
@@ -106,6 +110,19 @@ export function ActingOnBehalfOfBanner() {
               {activeLicensee!.licensee_name}
             </Badge>
             <span>All return submissions will be tagged to this licensee.</span>
+          </div>
+        )}
+        {delegatedRoleLabel && (user?.delegationFrom || user?.delegationUntil) && (
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Badge variant="outline" className="border-amber-400 text-amber-900 dark:text-amber-200">
+              {delegatedRoleLabel}
+            </Badge>
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {user.delegationFrom ? format(new Date(user.delegationFrom), 'PP') : '—'}
+              {' → '}
+              {user.delegationUntil ? format(new Date(user.delegationUntil), 'PP') : '—'}
+            </span>
           </div>
         )}
         {delegations.map(d => (
