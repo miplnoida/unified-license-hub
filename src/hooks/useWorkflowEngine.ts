@@ -346,160 +346,48 @@ export function useStartWorkflow() {
   });
 }
 
+/**
+ * Centralized: routes ALL workflow actions through the perform-workflow-action
+ * edge function which validates the actor, step, action and atomically advances
+ * the workflow. Returns the server response.
+ */
 export function usePerformAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       instance_id: string;
       step_id: string;
-      actor_id: string;
+      actor_id: string; // kept for API compatibility — server uses authenticated user
       action_type: WorkflowActionType;
       comments?: string;
       delegated_to?: string;
       application_id: string;
     }) => {
-      // Record the action
-      const { error: aErr } = await supabase.from('approval_actions').insert({
-        application_id: params.application_id,
-        step_id: params.step_id,
-        actor_id: params.actor_id,
-        action: params.action_type,
-        action_type: params.action_type,
-        comments: params.comments || null,
-        delegated_to: params.delegated_to || null,
-        workflow_instance_id: params.instance_id,
-        responded_at: new Date().toISOString(),
-      } as any);
-      if (aErr) throw aErr;
-
-      // Get current instance and workflow steps
-      const { data: instance } = await supabase
-        .from('workflow_instances')
-        .select('*, approval_workflows(id)')
-        .eq('id', params.instance_id)
-        .single();
-      if (!instance) throw new Error('Instance not found');
-
-      const { data: steps } = await supabase
-        .from('approval_steps')
-        .select('*')
-        .eq('workflow_id', (instance as any).workflow_id)
-        .order('step_order', { ascending: true });
-
-      const currentIdx = steps?.findIndex(s => s.id === params.step_id) ?? -1;
-
-      if (params.action_type === 'approve') {
-        // Move to next step or complete
-        if (currentIdx >= 0 && steps && currentIdx < steps.length - 1) {
-          await supabase.from('workflow_instances').update({
-            current_step_id: steps[currentIdx + 1].id,
-          } as any).eq('id', params.instance_id);
-          // Update application to in_progress and move current_step_id
-          await supabase.from('applications').update({
-            status: 'in_progress',
-            current_step_id: steps[currentIdx + 1].id,
-          } as any).eq('id', params.application_id);
-        } else {
-          // Last step approved - complete workflow
-          await supabase.from('workflow_instances').update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-          } as any).eq('id', params.instance_id);
-          // Update application to approved
-          await supabase.from('applications').update({
-            status: 'approved',
-            approved_at: new Date().toISOString(),
-          } as any).eq('id', params.application_id);
-        }
-      } else if (params.action_type === 'reject') {
-        await supabase.from('workflow_instances').update({
-          status: 'rejected',
-          completed_at: new Date().toISOString(),
-        } as any).eq('id', params.instance_id);
-        await supabase.from('applications').update({
-          status: 'rejected',
-          rejected_at: new Date().toISOString(),
-        } as any).eq('id', params.application_id);
-
-        // Send rejection notification
-        const { data: rejApp } = await supabase.from('applications').select('applicant_id, application_number').eq('id', params.application_id).single();
-        if (rejApp) {
-          try {
-            await supabase.functions.invoke('send-notification', {
-              body: {
-                action: 'dispatch',
-                event_type: 'application_rejected',
-                user_id: (rejApp as any).applicant_id,
-                title: `Application Rejected: ${(rejApp as any).application_number}`,
-                message: `Your application ${(rejApp as any).application_number} has been rejected.\n\nRemarks: ${params.comments || 'No remarks provided.'}`,
-                entity_type: 'application',
-                entity_id: params.application_id,
-              },
-            });
-          } catch (e) {
-            console.error('Notification failed', e);
-          }
-        }
-      } else if (params.action_type === 'send_back') {
-        // Move to previous step
-        if (currentIdx > 0 && steps) {
-          await supabase.from('workflow_instances').update({
-            current_step_id: steps[currentIdx - 1].id,
-          } as any).eq('id', params.instance_id);
-          await supabase.from('applications').update({
-            current_step_id: steps[currentIdx - 1].id,
-          } as any).eq('id', params.application_id);
-        }
-      } else if (params.action_type === 'escalate') {
-        // Move to next step (escalate to senior)
-        if (currentIdx >= 0 && steps && currentIdx < steps.length - 1) {
-          await supabase.from('workflow_instances').update({
-            current_step_id: steps[currentIdx + 1].id,
-          } as any).eq('id', params.instance_id);
-          await supabase.from('applications').update({
-            current_step_id: steps[currentIdx + 1].id,
-          } as any).eq('id', params.application_id);
-        }
-      } else if (params.action_type === 'request_resubmission') {
-        // Pause workflow and set application to resubmission_requested
-        await supabase.from('workflow_instances').update({
-          status: 'paused',
-        } as any).eq('id', params.instance_id);
-        await supabase.from('applications').update({
-          status: 'resubmission_requested',
-        } as any).eq('id', params.application_id);
-
-        // Send notification to applicant
-        const { data: appRecord } = await supabase.from('applications').select('applicant_id, application_number').eq('id', params.application_id).single();
-        if (appRecord) {
-          try {
-            await supabase.functions.invoke('send-notification', {
-              body: {
-                action: 'dispatch',
-                event_type: 'resubmission_requested',
-                user_id: (appRecord as any).applicant_id,
-                title: `Resubmission Requested: ${(appRecord as any).application_number}`,
-                message: `Your application ${(appRecord as any).application_number} requires revisions.\n\nRemarks: ${params.comments || 'Please review and resubmit.'}`,
-                entity_type: 'application',
-                entity_id: params.application_id,
-              },
-            });
-          } catch (e) {
-            console.error('Notification failed', e);
-          }
-        }
-      }
-
+      const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
+        body: {
+          application_id: params.application_id,
+          instance_id: params.instance_id,
+          step_id: params.step_id,
+          action_type: params.action_type,
+          comments: params.comments,
+          delegated_to: params.delegated_to,
+        },
+      });
+      if (error) throw new Error(error.message || 'Action failed');
+      if ((data as any)?.error) throw new Error((data as any).error);
       await logAudit({
         action: `workflow_${params.action_type}`,
         entityType: 'workflow_instance',
         entityId: params.instance_id,
         newValue: { step_id: params.step_id, action: params.action_type },
       });
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['workflow_instances'] });
       qc.invalidateQueries({ queryKey: ['approval_actions'] });
+      qc.invalidateQueries({ queryKey: ['applications'] });
     },
   });
 }
+

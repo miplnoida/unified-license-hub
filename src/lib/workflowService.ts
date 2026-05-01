@@ -1,11 +1,17 @@
 /**
- * Centralized workflow service.
- * Ensures only one workflow instance per application.
+ * Client-side workflow lookup helper.
+ *
+ * Workflow instance creation/resume/advance is now handled server-side by:
+ *   - verify-and-submit       (creates/resumes the instance on submission)
+ *   - perform-workflow-action (advances/pauses/completes the instance)
+ *   - approve-pre-licensee    (final approval + license issuance, idempotent)
+ *
+ * This module only reads existing instances. It no longer creates new ones,
+ * so the React layer cannot accidentally produce duplicate active instances.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { logAudit } from '@/hooks/useAuditLog';
 
-interface StartWorkflowResult {
+interface FindWorkflowResult {
   workflowId: string | null;
   firstStepId: string | null;
   instanceId: string | null;
@@ -13,15 +19,10 @@ interface StartWorkflowResult {
 }
 
 /**
- * Find and start a workflow for a given application.
- * Returns info about the matched workflow, or { matched: false } if none found.
- * Prevents duplicate workflow instances for the same application.
+ * Look up an existing active/paused workflow instance for an application.
+ * Returns { matched: false } if none exists. Does NOT create an instance.
  */
-export async function startWorkflowForApplication(
-  applicationId: string,
-  licenseType: string,
-): Promise<StartWorkflowResult> {
-  // 1. Check if a workflow instance already exists for this application
+export async function findWorkflowForApplication(applicationId: string): Promise<FindWorkflowResult> {
   const { data: existing } = await supabase
     .from('workflow_instances')
     .select('id, workflow_id, current_step_id')
@@ -31,7 +32,6 @@ export async function startWorkflowForApplication(
     .limit(1);
 
   if (existing && existing.length > 0) {
-    // Already has an active workflow — return it
     return {
       workflowId: (existing[0] as any).workflow_id,
       firstStepId: (existing[0] as any).current_step_id,
@@ -39,83 +39,17 @@ export async function startWorkflowForApplication(
       matched: true,
     };
   }
+  return { workflowId: null, firstStepId: null, instanceId: null, matched: false };
+}
 
-  // 2. Find matching workflow: exact match first, then prefix match
-  let matchedWorkflow: { id: string; license_type: string } | null = null;
-
-  const { data: exactWorkflows } = await supabase
-    .from('approval_workflows')
-    .select('id, license_type')
-    .eq('license_type', licenseType)
-    .eq('entity_type', 'application')
-    .eq('is_active', true)
-    .limit(1);
-
-  if (exactWorkflows && exactWorkflows.length > 0) {
-    matchedWorkflow = exactWorkflows[0];
-  } else {
-    const { data: allWorkflows } = await supabase
-      .from('approval_workflows')
-      .select('id, license_type')
-      .eq('entity_type', 'application')
-      .eq('is_active', true);
-
-    if (allWorkflows) {
-      matchedWorkflow = allWorkflows.find(w =>
-        licenseType.toLowerCase().startsWith(w.license_type.toLowerCase())
-      ) || null;
-    }
-  }
-
-  if (!matchedWorkflow) {
-    return { workflowId: null, firstStepId: null, instanceId: null, matched: false };
-  }
-
-  // 3. Get first step
-  const { data: steps } = await supabase
-    .from('approval_steps')
-    .select('id')
-    .eq('workflow_id', matchedWorkflow.id)
-    .order('step_order', { ascending: true })
-    .limit(1);
-
-  const firstStepId = steps?.[0]?.id || null;
-
-  // 4. Create instance
-  const { data: instance, error } = await supabase
-    .from('workflow_instances')
-    .insert({
-      workflow_id: matchedWorkflow.id,
-      entity_type: 'application',
-      entity_id: applicationId,
-      current_step_id: firstStepId,
-      status: 'active',
-    } as any)
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('Failed to create workflow instance:', error);
-    return { workflowId: matchedWorkflow.id, firstStepId, instanceId: null, matched: true };
-  }
-
-  // 5. Update application with workflow references
-  await supabase.from('applications').update({
-    workflow_id: matchedWorkflow.id,
-    current_step_id: firstStepId,
-  } as any).eq('id', applicationId);
-
-  await logAudit({
-    action: 'workflow_started',
-    entityType: 'workflow_instance',
-    entityId: (instance as any)?.id,
-    newValue: { workflow_id: matchedWorkflow.id, application_id: applicationId },
-  });
-
-  return {
-    workflowId: matchedWorkflow.id,
-    firstStepId,
-    instanceId: (instance as any)?.id || null,
-    matched: true,
-  };
+/**
+ * @deprecated Use the verify-and-submit edge function which handles
+ * workflow creation atomically on submission. Kept as a thin shim that
+ * only returns existing instances — never creates a new one client-side.
+ */
+export async function startWorkflowForApplication(
+  applicationId: string,
+  _licenseType: string,
+): Promise<FindWorkflowResult> {
+  return findWorkflowForApplication(applicationId);
 }

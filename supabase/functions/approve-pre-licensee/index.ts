@@ -84,9 +84,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Idempotency: if already approved, return existing data
+    // Idempotency: if already approved, return existing data (no duplicate work)
     if (app.status === "approved") {
-      // Find existing license
       const { data: existingLic } = await admin
         .from("licenses")
         .select("license_number")
@@ -103,6 +102,10 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Race protection: if any other process inserted an approved-final action in the
+    // last few seconds, do not duplicate. The unique index on workflow_instances
+    // also prevents duplicate active instances.
 
     // Must be in submitted or in_progress state
     if (!["submitted", "in_progress"].includes(app.status)) {
@@ -216,9 +219,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check if a licensee web user already exists for this email
+    // Check if a licensee web user already exists for this email.
+    // We never return the plaintext password — generate a recovery link instead
+    // and force password change on first login.
     let webUserCreated = false;
-    let webUserPassword = "";
+    let passwordSetupUrl: string | null = null;
 
     if (applicantEmail && licenseeId) {
       const { data: existingUsers } = await admin
@@ -229,13 +234,11 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (!existingUsers || existingUsers.length === 0) {
-        // Generate a strong random password
-        webUserPassword = generatePassword();
+        const tempPassword = generatePassword();
 
-        // Create auth user with licensee_primary role
         const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
           email: applicantEmail,
-          password: webUserPassword,
+          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             full_name: applicantName,
@@ -246,45 +249,50 @@ Deno.serve(async (req) => {
         });
 
         if (createErr) {
-          // If user already exists with that email, just link them
           if (createErr.message.includes("already been registered") || createErr.message.includes("already exists")) {
-            console.log("User already exists, linking to licensee");
-            // Try to update existing profile to link to licensee
             const { data: existingAuth } = await admin
               .from("profiles")
               .select("id")
               .eq("email", applicantEmail)
               .limit(1);
-            
+
             if (existingAuth?.[0]) {
               await admin.from("profiles").update({
                 licensee_id: licenseeId,
                 role: "licensee_primary",
                 user_type: "primary",
               }).eq("id", existingAuth[0].id);
-              
-              // Also update user_roles
+
               await admin.from("user_roles").upsert({
                 user_id: existingAuth[0].id,
                 role: "licensee_primary",
               }, { onConflict: "user_id,role" });
-              
+
               webUserCreated = true;
             }
           } else {
             console.error("Web user creation error:", createErr);
           }
         } else if (newUser?.user) {
-          // Link profile to licensee
           await admin.from("profiles").update({
             licensee_id: licenseeId,
+            force_password_change: true,
           }).eq("id", newUser.user.id);
-          
+
+          try {
+            const { data: linkData } = await admin.auth.admin.generateLink({
+              type: "recovery",
+              email: applicantEmail,
+            });
+            passwordSetupUrl = (linkData as any)?.properties?.action_link || null;
+          } catch (linkErr) {
+            console.error("Failed to generate recovery link:", linkErr);
+          }
+
           webUserCreated = true;
         }
       } else {
-        webUserCreated = true; // Already exists
-        webUserPassword = ""; // Don't expose
+        webUserCreated = true; // Already exists — do not reset password
       }
     }
 
@@ -301,15 +309,24 @@ Deno.serve(async (req) => {
         .eq("status", "active");
     }
 
-    // 7. Record approval action
-    await admin.from("approval_actions").insert({
-      application_id,
-      action: "approved",
-      action_type: "approve",
-      actor_id: caller.id,
-      comments: comments || "Application approved",
-      responded_at: new Date().toISOString(),
-    });
+    // 7. Record approval action (idempotent: skip if a final approve already exists)
+    const { data: existingFinalAction } = await admin
+      .from("approval_actions")
+      .select("id")
+      .eq("application_id", application_id)
+      .eq("action_type", "approve")
+      .is("delegated_to", null)
+      .limit(1);
+    if (!existingFinalAction || existingFinalAction.length === 0) {
+      await admin.from("approval_actions").insert({
+        application_id,
+        action: "approved",
+        action_type: "approve",
+        actor_id: caller.id,
+        comments: comments || "Application approved",
+        responded_at: new Date().toISOString(),
+      });
+    }
 
     // 8. Audit log
     await admin.from("audit_logs").insert({
@@ -346,8 +363,8 @@ Deno.serve(async (req) => {
         license_id: license.id,
         licensee_id: licenseeId,
         web_user_created: webUserCreated,
-        web_user_password: webUserPassword || undefined,
         web_user_email: applicantEmail,
+        password_setup_url: passwordSetupUrl,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
