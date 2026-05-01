@@ -48,11 +48,25 @@ function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRol
 interface Props {
   applicationId: string;
   workflowId: string | null;
+  workflowEnabled: boolean;
   applicationStatus: string;
   onStatusChange?: () => void;
 }
 
-export function WorkflowPanel({ applicationId, workflowId, applicationStatus, onStatusChange }: Props) {
+export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange }: Props) {
+  if (!workflowEnabled) return null;
+
+  return (
+    <WorkflowPanelContent
+      applicationId={applicationId}
+      workflowId={workflowId}
+      applicationStatus={applicationStatus}
+      onStatusChange={onStatusChange}
+    />
+  );
+}
+
+function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange }: Omit<Props, 'workflowEnabled'>) {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');

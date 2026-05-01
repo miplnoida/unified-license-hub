@@ -75,6 +75,7 @@ export default function ApplicationDetail() {
 
   const loadData = async () => {
     if (!id) return;
+    setWorkflowChecked(false);
     const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
     if (appRow) {
       setApp(appRow as any);
@@ -89,6 +90,9 @@ export default function ApplicationDetail() {
       } else {
         setWorkflowActive(false);
       }
+      setWorkflowChecked(true);
+    } else {
+      setWorkflowActive(false);
       setWorkflowChecked(true);
     }
 
@@ -381,7 +385,8 @@ export default function ApplicationDetail() {
   // Workflow is effectively ON only when an active workflow with steps is attached.
   // When OFF (disabled, missing, or no steps), authorized internal users get direct approval actions.
   const workflowOn = !!app.workflow_id && workflowActive;
-  const showManualActions = isInternal && !workflowOn && ['submitted', 'in_progress'].includes(app.status);
+  const showWorkflowPanel = workflowChecked && workflowOn === true;
+  const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'in_progress'].includes(app.status);
 
   return (
     <DashboardLayout>
@@ -558,10 +563,11 @@ export default function ApplicationDetail() {
             </Tabs>
 
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
-            {workflowOn && (
+            {showWorkflowPanel && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
+                workflowEnabled={workflowOn}
                 applicationStatus={app.status}
                 onStatusChange={loadData}
               />
@@ -607,7 +613,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {isInternal && !workflowOn && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {workflowChecked && workflowOn === false && isInternal && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
