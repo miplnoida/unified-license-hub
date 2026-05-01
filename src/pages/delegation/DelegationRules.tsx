@@ -354,12 +354,27 @@ export default function DelegationRules() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label>Role to Transfer *</Label>
+                      <Select value={transferRole} onValueChange={v => setTransferRole(v as AppRole)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ROLE_HIERARCHY.filter(r => r !== 'applicant' && r !== 'pre_licensee').map(r => (
+                            <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        The covering user will gain access of this role during the active period.
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div><Label>From Date *</Label><Input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} /></div>
                       <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} /></div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      During the specified period, the covering user will assume the absent user's roles. Roles auto-revert after the end date.
+                      Both dates are inclusive (start at 00:00, end at 23:59). Same-day transfers are supported.
+                      Roles auto-revert after the end date.
                     </p>
                     <Button onClick={handleCreateDateDelegation} disabled={creating} className="w-full">
                       {creating ? 'Creating...' : 'Create Transfer'}
