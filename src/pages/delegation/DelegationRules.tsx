@@ -401,6 +401,7 @@ export default function DelegationRules() {
                         <TableHead>Name</TableHead>
                         <TableHead>From User</TableHead>
                         <TableHead>To User</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Period</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -421,6 +422,7 @@ export default function DelegationRules() {
                             </TableCell>
                             <TableCell>{getUserName(rule.delegate_from_user_id)}</TableCell>
                             <TableCell>{getUserName(rule.delegate_to_user_id)}</TableCell>
+                            <TableCell><Badge variant="outline">{ROLE_LABELS[rule.target_role]}</Badge></TableCell>
                             <TableCell className="text-xs">
                               {from ? from.toLocaleDateString() : '—'} — {until ? until.toLocaleDateString() : '—'}
                             </TableCell>
