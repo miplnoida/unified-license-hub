@@ -345,6 +345,8 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
           </div>
         )}
 
+        <ProgressTimeline />
+
         <Separator />
 
         {/* Mandatory remarks */}
