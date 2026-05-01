@@ -385,7 +385,7 @@ export default function ApplicationDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Forms and Documents tabs - always visible */}
-            <Tabs defaultValue="details" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
