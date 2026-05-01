@@ -540,7 +540,7 @@ export default function ApplicationDetail() {
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    No approval workflow is configured for this license type. Use the actions below to process this application.
+                    Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
                   </p>
                   <div className="space-y-2">
                     <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
