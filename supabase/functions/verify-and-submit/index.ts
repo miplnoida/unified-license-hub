@@ -223,25 +223,71 @@ Deno.serve(async (req) => {
         firstStepId: existing[0].current_step_id,
       };
     } else {
-      // Find matching workflow
-      const { data: exactWf } = await adminClient
-        .from("approval_workflows")
-        .select("id, license_type")
-        .eq("license_type", app.license_type)
-        .eq("entity_type", "application")
-        .eq("is_active", true)
-        .limit(1);
+      // Find matching workflow with strict precedence:
+      //  1) license_type + regulator + sector/category exact match
+      //  2) license_type + regulator exact
+      //  3) license_type exact
+      //  4) prefix fallback (only if no exact match found at any tier)
+      const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
+      const categoryId = (app.data as Record<string, unknown> | null)?.category_id as string | undefined;
 
-      let matchedWf = exactWf?.[0] || null;
+      let matchedWf: { id: string; license_type: string } | null = null;
+
+      // Tier 1: license_type + regulator + (category or sector) exact
+      if (!matchedWf && app.regulator_id) {
+        let q = adminClient
+          .from("approval_workflows")
+          .select("id, license_type, sector_id, category_id")
+          .eq("license_type", app.license_type)
+          .eq("entity_type", "application")
+          .eq("is_active", true)
+          .eq("regulator_id", app.regulator_id);
+        const { data } = await q;
+        const cands = (data || []) as any[];
+        matchedWf =
+          cands.find((w) => categoryId && w.category_id === categoryId) ||
+          cands.find((w) => sectorId && w.sector_id === sectorId) ||
+          null;
+      }
+
+      // Tier 2: license_type + regulator exact (no sector/category constraint)
+      if (!matchedWf && app.regulator_id) {
+        const { data } = await adminClient
+          .from("approval_workflows")
+          .select("id, license_type")
+          .eq("license_type", app.license_type)
+          .eq("entity_type", "application")
+          .eq("is_active", true)
+          .eq("regulator_id", app.regulator_id)
+          .limit(1);
+        matchedWf = data?.[0] || null;
+      }
+
+      // Tier 3: license_type exact (any regulator)
+      if (!matchedWf) {
+        const { data } = await adminClient
+          .from("approval_workflows")
+          .select("id, license_type")
+          .eq("license_type", app.license_type)
+          .eq("entity_type", "application")
+          .eq("is_active", true)
+          .limit(1);
+        matchedWf = data?.[0] || null;
+      }
+
+      // Tier 4: explicit prefix fallback (kept for backward compatibility but
+      // restricted to workflows whose license_type is a strict prefix segment).
       if (!matchedWf) {
         const { data: allWf } = await adminClient
           .from("approval_workflows")
           .select("id, license_type")
           .eq("entity_type", "application")
           .eq("is_active", true);
-        matchedWf = allWf?.find((w) =>
-          app.license_type.toLowerCase().startsWith(w.license_type.toLowerCase())
-        ) || null;
+        const lt = app.license_type.toLowerCase();
+        matchedWf = (allWf || []).find((w) => {
+          const wl = w.license_type.toLowerCase();
+          return wl !== "" && (lt === wl || lt.startsWith(wl + " ") || lt.startsWith(wl + "_") || lt.startsWith(wl + "-"));
+        }) || null;
       }
 
       if (matchedWf) {
