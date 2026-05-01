@@ -62,6 +62,7 @@ export default function ApplicationDetail() {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('details');
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
