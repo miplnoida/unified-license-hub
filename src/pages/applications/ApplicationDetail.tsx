@@ -120,6 +120,32 @@ export default function ApplicationDetail() {
 
   useEffect(() => { loadData(); }, [id]);
 
+  // Re-validate workflow ON/OFF state when window regains focus
+  // (handles case where admin toggled workflow off in another tab)
+  useEffect(() => {
+    const onFocus = () => { loadData(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Realtime: if the assigned workflow's is_active toggles, refresh immediately
+  useEffect(() => {
+    const wfId = app?.workflow_id;
+    if (!wfId) return;
+    const channel = supabase
+      .channel(`wf-active-${wfId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'approval_workflows',
+        filter: `id=eq.${wfId}`,
+      }, () => { loadData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app?.workflow_id]);
+
   const handleSubmit = async () => {
     if (!app || !user) return;
     if (!paymentComplete) {
