@@ -175,7 +175,37 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
 
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
 
-  // If user's role doesn't match, show read-only status
+  // Compact workflow progress timeline shown in both read-only and active states
+  const ProgressTimeline = () => (
+    <div className="space-y-2 rounded-md border border-border/60 bg-muted/30 p-3">
+      <p className="text-xs font-medium text-muted-foreground">Workflow Progress</p>
+      <ol className="space-y-1.5">
+        {steps.map((s, idx) => {
+          const isDone = idx < currentStepIdx;
+          const isCurrent = idx === currentStepIdx;
+          return (
+            <li key={s.id} className="flex items-center gap-2 text-xs">
+              {isDone ? (
+                <CheckCircle className="h-3.5 w-3.5 text-success" />
+              ) : isCurrent ? (
+                <CircleDot className="h-3.5 w-3.5 text-primary animate-pulse" />
+              ) : (
+                <Circle className="h-3.5 w-3.5 text-muted-foreground/50" />
+              )}
+              <span className={isCurrent ? 'font-medium' : 'text-muted-foreground'}>
+                Step {idx + 1}: {s.name}
+              </span>
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                {ROLE_LABELS[s.approver_role as AppRole] || s.approver_role}
+              </Badge>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+
+  // If user's role doesn't match the current step → read-only with progress + pending approver
   if (!userRoleMatchesStep) {
     return (
       <Card>
@@ -185,16 +215,17 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
             Workflow Review — Level {currentStepIdx + 1} of {steps.length}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{currentStep.name}</span>
             <Badge variant="outline" className="text-xs">
               Pending: {ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You cannot take action on this step.
+          <p className="text-xs text-muted-foreground">
+            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You can view details and history but cannot take action on this step.
           </p>
+          <ProgressTimeline />
         </CardContent>
       </Card>
     );
