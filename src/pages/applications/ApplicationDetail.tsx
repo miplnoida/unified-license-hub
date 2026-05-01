@@ -574,7 +574,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {isInternal && !app.workflow_id && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {isInternal && !workflowOn && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
