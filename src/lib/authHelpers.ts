@@ -148,6 +148,38 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
 }
 
 /**
+ * Apply any active inbound delegation to a base PlatformUser. The delegated
+ * role becomes the *effective* `role` (so every existing permission, sidebar
+ * and route check picks it up automatically), while the original role is
+ * preserved as `baseRole` for fallback after expiry.
+ */
+async function applyDelegation(base: PlatformUser): Promise<PlatformUser> {
+  try {
+    const delegation = await resolveActiveDelegation(base.id);
+    if (!delegation) return base;
+
+    const baseIdx = ROLE_HIERARCHY.indexOf(base.role);
+    const delIdx = ROLE_HIERARCHY.indexOf(delegation.role);
+    // Only override if the delegated role is *stronger* than what the user
+    // already has. Otherwise nothing changes (no downgrade).
+    const useDelegated = delIdx >= 0 && (baseIdx < 0 || delIdx < baseIdx);
+
+    return {
+      ...base,
+      role: useDelegated ? delegation.role : base.role,
+      baseRole: base.role,
+      delegatedRole: useDelegated ? delegation.role : undefined,
+      delegatedFromName: delegation.fromUserName,
+      delegationFrom: delegation.effectiveFrom,
+      delegationUntil: delegation.effectiveUntil,
+    };
+  } catch (e) {
+    console.warn('[Auth] applyDelegation failed:', e);
+    return base;
+  }
+}
+
+/**
  * Fetch and build the full PlatformUser for a given auth user.
  * Handles both pre-licensee and system user paths with proper error logging.
  */
@@ -166,12 +198,12 @@ export async function fetchPlatformUser(userId: string, email: string): Promise<
     }
 
     if (data) {
-      return mapPreLicenseeProfile(userId, email, data);
+      return applyDelegation(mapPreLicenseeProfile(userId, email, data));
     }
 
     // Fallback: no profile row found
     console.warn('[Auth] Pre-licensee profile row missing, using defaults');
-    return {
+    return applyDelegation({
       id: userId,
       email,
       fullName: email,
@@ -179,7 +211,7 @@ export async function fetchPlatformUser(userId: string, email: string): Promise<
       status: 'active',
       isPreLicensee: true,
       forcePasswordChange: false,
-    };
+    });
   }
 
   // System user path
@@ -216,12 +248,12 @@ export async function fetchPlatformUser(userId: string, email: string): Promise<
     } catch (e) {
       console.warn('[Auth] Could not resolve dynamic role name:', e);
     }
-    return mapSystemProfile(userId, email, role, data, dynamicRoleName);
+    return applyDelegation(mapSystemProfile(userId, email, role, data, dynamicRoleName));
   }
 
   // Fallback: no profile row found
   console.warn('[Auth] Profile row missing, using defaults');
-  return {
+  return applyDelegation({
     id: userId,
     email,
     fullName: email,
@@ -229,5 +261,5 @@ export async function fetchPlatformUser(userId: string, email: string): Promise<
     status: 'active',
     isPreLicensee: false,
     forcePasswordChange: false,
-  };
+  });
 }
