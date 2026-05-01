@@ -75,7 +75,21 @@ export default function ApplicationDetail() {
   const loadData = async () => {
     if (!id) return;
     const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
-    if (appRow) setApp(appRow as any);
+    if (appRow) {
+      setApp(appRow as any);
+      // Resolve effective workflow ON/OFF state: needs workflow_id, is_active=true, AND at least one step
+      const wfId = (appRow as any).workflow_id as string | null;
+      if (wfId) {
+        const [{ data: wf }, { count: stepCount }] = await Promise.all([
+          supabase.from('approval_workflows').select('is_active').eq('id', wfId).maybeSingle(),
+          supabase.from('approval_steps').select('id', { count: 'exact', head: true }).eq('workflow_id', wfId),
+        ]);
+        setWorkflowActive(!!(wf && (wf as any).is_active) && (stepCount || 0) > 0);
+      } else {
+        setWorkflowActive(false);
+      }
+      setWorkflowChecked(true);
+    }
 
     const { data: actions } = await supabase.from('approval_actions').select('*').eq('application_id', id).order('created_at', { ascending: true });
     if (actions) {
