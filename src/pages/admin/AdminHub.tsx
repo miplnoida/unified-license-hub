@@ -14,6 +14,7 @@ import {
 export default function AdminHub() {
   const navigate = useNavigate();
   const { data: metrics, isLoading, isError, error } = useAdminMetrics();
+  const { hasModuleAccess, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
 
   const m = metrics;
 
