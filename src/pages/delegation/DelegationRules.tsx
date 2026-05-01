@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
-import { Layers, Plus, Trash2, Loader2, Calendar, UserCheck } from 'lucide-react';
+import { Layers, Plus, Trash2, Loader2, Calendar, UserCheck, Pencil } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DelegationRule {
   id: string;
@@ -60,12 +61,16 @@ export default function DelegationRules() {
 
   // Date-range delegation form
   const [delegateName, setDelegateName] = useState('');
+  const [delegateRemarks, setDelegateRemarks] = useState('');
+  const [delegateActive, setDelegateActive] = useState(true);
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
   const [transferRole, setTransferRole] = useState<AppRole>('super_admin');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveUntil, setEffectiveUntil] = useState('');
   const [delegateDialogOpen, setDelegateDialogOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [editingOldValue, setEditingOldValue] = useState<DelegationRule | null>(null);
 
   const loadRules = async () => {
     setLoading(true);
@@ -125,7 +130,57 @@ export default function DelegationRules() {
     loadRules();
   };
 
-  const handleCreateDateDelegation = async () => {
+  const resetDelegateForm = () => {
+    setDelegateName(''); setDelegateRemarks(''); setDelegateActive(true);
+    setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setEffectiveFrom(''); setEffectiveUntil('');
+    setEditingRuleId(null); setEditingOldValue(null);
+  };
+
+  const openEditDelegation = (rule: DelegationRule) => {
+    setEditingRuleId(rule.id);
+    setEditingOldValue(rule);
+    setDelegateName(rule.name || '');
+    setDelegateRemarks(rule.description || '');
+    setDelegateActive(!!rule.is_active);
+    setFromUserId(rule.delegate_from_user_id || '');
+    setToUserId(rule.delegate_to_user_id || '');
+    setTransferRole(rule.target_role);
+    // Convert ISO timestamps back to YYYY-MM-DD for date inputs (local).
+    const toDateInput = (iso: string | null) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    setEffectiveFrom(toDateInput(rule.effective_from));
+    setEffectiveUntil(toDateInput(rule.effective_until));
+    setDelegateDialogOpen(true);
+  };
+
+  const hasConflictingDelegation = (
+    fromId: string,
+    toId: string,
+    role: AppRole,
+    startIso: string,
+    endIso: string,
+    excludeId: string | null,
+  ): DelegationRule | null => {
+    return rules.find(r =>
+      r.id !== excludeId &&
+      r.is_active &&
+      r.delegate_from_user_id === fromId &&
+      r.delegate_to_user_id === toId &&
+      r.target_role === role &&
+      r.effective_from && r.effective_until &&
+      // overlap test (inclusive)
+      r.effective_from <= endIso && r.effective_until >= startIso
+    ) || null;
+  };
+
+  const handleSaveDateDelegation = async () => {
     if (!delegateName.trim() || !fromUserId || !toUserId || !effectiveFrom || !effectiveUntil) {
       toast.error('Please fill all required fields');
       return;
@@ -134,47 +189,72 @@ export default function DelegationRules() {
       toast.error('From and To users must be different');
       return;
     }
-    // Allow same-day delegation: end must be on or after start.
     if (new Date(effectiveUntil) < new Date(effectiveFrom)) {
       toast.error('End date must be on or after start date');
       return;
     }
     setCreating(true);
-    // Inclusive window: start at 00:00:00 of from-date, end at 23:59:59.999 of until-date (local).
     const startOfDay = new Date(effectiveFrom);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(effectiveUntil);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { error } = await supabase.from('delegation_rules').insert({
+    const conflict = hasConflictingDelegation(
+      fromUserId, toUserId, transferRole,
+      startOfDay.toISOString(), endOfDay.toISOString(),
+      editingRuleId,
+    );
+    if (conflict) {
+      toast.error(`Conflicts with existing active delegation "${conflict.name}" for the same user/role/period.`);
+      setCreating(false);
+      return;
+    }
+
+    const payload = {
       name: delegateName.trim(),
-      description: `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
+      description: delegateRemarks.trim() || `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
       condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
       target_role: transferRole,
       delegate_from_user_id: fromUserId,
       delegate_to_user_id: toUserId,
       effective_from: startOfDay.toISOString(),
       effective_until: endOfDay.toISOString(),
-      is_active: true,
-    } as any);
+      is_active: delegateActive,
+    };
 
-    if (error) { toast.error(error.message); setCreating(false); return; }
+    if (editingRuleId) {
+      const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);
+      if (error) { toast.error(error.message); setCreating(false); return; }
+      await logAudit({
+        action: 'delegation_date_range_updated',
+        entityType: 'delegation_rule',
+        entityId: editingRuleId,
+        oldValue: editingOldValue ? {
+          name: editingOldValue.name,
+          description: editingOldValue.description,
+          target_role: editingOldValue.target_role,
+          delegate_from_user_id: editingOldValue.delegate_from_user_id,
+          delegate_to_user_id: editingOldValue.delegate_to_user_id,
+          effective_from: editingOldValue.effective_from,
+          effective_until: editingOldValue.effective_until,
+          is_active: editingOldValue.is_active,
+        } : undefined,
+        newValue: payload,
+      });
+      toast.success('Delegation updated. Active sessions will refresh within ~5 minutes.');
+    } else {
+      const { error } = await supabase.from('delegation_rules').insert(payload as any);
+      if (error) { toast.error(error.message); setCreating(false); return; }
+      await logAudit({
+        action: 'delegation_date_range_created',
+        entityType: 'delegation_rule',
+        newValue: payload,
+      });
+      toast.success('Date-range delegation created');
+    }
 
-    await logAudit({
-      action: 'delegation_date_range_created',
-      entityType: 'delegation_rule',
-      newValue: {
-        from_user: fromUserId,
-        to_user: toUserId,
-        transfer_role: transferRole,
-        effective_from: startOfDay.toISOString(),
-        effective_until: endOfDay.toISOString(),
-      },
-    });
-    toast.success('Date-range delegation created');
     setDelegateDialogOpen(false);
-    setDelegateName(''); setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
-    setEffectiveFrom(''); setEffectiveUntil('');
+    resetDelegateForm();
     setCreating(false);
     loadRules();
   };
@@ -324,13 +404,26 @@ export default function DelegationRules() {
 
           <TabsContent value="transfers" className="space-y-4">
             <div className="flex justify-end">
-              <Dialog open={delegateDialogOpen} onOpenChange={setDelegateDialogOpen}>
+              <Dialog open={delegateDialogOpen} onOpenChange={(o) => { setDelegateDialogOpen(o); if (!o) resetDelegateForm(); }}>
                 <DialogTrigger asChild>
-                  <Button><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
+                  <Button onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>Create Date-Range Role Transfer</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingRuleId ? 'Edit Role Transfer' : 'Create Date-Range Role Transfer'}</DialogTitle>
+                  </DialogHeader>
                   <div className="space-y-4">
+                    {editingRuleId && editingOldValue?.is_active && (() => {
+                      const now = new Date();
+                      const from = editingOldValue.effective_from ? new Date(editingOldValue.effective_from) : null;
+                      const until = editingOldValue.effective_until ? new Date(editingOldValue.effective_until) : null;
+                      const isLive = from && until && from <= now && now <= until;
+                      return isLive ? (
+                        <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                          ⚠ This delegation is currently active. Changes will affect the covering user's permissions.
+                        </div>
+                      ) : null;
+                    })()}
                     <div><Label>Name *</Label><Input value={delegateName} onChange={e => setDelegateName(e.target.value)} placeholder="e.g., User A leave coverage" /></div>
                     <div>
                       <Label>Transfer From (Absent User) *</Label>
@@ -370,14 +463,25 @@ export default function DelegationRules() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div><Label>From Date *</Label><Input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} /></div>
-                      <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} /></div>
+                      <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} min={effectiveFrom || undefined} onChange={e => setEffectiveUntil(e.target.value)} /></div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Both dates are inclusive (start at 00:00, end at 23:59). Same-day transfers are supported.
                       Roles auto-revert after the end date.
                     </p>
-                    <Button onClick={handleCreateDateDelegation} disabled={creating} className="w-full">
-                      {creating ? 'Creating...' : 'Create Transfer'}
+                    <div>
+                      <Label>Remarks / Notes</Label>
+                      <Textarea value={delegateRemarks} onChange={e => setDelegateRemarks(e.target.value)} placeholder="Optional notes about this delegation..." rows={2} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                      <div>
+                        <Label className="text-sm">Status</Label>
+                        <p className="text-[11px] text-muted-foreground">{delegateActive ? 'Active' : 'Inactive'}</p>
+                      </div>
+                      <Switch checked={delegateActive} onCheckedChange={setDelegateActive} />
+                    </div>
+                    <Button onClick={handleSaveDateDelegation} disabled={creating} className="w-full">
+                      {creating ? 'Saving...' : editingRuleId ? 'Update Transfer' : 'Create Transfer'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -438,6 +542,9 @@ export default function DelegationRules() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDelegation(rule)} title="Edit delegation">
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(rule.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
