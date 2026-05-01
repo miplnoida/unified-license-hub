@@ -7,15 +7,47 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
-  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound,
+  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound, CircleDot, Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+/**
+ * Resolve the effective system roles a user has access to:
+ * - Their primary system role (which may already be a delegated role)
+ * - Plus the system_role mapping of every dynamic role assigned to them
+ *   via user_dynamic_roles → roles.system_role.
+ * Used to determine if the user is an authorized approver for the current step.
+ */
+function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
+  return useQuery({
+    queryKey: ['effective-system-roles', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const set = new Set<string>();
+      if (primaryRole) set.add(primaryRole);
+      const { data: udr } = await supabase
+        .from('user_dynamic_roles' as any)
+        .select('role_id')
+        .eq('user_id', userId!);
+      const roleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
+      if (roleIds.length > 0) {
+        const { data: roles } = await supabase
+          .from('roles' as any)
+          .select('system_role')
+          .in('id', roleIds);
+        ((roles as any[]) || []).forEach(r => { if (r.system_role) set.add(r.system_role); });
+      }
+      return Array.from(set);
+    },
+    staleTime: 60_000,
+  });
+}
 
 interface Props {
   applicationId: string;
@@ -101,10 +133,14 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
-  // Check if user's role matches the current step's approver role
-  // super_admin can act on any step; other roles must match exactly
-  const userRoleMatchesStep = user && currentStep && (
-    user.role === 'super_admin' || user.role === currentStep.approver_role
+  // Resolve all effective system roles for the current user (primary + dynamic role mappings).
+  // This ensures users assigned to a dynamic role mapped to the step's approver_role
+  // — including delegated roles already applied to user.role — are recognised as approvers.
+  const { data: effectiveRoles = [] } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
+
+  // super_admin can act on any step; otherwise any of the user's effective roles must match.
+  const userRoleMatchesStep = !!user && !!currentStep && (
+    user.role === 'super_admin' || effectiveRoles.includes(currentStep.approver_role)
   );
 
   // If workflow is paused (waiting for resubmission), show info card
@@ -139,7 +175,37 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
 
   if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
 
-  // If user's role doesn't match, show read-only status
+  // Compact workflow progress timeline shown in both read-only and active states
+  const ProgressTimeline = () => (
+    <div className="space-y-2 rounded-md border border-border/60 bg-muted/30 p-3">
+      <p className="text-xs font-medium text-muted-foreground">Workflow Progress</p>
+      <ol className="space-y-1.5">
+        {steps.map((s, idx) => {
+          const isDone = idx < currentStepIdx;
+          const isCurrent = idx === currentStepIdx;
+          return (
+            <li key={s.id} className="flex items-center gap-2 text-xs">
+              {isDone ? (
+                <CheckCircle className="h-3.5 w-3.5 text-success" />
+              ) : isCurrent ? (
+                <CircleDot className="h-3.5 w-3.5 text-primary animate-pulse" />
+              ) : (
+                <Circle className="h-3.5 w-3.5 text-muted-foreground/50" />
+              )}
+              <span className={isCurrent ? 'font-medium' : 'text-muted-foreground'}>
+                Step {idx + 1}: {s.name}
+              </span>
+              <Badge variant="outline" className="ml-auto text-[10px]">
+                {ROLE_LABELS[s.approver_role as AppRole] || s.approver_role}
+              </Badge>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+
+  // If user's role doesn't match the current step → read-only with progress + pending approver
   if (!userRoleMatchesStep) {
     return (
       <Card>
@@ -149,16 +215,17 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
             Workflow Review — Level {currentStepIdx + 1} of {steps.length}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{currentStep.name}</span>
             <Badge variant="outline" className="text-xs">
               Pending: {ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You cannot take action on this step.
+          <p className="text-xs text-muted-foreground">
+            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You can view details and history but cannot take action on this step.
           </p>
+          <ProgressTimeline />
         </CardContent>
       </Card>
     );
@@ -277,6 +344,8 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
             SLA: {currentStep.sla_hours}h
           </div>
         )}
+
+        <ProgressTimeline />
 
         <Separator />
 
