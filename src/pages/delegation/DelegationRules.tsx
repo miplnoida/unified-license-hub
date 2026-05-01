@@ -445,8 +445,7 @@ export default function DelegationRules() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
       </div>
     </DashboardLayout>
   );
