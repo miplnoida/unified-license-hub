@@ -130,7 +130,57 @@ export default function DelegationRules() {
     loadRules();
   };
 
-  const handleCreateDateDelegation = async () => {
+  const resetDelegateForm = () => {
+    setDelegateName(''); setDelegateRemarks(''); setDelegateActive(true);
+    setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setEffectiveFrom(''); setEffectiveUntil('');
+    setEditingRuleId(null); setEditingOldValue(null);
+  };
+
+  const openEditDelegation = (rule: DelegationRule) => {
+    setEditingRuleId(rule.id);
+    setEditingOldValue(rule);
+    setDelegateName(rule.name || '');
+    setDelegateRemarks(rule.description || '');
+    setDelegateActive(!!rule.is_active);
+    setFromUserId(rule.delegate_from_user_id || '');
+    setToUserId(rule.delegate_to_user_id || '');
+    setTransferRole(rule.target_role);
+    // Convert ISO timestamps back to YYYY-MM-DD for date inputs (local).
+    const toDateInput = (iso: string | null) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    setEffectiveFrom(toDateInput(rule.effective_from));
+    setEffectiveUntil(toDateInput(rule.effective_until));
+    setDelegateDialogOpen(true);
+  };
+
+  const hasConflictingDelegation = (
+    fromId: string,
+    toId: string,
+    role: AppRole,
+    startIso: string,
+    endIso: string,
+    excludeId: string | null,
+  ): DelegationRule | null => {
+    return rules.find(r =>
+      r.id !== excludeId &&
+      r.is_active &&
+      r.delegate_from_user_id === fromId &&
+      r.delegate_to_user_id === toId &&
+      r.target_role === role &&
+      r.effective_from && r.effective_until &&
+      // overlap test (inclusive)
+      r.effective_from <= endIso && r.effective_until >= startIso
+    ) || null;
+  };
+
+  const handleSaveDateDelegation = async () => {
     if (!delegateName.trim() || !fromUserId || !toUserId || !effectiveFrom || !effectiveUntil) {
       toast.error('Please fill all required fields');
       return;
@@ -139,47 +189,72 @@ export default function DelegationRules() {
       toast.error('From and To users must be different');
       return;
     }
-    // Allow same-day delegation: end must be on or after start.
     if (new Date(effectiveUntil) < new Date(effectiveFrom)) {
       toast.error('End date must be on or after start date');
       return;
     }
     setCreating(true);
-    // Inclusive window: start at 00:00:00 of from-date, end at 23:59:59.999 of until-date (local).
     const startOfDay = new Date(effectiveFrom);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(effectiveUntil);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { error } = await supabase.from('delegation_rules').insert({
+    const conflict = hasConflictingDelegation(
+      fromUserId, toUserId, transferRole,
+      startOfDay.toISOString(), endOfDay.toISOString(),
+      editingRuleId,
+    );
+    if (conflict) {
+      toast.error(`Conflicts with existing active delegation "${conflict.name}" for the same user/role/period.`);
+      setCreating(false);
+      return;
+    }
+
+    const payload = {
       name: delegateName.trim(),
-      description: `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
+      description: delegateRemarks.trim() || `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
       condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
       target_role: transferRole,
       delegate_from_user_id: fromUserId,
       delegate_to_user_id: toUserId,
       effective_from: startOfDay.toISOString(),
       effective_until: endOfDay.toISOString(),
-      is_active: true,
-    } as any);
+      is_active: delegateActive,
+    };
 
-    if (error) { toast.error(error.message); setCreating(false); return; }
+    if (editingRuleId) {
+      const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);
+      if (error) { toast.error(error.message); setCreating(false); return; }
+      await logAudit({
+        action: 'delegation_date_range_updated',
+        entityType: 'delegation_rule',
+        entityId: editingRuleId,
+        oldValue: editingOldValue ? {
+          name: editingOldValue.name,
+          description: editingOldValue.description,
+          target_role: editingOldValue.target_role,
+          delegate_from_user_id: editingOldValue.delegate_from_user_id,
+          delegate_to_user_id: editingOldValue.delegate_to_user_id,
+          effective_from: editingOldValue.effective_from,
+          effective_until: editingOldValue.effective_until,
+          is_active: editingOldValue.is_active,
+        } : undefined,
+        newValue: payload,
+      });
+      toast.success('Delegation updated. Active sessions will refresh within ~5 minutes.');
+    } else {
+      const { error } = await supabase.from('delegation_rules').insert(payload as any);
+      if (error) { toast.error(error.message); setCreating(false); return; }
+      await logAudit({
+        action: 'delegation_date_range_created',
+        entityType: 'delegation_rule',
+        newValue: payload,
+      });
+      toast.success('Date-range delegation created');
+    }
 
-    await logAudit({
-      action: 'delegation_date_range_created',
-      entityType: 'delegation_rule',
-      newValue: {
-        from_user: fromUserId,
-        to_user: toUserId,
-        transfer_role: transferRole,
-        effective_from: startOfDay.toISOString(),
-        effective_until: endOfDay.toISOString(),
-      },
-    });
-    toast.success('Date-range delegation created');
     setDelegateDialogOpen(false);
-    setDelegateName(''); setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
-    setEffectiveFrom(''); setEffectiveUntil('');
+    resetDelegateForm();
     setCreating(false);
     loadRules();
   };
