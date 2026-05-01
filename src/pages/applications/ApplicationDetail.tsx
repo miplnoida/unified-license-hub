@@ -524,8 +524,8 @@ export default function ApplicationDetail() {
               </TabsContent>
             </Tabs>
 
-            {/* Workflow-based review panel */}
-            {app.workflow_id && (
+            {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
+            {workflowOn && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
