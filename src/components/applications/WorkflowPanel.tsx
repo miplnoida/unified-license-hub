@@ -133,10 +133,14 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
-  // Check if user's role matches the current step's approver role
-  // super_admin can act on any step; other roles must match exactly
-  const userRoleMatchesStep = user && currentStep && (
-    user.role === 'super_admin' || user.role === currentStep.approver_role
+  // Resolve all effective system roles for the current user (primary + dynamic role mappings).
+  // This ensures users assigned to a dynamic role mapped to the step's approver_role
+  // — including delegated roles already applied to user.role — are recognised as approvers.
+  const { data: effectiveRoles = [] } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
+
+  // super_admin can act on any step; otherwise any of the user's effective roles must match.
+  const userRoleMatchesStep = !!user && !!currentStep && (
+    user.role === 'super_admin' || effectiveRoles.includes(currentStep.approver_role)
   );
 
   // If workflow is paused (waiting for resubmission), show info card
