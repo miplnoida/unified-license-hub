@@ -85,31 +85,6 @@ export default function DelegationRules() {
     }
   }, [rules.length]);
 
-  const handleCreate = async () => {
-    if (!name.trim() || !condValue.trim()) {
-      toast.error('Please fill all required fields');
-      return;
-    }
-    setCreating(true);
-    const condition = { field: condField, operator: condOp, value: condValue };
-    const { error } = await supabase.from('delegation_rules').insert({
-      name: name.trim(),
-      description: description.trim() || null,
-      condition,
-      target_role: targetRole,
-      is_active: true,
-    } as any);
-
-    if (error) { toast.error(error.message); setCreating(false); return; }
-
-    await logAudit({ action: 'delegation_rule_created', entityType: 'delegation_rule', newValue: { name, condition, target_role: targetRole } });
-    toast.success('Delegation rule created');
-    setDialogOpen(false);
-    setName(''); setDescription(''); setCondField('amount'); setCondOp('>'); setCondValue('');
-    setCreating(false);
-    loadRules();
-  };
-
   const resetDelegateForm = () => {
     setDelegateName(''); setDelegateRemarks(''); setDelegateActive(true);
     setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
