@@ -33,6 +33,87 @@ export async function resolveUserRole(userId: string): Promise<AppRole> {
 }
 
 /**
+ * Resolve any active inbound delegation for the given user. Returns the
+ * highest-priority delegated role (per ROLE_HIERARCHY) plus metadata about
+ * the delegator and validity window. Both `effective_from` and
+ * `effective_until` are treated as inclusive (the form stores them as
+ * start-of-day and end-of-day respectively).
+ *
+ * Returns null when no active delegation applies right now.
+ */
+export async function resolveActiveDelegation(userId: string): Promise<{
+  role: AppRole;
+  fromUserId: string;
+  fromUserName?: string;
+  effectiveFrom: string;
+  effectiveUntil: string;
+} | null> {
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('delegation_rules')
+    .select('id, target_role, delegate_from_user_id, effective_from, effective_until, is_active')
+    .eq('delegate_to_user_id', userId)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('[Auth] Failed to load delegations:', error.message);
+    return null;
+  }
+
+  const active = (data || []).filter((r: any) => {
+    if (!r.delegate_from_user_id) return false;
+    const fromOk = !r.effective_from || r.effective_from <= nowIso;
+    const untilOk = !r.effective_until || r.effective_until >= nowIso;
+    return fromOk && untilOk;
+  });
+  if (active.length === 0) return null;
+
+  // For each active delegation, resolve the delegator's actual highest role
+  // (target_role is a hint but the delegator may have stronger roles like super_admin).
+  const enriched: Array<{ role: AppRole; rule: any }> = [];
+  for (const rule of active as any[]) {
+    let role = rule.target_role as AppRole;
+    if (rule.delegate_from_user_id) {
+      try {
+        const fromRole = await resolveUserRole(rule.delegate_from_user_id);
+        // Pick the stronger of target_role hint vs the delegator's actual role
+        const fromIdx = ROLE_HIERARCHY.indexOf(fromRole);
+        const tgtIdx = ROLE_HIERARCHY.indexOf(role);
+        if (fromIdx >= 0 && (tgtIdx < 0 || fromIdx < tgtIdx)) role = fromRole;
+      } catch (e) {
+        console.warn('[Auth] Could not resolve delegator role:', e);
+      }
+    }
+    enriched.push({ role, rule });
+  }
+
+  // Pick the highest-priority role across all active delegations
+  enriched.sort((a, b) => ROLE_HIERARCHY.indexOf(a.role) - ROLE_HIERARCHY.indexOf(b.role));
+  const winner = enriched[0];
+
+  // Resolve delegator name
+  let fromName: string | undefined;
+  try {
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', winner.rule.delegate_from_user_id)
+      .maybeSingle();
+    fromName = (prof as any)?.full_name;
+  } catch {
+    /* ignore */
+  }
+
+  return {
+    role: winner.role,
+    fromUserId: winner.rule.delegate_from_user_id,
+    fromUserName: fromName,
+    effectiveFrom: winner.rule.effective_from,
+    effectiveUntil: winner.rule.effective_until,
+  };
+}
+
+/**
  * Build a PlatformUser from a pre_license_users row.
  */
 function mapPreLicenseeProfile(userId: string, email: string, profile: PreLicenseUserRow): PlatformUser {
