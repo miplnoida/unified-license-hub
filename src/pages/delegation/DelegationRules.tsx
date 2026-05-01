@@ -10,11 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
-import { Trash2, Loader2, Calendar, UserCheck, Pencil } from 'lucide-react';
+import { Trash2, Loader2, Calendar, UserCheck, Pencil, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface DelegationRule {
@@ -45,7 +46,10 @@ export default function DelegationRules() {
   const [delegateActive, setDelegateActive] = useState(true);
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
-  const [transferRole, setTransferRole] = useState<AppRole>('super_admin');
+  // Multi-role transfer: roles auto-loaded from selected Absent User.
+  const [fromUserRoles, setFromUserRoles] = useState<AppRole[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveUntil, setEffectiveUntil] = useState('');
   const [delegateDialogOpen, setDelegateDialogOpen] = useState(false);
@@ -87,10 +91,46 @@ export default function DelegationRules() {
 
   const resetDelegateForm = () => {
     setDelegateName(''); setDelegateRemarks(''); setDelegateActive(true);
-    setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setFromUserId(''); setToUserId('');
+    setFromUserRoles([]); setSelectedRoles([]); setRolesLoading(false);
     setEffectiveFrom(''); setEffectiveUntil('');
     setEditingRuleId(null); setEditingOldValue(null);
   };
+
+  // Fetch all assigned roles for a given user from user_roles
+  const fetchRolesForUser = async (userId: string): Promise<AppRole[]> => {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('[Delegation] Failed to load roles:', error.message);
+      return [];
+    }
+    const roles = Array.from(new Set(((data || []) as any[]).map(r => r.role as AppRole)));
+    roles.sort((a, b) => ROLE_HIERARCHY.indexOf(a) - ROLE_HIERARCHY.indexOf(b));
+    return roles;
+  };
+
+  // Auto-load roles whenever the Absent (From) user changes.
+  useEffect(() => {
+    if (!delegateDialogOpen) return;
+    if (!fromUserId) { setFromUserRoles([]); setSelectedRoles([]); return; }
+    let cancelled = false;
+    setRolesLoading(true);
+    fetchRolesForUser(fromUserId).then(roles => {
+      if (cancelled) return;
+      setFromUserRoles(roles);
+      setSelectedRoles(prev => {
+        if (editingRuleId && editingOldValue?.target_role && roles.includes(editingOldValue.target_role)) {
+          return [editingOldValue.target_role];
+        }
+        return roles.filter(r => r !== 'applicant' && r !== 'pre_licensee');
+      });
+      setRolesLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [fromUserId, delegateDialogOpen, editingRuleId, editingOldValue]);
 
   const openEditDelegation = (rule: DelegationRule) => {
     setEditingRuleId(rule.id);
@@ -100,8 +140,7 @@ export default function DelegationRules() {
     setDelegateActive(!!rule.is_active);
     setFromUserId(rule.delegate_from_user_id || '');
     setToUserId(rule.delegate_to_user_id || '');
-    setTransferRole(rule.target_role);
-    // Convert ISO timestamps back to YYYY-MM-DD for date inputs (local).
+    setSelectedRoles(rule.target_role ? [rule.target_role] : []);
     const toDateInput = (iso: string | null) => {
       if (!iso) return '';
       const d = new Date(iso);
@@ -114,6 +153,14 @@ export default function DelegationRules() {
     setEffectiveUntil(toDateInput(rule.effective_until));
     setDelegateDialogOpen(true);
   };
+
+  const toggleSelectedRole = (role: AppRole) => {
+    setSelectedRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]);
+  };
+  const selectAllRoles = () => {
+    setSelectedRoles(fromUserRoles.filter(r => r !== 'applicant' && r !== 'pre_licensee'));
+  };
+  const clearSelectedRoles = () => setSelectedRoles([]);
 
   const hasConflictingDelegation = (
     fromId: string,
@@ -130,7 +177,6 @@ export default function DelegationRules() {
       r.delegate_to_user_id === toId &&
       r.target_role === role &&
       r.effective_from && r.effective_until &&
-      // overlap test (inclusive)
       r.effective_from <= endIso && r.effective_until >= startIso
     ) || null;
   };
@@ -148,36 +194,49 @@ export default function DelegationRules() {
       toast.error('End date must be on or after start date');
       return;
     }
+    if (fromUserRoles.length === 0) {
+      toast.error('The selected Absent User has no active roles assigned. Delegation not allowed.');
+      return;
+    }
+    if (selectedRoles.length === 0) {
+      toast.error('Please select at least one role to transfer');
+      return;
+    }
     setCreating(true);
     const startOfDay = new Date(effectiveFrom);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(effectiveUntil);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const conflict = hasConflictingDelegation(
-      fromUserId, toUserId, transferRole,
-      startOfDay.toISOString(), endOfDay.toISOString(),
-      editingRuleId,
-    );
-    if (conflict) {
-      toast.error(`Conflicts with existing active delegation "${conflict.name}" for the same user/role/period.`);
-      setCreating(false);
-      return;
+    for (const role of selectedRoles) {
+      const conflict = hasConflictingDelegation(
+        fromUserId, toUserId, role,
+        startOfDay.toISOString(), endOfDay.toISOString(),
+        editingRuleId,
+      );
+      if (conflict) {
+        toast.error(`Conflicts with existing active delegation "${conflict.name}" for role "${ROLE_LABELS[role]}" in this period.`);
+        setCreating(false);
+        return;
+      }
     }
 
-    const payload = {
-      name: delegateName.trim(),
-      description: delegateRemarks.trim() || `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
-      condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
-      target_role: transferRole,
-      delegate_from_user_id: fromUserId,
-      delegate_to_user_id: toUserId,
-      effective_from: startOfDay.toISOString(),
-      effective_until: endOfDay.toISOString(),
-      is_active: delegateActive,
-    };
+    const baseDescription = delegateRemarks.trim();
+    const periodLabel = `${effectiveFrom} to ${effectiveUntil}`;
 
     if (editingRuleId) {
+      const role = selectedRoles[0];
+      const payload = {
+        name: delegateName.trim(),
+        description: baseDescription || `Role transfer (${ROLE_LABELS[role]}): ${periodLabel}`,
+        condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
+        target_role: role,
+        delegate_from_user_id: fromUserId,
+        delegate_to_user_id: toUserId,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+        is_active: delegateActive,
+      };
       const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
@@ -198,14 +257,29 @@ export default function DelegationRules() {
       });
       toast.success('Delegation updated. Active sessions will refresh within ~5 minutes.');
     } else {
-      const { error } = await supabase.from('delegation_rules').insert(payload as any);
+      const rows = selectedRoles.map(role => ({
+        name: selectedRoles.length > 1 ? `${delegateName.trim()} — ${ROLE_LABELS[role]}` : delegateName.trim(),
+        description: baseDescription || `Role transfer (${ROLE_LABELS[role]}): ${periodLabel}`,
+        condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
+        target_role: role,
+        delegate_from_user_id: fromUserId,
+        delegate_to_user_id: toUserId,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+        is_active: delegateActive,
+      }));
+      const { error } = await supabase.from('delegation_rules').insert(rows as any);
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
         action: 'delegation_date_range_created',
         entityType: 'delegation_rule',
-        newValue: payload,
+        newValue: { count: rows.length, roles: selectedRoles, rows },
       });
-      toast.success('Date-range delegation created');
+      toast.success(
+        rows.length > 1
+          ? `Delegated ${rows.length} roles successfully`
+          : 'Date-range delegation created'
+      );
     }
 
     setDelegateDialogOpen(false);
@@ -290,17 +364,79 @@ export default function DelegationRules() {
                       </Select>
                     </div>
                     <div>
-                      <Label>Role to Transfer *</Label>
-                      <Select value={transferRole} onValueChange={v => setTransferRole(v as AppRole)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ROLE_HIERARCHY.filter(r => r !== 'applicant' && r !== 'pre_licensee').map(r => (
-                            <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        The covering user will gain access of this role during the active period.
+                      <div className="flex items-center justify-between mb-1.5">
+                        <Label className="flex items-center gap-1.5">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Roles to Transfer *
+                        </Label>
+                        {!editingRuleId && fromUserRoles.length > 1 && (
+                          <div className="flex items-center gap-2 text-[11px]">
+                            <button type="button" onClick={selectAllRoles} className="text-primary hover:underline">
+                              Transfer All
+                            </button>
+                            <span className="text-muted-foreground">·</span>
+                            <button type="button" onClick={clearSelectedRoles} className="text-muted-foreground hover:underline">
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {!fromUserId ? (
+                        <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+                          Select an Absent User above to load their assigned roles.
+                        </div>
+                      ) : rolesLoading ? (
+                        <div className="rounded-md border px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading assigned roles...
+                        </div>
+                      ) : fromUserRoles.length === 0 ? (
+                        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-3 text-xs text-destructive flex items-start gap-2">
+                          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>No active roles assigned to this user. Delegation is not allowed.</span>
+                        </div>
+                      ) : editingRuleId ? (
+                        <Select value={selectedRoles[0] || ''} onValueChange={v => setSelectedRoles([v as AppRole])}>
+                          <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                          <SelectContent>
+                            {fromUserRoles.map(r => (
+                              <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="rounded-md border divide-y">
+                          {fromUserRoles.map((r, idx) => {
+                            const disabled = r === 'applicant' || r === 'pre_licensee';
+                            const checked = selectedRoles.includes(r);
+                            return (
+                              <label
+                                key={r}
+                                className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'}`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <Checkbox
+                                    checked={checked}
+                                    disabled={disabled}
+                                    onCheckedChange={() => !disabled && toggleSelectedRole(r)}
+                                  />
+                                  <span className="font-medium truncate">{ROLE_LABELS[r]}</span>
+                                  {idx === 0 && fromUserRoles.length > 1 && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1">Highest</Badge>
+                                  )}
+                                </div>
+                                {disabled && (
+                                  <span className="text-[10px] text-muted-foreground">Not delegatable</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1.5">
+                        {editingRuleId
+                          ? 'Editing affects this single delegation row.'
+                          : 'One delegation row will be created per selected role. The covering user gains access of all selected roles during the active period.'}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
