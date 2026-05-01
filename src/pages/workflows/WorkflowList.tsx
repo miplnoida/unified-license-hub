@@ -32,7 +32,8 @@ import {
   ENTITY_TYPE_LABELS,
   type Workflow, type WorkflowStep, type WorkflowEntityType,
 } from '@/hooks/useWorkflowEngine';
-import { useRoles } from '@/hooks/useRoles';
+import { useRoles, type DynamicRole } from '@/hooks/useRoles';
+import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
@@ -64,10 +65,52 @@ function useTemplates() {
   });
 }
 
+// ─── Smart default role resolver ───
+// Maps a sector to the most relevant regulator role purely by NAME match
+// (no hardcoded ids). Falls back to "Super Admin" role if nothing matches.
+function resolveDefaultRoleForSector(
+  sectorName: string | null | undefined,
+  roles: DynamicRole[],
+): { role: DynamicRole | null; matched: boolean } {
+  const superAdmin =
+    roles.find(r => r.name.trim().toLowerCase() === 'super admin') ||
+    roles.find(r => r.system_role === 'super_admin') ||
+    null;
+
+  if (!sectorName) return { role: superAdmin, matched: false };
+
+  // Tokenize sector (e.g. "Credit Union", "Cooperatives") and try to find
+  // a role whose name contains a sector token, preferring "regulator" roles.
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim();
+  const sectorTokens = norm(sectorName)
+    .split(/\s+/)
+    .filter(t => t.length >= 4); // avoid noise words like "of", "and"
+
+  if (sectorTokens.length === 0) return { role: superAdmin, matched: false };
+
+  // Strip plural "s" for loose matching (Cooperatives -> cooperative)
+  const stems = sectorTokens.map(t => t.endsWith('s') ? t.slice(0, -1) : t);
+
+  const candidates = roles.filter(r => {
+    const rn = norm(r.name);
+    return stems.some(stem => rn.includes(stem));
+  });
+
+  if (candidates.length === 0) return { role: superAdmin, matched: false };
+
+  // Prefer roles containing "regulator" (handles common typos like "regualtor" too)
+  const preferred =
+    candidates.find(r => /regul[au]tor/i.test(r.name)) ||
+    candidates[0];
+
+  return { role: preferred, matched: true };
+}
+
 export default function WorkflowList() {
   const { activeRegulatorId } = useRegulator();
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
   const { data: dynamicRoles = [] } = useRoles();
+  const { data: sectors = [] } = useSectors(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
   const qc = useQueryClient();
 
@@ -87,6 +130,7 @@ export default function WorkflowList() {
   const [newDesc, setNewDesc] = useState('');
   const [newLicenseType, setNewLicenseType] = useState('');
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType>('application');
+  const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
 
   // Templates dialog
@@ -100,23 +144,34 @@ export default function WorkflowList() {
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
 
+  // Live preview of which role will be auto-assigned to Step 1
+  const selectedSectorName = useMemo(
+    () => (sectors as any[]).find(s => s.id === newSectorId)?.name as string | undefined,
+    [sectors, newSectorId],
+  );
+  const defaultRolePreview = useMemo(
+    () => resolveDefaultRoleForSector(selectedSectorName, dynamicRoles),
+    [selectedSectorName, dynamicRoles],
+  );
+
   const handleCreate = async () => {
     if (!newName.trim() || !newLicenseType.trim()) {
       toast.error('Please give the workflow a name and a category');
       return;
     }
     try {
+      const sectorId = newSectorId !== 'none' ? newSectorId : null;
       const wf = await createWorkflow.mutateAsync({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
         license_type: newLicenseType.trim(),
         entity_type: newEntityType,
         regulator_id: activeRegulatorId,
-        sector_id: null,
+        sector_id: sectorId,
         category_id: null,
       });
 
-      // Seed steps from template OR add a default Step 1
+      // Seed steps from template OR auto-generate the smart default flow
       if (seedFromTemplateId !== 'blank') {
         const tpl = templates.find(t => t.id === seedFromTemplateId);
         if (tpl?.steps?.length) {
@@ -133,22 +188,35 @@ export default function WorkflowList() {
           }
         }
       } else {
-        // Smart default: start with Step 1
+        // Smart default: resolve sector → regulator role; fallback to Super Admin
+        const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
+        const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
+        const resolvedSystem = (defaultRole?.system_role || 'super_admin') as any;
+        const stepName = defaultRole?.name
+          ? `${defaultRole.name} Review`
+          : 'Step 1';
         await createStep.mutateAsync({
           workflow_id: wf.id,
           step_order: 1,
-          name: 'Step 1',
-          approver_role: firstRoleSystem as any,
+          name: stepName,
+          approver_role: resolvedSystem,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'],
         });
+        if (sectorName) {
+          toast.success(
+            matched
+              ? `Step 1 auto-assigned to "${defaultRole?.name}" based on sector`
+              : `No matching regulator role for "${sectorName}" — defaulted to Super Admin`,
+          );
+        }
       }
 
       toast.success('Workflow created');
       setSelectedId(wf.id);
       setCreateOpen(false);
       setNewName(''); setNewDesc(''); setNewLicenseType('');
-      setNewEntityType('application'); setSeedFromTemplateId('blank');
+      setNewEntityType('application'); setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -429,11 +497,40 @@ export default function WorkflowList() {
               </div>
             </div>
             <div>
+              <Label>Sector</Label>
+              <Select value={newSectorId} onValueChange={setNewSectorId}>
+                <SelectTrigger><SelectValue placeholder="Select a sector (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific sector</SelectItem>
+                  {(sectors as any[]).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {seedFromTemplateId === 'blank' && (
+                <div className="mt-2 flex items-start gap-2 rounded-md border bg-muted/40 p-2.5">
+                  <Sparkles className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="text-foreground">
+                      Step 1 will be auto-assigned to{' '}
+                      <span className="font-semibold">
+                        {defaultRolePreview.role?.name || 'Super Admin'}
+                      </span>
+                      {defaultRolePreview.matched ? ' (sector regulator)' : ' (default fallback)'}.
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Default role assigned based on selected sector. You can change or add steps after creation.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div>
               <Label>Start From</Label>
               <Select value={seedFromTemplateId} onValueChange={setSeedFromTemplateId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="blank">Blank workflow (recommended)</SelectItem>
+                  <SelectItem value="blank">Smart default (sector regulator)</SelectItem>
                   {templates.map(t => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name} ({t.steps.length} step{t.steps.length === 1 ? '' : 's'})
