@@ -134,20 +134,27 @@ export default function DelegationRules() {
       toast.error('From and To users must be different');
       return;
     }
-    if (new Date(effectiveUntil) <= new Date(effectiveFrom)) {
-      toast.error('End date must be after start date');
+    // Allow same-day delegation: end must be on or after start.
+    if (new Date(effectiveUntil) < new Date(effectiveFrom)) {
+      toast.error('End date must be on or after start date');
       return;
     }
     setCreating(true);
+    // Inclusive window: start at 00:00:00 of from-date, end at 23:59:59.999 of until-date (local).
+    const startOfDay = new Date(effectiveFrom);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(effectiveUntil);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const { error } = await supabase.from('delegation_rules').insert({
       name: delegateName.trim(),
-      description: `Role transfer: ${effectiveFrom} to ${effectiveUntil}`,
+      description: `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
       condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
-      target_role: 'supervisor' as AppRole,
+      target_role: transferRole,
       delegate_from_user_id: fromUserId,
       delegate_to_user_id: toUserId,
-      effective_from: new Date(effectiveFrom).toISOString(),
-      effective_until: new Date(effectiveUntil).toISOString(),
+      effective_from: startOfDay.toISOString(),
+      effective_until: endOfDay.toISOString(),
       is_active: true,
     } as any);
 
@@ -156,11 +163,18 @@ export default function DelegationRules() {
     await logAudit({
       action: 'delegation_date_range_created',
       entityType: 'delegation_rule',
-      newValue: { from_user: fromUserId, to_user: toUserId, effective_from: effectiveFrom, effective_until: effectiveUntil },
+      newValue: {
+        from_user: fromUserId,
+        to_user: toUserId,
+        transfer_role: transferRole,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+      },
     });
     toast.success('Date-range delegation created');
     setDelegateDialogOpen(false);
-    setDelegateName(''); setFromUserId(''); setToUserId(''); setEffectiveFrom(''); setEffectiveUntil('');
+    setDelegateName(''); setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setEffectiveFrom(''); setEffectiveUntil('');
     setCreating(false);
     loadRules();
   };
