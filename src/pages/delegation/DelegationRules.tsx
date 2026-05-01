@@ -228,7 +228,6 @@ export default function DelegationRules() {
     loadRules();
   };
 
-  const routingRules = rules.filter(r => !r.delegate_from_user_id);
   const dateRules = rules.filter(r => !!r.delegate_from_user_id);
 
   const getUserName = (id: string | null) => {
