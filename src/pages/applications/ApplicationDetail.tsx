@@ -74,6 +74,67 @@ export default function ApplicationDetail() {
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
   const hasSubmittedForms = formTemplateIds.length > 0;
 
+  const resolveWorkflowApprovalEnabled = async (appRow: any, globalReviewEnabled: boolean) => {
+    if (!globalReviewEnabled) return false;
+
+    const sectorId = appRow?.data?.sector_id as string | undefined;
+    const categoryId = appRow?.data?.category_id as string | undefined;
+    let matchedWorkflow: { id: string; is_active: boolean; license_type: string } | null = null;
+
+    if (appRow?.regulator_id) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type, sector_id, category_id')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .eq('regulator_id', appRow.regulator_id);
+
+      const candidates = (data || []) as any[];
+      matchedWorkflow =
+        candidates.find((w) => categoryId && w.category_id === categoryId) ||
+        candidates.find((w) => sectorId && w.sector_id === sectorId) ||
+        null;
+    }
+
+    if (!matchedWorkflow && appRow?.regulator_id) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .eq('regulator_id', appRow.regulator_id)
+        .limit(1);
+
+      matchedWorkflow = (data?.[0] as any) || null;
+    }
+
+    if (!matchedWorkflow) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .limit(1);
+
+      matchedWorkflow = (data?.[0] as any) || null;
+    }
+
+    if (!matchedWorkflow) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('entity_type', 'application');
+
+      const lt = String(appRow?.license_type || '').toLowerCase();
+      matchedWorkflow = ((data || []) as any[]).find((w) => {
+        const wl = String(w.license_type || '').toLowerCase();
+        return wl !== '' && (lt === wl || lt.startsWith(`${wl} `) || lt.startsWith(`${wl}_`) || lt.startsWith(`${wl}-`));
+      }) || null;
+    }
+
+    return !!matchedWorkflow?.is_active;
+  };
+
   const loadData = async () => {
     if (!id) return;
     setWorkflowChecked(false);
@@ -87,14 +148,15 @@ export default function ApplicationDetail() {
     ]);
 
     const workflowApprovalEnabledValue = reviewSettingsRow?.value?.application_review_enabled ?? true;
-    setWorkflowApprovalEnabled(workflowApprovalEnabledValue);
 
     if (appRow) {
       setApp(appRow as any);
+      const effectiveWorkflowApprovalEnabled = await resolveWorkflowApprovalEnabled(appRow, workflowApprovalEnabledValue);
+      setWorkflowApprovalEnabled(effectiveWorkflowApprovalEnabled);
       // Resolve effective workflow ON/OFF state: global review toggle must be enabled,
       // and the assigned workflow must be active with at least one step.
       const wfId = (appRow as any).workflow_id as string | null;
-      if (workflowApprovalEnabledValue && wfId) {
+      if (effectiveWorkflowApprovalEnabled && wfId) {
         const [{ data: wf }, { count: stepCount }] = await Promise.all([
           supabase.from('approval_workflows').select('is_active').eq('id', wfId).maybeSingle(),
           supabase.from('approval_steps').select('id', { count: 'exact', head: true }).eq('workflow_id', wfId),
