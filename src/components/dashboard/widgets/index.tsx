@@ -160,12 +160,8 @@ function SettingsAuditWidget({ widget }: RendererProps) {
 
 function MyLicenses({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q = supabase.from('licenses').select('*', { count: 'exact', head: true });
-    if (context.licenseeId) {
-      q = q.eq('licensee_id', context.licenseeId);
-    } else {
-      q = q.eq('holder_id', context.userId);
-    }
+    let q: any = supabase.from('licenses').select('*', { count: 'exact', head: true });
+    q = context.licenseeId ? q.eq('licensee_id', context.licenseeId) : q.eq('holder_id', context.userId);
     const { count } = await q;
     return count || 0;
   }, [context.userId, context.licenseeId]);
@@ -174,7 +170,7 @@ function MyLicenses({ widget, context }: RendererProps) {
 
 function MyReturns({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q = supabase.from('compliance_returns')
+    let q: any = supabase.from('compliance_returns')
       .select('*', { count: 'exact', head: true })
       .in('status', ['pending', 'draft', 'overdue', 'resubmission_requested']);
     if (context.licenseeId) q = q.eq('licensee_id', context.licenseeId);
@@ -186,12 +182,8 @@ function MyReturns({ widget, context }: RendererProps) {
 
 function MyPayments({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q = supabase.from('payments').select('*', { count: 'exact', head: true });
-    if (context.licenseeId) {
-      q = q.eq('licensee_id', context.licenseeId);
-    } else {
-      q = q.eq('payer_id', context.userId);
-    }
+    let q: any = supabase.from('payments').select('*', { count: 'exact', head: true });
+    q = context.licenseeId ? q.eq('licensee_id', context.licenseeId) : q.eq('payer_id', context.userId);
     const { count } = await q;
     return count || 0;
   }, [context.userId, context.licenseeId]);
