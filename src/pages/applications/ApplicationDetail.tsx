@@ -478,8 +478,14 @@ export default function ApplicationDetail() {
                       const updatedAppData = { ...appData, forms_data: updatedFormsData };
                       const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
                       if (error) { toast.error('Failed to save form'); return; }
-                      toast.success('Form saved successfully');
-                      loadData();
+                      // Lightweight inline state via SubmittedForms; no per-save toast spam.
+                      await loadData();
+                    }}
+                    onAllFormsCompleted={() => {
+                      // Auto-advance to next pending step after all forms are filled
+                      const next = !paymentComplete ? 'fees' : 'documents';
+                      toast.success('All forms saved — continue with the next step');
+                      setActiveTab(next);
                     }}
                   />
                 </TabsContent>
