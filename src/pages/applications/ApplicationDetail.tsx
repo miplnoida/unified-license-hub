@@ -60,6 +60,7 @@ export default function ApplicationDetail() {
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [workflowApprovalEnabled, setWorkflowApprovalEnabled] = useState(false);
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
@@ -73,15 +74,89 @@ export default function ApplicationDetail() {
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
   const hasSubmittedForms = formTemplateIds.length > 0;
 
+  const resolveWorkflowApprovalEnabled = async (appRow: any, globalReviewEnabled: boolean) => {
+    if (!globalReviewEnabled) return false;
+
+    const sectorId = appRow?.data?.sector_id as string | undefined;
+    const categoryId = appRow?.data?.category_id as string | undefined;
+    let matchedWorkflow: { id: string; is_active: boolean; license_type: string } | null = null;
+
+    if (appRow?.regulator_id) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type, sector_id, category_id')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .eq('regulator_id', appRow.regulator_id);
+
+      const candidates = (data || []) as any[];
+      matchedWorkflow =
+        candidates.find((w) => categoryId && w.category_id === categoryId) ||
+        candidates.find((w) => sectorId && w.sector_id === sectorId) ||
+        null;
+    }
+
+    if (!matchedWorkflow && appRow?.regulator_id) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .eq('regulator_id', appRow.regulator_id)
+        .limit(1);
+
+      matchedWorkflow = (data?.[0] as any) || null;
+    }
+
+    if (!matchedWorkflow) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('license_type', appRow.license_type)
+        .eq('entity_type', 'application')
+        .limit(1);
+
+      matchedWorkflow = (data?.[0] as any) || null;
+    }
+
+    if (!matchedWorkflow) {
+      const { data } = await supabase
+        .from('approval_workflows')
+        .select('id, is_active, license_type')
+        .eq('entity_type', 'application');
+
+      const lt = String(appRow?.license_type || '').toLowerCase();
+      matchedWorkflow = ((data || []) as any[]).find((w) => {
+        const wl = String(w.license_type || '').toLowerCase();
+        return wl !== '' && (lt === wl || lt.startsWith(`${wl} `) || lt.startsWith(`${wl}_`) || lt.startsWith(`${wl}-`));
+      }) || null;
+    }
+
+    return !!matchedWorkflow?.is_active;
+  };
+
   const loadData = async () => {
     if (!id) return;
     setWorkflowChecked(false);
-    const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
+    const [{ data: appRow }, { data: reviewSettingsRow }] = await Promise.all([
+      supabase.from('applications').select('*').eq('id', id).single(),
+      (supabase
+        .from('site_settings' as any)
+        .select('value')
+        .eq('key', 'review_settings')
+        .maybeSingle() as any),
+    ]);
+
+    const workflowApprovalEnabledValue = reviewSettingsRow?.value?.application_review_enabled ?? true;
+
     if (appRow) {
       setApp(appRow as any);
-      // Resolve effective workflow ON/OFF state: needs workflow_id, is_active=true, AND at least one step
+      const effectiveWorkflowApprovalEnabled = await resolveWorkflowApprovalEnabled(appRow, workflowApprovalEnabledValue);
+      setWorkflowApprovalEnabled(effectiveWorkflowApprovalEnabled);
+      // Resolve effective workflow ON/OFF state: global review toggle must be enabled,
+      // and the assigned workflow must be active with at least one step.
       const wfId = (appRow as any).workflow_id as string | null;
-      if (wfId) {
+      if (effectiveWorkflowApprovalEnabled && wfId) {
         const [{ data: wf }, { count: stepCount }] = await Promise.all([
           supabase.from('approval_workflows').select('is_active').eq('id', wfId).maybeSingle(),
           supabase.from('approval_steps').select('id', { count: 'exact', head: true }).eq('workflow_id', wfId),
@@ -92,6 +167,7 @@ export default function ApplicationDetail() {
       }
       setWorkflowChecked(true);
     } else {
+      setWorkflowApprovalEnabled(false);
       setWorkflowActive(false);
       setWorkflowChecked(true);
     }
@@ -149,6 +225,21 @@ export default function ApplicationDetail() {
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.workflow_id]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('review-settings-application-detail')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'site_settings',
+        filter: 'key=eq.review_settings',
+      }, () => { loadData(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleSubmit = async () => {
     if (!app || !user) return;
@@ -381,10 +472,10 @@ export default function ApplicationDetail() {
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
-  // Show manual actions for internal users when no workflow is configured
-  // Workflow is effectively ON only when an active workflow with steps is attached.
-  // When OFF (disabled, missing, or no steps), authorized internal users get direct approval actions.
-  const workflowOn = !!app.workflow_id && workflowActive;
+  // Show manual actions for internal users when no workflow is configured.
+  // Workflow is effectively ON only when the admin review toggle is enabled
+  // and an active workflow with steps is attached.
+  const workflowOn = workflowApprovalEnabled && !!app.workflow_id && workflowActive;
   const showWorkflowPanel = workflowChecked && workflowOn === true;
   const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'in_progress'].includes(app.status);
 
