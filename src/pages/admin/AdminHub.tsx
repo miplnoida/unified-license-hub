@@ -4,6 +4,8 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAdminMetrics } from '@/hooks/useAdminMetrics';
+import { useUserDynamicPermissions, type PermissionModule } from '@/hooks/usePermissions';
+import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
