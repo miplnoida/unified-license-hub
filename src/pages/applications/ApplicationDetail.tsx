@@ -351,7 +351,10 @@ export default function ApplicationDetail() {
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
   // Show manual actions for internal users when no workflow is configured
-  const showManualActions = isInternal && !app.workflow_id && ['submitted', 'in_progress'].includes(app.status);
+  // Workflow is effectively ON only when an active workflow with steps is attached.
+  // When OFF (disabled, missing, or no steps), authorized internal users get direct approval actions.
+  const workflowOn = !!app.workflow_id && workflowActive;
+  const showManualActions = isInternal && !workflowOn && ['submitted', 'in_progress'].includes(app.status);
 
   return (
     <DashboardLayout>
