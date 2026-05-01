@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,23 +6,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { useWorkflowSteps, useWorkflowInstances, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
-  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound, CircleDot, Circle,
+  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
- * Resolve the effective system roles a user has access to:
- * - Their primary system role (which may already be a delegated role)
- * - Plus the system_role mapping of every dynamic role assigned to them
- *   via user_dynamic_roles → roles.system_role.
- * Used to determine if the user is an authorized approver for the current step.
+ * Resolve the effective system roles a user has access to (primary + dynamic role mappings).
  */
 function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
   return useQuery({
@@ -64,87 +60,31 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
   const [approvalResult, setApprovalResult] = useState<{
     license_number?: string;
     web_user_email?: string;
-    web_user_password?: string;
     web_user_created?: boolean;
+    password_setup_url?: string | null;
   } | null>(null);
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
   const { data: instances = [] } = useWorkflowInstances('application', applicationId);
-  const performAction = usePerformAction();
-
-  const [autoCreating, setAutoCreating] = useState(false);
   const queryClient = useQueryClient();
 
   const activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
-  const shouldResumePausedWorkflow = !!pausedInstance && ['submitted', 'in_progress'].includes(applicationStatus);
-
-  // Auto-create workflow instance if application has workflow_id but no instance
-  useEffect(() => {
-    if (!workflowId || !isInternal || activeInstance || pausedInstance || instances.length > 0 || steps.length === 0 || autoCreating) return;
-    setAutoCreating(true);
-    const firstStep = steps[0];
-    (async () => {
-      try {
-        await supabase.from('workflow_instances').insert({
-          workflow_id: workflowId,
-          entity_type: 'application',
-          entity_id: applicationId,
-          current_step_id: firstStep?.id || null,
-          status: 'active',
-        } as any);
-        queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
-      } catch (e) {
-        console.error('Auto-create workflow instance failed', e);
-      } finally {
-        setAutoCreating(false);
-      }
-    })();
-  }, [workflowId, isInternal, instances.length, steps.length]);
-
-  useEffect(() => {
-    if (!workflowId || !pausedInstance || !shouldResumePausedWorkflow || autoCreating) return;
-    setAutoCreating(true);
-
-    (async () => {
-      try {
-        const { error } = await supabase
-          .from('workflow_instances')
-          .update({ status: 'active' } as any)
-          .eq('id', pausedInstance.id)
-          .eq('status', 'paused');
-
-        if (error) {
-          console.error('Auto-resume workflow instance failed', error);
-          return;
-        }
-
-        queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
-        onStatusChange?.();
-      } finally {
-        setAutoCreating(false);
-      }
-    })();
-  }, [workflowId, pausedInstance?.id, shouldResumePausedWorkflow, autoCreating, queryClient, onStatusChange]);
 
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
-  // Resolve all effective system roles for the current user (primary + dynamic role mappings).
-  // This ensures users assigned to a dynamic role mapped to the step's approver_role
-  // — including delegated roles already applied to user.role — are recognised as approvers.
   const { data: effectiveRoles = [] } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
 
-  // super_admin can act on any step; otherwise any of the user's effective roles must match.
   const userRoleMatchesStep = !!user && !!currentStep && (
     user.role === 'super_admin' || effectiveRoles.includes(currentStep.approver_role)
   );
 
-  // If workflow is paused (waiting for resubmission), show info card
-  if (!activeInstance && pausedInstance && isInternal && !shouldResumePausedWorkflow) {
+  // Paused workflow → show info only. The backend (verify-and-submit) resumes it on resubmission.
+  if (!activeInstance && pausedInstance && isInternal) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -162,20 +102,21 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
     );
   }
 
-  if (autoCreating) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">Initializing workflow...</span>
-        </CardContent>
-      </Card>
-    );
+  // No instance yet — backend creates it on submit. Show a hint instead of silently creating one.
+  if (!workflowId || !isInternal || !activeInstance || !currentStep) {
+    if (workflowId && isInternal && instances.length === 0 && ['submitted', 'in_progress'].includes(applicationStatus)) {
+      return (
+        <Card>
+          <CardContent className="py-6 text-sm text-muted-foreground">
+            Workflow has not started yet. It will be created automatically when the application is submitted.
+          </CardContent>
+        </Card>
+      );
+    }
+    return null;
   }
 
-  if (!workflowId || !isInternal || !activeInstance || !currentStep) return null;
-
-  // Compact workflow progress timeline shown in both read-only and active states
+  // Workflow progress timeline
   const ProgressTimeline = () => (
     <div className="space-y-2 rounded-md border border-border/60 bg-muted/30 p-3">
       <p className="text-xs font-medium text-muted-foreground">Workflow Progress</p>
@@ -205,7 +146,7 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
     </div>
   );
 
-  // If user's role doesn't match the current step → read-only with progress + pending approver
+  // Read-only view for users not assigned to the current step
   if (!userRoleMatchesStep) {
     return (
       <Card>
@@ -222,6 +163,12 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
               Pending: {ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}
             </Badge>
           </div>
+          {currentStep.sla_hours && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              SLA: {currentStep.sla_hours}h
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
             This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You can view details and history but cannot take action on this step.
           </p>
@@ -234,92 +181,73 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
 
-    // Mandatory remarks for approve/reject
-    if ((actionType === 'approve' || actionType === 'reject') && !comment.trim()) {
-      toast.error('Remarks are mandatory for Approve / Reject actions');
+    if (['approve', 'reject', 'request_resubmission'].includes(actionType) && !comment.trim()) {
+      toast.error('Remarks are mandatory for this action');
       return;
     }
 
     setProcessing(true);
     try {
-      // For final-level approvals, use the server-side edge function
-      if (actionType === 'approve' && isLastLevel) {
-        const { data, error } = await supabase.functions.invoke('approve-pre-licensee', {
-          body: { application_id: applicationId, comments: comment },
-        });
-        if (error) {
-          toast.error(error.message || 'Approval failed');
-          setProcessing(false);
-          return;
-        }
-        if (data?.error) {
-          toast.error(data.error);
-          setProcessing(false);
-          return;
-        }
-        // Show approval result with credentials
-        setApprovalResult({
-          license_number: data.license_number,
-          web_user_email: data.web_user_email,
-          web_user_password: data.web_user_password,
-          web_user_created: data.web_user_created,
-        });
-        toast.success(`Application approved! License: ${data.license_number}`);
-        setComment('');
-        onStatusChange?.();
-        setProcessing(false);
+      const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
+        body: {
+          application_id: applicationId,
+          instance_id: activeInstance.id,
+          step_id: currentStep.id,
+          action_type: actionType,
+          comments: comment,
+        },
+      });
+      if (error) {
+        toast.error(error.message || 'Action failed');
+        return;
+      }
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
 
-      // For rejections at final level, also use edge function pattern but via normal mutation
-      await performAction.mutateAsync({
-        instance_id: activeInstance.id,
-        step_id: currentStep.id,
-        actor_id: user.id,
-        action_type: actionType,
-        comments: comment || undefined,
-        application_id: applicationId,
-      });
+      // Final approval response carries license info
+      if (actionType === 'approve' && isLastLevel) {
+        setApprovalResult({
+          license_number: data.license_number,
+          web_user_email: data.web_user_email,
+          web_user_created: data.web_user_created,
+          password_setup_url: data.password_setup_url,
+        });
+        toast.success(`Application approved! License: ${data.license_number}`);
+      } else {
+        toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
+      }
       setComment('');
+      queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
+      queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       onStatusChange?.();
     } catch (err: any) {
-      // error handled by mutation
+      toast.error(err?.message || 'Action failed');
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
-  // Build available actions based on level
+  // Build available actions
   const actions: { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }[] = [];
-
   if (isLastLevel) {
-    // Final level: Approve / Reject only
     actions.push(
       { type: 'approve', label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' },
       { type: 'reject', label: 'Reject', icon: <XCircle className="h-4 w-4 mr-1" />, variant: 'destructive' },
     );
   } else {
-    // Non-final levels: Forward / Send Back / Escalate
     actions.push(
       { type: 'approve', label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' },
     );
   }
-
   if (!isFirstLevel && !isLastLevel) {
-    actions.push(
-      { type: 'send_back', label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
-    );
+    actions.push({ type: 'send_back', label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
   }
-
   if (!isLastLevel) {
-    actions.push(
-      { type: 'escalate', label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' },
-    );
+    actions.push({ type: 'escalate', label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' });
   }
-
-  // Request Resubmission - available at any level
-  actions.push(
-    { type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
-  );
+  actions.push({ type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
 
   return (
     <Card>
@@ -330,7 +258,6 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Current step info */}
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">{currentStep.name}</span>
           <Badge variant="outline" className="text-xs">
@@ -349,7 +276,6 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
 
         <Separator />
 
-        {/* Mandatory remarks */}
         <div className="space-y-2">
           <Label className="text-sm">
             Remarks / Description
@@ -360,6 +286,7 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
             onChange={e => setComment(e.target.value)}
             placeholder={isLastLevel ? 'Mandatory: Enter your remarks before approving or rejecting...' : 'Add remarks (optional)...'}
             rows={3}
+            disabled={processing}
           />
         </div>
 
@@ -379,7 +306,7 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
         </div>
       </CardContent>
 
-      {/* Approval Result Dialog */}
+      {/* Approval Result Dialog — never shows plaintext password */}
       <Dialog open={!!approvalResult} onOpenChange={() => setApprovalResult(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -388,7 +315,7 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
               Application Approved
             </DialogTitle>
             <DialogDescription>
-              License and web user have been created successfully.
+              The license has been generated and the licensee account is ready.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -411,56 +338,46 @@ export function WorkflowPanel({ applicationId, workflowId, applicationStatus, on
               </div>
             )}
 
-            {approvalResult?.web_user_created && approvalResult?.web_user_password && (
+            {approvalResult?.web_user_created && approvalResult?.web_user_email && (
               <div className="space-y-3 p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium">Web User Credentials</p>
+                  <Mail className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Licensee Account</p>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="text-sm font-medium">{approvalResult.web_user_email}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(approvalResult.web_user_email!);
-                        toast.success('Copied!');
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-sm font-medium">{approvalResult.web_user_email}</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Password</p>
-                      <p className="text-sm font-mono font-medium">{approvalResult.web_user_password}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(approvalResult.web_user_password!);
-                        toast.success('Copied!');
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(approvalResult.web_user_email!);
+                      toast.success('Copied!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
                 </div>
-                <p className="text-xs text-destructive font-medium">
-                  ⚠ Save these credentials now. The password cannot be retrieved later.
+                <p className="text-xs text-muted-foreground">
+                  A secure password setup link has been generated for the licensee. They must set their own password before first login.
                 </p>
+                {approvalResult.password_setup_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      navigator.clipboard.writeText(approvalResult.password_setup_url!);
+                      toast.success('Setup link copied — share securely with the licensee');
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Password Setup Link
+                  </Button>
+                )}
               </div>
-            )}
-
-            {approvalResult?.web_user_created && !approvalResult?.web_user_password && (
-              <p className="text-sm text-muted-foreground">
-                Web user already existed and has been linked to the licensee entity.
-              </p>
             )}
           </div>
         </DialogContent>
