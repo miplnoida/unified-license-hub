@@ -110,6 +110,7 @@ export default function WorkflowList() {
   const { activeRegulatorId } = useRegulator();
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
   const { data: dynamicRoles = [] } = useRoles();
+  const { data: sectors = [] } = useSectors(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
   const qc = useQueryClient();
 
@@ -129,6 +130,7 @@ export default function WorkflowList() {
   const [newDesc, setNewDesc] = useState('');
   const [newLicenseType, setNewLicenseType] = useState('');
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType>('application');
+  const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
 
   // Templates dialog
@@ -142,23 +144,34 @@ export default function WorkflowList() {
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
 
+  // Live preview of which role will be auto-assigned to Step 1
+  const selectedSectorName = useMemo(
+    () => (sectors as any[]).find(s => s.id === newSectorId)?.name as string | undefined,
+    [sectors, newSectorId],
+  );
+  const defaultRolePreview = useMemo(
+    () => resolveDefaultRoleForSector(selectedSectorName, dynamicRoles),
+    [selectedSectorName, dynamicRoles],
+  );
+
   const handleCreate = async () => {
     if (!newName.trim() || !newLicenseType.trim()) {
       toast.error('Please give the workflow a name and a category');
       return;
     }
     try {
+      const sectorId = newSectorId !== 'none' ? newSectorId : null;
       const wf = await createWorkflow.mutateAsync({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
         license_type: newLicenseType.trim(),
         entity_type: newEntityType,
         regulator_id: activeRegulatorId,
-        sector_id: null,
+        sector_id: sectorId,
         category_id: null,
       });
 
-      // Seed steps from template OR add a default Step 1
+      // Seed steps from template OR auto-generate the smart default flow
       if (seedFromTemplateId !== 'blank') {
         const tpl = templates.find(t => t.id === seedFromTemplateId);
         if (tpl?.steps?.length) {
@@ -175,22 +188,35 @@ export default function WorkflowList() {
           }
         }
       } else {
-        // Smart default: start with Step 1
+        // Smart default: resolve sector → regulator role; fallback to Super Admin
+        const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
+        const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
+        const resolvedSystem = (defaultRole?.system_role || 'super_admin') as any;
+        const stepName = defaultRole?.name
+          ? `${defaultRole.name} Review`
+          : 'Step 1';
         await createStep.mutateAsync({
           workflow_id: wf.id,
           step_order: 1,
-          name: 'Step 1',
-          approver_role: firstRoleSystem as any,
+          name: stepName,
+          approver_role: resolvedSystem,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'],
         });
+        if (sectorName) {
+          toast.success(
+            matched
+              ? `Step 1 auto-assigned to "${defaultRole?.name}" based on sector`
+              : `No matching regulator role for "${sectorName}" — defaulted to Super Admin`,
+          );
+        }
       }
 
       toast.success('Workflow created');
       setSelectedId(wf.id);
       setCreateOpen(false);
       setNewName(''); setNewDesc(''); setNewLicenseType('');
-      setNewEntityType('application'); setSeedFromTemplateId('blank');
+      setNewEntityType('application'); setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
       toast.error(err.message);
     }
