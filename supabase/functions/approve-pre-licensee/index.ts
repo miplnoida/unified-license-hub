@@ -363,8 +363,8 @@ Deno.serve(async (req) => {
         license_id: license.id,
         licensee_id: licenseeId,
         web_user_created: webUserCreated,
-        web_user_password: webUserPassword || undefined,
         web_user_email: applicantEmail,
+        password_setup_url: passwordSetupUrl,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
