@@ -10,12 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
-import { Layers, Plus, Trash2, Loader2, Calendar, UserCheck, Pencil } from 'lucide-react';
+import { Trash2, Loader2, Calendar, UserCheck, Pencil } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface DelegationRule {
