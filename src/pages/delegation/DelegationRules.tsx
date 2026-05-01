@@ -61,12 +61,16 @@ export default function DelegationRules() {
 
   // Date-range delegation form
   const [delegateName, setDelegateName] = useState('');
+  const [delegateRemarks, setDelegateRemarks] = useState('');
+  const [delegateActive, setDelegateActive] = useState(true);
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
   const [transferRole, setTransferRole] = useState<AppRole>('super_admin');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveUntil, setEffectiveUntil] = useState('');
   const [delegateDialogOpen, setDelegateDialogOpen] = useState(false);
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [editingOldValue, setEditingOldValue] = useState<DelegationRule | null>(null);
 
   const loadRules = async () => {
     setLoading(true);
