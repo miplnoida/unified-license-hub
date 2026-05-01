@@ -32,23 +32,30 @@ export default function AdminHub() {
     { label: 'Complaints', value: m?.totalComplaints, sub: '', icon: <AlertTriangle className="h-5 w-5" />, color: 'text-warning' },
   ];
 
-  const adminModules = [
-    { label: 'Regulator Management', desc: `${m?.totalRegulators ?? '—'} regulators configured`, icon: <Building2 className="h-5 w-5" />, href: '/admin/regulators' },
-    { label: 'Sector & Service Config', desc: `${m?.totalSectors ?? '—'} sectors`, icon: <Layers className="h-5 w-5" />, href: '/admin/masters/sectors' },
-    { label: 'Form Builder', desc: `${m?.totalForms ?? '—'} templates`, icon: <FormInput className="h-5 w-5" />, href: '/admin/forms/pre-license' },
-    { label: 'Workflow Configuration', desc: `${m?.totalWorkflows ?? '—'} workflows`, icon: <GitBranch className="h-5 w-5" />, href: '/workflows' },
-    { label: 'Fee Management', desc: `${m?.totalFeeConfigs ?? '—'} fee configs`, icon: <DollarSign className="h-5 w-5" />, href: '/admin/fees' },
-    { label: 'Return Configuration', desc: 'Compliance schedules & rules', icon: <CalendarCheck className="h-5 w-5" />, href: '/admin/return-config' },
-    { label: 'Reports & Analytics', desc: 'Dashboards & ad-hoc reports', icon: <BarChart3 className="h-5 w-5" />, href: '/reports' },
-    { label: 'Notification Templates', desc: `${m?.totalNotificationTemplates ?? '—'} templates`, icon: <Bell className="h-5 w-5" />, href: '/admin/notification-templates' },
-    { label: 'Employee Management', desc: `${m?.totalUsers ?? '—'} employees`, icon: <Users className="h-5 w-5" />, href: '/admin/users' },
-    { label: 'Role Management (RBAC)', desc: 'Roles & permissions', icon: <Shield className="h-5 w-5" />, href: '/admin/roles' },
-    { label: 'Complaint Management', desc: `${m?.totalComplaints ?? '—'} complaints`, icon: <AlertTriangle className="h-5 w-5" />, href: '/complaints' },
-    { label: 'Complaint Types', desc: 'Configure complaint categories', icon: <Layers className="h-5 w-5" />, href: '/admin/complaint-types' },
-    { label: 'Audit Logs', desc: `${m?.totalAuditLogs ?? '—'} events logged`, icon: <ScrollText className="h-5 w-5" />, href: '/admin/audit-logs' },
-    { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings' },
-    { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms' },
+  const allAdminModules: Array<{
+    label: string; desc: string; icon: JSX.Element; href: string; module: PermissionModule;
+  }> = [
+    { label: 'Regulator Management', desc: `${m?.totalRegulators ?? '—'} regulators configured`, icon: <Building2 className="h-5 w-5" />, href: '/admin/regulators', module: 'settings' },
+    { label: 'Sector & Service Config', desc: `${m?.totalSectors ?? '—'} sectors`, icon: <Layers className="h-5 w-5" />, href: '/admin/masters/sectors', module: 'settings' },
+    { label: 'Form Builder', desc: `${m?.totalForms ?? '—'} templates`, icon: <FormInput className="h-5 w-5" />, href: '/admin/forms/pre-license', module: 'form_management' },
+    { label: 'Workflow Configuration', desc: `${m?.totalWorkflows ?? '—'} workflows`, icon: <GitBranch className="h-5 w-5" />, href: '/workflows', module: 'workflow_management' },
+    { label: 'Fee Management', desc: `${m?.totalFeeConfigs ?? '—'} fee configs`, icon: <DollarSign className="h-5 w-5" />, href: '/admin/fees', module: 'fee_management' },
+    { label: 'Return Configuration', desc: 'Compliance schedules & rules', icon: <CalendarCheck className="h-5 w-5" />, href: '/admin/return-config', module: 'returns_management' },
+    { label: 'Reports & Analytics', desc: 'Dashboards & ad-hoc reports', icon: <BarChart3 className="h-5 w-5" />, href: '/reports', module: 'report_management' },
+    { label: 'Notification Templates', desc: `${m?.totalNotificationTemplates ?? '—'} templates`, icon: <Bell className="h-5 w-5" />, href: '/admin/notification-templates', module: 'settings' },
+    { label: 'Employee Management', desc: `${m?.totalUsers ?? '—'} employees`, icon: <Users className="h-5 w-5" />, href: '/admin/users', module: 'user_management' },
+    { label: 'Role Management (RBAC)', desc: 'Roles & permissions', icon: <Shield className="h-5 w-5" />, href: '/admin/roles', module: 'role_management' },
+    { label: 'Complaint Management', desc: `${m?.totalComplaints ?? '—'} complaints`, icon: <AlertTriangle className="h-5 w-5" />, href: '/complaints', module: 'complaint_management' },
+    { label: 'Complaint Types', desc: 'Configure complaint categories', icon: <Layers className="h-5 w-5" />, href: '/admin/complaint-types', module: 'complaint_management' },
+    { label: 'Audit Logs', desc: `${m?.totalAuditLogs ?? '—'} events logged`, icon: <ScrollText className="h-5 w-5" />, href: '/admin/audit-logs', module: 'settings' },
+    { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
+    { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
   ];
+
+  // Filter modules by dynamic permissions. Super admin / legacy admin (no dynamic
+  // role mapping) → see all. Otherwise only modules they have access to.
+  const adminModules = allAdminModules.filter(mod => hasModuleAccess(mod.module));
+  const noAccess = !permsLoading && enforceDynamic && adminModules.length === 0;
 
   const platformMetrics = [
     { label: 'Regulators', val: m?.totalRegulators, icon: <Building2 className="h-4 w-4" /> },
