@@ -46,7 +46,10 @@ export default function DelegationRules() {
   const [delegateActive, setDelegateActive] = useState(true);
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
-  const [transferRole, setTransferRole] = useState<AppRole>('super_admin');
+  // Multi-role transfer: roles auto-loaded from selected Absent User.
+  const [fromUserRoles, setFromUserRoles] = useState<AppRole[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<AppRole[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveUntil, setEffectiveUntil] = useState('');
   const [delegateDialogOpen, setDelegateDialogOpen] = useState(false);
