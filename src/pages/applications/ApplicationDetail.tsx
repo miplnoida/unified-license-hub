@@ -60,6 +60,7 @@ export default function ApplicationDetail() {
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [workflowApprovalEnabled, setWorkflowApprovalEnabled] = useState(false);
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
@@ -76,12 +77,24 @@ export default function ApplicationDetail() {
   const loadData = async () => {
     if (!id) return;
     setWorkflowChecked(false);
-    const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
+    const [{ data: appRow }, { data: reviewSettingsRow }] = await Promise.all([
+      supabase.from('applications').select('*').eq('id', id).single(),
+      (supabase
+        .from('site_settings' as any)
+        .select('value')
+        .eq('key', 'review_settings')
+        .maybeSingle() as any),
+    ]);
+
+    const workflowApprovalEnabledValue = reviewSettingsRow?.value?.application_review_enabled ?? true;
+    setWorkflowApprovalEnabled(workflowApprovalEnabledValue);
+
     if (appRow) {
       setApp(appRow as any);
-      // Resolve effective workflow ON/OFF state: needs workflow_id, is_active=true, AND at least one step
+      // Resolve effective workflow ON/OFF state: global review toggle must be enabled,
+      // and the assigned workflow must be active with at least one step.
       const wfId = (appRow as any).workflow_id as string | null;
-      if (wfId) {
+      if (workflowApprovalEnabledValue && wfId) {
         const [{ data: wf }, { count: stepCount }] = await Promise.all([
           supabase.from('approval_workflows').select('is_active').eq('id', wfId).maybeSingle(),
           supabase.from('approval_steps').select('id', { count: 'exact', head: true }).eq('workflow_id', wfId),
@@ -92,6 +105,7 @@ export default function ApplicationDetail() {
       }
       setWorkflowChecked(true);
     } else {
+      setWorkflowApprovalEnabled(false);
       setWorkflowActive(false);
       setWorkflowChecked(true);
     }
@@ -149,6 +163,21 @@ export default function ApplicationDetail() {
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.workflow_id]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('review-settings-application-detail')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'site_settings',
+        filter: 'key=eq.review_settings',
+      }, () => { loadData(); })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleSubmit = async () => {
     if (!app || !user) return;
