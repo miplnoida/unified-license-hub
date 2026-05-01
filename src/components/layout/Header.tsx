@@ -36,6 +36,16 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
+        {user?.delegatedRole && (
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
+            <span className="text-[10px] uppercase tracking-wide font-semibold text-amber-700 dark:text-amber-300">
+              Acting as
+            </span>
+            <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+              {ROLE_LABELS[user.delegatedRole]}
+            </span>
+          </div>
+        )}
         <Button variant="ghost" size="icon" className="relative h-9 w-9" onClick={() => navigate('/notifications')}>
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
@@ -53,7 +63,11 @@ export function Header() {
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium leading-none">{user.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{user.dynamicRoleName || ROLE_LABELS[user.role]}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {user.delegatedRole
+                      ? `${ROLE_LABELS[user.delegatedRole]} (delegated)`
+                      : (user.dynamicRoleName || ROLE_LABELS[user.role])}
+                  </p>
                 </div>
               </button>
             </DropdownMenuTrigger>
