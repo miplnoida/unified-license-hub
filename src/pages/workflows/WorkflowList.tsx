@@ -497,11 +497,40 @@ export default function WorkflowList() {
               </div>
             </div>
             <div>
+              <Label>Sector</Label>
+              <Select value={newSectorId} onValueChange={setNewSectorId}>
+                <SelectTrigger><SelectValue placeholder="Select a sector (optional)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific sector</SelectItem>
+                  {(sectors as any[]).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {seedFromTemplateId === 'blank' && (
+                <div className="mt-2 flex items-start gap-2 rounded-md border bg-muted/40 p-2.5">
+                  <Sparkles className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                  <div className="text-[11px] leading-relaxed">
+                    <p className="text-foreground">
+                      Step 1 will be auto-assigned to{' '}
+                      <span className="font-semibold">
+                        {defaultRolePreview.role?.name || 'Super Admin'}
+                      </span>
+                      {defaultRolePreview.matched ? ' (sector regulator)' : ' (default fallback)'}.
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Default role assigned based on selected sector. You can change or add steps after creation.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div>
               <Label>Start From</Label>
               <Select value={seedFromTemplateId} onValueChange={setSeedFromTemplateId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="blank">Blank workflow (recommended)</SelectItem>
+                  <SelectItem value="blank">Smart default (sector regulator)</SelectItem>
                   {templates.map(t => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name} ({t.steps.length} step{t.steps.length === 1 ? '' : 's'})
