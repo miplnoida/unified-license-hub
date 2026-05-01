@@ -404,13 +404,26 @@ export default function DelegationRules() {
 
           <TabsContent value="transfers" className="space-y-4">
             <div className="flex justify-end">
-              <Dialog open={delegateDialogOpen} onOpenChange={setDelegateDialogOpen}>
+              <Dialog open={delegateDialogOpen} onOpenChange={(o) => { setDelegateDialogOpen(o); if (!o) resetDelegateForm(); }}>
                 <DialogTrigger asChild>
-                  <Button><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
+                  <Button onClick={() => resetDelegateForm()}><Calendar className="h-4 w-4 mr-2" />New Role Transfer</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader><DialogTitle>Create Date-Range Role Transfer</DialogTitle></DialogHeader>
+                <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingRuleId ? 'Edit Role Transfer' : 'Create Date-Range Role Transfer'}</DialogTitle>
+                  </DialogHeader>
                   <div className="space-y-4">
+                    {editingRuleId && editingOldValue?.is_active && (() => {
+                      const now = new Date();
+                      const from = editingOldValue.effective_from ? new Date(editingOldValue.effective_from) : null;
+                      const until = editingOldValue.effective_until ? new Date(editingOldValue.effective_until) : null;
+                      const isLive = from && until && from <= now && now <= until;
+                      return isLive ? (
+                        <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                          ⚠ This delegation is currently active. Changes will affect the covering user's permissions.
+                        </div>
+                      ) : null;
+                    })()}
                     <div><Label>Name *</Label><Input value={delegateName} onChange={e => setDelegateName(e.target.value)} placeholder="e.g., User A leave coverage" /></div>
                     <div>
                       <Label>Transfer From (Absent User) *</Label>
@@ -450,14 +463,25 @@ export default function DelegationRules() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div><Label>From Date *</Label><Input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} /></div>
-                      <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} /></div>
+                      <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} min={effectiveFrom || undefined} onChange={e => setEffectiveUntil(e.target.value)} /></div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Both dates are inclusive (start at 00:00, end at 23:59). Same-day transfers are supported.
                       Roles auto-revert after the end date.
                     </p>
-                    <Button onClick={handleCreateDateDelegation} disabled={creating} className="w-full">
-                      {creating ? 'Creating...' : 'Create Transfer'}
+                    <div>
+                      <Label>Remarks / Notes</Label>
+                      <Textarea value={delegateRemarks} onChange={e => setDelegateRemarks(e.target.value)} placeholder="Optional notes about this delegation..." rows={2} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border px-3 py-2">
+                      <div>
+                        <Label className="text-sm">Status</Label>
+                        <p className="text-[11px] text-muted-foreground">{delegateActive ? 'Active' : 'Inactive'}</p>
+                      </div>
+                      <Switch checked={delegateActive} onCheckedChange={setDelegateActive} />
+                    </div>
+                    <Button onClick={handleSaveDateDelegation} disabled={creating} className="w-full">
+                      {creating ? 'Saving...' : editingRuleId ? 'Update Transfer' : 'Create Transfer'}
                     </Button>
                   </div>
                 </DialogContent>
