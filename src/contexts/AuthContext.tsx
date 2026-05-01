@@ -62,6 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [hydrateUser]);
 
+  // Re-hydrate every 5 minutes so delegated permissions begin/end automatically
+  // without requiring a logout/login round-trip.
+  useEffect(() => {
+    if (!session) return;
+    const interval = setInterval(() => {
+      hydrateUser(session).catch(err =>
+        console.warn('[Auth] Periodic re-hydrate failed:', err)
+      );
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [session, hydrateUser]);
+
   // When user is set after initial load, mark loading as done
   useEffect(() => {
     if (user && loading) setLoading(false);

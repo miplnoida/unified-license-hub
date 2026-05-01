@@ -62,6 +62,7 @@ export default function DelegationRules() {
   const [delegateName, setDelegateName] = useState('');
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
+  const [transferRole, setTransferRole] = useState<AppRole>('super_admin');
   const [effectiveFrom, setEffectiveFrom] = useState('');
   const [effectiveUntil, setEffectiveUntil] = useState('');
   const [delegateDialogOpen, setDelegateDialogOpen] = useState(false);
@@ -133,20 +134,27 @@ export default function DelegationRules() {
       toast.error('From and To users must be different');
       return;
     }
-    if (new Date(effectiveUntil) <= new Date(effectiveFrom)) {
-      toast.error('End date must be after start date');
+    // Allow same-day delegation: end must be on or after start.
+    if (new Date(effectiveUntil) < new Date(effectiveFrom)) {
+      toast.error('End date must be on or after start date');
       return;
     }
     setCreating(true);
+    // Inclusive window: start at 00:00:00 of from-date, end at 23:59:59.999 of until-date (local).
+    const startOfDay = new Date(effectiveFrom);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(effectiveUntil);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const { error } = await supabase.from('delegation_rules').insert({
       name: delegateName.trim(),
-      description: `Role transfer: ${effectiveFrom} to ${effectiveUntil}`,
+      description: `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
       condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
-      target_role: 'supervisor' as AppRole,
+      target_role: transferRole,
       delegate_from_user_id: fromUserId,
       delegate_to_user_id: toUserId,
-      effective_from: new Date(effectiveFrom).toISOString(),
-      effective_until: new Date(effectiveUntil).toISOString(),
+      effective_from: startOfDay.toISOString(),
+      effective_until: endOfDay.toISOString(),
       is_active: true,
     } as any);
 
@@ -155,11 +163,18 @@ export default function DelegationRules() {
     await logAudit({
       action: 'delegation_date_range_created',
       entityType: 'delegation_rule',
-      newValue: { from_user: fromUserId, to_user: toUserId, effective_from: effectiveFrom, effective_until: effectiveUntil },
+      newValue: {
+        from_user: fromUserId,
+        to_user: toUserId,
+        transfer_role: transferRole,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+      },
     });
     toast.success('Date-range delegation created');
     setDelegateDialogOpen(false);
-    setDelegateName(''); setFromUserId(''); setToUserId(''); setEffectiveFrom(''); setEffectiveUntil('');
+    setDelegateName(''); setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setEffectiveFrom(''); setEffectiveUntil('');
     setCreating(false);
     loadRules();
   };
@@ -339,12 +354,27 @@ export default function DelegationRules() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label>Role to Transfer *</Label>
+                      <Select value={transferRole} onValueChange={v => setTransferRole(v as AppRole)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ROLE_HIERARCHY.filter(r => r !== 'applicant' && r !== 'pre_licensee').map(r => (
+                            <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        The covering user will gain access of this role during the active period.
+                      </p>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div><Label>From Date *</Label><Input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} /></div>
                       <div><Label>Until Date *</Label><Input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} /></div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      During the specified period, the covering user will assume the absent user's roles. Roles auto-revert after the end date.
+                      Both dates are inclusive (start at 00:00, end at 23:59). Same-day transfers are supported.
+                      Roles auto-revert after the end date.
                     </p>
                     <Button onClick={handleCreateDateDelegation} disabled={creating} className="w-full">
                       {creating ? 'Creating...' : 'Create Transfer'}
@@ -371,6 +401,7 @@ export default function DelegationRules() {
                         <TableHead>Name</TableHead>
                         <TableHead>From User</TableHead>
                         <TableHead>To User</TableHead>
+                        <TableHead>Role</TableHead>
                         <TableHead>Period</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -391,6 +422,7 @@ export default function DelegationRules() {
                             </TableCell>
                             <TableCell>{getUserName(rule.delegate_from_user_id)}</TableCell>
                             <TableCell>{getUserName(rule.delegate_to_user_id)}</TableCell>
+                            <TableCell><Badge variant="outline">{ROLE_LABELS[rule.target_role]}</Badge></TableCell>
                             <TableCell className="text-xs">
                               {from ? from.toLocaleDateString() : '—'} — {until ? until.toLocaleDateString() : '—'}
                             </TableCell>
