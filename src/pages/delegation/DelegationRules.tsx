@@ -91,10 +91,46 @@ export default function DelegationRules() {
 
   const resetDelegateForm = () => {
     setDelegateName(''); setDelegateRemarks(''); setDelegateActive(true);
-    setFromUserId(''); setToUserId(''); setTransferRole('super_admin');
+    setFromUserId(''); setToUserId('');
+    setFromUserRoles([]); setSelectedRoles([]); setRolesLoading(false);
     setEffectiveFrom(''); setEffectiveUntil('');
     setEditingRuleId(null); setEditingOldValue(null);
   };
+
+  // Fetch all assigned roles for a given user from user_roles
+  const fetchRolesForUser = async (userId: string): Promise<AppRole[]> => {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('[Delegation] Failed to load roles:', error.message);
+      return [];
+    }
+    const roles = Array.from(new Set(((data || []) as any[]).map(r => r.role as AppRole)));
+    roles.sort((a, b) => ROLE_HIERARCHY.indexOf(a) - ROLE_HIERARCHY.indexOf(b));
+    return roles;
+  };
+
+  // Auto-load roles whenever the Absent (From) user changes.
+  useEffect(() => {
+    if (!delegateDialogOpen) return;
+    if (!fromUserId) { setFromUserRoles([]); setSelectedRoles([]); return; }
+    let cancelled = false;
+    setRolesLoading(true);
+    fetchRolesForUser(fromUserId).then(roles => {
+      if (cancelled) return;
+      setFromUserRoles(roles);
+      setSelectedRoles(prev => {
+        if (editingRuleId && editingOldValue?.target_role && roles.includes(editingOldValue.target_role)) {
+          return [editingOldValue.target_role];
+        }
+        return roles.filter(r => r !== 'applicant' && r !== 'pre_licensee');
+      });
+      setRolesLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [fromUserId, delegateDialogOpen, editingRuleId, editingOldValue]);
 
   const openEditDelegation = (rule: DelegationRule) => {
     setEditingRuleId(rule.id);
@@ -104,8 +140,7 @@ export default function DelegationRules() {
     setDelegateActive(!!rule.is_active);
     setFromUserId(rule.delegate_from_user_id || '');
     setToUserId(rule.delegate_to_user_id || '');
-    setTransferRole(rule.target_role);
-    // Convert ISO timestamps back to YYYY-MM-DD for date inputs (local).
+    setSelectedRoles(rule.target_role ? [rule.target_role] : []);
     const toDateInput = (iso: string | null) => {
       if (!iso) return '';
       const d = new Date(iso);
@@ -118,6 +153,14 @@ export default function DelegationRules() {
     setEffectiveUntil(toDateInput(rule.effective_until));
     setDelegateDialogOpen(true);
   };
+
+  const toggleSelectedRole = (role: AppRole) => {
+    setSelectedRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]);
+  };
+  const selectAllRoles = () => {
+    setSelectedRoles(fromUserRoles.filter(r => r !== 'applicant' && r !== 'pre_licensee'));
+  };
+  const clearSelectedRoles = () => setSelectedRoles([]);
 
   const hasConflictingDelegation = (
     fromId: string,
@@ -134,7 +177,6 @@ export default function DelegationRules() {
       r.delegate_to_user_id === toId &&
       r.target_role === role &&
       r.effective_from && r.effective_until &&
-      // overlap test (inclusive)
       r.effective_from <= endIso && r.effective_until >= startIso
     ) || null;
   };
@@ -152,36 +194,49 @@ export default function DelegationRules() {
       toast.error('End date must be on or after start date');
       return;
     }
+    if (fromUserRoles.length === 0) {
+      toast.error('The selected Absent User has no active roles assigned. Delegation not allowed.');
+      return;
+    }
+    if (selectedRoles.length === 0) {
+      toast.error('Please select at least one role to transfer');
+      return;
+    }
     setCreating(true);
     const startOfDay = new Date(effectiveFrom);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(effectiveUntil);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const conflict = hasConflictingDelegation(
-      fromUserId, toUserId, transferRole,
-      startOfDay.toISOString(), endOfDay.toISOString(),
-      editingRuleId,
-    );
-    if (conflict) {
-      toast.error(`Conflicts with existing active delegation "${conflict.name}" for the same user/role/period.`);
-      setCreating(false);
-      return;
+    for (const role of selectedRoles) {
+      const conflict = hasConflictingDelegation(
+        fromUserId, toUserId, role,
+        startOfDay.toISOString(), endOfDay.toISOString(),
+        editingRuleId,
+      );
+      if (conflict) {
+        toast.error(`Conflicts with existing active delegation "${conflict.name}" for role "${ROLE_LABELS[role]}" in this period.`);
+        setCreating(false);
+        return;
+      }
     }
 
-    const payload = {
-      name: delegateName.trim(),
-      description: delegateRemarks.trim() || `Role transfer (${ROLE_LABELS[transferRole]}): ${effectiveFrom} to ${effectiveUntil}`,
-      condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
-      target_role: transferRole,
-      delegate_from_user_id: fromUserId,
-      delegate_to_user_id: toUserId,
-      effective_from: startOfDay.toISOString(),
-      effective_until: endOfDay.toISOString(),
-      is_active: delegateActive,
-    };
+    const baseDescription = delegateRemarks.trim();
+    const periodLabel = `${effectiveFrom} to ${effectiveUntil}`;
 
     if (editingRuleId) {
+      const role = selectedRoles[0];
+      const payload = {
+        name: delegateName.trim(),
+        description: baseDescription || `Role transfer (${ROLE_LABELS[role]}): ${periodLabel}`,
+        condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
+        target_role: role,
+        delegate_from_user_id: fromUserId,
+        delegate_to_user_id: toUserId,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+        is_active: delegateActive,
+      };
       const { error } = await supabase.from('delegation_rules').update(payload as any).eq('id', editingRuleId);
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
@@ -202,14 +257,29 @@ export default function DelegationRules() {
       });
       toast.success('Delegation updated. Active sessions will refresh within ~5 minutes.');
     } else {
-      const { error } = await supabase.from('delegation_rules').insert(payload as any);
+      const rows = selectedRoles.map(role => ({
+        name: selectedRoles.length > 1 ? `${delegateName.trim()} — ${ROLE_LABELS[role]}` : delegateName.trim(),
+        description: baseDescription || `Role transfer (${ROLE_LABELS[role]}): ${periodLabel}`,
+        condition: { field: 'delegation_type', operator: '==', value: 'date_range' },
+        target_role: role,
+        delegate_from_user_id: fromUserId,
+        delegate_to_user_id: toUserId,
+        effective_from: startOfDay.toISOString(),
+        effective_until: endOfDay.toISOString(),
+        is_active: delegateActive,
+      }));
+      const { error } = await supabase.from('delegation_rules').insert(rows as any);
       if (error) { toast.error(error.message); setCreating(false); return; }
       await logAudit({
         action: 'delegation_date_range_created',
         entityType: 'delegation_rule',
-        newValue: payload,
+        newValue: { count: rows.length, roles: selectedRoles, rows },
       });
-      toast.success('Date-range delegation created');
+      toast.success(
+        rows.length > 1
+          ? `Delegated ${rows.length} roles successfully`
+          : 'Date-range delegation created'
+      );
     }
 
     setDelegateDialogOpen(false);
