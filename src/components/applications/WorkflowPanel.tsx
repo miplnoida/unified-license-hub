@@ -7,15 +7,47 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useWorkflowSteps, useWorkflowInstances, usePerformAction, type WorkflowActionType } from '@/hooks/useWorkflowEngine';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
-  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound,
+  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, KeyRound, CircleDot, Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+/**
+ * Resolve the effective system roles a user has access to:
+ * - Their primary system role (which may already be a delegated role)
+ * - Plus the system_role mapping of every dynamic role assigned to them
+ *   via user_dynamic_roles → roles.system_role.
+ * Used to determine if the user is an authorized approver for the current step.
+ */
+function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
+  return useQuery({
+    queryKey: ['effective-system-roles', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const set = new Set<string>();
+      if (primaryRole) set.add(primaryRole);
+      const { data: udr } = await supabase
+        .from('user_dynamic_roles' as any)
+        .select('role_id')
+        .eq('user_id', userId!);
+      const roleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
+      if (roleIds.length > 0) {
+        const { data: roles } = await supabase
+          .from('roles' as any)
+          .select('system_role')
+          .in('id', roleIds);
+        ((roles as any[]) || []).forEach(r => { if (r.system_role) set.add(r.system_role); });
+      }
+      return Array.from(set);
+    },
+    staleTime: 60_000,
+  });
+}
 
 interface Props {
   applicationId: string;
