@@ -60,6 +60,8 @@ export default function ApplicationDetail() {
   const [docRefresh, setDocRefresh] = useState(0);
   const [actionComment, setActionComment] = useState('');
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [workflowActive, setWorkflowActive] = useState<boolean>(false);
+  const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
@@ -73,7 +75,21 @@ export default function ApplicationDetail() {
   const loadData = async () => {
     if (!id) return;
     const { data: appRow } = await supabase.from('applications').select('*').eq('id', id).single();
-    if (appRow) setApp(appRow as any);
+    if (appRow) {
+      setApp(appRow as any);
+      // Resolve effective workflow ON/OFF state: needs workflow_id, is_active=true, AND at least one step
+      const wfId = (appRow as any).workflow_id as string | null;
+      if (wfId) {
+        const [{ data: wf }, { count: stepCount }] = await Promise.all([
+          supabase.from('approval_workflows').select('is_active').eq('id', wfId).maybeSingle(),
+          supabase.from('approval_steps').select('id', { count: 'exact', head: true }).eq('workflow_id', wfId),
+        ]);
+        setWorkflowActive(!!(wf && (wf as any).is_active) && (stepCount || 0) > 0);
+      } else {
+        setWorkflowActive(false);
+      }
+      setWorkflowChecked(true);
+    }
 
     const { data: actions } = await supabase.from('approval_actions').select('*').eq('application_id', id).order('created_at', { ascending: true });
     if (actions) {
@@ -335,7 +351,10 @@ export default function ApplicationDetail() {
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
   // Show manual actions for internal users when no workflow is configured
-  const showManualActions = isInternal && !app.workflow_id && ['submitted', 'in_progress'].includes(app.status);
+  // Workflow is effectively ON only when an active workflow with steps is attached.
+  // When OFF (disabled, missing, or no steps), authorized internal users get direct approval actions.
+  const workflowOn = !!app.workflow_id && workflowActive;
+  const showManualActions = isInternal && !workflowOn && ['submitted', 'in_progress'].includes(app.status);
 
   return (
     <DashboardLayout>
@@ -505,8 +524,8 @@ export default function ApplicationDetail() {
               </TabsContent>
             </Tabs>
 
-            {/* Workflow-based review panel */}
-            {app.workflow_id && (
+            {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
+            {workflowOn && (
               <WorkflowPanel
                 applicationId={app.id}
                 workflowId={app.workflow_id}
@@ -521,7 +540,7 @@ export default function ApplicationDetail() {
                 <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    No approval workflow is configured for this license type. Use the actions below to process this application.
+                    Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
                   </p>
                   <div className="space-y-2">
                     <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
@@ -555,7 +574,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Admin approve resubmission for resubmission_requested/query_raised apps (no workflow) */}
-            {isInternal && !app.workflow_id && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
+            {isInternal && !workflowOn && (app.status === 'resubmission_requested' || app.status === 'query_raised') && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Resubmission Pending</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
