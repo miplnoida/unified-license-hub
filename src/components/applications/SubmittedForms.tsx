@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Loader2 } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface SingleFormViewerProps {
   templateId: string;
@@ -17,7 +18,6 @@ interface SingleFormViewerProps {
 
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
-  // If a specific versionId was stored, use it; otherwise fall back to latest published
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
   const resolvedVersionId = versionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
@@ -80,12 +80,67 @@ interface SubmittedFormsProps {
   onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
+  /** Called when the last pending form is saved — parent should advance to next step (Documents/Payment) */
+  onAllFormsCompleted?: () => void;
 }
 
-export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}, editable, onSave, saving, applicationStatus }: SubmittedFormsProps) {
+export function SubmittedForms({
+  formTemplateIds,
+  formsData,
+  formVersionIds = {},
+  editable,
+  onSave,
+  saving,
+  applicationStatus,
+  onAllFormsCompleted,
+}: SubmittedFormsProps) {
+  // Determine which forms are "completed" (have any data saved)
+  const isFormCompleted = (tid: string) => {
+    const fd = formsData[tid];
+    return !!fd && Object.keys(fd).length > 0;
+  };
+
+  // Pick first pending form, or first form if all complete
+  const firstPendingId = useMemo(() => {
+    return formTemplateIds.find(tid => !isFormCompleted(tid)) || formTemplateIds[0];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formTemplateIds, formsData]);
+
+  const [openItem, setOpenItem] = useState<string | undefined>(firstPendingId);
+
+  // Re-sync open form when data changes (e.g., after a save) — open the next pending one
+  useEffect(() => {
+    setOpenItem(firstPendingId);
+  }, [firstPendingId]);
+
   if (!formTemplateIds || formTemplateIds.length === 0) {
     return <p className="text-sm text-muted-foreground py-4">No forms were submitted with this application.</p>;
   }
+
+  // Wrapper that auto-advances after a successful save
+  const handleSave = async (templateId: string, data: Record<string, any>) => {
+    if (!onSave) return;
+    await onSave(templateId, data);
+    if (formTemplateIds.length === 1) {
+      onAllFormsCompleted?.();
+      return;
+    }
+
+    // Find next pending form (excluding the one just saved, treating it as completed)
+    const nextPending = formTemplateIds.find(tid => {
+      if (tid === templateId) return false;
+      const fd = tid === templateId ? data : formsData[tid];
+      return !fd || Object.keys(fd).length === 0;
+    });
+
+    if (nextPending) {
+      setOpenItem(nextPending);
+    } else {
+      // All forms complete — advance parent to next step
+      setOpenItem(undefined);
+      onAllFormsCompleted?.();
+    }
+  };
 
   if (formTemplateIds.length === 1) {
     return (
@@ -94,33 +149,84 @@ export function SubmittedForms({ formTemplateIds, formsData, formVersionIds = {}
         formData={formsData[formTemplateIds[0]] || {}}
         versionId={formVersionIds[formTemplateIds[0]] || null}
         editable={editable}
-        onSave={onSave}
+        onSave={onSave ? handleSave : undefined}
         saving={saving}
         applicationStatus={applicationStatus}
       />
     );
   }
 
+  const completedCount = formTemplateIds.filter(isFormCompleted).length;
+
   return (
-    <Accordion type="multiple" defaultValue={formTemplateIds} className="space-y-2">
-      {formTemplateIds.map((tid, idx) => (
-        <AccordionItem key={tid} value={tid} className="border rounded-lg px-4">
-          <AccordionTrigger className="text-sm font-medium">
-            Form {idx + 1}
-          </AccordionTrigger>
-          <AccordionContent>
-            <SingleFormViewer
-              templateId={tid}
-              formData={formsData[tid] || {}}
-              versionId={formVersionIds[tid] || null}
-              editable={editable}
-              onSave={onSave}
-              saving={saving}
-              applicationStatus={applicationStatus}
-            />
-          </AccordionContent>
-        </AccordionItem>
-      ))}
-    </Accordion>
+    <div className="space-y-3">
+      {/* Progress summary */}
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">
+          {completedCount} of {formTemplateIds.length} forms completed
+        </span>
+        {completedCount === formTemplateIds.length && (
+          <Badge variant="default" className="text-[10px]">
+            <CheckCircle2 className="h-3 w-3 mr-1" /> All forms saved
+          </Badge>
+        )}
+      </div>
+
+      <Accordion
+        type="single"
+        collapsible
+        value={openItem}
+        onValueChange={(v) => setOpenItem(v || undefined)}
+        className="space-y-2"
+      >
+        {formTemplateIds.map((tid, idx) => {
+          const completed = isFormCompleted(tid);
+          const isActive = openItem === tid;
+          return (
+            <AccordionItem
+              key={tid}
+              value={tid}
+              className={cn(
+                'border rounded-lg px-4 transition-colors',
+                isActive && 'border-primary/50 bg-primary/[0.02]',
+                completed && !isActive && 'border-green-500/30 bg-green-500/[0.02]',
+              )}
+            >
+              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                <div className="flex items-center gap-2 flex-1">
+                  {completed ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  ) : (
+                    <Circle className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
+                  )}
+                  <span>Form {idx + 1}</span>
+                  {completed && (
+                    <Badge variant="outline" className="text-[10px] ml-2 border-green-500/40 text-green-700 dark:text-green-400">
+                      Completed
+                    </Badge>
+                  )}
+                  {!completed && isActive && (
+                    <Badge variant="outline" className="text-[10px] ml-2">
+                      In Progress
+                    </Badge>
+                  )}
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <SingleFormViewer
+                  templateId={tid}
+                  formData={formsData[tid] || {}}
+                  versionId={formVersionIds[tid] || null}
+                  editable={editable}
+                  onSave={onSave ? handleSave : undefined}
+                  saving={saving}
+                  applicationStatus={applicationStatus}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </div>
   );
 }

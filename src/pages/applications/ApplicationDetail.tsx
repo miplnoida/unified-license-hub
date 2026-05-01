@@ -62,6 +62,7 @@ export default function ApplicationDetail() {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('details');
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isOwner = user && app?.applicant_id === user.id;
@@ -384,7 +385,7 @@ export default function ApplicationDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Forms and Documents tabs - always visible */}
-            <Tabs defaultValue="details" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full justify-start">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
@@ -477,8 +478,14 @@ export default function ApplicationDetail() {
                       const updatedAppData = { ...appData, forms_data: updatedFormsData };
                       const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
                       if (error) { toast.error('Failed to save form'); return; }
-                      toast.success('Form saved successfully');
-                      loadData();
+                      // Lightweight inline state via SubmittedForms; no per-save toast spam.
+                      await loadData();
+                    }}
+                    onAllFormsCompleted={() => {
+                      // Auto-advance to next pending step after all forms are filled
+                      const next = !paymentComplete ? 'fees' : 'documents';
+                      toast.success('All forms saved — continue with the next step');
+                      setActiveTab(next);
                     }}
                   />
                 </TabsContent>
