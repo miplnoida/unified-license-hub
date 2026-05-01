@@ -143,26 +143,44 @@ export default function AdminHub() {
         {/* Admin Modules Grid */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Administration Modules</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up delay-300">
-            {adminModules.map(mod => (
-              <Card
-                key={mod.label}
-                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
-                onClick={() => navigate(mod.href)}
-              >
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      {mod.icon}
+
+          {noAccess ? (
+            <Card>
+              <CardContent className="py-10 flex flex-col items-center text-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
+                  <ShieldAlert className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">No administration modules available</p>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                    Your role does not currently grant access to any admin modules. Please contact your system
+                    administrator if you believe this is a mistake.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up delay-300">
+              {adminModules.map(mod => (
+                <Card
+                  key={mod.label}
+                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+                  onClick={() => navigate(mod.href)}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        {mod.icon}
+                      </div>
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <h3 className="font-medium mt-3 text-foreground">{mod.label}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{mod.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <h3 className="font-medium mt-3 text-foreground">{mod.label}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{mod.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
