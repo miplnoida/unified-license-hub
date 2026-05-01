@@ -32,7 +32,8 @@ import {
   ENTITY_TYPE_LABELS,
   type Workflow, type WorkflowStep, type WorkflowEntityType,
 } from '@/hooks/useWorkflowEngine';
-import { useRoles } from '@/hooks/useRoles';
+import { useRoles, type DynamicRole } from '@/hooks/useRoles';
+import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
