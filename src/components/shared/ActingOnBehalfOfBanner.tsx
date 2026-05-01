@@ -89,7 +89,7 @@ export function ActingOnBehalfOfBanner() {
   // that they're acting on behalf of an entity).
   const showPpocSoloBanner = isPpoc && mappedLicensees.length === 1 && activeLicensee;
 
-  if (loading || (delegations.length === 0 && !showPpocSoloBanner)) return null;
+  if (loading || (delegations.length === 0 && !showPpocSoloBanner && !user?.delegatedRole)) return null;
 
   const delegatedRoleLabel = user?.delegatedRole ? ROLE_LABELS[user.delegatedRole] : null;
 
