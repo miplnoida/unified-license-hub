@@ -32,15 +32,6 @@ interface DelegationRule {
   created_at: string;
 }
 
-const operators = [
-  { value: '>', label: 'Greater than' },
-  { value: '<', label: 'Less than' },
-  { value: '>=', label: 'Greater or equal' },
-  { value: '<=', label: 'Less or equal' },
-  { value: '==', label: 'Equals' },
-  { value: '!=', label: 'Not equals' },
-  { value: 'contains', label: 'Contains' },
-];
 
 export default function DelegationRules() {
   const [rules, setRules] = useState<DelegationRule[]>([]);
