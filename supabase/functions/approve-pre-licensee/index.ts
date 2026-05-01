@@ -309,15 +309,24 @@ Deno.serve(async (req) => {
         .eq("status", "active");
     }
 
-    // 7. Record approval action
-    await admin.from("approval_actions").insert({
-      application_id,
-      action: "approved",
-      action_type: "approve",
-      actor_id: caller.id,
-      comments: comments || "Application approved",
-      responded_at: new Date().toISOString(),
-    });
+    // 7. Record approval action (idempotent: skip if a final approve already exists)
+    const { data: existingFinalAction } = await admin
+      .from("approval_actions")
+      .select("id")
+      .eq("application_id", application_id)
+      .eq("action_type", "approve")
+      .is("delegated_to", null)
+      .limit(1);
+    if (!existingFinalAction || existingFinalAction.length === 0) {
+      await admin.from("approval_actions").insert({
+        application_id,
+        action: "approved",
+        action_type: "approve",
+        actor_id: caller.id,
+        comments: comments || "Application approved",
+        responded_at: new Date().toISOString(),
+      });
+    }
 
     // 8. Audit log
     await admin.from("audit_logs").insert({
