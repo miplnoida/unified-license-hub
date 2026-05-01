@@ -219,9 +219,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check if a licensee web user already exists for this email
+    // Check if a licensee web user already exists for this email.
+    // We never return the plaintext password — generate a recovery link instead
+    // and force password change on first login.
     let webUserCreated = false;
-    let webUserPassword = "";
+    let passwordSetupUrl: string | null = null;
 
     if (applicantEmail && licenseeId) {
       const { data: existingUsers } = await admin
@@ -232,13 +234,11 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (!existingUsers || existingUsers.length === 0) {
-        // Generate a strong random password
-        webUserPassword = generatePassword();
+        const tempPassword = generatePassword();
 
-        // Create auth user with licensee_primary role
         const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
           email: applicantEmail,
-          password: webUserPassword,
+          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             full_name: applicantName,
@@ -249,45 +249,50 @@ Deno.serve(async (req) => {
         });
 
         if (createErr) {
-          // If user already exists with that email, just link them
           if (createErr.message.includes("already been registered") || createErr.message.includes("already exists")) {
-            console.log("User already exists, linking to licensee");
-            // Try to update existing profile to link to licensee
             const { data: existingAuth } = await admin
               .from("profiles")
               .select("id")
               .eq("email", applicantEmail)
               .limit(1);
-            
+
             if (existingAuth?.[0]) {
               await admin.from("profiles").update({
                 licensee_id: licenseeId,
                 role: "licensee_primary",
                 user_type: "primary",
               }).eq("id", existingAuth[0].id);
-              
-              // Also update user_roles
+
               await admin.from("user_roles").upsert({
                 user_id: existingAuth[0].id,
                 role: "licensee_primary",
               }, { onConflict: "user_id,role" });
-              
+
               webUserCreated = true;
             }
           } else {
             console.error("Web user creation error:", createErr);
           }
         } else if (newUser?.user) {
-          // Link profile to licensee
           await admin.from("profiles").update({
             licensee_id: licenseeId,
+            force_password_change: true,
           }).eq("id", newUser.user.id);
-          
+
+          try {
+            const { data: linkData } = await admin.auth.admin.generateLink({
+              type: "recovery",
+              email: applicantEmail,
+            });
+            passwordSetupUrl = (linkData as any)?.properties?.action_link || null;
+          } catch (linkErr) {
+            console.error("Failed to generate recovery link:", linkErr);
+          }
+
           webUserCreated = true;
         }
       } else {
-        webUserCreated = true; // Already exists
-        webUserPassword = ""; // Don't expose
+        webUserCreated = true; // Already exists — do not reset password
       }
     }
 
