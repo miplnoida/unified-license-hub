@@ -364,17 +364,79 @@ export default function DelegationRules() {
                       </Select>
                     </div>
                     <div>
-                      <Label>Role to Transfer *</Label>
-                      <Select value={transferRole} onValueChange={v => setTransferRole(v as AppRole)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ROLE_HIERARCHY.filter(r => r !== 'applicant' && r !== 'pre_licensee').map(r => (
-                            <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        The covering user will gain access of this role during the active period.
+                      <div className="flex items-center justify-between mb-1.5">
+                        <Label className="flex items-center gap-1.5">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Roles to Transfer *
+                        </Label>
+                        {!editingRuleId && fromUserRoles.length > 1 && (
+                          <div className="flex items-center gap-2 text-[11px]">
+                            <button type="button" onClick={selectAllRoles} className="text-primary hover:underline">
+                              Transfer All
+                            </button>
+                            <span className="text-muted-foreground">·</span>
+                            <button type="button" onClick={clearSelectedRoles} className="text-muted-foreground hover:underline">
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {!fromUserId ? (
+                        <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+                          Select an Absent User above to load their assigned roles.
+                        </div>
+                      ) : rolesLoading ? (
+                        <div className="rounded-md border px-3 py-3 text-xs text-muted-foreground flex items-center gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Loading assigned roles...
+                        </div>
+                      ) : fromUserRoles.length === 0 ? (
+                        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-3 text-xs text-destructive flex items-start gap-2">
+                          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>No active roles assigned to this user. Delegation is not allowed.</span>
+                        </div>
+                      ) : editingRuleId ? (
+                        <Select value={selectedRoles[0] || ''} onValueChange={v => setSelectedRoles([v as AppRole])}>
+                          <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                          <SelectContent>
+                            {fromUserRoles.map(r => (
+                              <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="rounded-md border divide-y">
+                          {fromUserRoles.map((r, idx) => {
+                            const disabled = r === 'applicant' || r === 'pre_licensee';
+                            const checked = selectedRoles.includes(r);
+                            return (
+                              <label
+                                key={r}
+                                className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'}`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <Checkbox
+                                    checked={checked}
+                                    disabled={disabled}
+                                    onCheckedChange={() => !disabled && toggleSelectedRole(r)}
+                                  />
+                                  <span className="font-medium truncate">{ROLE_LABELS[r]}</span>
+                                  {idx === 0 && fromUserRoles.length > 1 && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1">Highest</Badge>
+                                  )}
+                                </div>
+                                {disabled && (
+                                  <span className="text-[10px] text-muted-foreground">Not delegatable</span>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-1.5">
+                        {editingRuleId
+                          ? 'Editing affects this single delegation row.'
+                          : 'One delegation row will be created per selected role. The covering user gains access of all selected roles during the active period.'}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
