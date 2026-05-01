@@ -160,33 +160,32 @@ function SettingsAuditWidget({ widget }: RendererProps) {
 
 function MyLicenses({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q: any = supabase.from('licenses').select('*', { count: 'exact', head: true });
-    q = context.licenseeId ? q.eq('licensee_id', context.licenseeId) : q.eq('holder_id', context.userId);
-    const { count } = await q;
+    const { count } = await supabase.from('licenses')
+      .select('*', { count: 'exact', head: true })
+      .eq('holder_id', context.userId);
     return count || 0;
-  }, [context.userId, context.licenseeId]);
+  }, [context.userId]);
   return <MetricShell widget={widget} icon={<Shield className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
 function MyReturns({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q: any = supabase.from('compliance_returns')
+    const { count } = await supabase.from('compliance_returns')
       .select('*', { count: 'exact', head: true })
+      .eq('submitter_id', context.userId)
       .in('status', ['pending', 'draft', 'overdue', 'resubmission_requested']);
-    if (context.licenseeId) q = q.eq('licensee_id', context.licenseeId);
-    const { count } = await q;
     return count || 0;
-  }, [context.userId, context.licenseeId]);
+  }, [context.userId]);
   return <MetricShell widget={widget} icon={<ClipboardList className="h-5 w-5" />} value={value} loading={loading} hint="Pending or overdue" />;
 }
 
 function MyPayments({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    let q: any = supabase.from('payments').select('*', { count: 'exact', head: true });
-    q = context.licenseeId ? q.eq('licensee_id', context.licenseeId) : q.eq('payer_id', context.userId);
-    const { count } = await q;
+    const { count } = await supabase.from('payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', context.userId);
     return count || 0;
-  }, [context.userId, context.licenseeId]);
+  }, [context.userId]);
   return <MetricShell widget={widget} icon={<DollarSign className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
