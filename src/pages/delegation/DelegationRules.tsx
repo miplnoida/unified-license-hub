@@ -15,7 +15,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { AppRole, ROLE_LABELS, ROLE_HIERARCHY } from '@/types/platform';
-import { Layers, Plus, Trash2, Loader2, Calendar, UserCheck } from 'lucide-react';
+import { Layers, Plus, Trash2, Loader2, Calendar, UserCheck, Pencil } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 interface DelegationRule {
   id: string;
