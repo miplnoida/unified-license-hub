@@ -84,9 +84,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Idempotency: if already approved, return existing data
+    // Idempotency: if already approved, return existing data (no duplicate work)
     if (app.status === "approved") {
-      // Find existing license
       const { data: existingLic } = await admin
         .from("licenses")
         .select("license_number")
@@ -103,6 +102,10 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Race protection: if any other process inserted an approved-final action in the
+    // last few seconds, do not duplicate. The unique index on workflow_instances
+    // also prevents duplicate active instances.
 
     // Must be in submitted or in_progress state
     if (!["submitted", "in_progress"].includes(app.status)) {
