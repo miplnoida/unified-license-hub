@@ -4253,6 +4253,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      perform_workflow_transition: {
+        Args: {
+          _action_type: string
+          _actor_id: string
+          _application_id: string
+          _comments: string
+          _instance_id: string
+          _step_id: string
+        }
+        Returns: Json
+      }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -4260,6 +4271,10 @@ export type Database = {
       ppoc_mapped_licensee_ids: {
         Args: { _user_id: string }
         Returns: string[]
+      }
+      user_can_access_document_object: {
+        Args: { _object_name: string }
+        Returns: boolean
       }
     }
     Enums: {
