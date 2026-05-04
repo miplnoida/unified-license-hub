@@ -18,9 +18,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw,
+  Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw, Upload, User as UserIcon, ShieldCheck,
 } from 'lucide-react';
 import { useRoles, DynamicRole } from '@/hooks/useRoles';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface UserRecord {
   id: string;
