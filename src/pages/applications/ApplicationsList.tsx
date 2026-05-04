@@ -382,13 +382,15 @@ export default function ApplicationsList() {
     return list;
   }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors, versions, templates, versionFilter, versionSort]);
 
-  const totalPages = groupingEnabled ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = groupingEnabled ? filtered : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // Server-driven pagination: totalCount comes from the .range() count.
+  // `filtered` here is the in-page filter (search + version filter + sort) applied
+  // to the loaded page. Status filter + draft hiding are pushed to the server.
+  const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const paged = filtered;
 
-  const visibleApps = isInternal ? applications.filter(a => !['draft', 'in_progress'].includes(a.status)) : applications;
-  const approved = visibleApps.filter(a => a.status === 'approved').length;
-  const pending = visibleApps.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
-  const rejected = visibleApps.filter(a => a.status === 'rejected').length;
+  const approved = statCounts.approved;
+  const pending = statCounts.pending;
+  const rejected = statCounts.rejected;
 
   const resolveGroupValue = (app: Application, field: GroupByField): string => {
     const data = app.data as any;
