@@ -80,16 +80,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // For email channel, try to send via notification system
+    // Send the OTP via Lovable transactional email (send-transactional-email).
+    // We REQUIRE actual delivery success — never claim success if the email failed.
+    let emailDelivered = false;
+    let providerError: string | null = null;
+    let providerStatus: number | null = null;
+
     if (channel === "email") {
       try {
-        // Use the existing send-notification function pattern
-        // For now, log the OTP (in production, integrate with email service)
-        console.log(`OTP for ${email}: ${otp} (this log should be removed in production)`);
-        
-        // Try sending via the send-notification edge function
-        const notifResponse = await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification`,
+        const subject = "Your Registration Verification Code";
+        const text = `Your verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share this code with anyone.`;
+        const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+          <h2 style="margin:0 0 12px;">Verify your email</h2>
+          <p style="color:#475569;margin:0 0 16px;">Use the code below to verify your email address. It expires in 10 minutes.</p>
+          <div style="font-size:28px;font-weight:700;letter-spacing:6px;background:#0f172a;color:#fff;padding:14px 18px;border-radius:8px;text-align:center;">${otp}</div>
+          <p style="color:#94a3b8;font-size:12px;margin-top:16px;">If you did not request this code, you can ignore this email.</p>
+        </div>`;
+
+        const resp = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
           {
             method: "POST",
             headers: {
@@ -97,20 +106,43 @@ Deno.serve(async (req) => {
               Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
             body: JSON.stringify({
-              to_email: email,
-              subject: "Your Registration Verification Code",
-              body: `Your verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share this code with anyone.`,
-              channel: "email",
+              to: email,
+              subject,
+              html,
+              text,
             }),
-          }
+          },
         );
-        
-        if (!notifResponse.ok) {
-          console.warn("Notification send failed, but OTP was stored successfully");
+        providerStatus = resp.status;
+        const respText = await resp.text();
+        if (resp.ok) {
+          emailDelivered = true;
+        } else {
+          providerError = `Email provider returned ${resp.status}: ${respText.slice(0, 300)}`;
+          console.error("send-transactional-email failed:", providerError);
         }
       } catch (emailErr) {
-        console.warn("Email send error (OTP still valid):", emailErr);
+        providerError = `Email send threw: ${(emailErr as Error).message}`;
+        console.error(providerError);
       }
+    } else {
+      // Non-email channels not implemented yet
+      providerError = `Channel '${channel}' is not configured for delivery`;
+    }
+
+    if (!emailDelivered) {
+      return new Response(
+        JSON.stringify({
+          error:
+            providerError ||
+            "Verification email could not be sent. Please contact support or try again later.",
+          provider_status: providerStatus,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     return new Response(
@@ -118,7 +150,7 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("Send OTP error:", error);
