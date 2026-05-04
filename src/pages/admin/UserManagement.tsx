@@ -278,6 +278,8 @@ export default function UserManagement() {
 
   const openCreate = () => {
     setForm(emptyForm);
+    setPendingAvatarFile(null);
+    setPendingAvatarPreview('');
     setGeneratedPassword(generatePassword());
     setCreateDialogOpen(true);
   };
