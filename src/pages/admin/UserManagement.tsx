@@ -231,6 +231,49 @@ export default function UserManagement() {
     setEditDialog(false);
   };
 
+  const openProfileEdit = (u: UserRecord) => {
+    setEditingUser(u);
+    setProfileForm({ full_name: u.full_name || '', avatar_url: u.avatar_url || '' });
+    setProfileDialog(true);
+  };
+
+  const handleProfileAvatarUpload = async (file: File) => {
+    if (!editingUser) return;
+    setUploadingAvatar(true);
+    const url = await uploadAvatarFile(file, editingUser.id);
+    if (url) setProfileForm(p => ({ ...p, avatar_url: url }));
+    setUploadingAvatar(false);
+  };
+
+  const handleProfileSave = async () => {
+    if (!editingUser) return;
+    if (!profileForm.full_name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: profileForm.full_name.trim(),
+        avatar_url: profileForm.avatar_url || null,
+      } as any)
+      .eq('id', editingUser.id);
+    if (error) {
+      toast.error(error.message);
+      setSaving(false);
+      return;
+    }
+    setUsers(prev => prev.map(x => x.id === editingUser.id ? {
+      ...x,
+      full_name: profileForm.full_name.trim(),
+      avatar_url: profileForm.avatar_url || null,
+    } : x));
+    toast.success('Profile updated');
+    setSaving(false);
+    setProfileDialog(false);
+  };
+
   const openCreate = () => {
     setForm(emptyForm);
     setGeneratedPassword(generatePassword());
