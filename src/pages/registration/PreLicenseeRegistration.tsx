@@ -350,6 +350,7 @@ export default function PreLicenseeRegistration() {
         return (
           <DeclarationsStep
             form={form} errors={errors} setField={setField}
+            verificationEmail={effectiveEmail}
             declarations={config?.declarations}
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}
