@@ -265,6 +265,65 @@ export default function ApplicationsList() {
     loadStats();
   }, [refreshKey, isInternal]);
 
+  // CSV export — fetches all rows matching the current server-side filters (status + draft hiding),
+  // capped at 5000 rows. In-page text/version filters are NOT applied (they only affect what is loaded).
+  const exportFilteredCsv = async () => {
+    setExporting(true);
+    try {
+      const MAX = 5000;
+      const PAGE = 1000;
+      let all: any[] = [];
+      for (let off = 0; off < MAX; off += PAGE) {
+        const res = await buildAppsQuery().range(off, off + PAGE - 1);
+        const rows = (res.data as any[]) || [];
+        all = all.concat(rows);
+        if (rows.length < PAGE) break;
+      }
+      if (all.length === 0) {
+        toast.info('No applications match the current filter.');
+        return;
+      }
+      const escape = (v: any): string => {
+        if (v === null || v === undefined) return '';
+        const s = String(v).replace(/"/g, '""');
+        return /[",\n]/.test(s) ? `"${s}"` : s;
+      };
+      const header = [
+        'Application Number', 'Applicant', 'License Type', 'Sector', 'Sub Sector',
+        'Category', 'Service', 'Status', 'Submitted At', 'Created At',
+      ];
+      const lines = [header.join(',')];
+      for (const app of all) {
+        const data = (app.data || {}) as any;
+        lines.push([
+          escape(app.application_number),
+          escape(getApplicantName(app.applicant_id)),
+          escape(data.service_id ? 'Post Licensee' : data.category_id ? 'Pre Licensee' : '—'),
+          escape(data.sector_id ? sectors[data.sector_id] || data.sector_id : ''),
+          escape(data.sub_sector_id ? subSectors[data.sub_sector_id] || data.sub_sector_id : ''),
+          escape(data.category_id ? categories[data.category_id] || data.category_id : ''),
+          escape(data.service_id ? services[data.service_id] || data.service_id : ''),
+          escape(APPLICATION_STATUS_LABELS[app.status as ApplicationStatus] || app.status),
+          escape(app.submitted_at || ''),
+          escape(app.created_at || ''),
+        ].join(','));
+      }
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `applications-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${all.length} application${all.length === 1 ? '' : 's'}${all.length >= MAX ? ' (capped at 5000 — narrow filters for full export)' : ''}.`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
 
