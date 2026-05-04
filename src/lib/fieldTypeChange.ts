@@ -5,9 +5,12 @@
  */
 
 const CHOICE_TYPES = new Set(['select', 'multi_select', 'checkbox', 'radio']);
-const TEXTUAL_TYPES = new Set(['text', 'textarea', 'email', 'phone']);
+const TEXTUAL_TYPES = new Set(['text', 'textarea', 'email', 'phone', 'password']);
 const NUMERIC_TYPES = new Set(['number', 'decimal']);
-const PATTERN_TYPES = new Set(['text', 'email', 'phone']);
+const PATTERN_TYPES = new Set(['text', 'email', 'phone', 'password']);
+const PLACEHOLDER_TYPES = new Set([
+  'text', 'textarea', 'email', 'phone', 'password', 'number', 'decimal', 'date', 'select', 'multi_select',
+]);
 const PLACEHOLDER_TYPES = new Set([
   'text', 'textarea', 'email', 'phone', 'number', 'decimal', 'date', 'select', 'multi_select',
 ]);
