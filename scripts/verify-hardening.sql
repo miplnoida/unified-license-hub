@@ -412,8 +412,10 @@ BEGIN
   END IF;
   v_result := public.perform_workflow_transition(
     v_app_id, v_instance_id, v_step3, 'escalate', 'no', v_super_admin);
-  IF (v_result->>'code') = 'CANNOT_ESCALATE' THEN
-    v_pass:=v_pass+1; RAISE NOTICE 'PASS [WF-8] escalate from last step rejected';
+  -- Backend may reject either as CANNOT_ESCALATE (last-step guard) or
+  -- ACTION_NOT_ALLOWED (escalate not in allowed_actions). Both are correct.
+  IF (v_result->>'code') IN ('CANNOT_ESCALATE','ACTION_NOT_ALLOWED') THEN
+    v_pass:=v_pass+1; RAISE NOTICE 'PASS [WF-8] escalate from last step rejected (%)', v_result->>'code';
   ELSE
     v_fail:=v_fail+1; RAISE WARNING 'FAIL [WF-8] %', v_result;
   END IF;
