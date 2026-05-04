@@ -317,12 +317,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         <div className="space-y-2">
           <Label className="text-sm">
             Remarks / Description
-            {isLastLevel && <span className="text-destructive ml-1">*</span>}
+            <span className="text-destructive ml-1">*</span>
           </Label>
           <Textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
-            placeholder={isLastLevel ? 'Mandatory: Enter your remarks before approving or rejecting...' : 'Add remarks (optional)...'}
+            placeholder="Mandatory: Enter your remarks before approving, rejecting, or requesting resubmission..."
             rows={3}
             disabled={processing}
           />
