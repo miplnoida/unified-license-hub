@@ -192,10 +192,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   }
 
+  // Comments-required actions must match backend rules.
+  const REMARKS_REQUIRED: WorkflowActionType[] = ['approve', 'reject', 'request_resubmission'];
+
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
 
-    if (['approve', 'reject', 'request_resubmission'].includes(actionType) && !comment.trim()) {
+    if (REMARKS_REQUIRED.includes(actionType) && !comment.trim()) {
       toast.error('Remarks are mandatory for this action');
       return;
     }
@@ -211,8 +214,20 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           comments: comment,
         },
       });
+
+      // Edge function now returns proper non-2xx codes. supabase-js surfaces
+      // these as `error` (FunctionsHttpError) with the response body in
+      // error.context. Try to extract the structured { error, code } payload.
       if (error) {
-        toast.error(error.message || 'Action failed');
+        let serverMsg = error.message || 'Action failed';
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) serverMsg = body.error;
+          }
+        } catch { /* ignore */ }
+        toast.error(serverMsg);
         return;
       }
       if (data?.error) {
@@ -243,25 +258,34 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build available actions
-  const actions: { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }[] = [];
+  // Build available actions strictly from the step's allowed_actions list.
+  // No synthetic bypass: if the step doesn't allow it, it does not appear.
+  const stepAllowed = new Set<string>(
+    Array.isArray((currentStep as any).allowed_actions)
+      ? ((currentStep as any).allowed_actions as string[])
+      : ['approve', 'reject', 'send_back'],
+  );
+
+  const candidate: { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }[] = [];
   if (isLastLevel) {
-    actions.push(
+    candidate.push(
       { type: 'approve', label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' },
       { type: 'reject', label: 'Reject', icon: <XCircle className="h-4 w-4 mr-1" />, variant: 'destructive' },
     );
   } else {
-    actions.push(
+    candidate.push(
       { type: 'approve', label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' },
     );
   }
   if (!isFirstLevel && !isLastLevel) {
-    actions.push({ type: 'send_back', label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
+    candidate.push({ type: 'send_back', label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
   }
   if (!isLastLevel) {
-    actions.push({ type: 'escalate', label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' });
+    candidate.push({ type: 'escalate', label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' });
   }
-  actions.push({ type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
+  candidate.push({ type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
+
+  const actions = candidate.filter(a => stepAllowed.has(a.type));
 
   return (
     <Card>
