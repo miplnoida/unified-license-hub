@@ -51,13 +51,13 @@ export function isDestructiveTypeChange(oldType: string, newType: string): boole
  * set (including `undefined`) so callers using `{ ...field, ...result }` will
  * clear stale values.
  */
-export function buildTypeChangePatch<F extends AnyField>(
-  field: F,
+export function buildTypeChangePatch(
+  field: AnyField,
   newType: string,
-): Partial<F> & { type: string } {
+): Record<string, any> {
   const patch: Record<string, any> = { type: newType };
   const oldType = field.type;
-  if (oldType === newType) return patch as any;
+  if (oldType === newType) return patch;
 
   const newIsChoice = CHOICE_TYPES.has(newType);
   const oldIsChoice = CHOICE_TYPES.has(oldType);
