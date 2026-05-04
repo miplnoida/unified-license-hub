@@ -94,24 +94,48 @@ Deno.serve(async (req) => {
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
 
-    // Final approval → delegate to approve-pre-licensee (idempotent).
+    // Final approval → atomic RPC commits all DB state, then we call
+    // approve-pre-licensee for auth-user provisioning (which needs auth admin APIs).
     if (result.final_approval === true) {
-      const finalRes = await fetch(`${supabaseUrl}/functions/v1/approve-pre-licensee`, {
+      const { data: finalRpc, error: finalRpcErr } = await admin.rpc(
+        "perform_final_workflow_approval",
+        {
+          _application_id: application_id,
+          _instance_id: instance_id ?? null,
+          _step_id: step_id ?? null,
+          _comments: comments,
+          _actor_id: caller.id,
+        },
+      );
+      if (finalRpcErr) {
+        console.error("perform_final_workflow_approval error:", finalRpcErr);
+        return errorResponse(req, 500, finalRpcErr.message || "Final approval failed", "DB_ERROR");
+      }
+      const finalResult = (finalRpc || {}) as Record<string, unknown>;
+      if (finalResult.error) {
+        const status = typeof finalResult.http === "number" ? (finalResult.http as number) : 422;
+        return errorResponse(req, status, String(finalResult.error), String(finalResult.code || "BUSINESS_ERROR"));
+      }
+
+      // Approval is now committed in DB. Provision the licensee web user.
+      const provRes = await fetch(`${supabaseUrl}/functions/v1/approve-pre-licensee`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: authHeader },
-        body: JSON.stringify({ application_id, comments }),
+        body: JSON.stringify({ application_id }),
       });
-      const finalJson = await finalRes.json().catch(() => ({}));
-      if (!finalRes.ok || (finalJson as any)?.error) {
-        return errorResponse(
-          req,
-          finalRes.status >= 400 ? finalRes.status : 500,
-          (finalJson as any)?.error || "Final approval failed",
-          "APPROVAL_FAILED",
-        );
+      const provJson = await provRes.json().catch(() => ({}));
+      // Provisioning failure must NOT roll back approval — the approval is final.
+      // We surface the issue but still report success of the approval itself.
+      if (!provRes.ok || (provJson as any)?.error) {
+        console.error("provisioning failed after approval:", provJson);
+        return jsonResponse(req, 200, {
+          success: true,
+          ...finalResult,
+          provisioning_warning: (provJson as any)?.error || "User provisioning failed; please retry from admin panel",
+        });
       }
-      delete (finalJson as any).web_user_password;
-      return jsonResponse(req, 200, { success: true, ...finalJson });
+      delete (provJson as any).web_user_password;
+      return jsonResponse(req, 200, { success: true, ...finalResult, ...provJson });
     }
 
     return jsonResponse(req, 200, result);
