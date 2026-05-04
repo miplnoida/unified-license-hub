@@ -263,12 +263,12 @@ function OtpVerificationSection({
             <Mail className="h-4 w-4" />
             <span>
               Verification will be sent to:{' '}
-              <strong className="text-foreground">{form.email || '(no email provided)'}</strong>
+              <strong className="text-foreground">{resolvedEmail || '(no email provided)'}</strong>
             </span>
           </div>
 
           {!otpSent ? (
-            <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpSending || !form.email}>
+            <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpSending || !resolvedEmail || !emailValid || cooldown > 0}>
               {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
               Send Verification Code
             </Button>
