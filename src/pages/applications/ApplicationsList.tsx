@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
+import { buildCsv } from '@/lib/applicationsExport';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -283,32 +284,15 @@ export default function ApplicationsList() {
         toast.info('No applications match the current filter.');
         return;
       }
-      const escape = (v: any): string => {
-        if (v === null || v === undefined) return '';
-        const s = String(v).replace(/"/g, '""');
-        return /[",\n]/.test(s) ? `"${s}"` : s;
-      };
-      const header = [
-        'Application Number', 'Applicant', 'License Type', 'Sector', 'Sub Sector',
-        'Category', 'Service', 'Status', 'Submitted At', 'Created At',
-      ];
-      const lines = [header.join(',')];
-      for (const app of all) {
-        const data = (app.data || {}) as any;
-        lines.push([
-          escape(app.application_number),
-          escape(getApplicantName(app.applicant_id)),
-          escape(data.service_id ? 'Post Licensee' : data.category_id ? 'Pre Licensee' : '—'),
-          escape(data.sector_id ? sectors[data.sector_id] || data.sector_id : ''),
-          escape(data.sub_sector_id ? subSectors[data.sub_sector_id] || data.sub_sector_id : ''),
-          escape(data.category_id ? categories[data.category_id] || data.category_id : ''),
-          escape(data.service_id ? services[data.service_id] || data.service_id : ''),
-          escape(APPLICATION_STATUS_LABELS[app.status as ApplicationStatus] || app.status),
-          escape(app.submitted_at || ''),
-          escape(app.created_at || ''),
-        ].join(','));
-      }
-      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const csv = buildCsv(all as any, {
+        applicantNameById: getApplicantName,
+        sectorNameById: sectors,
+        subSectorNameById: subSectors,
+        categoryNameById: categories,
+        serviceNameById: services,
+        statusLabelById: APPLICATION_STATUS_LABELS as Record<string, string>,
+      });
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
