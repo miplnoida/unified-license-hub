@@ -148,6 +148,16 @@ export default function ApplicationsList() {
   const [payments, setPayments] = useState<Record<string, PaymentInfo>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [sectors, setSectors] = useState<Record<string, string>>({});
+  const [subSectors, setSubSectors] = useState<Record<string, string>>({});
+  const [categories, setCategories] = useState<Record<string, string>>({});
+  const [services, setServices] = useState<Record<string, string>>({});
+  /** Lazy-loaded per-application action history. Populated on row expand. */
+  const [actionsByApp, setActionsByApp] = useState<Record<string, ActionEvent[]>>({});
+  const [actionsLoadingId, setActionsLoadingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
@@ -176,12 +186,13 @@ export default function ApplicationsList() {
   } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
-  // Reference data — loaded once
+  // Bounded reference data — small admin-config tables. Loaded once.
+  // Profiles, pre_license_users, payments, and approval_actions are NO LONGER
+  // bulk-loaded — the get_application_list_page RPC embeds applicant name/email,
+  // payment summary, and action count per row.
   useEffect(() => {
     async function loadRefs() {
-      const [profRes, preLicRes, sectorRes, subSectorRes, catRes, svcRes, fvRes, ftRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email'),
-        supabase.from('pre_license_users' as any).select('id, full_name, email'),
+      const [sectorRes, subSectorRes, catRes, svcRes, fvRes, ftRes] = await Promise.all([
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
@@ -189,8 +200,6 @@ export default function ApplicationsList() {
         supabase.from('form_versions').select('id, template_id, version, semantic_version, status, effective_from, effective_until, published_at'),
         supabase.from('form_templates').select('id, name'),
       ]);
-      const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
-      setProfiles(allProfiles);
       if (sectorRes.data) setSectors(Object.fromEntries((sectorRes.data as any[]).map(s => [s.id, s.name])));
       if (subSectorRes.data) setSubSectors(Object.fromEntries((subSectorRes.data as any[]).map(s => [s.id, s.name])));
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
@@ -201,97 +210,147 @@ export default function ApplicationsList() {
     loadRefs();
   }, []);
 
-  // Helper: build the base applications query honoring status filter + internal hide-draft rules.
-  // Grouping mode disables pagination because grouping needs the full filtered set.
-  const buildAppsQuery = () => {
-    let q = supabase.from('applications').select('*', { count: 'exact' }).order('created_at', { ascending: false });
-    if (isInternal) q = q.not('status', 'in', '(draft,in_progress)');
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'resubmission_requested') {
-        q = q.in('status', ['resubmission_requested', 'query_raised']);
-      } else {
-        q = q.eq('status', statusFilter);
-      }
-    }
-    return q;
-  };
-
-  // Page of applications — server-driven pagination/filter. Lazy-loads payments + actions for visible rows.
+  // Debounce free-text search to avoid an RPC call on every keystroke.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Page of applications — fully server-driven via the get_application_list_page RPC.
+  // The RPC handles: visibility (applicant vs internal), draft hiding for internal,
+  // status filter (incl. resubmission_requested → query_raised), version filter,
+  // text search across application#/applicant name/email, sorting, and total count.
+  // It also embeds applicant name/email, taxonomy labels, latest payment, and
+  // approval_actions count per row — eliminating the previous N+1 fetches.
+  useEffect(() => {
+    let cancelled = false;
     async function loadPage() {
       setLoading(true);
-      let query = buildAppsQuery();
-      if (!groupingEnabled) {
-        query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      } else {
-        // Grouping: cap to 1000 to avoid runaway loads; users should narrow filters first.
-        query = query.range(0, 999);
-      }
-      const appRes = await query;
-      const apps = (appRes.data as any[]) || [];
-      setApplications(apps as any);
-      setTotalCount(appRes.count || 0);
+      // Grouping needs the full filtered set; cap at 200 to keep the UI responsive.
+      // (Users should narrow filters before grouping.)
+      const effectivePage = groupingEnabled ? 0 : page;
+      const effectivePageSize = groupingEnabled ? 200 : PAGE_SIZE;
 
-      const ids = apps.map(a => a.id);
-      if (ids.length > 0) {
-        const [actionsRes, payRes] = await Promise.all([
-          supabase.from('approval_actions').select('*').in('application_id', ids).order('created_at', { ascending: true }),
-          supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at').in('application_id', ids),
-        ]);
-        if (payRes.data) {
-          const payMap: Record<string, PaymentInfo> = {};
-          (payRes.data as any[]).forEach(p => { if (p.application_id) payMap[p.application_id] = p; });
-          setPayments(payMap);
-        }
-        if (actionsRes.data) {
-          const emailMap: Record<string, string> = {};
-          profiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
-          setAllActions((actionsRes.data as any[]).map(a => ({
-            ...a,
-            actor_email: emailMap[a.actor_id] || a.actor_id,
-          })));
-        }
-      } else {
-        setPayments({});
-        setAllActions([]);
+      const { data, error } = await supabase.rpc('get_application_list_page' as any, {
+        _page: effectivePage,
+        _page_size: effectivePageSize,
+        _search: debouncedSearch || null,
+        _search_mode: searchMode,
+        _status: statusFilter === 'all' ? null : statusFilter,
+        _version_id: versionFilter === 'all' ? null : versionFilter,
+        _sort_by: 'created_at',
+        _sort_dir: 'desc',
+      });
+
+      if (cancelled) return;
+      if (error) {
+        toast.error(error.message || 'Failed to load applications');
+        setApplications([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
       }
+
+      const rows = (data as any[]) || [];
+      setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
+      setApplications(rows.map((r: any): Application => ({
+        id: r.id,
+        application_number: r.application_number,
+        applicant_id: r.applicant_id,
+        applicant_name: r.applicant_name,
+        applicant_email: r.applicant_email,
+        license_type: r.license_type,
+        status: r.status,
+        data: r.data || {},
+        submitted_at: r.submitted_at,
+        created_at: r.created_at,
+        form_version_id: r.form_version_id,
+        sector_name: r.sector_name,
+        sub_sector_name: r.sub_sector_name,
+        category_name: r.category_name,
+        service_name: r.service_name,
+        payment: r.payment_id ? {
+          id: r.payment_id,
+          amount: r.payment_amount,
+          status: r.payment_status,
+          currency: r.payment_currency || 'USD',
+          payment_method: r.payment_method,
+          paid_at: r.payment_paid_at,
+        } : null,
+        action_count: r.action_count ?? 0,
+      })));
       setLoading(false);
     }
     loadPage();
-  }, [refreshKey, page, statusFilter, isInternal, groupingEnabled, profiles.length]);
+    return () => { cancelled = true; };
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled]);
 
-  // Stat counts — independent of pagination, lightweight head-only queries.
+  // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
     async function loadStats() {
-      const baseFilter = (q: any) => isInternal ? q.not('status', 'in', '(draft,in_progress)') : q;
-      const [totalRes, approvedRes, rejectedRes, pendingRes] = await Promise.all([
-        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })),
-        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'approved'),
-        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'rejected'),
-        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).not('status', 'in', '(approved,rejected,cancelled)'),
-      ]);
+      const { data, error } = await supabase.rpc('get_application_list_stats' as any);
+      if (error) return;
+      const s = (data as any) || {};
       setStatCounts({
-        total: totalRes.count || 0,
-        approved: approvedRes.count || 0,
-        rejected: rejectedRes.count || 0,
-        pending: pendingRes.count || 0,
+        total: s.total || 0,
+        approved: s.approved || 0,
+        rejected: s.rejected || 0,
+        pending: s.pending || 0,
       });
     }
     loadStats();
-  }, [refreshKey, isInternal]);
+  }, [refreshKey]);
 
-  // CSV export — fetches all rows matching the current server-side filters (status + draft hiding),
-  // capped at 5000 rows. In-page text/version filters are NOT applied (they only affect what is loaded).
+  // Lazy-load action history for a single application when its row is expanded.
+  const ensureActionsLoaded = async (appId: string) => {
+    if (actionsByApp[appId]) return;
+    setActionsLoadingId(appId);
+    const { data, error } = await supabase.rpc('get_application_actions' as any, {
+      _application_id: appId,
+    });
+    setActionsLoadingId(null);
+    if (error) {
+      toast.error('Failed to load history');
+      return;
+    }
+    const evts = ((data as any[]) || []).map((a: any): ActionEvent => ({
+      id: a.id,
+      application_id: a.application_id,
+      action: a.action,
+      comments: a.comments,
+      actor_id: a.actor_id,
+      actor_email: a.actor_email || a.actor_name || a.actor_id,
+      actor_name: a.actor_name,
+      created_at: a.created_at,
+    }));
+    setActionsByApp(prev => ({ ...prev, [appId]: evts }));
+  };
+
+  // CSV export — uses the same RPC, paginated, capped at 5000 rows.
+  // Honors current server-side filters AND search.
   const exportFilteredCsv = async () => {
     setExporting(true);
     try {
       const MAX = 5000;
-      const PAGE = 1000;
+      const PAGE = 500;
       let all: any[] = [];
-      for (let off = 0; off < MAX; off += PAGE) {
-        const res = await buildAppsQuery().range(off, off + PAGE - 1);
-        const rows = (res.data as any[]) || [];
+      let offset = 0;
+      while (offset < MAX) {
+        const { data, error } = await supabase.rpc('get_application_list_page' as any, {
+          _page: Math.floor(offset / PAGE),
+          _page_size: PAGE,
+          _search: debouncedSearch || null,
+          _search_mode: searchMode,
+          _status: statusFilter === 'all' ? null : statusFilter,
+          _version_id: versionFilter === 'all' ? null : versionFilter,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+        });
+        if (error) throw error;
+        const rows = (data as any[]) || [];
         all = all.concat(rows);
+        offset += PAGE;
         if (rows.length < PAGE) break;
       }
       if (all.length === 0) {
@@ -299,7 +358,10 @@ export default function ApplicationsList() {
         return;
       }
       const csv = buildCsv(all as any, {
-        applicantNameById: getApplicantName,
+        applicantNameById: (id: string) => {
+          const row = all.find((r: any) => r.applicant_id === id);
+          return row?.applicant_name || '—';
+        },
         sectorNameById: sectors,
         subSectorNameById: subSectors,
         categoryNameById: categories,
@@ -323,21 +385,21 @@ export default function ApplicationsList() {
     }
   };
 
-  const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
+  const getApplicantName = (id: string) => {
+    const a = applications.find(x => x.applicant_id === id);
+    return a?.applicant_name || '—';
+  };
 
-  const getAppActions = (appId: string) => allActions.filter(a => a.application_id === appId);
+  const getAppActions = (appId: string): ActionEvent[] => actionsByApp[appId] || [];
 
   const resolveField = (app: Application, field: string): string => {
-    const data = app.data as any;
-    if (!data) return '—';
-    const id = data[field];
-    if (!id) return '—';
+    // Prefer the embedded label from the RPC (no extra lookup needed).
     switch (field) {
-      case 'sector_id': return sectors[id] || id;
-      case 'sub_sector_id': return subSectors[id] || id;
-      case 'category_id': return categories[id] || id;
-      case 'service_id': return services[id] || id;
-      default: return String(id);
+      case 'sector_id':     return app.sector_name     || '—';
+      case 'sub_sector_id': return app.sub_sector_name || '—';
+      case 'category_id':   return app.category_name   || '—';
+      case 'service_id':    return app.service_name    || '—';
+      default:              return '—';
     }
   };
 
