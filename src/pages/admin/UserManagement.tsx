@@ -68,7 +68,30 @@ const emptyForm = {
   email: '',
   role_ids: [] as string[],
   gender: '',
+  avatar_url: '' as string,
 };
+
+async function uploadAvatarFile(file: File, userId: string): Promise<string | null> {
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image must be under 5MB');
+    return null;
+  }
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please choose an image file');
+    return null;
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { cacheControl: '3600', upsert: true });
+  if (error) {
+    toast.error(error.message);
+    return null;
+  }
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserRecord[]>([]);
