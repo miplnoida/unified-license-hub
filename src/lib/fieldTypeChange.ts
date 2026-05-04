@@ -11,9 +11,6 @@ const PATTERN_TYPES = new Set(['text', 'email', 'phone', 'password']);
 const PLACEHOLDER_TYPES = new Set([
   'text', 'textarea', 'email', 'phone', 'password', 'number', 'decimal', 'date', 'select', 'multi_select',
 ]);
-const PLACEHOLDER_TYPES = new Set([
-  'text', 'textarea', 'email', 'phone', 'number', 'decimal', 'date', 'select', 'multi_select',
-]);
 
 export interface AnyField {
   type: string;
