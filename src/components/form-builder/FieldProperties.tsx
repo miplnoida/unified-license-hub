@@ -15,6 +15,8 @@ import { Settings, Plus, X, Zap, Trash2, Database } from 'lucide-react';
 import { fieldTypes } from './FieldPalette';
 import type { FormField, FieldType, ValidationRules, ConditionalRule, TableColumn } from '@/types/formBuilder';
 import { useMasterDataTypes } from '@/hooks/useMasterData';
+import { buildTypeChangePatch, isDestructiveTypeChange } from '@/lib/fieldTypeChange';
+import { toast } from '@/hooks/use-toast';
 
 const COMMON_FILE_TYPES = [
   { value: '.pdf', label: 'PDF' },
