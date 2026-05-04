@@ -254,7 +254,7 @@ function OtpVerificationSection({
           <CheckCircle2 className="h-5 w-5 text-green-600" />
           <div>
             <p className="font-medium text-green-800 dark:text-green-400">Email Verified</p>
-            <p className="text-sm text-green-600 dark:text-green-500">{form.email}</p>
+            <p className="text-sm text-green-600 dark:text-green-500">{resolvedEmail || form.email}</p>
           </div>
         </div>
       ) : (
