@@ -300,7 +300,7 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
         </div>
 
         {/* Pattern */}
-        {['text', 'email', 'phone'].includes(field.type) && (
+        {['text', 'email', 'phone', 'password'].includes(field.type) && (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Pattern (Regex)</Label>
