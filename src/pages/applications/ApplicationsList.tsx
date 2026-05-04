@@ -161,52 +161,109 @@ export default function ApplicationsList() {
   } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
+  // Reference data — loaded once
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes, fvRes, ftRes] = await Promise.all([
-        supabase.from('applications').select('*').order('created_at', { ascending: false }),
+    async function loadRefs() {
+      const [profRes, preLicRes, sectorRes, subSectorRes, catRes, svcRes, fvRes, ftRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
-        supabase.from('approval_actions').select('*').order('created_at', { ascending: true }),
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
-        supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
         supabase.from('form_versions').select('id, template_id, version, semantic_version, status, effective_from, effective_until, published_at'),
         supabase.from('form_templates').select('id, name'),
       ]);
-      if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
       setProfiles(allProfiles);
-
       if (sectorRes.data) setSectors(Object.fromEntries((sectorRes.data as any[]).map(s => [s.id, s.name])));
       if (subSectorRes.data) setSubSectors(Object.fromEntries((subSectorRes.data as any[]).map(s => [s.id, s.name])));
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
       if (fvRes.data) setVersions(Object.fromEntries((fvRes.data as any[]).map(v => [v.id, v as FormVersionRow])));
       if (ftRes.data) setTemplates(Object.fromEntries((ftRes.data as any[]).map(t => [t.id, t as FormTemplateRow])));
+    }
+    loadRefs();
+  }, []);
 
-      if (payRes.data) {
-        const payMap: Record<string, PaymentInfo> = {};
-        (payRes.data as any[]).forEach(p => {
-          if (p.application_id) payMap[p.application_id] = p;
-        });
-        setPayments(payMap);
+  // Helper: build the base applications query honoring status filter + internal hide-draft rules.
+  // Grouping mode disables pagination because grouping needs the full filtered set.
+  const buildAppsQuery = () => {
+    let q = supabase.from('applications').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+    if (isInternal) q = q.not('status', 'in', '(draft,in_progress)');
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'resubmission_requested') {
+        q = q.in('status', ['resubmission_requested', 'query_raised']);
+      } else {
+        q = q.eq('status', statusFilter);
       }
-      if (actionsRes.data) {
-        const emailMap: Record<string, string> = {};
-        allProfiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
-        setAllActions((actionsRes.data as any[]).map(a => ({
-          ...a,
-          actor_email: emailMap[a.actor_id] || a.actor_id,
-        })));
+    }
+    return q;
+  };
+
+  // Page of applications — server-driven pagination/filter. Lazy-loads payments + actions for visible rows.
+  useEffect(() => {
+    async function loadPage() {
+      setLoading(true);
+      let query = buildAppsQuery();
+      if (!groupingEnabled) {
+        query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      } else {
+        // Grouping: cap to 1000 to avoid runaway loads; users should narrow filters first.
+        query = query.range(0, 999);
+      }
+      const appRes = await query;
+      const apps = (appRes.data as any[]) || [];
+      setApplications(apps as any);
+      setTotalCount(appRes.count || 0);
+
+      const ids = apps.map(a => a.id);
+      if (ids.length > 0) {
+        const [actionsRes, payRes] = await Promise.all([
+          supabase.from('approval_actions').select('*').in('application_id', ids).order('created_at', { ascending: true }),
+          supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at').in('application_id', ids),
+        ]);
+        if (payRes.data) {
+          const payMap: Record<string, PaymentInfo> = {};
+          (payRes.data as any[]).forEach(p => { if (p.application_id) payMap[p.application_id] = p; });
+          setPayments(payMap);
+        }
+        if (actionsRes.data) {
+          const emailMap: Record<string, string> = {};
+          profiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
+          setAllActions((actionsRes.data as any[]).map(a => ({
+            ...a,
+            actor_email: emailMap[a.actor_id] || a.actor_id,
+          })));
+        }
+      } else {
+        setPayments({});
+        setAllActions([]);
       }
       setLoading(false);
     }
-    load();
-  }, [refreshKey]);
+    loadPage();
+  }, [refreshKey, page, statusFilter, isInternal, groupingEnabled, profiles.length]);
+
+  // Stat counts — independent of pagination, lightweight head-only queries.
+  useEffect(() => {
+    async function loadStats() {
+      const baseFilter = (q: any) => isInternal ? q.not('status', 'in', '(draft,in_progress)') : q;
+      const [totalRes, approvedRes, rejectedRes, pendingRes] = await Promise.all([
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'approved'),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'rejected'),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).not('status', 'in', '(approved,rejected,cancelled)'),
+      ]);
+      setStatCounts({
+        total: totalRes.count || 0,
+        approved: approvedRes.count || 0,
+        rejected: rejectedRes.count || 0,
+        pending: pendingRes.count || 0,
+      });
+    }
+    loadStats();
+  }, [refreshKey, isInternal]);
 
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
