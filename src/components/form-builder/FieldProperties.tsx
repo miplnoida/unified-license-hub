@@ -151,7 +151,21 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
         {/* Field Type */}
         <div className="space-y-1.5">
           <Label className="text-xs">Type</Label>
-          <Select value={f.type} onValueChange={(val: FieldType) => onUpdateField(f.id, { type: val })}>
+          <Select
+            value={f.type}
+            onValueChange={(val: FieldType) => {
+              if (val === f.type) return;
+              if (isDestructiveTypeChange(f.type, val)) {
+                const ok = window.confirm(
+                  'Changing the field type may affect how existing responses are displayed or validated, and incompatible settings (options, validation, defaults) will be reset. Continue?'
+                );
+                if (!ok) return;
+              }
+              const patch = buildTypeChangePatch(f as any, val);
+              onUpdateField(f.id, patch as Partial<FormField>);
+              toast({ title: 'Field type updated', description: `Now: ${val}` });
+            }}
+          >
             <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {fieldTypes.map(ft => (
