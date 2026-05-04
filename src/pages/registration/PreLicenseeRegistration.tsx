@@ -232,7 +232,7 @@ export default function PreLicenseeRegistration() {
 
     setSubmitting(true);
     try {
-      const emailVal = form.email || String(dynamicFormData.email || '');
+      const emailVal = (effectiveEmail || form.email || String(dynamicFormData.email || '')).trim().toLowerCase();
       const passwordVal = form.password || String(dynamicFormData.password || '');
 
       if (!emailVal || !passwordVal) {
