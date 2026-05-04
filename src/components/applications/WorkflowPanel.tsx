@@ -262,32 +262,22 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   // Build available actions strictly from the step's allowed_actions list.
   // No synthetic bypass: if the step doesn't allow it, it does not appear.
-  const stepAllowed = new Set<string>(
-    Array.isArray((currentStep as any).allowed_actions)
-      ? ((currentStep as any).allowed_actions as string[])
-      : ['approve', 'reject', 'send_back'],
-  );
+  const allowedTypes = resolveAvailableActions({
+    isFirstLevel,
+    isLastLevel,
+    allowedActions: (currentStep as any).allowed_actions as WorkflowActionType[] | undefined,
+  });
 
-  const candidate: { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }[] = [];
-  if (isLastLevel) {
-    candidate.push(
-      { type: 'approve', label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' },
-      { type: 'reject', label: 'Reject', icon: <XCircle className="h-4 w-4 mr-1" />, variant: 'destructive' },
-    );
-  } else {
-    candidate.push(
-      { type: 'approve', label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' },
-    );
-  }
-  if (!isFirstLevel && !isLastLevel) {
-    candidate.push({ type: 'send_back', label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
-  }
-  if (!isLastLevel) {
-    candidate.push({ type: 'escalate', label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' });
-  }
-  candidate.push({ type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
-
-  const actions = candidate.filter(a => stepAllowed.has(a.type));
+  const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
+    approve: isLastLevel
+      ? { label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' }
+      : { label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' },
+    reject: { label: 'Reject', icon: <XCircle className="h-4 w-4 mr-1" />, variant: 'destructive' },
+    send_back: { label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
+    escalate: { label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' },
+    request_resubmission: { label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
+  };
+  const actions = allowedTypes.map(t => ({ type: t, ...VISUALS[t] }));
 
   return (
     <Card>
