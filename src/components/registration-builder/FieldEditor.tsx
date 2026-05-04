@@ -273,7 +273,7 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
 
         {/* Validation */}
         <div className="grid grid-cols-2 gap-3">
-          {['text', 'textarea', 'email', 'phone'].includes(field.type) && (
+          {['text', 'textarea', 'email', 'phone', 'password'].includes(field.type) && (
             <>
               <div>
                 <Label className="text-xs">Min Length</Label>
