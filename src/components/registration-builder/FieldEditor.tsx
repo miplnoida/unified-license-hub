@@ -86,7 +86,22 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           </div>
           <div>
             <Label className="text-xs">Type</Label>
-            <Select value={field.type} onValueChange={v => update({ type: v as any })}>
+            <Select
+              value={field.type}
+              onValueChange={v => {
+                const newType = v as RegField['type'];
+                if (newType === field.type) return;
+                if (isDestructiveTypeChange(field.type, newType)) {
+                  const ok = window.confirm(
+                    'Changing the field type may affect how existing responses are displayed or validated, and incompatible settings (options, validation, defaults) will be reset. Continue?'
+                  );
+                  if (!ok) return;
+                }
+                const patch = buildTypeChangePatch(field as any, newType);
+                update(patch as any);
+                toast({ title: 'Field type updated', description: `Now: ${newType}` });
+              }}
+            >
               <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REG_FIELD_TYPES.map(ft => (
