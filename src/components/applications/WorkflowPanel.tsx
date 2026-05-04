@@ -262,10 +262,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   // Build available actions strictly from the step's allowed_actions list.
   // No synthetic bypass: if the step doesn't allow it, it does not appear.
+  const stepAllowed = (currentStep as any).allowed_actions as WorkflowActionType[] | undefined;
+  const noAllowedActions = hasNoAllowedActions(stepAllowed);
   const allowedTypes = resolveAvailableActions({
     isFirstLevel,
     isLastLevel,
-    allowedActions: (currentStep as any).allowed_actions as WorkflowActionType[] | undefined,
+    allowedActions: stepAllowed,
   });
 
   const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
@@ -278,6 +280,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     request_resubmission: { label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
   };
   const actions = allowedTypes.map(t => ({ type: t, ...VISUALS[t] }));
+
+  // Remarks are required only when at least one visible action requires them.
+  const anyRemarksRequired = allowedTypes.some(t => REMARKS_REQUIRED_ACTIONS.includes(t));
+  const remarksRequiredLabels = allowedTypes
+    .filter(t => REMARKS_REQUIRED_ACTIONS.includes(t))
+    .map(t => VISUALS[t].label);
 
   return (
     <Card>
