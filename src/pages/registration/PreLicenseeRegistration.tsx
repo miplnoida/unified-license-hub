@@ -15,6 +15,7 @@ import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep } from '@/types/registrationForm';
+import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
@@ -45,6 +46,13 @@ export default function PreLicenseeRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+
+  // Resolve the effective verification email across static + dynamic schemas.
+  // Single source of truth used by DeclarationsStep / OTP verification UI.
+  const effectiveEmail = useMemo(
+    () => resolveRegistrationEmail(form.email, dynamicFormData, config?.formSchema),
+    [form.email, dynamicFormData, config?.formSchema],
+  );
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
@@ -206,7 +214,7 @@ export default function PreLicenseeRegistration() {
 
     setSubmitting(true);
     try {
-      const emailVal = form.email || String(dynamicFormData.email || '');
+      const emailVal = (effectiveEmail || form.email || String(dynamicFormData.email || '')).trim().toLowerCase();
       const passwordVal = form.password || String(dynamicFormData.password || '');
 
       if (!emailVal || !passwordVal) {
@@ -324,6 +332,7 @@ export default function PreLicenseeRegistration() {
         return (
           <DeclarationsStep
             form={form} errors={errors} setField={setField}
+            verificationEmail={effectiveEmail}
             declarations={config?.declarations}
             termsUrl={config?.termsUrl}
             privacyUrl={config?.privacyUrl}

@@ -20,6 +20,8 @@ interface Props {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  /** Resolved verification email from parent (covers static + dynamic schemas). */
+  verificationEmail?: string;
   declarations?: DeclarationConfig[];
   termsUrl?: string;
   privacyUrl?: string;
@@ -42,6 +44,7 @@ export function DeclarationsStep({
   form,
   errors,
   setField,
+  verificationEmail,
   declarations,
   termsUrl,
   privacyUrl,
@@ -77,7 +80,7 @@ export function DeclarationsStep({
   return (
     <div className="space-y-6">
       {/* Email OTP Verification */}
-      {requireOtp && <OtpVerificationSection form={form} errors={errors} setField={setField} />}
+      {requireOtp && <OtpVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />}
 
       {/* Dynamic Declarations */}
       <div className="form-section">
@@ -150,16 +153,31 @@ function OtpVerificationSection({
   form,
   errors,
   setField,
+  verificationEmail,
 }: {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  verificationEmail?: string;
 }) {
+  // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
+  const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [sentToEmail, setSentToEmail] = useState<string>('');
   const [otpCode, setOtpCode] = useState('');
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  // If the user changes the email after sending an OTP, reset OTP-sent state.
+  if (otpSent && sentToEmail && resolvedEmail !== sentToEmail) {
+    queueMicrotask(() => {
+      setOtpSent(false);
+      setOtpCode('');
+      setSentToEmail('');
+    });
+  }
 
   const startCooldown = () => {
     setCooldown(60);
@@ -175,20 +193,25 @@ function OtpVerificationSection({
   };
 
   const handleSendOtp = async () => {
-    if (!form.email) {
+    if (!resolvedEmail) {
       toast.error('Please provide an email address first');
+      return;
+    }
+    if (!emailValid) {
+      toast.error('The email address looks invalid. Please correct it in the previous step.');
       return;
     }
     setOtpSending(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-registration-otp', {
-        body: { email: form.email, channel: 'email' },
+        body: { email: resolvedEmail, channel: 'email' },
       });
       if (error) { toast.error('Failed to send verification code'); return; }
       if (data?.error) { toast.error(data.error); return; }
       setOtpSent(true);
+      setSentToEmail(resolvedEmail);
       startCooldown();
-      toast.success('Verification code sent to ' + form.email);
+      toast.success('Verification code sent to ' + resolvedEmail);
     } catch {
       toast.error('Failed to send verification code');
     } finally {
@@ -204,7 +227,7 @@ function OtpVerificationSection({
     setOtpVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
-        body: { email: form.email, code: otpCode, channel: 'email' },
+        body: { email: resolvedEmail, code: otpCode, channel: 'email' },
       });
       if (error) { toast.error('Verification failed'); return; }
       if (data?.error) { toast.error(data.error); return; }
@@ -231,7 +254,7 @@ function OtpVerificationSection({
           <CheckCircle2 className="h-5 w-5 text-green-600" />
           <div>
             <p className="font-medium text-green-800 dark:text-green-400">Email Verified</p>
-            <p className="text-sm text-green-600 dark:text-green-500">{form.email}</p>
+            <p className="text-sm text-green-600 dark:text-green-500">{resolvedEmail || form.email}</p>
           </div>
         </div>
       ) : (
@@ -240,12 +263,12 @@ function OtpVerificationSection({
             <Mail className="h-4 w-4" />
             <span>
               Verification will be sent to:{' '}
-              <strong className="text-foreground">{form.email || '(no email provided)'}</strong>
+              <strong className="text-foreground">{resolvedEmail || '(no email provided)'}</strong>
             </span>
           </div>
 
           {!otpSent ? (
-            <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpSending || !form.email}>
+            <Button type="button" variant="outline" onClick={handleSendOtp} disabled={otpSending || !resolvedEmail || !emailValid || cooldown > 0}>
               {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
               Send Verification Code
             </Button>
