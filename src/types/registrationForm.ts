@@ -88,6 +88,7 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'number', label: 'Number' },
   { type: 'email', label: 'Email' },
   { type: 'phone', label: 'Phone' },
+  { type: 'password', label: 'Password' },
   { type: 'date', label: 'Date' },
   { type: 'textarea', label: 'Text Area' },
   { type: 'select', label: 'Dropdown' },
