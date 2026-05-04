@@ -18,9 +18,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw,
+  Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw, Upload, User as UserIcon, ShieldCheck,
 } from 'lucide-react';
 import { useRoles, DynamicRole } from '@/hooks/useRoles';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface UserRecord {
   id: string;
@@ -35,6 +36,7 @@ interface UserRecord {
   gender?: string;
   role_id?: string;
   dynamic_role_ids?: string[];
+  avatar_url?: string | null;
 }
 
 function generatePassword(length = 14): string {
@@ -66,7 +68,30 @@ const emptyForm = {
   email: '',
   role_ids: [] as string[],
   gender: '',
+  avatar_url: '' as string,
 };
+
+async function uploadAvatarFile(file: File, userId: string): Promise<string | null> {
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('Image must be under 5MB');
+    return null;
+  }
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please choose an image file');
+    return null;
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+  const path = `${userId}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { cacheControl: '3600', upsert: true });
+  if (error) {
+    toast.error(error.message);
+    return null;
+  }
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
 
 export default function UserManagement() {
   const [users, setUsers] = useState<UserRecord[]>([]);
@@ -85,6 +110,11 @@ export default function UserManagement() {
   const [resetUserId, setResetUserId] = useState('');
   const [resetUserEmail, setResetUserEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [profileDialog, setProfileDialog] = useState(false);
+  const [profileForm, setProfileForm] = useState({ full_name: '', avatar_url: '' as string });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [pendingAvatarPreview, setPendingAvatarPreview] = useState<string>('');
 
   const { data: dynamicRoles = [] } = useRoles();
 
@@ -203,8 +233,53 @@ export default function UserManagement() {
     setEditDialog(false);
   };
 
+  const openProfileEdit = (u: UserRecord) => {
+    setEditingUser(u);
+    setProfileForm({ full_name: u.full_name || '', avatar_url: u.avatar_url || '' });
+    setProfileDialog(true);
+  };
+
+  const handleProfileAvatarUpload = async (file: File) => {
+    if (!editingUser) return;
+    setUploadingAvatar(true);
+    const url = await uploadAvatarFile(file, editingUser.id);
+    if (url) setProfileForm(p => ({ ...p, avatar_url: url }));
+    setUploadingAvatar(false);
+  };
+
+  const handleProfileSave = async () => {
+    if (!editingUser) return;
+    if (!profileForm.full_name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: profileForm.full_name.trim(),
+        avatar_url: profileForm.avatar_url || null,
+      } as any)
+      .eq('id', editingUser.id);
+    if (error) {
+      toast.error(error.message);
+      setSaving(false);
+      return;
+    }
+    setUsers(prev => prev.map(x => x.id === editingUser.id ? {
+      ...x,
+      full_name: profileForm.full_name.trim(),
+      avatar_url: profileForm.avatar_url || null,
+    } : x));
+    toast.success('Profile updated');
+    setSaving(false);
+    setProfileDialog(false);
+  };
+
   const openCreate = () => {
     setForm(emptyForm);
+    setPendingAvatarFile(null);
+    setPendingAvatarPreview('');
     setGeneratedPassword(generatePassword());
     setCreateDialogOpen(true);
   };
@@ -241,6 +316,13 @@ export default function UserManagement() {
       });
 
       if (res.data?.user) {
+        const newUserId = res.data.user.id;
+        if (pendingAvatarFile && newUserId) {
+          const url = await uploadAvatarFile(pendingAvatarFile, newUserId);
+          if (url) {
+            await supabase.from('profiles').update({ avatar_url: url } as any).eq('id', newUserId);
+          }
+        }
         setCreatedEmail(form.email);
         setCreateDialogOpen(false);
         setCredentialsDialog(true);
@@ -305,17 +387,21 @@ export default function UserManagement() {
 
   const columns: Column<UserRecord>[] = [
     {
-      key: 'full_name', label: 'Employee', render: (r) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
-            {(r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
+      key: 'full_name', label: 'Employee', render: (r) => {
+        const initials = (r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              {r.avatar_url ? <AvatarImage src={r.avatar_url} alt={r.full_name || r.email} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">{initials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium text-foreground">{r.full_name || '—'}</p>
+              <p className="text-sm text-muted-foreground">{r.email}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium text-foreground">{r.full_name || '—'}</p>
-            <p className="text-sm text-muted-foreground">{r.email}</p>
-          </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'app_role' as any, label: 'Roles', render: (r) => {
@@ -348,8 +434,11 @@ export default function UserManagement() {
     {
       key: 'actions' as any, label: '', render: (r) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoleEdit(r)} title="Edit role">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProfileEdit(r)} title="Edit profile (name & photo)">
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoleEdit(r)} title="Edit roles">
+            <ShieldCheck className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openResetPassword(r)} title="Reset password">
             <KeyRound className="h-4 w-4" />
@@ -433,6 +522,44 @@ export default function UserManagement() {
                   </Select>
                 </div>
               </div>
+
+              <div className="mt-4 space-y-2">
+                <Label>Profile Picture</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    {pendingAvatarPreview ? <AvatarImage src={pendingAvatarPreview} alt="preview" /> : null}
+                    <AvatarFallback className="bg-muted"><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      id="create-avatar-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (f.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+                        if (!f.type.startsWith('image/')) { toast.error('Please choose an image file'); return; }
+                        setPendingAvatarFile(f);
+                        setPendingAvatarPreview(URL.createObjectURL(f));
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('create-avatar-input')?.click()}>
+                        <Upload className="h-4 w-4 mr-2" /> Choose Image
+                      </Button>
+                      {pendingAvatarPreview && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => { setPendingAvatarFile(null); setPendingAvatarPreview(''); }}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Optional. PNG/JPG, up to 5MB.</p>
+                  </div>
+                </div>
+              </div>
+
 
               <div className="mt-4 space-y-2">
                 <Label>Roles <span className="text-destructive">*</span></Label>
@@ -591,6 +718,73 @@ export default function UserManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetPasswordDialog(false)}>Cancel</Button>
             <Button onClick={handleResetPassword} disabled={saving}>{saving ? 'Resetting...' : 'Reset Password'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Edit Profile (Name & Avatar) Dialog ─── */}
+      <Dialog open={profileDialog} onOpenChange={setProfileDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Employee Profile</DialogTitle>
+            <DialogDescription>Update name and profile picture.</DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-5 py-2">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  {profileForm.avatar_url ? <AvatarImage src={profileForm.avatar_url} alt={profileForm.full_name} /> : null}
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
+                    {(profileForm.full_name || editingUser.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-2">
+                  <input
+                    id="edit-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleProfileAvatarUpload(f);
+                      e.target.value = '';
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" disabled={uploadingAvatar} onClick={() => document.getElementById('edit-avatar-input')?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />{uploadingAvatar ? 'Uploading...' : 'Change Photo'}
+                    </Button>
+                    {profileForm.avatar_url && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setProfileForm(p => ({ ...p, avatar_url: '' }))}>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">PNG/JPG, up to 5MB.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Full Name <span className="text-destructive">*</span></Label>
+                <Input
+                  value={profileForm.full_name}
+                  onChange={(e) => setProfileForm(p => ({ ...p, full_name: e.target.value }))}
+                  placeholder="Employee full name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={editingUser.email} readOnly className="bg-muted" />
+                <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileDialog(false)}>Cancel</Button>
+            <Button onClick={handleProfileSave} disabled={saving || uploadingAvatar}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
