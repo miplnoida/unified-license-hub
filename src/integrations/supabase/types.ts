@@ -4238,6 +4238,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _resolve_application_workflow: {
+        Args: {
+          _category_id: string
+          _license_type: string
+          _regulator_id: string
+          _sector_id: string
+        }
+        Returns: {
+          first_step_id: string
+          workflow_id: string
+        }[]
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
@@ -4322,6 +4334,22 @@ export type Database = {
       ppoc_mapped_licensee_ids: {
         Args: { _user_id: string }
         Returns: string[]
+      }
+      reject_application_action: {
+        Args: { _application_id: string; _comments: string }
+        Returns: Json
+      }
+      request_resubmission_for_application: {
+        Args: { _application_id: string; _comments: string }
+        Returns: Json
+      }
+      reset_application_for_provisioning: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      submit_application: {
+        Args: { _ack_text?: string; _application_id: string }
+        Returns: Json
       }
       user_can_access_document_object: {
         Args: { _object_name: string }

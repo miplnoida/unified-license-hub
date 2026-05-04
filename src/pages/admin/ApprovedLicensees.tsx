@@ -82,8 +82,17 @@ export default function ApprovedLicensees() {
   const handleGenerateLicense = async (appId: string) => {
     setGeneratingFor(appId);
     try {
-      // Reset status to in_progress so edge function can process it
-      await supabase.from('applications').update({ status: 'in_progress', approved_at: null }).eq('id', appId);
+      // Reset status via trusted admin RPC (the prevent-workflow-mutation
+      // trigger blocks direct table updates of status / approved_at).
+      const { data: resetRes, error: resetErr } = await supabase.rpc(
+        'reset_application_for_provisioning' as any,
+        { _application_id: appId },
+      );
+      if (resetErr || (resetRes as any)?.error) {
+        toast.error((resetRes as any)?.error || resetErr?.message || 'Failed to reset application');
+        setGeneratingFor(null);
+        return;
+      }
 
       const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke('approve-pre-licensee', {

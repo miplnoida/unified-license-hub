@@ -154,195 +154,45 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Update application status to submitted (with acknowledgment metadata)
-    const submittedAt = new Date().toISOString();
-    const ackUpdate = ack_text
-      ? { ack_by: user.id, ack_at: submittedAt, ack_text: String(ack_text).slice(0, 4000) }
-      : {};
-    const { error: updateErr } = await adminClient
-      .from("applications")
-      .update({
-        status: "submitted",
-        submitted_at: submittedAt,
-        ...ackUpdate,
-      })
-      .eq("id", application_id);
+    // 4. Delegate every workflow-locked field write to the trusted RPC.
+    //    The RPC sets app.workflow_mutation_context='trusted' so the
+    //    prevent_direct_application_workflow_mutation trigger lets the
+    //    status / submitted_at / workflow_id / current_step_id transitions
+    //    through. The RPC also handles workflow attach/resume + audit +
+    //    approval_actions + applicant notification atomically.
+    //
+    //    We invoke the RPC with the user's auth context so auth.uid() inside
+    //    the function resolves to the applicant. SECURITY DEFINER on the
+    //    function still re-checks ownership and status preconditions.
+    const { data: rpcResult, error: rpcErr } = await userClient.rpc(
+      "submit_application" as never,
+      { _application_id: application_id, _ack_text: ack_text ?? null } as never,
+    );
 
-    if (updateErr) {
+    if (rpcErr) {
       return new Response(
-        JSON.stringify({ error: "Failed to update application: " + updateErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to submit application: " + rpcErr.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 5. Update form responses to submitted
-    await adminClient
-      .from("form_responses")
-      .update({ status: "submitted", submitted_at: new Date().toISOString() })
-      .eq("entity_id", application_id)
-      .eq("entity_type", "application");
-
-    // 6. Start workflow (find matching workflow)
-    let workflowResult = { matched: false, workflowId: null as string | null, firstStepId: null as string | null };
-
-    const { data: existing } = await adminClient
-      .from("workflow_instances")
-      .select("id, workflow_id, current_step_id, status")
-      .eq("entity_id", application_id)
-      .eq("entity_type", "application")
-      .in("status", ["active", "paused"])
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      if (existing[0].status === "paused") {
-        const { error: resumeErr } = await adminClient
-          .from("workflow_instances")
-          .update({ status: "active" })
-          .eq("id", existing[0].id)
-          .eq("status", "paused");
-
-        if (resumeErr) {
-          return new Response(
-            JSON.stringify({ error: "Failed to resume workflow: " + resumeErr.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      await adminClient
-        .from("applications")
-        .update({
-          workflow_id: existing[0].workflow_id,
-          current_step_id: existing[0].current_step_id,
-        })
-        .eq("id", application_id);
-
-      workflowResult = {
-        matched: true,
-        workflowId: existing[0].workflow_id,
-        firstStepId: existing[0].current_step_id,
-      };
-    } else {
-      // Find matching workflow with strict precedence:
-      //  1) license_type + regulator + sector/category exact match
-      //  2) license_type + regulator exact
-      //  3) license_type exact
-      //  4) prefix fallback (only if no exact match found at any tier)
-      const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
-      const categoryId = (app.data as Record<string, unknown> | null)?.category_id as string | undefined;
-
-      let matchedWf: { id: string; license_type: string } | null = null;
-
-      // Tier 1: license_type + regulator + (category or sector) exact
-      if (!matchedWf && app.regulator_id) {
-        let q = adminClient
-          .from("approval_workflows")
-          .select("id, license_type, sector_id, category_id")
-          .eq("license_type", app.license_type)
-          .eq("entity_type", "application")
-          .eq("is_active", true)
-          .eq("regulator_id", app.regulator_id);
-        const { data } = await q;
-        const cands = (data || []) as any[];
-        matchedWf =
-          cands.find((w) => categoryId && w.category_id === categoryId) ||
-          cands.find((w) => sectorId && w.sector_id === sectorId) ||
-          null;
-      }
-
-      // Tier 2: license_type + regulator exact (no sector/category constraint)
-      if (!matchedWf && app.regulator_id) {
-        const { data } = await adminClient
-          .from("approval_workflows")
-          .select("id, license_type")
-          .eq("license_type", app.license_type)
-          .eq("entity_type", "application")
-          .eq("is_active", true)
-          .eq("regulator_id", app.regulator_id)
-          .limit(1);
-        matchedWf = data?.[0] || null;
-      }
-
-      // Tier 3: license_type exact (any regulator)
-      if (!matchedWf) {
-        const { data } = await adminClient
-          .from("approval_workflows")
-          .select("id, license_type")
-          .eq("license_type", app.license_type)
-          .eq("entity_type", "application")
-          .eq("is_active", true)
-          .limit(1);
-        matchedWf = data?.[0] || null;
-      }
-
-      // Tier 4: explicit prefix fallback (kept for backward compatibility but
-      // restricted to workflows whose license_type is a strict prefix segment).
-      if (!matchedWf) {
-        const { data: allWf } = await adminClient
-          .from("approval_workflows")
-          .select("id, license_type")
-          .eq("entity_type", "application")
-          .eq("is_active", true);
-        const lt = app.license_type.toLowerCase();
-        matchedWf = (allWf || []).find((w) => {
-          const wl = w.license_type.toLowerCase();
-          return wl !== "" && (lt === wl || lt.startsWith(wl + " ") || lt.startsWith(wl + "_") || lt.startsWith(wl + "-"));
-        }) || null;
-      }
-
-      if (matchedWf) {
-        const { data: steps } = await adminClient
-          .from("approval_steps")
-          .select("id")
-          .eq("workflow_id", matchedWf.id)
-          .order("step_order", { ascending: true })
-          .limit(1);
-
-        const firstStepId = steps?.[0]?.id || null;
-
-        const { data: instance } = await adminClient
-          .from("workflow_instances")
-          .insert({
-            workflow_id: matchedWf.id,
-            entity_type: "application",
-            entity_id: application_id,
-            current_step_id: firstStepId,
-            status: "active",
-          })
-          .select("id")
-          .single();
-
-        if (instance) {
-          await adminClient
-            .from("applications")
-            .update({ workflow_id: matchedWf.id, current_step_id: firstStepId })
-            .eq("id", application_id);
-
-          workflowResult = { matched: true, workflowId: matchedWf.id, firstStepId };
-        }
-      }
+    const result = (rpcResult ?? {}) as Record<string, unknown>;
+    if (result.error) {
+      const httpStatus = typeof result.http === "number" ? (result.http as number) : 200;
+      return new Response(
+        JSON.stringify({ error: result.error, code: result.code }),
+        { status: httpStatus, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    // 7. Audit log
-    await adminClient.from("audit_logs").insert({
-      action: isResubmission ? "application_resubmitted" : "application_submitted",
-      entity_type: "application",
-      entity_id: application_id,
-      user_id: user.id,
-      new_value: { status: "submitted", workflow_matched: workflowResult.matched, resumed_workflow: isResubmission },
-    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: workflowResult.matched
-          ? isResubmission
-            ? "Application resubmitted and workflow resumed"
-            : "Application submitted and routed to approval workflow"
-          : isResubmission
-            ? "Application resubmitted successfully"
-            : "Application submitted successfully",
-        workflow_matched: workflowResult.matched,
+        message: result.message ?? (isResubmission
+          ? "Application resubmitted successfully"
+          : "Application submitted successfully"),
+        workflow_matched: result.workflow_attached === true,
+        resumed_workflow: result.resumed === true,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -222,21 +222,20 @@ export default function ApplicationDetail() {
       }
     }
 
-    await supabase.from('approval_actions').insert({
-      application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
-    } as any);
-
-    const updates: any = { status: newStatus };
-    if (newStatus === 'rejected') updates.rejected_at = new Date().toISOString();
-
-    await supabase.from('applications').update(updates).eq('id', app.id);
-    await logAudit({
-      action: `application_${actionType}`, entityType: 'application', entityId: app.id,
-      newValue: { status: newStatus, comments: comment },
-    });
-
-    // Send notification on reject
+    // Reject path → trusted RPC (handles status, rejected_at, workflow cancel,
+    // approval_action, audit, notification — all atomically + bypasses the
+    // workflow-field lock trigger via app.workflow_mutation_context).
     if (newStatus === 'rejected') {
+      const { data, error } = await supabase.rpc('reject_application_action' as any, {
+        _application_id: app.id,
+        _comments: comment,
+      });
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || error?.message || 'Reject failed');
+        setProcessing(false);
+        return;
+      }
+      // Server already wrote the in-app notification. Fire email/SMS dispatch.
       try {
         await supabase.functions.invoke('send-notification', {
           body: {
@@ -252,7 +251,21 @@ export default function ApplicationDetail() {
       } catch (e) {
         console.error('Notification failed', e);
       }
+      toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
+      setActionComment('');
+      loadData();
+      setProcessing(false);
+      return;
     }
+
+    // Other non-final transitions: only insert an action row (no locked-field write).
+    await supabase.from('approval_actions').insert({
+      application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
+    } as any);
+    await logAudit({
+      action: `application_${actionType}`, entityType: 'application', entityId: app.id,
+      newValue: { status: newStatus, comments: comment },
+    });
 
     toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
     setActionComment('');
@@ -351,15 +364,20 @@ export default function ApplicationDetail() {
     }
     setProcessing(true);
 
-    await supabase.from('applications').update({
-      status: 'resubmission_requested',
-    } as any).eq('id', app.id);
-    await supabase.from('approval_actions').insert({
-      application_id: app.id, action: 'resubmission_requested', actor_id: user.id,
-      comments: actionComment,
-    } as any);
+    // Trusted RPC: pauses workflow, writes approval_action + audit + applicant
+    // notification. Required because the workflow-field lock trigger blocks
+    // direct status writes.
+    const { data: rpcData, error: rpcErr } = await supabase.rpc(
+      'request_resubmission_for_application' as any,
+      { _application_id: app.id, _comments: actionComment },
+    );
+    if (rpcErr || (rpcData as any)?.error) {
+      toast.error((rpcData as any)?.error || rpcErr?.message || 'Failed to request resubmission');
+      setProcessing(false);
+      return;
+    }
 
-    // Send notification to applicant
+    // Email/SMS dispatch (in-app notification was already inserted by RPC)
     try {
       await supabase.functions.invoke('send-notification', {
         body: {
