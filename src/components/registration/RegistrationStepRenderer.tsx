@@ -198,13 +198,15 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
   switch (field.type) {
     case 'text':
     case 'email':
+    case 'password':
       input = (
         <Input
-          type={field.type === 'email' ? 'email' : 'text'}
+          type={field.type === 'email' ? 'email' : field.type === 'password' ? 'password' : 'text'}
           value={strValue}
           onChange={e => handleChange(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
+          autoComplete={field.type === 'password' ? 'new-password' : undefined}
           className={error ? 'border-destructive' : ''}
         />
       );

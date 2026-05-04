@@ -175,7 +175,7 @@ function FieldPreview({ field }: { field: RegField }) {
         <div className="space-y-1">
           <Label className="text-sm">{field.label}{field.required && <span className="text-destructive"> *</span>}</Label>
           <Input
-            type={field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'phone' ? 'tel' : 'text'}
+            type={field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : field.type === 'phone' ? 'tel' : field.type === 'password' ? 'password' : 'text'}
             placeholder={field.placeholder}
             disabled
             className="text-sm"
