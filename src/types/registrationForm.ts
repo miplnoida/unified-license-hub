@@ -5,6 +5,7 @@ export type RegFieldType =
   | 'number'
   | 'email'
   | 'phone'
+  | 'password'
   | 'date'
   | 'textarea'
   | 'select'
