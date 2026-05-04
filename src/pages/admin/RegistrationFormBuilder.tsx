@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import {
   Plus, Pencil, Trash2, Settings2,
   Shield, Mail, Bot, Upload, CheckSquare,
