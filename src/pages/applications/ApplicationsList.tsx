@@ -589,12 +589,12 @@ export default function ApplicationsList() {
                   onClick={async e => {
                     e.stopPropagation();
                     if (!window.confirm('Are you sure you want to cancel this application?')) return;
-                    const { error } = await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
+                    const { data, error } = await supabase.rpc('cancel_application' as any, {
+                      _application_id: app.id,
+                      _reason: 'Application cancelled by applicant',
+                    });
                     if (error) { toast.error(error.message); return; }
-                    await supabase.from('approval_actions').insert({
-                      application_id: app.id, action: 'cancelled', actor_id: user!.id,
-                      comments: 'Application cancelled by applicant',
-                    } as any);
+                    if ((data as any)?.error) { toast.error((data as any).error); return; }
                     toast.success('Application cancelled');
                     setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
                   }}
