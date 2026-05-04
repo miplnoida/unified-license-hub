@@ -20,6 +20,8 @@ interface Props {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  /** Resolved verification email from parent (covers static + dynamic schemas). */
+  verificationEmail?: string;
   declarations?: DeclarationConfig[];
   termsUrl?: string;
   privacyUrl?: string;
