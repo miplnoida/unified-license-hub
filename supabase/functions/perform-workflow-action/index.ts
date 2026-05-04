@@ -1,10 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 /**
  * Thin authentication wrapper around the atomic perform_workflow_transition RPC.
@@ -27,19 +22,20 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
 ]);
 
-function jsonResponse(status: number, body: Record<string, unknown>) {
+function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(status: number, error: string, code: string, details?: unknown) {
-  return jsonResponse(status, { error, code, ...(details !== undefined ? { details } : {}) });
+function errorResponse(req: Request, status: number, error: string, code: string, details?: unknown) {
+  return jsonResponse(req, status, { error, code, ...(details !== undefined ? { details } : {}) });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
 
   try {
     const authHeader = req.headers.get("authorization");
