@@ -33,7 +33,7 @@ function errorResponse(req: Request, status: number, error: string, code: string
   return jsonResponse(req, status, { error, code, ...(details !== undefined ? { details } : {}) });
 }
 
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
