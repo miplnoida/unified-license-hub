@@ -44,6 +44,7 @@ export function DeclarationsStep({
   form,
   errors,
   setField,
+  verificationEmail,
   declarations,
   termsUrl,
   privacyUrl,
