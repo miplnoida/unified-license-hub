@@ -265,27 +265,20 @@ export default function ApplicationDetail() {
     if (!window.confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
     setProcessing(true);
 
-    // Cancel any active workflow instance
-    if (app.workflow_id) {
-      const { data: instances } = await supabase
-        .from('workflow_instances')
-        .select('id')
-        .eq('entity_id', app.id)
-        .eq('entity_type', 'application')
-        .eq('status', 'active');
-      if (instances?.length) {
-        await supabase.from('workflow_instances').update({
-          status: 'cancelled',
-          completed_at: new Date().toISOString(),
-        } as any).eq('id', instances[0].id);
-      }
+    const { data, error } = await supabase.rpc('cancel_application' as any, {
+      _application_id: app.id,
+      _reason: 'Application cancelled by applicant',
+    });
+    if (error) {
+      toast.error(error.message);
+      setProcessing(false);
+      return;
     }
-
-    await supabase.from('applications').update({ status: 'cancelled' } as any).eq('id', app.id);
-    await supabase.from('approval_actions').insert({
-      application_id: app.id, action: 'cancelled', actor_id: user.id, comments: 'Application cancelled by applicant',
-    } as any);
-    await logAudit({ action: 'application_cancelled', entityType: 'application', entityId: app.id });
+    if ((data as any)?.error) {
+      toast.error((data as any).error);
+      setProcessing(false);
+      return;
+    }
     toast.success('Application cancelled');
     loadData();
     setProcessing(false);
