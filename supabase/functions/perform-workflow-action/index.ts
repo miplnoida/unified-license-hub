@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) return errorResponse(401, "Missing authorization header", "UNAUTHORIZED");
+    if (!authHeader) return errorResponse(req, 401, "Missing authorization header", "UNAUTHORIZED");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     });
     const { data: userRes, error: authErr } = await userClient.auth.getUser();
     const caller = userRes?.user;
-    if (authErr || !caller) return errorResponse(401, "Invalid or expired token", "UNAUTHORIZED");
+    if (authErr || !caller) return errorResponse(req, 401, "Invalid or expired token", "UNAUTHORIZED");
 
     let body: any;
     try { body = await req.json(); } catch { body = {}; }
@@ -61,9 +61,10 @@ Deno.serve(async (req) => {
     const raw_action: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
 
-    if (!application_id) return errorResponse(400, "application_id is required", "BAD_REQUEST");
+    if (!application_id) return errorResponse(req, 400, "application_id is required", "BAD_REQUEST");
     if (!raw_action || !ACCEPTED_ACTIONS.has(raw_action)) {
       return errorResponse(
+        req,
         400,
         `Invalid action_type. Must be one of: ${Array.from(ACCEPTED_ACTIONS).join(", ")}`,
         "BAD_REQUEST",
@@ -84,13 +85,13 @@ Deno.serve(async (req) => {
 
     if (rpcErr) {
       console.error("perform_workflow_transition error:", rpcErr);
-      return errorResponse(500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
+      return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
     }
 
     const result = (rpcRes || {}) as Record<string, unknown>;
     if (result.error) {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
-      return errorResponse(status, String(result.error), String(result.code || "BUSINESS_ERROR"));
+      return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
 
     // Final approval → delegate to approve-pre-licensee (idempotent).
@@ -103,18 +104,19 @@ Deno.serve(async (req) => {
       const finalJson = await finalRes.json().catch(() => ({}));
       if (!finalRes.ok || (finalJson as any)?.error) {
         return errorResponse(
+          req,
           finalRes.status >= 400 ? finalRes.status : 500,
           (finalJson as any)?.error || "Final approval failed",
           "APPROVAL_FAILED",
         );
       }
       delete (finalJson as any).web_user_password;
-      return jsonResponse(200, { success: true, ...finalJson });
+      return jsonResponse(req, 200, { success: true, ...finalJson });
     }
 
-    return jsonResponse(200, result);
+    return jsonResponse(req, 200, result);
   } catch (e) {
     console.error("perform-workflow-action fatal:", e);
-    return errorResponse(500, e instanceof Error ? e.message : "Internal server error", "INTERNAL");
+    return errorResponse(req, 500, e instanceof Error ? e.message : "Internal server error", "INTERNAL");
   }
 });
