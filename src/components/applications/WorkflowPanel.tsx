@@ -13,10 +13,10 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { INTERNAL_ROLES, ROLE_LABELS, type AppRole } from '@/types/platform';
 import {
-  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle,
+  CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveAvailableActions, isRemarksRequired } from '@/lib/workflowActionFilter';
+import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
  * Resolve the effective system roles a user has access to (primary + dynamic role mappings).
@@ -262,10 +262,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   // Build available actions strictly from the step's allowed_actions list.
   // No synthetic bypass: if the step doesn't allow it, it does not appear.
+  const stepAllowed = (currentStep as any).allowed_actions as WorkflowActionType[] | undefined;
+  const noAllowedActions = hasNoAllowedActions(stepAllowed);
   const allowedTypes = resolveAvailableActions({
     isFirstLevel,
     isLastLevel,
-    allowedActions: (currentStep as any).allowed_actions as WorkflowActionType[] | undefined,
+    allowedActions: stepAllowed,
   });
 
   const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
@@ -278,6 +280,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     request_resubmission: { label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
   };
   const actions = allowedTypes.map(t => ({ type: t, ...VISUALS[t] }));
+
+  // Remarks are required only when at least one visible action requires them.
+  const anyRemarksRequired = allowedTypes.some(t => REMARKS_REQUIRED_ACTIONS.includes(t));
+  const remarksRequiredLabels = allowedTypes
+    .filter(t => REMARKS_REQUIRED_ACTIONS.includes(t))
+    .map(t => VISUALS[t].label);
 
   return (
     <Card>
@@ -306,34 +314,54 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
         <Separator />
 
-        <div className="space-y-2">
-          <Label className="text-sm">
-            Remarks / Description
-            <span className="text-destructive ml-1">*</span>
-          </Label>
-          <Textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            placeholder="Mandatory: Enter your remarks before approving, rejecting, or requesting resubmission..."
-            rows={3}
-            disabled={processing}
-          />
-        </div>
+        {noAllowedActions ? (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium text-destructive">No actions configured for this step</p>
+              <p className="text-xs text-muted-foreground">
+                This workflow step has no <code className="font-mono">allowed_actions</code> defined, so no
+                approval, rejection, or routing actions can be taken here. Ask an administrator to update the
+                workflow step configuration.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm">
+                Remarks / Description
+                {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
+              </Label>
+              <Textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder={
+                  anyRemarksRequired
+                    ? `Required for: ${remarksRequiredLabels.join(', ')}. Optional for other actions.`
+                    : 'Optional remarks for this action.'
+                }
+                rows={3}
+                disabled={processing}
+              />
+            </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {actions.map(a => (
-            <Button
-              key={a.type + a.label}
-              variant={a.variant}
-              size="sm"
-              onClick={() => handleAction(a.type)}
-              disabled={processing}
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-              {a.label}
-            </Button>
-          ))}
-        </div>
+            <div className="flex gap-2 flex-wrap">
+              {actions.map(a => (
+                <Button
+                  key={a.type + a.label}
+                  variant={a.variant}
+                  size="sm"
+                  onClick={() => handleAction(a.type)}
+                  disabled={processing}
+                >
+                  {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+                  {a.label}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
 
       {/* Approval Result Dialog — never shows plaintext password */}

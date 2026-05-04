@@ -37,13 +37,20 @@ export function resolveAvailableActions({ isFirstLevel, isLastLevel, allowedActi
   if (!isLastLevel) candidate.push('escalate');
   candidate.push('request_resubmission');
 
-  // Server-authoritative allowed_actions; fall back to the legacy default.
-  const allowed = new Set<string>(
-    Array.isArray(allowedActions) && allowedActions.length > 0
-      ? allowedActions
-      : ['approve', 'reject', 'send_back'],
-  );
+  // Server-authoritative allowed_actions. If missing/invalid/empty, treat as
+  // empty — matching the backend, which rejects any action not explicitly
+  // listed. The UI renders no buttons + a configuration warning instead of
+  // silently inferring legacy defaults.
+  if (!Array.isArray(allowedActions) || allowedActions.length === 0) {
+    return [];
+  }
+  const allowed = new Set<string>(allowedActions);
   return candidate.filter(a => allowed.has(a));
+}
+
+/** True when the step has no usable allowed_actions configured. */
+export function hasNoAllowedActions(allowedActions: WorkflowActionType[] | null | undefined): boolean {
+  return !Array.isArray(allowedActions) || allowedActions.length === 0;
 }
 
 /** Actions that always require non-empty remarks (matches server enforcement). */
