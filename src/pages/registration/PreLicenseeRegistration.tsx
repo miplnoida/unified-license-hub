@@ -46,6 +46,32 @@ export default function PreLicenseeRegistration() {
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
 
+  // Resolve the effective verification email across static + dynamic schemas.
+  // Single source of truth used by DeclarationsStep / OTP verification UI.
+  const effectiveEmail = useMemo(() => {
+    const candidates: unknown[] = [form.email];
+    // Common dynamic field names
+    const COMMON_KEYS = ['email', 'contact_email', 'applicant_email', 'user_email', 'primary_email', 'email_address'];
+    for (const k of COMMON_KEYS) candidates.push(dynamicFormData[k]);
+    // Any field declared as type=email in the dynamic schema
+    if (config?.formSchema) {
+      for (const s of config.formSchema) {
+        for (const r of s.rows) {
+          for (const c of r.columns) {
+            if (c.field?.type === 'email') candidates.push(dynamicFormData[c.field.fieldName]);
+          }
+        }
+      }
+    }
+    for (const v of candidates) {
+      if (typeof v === 'string') {
+        const t = v.trim().toLowerCase();
+        if (t) return t;
+      }
+    }
+    return '';
+  }, [form.email, dynamicFormData, config]);
+
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations'; stepData?: RegStep }[] = [];
