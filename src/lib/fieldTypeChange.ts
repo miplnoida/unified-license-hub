@@ -115,5 +115,5 @@ export function buildTypeChangePatch(
   if (newType !== 'table') patch.tableColumns = undefined;
   if (newType !== 'calculated') patch.calculatedExpression = undefined;
 
-  return patch as any;
+  return patch;
 }
