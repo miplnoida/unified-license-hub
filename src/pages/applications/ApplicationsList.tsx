@@ -55,12 +55,25 @@ interface Application {
   id: string;
   application_number: string;
   applicant_id: string;
+  /** Embedded by RPC — applicant display name (profiles or pre_license_users) */
+  applicant_name?: string;
+  /** Embedded by RPC */
+  applicant_email?: string;
   license_type: string;
   status: ApplicationStatus;
   data: Record<string, any>;
   submitted_at: string | null;
   created_at: string;
   form_version_id?: string | null;
+  /** Embedded by RPC */
+  sector_name?: string | null;
+  sub_sector_name?: string | null;
+  category_name?: string | null;
+  service_name?: string | null;
+  /** Embedded payment summary (latest payment) */
+  payment?: PaymentInfo | null;
+  /** Number of approval_actions for this app — full list lazy-loaded on expand */
+  action_count?: number;
 }
 
 interface FormVersionRow {
@@ -87,11 +100,12 @@ interface ActionEvent {
   actor_id: string;
   created_at: string;
   actor_email?: string;
+  actor_name?: string;
 }
 
 interface PaymentInfo {
   id?: string;
-  application_id: string;
+  application_id?: string;
   amount: number;
   status: string;
   currency: string;
