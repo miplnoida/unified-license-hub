@@ -36,6 +36,7 @@ interface UserRecord {
   gender?: string;
   role_id?: string;
   dynamic_role_ids?: string[];
+  avatar_url?: string | null;
 }
 
 function generatePassword(length = 14): string {
