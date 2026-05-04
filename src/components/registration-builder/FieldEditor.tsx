@@ -12,6 +12,8 @@ import type { RegField, RegConditionalRule, RegDataSource } from '@/types/regist
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
 import { useMasterDataTypes } from '@/hooks/useMasterData';
 import { Database } from 'lucide-react';
+import { buildTypeChangePatch, isDestructiveTypeChange } from '@/lib/fieldTypeChange';
+import { toast } from '@/hooks/use-toast';
 
 const LEGACY_DATA_SOURCES: { value: RegDataSource; label: string }[] = [
   { value: 'sector', label: 'Sector' },
