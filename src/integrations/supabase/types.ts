@@ -4406,6 +4406,10 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
+      user_can_upload_document_object: {
+        Args: { _object_name: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
