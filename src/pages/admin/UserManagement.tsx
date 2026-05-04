@@ -110,6 +110,9 @@ export default function UserManagement() {
   const [resetUserId, setResetUserId] = useState('');
   const [resetUserEmail, setResetUserEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [profileDialog, setProfileDialog] = useState(false);
+  const [profileForm, setProfileForm] = useState({ full_name: '', avatar_url: '' as string });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const { data: dynamicRoles = [] } = useRoles();
 
