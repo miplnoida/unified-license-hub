@@ -140,6 +140,9 @@ export default function ApplicationsList() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPaymentApp, setSelectedPaymentApp] = useState<{ payment: PaymentInfo; applicantName: string; applicationNumber: string; applicantId: string } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statCounts, setStatCounts] = useState({ total: 0, approved: 0, pending: 0, rejected: 0 });
+  const [exporting, setExporting] = useState(false);
   const [groupByOrder, setGroupByOrder] = useState<GroupByField[]>(['license_type', 'sector', 'sub_sector']);
   const [groupingEnabled, setGroupingEnabled] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -158,53 +161,169 @@ export default function ApplicationsList() {
   } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
 
+  // Reference data — loaded once
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const [appRes, profRes, preLicRes, actionsRes, sectorRes, subSectorRes, catRes, svcRes, payRes, fvRes, ftRes] = await Promise.all([
-        supabase.from('applications').select('*').order('created_at', { ascending: false }),
+    async function loadRefs() {
+      const [profRes, preLicRes, sectorRes, subSectorRes, catRes, svcRes, fvRes, ftRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name, email'),
         supabase.from('pre_license_users' as any).select('id, full_name, email'),
-        supabase.from('approval_actions').select('*').order('created_at', { ascending: true }),
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
         supabase.from('services').select('id, name'),
-        supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at'),
         supabase.from('form_versions').select('id, template_id, version, semantic_version, status, effective_from, effective_until, published_at'),
         supabase.from('form_templates').select('id, name'),
       ]);
-      if (appRes.data) setApplications(appRes.data as any);
       const allProfiles: any[] = [...(profRes.data || []), ...(preLicRes.data || [])];
       setProfiles(allProfiles);
-
       if (sectorRes.data) setSectors(Object.fromEntries((sectorRes.data as any[]).map(s => [s.id, s.name])));
       if (subSectorRes.data) setSubSectors(Object.fromEntries((subSectorRes.data as any[]).map(s => [s.id, s.name])));
       if (catRes.data) setCategories(Object.fromEntries((catRes.data as any[]).map(c => [c.id, c.name])));
       if (svcRes.data) setServices(Object.fromEntries((svcRes.data as any[]).map(s => [s.id, s.name])));
       if (fvRes.data) setVersions(Object.fromEntries((fvRes.data as any[]).map(v => [v.id, v as FormVersionRow])));
       if (ftRes.data) setTemplates(Object.fromEntries((ftRes.data as any[]).map(t => [t.id, t as FormTemplateRow])));
+    }
+    loadRefs();
+  }, []);
 
-      if (payRes.data) {
-        const payMap: Record<string, PaymentInfo> = {};
-        (payRes.data as any[]).forEach(p => {
-          if (p.application_id) payMap[p.application_id] = p;
-        });
-        setPayments(payMap);
+  // Helper: build the base applications query honoring status filter + internal hide-draft rules.
+  // Grouping mode disables pagination because grouping needs the full filtered set.
+  const buildAppsQuery = () => {
+    let q = supabase.from('applications').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+    if (isInternal) q = q.not('status', 'in', '(draft,in_progress)');
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'resubmission_requested') {
+        q = q.in('status', ['resubmission_requested', 'query_raised']);
+      } else {
+        q = q.eq('status', statusFilter);
       }
-      if (actionsRes.data) {
-        const emailMap: Record<string, string> = {};
-        allProfiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
-        setAllActions((actionsRes.data as any[]).map(a => ({
-          ...a,
-          actor_email: emailMap[a.actor_id] || a.actor_id,
-        })));
+    }
+    return q;
+  };
+
+  // Page of applications — server-driven pagination/filter. Lazy-loads payments + actions for visible rows.
+  useEffect(() => {
+    async function loadPage() {
+      setLoading(true);
+      let query = buildAppsQuery();
+      if (!groupingEnabled) {
+        query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      } else {
+        // Grouping: cap to 1000 to avoid runaway loads; users should narrow filters first.
+        query = query.range(0, 999);
+      }
+      const appRes = await query;
+      const apps = (appRes.data as any[]) || [];
+      setApplications(apps as any);
+      setTotalCount(appRes.count || 0);
+
+      const ids = apps.map(a => a.id);
+      if (ids.length > 0) {
+        const [actionsRes, payRes] = await Promise.all([
+          supabase.from('approval_actions').select('*').in('application_id', ids).order('created_at', { ascending: true }),
+          supabase.from('payments').select('id, application_id, amount, status, currency, payment_method, transaction_ref, created_at, paid_at').in('application_id', ids),
+        ]);
+        if (payRes.data) {
+          const payMap: Record<string, PaymentInfo> = {};
+          (payRes.data as any[]).forEach(p => { if (p.application_id) payMap[p.application_id] = p; });
+          setPayments(payMap);
+        }
+        if (actionsRes.data) {
+          const emailMap: Record<string, string> = {};
+          profiles.forEach((p: any) => { emailMap[p.id] = p.email || p.full_name; });
+          setAllActions((actionsRes.data as any[]).map(a => ({
+            ...a,
+            actor_email: emailMap[a.actor_id] || a.actor_id,
+          })));
+        }
+      } else {
+        setPayments({});
+        setAllActions([]);
       }
       setLoading(false);
     }
-    load();
-  }, [refreshKey]);
+    loadPage();
+  }, [refreshKey, page, statusFilter, isInternal, groupingEnabled, profiles.length]);
 
+  // Stat counts — independent of pagination, lightweight head-only queries.
+  useEffect(() => {
+    async function loadStats() {
+      const baseFilter = (q: any) => isInternal ? q.not('status', 'in', '(draft,in_progress)') : q;
+      const [totalRes, approvedRes, rejectedRes, pendingRes] = await Promise.all([
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'approved'),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).eq('status', 'rejected'),
+        baseFilter(supabase.from('applications').select('id', { count: 'exact', head: true })).not('status', 'in', '(approved,rejected,cancelled)'),
+      ]);
+      setStatCounts({
+        total: totalRes.count || 0,
+        approved: approvedRes.count || 0,
+        rejected: rejectedRes.count || 0,
+        pending: pendingRes.count || 0,
+      });
+    }
+    loadStats();
+  }, [refreshKey, isInternal]);
+
+  // CSV export — fetches all rows matching the current server-side filters (status + draft hiding),
+  // capped at 5000 rows. In-page text/version filters are NOT applied (they only affect what is loaded).
+  const exportFilteredCsv = async () => {
+    setExporting(true);
+    try {
+      const MAX = 5000;
+      const PAGE = 1000;
+      let all: any[] = [];
+      for (let off = 0; off < MAX; off += PAGE) {
+        const res = await buildAppsQuery().range(off, off + PAGE - 1);
+        const rows = (res.data as any[]) || [];
+        all = all.concat(rows);
+        if (rows.length < PAGE) break;
+      }
+      if (all.length === 0) {
+        toast.info('No applications match the current filter.');
+        return;
+      }
+      const escape = (v: any): string => {
+        if (v === null || v === undefined) return '';
+        const s = String(v).replace(/"/g, '""');
+        return /[",\n]/.test(s) ? `"${s}"` : s;
+      };
+      const header = [
+        'Application Number', 'Applicant', 'License Type', 'Sector', 'Sub Sector',
+        'Category', 'Service', 'Status', 'Submitted At', 'Created At',
+      ];
+      const lines = [header.join(',')];
+      for (const app of all) {
+        const data = (app.data || {}) as any;
+        lines.push([
+          escape(app.application_number),
+          escape(getApplicantName(app.applicant_id)),
+          escape(data.service_id ? 'Post Licensee' : data.category_id ? 'Pre Licensee' : '—'),
+          escape(data.sector_id ? sectors[data.sector_id] || data.sector_id : ''),
+          escape(data.sub_sector_id ? subSectors[data.sub_sector_id] || data.sub_sector_id : ''),
+          escape(data.category_id ? categories[data.category_id] || data.category_id : ''),
+          escape(data.service_id ? services[data.service_id] || data.service_id : ''),
+          escape(APPLICATION_STATUS_LABELS[app.status as ApplicationStatus] || app.status),
+          escape(app.submitted_at || ''),
+          escape(app.created_at || ''),
+        ].join(','));
+      }
+      const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `applications-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${all.length} application${all.length === 1 ? '' : 's'}${all.length >= MAX ? ' (capped at 5000 — narrow filters for full export)' : ''}.`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getApplicantName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
 
@@ -322,13 +441,15 @@ export default function ApplicationsList() {
     return list;
   }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors, versions, templates, versionFilter, versionSort]);
 
-  const totalPages = groupingEnabled ? 0 : Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = groupingEnabled ? filtered : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // Server-driven pagination: totalCount comes from the .range() count.
+  // `filtered` here is the in-page filter (search + version filter + sort) applied
+  // to the loaded page. Status filter + draft hiding are pushed to the server.
+  const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const paged = filtered;
 
-  const visibleApps = isInternal ? applications.filter(a => !['draft', 'in_progress'].includes(a.status)) : applications;
-  const approved = visibleApps.filter(a => a.status === 'approved').length;
-  const pending = visibleApps.filter(a => !['approved', 'rejected', 'cancelled'].includes(a.status)).length;
-  const rejected = visibleApps.filter(a => a.status === 'rejected').length;
+  const approved = statCounts.approved;
+  const pending = statCounts.pending;
+  const rejected = statCounts.rejected;
 
   const resolveGroupValue = (app: Application, field: GroupByField): string => {
     const data = app.data as any;
@@ -763,7 +884,7 @@ export default function ApplicationsList() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
+            Showing {totalCount === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
           </p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
@@ -795,7 +916,7 @@ export default function ApplicationsList() {
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total Requests" value={visibleApps.length} icon={<FileText className="h-6 w-6" />} />
+          <StatCard title="Total Requests" value={statCounts.total} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Approved" value={approved} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
           <StatCard title="Pending" value={pending} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Rejected" value={rejected} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />
@@ -867,8 +988,9 @@ export default function ApplicationsList() {
                   {compareMode ? 'Comparing' : 'Compare'}
                 </Button>
               )}
-              <Button variant="outline" size="sm" className="ml-auto">
-                <Download className="h-4 w-4 mr-2" />Export
+              <Button variant="outline" size="sm" className="ml-auto" disabled={exporting} onClick={exportFilteredCsv}>
+                {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                Export CSV
               </Button>
             </div>
 

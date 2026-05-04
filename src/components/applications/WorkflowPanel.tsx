@@ -244,6 +244,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           password_setup_url: data.password_setup_url,
         });
         toast.success(`Application approved! License: ${data.license_number}`);
+        if (data.provisioning_warning) {
+          toast.warning(`Approval committed, but licensee account provisioning needs attention: ${data.provisioning_warning}`);
+        }
       } else {
         toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
       }
