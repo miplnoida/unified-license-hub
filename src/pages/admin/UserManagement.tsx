@@ -434,8 +434,11 @@ export default function UserManagement() {
     {
       key: 'actions' as any, label: '', render: (r) => (
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoleEdit(r)} title="Edit role">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProfileEdit(r)} title="Edit profile (name & photo)">
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoleEdit(r)} title="Edit roles">
+            <ShieldCheck className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openResetPassword(r)} title="Reset password">
             <KeyRound className="h-4 w-4" />
