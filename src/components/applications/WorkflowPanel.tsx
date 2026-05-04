@@ -16,6 +16,7 @@ import {
   CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolveAvailableActions, isRemarksRequired } from '@/lib/workflowActionFilter';
 
 /**
  * Resolve the effective system roles a user has access to (primary + dynamic role mappings).
@@ -192,13 +193,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   }
 
-  // Comments-required actions must match backend rules.
-  const REMARKS_REQUIRED: WorkflowActionType[] = ['approve', 'reject', 'request_resubmission'];
-
+  // Comments-required actions must match backend rules — shared helper.
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
 
-    if (REMARKS_REQUIRED.includes(actionType) && !comment.trim()) {
+    if (isRemarksRequired(actionType) && !comment.trim()) {
       toast.error('Remarks are mandatory for this action');
       return;
     }
