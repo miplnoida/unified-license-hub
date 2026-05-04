@@ -524,6 +524,44 @@ export default function UserManagement() {
               </div>
 
               <div className="mt-4 space-y-2">
+                <Label>Profile Picture</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    {pendingAvatarPreview ? <AvatarImage src={pendingAvatarPreview} alt="preview" /> : null}
+                    <AvatarFallback className="bg-muted"><UserIcon className="h-6 w-6 text-muted-foreground" /></AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      id="create-avatar-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        if (f.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+                        if (!f.type.startsWith('image/')) { toast.error('Please choose an image file'); return; }
+                        setPendingAvatarFile(f);
+                        setPendingAvatarPreview(URL.createObjectURL(f));
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('create-avatar-input')?.click()}>
+                        <Upload className="h-4 w-4 mr-2" /> Choose Image
+                      </Button>
+                      {pendingAvatarPreview && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => { setPendingAvatarFile(null); setPendingAvatarPreview(''); }}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Optional. PNG/JPG, up to 5MB.</p>
+                  </div>
+                </div>
+              </div>
+
+
+              <div className="mt-4 space-y-2">
                 <Label>Roles <span className="text-destructive">*</span></Label>
                 <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto border rounded-lg p-3">
                   {dynamicRoles.map(r => {
