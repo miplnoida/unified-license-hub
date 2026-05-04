@@ -387,17 +387,21 @@ export default function UserManagement() {
 
   const columns: Column<UserRecord>[] = [
     {
-      key: 'full_name', label: 'Employee', render: (r) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm">
-            {(r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
+      key: 'full_name', label: 'Employee', render: (r) => {
+        const initials = (r.full_name || r.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9">
+              {r.avatar_url ? <AvatarImage src={r.avatar_url} alt={r.full_name || r.email} /> : null}
+              <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">{initials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium text-foreground">{r.full_name || '—'}</p>
+              <p className="text-sm text-muted-foreground">{r.email}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-medium text-foreground">{r.full_name || '—'}</p>
-            <p className="text-sm text-muted-foreground">{r.email}</p>
-          </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'app_role' as any, label: 'Roles', render: (r) => {
