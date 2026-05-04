@@ -167,38 +167,42 @@ BEGIN
   END IF;
 
   -- 1.5 handle_new_user() must downgrade non-public roles requested via signup metadata.
-  IF EXISTS (
-    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-     WHERE n.nspname='public' AND p.proname='handle_new_user'
-       AND pg_get_functiondef(p.oid) ILIKE '%applicant%pre_licensee%'
-       AND pg_get_functiondef(p.oid) ILIKE '%downgrade%' OR pg_get_functiondef(p.oid) ILIKE '%silently%'
-  ) OR EXISTS (
-    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-     WHERE n.nspname='public' AND p.proname='handle_new_user'
-       AND pg_get_functiondef(p.oid) ILIKE '%IN (''applicant'', ''pre_licensee'')%'
-  ) THEN
-    v_pass:=v_pass+1; RAISE NOTICE 'PASS [SEC-5] handle_new_user restricts metadata-requested roles to public set';
-  ELSE
-    v_fail:=v_fail+1; RAISE WARNING 'FAIL [SEC-5] handle_new_user does not appear to restrict role metadata';
-  END IF;
+  DECLARE v_hnu_src text; BEGIN
+    SELECT pg_get_functiondef(p.oid) INTO v_hnu_src
+      FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+     WHERE n.nspname='public' AND p.proname='handle_new_user' LIMIT 1;
+    IF v_hnu_src IS NOT NULL
+       AND v_hnu_src ILIKE '%applicant%'
+       AND v_hnu_src ILIKE '%pre_licensee%'
+       AND (v_hnu_src ILIKE '%downgrade%' OR v_hnu_src ILIKE '%silently%' OR v_hnu_src ILIKE '%resolved_role := ''applicant''%')
+    THEN
+      v_pass:=v_pass+1; RAISE NOTICE 'PASS [SEC-5] handle_new_user restricts metadata-requested roles to public set';
+    ELSE
+      v_fail:=v_fail+1; RAISE WARNING 'FAIL [SEC-5] handle_new_user does not appear to restrict role metadata';
+    END IF;
+  END;
 
   -- 1.6 Service-only workflow RPCs must NOT be EXECUTE-grantable to authenticated.
-  FOR v_check_label IN
-    SELECT proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-     WHERE n.nspname='public'
-       AND p.proname IN ('perform_workflow_transition','perform_final_workflow_approval')
-  LOOP
-    IF has_function_privilege('authenticated',
-         format('public.%I(uuid,uuid,uuid,text,text,uuid)', v_check_label), 'EXECUTE')
-       OR (v_check_label = 'perform_final_workflow_approval'
-           AND has_function_privilege('authenticated',
-                 'public.perform_final_workflow_approval(uuid,uuid,uuid,text,uuid)', 'EXECUTE'))
-    THEN
-      v_fail:=v_fail+1; RAISE WARNING 'FAIL [SEC-6] authenticated has EXECUTE on %', v_check_label;
-    ELSE
-      v_pass:=v_pass+1; RAISE NOTICE 'PASS [SEC-6] authenticated cannot EXECUTE %', v_check_label;
-    END IF;
-  END LOOP;
+  DECLARE
+    v_fn_oid oid;
+    v_fn_name text;
+    v_has_exec boolean;
+    v_any_fail boolean := false;
+  BEGIN
+    FOR v_fn_oid, v_fn_name IN
+      SELECT p.oid, p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public'
+         AND p.proname IN ('perform_workflow_transition','perform_final_workflow_approval')
+    LOOP
+      v_has_exec := has_function_privilege('authenticated', v_fn_oid, 'EXECUTE');
+      IF v_has_exec THEN
+        v_fail:=v_fail+1; RAISE WARNING 'FAIL [SEC-6] authenticated has EXECUTE on %', v_fn_name;
+        v_any_fail := true;
+      ELSE
+        v_pass:=v_pass+1; RAISE NOTICE 'PASS [SEC-6] authenticated cannot EXECUTE %', v_fn_name;
+      END IF;
+    END LOOP;
+  END;
 
   -- 1.7 Storage upload helper exists and gates root-path uploads.
   IF EXISTS (
