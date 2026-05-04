@@ -193,20 +193,25 @@ function OtpVerificationSection({
   };
 
   const handleSendOtp = async () => {
-    if (!form.email) {
+    if (!resolvedEmail) {
       toast.error('Please provide an email address first');
+      return;
+    }
+    if (!emailValid) {
+      toast.error('The email address looks invalid. Please correct it in the previous step.');
       return;
     }
     setOtpSending(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-registration-otp', {
-        body: { email: form.email, channel: 'email' },
+        body: { email: resolvedEmail, channel: 'email' },
       });
       if (error) { toast.error('Failed to send verification code'); return; }
       if (data?.error) { toast.error(data.error); return; }
       setOtpSent(true);
+      setSentToEmail(resolvedEmail);
       startCooldown();
-      toast.success('Verification code sent to ' + form.email);
+      toast.success('Verification code sent to ' + resolvedEmail);
     } catch {
       toast.error('Failed to send verification code');
     } finally {
@@ -222,7 +227,7 @@ function OtpVerificationSection({
     setOtpVerifying(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
-        body: { email: form.email, code: otpCode, channel: 'email' },
+        body: { email: resolvedEmail, code: otpCode, channel: 'email' },
       });
       if (error) { toast.error('Verification failed'); return; }
       if (data?.error) { toast.error(data.error); return; }
