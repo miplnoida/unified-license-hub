@@ -314,34 +314,54 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
         <Separator />
 
-        <div className="space-y-2">
-          <Label className="text-sm">
-            Remarks / Description
-            <span className="text-destructive ml-1">*</span>
-          </Label>
-          <Textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            placeholder="Mandatory: Enter your remarks before approving, rejecting, or requesting resubmission..."
-            rows={3}
-            disabled={processing}
-          />
-        </div>
+        {noAllowedActions ? (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-medium text-destructive">No actions configured for this step</p>
+              <p className="text-xs text-muted-foreground">
+                This workflow step has no <code className="font-mono">allowed_actions</code> defined, so no
+                approval, rejection, or routing actions can be taken here. Ask an administrator to update the
+                workflow step configuration.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label className="text-sm">
+                Remarks / Description
+                {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
+              </Label>
+              <Textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder={
+                  anyRemarksRequired
+                    ? `Required for: ${remarksRequiredLabels.join(', ')}. Optional for other actions.`
+                    : 'Optional remarks for this action.'
+                }
+                rows={3}
+                disabled={processing}
+              />
+            </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {actions.map(a => (
-            <Button
-              key={a.type + a.label}
-              variant={a.variant}
-              size="sm"
-              onClick={() => handleAction(a.type)}
-              disabled={processing}
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-              {a.label}
-            </Button>
-          ))}
-        </div>
+            <div className="flex gap-2 flex-wrap">
+              {actions.map(a => (
+                <Button
+                  key={a.type + a.label}
+                  variant={a.variant}
+                  size="sm"
+                  onClick={() => handleAction(a.type)}
+                  disabled={processing}
+                >
+                  {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+                  {a.label}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
 
       {/* Approval Result Dialog — never shows plaintext password */}
