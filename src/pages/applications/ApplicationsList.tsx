@@ -727,15 +727,23 @@ export default function ApplicationsList() {
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
           </TableCell>
           <TableCell>
-            {actions.length > 0 ? (
+            {(app.action_count ?? 0) > 0 ? (
               <Button
                 variant="ghost"
                 size="sm"
                 className="gap-1"
-                onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : app.id); }}
+                onClick={e => {
+                  e.stopPropagation();
+                  if (isExpanded) {
+                    setExpandedId(null);
+                  } else {
+                    setExpandedId(app.id);
+                    void ensureActionsLoaded(app.id);
+                  }
+                }}
               >
                 <MessageSquare className="h-4 w-4" />
-                <span className="text-xs">{actions.length}</span>
+                <span className="text-xs">{app.action_count}</span>
                 {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
             ) : (
@@ -776,12 +784,18 @@ export default function ApplicationsList() {
             </div>
           </TableCell>
         </TableRow>
-        {isExpanded && actions.length > 0 && (
+        {isExpanded && (
           <TableRow key={`${app.id}-history`}>
             <TableCell colSpan={compareMode ? 13 : 12} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
-                {actions.map(evt => (
+                {actionsLoadingId === app.id && actions.length === 0 ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Loading history…
+                  </div>
+                ) : actions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No activity yet.</p>
+                ) : actions.map(evt => (
                   <div key={evt.id} className="flex gap-3 items-start border-l-2 border-primary/30 pl-3 py-1">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -792,7 +806,7 @@ export default function ApplicationsList() {
                           {new Date(evt.created_at).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">by {evt.actor_email}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">by {evt.actor_name || evt.actor_email}</p>
                       {evt.comments && (
                         <p className="text-xs mt-1 italic text-muted-foreground border-l-2 border-muted pl-2">
                           "{evt.comments}"
