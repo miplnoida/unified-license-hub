@@ -153,11 +153,16 @@ function OtpVerificationSection({
   form,
   errors,
   setField,
+  verificationEmail,
 }: {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  verificationEmail?: string;
 }) {
+  // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
+  const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
