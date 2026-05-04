@@ -113,6 +113,8 @@ export default function UserManagement() {
   const [profileDialog, setProfileDialog] = useState(false);
   const [profileForm, setProfileForm] = useState({ full_name: '', avatar_url: '' as string });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [pendingAvatarPreview, setPendingAvatarPreview] = useState<string>('');
 
   const { data: dynamicRoles = [] } = useRoles();
 
