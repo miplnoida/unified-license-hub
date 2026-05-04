@@ -14,14 +14,16 @@ export const ENTITY_TYPE_LABELS: Record<WorkflowEntityType, string> = {
   return: 'Compliance Return',
 };
 
-export type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'request_info' | 'delegate' | 'escalate' | 'request_resubmission';
+// Synthetic actions like `request_info` and `delegate` were never fully
+// implemented (no assignee handoff, no notifications, no state semantics) and
+// have been removed from the public action surface. `allowed_actions` on each
+// approval step is the single source of truth.
+export type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'escalate' | 'request_resubmission';
 
 export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   approve: 'Approve',
   reject: 'Reject',
   send_back: 'Send Back',
-  request_info: 'Request Info',
-  delegate: 'Delegate',
   escalate: 'Escalate',
   request_resubmission: 'Request Resubmission',
 };
@@ -30,8 +32,6 @@ export const ACTION_COLORS: Record<WorkflowActionType, string> = {
   approve: 'bg-success/10 text-success border-success/30',
   reject: 'bg-destructive/10 text-destructive border-destructive/30',
   send_back: 'bg-warning/10 text-warning border-warning/30',
-  request_info: 'bg-info/10 text-info border-info/30',
-  delegate: 'bg-secondary text-secondary-foreground border-secondary',
   escalate: 'bg-accent text-accent-foreground border-accent',
   request_resubmission: 'bg-warning/10 text-warning border-warning/30',
 };
