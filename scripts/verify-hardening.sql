@@ -507,8 +507,8 @@ BEGIN
     END IF;
 
     -- Seed a completed payment so submit_application passes its payment guard.
-    INSERT INTO public.payments (application_id, amount, currency, status, payment_method, paid_at)
-    VALUES (v_rs_app, 1000, 'INR', 'completed', 'simulated', now())
+    INSERT INTO public.payments (application_id, user_id, amount, currency, status, payment_method, paid_at)
+    VALUES (v_rs_app, v_applicant_a, 1000, 'INR', 'completed', 'simulated', now())
     RETURNING id INTO v_pay_id;
 
     -- Resubmit as the applicant
