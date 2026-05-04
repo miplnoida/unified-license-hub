@@ -448,34 +448,9 @@ export default function ApplicationsList() {
   };
 
   const filtered = useMemo(() => {
-    const list = applications.filter(a => {
-      // Hide draft and in_progress from internal/admin users
-      if (isInternal && ['draft', 'in_progress'].includes(a.status)) return false;
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'resubmission_requested') {
-          if (a.status !== 'resubmission_requested' && a.status !== 'query_raised') return false;
-        } else if (a.status !== statusFilter) return false;
-      }
-      const versionEntries = getAppVersionEntries(a);
-      if (versionFilter !== 'all') {
-        if (!versionEntries.some(e => e.versionId === versionFilter)) return false;
-      }
-      if (search) {
-        const q = search;
-        const name = getApplicantName(a.applicant_id);
-        const sector = resolveField(a, 'sector_id');
-        const subSector = resolveField(a, 'sub_sector_id');
-        const versionLabels = versionEntries.map(e => formatVersionLabel(e.versionId)).join(' ');
-        if (
-          !matchSearch(a.application_number, q, searchMode) &&
-          !matchSearch(name, q, searchMode) &&
-          !matchSearch(sector, q, searchMode) &&
-          !matchSearch(subSector, q, searchMode) &&
-          !matchSearch(versionLabels, q, searchMode)
-        ) return false;
-      }
-      return true;
-    });
+    // All visibility / status / version / search filters are applied server-side
+    // by get_application_list_page. Only keep client-side concerns here.
+    return applications.slice();
 
     if (versionSort !== 'none') {
       const versionScore = (app: Application): number => {
