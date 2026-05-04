@@ -80,7 +80,7 @@ export function DeclarationsStep({
   return (
     <div className="space-y-6">
       {/* Email OTP Verification */}
-      {requireOtp && <OtpVerificationSection form={form} errors={errors} setField={setField} />}
+      {requireOtp && <OtpVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />}
 
       {/* Dynamic Declarations */}
       <div className="form-section">
