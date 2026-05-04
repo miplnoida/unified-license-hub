@@ -449,9 +449,8 @@ export default function ApplicationsList() {
 
   const filtered = useMemo(() => {
     // All visibility / status / version / search filters are applied server-side
-    // by get_application_list_page. Only keep client-side concerns here.
-    return applications.slice();
-
+    // by get_application_list_page. Only client-side version sort remains here.
+    const list = applications.slice();
     if (versionSort !== 'none') {
       const versionScore = (app: Application): number => {
         const entries = getAppVersionEntries(app);
@@ -464,7 +463,7 @@ export default function ApplicationsList() {
       });
     }
     return list;
-  }, [applications, isInternal, statusFilter, search, searchMode, sectors, subSectors, versions, templates, versionFilter, versionSort]);
+  }, [applications, versions, versionSort]);
 
   // Server-driven pagination: totalCount comes from the .range() count.
   // `filtered` here is the in-page filter (search + version filter + sort) applied
