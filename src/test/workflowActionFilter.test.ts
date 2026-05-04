@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveAvailableActions,
   isRemarksRequired,
+  hasNoAllowedActions,
   REMARKS_REQUIRED_ACTIONS,
 } from '@/lib/workflowActionFilter';
 
@@ -37,39 +38,58 @@ describe('resolveAvailableActions', () => {
     const actions = resolveAvailableActions({
       isFirstLevel: false,
       isLastLevel: false,
-      allowedActions: ['approve'], // only approve is allowed
+      allowedActions: ['approve'],
     });
     expect(actions).toEqual(['approve']);
   });
 
-  it('falls back to legacy default when allowed_actions is missing', () => {
+  it('returns empty array when allowed_actions is missing (matches backend)', () => {
     const actions = resolveAvailableActions({
       isFirstLevel: false,
       isLastLevel: false,
       allowedActions: undefined,
     });
-    // legacy default: ['approve','reject','send_back']
-    expect(actions).toEqual(['approve', 'send_back']);
+    expect(actions).toEqual([]);
   });
 
-  it('falls back to legacy default when allowed_actions is empty', () => {
+  it('returns empty array when allowed_actions is empty (matches backend)', () => {
     const actions = resolveAvailableActions({
       isFirstLevel: false,
       isLastLevel: false,
       allowedActions: [],
     });
-    expect(actions).toEqual(['approve', 'send_back']);
+    expect(actions).toEqual([]);
+  });
+
+  it('returns empty array when allowed_actions is null', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: false,
+      allowedActions: null as any,
+    });
+    expect(actions).toEqual([]);
   });
 
   it('never includes synthetic actions (request_info / delegate)', () => {
     const actions = resolveAvailableActions({
       isFirstLevel: false,
       isLastLevel: true,
-      // even if a malformed step asks for these, the candidate list never proposes them
       allowedActions: ['approve', 'reject', 'request_info', 'delegate'] as any,
     });
     expect(actions).not.toContain('request_info' as any);
     expect(actions).not.toContain('delegate' as any);
+  });
+});
+
+describe('hasNoAllowedActions', () => {
+  it('true for undefined / null / empty', () => {
+    expect(hasNoAllowedActions(undefined)).toBe(true);
+    expect(hasNoAllowedActions(null as any)).toBe(true);
+    expect(hasNoAllowedActions([])).toBe(true);
+  });
+  it('false when at least one action is configured', () => {
+    expect(hasNoAllowedActions(['approve'])).toBe(false);
+    expect(hasNoAllowedActions(['send_back', 'escalate'])).toBe(false);
   });
 });
 
@@ -81,5 +101,11 @@ describe('isRemarksRequired', () => {
   it('does not require remarks for send_back / escalate', () => {
     expect(isRemarksRequired('send_back')).toBe(false);
     expect(isRemarksRequired('escalate')).toBe(false);
+  });
+
+  it('REMARKS_REQUIRED_ACTIONS exactly matches backend rule (approve/reject/request_resubmission)', () => {
+    expect(new Set(REMARKS_REQUIRED_ACTIONS)).toEqual(
+      new Set(['approve', 'reject', 'request_resubmission'])
+    );
   });
 });
