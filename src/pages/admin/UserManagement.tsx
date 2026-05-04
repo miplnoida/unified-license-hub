@@ -721,6 +721,73 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── Edit Profile (Name & Avatar) Dialog ─── */}
+      <Dialog open={profileDialog} onOpenChange={setProfileDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Employee Profile</DialogTitle>
+            <DialogDescription>Update name and profile picture.</DialogDescription>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-5 py-2">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  {profileForm.avatar_url ? <AvatarImage src={profileForm.avatar_url} alt={profileForm.full_name} /> : null}
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
+                    {(profileForm.full_name || editingUser.email || '?').split(' ').map(n => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-2">
+                  <input
+                    id="edit-avatar-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleProfileAvatarUpload(f);
+                      e.target.value = '';
+                    }}
+                  />
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" disabled={uploadingAvatar} onClick={() => document.getElementById('edit-avatar-input')?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />{uploadingAvatar ? 'Uploading...' : 'Change Photo'}
+                    </Button>
+                    {profileForm.avatar_url && (
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setProfileForm(p => ({ ...p, avatar_url: '' }))}>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">PNG/JPG, up to 5MB.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Full Name <span className="text-destructive">*</span></Label>
+                <Input
+                  value={profileForm.full_name}
+                  onChange={(e) => setProfileForm(p => ({ ...p, full_name: e.target.value }))}
+                  placeholder="Employee full name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input value={editingUser.email} readOnly className="bg-muted" />
+                <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileDialog(false)}>Cancel</Button>
+            <Button onClick={handleProfileSave} disabled={saving || uploadingAvatar}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
