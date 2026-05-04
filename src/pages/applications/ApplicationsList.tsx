@@ -489,7 +489,7 @@ export default function ApplicationsList() {
       });
     }
     return list;
-  }, [applications, isInternal, statusFilter, search, searchMode, profiles, sectors, subSectors, versions, templates, versionFilter, versionSort]);
+  }, [applications, isInternal, statusFilter, search, searchMode, sectors, subSectors, versions, templates, versionFilter, versionSort]);
 
   // Server-driven pagination: totalCount comes from the .range() count.
   // `filtered` here is the in-page filter (search + version filter + sort) applied
@@ -567,7 +567,7 @@ export default function ApplicationsList() {
     const categoryName = resolveField(app, 'category_id');
     const serviceName = resolveField(app, 'service_id');
     const catSvc = [categoryName, serviceName].filter(v => v !== '—').join(' / ') || '—';
-    const payment = payments[app.id];
+    const payment = app.payment || null;
     const versionEntries = getAppVersionEntries(app);
     const isSelectedForCompare = selectedForCompare.includes(app.id);
     return (
