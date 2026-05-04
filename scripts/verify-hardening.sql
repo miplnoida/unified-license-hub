@@ -354,9 +354,12 @@ BEGIN
     END;
 
     IF v_can_write THEN
+      -- Two steps so first step is NOT the last (avoids final_approval short-circuit)
       INSERT INTO public.approval_steps (workflow_id, step_order, name, approver_role, allowed_actions)
-      VALUES (v_tmp_wf, 1, 'Only Step', 'supervisor', '[]'::jsonb)
+      VALUES (v_tmp_wf, 1, 'Empty Step', 'supervisor', '[]'::jsonb)
       RETURNING id INTO v_tmp_step;
+      INSERT INTO public.approval_steps (workflow_id, step_order, name, approver_role, allowed_actions)
+      VALUES (v_tmp_wf, 2, 'Final', 'admin', '["approve"]'::jsonb);
 
       INSERT INTO public.applications (
         application_number, applicant_id, license_type, status, data,
