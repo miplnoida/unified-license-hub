@@ -4284,6 +4284,57 @@ export type Database = {
       generate_receipt_number: { Args: never; Returns: string }
       generate_registration_reference: { Args: never; Returns: string }
       generate_return_unique_id: { Args: never; Returns: string }
+      get_application_actions: {
+        Args: { _application_id: string }
+        Returns: {
+          action: string
+          actor_email: string
+          actor_id: string
+          actor_name: string
+          application_id: string
+          comments: string
+          created_at: string
+          id: string
+        }[]
+      }
+      get_application_list_page: {
+        Args: {
+          _page?: number
+          _page_size?: number
+          _search?: string
+          _search_mode?: string
+          _sort_by?: string
+          _sort_dir?: string
+          _status?: string
+          _version_id?: string
+        }
+        Returns: {
+          action_count: number
+          applicant_email: string
+          applicant_id: string
+          applicant_name: string
+          application_number: string
+          category_name: string
+          created_at: string
+          data: Json
+          form_version_id: string
+          id: string
+          license_type: string
+          payment_amount: number
+          payment_currency: string
+          payment_id: string
+          payment_method: string
+          payment_paid_at: string
+          payment_status: string
+          sector_name: string
+          service_name: string
+          status: string
+          sub_sector_name: string
+          submitted_at: string
+          total_count: number
+        }[]
+      }
+      get_application_list_stats: { Args: never; Returns: Json }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
