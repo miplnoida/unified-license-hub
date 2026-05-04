@@ -300,12 +300,32 @@ export default function RegistrationFormBuilder() {
   }
 
   async function handleToggle(id: string, field: string, value: boolean) {
+    if (field === 'is_active') {
+      const cfg = configs.find(c => c.id === id);
+      const name = cfg?.name || 'this configuration';
+      const result = await Swal.fire({
+        title: value ? 'Activate configuration?' : 'Deactivate configuration?',
+        html: value
+          ? `<p>"<strong>${name}</strong>" will become available for new registrations.</p>`
+          : `<p>"<strong>${name}</strong>" will no longer be available for new registrations.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: value ? 'Yes, activate' : 'Yes, deactivate',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: value ? '#16A34A' : '#DC2626',
+      });
+      if (!result.isConfirmed) return;
+    }
     const { error } = await supabase
       .from('registration_form_configs')
       .update({ [field]: value })
       .eq('id', id);
-    if (error) toast.error(error.message);
-    else loadAll();
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(field === 'is_active' ? (value ? 'Activated' : 'Deactivated') : 'Updated');
+      loadAll();
+    }
   }
 
   // Declaration helpers
