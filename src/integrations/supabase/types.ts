@@ -4283,6 +4283,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_self_audit: {
+        Args: {
+          _action: string
+          _entity_id?: string
+          _entity_type: string
+          _metadata?: Json
+          _new_value?: Json
+          _old_value?: Json
+        }
+        Returns: string
+      }
       perform_final_workflow_approval: {
         Args: {
           _actor_id: string
