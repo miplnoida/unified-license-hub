@@ -139,16 +139,6 @@ export default function ApplicationsList() {
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [sectors, setSectors] = useState<Record<string, string>>({});
-  const [subSectors, setSubSectors] = useState<Record<string, string>>({});
-  const [categories, setCategories] = useState<Record<string, string>>({});
-  const [services, setServices] = useState<Record<string, string>>({});
-  const [allActions, setAllActions] = useState<ActionEvent[]>([]);
-  const [payments, setPayments] = useState<Record<string, PaymentInfo>>({});
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [applications, setApplications] = useState<Application[]>([]);
   const [sectors, setSectors] = useState<Record<string, string>>({});
   const [subSectors, setSubSectors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<Record<string, string>>({});
