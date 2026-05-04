@@ -316,6 +316,13 @@ export default function UserManagement() {
       });
 
       if (res.data?.user) {
+        const newUserId = res.data.user.id;
+        if (pendingAvatarFile && newUserId) {
+          const url = await uploadAvatarFile(pendingAvatarFile, newUserId);
+          if (url) {
+            await supabase.from('profiles').update({ avatar_url: url } as any).eq('id', newUserId);
+          }
+        }
         setCreatedEmail(form.email);
         setCreateDialogOpen(false);
         setCredentialsDialog(true);
