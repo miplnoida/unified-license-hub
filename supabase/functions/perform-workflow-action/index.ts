@@ -22,19 +22,20 @@ const ACCEPTED_ACTIONS = new Set([
   "request_resubmission",
 ]);
 
-function jsonResponse(status: number, body: Record<string, unknown>) {
+function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
-function errorResponse(status: number, error: string, code: string, details?: unknown) {
-  return jsonResponse(status, { error, code, ...(details !== undefined ? { details } : {}) });
+function errorResponse(req: Request, status: number, error: string, code: string, details?: unknown) {
+  return jsonResponse(req, status, { error, code, ...(details !== undefined ? { details } : {}) });
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
 
   try {
     const authHeader = req.headers.get("authorization");
