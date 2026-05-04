@@ -1,199 +1,98 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 /**
- * Edge function: approve-pre-licensee
- * Called when a pre-licensee application receives final approval.
- * 
- * Steps:
- * 1. Validate caller is internal staff
- * 2. Verify application is in approvable state
- * 3. Update application status to approved
- * 4. Generate license
- * 5. Create licensee entity
- * 6. Create web user for the licensee (primary user)
- * 7. Audit log everything
- * 
- * Prevents duplicate processing via idempotency checks.
+ * Edge function: approve-pre-licensee (post-approval provisioning ONLY)
+ *
+ * Workflow ownership:
+ * - All DB state for final approval (application status, license, licensee, workflow
+ *   instance, approval action, audit, notification) is performed atomically by the
+ *   Postgres RPC `perform_final_workflow_approval`, which validates the actor,
+ *   step, allowed_actions, and last-step position.
+ * - This function does NOT perform any approval state mutation. It is invoked by
+ *   `perform-workflow-action` AFTER `perform_final_workflow_approval` has already
+ *   committed the approval. Its sole responsibility is provisioning the licensee
+ *   web user via the Supabase Auth admin API (which is not callable from SQL).
+ *
+ * Returned password is never sent back to the client — instead a recovery link is
+ * generated so the user sets their own password on first login.
  */
+
+function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+  });
+}
+
+function errorResponse(req: Request, status: number, error: string, code: string) {
+  return jsonResponse(req, status, { error, code });
+}
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCorsPreflight(req);
+  if (preflight) return preflight;
 
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!authHeader) return errorResponse(req, 401, "Missing authorization header", "UNAUTHORIZED");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Authenticate caller
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !caller) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { data: userRes, error: authErr } = await userClient.auth.getUser();
+    const caller = userRes?.user;
+    if (authErr || !caller) return errorResponse(req, 401, "Invalid or expired token", "UNAUTHORIZED");
 
-    // Verify caller is internal staff
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // Caller must be internal staff to invoke provisioning.
     const { data: callerRole } = await admin.rpc("get_user_role", { _user_id: caller.id });
-    const internalRoles = ["super_admin", "admin", "supervisor", "licensing_officer"];
-    if (!callerRole || !internalRoles.includes(callerRole as string)) {
-      return new Response(
-        JSON.stringify({ error: "Insufficient permissions" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const internal = ["super_admin", "admin", "supervisor", "licensing_officer"];
+    if (!callerRole || !internal.includes(callerRole as string)) {
+      return errorResponse(req, 403, "Insufficient permissions", "FORBIDDEN");
     }
 
-    const { application_id, comments } = await req.json();
-    if (!application_id) {
-      return new Response(
-        JSON.stringify({ error: "application_id is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    let body: any;
+    try { body = await req.json(); } catch { body = {}; }
 
-    // 1. Fetch application
+    const application_id: string | undefined = body.application_id;
+    if (!application_id) return errorResponse(req, 400, "application_id is required", "BAD_REQUEST");
+
+    // The RPC must already have committed the approval. Verify state from DB —
+    // this prevents anyone from invoking provisioning on a non-approved app to
+    // bypass workflow.
     const { data: app, error: appErr } = await admin
       .from("applications")
-      .select("*")
+      .select("id, applicant_id, application_number, status, license_type")
       .eq("id", application_id)
       .single();
+    if (appErr || !app) return errorResponse(req, 404, "Application not found", "NOT_FOUND");
 
-    if (appErr || !app) {
-      return new Response(
-        JSON.stringify({ error: "Application not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (app.status !== "approved") {
+      return errorResponse(req, 409, "Application is not approved — cannot provision user", "NOT_APPROVED");
     }
 
-    // Idempotency: if already approved, return existing data (no duplicate work)
-    if (app.status === "approved") {
-      const { data: existingLic } = await admin
-        .from("licenses")
-        .select("license_number")
-        .eq("application_id", application_id)
-        .limit(1);
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "Application was already approved",
-          license_number: existingLic?.[0]?.license_number || null,
-          already_processed: true,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Race protection: if any other process inserted an approved-final action in the
-    // last few seconds, do not duplicate. The unique index on workflow_instances
-    // also prevents duplicate active instances.
-
-    // Must be in submitted or in_progress state
-    if (!["submitted", "in_progress"].includes(app.status)) {
-      return new Response(
-        JSON.stringify({ error: `Cannot approve application in '${app.status}' status` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const appData = (app.data || {}) as Record<string, unknown>;
-
-    // 2. Update application to approved
-    const { error: updateErr } = await admin
-      .from("applications")
-      .update({
-        status: "approved",
-        approved_at: new Date().toISOString(),
-      })
-      .eq("id", application_id);
-
-    if (updateErr) {
-      return new Response(
-        JSON.stringify({ error: "Failed to update application: " + updateErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // 3. Generate license (uses DB sequence for unique number)
-    const { data: license, error: licErr } = await admin
+    // License + licensee must already exist (created atomically by the approval RPC).
+    const { data: license } = await admin
       .from("licenses")
-      .insert({
-        application_id: application_id,
-        holder_id: app.applicant_id,
-        license_type: app.license_type,
-        regulator_id: app.regulator_id || null,
-        sector_id: (appData.sector_id as string) || null,
-        sub_sector_id: (appData.sub_sector_id as string) || null,
-        category_id: (appData.category_id as string) || null,
-      })
       .select("id, license_number")
-      .single();
+      .eq("application_id", application_id)
+      .maybeSingle();
+    if (!license) return errorResponse(req, 409, "License not found for approved application", "NO_LICENSE");
 
-    if (licErr) {
-      console.error("License creation error:", licErr);
-      // Rollback application status
-      await admin.from("applications").update({ status: "in_progress", approved_at: null }).eq("id", application_id);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate license: " + licErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // 4. Create licensee entity (check for duplicate first)
-    const entityName = (appData.entity_name as string) || (appData.applicant_name as string) || app.license_type;
-    
-    const { data: existingLicensee } = await admin
+    const { data: licensee } = await admin
       .from("licensees")
-      .select("id")
+      .select("id, name")
       .eq("license_id", license.id)
-      .limit(1);
+      .maybeSingle();
+    if (!licensee) return errorResponse(req, 409, "Licensee not found for approved license", "NO_LICENSEE");
 
-    let licenseeId: string;
-
-    if (existingLicensee && existingLicensee.length > 0) {
-      licenseeId = existingLicensee[0].id;
-    } else {
-      const { data: newLicensee, error: licenseeErr } = await admin
-        .from("licensees")
-        .insert({
-          name: entityName,
-          license_id: license.id,
-          sector_id: (appData.sector_id as string) || null,
-          sub_sector_id: (appData.sub_sector_id as string) || null,
-          category_id: (appData.category_id as string) || null,
-          status: "active",
-        })
-        .select("id")
-        .single();
-
-      if (licenseeErr) {
-        console.error("Licensee entity creation error:", licenseeErr);
-        // Non-fatal: license was already created
-      }
-      licenseeId = newLicensee?.id || "";
-    }
-
-    // 5. Create web user for the licensee
-    // Get applicant info from pre_license_users
+    // Resolve applicant identity for user provisioning.
     let applicantEmail = "";
     let applicantName = "";
 
@@ -201,36 +100,31 @@ Deno.serve(async (req) => {
       .from("pre_license_users")
       .select("email, full_name")
       .eq("id", app.applicant_id)
-      .single();
-
+      .maybeSingle();
     if (preLicUser) {
       applicantEmail = preLicUser.email;
       applicantName = preLicUser.full_name;
     } else {
-      // Fallback: check profiles table
       const { data: profile } = await admin
         .from("profiles")
         .select("email, full_name")
         .eq("id", app.applicant_id)
-        .single();
+        .maybeSingle();
       if (profile) {
         applicantEmail = profile.email;
         applicantName = profile.full_name;
       }
     }
 
-    // Check if a licensee web user already exists for this email.
-    // We never return the plaintext password — generate a recovery link instead
-    // and force password change on first login.
     let webUserCreated = false;
     let passwordSetupUrl: string | null = null;
 
-    if (applicantEmail && licenseeId) {
+    if (applicantEmail) {
       const { data: existingUsers } = await admin
         .from("profiles")
         .select("id")
         .eq("email", applicantEmail)
-        .eq("licensee_id", licenseeId)
+        .eq("licensee_id", licensee.id)
         .limit(1);
 
       if (!existingUsers || existingUsers.length === 0) {
@@ -243,7 +137,7 @@ Deno.serve(async (req) => {
           user_metadata: {
             full_name: applicantName,
             user_type: "primary",
-            entity_name: entityName,
+            entity_name: licensee.name,
             role: "licensee_primary",
           },
         });
@@ -251,23 +145,16 @@ Deno.serve(async (req) => {
         if (createErr) {
           if (createErr.message.includes("already been registered") || createErr.message.includes("already exists")) {
             const { data: existingAuth } = await admin
-              .from("profiles")
-              .select("id")
-              .eq("email", applicantEmail)
-              .limit(1);
-
+              .from("profiles").select("id").eq("email", applicantEmail).limit(1);
             if (existingAuth?.[0]) {
               await admin.from("profiles").update({
-                licensee_id: licenseeId,
+                licensee_id: licensee.id,
                 role: "licensee_primary",
                 user_type: "primary",
               }).eq("id", existingAuth[0].id);
-
               await admin.from("user_roles").upsert({
-                user_id: existingAuth[0].id,
-                role: "licensee_primary",
+                user_id: existingAuth[0].id, role: "licensee_primary",
               }, { onConflict: "user_id,role" });
-
               webUserCreated = true;
             }
           } else {
@@ -275,7 +162,7 @@ Deno.serve(async (req) => {
           }
         } else if (newUser?.user) {
           await admin.from("profiles").update({
-            licensee_id: licenseeId,
+            licensee_id: licensee.id,
             force_password_change: true,
           }).eq("id", newUser.user.id);
 
@@ -288,92 +175,26 @@ Deno.serve(async (req) => {
           } catch (linkErr) {
             console.error("Failed to generate recovery link:", linkErr);
           }
-
           webUserCreated = true;
         }
       } else {
-        webUserCreated = true; // Already exists — do not reset password
+        webUserCreated = true; // already exists — do not reset
       }
     }
 
-    // 6. Complete workflow instance if exists
-    if (app.workflow_id) {
-      await admin
-        .from("workflow_instances")
-        .update({
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("entity_id", application_id)
-        .eq("entity_type", "application")
-        .eq("status", "active");
-    }
-
-    // 7. Record approval action (idempotent: skip if a final approve already exists)
-    const { data: existingFinalAction } = await admin
-      .from("approval_actions")
-      .select("id")
-      .eq("application_id", application_id)
-      .eq("action_type", "approve")
-      .is("delegated_to", null)
-      .limit(1);
-    if (!existingFinalAction || existingFinalAction.length === 0) {
-      await admin.from("approval_actions").insert({
-        application_id,
-        action: "approved",
-        action_type: "approve",
-        actor_id: caller.id,
-        comments: comments || "Application approved",
-        responded_at: new Date().toISOString(),
-      });
-    }
-
-    // 8. Audit log
-    await admin.from("audit_logs").insert({
-      action: "pre_licensee_approved",
-      entity_type: "application",
-      entity_id: application_id,
-      user_id: caller.id,
-      new_value: {
-        license_number: license.license_number,
-        licensee_id: licenseeId,
-        web_user_created: webUserCreated,
-      },
+    return jsonResponse(req, 200, {
+      success: true,
+      message: "Licensee provisioned",
+      license_number: license.license_number,
+      license_id: license.id,
+      licensee_id: licensee.id,
+      web_user_created: webUserCreated,
+      web_user_email: applicantEmail,
+      password_setup_url: passwordSetupUrl,
     });
-
-    // 9. Notify applicant
-    try {
-      await admin.from("notifications").insert({
-        user_id: app.applicant_id,
-        title: `Application Approved: ${app.application_number}`,
-        message: `Your pre-license application has been approved. License Number: ${license.license_number}`,
-        type: "success",
-        entity_type: "application",
-        entity_id: application_id,
-      });
-    } catch (e) {
-      console.error("Notification error:", e);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Application approved successfully",
-        license_number: license.license_number,
-        license_id: license.id,
-        licensee_id: licenseeId,
-        web_user_created: webUserCreated,
-        web_user_email: applicantEmail,
-        password_setup_url: passwordSetupUrl,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (err) {
     console.error("approve-pre-licensee error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return errorResponse(req, 500, err instanceof Error ? err.message : "Internal error", "INTERNAL");
   }
 });
 
@@ -383,17 +204,11 @@ function generatePassword(): string {
   const digits = "23456789";
   const special = "!@#$%&*";
   const all = upper + lower + digits + special;
-  
   let pw = "";
   pw += upper[Math.floor(Math.random() * upper.length)];
   pw += lower[Math.floor(Math.random() * lower.length)];
   pw += digits[Math.floor(Math.random() * digits.length)];
   pw += special[Math.floor(Math.random() * special.length)];
-  
-  for (let i = 4; i < 16; i++) {
-    pw += all[Math.floor(Math.random() * all.length)];
-  }
-  
-  // Shuffle
+  for (let i = 4; i < 16; i++) pw += all[Math.floor(Math.random() * all.length)];
   return pw.split("").sort(() => Math.random() - 0.5).join("");
 }
