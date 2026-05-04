@@ -165,9 +165,19 @@ function OtpVerificationSection({
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [sentToEmail, setSentToEmail] = useState<string>('');
   const [otpCode, setOtpCode] = useState('');
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  // If the user changes the email after sending an OTP, reset OTP-sent state.
+  if (otpSent && sentToEmail && resolvedEmail !== sentToEmail) {
+    queueMicrotask(() => {
+      setOtpSent(false);
+      setOtpCode('');
+      setSentToEmail('');
+    });
+  }
 
   const startCooldown = () => {
     setCooldown(60);
