@@ -9,17 +9,26 @@ interface AuditEntry {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Client-side audit logger. Routes through the SECURITY DEFINER RPC
+ * `log_self_audit` so the row is always attributed to auth.uid() — clients
+ * cannot forge a different user_id. Direct INSERT into audit_logs is no
+ * longer permitted by RLS.
+ */
 export async function logAudit(entry: AuditEntry) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from('audit_logs').insert({
-    user_id: user.id,
-    action: entry.action,
-    entity_type: entry.entityType,
-    entity_id: entry.entityId,
-    old_value: entry.oldValue as any,
-    new_value: entry.newValue as any,
-    metadata: entry.metadata as any,
-  } as any);
+  const { error } = await supabase.rpc('log_self_audit' as any, {
+    _action: entry.action,
+    _entity_type: entry.entityType,
+    _entity_id: entry.entityId ?? null,
+    _old_value: (entry.oldValue ?? null) as any,
+    _new_value: (entry.newValue ?? null) as any,
+    _metadata: (entry.metadata ?? null) as any,
+  });
+
+  if (error && import.meta.env.DEV) {
+    console.warn('[logAudit] failed:', error.message);
+  }
 }
