@@ -22,6 +22,7 @@ export type Database = {
           applicant_id: string
           application_number: string
           approved_at: string | null
+          cancelled_at: string | null
           created_at: string
           current_step_id: string | null
           data: Json | null
@@ -43,6 +44,7 @@ export type Database = {
           applicant_id: string
           application_number?: string
           approved_at?: string | null
+          cancelled_at?: string | null
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
@@ -64,6 +66,7 @@ export type Database = {
           applicant_id?: string
           application_number?: string
           approved_at?: string | null
+          cancelled_at?: string | null
           created_at?: string
           current_step_id?: string | null
           data?: Json | null
@@ -4235,6 +4238,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_application: {
+        Args: { _application_id: string; _reason?: string }
+        Returns: Json
+      }
+      create_audit_log: {
+        Args: {
+          _action: string
+          _entity_id?: string
+          _entity_type: string
+          _metadata?: Json
+          _new_value?: Json
+          _old_value?: Json
+          _user_id: string
+        }
+        Returns: string
+      }
+      create_notification: {
+        Args: {
+          _entity_id?: string
+          _entity_type?: string
+          _message: string
+          _title: string
+          _type?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       expire_delegation_rules: { Args: never; Returns: number }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
@@ -4252,6 +4282,27 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_self_audit: {
+        Args: {
+          _action: string
+          _entity_id?: string
+          _entity_type: string
+          _metadata?: Json
+          _new_value?: Json
+          _old_value?: Json
+        }
+        Returns: string
+      }
+      perform_final_workflow_approval: {
+        Args: {
+          _actor_id: string
+          _application_id: string
+          _comments: string
+          _instance_id: string
+          _step_id: string
+        }
+        Returns: Json
       }
       perform_workflow_transition: {
         Args: {
