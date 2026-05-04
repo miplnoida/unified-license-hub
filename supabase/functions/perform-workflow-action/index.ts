@@ -143,4 +143,6 @@ export async function handler(req: Request): Promise<Response> {
     console.error("perform-workflow-action fatal:", e);
     return errorResponse(req, 500, e instanceof Error ? e.message : "Internal server error", "INTERNAL");
   }
-});
+}
+
+Deno.serve(handler);
