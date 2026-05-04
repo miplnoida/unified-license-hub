@@ -29,7 +29,7 @@ function errorResponse(req: Request, status: number, error: string, code: string
   return jsonResponse(req, status, { error, code });
 }
 
-Deno.serve(async (req) => {
+export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
 
@@ -196,7 +196,9 @@ Deno.serve(async (req) => {
     console.error("approve-pre-licensee error:", err);
     return errorResponse(req, 500, err instanceof Error ? err.message : "Internal error", "INTERNAL");
   }
-});
+}
+
+Deno.serve(handler);
 
 function generatePassword(): string {
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
