@@ -2437,6 +2437,7 @@ export type Database = {
           role_id: string | null
           search_vector: unknown
           status: string
+          two_factor_enabled: boolean
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
@@ -2457,6 +2458,7 @@ export type Database = {
           role_id?: string | null
           search_vector?: unknown
           status?: string
+          two_factor_enabled?: boolean
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
@@ -2477,6 +2479,7 @@ export type Database = {
           role_id?: string | null
           search_vector?: unknown
           status?: string
+          two_factor_enabled?: boolean
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
