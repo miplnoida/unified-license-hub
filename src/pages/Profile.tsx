@@ -106,66 +106,70 @@ export default function Profile() {
     setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
   };
 
-  // ---- 2FA (TOTP) ----
-  const [factors, setFactors] = useState<any[]>([]);
+  // ---- 2FA (Email OTP) ----
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaOpen, setTwoFaOpen] = useState(false);
-  const [enrolling, setEnrolling] = useState(false);
-  const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [totpSecret, setTotpSecret] = useState<string>('');
-  const [totpCode, setTotpCode] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
 
-  const refreshFactors = async () => {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error) { console.warn(error); return; }
-    setFactors(data?.totp ?? []);
-  };
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('two_factor_enabled').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setTwoFaEnabled(!!(data as any)?.two_factor_enabled));
+  }, [user?.id]);
 
-  useEffect(() => { refreshFactors(); }, [user?.id]);
-
-  const verifiedFactor = factors.find((f: any) => f.status === 'verified');
-
-  const beginEnroll = async () => {
-    setEnrolling(true);
-    setTwoFaOpen(true);
-    // Clean any unverified leftover factors
-    for (const f of factors) {
-      if (f.status !== 'verified') {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
+  const sendEmailOtp = async () => {
+    if (!user?.email) return;
+    setOtpSending(true);
+    const { data, error } = await supabase.functions.invoke('send-registration-otp', {
+      body: { email: user.email, channel: 'email' },
+    });
+    setOtpSending(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || 'Failed to send code');
+      return;
     }
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `TOTP ${Date.now()}` });
-    if (error) { toast.error(error.message); setEnrolling(false); setTwoFaOpen(false); return; }
-    setEnrollFactorId(data.id);
-    setTotpSecret(data.totp.secret);
-    try {
-      const dataUrl = await QRCode.toDataURL(data.totp.uri);
-      setQrDataUrl(dataUrl);
-    } catch (e: any) { toast.error('QR generation failed'); }
-    setEnrolling(false);
+    setOtpSent(true);
+    toast.success(`Verification code sent to ${user.email}`);
   };
 
-  const verifyEnroll = async () => {
-    if (!enrollFactorId || totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-    setEnrolling(true);
-    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: enrollFactorId });
-    if (chErr) { toast.error(chErr.message); setEnrolling(false); return; }
-    const { error: vErr } = await supabase.auth.mfa.verify({ factorId: enrollFactorId, challengeId: ch.id, code: totpCode });
-    setEnrolling(false);
-    if (vErr) { toast.error(vErr.message); return; }
-    toast.success('Two-factor authentication enabled');
+  const beginEnable2FA = async () => {
+    setTwoFaMode('enable');
+    setOtpCode(''); setOtpSent(false);
+    setTwoFaOpen(true);
+    await sendEmailOtp();
+  };
+
+  const beginDisable2FA = async () => {
+    setTwoFaMode('disable');
+    setOtpCode(''); setOtpSent(false);
+    setTwoFaOpen(true);
+    await sendEmailOtp();
+  };
+
+  const verifyOtpAndToggle = async () => {
+    if (!user?.email || otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+    setOtpVerifying(true);
+    const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
+      body: { email: user.email, code: otpCode, channel: 'email' },
+    });
+    if (error || !(data as any)?.verified) {
+      toast.error((data as any)?.error || error?.message || 'Invalid code');
+      setOtpVerifying(false); return;
+    }
+    const enable = twoFaMode === 'enable';
+    const { error: upErr } = await supabase
+      .from('profiles')
+      .update({ two_factor_enabled: enable } as any)
+      .eq('id', user.id);
+    setOtpVerifying(false);
+    if (upErr) { toast.error(upErr.message); return; }
+    setTwoFaEnabled(enable);
     setTwoFaOpen(false);
-    setTotpCode(''); setQrDataUrl(''); setTotpSecret(''); setEnrollFactorId(null);
-    refreshFactors();
-  };
-
-  const disable2FA = async () => {
-    if (!verifiedFactor) return;
-    if (!confirm('Disable two-factor authentication?')) return;
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
-    if (error) { toast.error(error.message); return; }
-    toast.success('Two-factor authentication disabled');
-    refreshFactors();
+    toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
 
   // ---- Sessions ----
