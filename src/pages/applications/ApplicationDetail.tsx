@@ -527,9 +527,16 @@ export default function ApplicationDetail() {
                     formVersionIds={formVersionIds}
                     applicationStatus={app.status}
                     editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                    onSave={async (templateId, data) => {
+                    onSave={async (templateId, data, versionId) => {
                       const updatedFormsData = { ...formsData, [templateId]: data };
-                      const updatedAppData = { ...appData, forms_data: updatedFormsData };
+                      const updatedFormVersionIds = versionId
+                        ? { ...formVersionIds, [templateId]: versionId }
+                        : formVersionIds;
+                      const updatedAppData = {
+                        ...appData,
+                        forms_data: updatedFormsData,
+                        form_version_ids: updatedFormVersionIds,
+                      };
                       const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
                       if (error) { toast.error('Failed to save form'); return; }
                       // Lightweight inline state via SubmittedForms; no per-save toast spam.
