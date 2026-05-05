@@ -72,6 +72,10 @@ export default function Login() {
     }
   }, [showMfaScreen, pendingEmail, pendingUserId]);
 
+  if (isFullyAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleVerifyOtp = async () => {
     if (otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     setOtpVerifying(true);
