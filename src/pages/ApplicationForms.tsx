@@ -109,7 +109,7 @@ function ActiveFormFiller({
           )}
           {versionLocked ? (
             <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-          ) : pinnedVersionId && !allowVersionSwitching && (
+          ) : pinnedVersionId && !allowVersionSwitching ? (
             <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
           ) : showSwitcher ? (
             <span className="text-[11px] text-muted-foreground">Choose which version to file against.</span>
