@@ -40,6 +40,19 @@ function declFieldKey(label: string, idx: number): string {
   return slug || `declaration_${idx}`;
 }
 
+function isValidUrl(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('/')) return true;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function DeclarationsStep({
   form,
   errors,
@@ -92,9 +105,10 @@ export function DeclarationsStep({
         <div className="mt-4 space-y-4">
           {effectiveDeclarations.map((decl, idx) => {
             const fieldKey = declFieldKey(decl.label, idx);
+            const validUrl = isValidUrl(decl.linkUrl);
             const links =
-              decl.linkLabel && decl.linkUrl
-                ? [{ text: decl.linkLabel, url: decl.linkUrl, newTab: true }]
+              decl.linkLabel && validUrl
+                ? [{ text: decl.linkLabel, url: decl.linkUrl as string, newTab: true }]
                 : undefined;
 
             return (
