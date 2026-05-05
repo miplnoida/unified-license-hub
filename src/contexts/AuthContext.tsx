@@ -144,13 +144,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authUserId = data.user?.id;
     if (!authUserId) return { requires2FA: false };
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('two_factor_enabled')
-      .eq('id', authUserId)
-      .maybeSingle();
-
-    return { requires2FA: Boolean((profile as { two_factor_enabled?: boolean } | null)?.two_factor_enabled) };
+    const [{ data: profile }, { data: preProfile }] = await Promise.all([
+      supabase.from('profiles').select('two_factor_enabled').eq('id', authUserId).maybeSingle(),
+      supabase.from('pre_license_users').select('two_factor_enabled').eq('id', authUserId).maybeSingle(),
+    ]);
+    const enabled = Boolean(
+      (profile as { two_factor_enabled?: boolean } | null)?.two_factor_enabled ||
+      (preProfile as { two_factor_enabled?: boolean } | null)?.two_factor_enabled
+    );
+    return { requires2FA: enabled };
   }, []);
 
   const signup = useCallback(async (email: string, password: string, fullName: string, role?: string) => {
