@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     if (!terms_accepted) {
       return new Response(JSON.stringify({ error: "You must accept the Terms & Conditions" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
