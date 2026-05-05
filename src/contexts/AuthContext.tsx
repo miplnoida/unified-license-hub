@@ -4,6 +4,8 @@ import { Session } from '@supabase/supabase-js';
 import { PlatformUser } from '@/types/platform';
 import { fetchPlatformUser } from '@/lib/authHelpers';
 
+export type MfaStatus = 'not_required' | 'pending' | 'verified';
+
 interface AuthContextType {
   user: PlatformUser | null;
   session: Session | null;
@@ -11,7 +13,12 @@ interface AuthContextType {
   loading: boolean;
   /** True when a valid session exists (even if profile is still loading) */
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  mfaStatus: MfaStatus;
+  requires2FA: boolean;
+  isFullyAuthenticated: boolean;
+  mark2FAVerified: (userId: string) => void;
+  clear2FAState: () => void;
+  login: (email: string, password: string) => Promise<{ error?: string; requires2FA?: boolean }>;
   signup: (email: string, password: string, fullName: string, role?: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
 }
@@ -22,15 +29,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PlatformUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaStatus, setMfaStatus] = useState<MfaStatus>('not_required');
+
+  const clear2FAState = useCallback(() => {
+    try {
+      sessionStorage.removeItem('pending_2fa_user_id');
+      sessionStorage.removeItem('two_factor_verified_user_id');
+    } catch {
+      /* ignore */
+    }
+    setMfaStatus('not_required');
+  }, []);
+
+  const mark2FAVerified = useCallback((userId: string) => {
+    try {
+      sessionStorage.removeItem('pending_2fa_user_id');
+      sessionStorage.setItem('two_factor_verified_user_id', userId);
+    } catch {
+      /* ignore */
+    }
+    setMfaStatus('verified');
+  }, []);
 
   const hydrateUser = useCallback(async (sess: Session) => {
     try {
       const platformUser = await fetchPlatformUser(sess.user.id, sess.user.email || '');
       setUser(platformUser);
+      if (platformUser.twoFactorEnabled) {
+        const verifiedFor = sessionStorage.getItem('two_factor_verified_user_id');
+        if (verifiedFor === sess.user.id) {
+          setMfaStatus('verified');
+          try {
+            sessionStorage.removeItem('pending_2fa_user_id');
+          } catch {
+            /* ignore */
+          }
+        } else {
+          try {
+            sessionStorage.setItem('pending_2fa_user_id', sess.user.id);
+          } catch {
+            /* ignore */
+          }
+          setMfaStatus('pending');
+        }
+      } else {
+        try {
+          sessionStorage.removeItem('pending_2fa_user_id');
+          sessionStorage.setItem('two_factor_verified_user_id', sess.user.id);
+        } catch {
+          /* ignore */
+        }
+        setMfaStatus('not_required');
+      }
     } catch (err) {
       console.error('[Auth] Failed to hydrate user profile:', err);
       // Keep session alive but with null user — route guards will show fallback
       setUser(null);
+      setMfaStatus('not_required');
     }
   }, []);
 
@@ -38,12 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up listener BEFORE getSession (per Supabase best practice)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
+        setLoading(true);
         setSession(newSession);
         if (newSession) {
           // Defer hydration to avoid Supabase deadlock
-          setTimeout(() => hydrateUser(newSession), 0);
+          setTimeout(() => {
+            hydrateUser(newSession).finally(() => setLoading(false));
+          }, 0);
         } else {
           setUser(null);
+          clear2FAState();
           setLoading(false);
         }
       }
@@ -82,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
-    return {};
+    return { requires2FA: false };
   }, []);
 
   const signup = useCallback(async (email: string, password: string, fullName: string, role?: string) => {
@@ -99,14 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      sessionStorage.removeItem('pending_2fa_user_id');
-      sessionStorage.removeItem('two_factor_verified_user_id');
-    } catch { /* ignore */ }
+    clear2FAState();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-  }, []);
+  }, [clear2FAState]);
+
+  const requires2FA = !!session && !!user?.twoFactorEnabled;
+  const isFullyAuthenticated = !!session && (mfaStatus === 'not_required' || mfaStatus === 'verified');
 
   return (
     <AuthContext.Provider
@@ -114,6 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         isAuthenticated: !!session,
+        mfaStatus,
+        requires2FA,
+        isFullyAuthenticated,
+        mark2FAVerified,
+        clear2FAState,
         loading,
         login,
         signup,
@@ -138,6 +202,11 @@ export function useAuth() {
       session: null,
       loading: true,
       isAuthenticated: false,
+      mfaStatus: 'not_required',
+      requires2FA: false,
+      isFullyAuthenticated: false,
+      mark2FAVerified: () => {},
+      clear2FAState: () => {},
       login: async () => ({ error: 'Auth not ready' }),
       signup: async () => ({ error: 'Auth not ready' }),
       logout: async () => {},
