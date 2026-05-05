@@ -67,6 +67,7 @@ export default function PaymentHistory() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
+  const isPreLicensee = user?.role === 'pre_licensee';
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
