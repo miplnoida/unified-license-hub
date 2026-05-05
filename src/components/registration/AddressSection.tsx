@@ -185,13 +185,18 @@ export function AddressSection({
               Same as Mailing Address
             </Label>
           </div>
-          <AddressFields
-            prefix="physical"
-            address={sameAsMailing ? mailingAddress : physicalAddress}
-            onChange={onPhysicalChange}
-            errors={errors}
-            disabled={sameAsMailing}
-          />
+          {sameAsMailing ? (
+            <p className="text-sm text-muted-foreground italic">
+              Physical address will be the same as the mailing address above.
+            </p>
+          ) : (
+            <AddressFields
+              prefix="physical"
+              address={physicalAddress}
+              onChange={onPhysicalChange}
+              errors={errors}
+            />
+          )}
         </div>
       </div>
     </div>
