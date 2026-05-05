@@ -40,6 +40,19 @@ function declFieldKey(label: string, idx: number): string {
   return slug || `declaration_${idx}`;
 }
 
+function isValidUrl(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('/')) return true;
+  try {
+    const u = new URL(trimmed);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function DeclarationsStep({
   form,
   errors,
