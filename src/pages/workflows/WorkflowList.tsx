@@ -836,11 +836,11 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                   <button
                     key={r.id}
                     onClick={() => {
-                      onUpdate(step.id, { approver_role: r.system_role as any });
+                      onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any);
                       setPickerOpen(false); setRoleSearch('');
                     }}
                     className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                      step.approver_role === r.system_role
+                      (step.approver_role_id ? step.approver_role_id === r.id : step.approver_role === r.system_role)
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background hover:border-primary/50'
                     }`}
