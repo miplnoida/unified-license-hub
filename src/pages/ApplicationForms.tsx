@@ -199,9 +199,12 @@ export default function ApplicationForms() {
         const initial: Record<string, FormProgress> = {};
         templateIds.forEach(tid => {
           const hasData = formsData[tid] && Object.keys(formsData[tid]).length > 0;
+          const formStatus: FormStatus = hasData
+            ? ((data as any).status === 'draft' ? 'in_progress' : 'completed')
+            : 'not_started';
           initial[tid] = {
             templateId: tid,
-            status: hasData ? 'completed' : 'not_started',
+            status: formStatus,
             data: formsData[tid] || {},
           };
         });
