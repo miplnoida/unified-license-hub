@@ -26,16 +26,26 @@ Deno.serve(async (req) => {
     } = body;
 
     // Validate required fields
-    if (!email || !password || !first_name || !last_name || !applicant_name || !sector_id || !sub_sector_id || !category_id) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
+    const missing: string[] = [];
+    if (!email) missing.push("email");
+    if (!password) missing.push("password");
+    if (!first_name) missing.push("first_name");
+    if (!last_name) missing.push("last_name");
+    if (!applicant_name) missing.push("applicant_name");
+    if (!sector_id) missing.push("sector_id");
+    if (!sub_sector_id) missing.push("sub_sector_id");
+    if (!category_id) missing.push("category_id");
+    if (missing.length) {
+      console.error("register-pre-licensee missing fields:", missing, "body keys:", Object.keys(body));
+      return new Response(JSON.stringify({ error: `Missing required fields: ${missing.join(", ")}` }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!terms_accepted) {
       return new Response(JSON.stringify({ error: "You must accept the Terms & Conditions" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -103,15 +113,16 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
+      console.error("Auth createUser error:", authError);
       return new Response(JSON.stringify({ error: authError.message }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!authData.user) {
       return new Response(JSON.stringify({ error: "Failed to create user" }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -220,8 +231,8 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: (error as Error)?.message || String(error) }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
