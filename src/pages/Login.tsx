@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +28,28 @@ export default function Login() {
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
 
-  if (isAuthenticated && !mfaRequired) return <Navigate to="/dashboard" replace />;
+  // If user lands here with an existing session that hasn't passed 2FA, show OTP gate
+  useEffect(() => {
+    const pendingId = sessionStorage.getItem('pending_2fa_user_id');
+    const verifiedId = sessionStorage.getItem('two_factor_verified_user_id');
+    if (pendingId && pendingId !== verifiedId) {
+      supabase.auth.getUser().then(({ data: { user: u } }) => {
+        if (u && u.id === pendingId) {
+          setPendingUserId(u.id);
+          setPendingEmail(u.email || '');
+          setMfaRequired(true);
+        }
+      });
+    }
+  }, []);
+
+  if (isAuthenticated && !mfaRequired) {
+    const pendingId = sessionStorage.getItem('pending_2fa_user_id');
+    const verifiedId = sessionStorage.getItem('two_factor_verified_user_id');
+    if (!pendingId || pendingId === verifiedId) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
 
   const sendLoginOtp = async (emailAddr: string) => {
     setOtpSending(true);
