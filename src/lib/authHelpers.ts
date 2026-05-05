@@ -144,6 +144,10 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
     isPreLicensee: false,
     forcePasswordChange: profile.force_password_change || false,
     dynamicRoleName,
+    avatarUrl: (profile as any).avatar_url || undefined,
+    phone: (profile as any).phone || undefined,
+    department: (profile as any).department || undefined,
+    bio: (profile as any).bio || undefined,
   };
 }
 

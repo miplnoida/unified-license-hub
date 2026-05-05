@@ -2422,7 +2422,9 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          department: string | null
           email: string
           entity_name: string
           force_password_change: boolean
@@ -2430,6 +2432,7 @@ export type Database = {
           gender: string | null
           id: string
           licensee_id: string | null
+          phone: string | null
           role: string
           role_id: string | null
           search_vector: unknown
@@ -2439,7 +2442,9 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          department?: string | null
           email: string
           entity_name?: string
           force_password_change?: boolean
@@ -2447,6 +2452,7 @@ export type Database = {
           gender?: string | null
           id: string
           licensee_id?: string | null
+          phone?: string | null
           role?: string
           role_id?: string | null
           search_vector?: unknown
@@ -2456,7 +2462,9 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          department?: string | null
           email?: string
           entity_name?: string
           force_password_change?: boolean
@@ -2464,6 +2472,7 @@ export type Database = {
           gender?: string | null
           id?: string
           licensee_id?: string | null
+          phone?: string | null
           role?: string
           role_id?: string | null
           search_vector?: unknown
