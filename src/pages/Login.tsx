@@ -33,10 +33,6 @@ export default function Login() {
     }
   }, [showMfaScreen]);
 
-  if (isFullyAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const sendLoginOtp = async (emailAddr: string) => {
     setOtpSending(true);
     const { data, error } = await supabase.functions.invoke('send-registration-otp', {
@@ -75,6 +71,10 @@ export default function Login() {
       sessionStorage.removeItem('login_2fa_otp_sent_for');
     }
   }, [showMfaScreen, pendingEmail, pendingUserId]);
+
+  if (isFullyAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleVerifyOtp = async () => {
     if (otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
