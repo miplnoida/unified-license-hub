@@ -112,11 +112,13 @@ export default function Profile() {
   const [loadingTwoFaStatus, setLoadingTwoFaStatus] = useState(true);
   const [savingTwoFa, setSavingTwoFa] = useState(false);
 
+  const twoFaTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
+
   const refetchTwoFa = async () => {
     if (!user) return;
     setLoadingTwoFaStatus(true);
     const { data, error } = await supabase
-      .from('profiles')
+      .from(twoFaTable as any)
       .select('two_factor_enabled')
       .eq('id', user.id)
       .maybeSingle();
@@ -130,9 +132,8 @@ export default function Profile() {
   const handleToggle2FA = async (checked: boolean) => {
     if (!user) return;
     setSavingTwoFa(true);
-    // Update and read back to confirm persistence (RLS / row-missing safety).
     const { data, error } = await supabase
-      .from('profiles')
+      .from(twoFaTable as any)
       .update({ two_factor_enabled: checked } as any)
       .eq('id', user.id)
       .select('two_factor_enabled')
@@ -158,10 +159,9 @@ export default function Profile() {
       toast.success('Two-factor authentication enabled. You will receive an email code at your next login.');
     } else {
       clear2FAState();
-      mark2FAVerified(user.id); // keep current session valid; next login won't require OTP
+      mark2FAVerified(user.id);
       toast.success('Two-factor authentication disabled.');
     }
-    // Confirm with a fresh read (defends against stale UI after toggling).
     await refetchTwoFa();
   };
 
