@@ -385,15 +385,23 @@ export default function NewApplication() {
     }
   };
 
-  // Auto-save draft when selection changes (debounced) — only after user interaction
+  // Stable key of matched template ids so auto-save only re-runs when the
+  // actual set of applicable templates changes.
+  const matchedTemplateIdsKey = useMemo(
+    () => matchedTemplates.map(t => t.id).sort().join(','),
+    [matchedTemplates]
+  );
+
+  // Auto-save draft when selection changes (debounced) — only after user interaction.
+  // Silent: does not flip the global `saving` flag and does not toast.
   useEffect(() => {
     if (!hasUserInteractedRef.current) return;
     if (!user || !selectedCategory) return;
-    if (matchedTemplates.length === 0) return;
+    if (matchedTemplateIdsKey === '') return;
     const t = setTimeout(() => { upsertDraftApplication(); }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, selectedSubSector, selectedSector, matchedTemplates.length]);
+  }, [selectedCategory, selectedSubSector, selectedSector, matchedTemplateIdsKey]);
 
   const handleProceedToForms = async () => {
     if (!selectedCategory) {
