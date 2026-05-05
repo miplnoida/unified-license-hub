@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, code, channel = "email" } = await req.json();
+    const { email, code, channel = "email", purpose = "registration" } = await req.json();
 
     if (!email || !code) {
       return new Response(JSON.stringify({ error: "Email and code are required" }), {
@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("user_email", email)
       .eq("channel", channel)
+      .eq("purpose", purpose)
       .is("verified_at", null)
       .gte("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })
