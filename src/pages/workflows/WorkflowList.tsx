@@ -144,6 +144,14 @@ export default function WorkflowList() {
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
 
+  const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
+    if (step.approver_role_id) {
+      const byId = dynamicRoles.find(r => r.id === step.approver_role_id);
+      if (byId) return byId.name;
+    }
+    return roleLabel(step.approver_role);
+  };
+
   // Live preview of which role will be auto-assigned to Step 1
   const selectedSectorName = useMemo(
     () => (sectors as any[]).find(s => s.id === newSectorId)?.name as string | undefined,
