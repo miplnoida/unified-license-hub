@@ -16,6 +16,7 @@ interface AuthContextType {
   mfaStatus: MfaStatus;
   requires2FA: boolean;
   isFullyAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
   mark2FAVerified: (userId: string) => void;
   clear2FAState: () => void;
   login: (email: string, password: string) => Promise<{ error?: string; requires2FA?: boolean }>;
@@ -50,6 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setMfaStatus('verified');
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!session) return;
+    await hydrateUser(session);
+  }, [hydrateUser, session]);
 
   const hydrateUser = useCallback(async (sess: Session) => {
     try {
@@ -187,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         mfaStatus,
         requires2FA,
         isFullyAuthenticated,
+        refreshUser,
         mark2FAVerified,
         clear2FAState,
         loading,
@@ -218,6 +225,7 @@ export function useAuth() {
       isFullyAuthenticated: false,
       mark2FAVerified: () => {},
       clear2FAState: () => {},
+      refreshUser: async () => {},
       login: async () => ({ error: 'Auth not ready' }),
       signup: async () => ({ error: 'Auth not ready' }),
       logout: async () => {},
