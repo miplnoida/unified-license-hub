@@ -16,7 +16,7 @@ import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2
 import { Switch } from '@/components/ui/switch';
 
 export default function Profile() {
-  const { user, clear2FAState, mark2FAVerified } = useAuth();
+  const { user, refreshUser, clear2FAState, mark2FAVerified } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Personal info ----
@@ -83,6 +83,7 @@ export default function Profile() {
     if (dbErr) { toast.error(dbErr.message); setUploadingAvatar(false); return; }
     if (!updated) { toast.error('Profile row not found — could not save photo.'); setUploadingAvatar(false); return; }
     setAvatarUrl(url);
+    await refreshUser();
     toast.success('Profile photo updated');
     setUploadingAvatar(false);
   };
@@ -104,6 +105,7 @@ export default function Profile() {
     setSavingProfile(false);
     if (error) { toast.error(error.message); return; }
     if (!updated) { toast.error('Profile row not found — nothing was saved.'); return; }
+    await refreshUser();
     toast.success('Profile updated');
   };
 

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,9 +59,12 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 pl-3 border-l cursor-pointer rounded-md px-2 py-1.5 hover:bg-muted/50 transition-colors outline-none">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                  {user.fullName.charAt(0).toUpperCase()}
-                </div>
+                <Avatar className="h-8 w-8">
+                  {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={user.fullName} /> : null}
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                    {user.fullName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium leading-none">{user.fullName}</p>
                   <p className="text-xs text-muted-foreground">
