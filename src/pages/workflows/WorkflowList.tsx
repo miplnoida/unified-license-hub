@@ -805,7 +805,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
                 <Users className="h-3 w-3" />
-                {roleLabel(step.approver_role)}
+                {stepRoleLabel(step)}
               </Badge>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
                 Change role
