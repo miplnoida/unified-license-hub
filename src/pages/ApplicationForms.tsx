@@ -496,6 +496,14 @@ export default function ApplicationForms() {
                         )}
                       </Button>
                     </div>
+                    {appData?.status === 'draft' && (
+                      <FormCardVersionPicker
+                        templateId={tmpl.id}
+                        selectedVersionId={(appData as any)?.data?.form_version_ids?.[tmpl.id] || null}
+                        onChange={(v) => handleVersionPin(tmpl.id, v)}
+                        locked={status === 'completed'}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               );
