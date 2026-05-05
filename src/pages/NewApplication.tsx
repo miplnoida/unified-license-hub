@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationSettings } from '@/hooks/useApplicationSettings';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -279,26 +279,32 @@ export default function NewApplication() {
     })();
   }, [user?.id]);
 
-  const handleSectorChange = (val: string) => {
-    if (val === selectedSector) return;
-    hasUserInteractedRef.current = true;
-    setSelectedSector(val);
-    setSelectedSubSector('');
-    setSelectedCategory('');
-  };
+  const handleSectorChange = useCallback((val: string) => {
+    setSelectedSector(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      setSelectedSubSector('');
+      setSelectedCategory('');
+      return val;
+    });
+  }, []);
 
-  const handleSubSectorChange = (val: string) => {
-    if (val === selectedSubSector) return;
-    hasUserInteractedRef.current = true;
-    setSelectedSubSector(val);
-    setSelectedCategory('');
-  };
+  const handleSubSectorChange = useCallback((val: string) => {
+    setSelectedSubSector(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      setSelectedCategory('');
+      return val;
+    });
+  }, []);
 
-  const handleCategoryChange = (val: string) => {
-    if (val === selectedCategory) return;
-    hasUserInteractedRef.current = true;
-    setSelectedCategory(val);
-  };
+  const handleCategoryChange = useCallback((val: string) => {
+    setSelectedCategory(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      return val;
+    });
+  }, []);
 
   // Build the draft payload, preserving existing forms_data / form_version_ids
   // for templates that are still applicable.
@@ -392,16 +398,10 @@ export default function NewApplication() {
     [matchedTemplates]
   );
 
-  // Auto-save draft when selection changes (debounced) — only after user interaction.
-  // Silent: does not flip the global `saving` flag and does not toast.
-  useEffect(() => {
-    if (!hasUserInteractedRef.current) return;
-    if (!user || !selectedCategory) return;
-    if (matchedTemplateIdsKey === '') return;
-    const t = setTimeout(() => { upsertDraftApplication(); }, 500);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, selectedSubSector, selectedSector, matchedTemplateIdsKey]);
+  // NOTE: Draft is no longer auto-saved on Sector/Sub-Sector/Category change.
+  // It is upserted only when the user clicks "Proceed to Forms" (see handleProceedToForms).
+  // This prevents network round-trips and re-renders that caused the page to flicker
+  // while the user was still picking their category.
 
   const handleProceedToForms = async () => {
     if (!selectedCategory) {
