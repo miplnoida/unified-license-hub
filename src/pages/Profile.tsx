@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -7,14 +7,83 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound } from 'lucide-react';
+import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Trash2 } from 'lucide-react';
+import QRCode from 'qrcode';
 
 export default function Profile() {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Personal info ----
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [department, setDepartment] = useState('');
+  const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    setFullName(user.fullName || '');
+    setEmail(user.email || '');
+    setPhone((user as any).phone || '');
+    setDepartment((user as any).department || '');
+    setBio((user as any).bio || '');
+    setAvatarUrl((user as any).avatarUrl);
+  }, [user]);
+
+  const handleAvatarPick = () => fileInputRef.current?.click();
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Please choose an image file'); return; }
+    setUploadingAvatar(true);
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { cacheControl: '3600', upsert: true });
+    if (upErr) { toast.error(upErr.message); setUploadingAvatar(false); return; }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    const url = data.publicUrl;
+    const { error: dbErr } = await supabase
+      .from('profiles')
+      .update({ avatar_url: url } as any)
+      .eq('id', user.id);
+    if (dbErr) { toast.error(dbErr.message); setUploadingAvatar(false); return; }
+    setAvatarUrl(url);
+    toast.success('Profile photo updated');
+    setUploadingAvatar(false);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        phone: phone || null,
+        department: department || null,
+        bio: bio || null,
+      } as any)
+      .eq('id', user.id);
+    setSavingProfile(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Profile updated');
+  };
+
+  // ---- Password ----
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,31 +93,106 @@ export default function Profile() {
   const [changing, setChanging] = useState(false);
 
   const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Please fill in all password fields.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match.');
-      return;
-    }
+    if (!currentPassword || !newPassword || !confirmPassword) { toast.error('Please fill in all password fields.'); return; }
+    if (newPassword.length < 8) { toast.error('New password must be at least 8 characters.'); return; }
+    if (newPassword !== confirmPassword) { toast.error('New passwords do not match.'); return; }
     setChanging(true);
+    // Verify current password by re-authenticating
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user!.email, password: currentPassword });
+    if (signInErr) { toast.error('Current password is incorrect'); setChanging(false); return; }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setChanging(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Password updated successfully.');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    }
+    if (error) { toast.error(error.message); return; }
+    toast.success('Password updated successfully.');
+    setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
   };
 
+  // ---- 2FA (TOTP) ----
+  const [factors, setFactors] = useState<any[]>([]);
+  const [twoFaOpen, setTwoFaOpen] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [totpSecret, setTotpSecret] = useState<string>('');
+  const [totpCode, setTotpCode] = useState('');
+
+  const refreshFactors = async () => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) { console.warn(error); return; }
+    setFactors(data?.totp ?? []);
+  };
+
+  useEffect(() => { refreshFactors(); }, [user?.id]);
+
+  const verifiedFactor = factors.find((f: any) => f.status === 'verified');
+
+  const beginEnroll = async () => {
+    setEnrolling(true);
+    setTwoFaOpen(true);
+    // Clean any unverified leftover factors
+    for (const f of factors) {
+      if (f.status !== 'verified') {
+        await supabase.auth.mfa.unenroll({ factorId: f.id });
+      }
+    }
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `TOTP ${Date.now()}` });
+    if (error) { toast.error(error.message); setEnrolling(false); setTwoFaOpen(false); return; }
+    setEnrollFactorId(data.id);
+    setTotpSecret(data.totp.secret);
+    try {
+      const dataUrl = await QRCode.toDataURL(data.totp.uri);
+      setQrDataUrl(dataUrl);
+    } catch (e: any) { toast.error('QR generation failed'); }
+    setEnrolling(false);
+  };
+
+  const verifyEnroll = async () => {
+    if (!enrollFactorId || totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+    setEnrolling(true);
+    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: enrollFactorId });
+    if (chErr) { toast.error(chErr.message); setEnrolling(false); return; }
+    const { error: vErr } = await supabase.auth.mfa.verify({ factorId: enrollFactorId, challengeId: ch.id, code: totpCode });
+    setEnrolling(false);
+    if (vErr) { toast.error(vErr.message); return; }
+    toast.success('Two-factor authentication enabled');
+    setTwoFaOpen(false);
+    setTotpCode(''); setQrDataUrl(''); setTotpSecret(''); setEnrollFactorId(null);
+    refreshFactors();
+  };
+
+  const disable2FA = async () => {
+    if (!verifiedFactor) return;
+    if (!confirm('Disable two-factor authentication?')) return;
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success('Two-factor authentication disabled');
+    refreshFactors();
+  };
+
+  // ---- Sessions ----
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const [currentSessionInfo, setCurrentSessionInfo] = useState<{ created: string; expires: string } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setCurrentSessionInfo({
+          created: new Date((data.session.user.last_sign_in_at || data.session.user.created_at) as string).toLocaleString(),
+          expires: new Date((data.session.expires_at ?? 0) * 1000).toLocaleString(),
+        });
+      }
+    });
+  }, []);
+
+  const handleSignOutAll = async () => {
+    setSigningOutAll(true);
+    const { error } = await supabase.auth.signOut({ scope: 'others' as any });
+    setSigningOutAll(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Signed out of all other sessions');
+    setSessionsOpen(false);
+  };
 
   return (
     <DashboardLayout>
@@ -69,25 +213,36 @@ export default function Profile() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Personal Information</CardTitle>
-                <Button size="sm"><Save className="h-4 w-4 mr-2" />Save Changes</Button>
+                <Button size="sm" onClick={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Changes
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-6 mb-8">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-bold">
-                    {user?.fullName.charAt(0)}
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-bold overflow-hidden">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      user?.fullName.charAt(0)
+                    )}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold">{user?.fullName}</h3>
                     <Badge variant="secondary" className="capitalize mt-1">{user?.role}</Badge>
-                    <Button variant="outline" size="sm" className="ml-3"><Upload className="h-4 w-4 mr-1" />Change Photo</Button>
+                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                    <Button variant="outline" size="sm" className="ml-3" onClick={handleAvatarPick} disabled={uploadingAvatar}>
+                      {uploadingAvatar ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                      Change Photo
+                    </Button>
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label>Full Name</Label><Input defaultValue={user?.fullName} /></div>
-                  <div className="space-y-2"><Label>Email Address</Label><Input type="email" defaultValue={user?.email} /></div>
-                  <div className="space-y-2"><Label>Phone Number</Label><Input defaultValue="+1-555-0123" /></div>
-                  <div className="space-y-2"><Label>Department</Label><Input defaultValue="Regulatory Affairs" /></div>
-                  <div className="space-y-2 md:col-span-2"><Label>Bio</Label><Textarea placeholder="Brief description..." /></div>
+                  <div className="space-y-2"><Label>Full Name</Label><Input value={fullName} onChange={e => setFullName(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Email Address</Label><Input type="email" value={email} disabled /></div>
+                  <div className="space-y-2"><Label>Phone Number</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Department</Label><Input value={department} onChange={e => setDepartment(e.target.value)} /></div>
+                  <div className="space-y-2 md:col-span-2"><Label>Bio</Label><Textarea placeholder="Brief description..." value={bio} onChange={e => setBio(e.target.value)} /></div>
                 </div>
               </CardContent>
             </Card>
@@ -98,16 +253,23 @@ export default function Profile() {
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <Shield className="h-5 w-5 text-muted-foreground" />
-                    <div><p className="font-medium">Two-Factor Authentication</p><p className="text-sm text-muted-foreground">Not enabled</p></div>
+                    <div>
+                      <p className="font-medium">Two-Factor Authentication</p>
+                      <p className="text-sm text-muted-foreground">{verifiedFactor ? 'Enabled' : 'Not enabled'}</p>
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm">Enable 2FA</Button>
+                  {verifiedFactor ? (
+                    <Button variant="outline" size="sm" onClick={disable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={beginEnroll}>Enable 2FA</Button>
+                  )}
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
-                    <div><p className="font-medium">Active Sessions</p><p className="text-sm text-muted-foreground">2 active sessions</p></div>
+                    <div><p className="font-medium">Active Sessions</p><p className="text-sm text-muted-foreground">Manage devices signed in to your account</p></div>
                   </div>
-                  <Button variant="outline" size="sm">Manage</Button>
+                  <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>Manage</Button>
                 </div>
               </CardContent>
             </Card>
@@ -155,6 +317,76 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* 2FA Enroll Dialog */}
+      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!enrolling) setTwoFaOpen(o); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password) and enter the 6-digit code below.
+            </DialogDescription>
+          </DialogHeader>
+          {enrolling && !qrDataUrl ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : qrDataUrl ? (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <img src={qrDataUrl} alt="2FA QR Code" className="h-48 w-48 border rounded" />
+              </div>
+              <div className="text-center text-xs text-muted-foreground break-all">
+                Or enter this key manually: <code className="font-mono">{totpSecret}</code>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="totp">Verification Code</Label>
+                <Input id="totp" inputMode="numeric" maxLength={6} placeholder="123456" value={totpCode} onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={enrolling}>Cancel</Button>
+            <Button onClick={verifyEnroll} disabled={enrolling || totpCode.length !== 6}>
+              {enrolling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Verify & Enable
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sessions Dialog */}
+      <Dialog open={sessionsOpen} onOpenChange={setSessionsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Active Sessions</DialogTitle>
+            <DialogDescription>Manage where you're signed in.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="p-4 rounded-lg border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Current Session</p>
+                  <p className="text-xs text-muted-foreground">This device</p>
+                </div>
+                <Badge>Active</Badge>
+              </div>
+              {currentSessionInfo && (
+                <div className="mt-3 text-xs text-muted-foreground space-y-1">
+                  <div>Signed in: {currentSessionInfo.created}</div>
+                  <div>Expires: {currentSessionInfo.expires}</div>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              For security, you can sign out of all other devices currently signed in to your account.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSessionsOpen(false)}>Close</Button>
+            <Button variant="destructive" onClick={handleSignOutAll} disabled={signingOutAll}>
+              {signingOutAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Sign out of all other sessions
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
