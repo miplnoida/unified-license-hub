@@ -49,16 +49,6 @@ export default function Profile() {
     }
   };
 
-  const PasswordInput = ({ id, value, onChange, show, onToggle, placeholder }: {
-    id: string; value: string; onChange: (v: string) => void; show: boolean; onToggle: () => void; placeholder: string;
-  }) => (
-    <div className="relative">
-      <Input id={id} type={show ? 'text' : 'password'} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} className="pr-10" />
-      <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
 
   return (
     <DashboardLayout>
