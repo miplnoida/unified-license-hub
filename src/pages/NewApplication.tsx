@@ -877,7 +877,7 @@ export default function NewApplication() {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={!selectedSubSector}>
+                <Select value={selectedCategory} onValueChange={handleCategoryChange} disabled={!selectedSubSector}>
                   <SelectTrigger id="category">
                     <SelectValue placeholder={selectedSubSector ? 'Select Category' : 'Select a sub-sector first'} />
                   </SelectTrigger>
