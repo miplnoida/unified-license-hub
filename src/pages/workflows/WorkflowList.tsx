@@ -208,9 +208,10 @@ export default function WorkflowList() {
           step_order: 1,
           name: stepName,
           approver_role: resolvedSystem,
+          approver_role_id: defaultRole?.id ?? null,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'],
-        });
+        } as any);
         if (sectorName) {
           toast.success(
             matched
