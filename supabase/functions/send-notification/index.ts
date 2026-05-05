@@ -1,5 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  encryption: "none" | "ssl" | "tls";
+  fromName: string;
+  fromEmail: string;
+  enabled: boolean;
+}
+
+async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
+  const { data } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "email_sms_settings")
+    .maybeSingle();
+  const smtp = data?.value?.smtp as SmtpConfig | undefined;
+  if (!smtp || !smtp.enabled || !smtp.host || !smtp.port || !smtp.username || !smtp.password || !smtp.fromEmail) {
+    return null;
+  }
+  return smtp;
+}
+
+async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text: string): Promise<void> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: smtp.host,
+      port: smtp.port,
+      tls: smtp.encryption === "ssl" || smtp.encryption === "tls",
+      auth: { username: smtp.username, password: smtp.password! },
+    },
+  });
+  try {
+    await client.send({
+      from: `${smtp.fromName || "Notifications"} <${smtp.fromEmail}>`,
+      to,
+      subject,
+      content: text,
+    });
+  } finally {
+    try { await client.close(); } catch { /* noop */ }
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,8 +134,9 @@ serve(async (req) => {
         .limit(50);
 
       let processed = 0;
+      const smtpConfig = await loadSmtpConfig(supabase);
+
       for (const notif of queued || []) {
-        // Get user profile for email
         const { data: profile } = await supabase
           .from("profiles")
           .select("email, full_name")
@@ -99,21 +146,40 @@ serve(async (req) => {
         if (!profile) continue;
 
         if (notif.channel === "email") {
-          // Email delivery placeholder - integrate with SMTP/Resend/SendGrid
-          console.log(`[EMAIL] To: ${profile.email}, Subject: ${notif.title}, Body: ${notif.message}`);
-          await supabase
-            .from("notifications")
-            .update({ delivery_status: "delivered" } as any)
-            .eq("id", notif.id);
-          processed++;
+          if (!smtpConfig) {
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed"} as any)
+              .eq("id", notif.id);
+            continue;
+          }
+          if (!profile.email) {
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed"} as any)
+              .eq("id", notif.id);
+            continue;
+          }
+          try {
+            await sendSmtpEmail(smtpConfig, profile.email, notif.title, notif.message);
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "delivered" } as any)
+              .eq("id", notif.id);
+            processed++;
+          } catch (e: any) {
+            console.error("SMTP delivery failed:", e?.message || String(e));
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed"} as any)
+              .eq("id", notif.id);
+          }
         } else if (notif.channel === "sms") {
-          // SMS delivery placeholder - integrate with Twilio/Vonage
-          console.log(`[SMS] To: ${profile.email}, Body: ${notif.message}`);
+          // SMS provider not yet implemented; keep queued with note
           await supabase
             .from("notifications")
-            .update({ delivery_status: "delivered" } as any)
+            .update({ delivery_status: "failed"} as any)
             .eq("id", notif.id);
-          processed++;
         }
       }
 
