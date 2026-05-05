@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import type { MfaStatus } from '@/contexts/AuthContext';
 
 // Mock useAuth for different states
 const mockAuth = vi.hoisted(() => ({
@@ -8,7 +9,7 @@ const mockAuth = vi.hoisted(() => ({
   session: null as any,
   loading: true,
   isAuthenticated: false,
-  mfaStatus: 'not_required' as const,
+  mfaStatus: 'not_required' as MfaStatus,
   requires2FA: false,
   isFullyAuthenticated: false,
   mark2FAVerified: vi.fn(),
