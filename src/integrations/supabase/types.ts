@@ -2370,6 +2370,7 @@ export type Database = {
           sector_id: string | null
           status: string
           sub_sector_id: string | null
+          two_factor_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -2383,6 +2384,7 @@ export type Database = {
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
+          two_factor_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -2396,6 +2398,7 @@ export type Database = {
           sector_id?: string | null
           status?: string
           sub_sector_id?: string | null
+          two_factor_enabled?: boolean
           updated_at?: string
         }
         Relationships: [
