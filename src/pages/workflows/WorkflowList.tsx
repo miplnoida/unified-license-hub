@@ -672,6 +672,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpda
               total={steps.length}
               dynamicRoles={dynamicRoles}
               roleLabel={roleLabel}
+              stepRoleLabel={stepRoleLabel}
               isDuplicate={idx === duplicateIdx}
               onUpdate={onUpdate}
               onDelete={onDelete}
