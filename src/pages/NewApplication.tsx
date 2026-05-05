@@ -222,56 +222,184 @@ export default function NewApplication() {
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
   const categoryObj = allCategories.find(c => c.id === selectedCategory);
 
+  // Hydration: load latest draft once when data is ready
+  const hasHydratedRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
+  const [isHydrating, setIsHydrating] = useState(true);
+  useEffect(() => {
+    if (hasHydratedRef.current) return;
+    if (!user) return;
+    if (sectors.length === 0 || allSubSectors.length === 0 || allCategories.length === 0) return;
+    if (formTemplates.length === 0) return;
+    hasHydratedRef.current = true;
+    (async () => {
+      try {
+        const { data: draft } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('applicant_id', user.id)
+          .eq('status', 'draft')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (draft && !hasUserInteractedRef.current) {
+          const d = ((draft as any).data || {}) as Record<string, any>;
+          setApplicationId((draft as any).id);
+          if (d.sector_id) setSelectedSector(d.sector_id);
+          if (d.sub_sector_id) setSelectedSubSector(d.sub_sector_id);
+          if (d.category_id) setSelectedCategory(d.category_id);
+
+          const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+          const formsData: Record<string, any> = d.forms_data || {};
+          if (tmplIds.length > 0) {
+            const progress: Record<string, FormProgress> = {};
+            tmplIds.forEach(tid => {
+              const fdata = formsData[tid] || {};
+              const hasData = fdata && Object.keys(fdata).length > 0;
+              progress[tid] = {
+                templateId: tid,
+                status: hasData ? 'in_progress' : 'not_started',
+                data: fdata,
+              };
+            });
+            setFormProgressMap(progress);
+          }
+          if (d.form_version_ids && typeof d.form_version_ids === 'object') {
+            setSelectedVersionByTemplate(d.form_version_ids);
+          }
+          if (d.category_id && tmplIds.length > 0) {
+            setCurrentStep('forms');
+          }
+        }
+      } catch (err) {
+        console.warn('[NewApplication] draft hydration failed:', err);
+      } finally {
+        setIsHydrating(false);
+      }
+    })();
+  }, [user, sectors.length, allSubSectors.length, allCategories.length, formTemplates.length]);
+
+  // Stop showing hydration spinner if user is anonymous or no data
+  useEffect(() => {
+    if (!user) setIsHydrating(false);
+  }, [user]);
+
   const handleSectorChange = (val: string) => {
+    if (val === selectedSector) return;
+    hasUserInteractedRef.current = true;
     setSelectedSector(val);
     setSelectedSubSector('');
     setSelectedCategory('');
   };
 
   const handleSubSectorChange = (val: string) => {
+    if (val === selectedSubSector) return;
+    hasUserInteractedRef.current = true;
     setSelectedSubSector(val);
     setSelectedCategory('');
   };
 
-  // Create draft application
-  const createDraftApplication = async () => {
-    if (!user || !selectedCategory) return null;
-    const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
-
-    const { data, error } = await supabase
-      .from('applications')
-      .insert({
-        applicant_id: user.id,
-        license_type: licenseType,
-        status: 'draft',
-        data: {
-          sector_id: selectedSector,
-          sub_sector_id: selectedSubSector,
-          category_id: selectedCategory,
-          sector_name: sectorObj?.name,
-          sub_sector_name: subSectorObj?.name,
-          category_name: categoryObj?.name,
-          form_template_ids: matchedTemplates.map(t => t.id),
-        },
-        regulator_id: activeRegulator?.id || null,
-      } as any)
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to create application: ' + error.message);
-      return null;
-    }
-
-    await logAudit({
-      action: 'application_created',
-      entityType: 'application',
-      entityId: (data as any).id,
-      newValue: { license_type: licenseType, sector: sectorObj?.name, category: categoryObj?.name },
-    });
-
-    return (data as any).id as string;
+  const handleCategoryChange = (val: string) => {
+    if (val === selectedCategory) return;
+    hasUserInteractedRef.current = true;
+    setSelectedCategory(val);
   };
+
+  // Build the draft payload, preserving existing forms_data / form_version_ids
+  // for templates that are still applicable.
+  const buildDraftPayload = (existing: Record<string, any> | null) => {
+    const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
+    const tmplIds = matchedTemplates.map(t => t.id);
+    const tmplIdSet = new Set(tmplIds);
+
+    const prevFormsData = (existing?.forms_data || {}) as Record<string, any>;
+    const prevVersionIds = (existing?.form_version_ids || {}) as Record<string, string>;
+    const keptFormsData: Record<string, any> = {};
+    const keptVersionIds: Record<string, string> = {};
+    Object.keys(prevFormsData).forEach(k => { if (tmplIdSet.has(k)) keptFormsData[k] = prevFormsData[k]; });
+    Object.keys(prevVersionIds).forEach(k => { if (tmplIdSet.has(k)) keptVersionIds[k] = prevVersionIds[k]; });
+
+    return {
+      license_type: licenseType,
+      status: 'draft' as const,
+      regulator_id: activeRegulator?.id || null,
+      data: {
+        ...(existing || {}),
+        sector_id: selectedSector,
+        sub_sector_id: selectedSubSector,
+        category_id: selectedCategory,
+        sector_name: sectorObj?.name,
+        sub_sector_name: subSectorObj?.name,
+        category_name: categoryObj?.name,
+        form_template_ids: tmplIds,
+        forms_data: keptFormsData,
+        form_version_ids: keptVersionIds,
+      },
+    };
+  };
+
+  // Upsert (create or update) the draft application
+  const upsertDraftApplication = async (): Promise<string | null> => {
+    if (!user || !selectedCategory) return null;
+    if (applicationId) {
+      const { data: existing } = await supabase
+        .from('applications')
+        .select('data')
+        .eq('id', applicationId)
+        .maybeSingle();
+      const payload = buildDraftPayload((existing as any)?.data || null);
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          license_type: payload.license_type,
+          regulator_id: payload.regulator_id,
+          data: payload.data,
+        } as any)
+        .eq('id', applicationId);
+      if (error) {
+        toast.error('Failed to update draft: ' + error.message);
+        return null;
+      }
+      return applicationId;
+    } else {
+      const payload = buildDraftPayload(null);
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          applicant_id: user.id,
+          license_type: payload.license_type,
+          status: 'draft',
+          data: payload.data,
+          regulator_id: payload.regulator_id,
+        } as any)
+        .select()
+        .single();
+      if (error) {
+        toast.error('Failed to create application: ' + error.message);
+        return null;
+      }
+      const newId = (data as any).id as string;
+      setApplicationId(newId);
+      await logAudit({
+        action: 'application_created',
+        entityType: 'application',
+        entityId: newId,
+        newValue: { license_type: payload.license_type, sector: sectorObj?.name, category: categoryObj?.name },
+      });
+      return newId;
+    }
+  };
+
+  // Auto-save draft when selection changes (debounced) — only after user interaction
+  useEffect(() => {
+    if (!hasUserInteractedRef.current) return;
+    if (!user || !selectedCategory) return;
+    if (matchedTemplates.length === 0) return;
+    const t = setTimeout(() => { upsertDraftApplication(); }, 500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory, selectedSubSector, selectedSector, matchedTemplates.length]);
 
   const handleProceedToForms = async () => {
     if (!selectedCategory) {
@@ -283,8 +411,7 @@ export default function NewApplication() {
       return;
     }
 
-    // Check if user already has a non-cancelled/non-rejected application for this sector
-    // Honor the admin "Allow Re-Application" setting: if enabled, skip the block entirely.
+    // Re-application guard (skip if existing draft is the one we're editing)
     if (user && appSettings?.allow_reapplication !== true) {
       const { data: existingApps } = await supabase
         .from('applications')
@@ -304,14 +431,21 @@ export default function NewApplication() {
     }
 
     setSaving(true);
-    const appId = await createDraftApplication();
+    const appId = await upsertDraftApplication();
     if (appId) {
-      setApplicationId(appId);
-      const initial: Record<string, FormProgress> = {};
-      matchedTemplates.forEach(t => {
-        initial[t.id] = { templateId: t.id, status: 'not_started', data: {} };
+      // Initialize progress entries only for new templates not already present
+      setFormProgressMap(prev => {
+        const next = { ...prev };
+        matchedTemplates.forEach(t => {
+          if (!next[t.id]) {
+            next[t.id] = { templateId: t.id, status: 'not_started', data: {} };
+          }
+        });
+        // Drop any progress for templates no longer applicable
+        const validIds = new Set(matchedTemplates.map(t => t.id));
+        Object.keys(next).forEach(k => { if (!validIds.has(k)) delete next[k]; });
+        return next;
       });
-      setFormProgressMap(initial);
       setCurrentStep('forms');
     }
     setSaving(false);
