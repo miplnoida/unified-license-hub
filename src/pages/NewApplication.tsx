@@ -222,16 +222,15 @@ export default function NewApplication() {
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
   const categoryObj = allCategories.find(c => c.id === selectedCategory);
 
-  // Hydration: load latest draft once when data is ready
+  // Hydration: load latest draft once when user is available — non-blocking.
   const hasHydratedRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
-  const [isHydrating, setIsHydrating] = useState(true);
+  const [hydratingDraft, setHydratingDraft] = useState(false);
   useEffect(() => {
     if (hasHydratedRef.current) return;
     if (!user) return;
-    if (sectors.length === 0 || allSubSectors.length === 0 || allCategories.length === 0) return;
-    if (formTemplates.length === 0) return;
     hasHydratedRef.current = true;
+    setHydratingDraft(true);
     (async () => {
       try {
         const { data: draft } = await supabase
@@ -275,15 +274,10 @@ export default function NewApplication() {
       } catch (err) {
         console.warn('[NewApplication] draft hydration failed:', err);
       } finally {
-        setIsHydrating(false);
+        setHydratingDraft(false);
       }
     })();
-  }, [user, sectors.length, allSubSectors.length, allCategories.length, formTemplates.length]);
-
-  // Stop showing hydration spinner if user is anonymous or no data
-  useEffect(() => {
-    if (!user) setIsHydrating(false);
-  }, [user]);
+  }, [user?.id]);
 
   const handleSectorChange = (val: string) => {
     if (val === selectedSector) return;
