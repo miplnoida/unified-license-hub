@@ -149,14 +149,14 @@ serve(async (req) => {
           if (!smtpConfig) {
             await supabase
               .from("notifications")
-              .update({ delivery_status: "failed", error_message: "SMTP not configured" } as any)
+              .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
             continue;
           }
           if (!profile.email) {
             await supabase
               .from("notifications")
-              .update({ delivery_status: "failed", error_message: "Recipient missing email" } as any)
+              .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
             continue;
           }
@@ -171,14 +171,14 @@ serve(async (req) => {
             console.error("SMTP delivery failed:", e?.message || String(e));
             await supabase
               .from("notifications")
-              .update({ delivery_status: "failed", error_message: e?.message || "SMTP send failed" } as any)
+              .update({ delivery_status: "failed"} as any)
               .eq("id", notif.id);
           }
         } else if (notif.channel === "sms") {
           // SMS provider not yet implemented; keep queued with note
           await supabase
             .from("notifications")
-            .update({ delivery_status: "failed", error_message: "SMS provider not implemented" } as any)
+            .update({ delivery_status: "failed"} as any)
             .eq("id", notif.id);
         }
       }
