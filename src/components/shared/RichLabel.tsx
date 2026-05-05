@@ -54,7 +54,15 @@ export function RichLabel({
             target={seg.link.newTab !== false ? '_blank' : undefined}
             rel={seg.link.newTab !== false ? 'noopener noreferrer' : undefined}
             className="text-primary hover:underline inline-flex items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              // Prevent the surrounding <Label htmlFor> from swallowing/redirecting the click
+              // (which causes the link not to open in a new tab) and stop checkbox toggle.
+              e.stopPropagation();
+              if (seg.link!.newTab !== false) {
+                e.preventDefault();
+                window.open(seg.link!.url, '_blank', 'noopener,noreferrer');
+              }
+            }}
           >
             {seg.text}
             {showLinkIcon && <ExternalLink className="h-3 w-3 inline-block" />}
