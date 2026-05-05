@@ -107,15 +107,10 @@ export default function Profile() {
     setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
   };
 
-  // ---- 2FA (Email OTP) ----
+  // ---- 2FA (Email OTP at login) ----
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [loadingTwoFaStatus, setLoadingTwoFaStatus] = useState(true);
-  const [twoFaOpen, setTwoFaOpen] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
+  const [savingTwoFa, setSavingTwoFa] = useState(false);
 
   const refetchTwoFa = async () => {
     if (!user) return;
@@ -132,60 +127,24 @@ export default function Profile() {
 
   useEffect(() => { refetchTwoFa(); }, [user?.id]);
 
-  const sendEmailOtp = async () => {
-    if (!user?.email) return;
-    setOtpSending(true);
-    const { data, error } = await supabase.functions.invoke('send-registration-otp', {
-      body: { email: user.email, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
-    });
-    setOtpSending(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Failed to send code');
-      return;
-    }
-    setOtpSent(true);
-    toast.success(`Verification code sent to ${user.email}`);
-  };
-
-  const beginEnable2FA = async () => {
-    setTwoFaMode('enable');
-    setOtpCode(''); setOtpSent(false);
-    setTwoFaOpen(true);
-    await sendEmailOtp();
-  };
-
-  const beginDisable2FA = async () => {
-    setTwoFaMode('disable');
-    setOtpCode(''); setOtpSent(false);
-    setTwoFaOpen(true);
-    await sendEmailOtp();
-  };
-
-  const verifyOtpAndToggle = async () => {
-    if (!user?.email || otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-    setOtpVerifying(true);
-    const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
-      body: { email: user.email, code: otpCode, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
-    });
-    if (error || !(data as any)?.verified) {
-      toast.error((data as any)?.error || error?.message || 'Invalid code');
-      setOtpVerifying(false); return;
-    }
-    const enable = twoFaMode === 'enable';
-    const { error: upErr } = await supabase
+  const handleToggle2FA = async (checked: boolean) => {
+    if (!user) return;
+    setSavingTwoFa(true);
+    const { error } = await supabase
       .from('profiles')
-      .update({ two_factor_enabled: enable } as any)
+      .update({ two_factor_enabled: checked } as any)
       .eq('id', user.id);
-    setOtpVerifying(false);
-    if (upErr) { toast.error(upErr.message); return; }
-    if (enable) {
+    setSavingTwoFa(false);
+    if (error) { toast.error(error.message); return; }
+    setTwoFaEnabled(checked);
+    if (checked) {
       mark2FAVerified(user.id);
+      toast.success('Two-factor authentication enabled. You will receive an email code at your next login.');
     } else {
       clear2FAState();
+      mark2FAVerified(user.id); // keep current session valid; next login won't require OTP
+      toast.success('Two-factor authentication disabled.');
     }
-    await refetchTwoFa();
-    setTwoFaOpen(false);
-    toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
 
   // ---- Sessions ----
