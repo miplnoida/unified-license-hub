@@ -181,7 +181,21 @@ export default function PreLicenseeRegistration() {
     }
   }, [currentStep, steps, validateStep, validateDynamicStep, validateDeclarations, effectiveDeclarations, config, form.documents]);
 
+  const validateScope = useCallback((): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.sectorId) errs.sectorId = 'Sector is required';
+    if (!form.subSectorId) errs.subSectorId = 'Sub-sector is required';
+    if (!form.categoryId) errs.categoryId = 'Category is required';
+    if (Object.keys(errs).length > 0) {
+      setDynamicErrors(prev => ({ ...prev, ...errs }));
+      toast.error('Please select sector, sub-sector and category to continue.');
+      return false;
+    }
+    return true;
+  }, [form.sectorId, form.subSectorId, form.categoryId]);
+
   const handleNext = () => {
+    if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
