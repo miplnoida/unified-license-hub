@@ -57,6 +57,7 @@ export interface WorkflowStep {
   name: string;
   description: string | null;
   approver_role: AppRole;
+  approver_role_id: string | null;
   step_type: string;
   sla_hours: number | null;
   is_required: boolean;

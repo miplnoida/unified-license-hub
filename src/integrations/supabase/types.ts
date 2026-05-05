@@ -172,6 +172,7 @@ export type Database = {
         Row: {
           allowed_actions: Json
           approver_role: Database["public"]["Enums"]["app_role"]
+          approver_role_id: string | null
           condition: Json | null
           created_at: string
           description: string | null
@@ -188,6 +189,7 @@ export type Database = {
         Insert: {
           allowed_actions?: Json
           approver_role: Database["public"]["Enums"]["app_role"]
+          approver_role_id?: string | null
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -204,6 +206,7 @@ export type Database = {
         Update: {
           allowed_actions?: Json
           approver_role?: Database["public"]["Enums"]["app_role"]
+          approver_role_id?: string | null
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -218,6 +221,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "approval_steps_approver_role_id_fkey"
+            columns: ["approver_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "approval_steps_workflow_id_fkey"
             columns: ["workflow_id"]

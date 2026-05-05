@@ -144,6 +144,14 @@ export default function WorkflowList() {
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
 
+  const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
+    if (step.approver_role_id) {
+      const byId = dynamicRoles.find(r => r.id === step.approver_role_id);
+      if (byId) return byId.name;
+    }
+    return roleLabel(step.approver_role);
+  };
+
   // Live preview of which role will be auto-assigned to Step 1
   const selectedSectorName = useMemo(
     () => (sectors as any[]).find(s => s.id === newSectorId)?.name as string | undefined,
@@ -200,9 +208,10 @@ export default function WorkflowList() {
           step_order: 1,
           name: stepName,
           approver_role: resolvedSystem,
+          approver_role_id: defaultRole?.id ?? null,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'],
-        });
+        } as any);
         if (sectorName) {
           toast.success(
             matched
@@ -451,6 +460,7 @@ export default function WorkflowList() {
                     steps={steps}
                     dynamicRoles={dynamicRoles}
                     roleLabel={roleLabel}
+                    stepRoleLabel={stepRoleLabel}
                     onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
@@ -615,17 +625,19 @@ interface TimelineBuilderProps {
   steps: WorkflowStep[];
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
+  stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
 }
 
-function TimelineBuilder({ steps, dynamicRoles, roleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
-  // Validation: detect duplicate consecutive roles
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+  // Validation: detect duplicate consecutive roles (by role id when available, else system role)
   const duplicateIdx = useMemo(() => {
+    const key = (s: WorkflowStep) => s.approver_role_id || `sys:${s.approver_role}`;
     for (let i = 1; i < steps.length; i++) {
-      if (steps[i].approver_role === steps[i - 1].approver_role) return i;
+      if (key(steps[i]) === key(steps[i - 1])) return i;
     }
     return -1;
   }, [steps]);
@@ -661,6 +673,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, onUpdate, onDelete, o
               total={steps.length}
               dynamicRoles={dynamicRoles}
               roleLabel={roleLabel}
+              stepRoleLabel={stepRoleLabel}
               isDuplicate={idx === duplicateIdx}
               onUpdate={onUpdate}
               onDelete={onDelete}
@@ -725,17 +738,20 @@ interface StepCardProps {
   total: number;
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
+  stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isDuplicate: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function StepCard({ step, index, total, dynamicRoles, roleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const roleExists = dynamicRoles.some(r => r.system_role === step.approver_role);
+  const roleExists = step.approver_role_id
+    ? dynamicRoles.some(r => r.id === step.approver_role_id)
+    : dynamicRoles.some(r => r.system_role === step.approver_role);
 
   const filteredRoles = useMemo(
     () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
@@ -790,7 +806,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, isDuplicate, on
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
                 <Users className="h-3 w-3" />
-                {roleLabel(step.approver_role)}
+                {stepRoleLabel(step)}
               </Badge>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
                 Change role
@@ -821,11 +837,11 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, isDuplicate, on
                   <button
                     key={r.id}
                     onClick={() => {
-                      onUpdate(step.id, { approver_role: r.system_role as any });
+                      onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any);
                       setPickerOpen(false); setRoleSearch('');
                     }}
                     className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                      step.approver_role === r.system_role
+                      (step.approver_role_id ? step.approver_role_id === r.id : step.approver_role === r.system_role)
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-background hover:border-primary/50'
                     }`}
