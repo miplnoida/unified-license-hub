@@ -177,7 +177,7 @@ export default function Profile() {
       .eq('id', user.id);
     setOtpVerifying(false);
     if (upErr) { toast.error(upErr.message); return; }
-    setTwoFaEnabled(enable);
+    await refetchTwoFa();
     setTwoFaOpen(false);
     toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
