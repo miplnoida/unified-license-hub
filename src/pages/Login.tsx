@@ -13,42 +13,28 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucid
 
 export default function Login() {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuth();
+  const { session, user, isAuthenticated, isFullyAuthenticated, mfaStatus, login, logout, mark2FAVerified, clear2FAState } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
-  // 2FA gate state
-  const [mfaRequired, setMfaRequired] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState('');
-  const [pendingUserId, setPendingUserId] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
+  const pendingEmail = session?.user.email || user?.email || email;
+  const pendingUserId = session?.user.id || user?.id || '';
+  const showMfaScreen = isAuthenticated && mfaStatus === 'pending';
 
-  // If user lands here with an existing session that hasn't passed 2FA, show OTP gate
   useEffect(() => {
-    const pendingId = sessionStorage.getItem('pending_2fa_user_id');
-    const verifiedId = sessionStorage.getItem('two_factor_verified_user_id');
-    if (pendingId && pendingId !== verifiedId) {
-      supabase.auth.getUser().then(({ data: { user: u } }) => {
-        if (u && u.id === pendingId) {
-          setPendingUserId(u.id);
-          setPendingEmail(u.email || '');
-          setMfaRequired(true);
-        }
-      });
+    if (!showMfaScreen) {
+      setOtpCode('');
     }
-  }, []);
+  }, [showMfaScreen]);
 
-  if (isAuthenticated && !mfaRequired) {
-    const pendingId = sessionStorage.getItem('pending_2fa_user_id');
-    const verifiedId = sessionStorage.getItem('two_factor_verified_user_id');
-    if (!pendingId || pendingId === verifiedId) {
-      return <Navigate to="/dashboard" replace />;
-    }
+  if (isFullyAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   const sendLoginOtp = async (emailAddr: string) => {
@@ -71,36 +57,24 @@ export default function Login() {
     setLoading(true);
     const result = await login(email, password);
     if (result.error) { setLoading(false); toast.error(result.error); return; }
-
-    // Get the freshly created session/user
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) { setLoading(false); toast.error('Login failed'); return; }
-
-    // Check 2FA flag on profile
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('two_factor_enabled')
-      .eq('id', authUser.id)
-      .maybeSingle();
-
     setLoading(false);
-
-    if ((prof as any)?.two_factor_enabled) {
-      sessionStorage.setItem('pending_2fa_user_id', authUser.id);
-      sessionStorage.removeItem('two_factor_verified_user_id');
-      setPendingEmail(authUser.email || email);
-      setPendingUserId(authUser.id);
-      setMfaRequired(true);
-      await sendLoginOtp(authUser.email || email);
-      return;
-    }
-
-    // No 2FA — clear any stale flags and proceed
-    sessionStorage.removeItem('pending_2fa_user_id');
-    sessionStorage.setItem('two_factor_verified_user_id', authUser.id);
+    if (result.requires2FA) return;
     toast.success('Login successful');
-    navigate('/dashboard');
   };
+
+  useEffect(() => {
+    if (showMfaScreen && pendingEmail) {
+      const sentFor = sessionStorage.getItem('login_2fa_otp_sent_for');
+      if (sentFor !== pendingUserId) {
+        void sendLoginOtp(pendingEmail).then((ok) => {
+          if (ok && pendingUserId) sessionStorage.setItem('login_2fa_otp_sent_for', pendingUserId);
+        });
+      }
+    }
+    if (!showMfaScreen) {
+      sessionStorage.removeItem('login_2fa_otp_sent_for');
+    }
+  }, [showMfaScreen, pendingEmail, pendingUserId]);
 
   const handleVerifyOtp = async () => {
     if (otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
@@ -114,21 +88,17 @@ export default function Login() {
       setOtpCode('');
       return;
     }
-    sessionStorage.removeItem('pending_2fa_user_id');
-    sessionStorage.setItem('two_factor_verified_user_id', pendingUserId);
+    mark2FAVerified(pendingUserId);
+    sessionStorage.removeItem('login_2fa_otp_sent_for');
     toast.success('Verification successful');
-    setMfaRequired(false);
     navigate('/dashboard');
   };
 
   const handleCancelMfa = async () => {
-    sessionStorage.removeItem('pending_2fa_user_id');
-    sessionStorage.removeItem('two_factor_verified_user_id');
+    sessionStorage.removeItem('login_2fa_otp_sent_for');
+    clear2FAState();
     await logout();
-    setMfaRequired(false);
     setOtpCode('');
-    setPendingEmail('');
-    setPendingUserId('');
   };
 
   return (
@@ -137,7 +107,7 @@ export default function Login() {
       <div className="flex-1 flex flex-col items-center justify-center p-4">
 
       <Card className="w-full max-w-[420px] shadow-card">
-        {!mfaRequired ? (
+        {!showMfaScreen ? (
           <>
             <CardHeader className="text-center space-y-1 pb-4">
               <CardTitle className="text-xl font-bold">Welcome back</CardTitle>
