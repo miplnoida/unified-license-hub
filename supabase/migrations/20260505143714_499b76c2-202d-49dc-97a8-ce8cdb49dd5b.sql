@@ -1,0 +1,2 @@
+ALTER TABLE public.approval_steps ADD COLUMN IF NOT EXISTS approver_role_id uuid REFERENCES public.roles(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS approval_steps_approver_role_id_idx ON public.approval_steps(approver_role_id);
