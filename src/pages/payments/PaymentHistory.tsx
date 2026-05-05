@@ -139,6 +139,7 @@ export default function PaymentHistory() {
       <div className="space-y-6">
         <PageHeader title="Payments & Receipts" description="Manage payments, receipts, and refunds" />
 
+        {!isPreLicensee && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card><CardContent className="pt-6 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10"><DollarSign className="h-5 w-5 text-primary" /></div>
@@ -157,6 +158,7 @@ export default function PaymentHistory() {
             <div><p className="text-2xl font-bold">${totalRefunded.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p><p className="text-sm text-muted-foreground">Refunded</p></div>
           </CardContent></Card>
         </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
