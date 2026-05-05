@@ -130,14 +130,30 @@ export default function Profile() {
   const handleToggle2FA = async (checked: boolean) => {
     if (!user) return;
     setSavingTwoFa(true);
-    const { error } = await supabase
+    // Update and read back to confirm persistence (RLS / row-missing safety).
+    const { data, error } = await supabase
       .from('profiles')
       .update({ two_factor_enabled: checked } as any)
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select('two_factor_enabled')
+      .maybeSingle();
     setSavingTwoFa(false);
-    if (error) { toast.error(error.message); return; }
-    setTwoFaEnabled(checked);
-    if (checked) {
+    if (error) {
+      console.error('[Profile] 2FA update failed:', error);
+      toast.error(error.message || 'Failed to update 2FA setting');
+      return;
+    }
+    if (!data) {
+      toast.error('Could not save 2FA setting — profile row not found.');
+      return;
+    }
+    const persisted = Boolean((data as any).two_factor_enabled);
+    setTwoFaEnabled(persisted);
+    if (persisted !== checked) {
+      toast.error('2FA setting did not save correctly. Please try again.');
+      return;
+    }
+    if (persisted) {
       mark2FAVerified(user.id);
       toast.success('Two-factor authentication enabled. You will receive an email code at your next login.');
     } else {
@@ -145,6 +161,8 @@ export default function Profile() {
       mark2FAVerified(user.id); // keep current session valid; next login won't require OTP
       toast.success('Two-factor authentication disabled.');
     }
+    // Confirm with a fresh read (defends against stale UI after toggling).
+    await refetchTwoFa();
   };
 
   // ---- Sessions ----
