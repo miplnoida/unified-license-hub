@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowUpRight, FileText, Shield, ClipboardList, AlertTriangle, Users, Settings,
-  GitBranch, DollarSign, FormInput, BarChart3, Bell, Edit, ScrollText,
+  GitBranch, DollarSign, FormInput, BarChart3, Bell, Edit, ScrollText, PlusCircle,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { DashboardUserContext, DashboardWidgetDef } from '@/lib/dashboardRegistry';
 
 interface RendererProps {
@@ -200,14 +201,88 @@ function MyNotifications({ widget, context }: RendererProps) {
   return <MetricShell widget={widget} icon={<Bell className="h-5 w-5" />} value={value} loading={loading} hint="Unread" />;
 }
 
+function NewApplicationWidget({ widget }: RendererProps) {
+  return (
+    <Link to={widget.route || '/applications/new'} className="md:col-span-2 lg:col-span-2">
+      <Card className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group h-full bg-gradient-to-br from-primary/5 to-primary/10">
+        <CardContent className="pt-6 pb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <PlusCircle className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-base font-semibold">{widget.title}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">{widget.description}</p>
+              </div>
+            </div>
+            <Button size="sm" className="pointer-events-none">Start Application</Button>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 function MyApplications({ widget, context }: RendererProps) {
-  const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('applications')
-      .select('*', { count: 'exact', head: true })
-      .eq('applicant_id', context.userId);
-    return count || 0;
+  const [items, setItems] = useState<Array<{ id: string; application_number: string; license_type: string; status: string; created_at: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    supabase.from('applications')
+      .select('id, application_number, license_type, status, created_at')
+      .eq('applicant_id', context.userId)
+      .neq('status', 'draft')
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => { if (alive) setItems((data || []) as any); })
+      .then(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, [context.userId]);
-  return <MetricShell widget={widget} icon={<FileText className="h-5 w-5" />} value={value} loading={loading} />;
+
+  return (
+    <Card className="md:col-span-2 lg:col-span-3">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" /> {widget.title}
+          </CardTitle>
+          {widget.route && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={widget.route}>View All <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></Link>
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No applications yet. Start your first license application.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {items.map(a => (
+              <Link
+                key={a.id}
+                to={`/applications/${a.id}`}
+                className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 transition-colors"
+              >
+                <div>
+                  <p className="font-mono text-sm font-medium">{a.application_number}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.license_type} · {new Date(a.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge variant="outline" className="capitalize">{a.status.replace(/_/g, ' ')}</Badge>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 function DraftApplications({ widget, context }: RendererProps) {
@@ -223,8 +298,6 @@ function DraftApplications({ widget, context }: RendererProps) {
       .then(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [context.userId]);
-
-  if (!loading && drafts.length === 0) return null;
 
   return (
     <Card className="md:col-span-2 lg:col-span-3 border-amber-200 dark:border-amber-800">
@@ -243,6 +316,10 @@ function DraftApplications({ widget, context }: RendererProps) {
       <CardContent>
         {loading ? (
           <Skeleton className="h-16 w-full" />
+        ) : drafts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No draft applications yet.
+          </p>
         ) : (
           <div className="space-y-2">
             {drafts.map(d => (
@@ -291,4 +368,5 @@ export const WIDGET_RENDERERS: Record<string, React.FC<RendererProps>> = {
 
   my_applications: MyApplications,
   draft_applications: DraftApplications,
+  new_application: NewApplicationWidget,
 };

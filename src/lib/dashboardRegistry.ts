@@ -198,20 +198,28 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
 
   // ─── Pre-licensee / applicant widgets ─────────────────────────────────────
   {
-    id: 'my_applications',
-    title: 'My Applications',
-    description: 'Applications you have submitted',
-    audiences: ['pre_licensee', 'applicant', 'licensee'],
-    route: '/applications',
-    order: 105,
+    id: 'new_application',
+    title: 'New Application',
+    description: 'Start a new license application',
+    audiences: ['pre_licensee', 'applicant'],
+    route: '/applications/new',
+    order: 95,
   },
   {
     id: 'draft_applications',
     title: 'Draft Applications',
-    description: 'Resume an incomplete application',
+    description: 'Continue an incomplete license application',
+    audiences: ['pre_licensee', 'applicant', 'licensee'],
+    route: '/applications?status=draft',
+    order: 100,
+  },
+  {
+    id: 'my_applications',
+    title: 'Recent Applications',
+    description: 'Track submitted and in-progress applications',
     audiences: ['pre_licensee', 'applicant', 'licensee'],
     route: '/applications',
-    order: 100,
+    order: 105,
   },
 ];
 
