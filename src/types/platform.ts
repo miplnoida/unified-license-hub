@@ -80,6 +80,7 @@ export interface PlatformUser {
   phone?: string;
   department?: string;
   bio?: string;
+  twoFactorEnabled?: boolean;
 }
 
 // Application statuses - simplified lifecycle
