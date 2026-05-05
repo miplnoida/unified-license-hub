@@ -97,29 +97,62 @@ Deno.serve(async (req) => {
           <p style="color:#94a3b8;font-size:12px;margin-top:16px;">If you did not request this code, you can ignore this email.</p>
         </div>`;
 
-        const resp = await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
+        // Load SMTP config from site_settings
+        const { data: settingsRow } = await supabaseAdmin
+          .from("site_settings")
+          .select("value")
+          .eq("key", "email_sms_settings")
+          .maybeSingle();
+        const smtp = (settingsRow as any)?.value?.smtp || {};
+
+        const missing: string[] = [];
+        if (!smtp.host) missing.push("host");
+        if (!smtp.port) missing.push("port");
+        if (!smtp.username) missing.push("username");
+        if (!smtp.password) missing.push("password");
+        if (!smtp.fromEmail) missing.push("fromEmail");
+
+        if (missing.length) {
+          providerError = `SMTP not configured. Missing: ${missing.join(", ")}. Please configure SMTP in Settings → Email & SMS.`;
+          console.error(providerError);
+        } else {
+          const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
+          const secure = smtp.encryption === "ssl";
+          const requireTLS = smtp.encryption === "tls";
+          const transporter = nodemailer.createTransport({
+            host: smtp.host,
+            port: Number(smtp.port),
+            secure,
+            requireTLS,
+            auth: { user: smtp.username, pass: smtp.password },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 15000,
+            greetingTimeout: 10000,
+            socketTimeout: 20000,
+          });
+          try {
+            await transporter.sendMail({
+              from: `"${smtp.fromName || "Unified License Hub"}" <${smtp.fromEmail}>`,
               to: email,
               subject,
-              html,
               text,
-            }),
-          },
-        );
-        providerStatus = resp.status;
-        const respText = await resp.text();
-        if (resp.ok) {
-          emailDelivered = true;
-        } else {
-          providerError = `Email provider returned ${resp.status}: ${respText.slice(0, 300)}`;
-          console.error("send-transactional-email failed:", providerError);
+              html,
+            });
+            emailDelivered = true;
+          } catch (sendErr) {
+            const raw = (sendErr as Error)?.message || String(sendErr);
+            const code = (sendErr as any)?.code || "";
+            let friendly = raw;
+            if (/ETIMEDOUT|ESOCKET|ECONNRESET|wrong version number|SSL|TLS/i.test(raw)) {
+              friendly = `TLS/connection issue: ${raw}. Check encryption (SSL=465, TLS=587, None=25).`;
+            } else if (code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw)) {
+              friendly = "SMTP authentication failed. Check username and password.";
+            } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
+              friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
+            }
+            providerError = `SMTP send failed: ${friendly}`;
+            console.error(providerError);
+          }
         }
       } catch (emailErr) {
         providerError = `Email send threw: ${(emailErr as Error).message}`;
