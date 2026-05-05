@@ -148,6 +148,7 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
     phone: (profile as any).phone || undefined,
     department: (profile as any).department || undefined,
     bio: (profile as any).bio || undefined,
+    twoFactorEnabled: profile.two_factor_enabled,
   };
 }
 
