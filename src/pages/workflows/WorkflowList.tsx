@@ -459,6 +459,7 @@ export default function WorkflowList() {
                     steps={steps}
                     dynamicRoles={dynamicRoles}
                     roleLabel={roleLabel}
+                    stepRoleLabel={stepRoleLabel}
                     onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
