@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRegistrationForm } from '@/hooks/useRegistrationForm';
 import { useRegistrationConfig } from '@/hooks/useRegistrationConfig';
 import { EntityDetailsStep } from '@/components/registration/EntityDetailsStep';
+import { SectorSelectionSection } from '@/components/registration/SectorSelectionSection';
 import { PrimaryUserStep } from '@/components/registration/PrimaryUserStep';
 import { DocumentsStep } from '@/components/registration/DocumentsStep';
 import { DeclarationsStep } from '@/components/registration/DeclarationsStep';
