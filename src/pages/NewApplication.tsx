@@ -392,16 +392,10 @@ export default function NewApplication() {
     [matchedTemplates]
   );
 
-  // Auto-save draft when selection changes (debounced) — only after user interaction.
-  // Silent: does not flip the global `saving` flag and does not toast.
-  useEffect(() => {
-    if (!hasUserInteractedRef.current) return;
-    if (!user || !selectedCategory) return;
-    if (matchedTemplateIdsKey === '') return;
-    const t = setTimeout(() => { upsertDraftApplication(); }, 500);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, selectedSubSector, selectedSector, matchedTemplateIdsKey]);
+  // NOTE: Draft is no longer auto-saved on Sector/Sub-Sector/Category change.
+  // It is upserted only when the user clicks "Proceed to Forms" (see handleProceedToForms).
+  // This prevents network round-trips and re-renders that caused the page to flicker
+  // while the user was still picking their category.
 
   const handleProceedToForms = async () => {
     if (!selectedCategory) {
