@@ -58,7 +58,6 @@ export default function Profile() {
 
   const handleAvatarPick = () => fileInputRef.current?.click();
 
-  const profileTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
