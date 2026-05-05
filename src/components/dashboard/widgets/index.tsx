@@ -299,8 +299,6 @@ function DraftApplications({ widget, context }: RendererProps) {
     return () => { alive = false; };
   }, [context.userId]);
 
-  if (!loading && drafts.length === 0) return null;
-
   return (
     <Card className="md:col-span-2 lg:col-span-3 border-amber-200 dark:border-amber-800">
       <CardHeader>
@@ -318,6 +316,10 @@ function DraftApplications({ widget, context }: RendererProps) {
       <CardContent>
         {loading ? (
           <Skeleton className="h-16 w-full" />
+        ) : drafts.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No draft applications yet.
+          </p>
         ) : (
           <div className="space-y-2">
             {drafts.map(d => (
