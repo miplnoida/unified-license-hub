@@ -785,9 +785,15 @@ export default function NewApplication() {
             </p>
           </div>
           {applicationId && (
-            <Badge variant="outline" className="font-mono text-xs">Draft</Badge>
+            <Badge variant="outline" className="font-mono text-xs">Draft · {applicationId.substring(0, 8).toUpperCase()}</Badge>
           )}
         </div>
+
+        {applicationId && currentStep === 'selection' && (
+          <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground">
+            Continuing your draft application — your previous selections have been restored.
+          </div>
+        )}
 
         {/* Step Progress */}
         <div className="space-y-3">
