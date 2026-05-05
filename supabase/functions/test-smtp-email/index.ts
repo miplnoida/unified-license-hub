@@ -87,14 +87,25 @@ serve(async (req) => {
     if (!to) to = callerEmail;
     if (!to) return json({ success: false, error: "No recipient available" });
 
+    // Map encryption to denomailer connection mode:
+    // - ssl => implicit TLS (typically port 465): use TLS connection
+    // - tls => STARTTLS (typically port 587): plain connect, upgrade with STARTTLS
+    // - none => plain connect, no STARTTLS
+    const useImplicitTls = smtp.encryption === "ssl";
+    const useStartTls = smtp.encryption === "tls";
+
     const client = new SMTPClient({
       connection: {
         hostname: smtp.host,
         port: smtp.port,
-        tls: smtp.encryption === "ssl" || smtp.encryption === "tls",
+        tls: useImplicitTls,
         auth: { username: smtp.username, password: smtp.password! },
       },
-    });
+      debug: { allowUnsecure: !useImplicitTls && !useStartTls },
+      pool: false,
+      // denomailer will issue STARTTLS automatically when server advertises it
+      // and tls is false; explicit hint is not needed.
+    } as any);
 
     try {
       await client.send({
@@ -107,8 +118,18 @@ serve(async (req) => {
       await client.close();
     } catch (sendErr: any) {
       try { await client.close(); } catch { /* noop */ }
-      console.error("SMTP send failed:", sendErr?.message || String(sendErr));
-      return json({ success: false, error: sendErr?.message || "SMTP send failed" });
+      const raw = sendErr?.message || String(sendErr);
+      console.error("SMTP send failed:", raw);
+      let friendly = raw;
+      if (/InvalidContentType|corrupt message/i.test(raw)) {
+        friendly =
+          "TLS handshake failed. Check encryption mode: use SSL for port 465, TLS (STARTTLS) for port 587, or None for port 25.";
+      } else if (/auth|535|534|invalid login/i.test(raw)) {
+        friendly = "SMTP authentication failed. Check username and password.";
+      } else if (/ECONNREFUSED|refused|timeout|getaddrinfo|dns/i.test(raw)) {
+        friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
+      }
+      return json({ success: false, error: friendly });
     }
 
     return json({ success: true, to });
