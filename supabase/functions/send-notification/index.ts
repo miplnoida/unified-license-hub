@@ -1,5 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  encryption: "none" | "ssl" | "tls";
+  fromName: string;
+  fromEmail: string;
+  enabled: boolean;
+}
+
+async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
+  const { data } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "email_sms_settings")
+    .maybeSingle();
+  const smtp = data?.value?.smtp as SmtpConfig | undefined;
+  if (!smtp || !smtp.enabled || !smtp.host || !smtp.port || !smtp.username || !smtp.password || !smtp.fromEmail) {
+    return null;
+  }
+  return smtp;
+}
+
+async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text: string): Promise<void> {
+  const client = new SMTPClient({
+    connection: {
+      hostname: smtp.host,
+      port: smtp.port,
+      tls: smtp.encryption === "ssl" || smtp.encryption === "tls",
+      auth: { username: smtp.username, password: smtp.password! },
+    },
+  });
+  try {
+    await client.send({
+      from: `${smtp.fromName || "Notifications"} <${smtp.fromEmail}>`,
+      to,
+      subject,
+      content: text,
+    });
+  } finally {
+    try { await client.close(); } catch { /* noop */ }
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
