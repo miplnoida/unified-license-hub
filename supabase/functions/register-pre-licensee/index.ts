@@ -26,9 +26,19 @@ Deno.serve(async (req) => {
     } = body;
 
     // Validate required fields
-    if (!email || !password || !first_name || !last_name || !applicant_name || !sector_id || !sub_sector_id || !category_id) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
+    const missing: string[] = [];
+    if (!email) missing.push("email");
+    if (!password) missing.push("password");
+    if (!first_name) missing.push("first_name");
+    if (!last_name) missing.push("last_name");
+    if (!applicant_name) missing.push("applicant_name");
+    if (!sector_id) missing.push("sector_id");
+    if (!sub_sector_id) missing.push("sub_sector_id");
+    if (!category_id) missing.push("category_id");
+    if (missing.length) {
+      console.error("register-pre-licensee missing fields:", missing, "body keys:", Object.keys(body));
+      return new Response(JSON.stringify({ error: `Missing required fields: ${missing.join(", ")}` }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
