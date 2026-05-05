@@ -737,17 +737,20 @@ interface StepCardProps {
   total: number;
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
+  stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isDuplicate: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function StepCard({ step, index, total, dynamicRoles, roleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const roleExists = dynamicRoles.some(r => r.system_role === step.approver_role);
+  const roleExists = step.approver_role_id
+    ? dynamicRoles.some(r => r.id === step.approver_role_id)
+    : dynamicRoles.some(r => r.system_role === step.approver_role);
 
   const filteredRoles = useMemo(
     () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
