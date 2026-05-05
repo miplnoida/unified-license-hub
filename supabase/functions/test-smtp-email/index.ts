@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "npm:nodemailer@6.9.16";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,22 +36,18 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Auth check
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
-    if (!token) return json({ success: false, error: "Unauthorized" }, 200);
+    if (!token) return json({ success: false, error: "Unauthorized" });
 
     const { data: userData, error: userErr } = await admin.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return json({ success: false, error: "Unauthorized" }, 200);
-    }
+    if (userErr || !userData?.user) return json({ success: false, error: "Unauthorized" });
     const callerEmail = userData.user.email;
 
     const body = await req.json().catch(() => ({}));
     const incoming: Partial<SmtpConfig> | undefined = body?.smtp;
     let to: string | undefined = body?.to;
 
-    // Load saved
     const { data: row } = await admin
       .from("site_settings")
       .select("value")
@@ -73,7 +69,6 @@ serve(async (req) => {
       enabled: incoming?.enabled ?? savedSmtp.enabled ?? true,
     };
 
-    // Validate
     const missing: string[] = [];
     if (!smtp.host) missing.push("host");
     if (!smtp.port || smtp.port < 1 || smtp.port > 65535) missing.push("port");
@@ -87,46 +82,40 @@ serve(async (req) => {
     if (!to) to = callerEmail;
     if (!to) return json({ success: false, error: "No recipient available" });
 
-    // Map encryption to denomailer connection mode:
-    // - ssl => implicit TLS (typically port 465): use TLS connection
-    // - tls => STARTTLS (typically port 587): plain connect, upgrade with STARTTLS
-    // - none => plain connect, no STARTTLS
-    const useImplicitTls = smtp.encryption === "ssl";
-    const useStartTls = smtp.encryption === "tls";
+    // ssl => implicit TLS (port 465); tls => STARTTLS (port 587); none => plain
+    const secure = smtp.encryption === "ssl";
+    const requireTLS = smtp.encryption === "tls";
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtp.host,
-        port: smtp.port,
-        tls: useImplicitTls,
-        auth: { username: smtp.username, password: smtp.password! },
-      },
-      debug: { allowUnsecure: !useImplicitTls && !useStartTls },
-      pool: false,
-      // denomailer will issue STARTTLS automatically when server advertises it
-      // and tls is false; explicit hint is not needed.
-    } as any);
+    const transporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure,
+      requireTLS,
+      auth: { user: smtp.username, pass: smtp.password! },
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 15000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
+    });
 
     try {
-      await client.send({
-        from: `${smtp.fromName} <${smtp.fromEmail}>`,
+      await transporter.sendMail({
+        from: `"${smtp.fromName}" <${smtp.fromEmail}>`,
         to,
         subject: "SMTP Test Email",
-        content: "This is a test email from Unified License Hub SMTP settings.",
+        text: "This is a test email from Unified License Hub SMTP settings.",
         html: "<p>This is a test email from <strong>Unified License Hub</strong> SMTP settings.</p>",
       });
-      await client.close();
     } catch (sendErr: any) {
-      try { await client.close(); } catch { /* noop */ }
       const raw = sendErr?.message || String(sendErr);
-      console.error("SMTP send failed:", raw);
+      console.error("SMTP send failed:", raw, sendErr?.code);
       let friendly = raw;
-      if (/InvalidContentType|corrupt message/i.test(raw)) {
-        friendly =
-          "TLS handshake failed. Check encryption mode: use SSL for port 465, TLS (STARTTLS) for port 587, or None for port 25.";
-      } else if (/auth|535|534|invalid login/i.test(raw)) {
+      const code = sendErr?.code || "";
+      if (/ETIMEDOUT|ESOCKET|ECONNRESET|wrong version number|SSL|TLS/i.test(raw)) {
+        friendly = `TLS/connection issue: ${raw}. Check encryption (SSL=465, TLS=587, None=25) and firewall.`;
+      } else if (code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw)) {
         friendly = "SMTP authentication failed. Check username and password.";
-      } else if (/ECONNREFUSED|refused|timeout|getaddrinfo|dns/i.test(raw)) {
+      } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
         friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
       }
       return json({ success: false, error: friendly });
@@ -135,6 +124,6 @@ serve(async (req) => {
     return json({ success: true, to });
   } catch (err: any) {
     console.error("test-smtp-email error:", err?.message || String(err));
-    return json({ success: false, error: err?.message || "Unknown error" }, 200);
+    return json({ success: false, error: err?.message || "Unknown error" });
   }
 });
