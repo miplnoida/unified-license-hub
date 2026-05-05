@@ -268,10 +268,14 @@ export default function Profile() {
                     <Shield className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">{twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {loadingTwoFaStatus ? 'Loading…' : twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}
+                      </p>
                     </div>
                   </div>
-                  {twoFaEnabled ? (
+                  {loadingTwoFaStatus ? (
+                    <Button variant="outline" size="sm" disabled><Loader2 className="h-4 w-4 animate-spin" /></Button>
+                  ) : twoFaEnabled ? (
                     <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
                   ) : (
                     <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>
