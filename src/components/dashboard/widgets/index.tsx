@@ -20,8 +20,9 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ArrowUpRight, FileText, Shield, ClipboardList, AlertTriangle, Users, Settings,
-  GitBranch, DollarSign, FormInput, BarChart3, Bell, Edit, ScrollText,
+  GitBranch, DollarSign, FormInput, BarChart3, Bell, Edit, ScrollText, PlusCircle,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { DashboardUserContext, DashboardWidgetDef } from '@/lib/dashboardRegistry';
 
 interface RendererProps {
