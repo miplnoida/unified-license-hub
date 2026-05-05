@@ -127,6 +127,10 @@ function mapPreLicenseeProfile(userId: string, email: string, profile: PreLicens
     isPreLicensee: true,
     forcePasswordChange: false,
     twoFactorEnabled: (profile as any).two_factor_enabled ?? false,
+    avatarUrl: (profile as any).avatar_url || undefined,
+    phone: (profile as any).phone || undefined,
+    department: (profile as any).department || undefined,
+    bio: (profile as any).bio || undefined,
   };
 }
 

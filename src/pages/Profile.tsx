@@ -29,6 +29,8 @@ export default function Profile() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  const profileTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
+
   useEffect(() => {
     if (!user) return;
     setFullName(user.fullName || '');
@@ -37,11 +39,25 @@ export default function Profile() {
     setDepartment((user as any).department || '');
     setBio((user as any).bio || '');
     setAvatarUrl((user as any).avatarUrl);
-  }, [user]);
+    // Always re-fetch fresh row so saved values (e.g. avatar) survive navigation.
+    (async () => {
+      const { data } = await (supabase
+        .from(profileTable as any) as any)
+        .select('full_name, phone, department, bio, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data) {
+        setFullName(data.full_name ?? '');
+        setPhone(data.phone ?? '');
+        setDepartment(data.department ?? '');
+        setBio(data.bio ?? '');
+        setAvatarUrl(data.avatar_url ?? undefined);
+      }
+    })();
+  }, [user?.id]);
 
   const handleAvatarPick = () => fileInputRef.current?.click();
 
-  const profileTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
