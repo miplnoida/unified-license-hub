@@ -73,10 +73,14 @@ function schemaToSections(schema: RegFormSchema): FormSection[] {
 export function useRegistrationConfig(sectorId?: string, subSectorId?: string, categoryId?: string) {
   const [config, setConfig] = useState<RegistrationConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
-    setLoading(true);
+    // Only show full-page loading on initial load. Subsequent reloads
+    // (e.g. when sector/sub-sector/category changes) happen silently to
+    // avoid flickering the entire registration page.
+    setLoading(prev => (hasLoadedOnce ? false : true));
     setError(null);
     try {
       let query = supabase
@@ -154,8 +158,9 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
       setError('Failed to load registration configuration');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
-  }, [sectorId, subSectorId, categoryId]);
+  }, [sectorId, subSectorId, categoryId, hasLoadedOnce]);
 
   useEffect(() => {
     loadConfig();

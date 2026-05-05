@@ -437,8 +437,8 @@ export default function PreLicenseeRegistration() {
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 pb-8">
-        {/* Licensee Type Scope — required before any step (hidden when static EntityDetailsStep already renders it) */}
-        {!steps.some(s => s.type === 'static' && s.id === 'entity') && (
+        {/* Licensee Type Scope — only on first step, when not already rendered by EntityDetailsStep */}
+        {currentStep === 0 && !steps.some(s => s.type === 'static' && s.id === 'entity') && (
           <div className="mb-6">
             <SectorSelectionSection
               sectorId={form.sectorId}

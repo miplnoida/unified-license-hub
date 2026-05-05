@@ -186,9 +186,13 @@ export function AddressSection({
             </Label>
           </div>
           {sameAsMailing ? (
-            <p className="text-sm text-muted-foreground italic">
-              Physical address will be the same as the mailing address above.
-            </p>
+            <AddressFields
+              prefix="physical"
+              address={mailingAddress}
+              onChange={() => { /* read-only mirror of mailing address */ }}
+              errors={{}}
+              disabled
+            />
           ) : (
             <AddressFields
               prefix="physical"
