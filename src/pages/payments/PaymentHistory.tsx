@@ -163,8 +163,8 @@ export default function PaymentHistory() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="receipts">Receipts</TabsTrigger>
-            <TabsTrigger value="refunds">Refunds</TabsTrigger>
+            {!isPreLicensee && <TabsTrigger value="receipts">Receipts</TabsTrigger>}
+            {!isPreLicensee && <TabsTrigger value="refunds">Refunds</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="payments" className="space-y-4">
