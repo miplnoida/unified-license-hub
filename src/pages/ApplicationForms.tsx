@@ -165,6 +165,7 @@ function FormCardVersionPicker({
   );
 }
 
+export default function ApplicationForms() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
