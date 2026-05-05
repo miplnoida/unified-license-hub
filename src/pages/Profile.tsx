@@ -122,15 +122,30 @@ export default function Profile() {
               <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="current-pw">Current Password</Label>
-                  <PasswordInput id="current-pw" value={currentPassword} onChange={setCurrentPassword} show={showCurrent} onToggle={() => setShowCurrent(!showCurrent)} placeholder="Enter current password" />
+                  <div className="relative">
+                    <Input id="current-pw" type={showCurrent ? 'text' : 'password'} placeholder="Enter current password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-pw">New Password</Label>
-                  <PasswordInput id="new-pw" value={newPassword} onChange={setNewPassword} show={showNew} onToggle={() => setShowNew(!showNew)} placeholder="Min. 8 characters" />
+                  <div className="relative">
+                    <Input id="new-pw" type={showNew ? 'text' : 'password'} placeholder="Min. 8 characters" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-pw">Confirm New Password</Label>
-                  <PasswordInput id="confirm-pw" value={confirmPassword} onChange={setConfirmPassword} show={showConfirm} onToggle={() => setShowConfirm(!showConfirm)} placeholder="Re-enter new password" />
+                  <div className="relative">
+                    <Input id="confirm-pw" type={showConfirm ? 'text' : 'password'} placeholder="Re-enter new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pr-10" />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button onClick={handleChangePassword} disabled={changing} className="w-full mt-2">
                   {changing ? 'Updating…' : 'Update Password'}
