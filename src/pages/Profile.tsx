@@ -12,8 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Trash2 } from 'lucide-react';
-import QRCode from 'qrcode';
+import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Trash2, Mail } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -107,66 +106,70 @@ export default function Profile() {
     setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
   };
 
-  // ---- 2FA (TOTP) ----
-  const [factors, setFactors] = useState<any[]>([]);
+  // ---- 2FA (Email OTP) ----
+  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaOpen, setTwoFaOpen] = useState(false);
-  const [enrolling, setEnrolling] = useState(false);
-  const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-  const [totpSecret, setTotpSecret] = useState<string>('');
-  const [totpCode, setTotpCode] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
 
-  const refreshFactors = async () => {
-    const { data, error } = await supabase.auth.mfa.listFactors();
-    if (error) { console.warn(error); return; }
-    setFactors(data?.totp ?? []);
-  };
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('profiles').select('two_factor_enabled').eq('id', user.id).maybeSingle()
+      .then(({ data }) => setTwoFaEnabled(!!(data as any)?.two_factor_enabled));
+  }, [user?.id]);
 
-  useEffect(() => { refreshFactors(); }, [user?.id]);
-
-  const verifiedFactor = factors.find((f: any) => f.status === 'verified');
-
-  const beginEnroll = async () => {
-    setEnrolling(true);
-    setTwoFaOpen(true);
-    // Clean any unverified leftover factors
-    for (const f of factors) {
-      if (f.status !== 'verified') {
-        await supabase.auth.mfa.unenroll({ factorId: f.id });
-      }
+  const sendEmailOtp = async () => {
+    if (!user?.email) return;
+    setOtpSending(true);
+    const { data, error } = await supabase.functions.invoke('send-registration-otp', {
+      body: { email: user.email, channel: 'email' },
+    });
+    setOtpSending(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || 'Failed to send code');
+      return;
     }
-    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `TOTP ${Date.now()}` });
-    if (error) { toast.error(error.message); setEnrolling(false); setTwoFaOpen(false); return; }
-    setEnrollFactorId(data.id);
-    setTotpSecret(data.totp.secret);
-    try {
-      const dataUrl = await QRCode.toDataURL(data.totp.uri);
-      setQrDataUrl(dataUrl);
-    } catch (e: any) { toast.error('QR generation failed'); }
-    setEnrolling(false);
+    setOtpSent(true);
+    toast.success(`Verification code sent to ${user.email}`);
   };
 
-  const verifyEnroll = async () => {
-    if (!enrollFactorId || totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-    setEnrolling(true);
-    const { data: ch, error: chErr } = await supabase.auth.mfa.challenge({ factorId: enrollFactorId });
-    if (chErr) { toast.error(chErr.message); setEnrolling(false); return; }
-    const { error: vErr } = await supabase.auth.mfa.verify({ factorId: enrollFactorId, challengeId: ch.id, code: totpCode });
-    setEnrolling(false);
-    if (vErr) { toast.error(vErr.message); return; }
-    toast.success('Two-factor authentication enabled');
+  const beginEnable2FA = async () => {
+    setTwoFaMode('enable');
+    setOtpCode(''); setOtpSent(false);
+    setTwoFaOpen(true);
+    await sendEmailOtp();
+  };
+
+  const beginDisable2FA = async () => {
+    setTwoFaMode('disable');
+    setOtpCode(''); setOtpSent(false);
+    setTwoFaOpen(true);
+    await sendEmailOtp();
+  };
+
+  const verifyOtpAndToggle = async () => {
+    if (!user?.email || otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
+    setOtpVerifying(true);
+    const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
+      body: { email: user.email, code: otpCode, channel: 'email' },
+    });
+    if (error || !(data as any)?.verified) {
+      toast.error((data as any)?.error || error?.message || 'Invalid code');
+      setOtpVerifying(false); return;
+    }
+    const enable = twoFaMode === 'enable';
+    const { error: upErr } = await supabase
+      .from('profiles')
+      .update({ two_factor_enabled: enable } as any)
+      .eq('id', user.id);
+    setOtpVerifying(false);
+    if (upErr) { toast.error(upErr.message); return; }
+    setTwoFaEnabled(enable);
     setTwoFaOpen(false);
-    setTotpCode(''); setQrDataUrl(''); setTotpSecret(''); setEnrollFactorId(null);
-    refreshFactors();
-  };
-
-  const disable2FA = async () => {
-    if (!verifiedFactor) return;
-    if (!confirm('Disable two-factor authentication?')) return;
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: verifiedFactor.id });
-    if (error) { toast.error(error.message); return; }
-    toast.success('Two-factor authentication disabled');
-    refreshFactors();
+    toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
 
   // ---- Sessions ----
@@ -255,13 +258,13 @@ export default function Profile() {
                     <Shield className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">{verifiedFactor ? 'Enabled' : 'Not enabled'}</p>
+                      <p className="text-sm text-muted-foreground">{twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}</p>
                     </div>
                   </div>
-                  {verifiedFactor ? (
-                    <Button variant="outline" size="sm" onClick={disable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
+                  {twoFaEnabled ? (
+                    <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={beginEnroll}>Enable 2FA</Button>
+                    <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>
                   )}
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
@@ -318,35 +321,32 @@ export default function Profile() {
         </Tabs>
       </div>
 
-      {/* 2FA Enroll Dialog */}
-      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!enrolling) setTwoFaOpen(o); }}>
+      {/* 2FA Email OTP Dialog */}
+      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!otpVerifying && !otpSending) setTwoFaOpen(o); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+            <DialogTitle>{twoFaMode === 'enable' ? 'Enable' : 'Disable'} Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password) and enter the 6-digit code below.
+              We've sent a 6-digit verification code to <strong>{user?.email}</strong>. Enter it below to confirm.
             </DialogDescription>
           </DialogHeader>
-          {enrolling && !qrDataUrl ? (
+          {otpSending && !otpSent ? (
             <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : qrDataUrl ? (
+          ) : (
             <div className="space-y-4">
-              <div className="flex justify-center">
-                <img src={qrDataUrl} alt="2FA QR Code" className="h-48 w-48 border rounded" />
-              </div>
-              <div className="text-center text-xs text-muted-foreground break-all">
-                Or enter this key manually: <code className="font-mono">{totpSecret}</code>
-              </div>
               <div className="space-y-2">
-                <Label htmlFor="totp">Verification Code</Label>
-                <Input id="totp" inputMode="numeric" maxLength={6} placeholder="123456" value={totpCode} onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                <Label htmlFor="email-otp">Verification Code</Label>
+                <Input id="email-otp" inputMode="numeric" maxLength={6} placeholder="123456" autoFocus value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
               </div>
+              <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={otpSending} className="w-full">
+                {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Resend code
+              </Button>
             </div>
-          ) : null}
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={enrolling}>Cancel</Button>
-            <Button onClick={verifyEnroll} disabled={enrolling || totpCode.length !== 6}>
-              {enrolling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Verify & Enable
+            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={otpVerifying || otpSending}>Cancel</Button>
+            <Button onClick={verifyOtpAndToggle} disabled={otpVerifying || otpCode.length !== 6}>
+              {otpVerifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}{twoFaMode === 'enable' ? 'Verify & Enable' : 'Verify & Disable'}
             </Button>
           </DialogFooter>
         </DialogContent>
