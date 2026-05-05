@@ -134,8 +134,9 @@ serve(async (req) => {
         .limit(50);
 
       let processed = 0;
+      const smtpConfig = await loadSmtpConfig(supabase);
+
       for (const notif of queued || []) {
-        // Get user profile for email
         const { data: profile } = await supabase
           .from("profiles")
           .select("email, full_name")
@@ -145,21 +146,40 @@ serve(async (req) => {
         if (!profile) continue;
 
         if (notif.channel === "email") {
-          // Email delivery placeholder - integrate with SMTP/Resend/SendGrid
-          console.log(`[EMAIL] To: ${profile.email}, Subject: ${notif.title}, Body: ${notif.message}`);
-          await supabase
-            .from("notifications")
-            .update({ delivery_status: "delivered" } as any)
-            .eq("id", notif.id);
-          processed++;
+          if (!smtpConfig) {
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed", error_message: "SMTP not configured" } as any)
+              .eq("id", notif.id);
+            continue;
+          }
+          if (!profile.email) {
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed", error_message: "Recipient missing email" } as any)
+              .eq("id", notif.id);
+            continue;
+          }
+          try {
+            await sendSmtpEmail(smtpConfig, profile.email, notif.title, notif.message);
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "delivered" } as any)
+              .eq("id", notif.id);
+            processed++;
+          } catch (e: any) {
+            console.error("SMTP delivery failed:", e?.message || String(e));
+            await supabase
+              .from("notifications")
+              .update({ delivery_status: "failed", error_message: e?.message || "SMTP send failed" } as any)
+              .eq("id", notif.id);
+          }
         } else if (notif.channel === "sms") {
-          // SMS delivery placeholder - integrate with Twilio/Vonage
-          console.log(`[SMS] To: ${profile.email}, Body: ${notif.message}`);
+          // SMS provider not yet implemented; keep queued with note
           await supabase
             .from("notifications")
-            .update({ delivery_status: "delivered" } as any)
+            .update({ delivery_status: "failed", error_message: "SMS provider not implemented" } as any)
             .eq("id", notif.id);
-          processed++;
         }
       }
 
