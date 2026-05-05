@@ -238,13 +238,13 @@ export default function Profile() {
                       </p>
                     </div>
                   </div>
-                  {loadingTwoFaStatus ? (
-                    <Button variant="outline" size="sm" disabled><Loader2 className="h-4 w-4 animate-spin" /></Button>
-                  ) : twoFaEnabled ? (
-                    <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>
-                  )}
+                  <Switch
+                    checked={twoFaEnabled}
+                    disabled={loadingTwoFaStatus || savingTwoFa}
+                    onCheckedChange={handleToggle2FA}
+                    aria-label="Toggle two-factor authentication"
+                  />
+
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
