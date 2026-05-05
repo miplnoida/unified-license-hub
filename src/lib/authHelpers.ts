@@ -126,6 +126,7 @@ function mapPreLicenseeProfile(userId: string, email: string, profile: PreLicens
     status: profile.status || 'active',
     isPreLicensee: true,
     forcePasswordChange: false,
+    twoFactorEnabled: (profile as any).two_factor_enabled ?? false,
   };
 }
 
