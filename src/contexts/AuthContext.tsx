@@ -52,11 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMfaStatus('verified');
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    if (!session) return;
-    await hydrateUser(session);
-  }, [hydrateUser, session]);
-
   const hydrateUser = useCallback(async (sess: Session) => {
     try {
       const platformUser = await fetchPlatformUser(sess.user.id, sess.user.email || '');
@@ -94,6 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMfaStatus('not_required');
     }
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!session) return;
+    await hydrateUser(session);
+  }, [hydrateUser, session]);
 
   useEffect(() => {
     // Set up listener BEFORE getSession (per Supabase best practice)
