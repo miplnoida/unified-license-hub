@@ -162,6 +162,86 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 2b. Create a draft application pre-populated with selected sector/sub-sector/category
+    try {
+      const [{ data: sectorRow }, { data: subSectorRow }, { data: categoryRow }] = await Promise.all([
+        supabaseAdmin.from("sectors").select("id,name,regulator_id").eq("id", sector_id).maybeSingle(),
+        supabaseAdmin.from("sub_sectors").select("id,name").eq("id", sub_sector_id).maybeSingle(),
+        supabaseAdmin.from("categories").select("id,name").eq("id", category_id).maybeSingle(),
+      ]);
+
+      const sectorName = sectorRow?.name || "";
+      const subSectorName = subSectorRow?.name || "";
+      const categoryName = categoryRow?.name || "";
+      const regulatorId = sectorRow?.regulator_id || null;
+      const licenseType = [sectorName, subSectorName, categoryName].filter(Boolean).join(" - ");
+
+      // Match form templates using the same priority logic as NewApplication
+      const { data: publishedTemplates } = await supabaseAdmin
+        .from("form_templates")
+        .select("id, sector_id, sub_sector_id, category_id, status, form_type")
+        .eq("status", "published")
+        .in("form_type", ["pre_license", "application"]);
+
+      let matched: { id: string }[] = [];
+      const all = publishedTemplates || [];
+      const byCat = all.filter(t => t.category_id === category_id);
+      if (byCat.length) matched = byCat;
+      else {
+        const bySub = all.filter(t => t.sub_sector_id === sub_sector_id && !t.category_id);
+        if (bySub.length) matched = bySub;
+        else {
+          const bySec = all.filter(t => t.sector_id === sector_id && !t.sub_sector_id && !t.category_id);
+          matched = bySec;
+        }
+      }
+      const matchedIds = matched.map(t => t.id);
+
+      // Duplicate protection: check if a draft already exists for this user with this registration_reference
+      const { data: existingDraft } = await supabaseAdmin
+        .from("applications")
+        .select("id, data")
+        .eq("applicant_id", authData.user.id)
+        .eq("status", "draft")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const dupe = (existingDraft || []).find((r: any) =>
+        r?.data?.registration_reference === regData.registration_reference
+      );
+
+      const draftData = {
+        sector_id,
+        sub_sector_id,
+        category_id,
+        sector_name: sectorName,
+        sub_sector_name: subSectorName,
+        category_name: categoryName,
+        registration_reference: regData.registration_reference,
+        source: "public_registration",
+        form_template_ids: matchedIds,
+        forms_data: {},
+        form_version_ids: {},
+      };
+
+      if (dupe) {
+        await supabaseAdmin
+          .from("applications")
+          .update({ license_type: licenseType, regulator_id: regulatorId, data: { ...(dupe as any).data, ...draftData } })
+          .eq("id", (dupe as any).id);
+      } else {
+        await supabaseAdmin.from("applications").insert({
+          applicant_id: authData.user.id,
+          license_type: licenseType,
+          status: "draft",
+          regulator_id: regulatorId,
+          data: draftData,
+        });
+      }
+    } catch (draftErr) {
+      console.warn("Draft application creation failed:", draftErr);
+    }
+
     // 3. Queue admin notification
     try {
       await supabaseAdmin.from("notifications").insert({
