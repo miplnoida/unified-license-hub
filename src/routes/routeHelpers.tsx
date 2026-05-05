@@ -57,7 +57,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (mfaCheck === 'checking') return <AuthLoadingScreen />;
-  if (mfaCheck === 'required') return <Navigate to="/?mfa=required" replace />;
+  if (mfaCheck === 'required') return <Navigate to="/login?mfa=required" replace />;
 
   if (user.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
     return <Navigate to="/dashboard" replace />;
