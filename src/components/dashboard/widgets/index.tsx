@@ -368,4 +368,5 @@ export const WIDGET_RENDERERS: Record<string, React.FC<RendererProps>> = {
 
   my_applications: MyApplications,
   draft_applications: DraftApplications,
+  new_application: NewApplicationWidget,
 };
