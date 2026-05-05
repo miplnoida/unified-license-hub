@@ -437,22 +437,24 @@ export default function PreLicenseeRegistration() {
 
       {/* Form Content */}
       <div className="max-w-4xl mx-auto px-4 pb-8">
-        {/* Licensee Type Scope — required before any step */}
-        <div className="mb-6">
-          <SectorSelectionSection
-            sectorId={form.sectorId}
-            subSectorId={form.subSectorId}
-            categoryId={form.categoryId}
-            onSectorChange={setSectorId}
-            onSubSectorChange={setSubSectorId}
-            onCategoryChange={(v) => setField('categoryId', v)}
-            errors={{
-              sectorId: dynamicErrors.sectorId || errors.sectorId || '',
-              subSectorId: dynamicErrors.subSectorId || errors.subSectorId || '',
-              categoryId: dynamicErrors.categoryId || errors.categoryId || '',
-            }}
-          />
-        </div>
+        {/* Licensee Type Scope — required before any step (hidden when static EntityDetailsStep already renders it) */}
+        {!steps.some(s => s.type === 'static' && s.id === 'entity') && (
+          <div className="mb-6">
+            <SectorSelectionSection
+              sectorId={form.sectorId}
+              subSectorId={form.subSectorId}
+              categoryId={form.categoryId}
+              onSectorChange={setSectorId}
+              onSubSectorChange={setSubSectorId}
+              onCategoryChange={(v) => setField('categoryId', v)}
+              errors={{
+                sectorId: dynamicErrors.sectorId || errors.sectorId || '',
+                subSectorId: dynamicErrors.subSectorId || errors.subSectorId || '',
+                categoryId: dynamicErrors.categoryId || errors.categoryId || '',
+              }}
+            />
+          </div>
+        )}
 
         <div className="transition-all duration-300 ease-in-out">
           {renderStep()}
