@@ -624,17 +624,19 @@ interface TimelineBuilderProps {
   steps: WorkflowStep[];
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
+  stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
 }
 
-function TimelineBuilder({ steps, dynamicRoles, roleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
-  // Validation: detect duplicate consecutive roles
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+  // Validation: detect duplicate consecutive roles (by role id when available, else system role)
   const duplicateIdx = useMemo(() => {
+    const key = (s: WorkflowStep) => s.approver_role_id || `sys:${s.approver_role}`;
     for (let i = 1; i < steps.length; i++) {
-      if (steps[i].approver_role === steps[i - 1].approver_role) return i;
+      if (key(steps[i]) === key(steps[i - 1])) return i;
     }
     return -1;
   }, [steps]);
