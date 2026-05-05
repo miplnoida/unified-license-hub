@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationSettings } from '@/hooks/useApplicationSettings';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
