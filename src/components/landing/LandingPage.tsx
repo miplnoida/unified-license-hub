@@ -10,14 +10,14 @@ import { TrustSection } from './TrustSection';
 import { LandingFooter } from './LandingFooter';
 
 export default function LandingPage() {
-  const { isAuthenticated } = useAuth();
+  const { isFullyAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/dashboard', { replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isFullyAuthenticated) navigate('/dashboard', { replace: true });
+  }, [isFullyAuthenticated, navigate]);
 
-  if (isAuthenticated) return null;
+  if (isFullyAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">

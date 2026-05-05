@@ -2120,6 +2120,7 @@ export type Database = {
           expires_at: string
           id: string
           max_attempts: number
+          purpose: string
           user_email: string
           verified_at: string | null
         }
@@ -2131,6 +2132,7 @@ export type Database = {
           expires_at: string
           id?: string
           max_attempts?: number
+          purpose?: string
           user_email: string
           verified_at?: string | null
         }
@@ -2142,6 +2144,7 @@ export type Database = {
           expires_at?: string
           id?: string
           max_attempts?: number
+          purpose?: string
           user_email?: string
           verified_at?: string | null
         }

@@ -26,7 +26,7 @@ interface PpocContextValue {
 const PpocContext = createContext<PpocContextValue | undefined>(undefined);
 
 export function PpocProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isFullyAuthenticated } = useAuth();
   const [mappedLicensees, setMappedLicensees] = useState<MappedLicensee[]>([]);
   const [activeLicenseeId, setActiveLicenseeIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,7 +42,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (!isFullyAuthenticated || !user) {
       setMappedLicensees([]);
       setActiveLicenseeIdState(null);
       return;
@@ -97,7 +97,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
 
     load();
     return () => { cancelled = true; };
-  }, [isAuthenticated, user]);
+  }, [isFullyAuthenticated, user]);
 
   const isPpoc = mappedLicensees.length > 0;
   const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;

@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Trash2, Mail } from 'lucide-react';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, clear2FAState, mark2FAVerified } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Personal info ----
@@ -135,7 +135,7 @@ export default function Profile() {
     if (!user?.email) return;
     setOtpSending(true);
     const { data, error } = await supabase.functions.invoke('send-registration-otp', {
-      body: { email: user.email, channel: 'email' },
+      body: { email: user.email, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
     });
     setOtpSending(false);
     if (error || (data as any)?.error) {
@@ -164,7 +164,7 @@ export default function Profile() {
     if (!user?.email || otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     setOtpVerifying(true);
     const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
-      body: { email: user.email, code: otpCode, channel: 'email' },
+      body: { email: user.email, code: otpCode, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
     });
     if (error || !(data as any)?.verified) {
       toast.error((data as any)?.error || error?.message || 'Invalid code');
@@ -177,6 +177,11 @@ export default function Profile() {
       .eq('id', user.id);
     setOtpVerifying(false);
     if (upErr) { toast.error(upErr.message); return; }
+    if (enable) {
+      mark2FAVerified(user.id);
+    } else {
+      clear2FAState();
+    }
     await refetchTwoFa();
     setTwoFaOpen(false);
     toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
