@@ -108,6 +108,7 @@ export default function Profile() {
 
   // ---- 2FA (Email OTP) ----
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [loadingTwoFaStatus, setLoadingTwoFaStatus] = useState(true);
   const [twoFaOpen, setTwoFaOpen] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -115,11 +116,20 @@ export default function Profile() {
   const [otpCode, setOtpCode] = useState('');
   const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
 
-  useEffect(() => {
+  const refetchTwoFa = async () => {
     if (!user) return;
-    supabase.from('profiles').select('two_factor_enabled').eq('id', user.id).maybeSingle()
-      .then(({ data }) => setTwoFaEnabled(!!(data as any)?.two_factor_enabled));
-  }, [user?.id]);
+    setLoadingTwoFaStatus(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('two_factor_enabled')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) console.error('[Profile] 2FA status fetch failed:', error.message);
+    setTwoFaEnabled(Boolean((data as any)?.two_factor_enabled));
+    setLoadingTwoFaStatus(false);
+  };
+
+  useEffect(() => { refetchTwoFa(); }, [user?.id]);
 
   const sendEmailOtp = async () => {
     if (!user?.email) return;
@@ -167,7 +177,7 @@ export default function Profile() {
       .eq('id', user.id);
     setOtpVerifying(false);
     if (upErr) { toast.error(upErr.message); return; }
-    setTwoFaEnabled(enable);
+    await refetchTwoFa();
     setTwoFaOpen(false);
     toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
@@ -258,10 +268,14 @@ export default function Profile() {
                     <Shield className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">{twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {loadingTwoFaStatus ? 'Loading…' : twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}
+                      </p>
                     </div>
                   </div>
-                  {twoFaEnabled ? (
+                  {loadingTwoFaStatus ? (
+                    <Button variant="outline" size="sm" disabled><Loader2 className="h-4 w-4 animate-spin" /></Button>
+                  ) : twoFaEnabled ? (
                     <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
                   ) : (
                     <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>

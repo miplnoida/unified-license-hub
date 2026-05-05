@@ -99,6 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      sessionStorage.removeItem('pending_2fa_user_id');
+      sessionStorage.removeItem('two_factor_verified_user_id');
+    } catch { /* ignore */ }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
