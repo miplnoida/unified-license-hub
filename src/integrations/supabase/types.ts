@@ -2360,8 +2360,11 @@ export type Database = {
       }
       pre_license_users: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           category_id: string | null
           created_at: string
+          department: string | null
           email: string
           entity_name: string | null
           full_name: string
@@ -2374,8 +2377,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           category_id?: string | null
           created_at?: string
+          department?: string | null
           email: string
           entity_name?: string | null
           full_name: string
@@ -2388,8 +2394,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           category_id?: string | null
           created_at?: string
+          department?: string | null
           email?: string
           entity_name?: string | null
           full_name?: string
