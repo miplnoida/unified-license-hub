@@ -108,6 +108,7 @@ export default function Profile() {
 
   // ---- 2FA (Email OTP) ----
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
+  const [loadingTwoFaStatus, setLoadingTwoFaStatus] = useState(true);
   const [twoFaOpen, setTwoFaOpen] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [otpVerifying, setOtpVerifying] = useState(false);
@@ -115,11 +116,20 @@ export default function Profile() {
   const [otpCode, setOtpCode] = useState('');
   const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
 
-  useEffect(() => {
+  const refetchTwoFa = async () => {
     if (!user) return;
-    supabase.from('profiles').select('two_factor_enabled').eq('id', user.id).maybeSingle()
-      .then(({ data }) => setTwoFaEnabled(!!(data as any)?.two_factor_enabled));
-  }, [user?.id]);
+    setLoadingTwoFaStatus(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('two_factor_enabled')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error) console.error('[Profile] 2FA status fetch failed:', error.message);
+    setTwoFaEnabled(Boolean((data as any)?.two_factor_enabled));
+    setLoadingTwoFaStatus(false);
+  };
+
+  useEffect(() => { refetchTwoFa(); }, [user?.id]);
 
   const sendEmailOtp = async () => {
     if (!user?.email) return;
