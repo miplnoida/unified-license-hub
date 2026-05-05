@@ -33,10 +33,6 @@ export default function Login() {
     }
   }, [showMfaScreen]);
 
-  if (isFullyAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   const sendLoginOtp = async (emailAddr: string) => {
     setOtpSending(true);
     const { data, error } = await supabase.functions.invoke('send-registration-otp', {
