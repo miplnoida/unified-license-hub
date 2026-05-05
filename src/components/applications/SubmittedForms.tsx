@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
+import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface SingleFormViewerProps {
@@ -11,7 +12,7 @@ interface SingleFormViewerProps {
   formData: Record<string, any>;
   versionId?: string | null;
   editable?: boolean;
-  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
 }
@@ -19,11 +20,25 @@ interface SingleFormViewerProps {
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
-  const resolvedVersionId = versionId || latestVersion?.id || null;
+  const { data: activeVersions = [] } = useActiveVersions(templateId);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(versionId || latestVersion?.id || null);
+
+  useEffect(() => {
+    if (versionId) {
+      setSelectedVersionId(versionId);
+      return;
+    }
+    if (!selectedVersionId && latestVersion?.id) {
+      setSelectedVersionId(latestVersion.id);
+    }
+  }, [versionId, latestVersion?.id, selectedVersionId]);
+
+  const resolvedVersionId = selectedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
   const isLoading = tLoading || lvLoading || sLoading;
+  const canSwitchVersion = editable && applicationStatus === 'draft' && activeVersions.length > 1;
 
   if (isLoading) {
     return (
@@ -48,7 +63,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Badge variant={badgeVariant as any} className="text-[10px]">
           {badgeLabel}
         </Badge>
@@ -57,13 +72,33 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
             Latest: v{latestVersion.semantic_version || latestVersion.version}
           </Badge>
         )}
+        {canSwitchVersion && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-[11px] text-muted-foreground">Version:</span>
+            <Select
+              value={resolvedVersionId || ''}
+              onValueChange={(value) => setSelectedVersionId(value)}
+            >
+              <SelectTrigger className="h-7 w-[180px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {activeVersions.map((version: any) => (
+                  <SelectItem key={version.id} value={version.id} className="text-xs">
+                    v{version.semantic_version || version.version}{version.id === activeVersions[0]?.id ? ' (latest)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       <FormRenderer
         formName={template.name}
         sections={sections}
         initialData={formData}
-        onSaveDraft={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
-        onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data); } : () => {}}
+        onSaveDraft={editable && onSave ? async (data) => { await onSave(templateId, data, resolvedVersionId); } : () => {}}
+        onSubmit={editable && onSave ? async (data) => { await onSave(templateId, data, resolvedVersionId); } : () => {}}
         readOnly={!editable}
         saving={saving}
         showFullTabTitles
@@ -77,7 +112,7 @@ interface SubmittedFormsProps {
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
   editable?: boolean;
-  onSave?: (templateId: string, data: Record<string, any>) => Promise<void>;
+  onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
   /** Called when the last pending form is saved — parent should advance to next step (Documents/Payment) */
@@ -118,9 +153,9 @@ export function SubmittedForms({
   }
 
   // Wrapper that auto-advances after a successful save
-  const handleSave = async (templateId: string, data: Record<string, any>) => {
+  const handleSave = async (templateId: string, data: Record<string, any>, versionId?: string | null) => {
     if (!onSave) return;
-    await onSave(templateId, data);
+    await onSave(templateId, data, versionId);
     if (formTemplateIds.length === 1) {
       onAllFormsCompleted?.();
       return;
