@@ -158,8 +158,9 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
       setError('Failed to load registration configuration');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
-  }, [sectorId, subSectorId, categoryId]);
+  }, [sectorId, subSectorId, categoryId, hasLoadedOnce]);
 
   useEffect(() => {
     loadConfig();
