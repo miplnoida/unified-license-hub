@@ -68,6 +68,7 @@ export default function ApplicationDetail() {
   const [activeTab, setActiveTab] = useState<string>('details');
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const isPreLicensee = useIsPreLicensee();
   const isOwner = user && app?.applicant_id === user.id;
 
   const appData = app?.data as any || {};
