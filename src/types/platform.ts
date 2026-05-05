@@ -76,6 +76,10 @@ export interface PlatformUser {
   delegationUntil?: string;
   /** ISO timestamp when the active delegation became effective. */
   delegationFrom?: string;
+  avatarUrl?: string;
+  phone?: string;
+  department?: string;
+  bio?: string;
 }
 
 // Application statuses - simplified lifecycle
