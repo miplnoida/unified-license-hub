@@ -98,7 +98,8 @@ function buildSegments(label: string, links: LabelLink[]): Segment[] {
         continue;
       }
 
-      const idx = seg.text.indexOf(link.text);
+      // Case-insensitive match, but preserve the original label casing in the rendered link.
+      const idx = seg.text.toLowerCase().indexOf(link.text.toLowerCase());
       if (idx === -1) {
         result.push(seg);
         continue;
@@ -107,7 +108,8 @@ function buildSegments(label: string, links: LabelLink[]): Segment[] {
       if (idx > 0) {
         result.push({ text: seg.text.slice(0, idx) });
       }
-      result.push({ text: link.text, link });
+      const matchedText = seg.text.slice(idx, idx + link.text.length);
+      result.push({ text: matchedText, link });
       const after = seg.text.slice(idx + link.text.length);
       if (after) {
         result.push({ text: after });
