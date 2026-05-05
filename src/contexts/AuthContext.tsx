@@ -139,9 +139,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, loading]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
-    return { requires2FA: false };
+    const authUserId = data.user?.id;
+    if (!authUserId) return { requires2FA: false };
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('two_factor_enabled')
+      .eq('id', authUserId)
+      .maybeSingle();
+
+    return { requires2FA: Boolean((profile as { two_factor_enabled?: boolean } | null)?.two_factor_enabled) };
   }, []);
 
   const signup = useCallback(async (email: string, password: string, fullName: string, role?: string) => {
