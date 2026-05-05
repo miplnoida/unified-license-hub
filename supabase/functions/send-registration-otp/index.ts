@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, channel = "email" } = await req.json();
+    const { email, channel = "email", purpose = "registration" } = await req.json();
 
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "Email is required" }), {
@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
       .select("id", { count: "exact", head: true })
       .eq("user_email", email)
       .eq("channel", channel)
+      .eq("purpose", purpose)
       .gte("created_at", oneHourAgo);
 
     if ((count || 0) >= 5) {
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
       .insert({
         user_email: email,
         channel,
+          purpose,
         code_hash: codeHash,
         expires_at: expiresAt,
       });
@@ -88,11 +90,18 @@ Deno.serve(async (req) => {
 
     if (channel === "email") {
       try {
-        const subject = "Your Registration Verification Code";
+        const purposeLabels: Record<string, string> = {
+          registration: 'Registration Verification',
+          login_2fa: 'Login Verification',
+          enable_2fa: 'Enable Two-Factor Authentication',
+          disable_2fa: 'Disable Two-Factor Authentication',
+        };
+        const label = purposeLabels[purpose] || 'Verification';
+        const subject = `Your ${label} Code`;
         const text = `Your verification code is: ${otp}\n\nThis code expires in 10 minutes. Do not share this code with anyone.`;
         const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-          <h2 style="margin:0 0 12px;">Verify your email</h2>
-          <p style="color:#475569;margin:0 0 16px;">Use the code below to verify your email address. It expires in 10 minutes.</p>
+          <h2 style="margin:0 0 12px;">${label}</h2>
+          <p style="color:#475569;margin:0 0 16px;">Use the code below to continue. It expires in 10 minutes.</p>
           <div style="font-size:28px;font-weight:700;letter-spacing:6px;background:#0f172a;color:#fff;padding:14px 18px;border-radius:8px;text-align:center;">${otp}</div>
           <p style="color:#94a3b8;font-size:12px;margin-top:16px;">If you did not request this code, you can ignore this email.</p>
         </div>`;
