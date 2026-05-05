@@ -38,6 +38,7 @@ function ActiveFormFiller({
   pinnedVersionId,
   onVersionChange,
   versionLocked = false,
+  allowVersionSwitching = false,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -48,6 +49,7 @@ function ActiveFormFiller({
   pinnedVersionId?: string | null;
   onVersionChange?: (versionId: string) => void;
   versionLocked?: boolean;
+  allowVersionSwitching?: boolean;
 }) {
   const { data: publishedVersion } = useLatestPublishedVersion(templateId);
   const { data: activeVersions = [] } = useActiveVersions(templateId);
@@ -75,7 +77,7 @@ function ActiveFormFiller({
     );
   }
 
-  const showSwitcher = activeVersions.length > 1 && !pinnedVersionId && !versionLocked;
+  const showSwitcher = activeVersions.length > 1 && !versionLocked && (!pinnedVersionId || allowVersionSwitching);
   const showVersionBar = showSwitcher || pinnedVersionId || versionLocked;
 
   return (
@@ -107,9 +109,11 @@ function ActiveFormFiller({
           )}
           {versionLocked ? (
             <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-          ) : pinnedVersionId && (
+          ) : pinnedVersionId && !allowVersionSwitching && (
             <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
-          )}
+          ) : showSwitcher ? (
+            <span className="text-[11px] text-muted-foreground">Choose which version to file against.</span>
+          ) : null}
         </div>
       )}
       <FormRenderer
@@ -391,6 +395,7 @@ export default function ApplicationForms() {
             pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
             onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
+            allowVersionSwitching={appData?.status === 'draft'}
           />
         </div>
       </DashboardLayout>
