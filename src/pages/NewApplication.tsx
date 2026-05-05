@@ -791,7 +791,14 @@ export default function NewApplication() {
           )}
         </div>
 
-        {applicationId && currentStep === 'selection' && (
+        {hydratingDraft && (
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Checking for existing draft...
+          </div>
+        )}
+
+        {applicationId && currentStep === 'selection' && !hydratingDraft && (
           <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground">
             Continuing your draft application — your previous selections have been restored.
           </div>
