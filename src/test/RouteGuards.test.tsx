@@ -8,6 +8,11 @@ const mockAuth = vi.hoisted(() => ({
   session: null as any,
   loading: true,
   isAuthenticated: false,
+  mfaStatus: 'not_required' as const,
+  requires2FA: false,
+  isFullyAuthenticated: false,
+  mark2FAVerified: vi.fn(),
+  clear2FAState: vi.fn(),
   login: vi.fn(),
   signup: vi.fn(),
   logout: vi.fn(),
@@ -24,6 +29,7 @@ describe('RouteGuards', () => {
     mockAuth.loading = true;
     mockAuth.session = null;
     mockAuth.user = null;
+    mockAuth.isFullyAuthenticated = false;
 
     const { container } = render(
       <MemoryRouter>
@@ -42,6 +48,7 @@ describe('RouteGuards', () => {
     mockAuth.loading = false;
     mockAuth.session = null;
     mockAuth.user = null;
+    mockAuth.isFullyAuthenticated = false;
 
     render(
       <MemoryRouter>
@@ -58,6 +65,9 @@ describe('RouteGuards', () => {
     mockAuth.loading = false;
     mockAuth.session = { user: { id: '1' } };
     mockAuth.user = { id: '1', role: 'admin', fullName: 'Admin', email: 'a@b.com', status: 'active', isPreLicensee: false };
+    mockAuth.isAuthenticated = true;
+    mockAuth.isFullyAuthenticated = true;
+    mockAuth.mfaStatus = 'verified';
 
     render(
       <MemoryRouter>
@@ -74,6 +84,9 @@ describe('RouteGuards', () => {
     mockAuth.loading = false;
     mockAuth.session = { user: { id: '1' } };
     mockAuth.user = { id: '1', role: 'applicant', fullName: 'User', email: 'u@b.com', status: 'active', isPreLicensee: false };
+    mockAuth.isAuthenticated = true;
+    mockAuth.isFullyAuthenticated = true;
+    mockAuth.mfaStatus = 'verified';
 
     render(
       <MemoryRouter>
