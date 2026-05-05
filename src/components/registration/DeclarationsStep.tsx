@@ -92,9 +92,10 @@ export function DeclarationsStep({
         <div className="mt-4 space-y-4">
           {effectiveDeclarations.map((decl, idx) => {
             const fieldKey = declFieldKey(decl.label, idx);
+            const validUrl = isValidUrl(decl.linkUrl);
             const links =
-              decl.linkLabel && decl.linkUrl
-                ? [{ text: decl.linkLabel, url: decl.linkUrl, newTab: true }]
+              decl.linkLabel && validUrl
+                ? [{ text: decl.linkLabel, url: decl.linkUrl as string, newTab: true }]
                 : undefined;
 
             return (
