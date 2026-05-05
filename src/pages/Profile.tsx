@@ -41,6 +41,8 @@ export default function Profile() {
 
   const handleAvatarPick = () => fileInputRef.current?.click();
 
+  const profileTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -56,11 +58,14 @@ export default function Profile() {
     if (upErr) { toast.error(upErr.message); setUploadingAvatar(false); return; }
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     const url = data.publicUrl;
-    const { error: dbErr } = await supabase
-      .from('profiles')
-      .update({ avatar_url: url } as any)
-      .eq('id', user.id);
+    const { data: updated, error: dbErr } = await (supabase
+      .from(profileTable as any) as any)
+      .update({ avatar_url: url })
+      .eq('id', user.id)
+      .select('avatar_url')
+      .maybeSingle();
     if (dbErr) { toast.error(dbErr.message); setUploadingAvatar(false); return; }
+    if (!updated) { toast.error('Profile row not found — could not save photo.'); setUploadingAvatar(false); return; }
     setAvatarUrl(url);
     toast.success('Profile photo updated');
     setUploadingAvatar(false);
@@ -69,17 +74,20 @@ export default function Profile() {
   const handleSaveProfile = async () => {
     if (!user) return;
     setSavingProfile(true);
-    const { error } = await supabase
-      .from('profiles')
+    const { data: updated, error } = await (supabase
+      .from(profileTable as any) as any)
       .update({
         full_name: fullName,
         phone: phone || null,
         department: department || null,
         bio: bio || null,
-      } as any)
-      .eq('id', user.id);
+      })
+      .eq('id', user.id)
+      .select('id')
+      .maybeSingle();
     setSavingProfile(false);
     if (error) { toast.error(error.message); return; }
+    if (!updated) { toast.error('Profile row not found — nothing was saved.'); return; }
     toast.success('Profile updated');
   };
 
