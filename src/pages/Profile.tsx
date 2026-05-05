@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Trash2, Mail } from 'lucide-react';
+import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 export default function Profile() {
   const { user, clear2FAState, mark2FAVerified } = useAuth();
@@ -106,15 +107,10 @@ export default function Profile() {
     setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
   };
 
-  // ---- 2FA (Email OTP) ----
+  // ---- 2FA (Email OTP at login) ----
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [loadingTwoFaStatus, setLoadingTwoFaStatus] = useState(true);
-  const [twoFaOpen, setTwoFaOpen] = useState(false);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [twoFaMode, setTwoFaMode] = useState<'enable' | 'disable'>('enable');
+  const [savingTwoFa, setSavingTwoFa] = useState(false);
 
   const refetchTwoFa = async () => {
     if (!user) return;
@@ -131,60 +127,24 @@ export default function Profile() {
 
   useEffect(() => { refetchTwoFa(); }, [user?.id]);
 
-  const sendEmailOtp = async () => {
-    if (!user?.email) return;
-    setOtpSending(true);
-    const { data, error } = await supabase.functions.invoke('send-registration-otp', {
-      body: { email: user.email, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
-    });
-    setOtpSending(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || 'Failed to send code');
-      return;
-    }
-    setOtpSent(true);
-    toast.success(`Verification code sent to ${user.email}`);
-  };
-
-  const beginEnable2FA = async () => {
-    setTwoFaMode('enable');
-    setOtpCode(''); setOtpSent(false);
-    setTwoFaOpen(true);
-    await sendEmailOtp();
-  };
-
-  const beginDisable2FA = async () => {
-    setTwoFaMode('disable');
-    setOtpCode(''); setOtpSent(false);
-    setTwoFaOpen(true);
-    await sendEmailOtp();
-  };
-
-  const verifyOtpAndToggle = async () => {
-    if (!user?.email || otpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
-    setOtpVerifying(true);
-    const { data, error } = await supabase.functions.invoke('verify-registration-otp', {
-      body: { email: user.email, code: otpCode, channel: 'email', purpose: twoFaMode === 'enable' ? 'enable_2fa' : 'disable_2fa' },
-    });
-    if (error || !(data as any)?.verified) {
-      toast.error((data as any)?.error || error?.message || 'Invalid code');
-      setOtpVerifying(false); return;
-    }
-    const enable = twoFaMode === 'enable';
-    const { error: upErr } = await supabase
+  const handleToggle2FA = async (checked: boolean) => {
+    if (!user) return;
+    setSavingTwoFa(true);
+    const { error } = await supabase
       .from('profiles')
-      .update({ two_factor_enabled: enable } as any)
+      .update({ two_factor_enabled: checked } as any)
       .eq('id', user.id);
-    setOtpVerifying(false);
-    if (upErr) { toast.error(upErr.message); return; }
-    if (enable) {
+    setSavingTwoFa(false);
+    if (error) { toast.error(error.message); return; }
+    setTwoFaEnabled(checked);
+    if (checked) {
       mark2FAVerified(user.id);
+      toast.success('Two-factor authentication enabled. You will receive an email code at your next login.');
     } else {
       clear2FAState();
+      mark2FAVerified(user.id); // keep current session valid; next login won't require OTP
+      toast.success('Two-factor authentication disabled.');
     }
-    await refetchTwoFa();
-    setTwoFaOpen(false);
-    toast.success(enable ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled');
   };
 
   // ---- Sessions ----
@@ -278,13 +238,13 @@ export default function Profile() {
                       </p>
                     </div>
                   </div>
-                  {loadingTwoFaStatus ? (
-                    <Button variant="outline" size="sm" disabled><Loader2 className="h-4 w-4 animate-spin" /></Button>
-                  ) : twoFaEnabled ? (
-                    <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>
-                  )}
+                  <Switch
+                    checked={twoFaEnabled}
+                    disabled={loadingTwoFaStatus || savingTwoFa}
+                    onCheckedChange={handleToggle2FA}
+                    aria-label="Toggle two-factor authentication"
+                  />
+
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -340,36 +300,8 @@ export default function Profile() {
         </Tabs>
       </div>
 
-      {/* 2FA Email OTP Dialog */}
-      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!otpVerifying && !otpSending) setTwoFaOpen(o); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{twoFaMode === 'enable' ? 'Enable' : 'Disable'} Two-Factor Authentication</DialogTitle>
-            <DialogDescription>
-              We've sent a 6-digit verification code to <strong>{user?.email}</strong>. Enter it below to confirm.
-            </DialogDescription>
-          </DialogHeader>
-          {otpSending && !otpSent ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email-otp">Verification Code</Label>
-                <Input id="email-otp" inputMode="numeric" maxLength={6} placeholder="123456" autoFocus value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-              </div>
-              <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={otpSending} className="w-full">
-                {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Resend code
-              </Button>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={otpVerifying || otpSending}>Cancel</Button>
-            <Button onClick={verifyOtpAndToggle} disabled={otpVerifying || otpCode.length !== 6}>
-              {otpVerifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}{twoFaMode === 'enable' ? 'Verify & Enable' : 'Verify & Disable'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+
 
       {/* Sessions Dialog */}
       <Dialog open={sessionsOpen} onOpenChange={setSessionsOpen}>
