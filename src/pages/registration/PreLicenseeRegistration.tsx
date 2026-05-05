@@ -221,6 +221,7 @@ export default function PreLicenseeRegistration() {
   }, []);
 
   const handleSubmit = async () => {
+    if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
