@@ -507,7 +507,7 @@ export default function ApplicationDetail() {
                     </div>
                   </CardContent>
                 </Card>
-                {isInternal ? (
+                {!isPreLicensee && (isInternal ? (
                   <FeeComponentsPanel
                     applicationId={app.id}
                     editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
@@ -518,7 +518,7 @@ export default function ApplicationDetail() {
                     canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
-                )}
+                ))}
               </TabsContent>
 
               {hasSubmittedForms && (
