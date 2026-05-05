@@ -258,13 +258,13 @@ export default function Profile() {
                     <Shield className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">{verifiedFactor ? 'Enabled' : 'Not enabled'}</p>
+                      <p className="text-sm text-muted-foreground">{twoFaEnabled ? `Enabled — codes sent to ${user?.email}` : 'Not enabled'}</p>
                     </div>
                   </div>
-                  {verifiedFactor ? (
-                    <Button variant="outline" size="sm" onClick={disable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
+                  {twoFaEnabled ? (
+                    <Button variant="outline" size="sm" onClick={beginDisable2FA}><Trash2 className="h-4 w-4 mr-1" />Disable</Button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={beginEnroll}>Enable 2FA</Button>
+                    <Button variant="outline" size="sm" onClick={beginEnable2FA}><Mail className="h-4 w-4 mr-1" />Enable 2FA</Button>
                   )}
                 </div>
                 <div className="flex items-center justify-between p-4 rounded-lg border">
