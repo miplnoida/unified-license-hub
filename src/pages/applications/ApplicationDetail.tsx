@@ -21,6 +21,7 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
@@ -67,6 +68,7 @@ export default function ApplicationDetail() {
   const [activeTab, setActiveTab] = useState<string>('details');
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const isPreLicensee = useIsPreLicensee();
   const isOwner = user && app?.applicant_id === user.id;
 
   const appData = app?.data as any || {};
@@ -505,7 +507,7 @@ export default function ApplicationDetail() {
                     </div>
                   </CardContent>
                 </Card>
-                {isInternal ? (
+                {!isPreLicensee && (isInternal ? (
                   <FeeComponentsPanel
                     applicationId={app.id}
                     editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
@@ -516,7 +518,7 @@ export default function ApplicationDetail() {
                     canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
-                )}
+                ))}
               </TabsContent>
 
               {hasSubmittedForms && (
