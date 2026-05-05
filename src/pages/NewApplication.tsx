@@ -279,26 +279,32 @@ export default function NewApplication() {
     })();
   }, [user?.id]);
 
-  const handleSectorChange = (val: string) => {
-    if (val === selectedSector) return;
-    hasUserInteractedRef.current = true;
-    setSelectedSector(val);
-    setSelectedSubSector('');
-    setSelectedCategory('');
-  };
+  const handleSectorChange = useCallback((val: string) => {
+    setSelectedSector(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      setSelectedSubSector('');
+      setSelectedCategory('');
+      return val;
+    });
+  }, []);
 
-  const handleSubSectorChange = (val: string) => {
-    if (val === selectedSubSector) return;
-    hasUserInteractedRef.current = true;
-    setSelectedSubSector(val);
-    setSelectedCategory('');
-  };
+  const handleSubSectorChange = useCallback((val: string) => {
+    setSelectedSubSector(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      setSelectedCategory('');
+      return val;
+    });
+  }, []);
 
-  const handleCategoryChange = (val: string) => {
-    if (val === selectedCategory) return;
-    hasUserInteractedRef.current = true;
-    setSelectedCategory(val);
-  };
+  const handleCategoryChange = useCallback((val: string) => {
+    setSelectedCategory(prev => {
+      if (val === prev) return prev;
+      hasUserInteractedRef.current = true;
+      return val;
+    });
+  }, []);
 
   // Build the draft payload, preserving existing forms_data / form_version_ids
   // for templates that are still applicable.
