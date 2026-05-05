@@ -321,35 +321,32 @@ export default function Profile() {
         </Tabs>
       </div>
 
-      {/* 2FA Enroll Dialog */}
-      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!enrolling) setTwoFaOpen(o); }}>
+      {/* 2FA Email OTP Dialog */}
+      <Dialog open={twoFaOpen} onOpenChange={(o) => { if (!otpVerifying && !otpSending) setTwoFaOpen(o); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+            <DialogTitle>{twoFaMode === 'enable' ? 'Enable' : 'Disable'} Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password) and enter the 6-digit code below.
+              We've sent a 6-digit verification code to <strong>{user?.email}</strong>. Enter it below to confirm.
             </DialogDescription>
           </DialogHeader>
-          {enrolling && !qrDataUrl ? (
+          {otpSending && !otpSent ? (
             <div className="flex items-center justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : qrDataUrl ? (
+          ) : (
             <div className="space-y-4">
-              <div className="flex justify-center">
-                <img src={qrDataUrl} alt="2FA QR Code" className="h-48 w-48 border rounded" />
-              </div>
-              <div className="text-center text-xs text-muted-foreground break-all">
-                Or enter this key manually: <code className="font-mono">{totpSecret}</code>
-              </div>
               <div className="space-y-2">
-                <Label htmlFor="totp">Verification Code</Label>
-                <Input id="totp" inputMode="numeric" maxLength={6} placeholder="123456" value={totpCode} onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+                <Label htmlFor="email-otp">Verification Code</Label>
+                <Input id="email-otp" inputMode="numeric" maxLength={6} placeholder="123456" autoFocus value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
               </div>
+              <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={otpSending} className="w-full">
+                {otpSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Resend code
+              </Button>
             </div>
-          ) : null}
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={enrolling}>Cancel</Button>
-            <Button onClick={verifyEnroll} disabled={enrolling || totpCode.length !== 6}>
-              {enrolling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}Verify & Enable
+            <Button variant="outline" onClick={() => setTwoFaOpen(false)} disabled={otpVerifying || otpSending}>Cancel</Button>
+            <Button onClick={verifyOtpAndToggle} disabled={otpVerifying || otpCode.length !== 6}>
+              {otpVerifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}{twoFaMode === 'enable' ? 'Verify & Enable' : 'Verify & Disable'}
             </Button>
           </DialogFooter>
         </DialogContent>
