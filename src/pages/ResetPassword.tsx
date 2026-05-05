@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Lock, ShieldCheck, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Lock, ShieldCheck, AlertTriangle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 
 export default function ResetPassword() {
@@ -17,6 +17,8 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -112,13 +114,16 @@ export default function ResetPassword() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="new-password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="Min. 8 characters"
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
                       />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -127,13 +132,16 @@ export default function ResetPassword() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="confirm-password"
-                        type="password"
+                        type={showConfirm ? 'text' : 'password'}
                         placeholder="Confirm new password"
-                        className="pl-10"
+                        className="pl-10 pr-10"
                         value={confirm}
                         onChange={(e) => setConfirm(e.target.value)}
                         autoComplete="new-password"
                       />
+                      <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
