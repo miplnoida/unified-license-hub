@@ -413,7 +413,7 @@ export default function PaymentHistory() {
 
       <PaymentVerificationDialog
         open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
+        onOpenChange={handleDetailDialogOpenChange}
         payment={selectedPayment}
         isAdminView={!!isAdmin}
       />
