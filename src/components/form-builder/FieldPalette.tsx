@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Type, Hash, Mail, Calendar, List, CheckSquare, FileUp,
   AlignLeft, Phone, CircleDot, FileText, Table2, Calculator,
-  ListChecks, Percent,
+  ListChecks, Percent, Heading,
 } from 'lucide-react';
 import type { FieldType } from '@/types/formBuilder';
 
