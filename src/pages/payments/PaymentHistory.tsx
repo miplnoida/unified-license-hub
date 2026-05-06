@@ -302,9 +302,8 @@ export default function PaymentHistory() {
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
                           <TableCell className="text-right whitespace-nowrap">
                             <RowActionsMenu actions={[
-                              { label: 'Details', icon: Eye, onClick: () => navigate(`/payments/${p.id}`) },
+                              { label: isAdmin ? 'Verify' : 'View', icon: isAdmin ? ShieldCheck : Eye, onClick: () => openDetailDialog(p) },
                               { label: 'View Application', icon: ExternalLink, onClick: () => hasApp && navigate(`/applications/${p.application_id}`), disabled: !hasApp },
-                              { label: 'Verify', icon: ShieldCheck, onClick: () => openDetailDialog(p), hidden: !isAdmin, separator: true },
                             ]} />
                           </TableCell>
                         </TableRow>
