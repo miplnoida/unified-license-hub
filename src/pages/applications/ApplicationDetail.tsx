@@ -783,3 +783,28 @@ export default function ApplicationDetail() {
     </DashboardLayout>
   );
 }
+
+function ViewPaymentButton({ applicationId }: { applicationId: string }) {
+  const navigate = useNavigate();
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('payments' as any)
+        .select('id,status,created_at')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setPaymentId((data as any)?.id || null);
+    })();
+  }, [applicationId]);
+  if (!paymentId) return null;
+  return (
+    <div className="flex justify-end">
+      <Button variant="outline" size="sm" onClick={() => navigate(`/payments/${paymentId}`)}>
+        View Payment Details
+      </Button>
+    </div>
+  );
+}
