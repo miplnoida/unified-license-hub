@@ -100,4 +100,5 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'radio', label: 'Radio' },
   { type: 'file', label: 'File Upload' },
   { type: 'paragraph', label: 'Static Text' },
+  { type: 'heading', label: 'Heading' },
 ];
