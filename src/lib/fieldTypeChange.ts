@@ -41,6 +41,7 @@ export function isDestructiveTypeChange(oldType: string, newType: string): boole
   if (oldType === 'file' && newType !== 'file') return true;
   if (oldType === 'table' && newType !== 'table') return true;
   if (oldType === 'paragraph' && newType !== 'paragraph') return true;
+  if (oldType === 'heading' && newType !== 'heading') return true;
   if (NUMERIC_TYPES.has(oldType) && !NUMERIC_TYPES.has(newType)) return true;
   return false;
 }
