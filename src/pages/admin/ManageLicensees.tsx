@@ -61,7 +61,7 @@ export default function ManageLicensees() {
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
-        supabase.from('licenses').select('id, application_id'),
+        supabase.from('licenses').select('id, application_id, license_number'),
       ]);
 
       const sMap: LookupMap = {};
