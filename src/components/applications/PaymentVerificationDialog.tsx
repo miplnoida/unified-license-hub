@@ -66,6 +66,24 @@ export function PaymentVerificationDialog({
       const { error: payErr } = await updateFilter;
       if (payErr) throw payErr;
 
+      // If the application is already approved, this payment verification is the
+      // "second" event — provision the licensee/entity now. Safe no-op otherwise.
+      if (payment.application_id) {
+        try {
+          const { data: prov } = await supabase.rpc(
+            'provision_application_entity' as any,
+            { _application_id: payment.application_id },
+          );
+          if ((prov as any)?.success && (prov as any)?.licensee_id) {
+            await supabase.functions.invoke('approve-pre-licensee', {
+              body: { application_id: payment.application_id },
+            });
+          }
+        } catch (e) {
+          console.error('entity provisioning after payment failed', e);
+        }
+      }
+
       // Send notification if applicant info is available
       if (applicantId) {
         await supabase.functions.invoke('send-notification', {
