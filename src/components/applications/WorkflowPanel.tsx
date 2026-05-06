@@ -117,10 +117,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const dynamicRoleIds = effectiveRoles?.dynamicRoleIds || [];
 
   const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
-    if (step.approver_role_id && dynamicRolesMap[step.approver_role_id]) {
-      return dynamicRolesMap[step.approver_role_id];
+    if (step.approver_role_id) {
+      return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
     }
-    return ROLE_LABELS[step.approver_role as AppRole] || step.approver_role;
+    // Legacy step with no dynamic role configured — flag explicitly.
+    return `Legacy role: ${ROLE_LABELS[step.approver_role as AppRole] || step.approver_role}`;
   };
 
   const userRoleMatchesStep = !!user && !!currentStep && (
