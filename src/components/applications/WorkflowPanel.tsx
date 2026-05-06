@@ -184,7 +184,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                 Step {idx + 1}: {s.name}
               </span>
               <Badge variant="outline" className="ml-auto text-[10px]">
-                {ROLE_LABELS[s.approver_role as AppRole] || s.approver_role}
+                {stepRoleLabel(s)}
               </Badge>
             </li>
           );
