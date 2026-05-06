@@ -62,7 +62,7 @@ export default function PreLicenseeRegistration() {
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
-    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations'; stepData?: RegStep }[] = [];
+    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
       config.formSchema.forEach((regStep) => {
