@@ -413,21 +413,34 @@ export default function NewApplication() {
       return;
     }
 
-    // Re-application guard (skip if existing draft is the one we're editing)
-    if (user && appSettings?.allow_reapplication !== true) {
-      const { data: existingApps } = await supabase
+    // Re-application guard — block BEFORE creating any draft / navigating to Step 2.
+    if (user && appSettings?.allow_reapplication === false) {
+      const { data: existingApps, error: existingErr } = await supabase
         .from('applications')
         .select('id, status, data')
         .eq('applicant_id', user.id)
-        .not('status', 'in', '("cancelled","rejected","withdrawn","draft")');
+        .not('status', 'in', '("cancelled","rejected","withdrawn","draft","approved")');
 
+      if (existingErr) {
+        toast.error('Could not verify existing applications. Please try again.');
+        return;
+      }
+
+      if ((existingApps || []).length > 0) {
+        const msg = 'You cannot submit a new application while your previous application is still being processed.';
+        setReappBlocked(true);
+        setSectorBlockMessage(msg);
+        toast.error(msg);
+        return; // Do NOT create draft, do NOT navigate
+      }
+
+      // Per-sector duplicate (legacy guard kept for safety)
       const sectorDupe = (existingApps || []).find((a: any) => {
         const d = (a.data || {}) as Record<string, any>;
         return d.sector_id === selectedSector;
       });
-
       if (sectorDupe) {
-        toast.error('You already have an active application for this sector. You can only re-apply if the previous application is Cancelled or Rejected.');
+        toast.error('You already have an active application for this sector.');
         return;
       }
     }
