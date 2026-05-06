@@ -200,9 +200,7 @@ export default function ManageLicensees() {
                           <span className="font-medium text-foreground">{row.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{row.sector_id ? sectors[row.sector_id] || '—' : '—'}</TableCell>
-                      <TableCell className="text-sm">{row.sub_sector_id ? subSectors[row.sub_sector_id] || '—' : '—'}</TableCell>
-                      <TableCell className="text-sm">{row.category_id ? categories[row.category_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-sm">{row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}</TableCell>
                       <TableCell className="text-sm font-mono">{row.license_number || '—'}</TableCell>
                       <TableCell>{statusBadge(row.status)}</TableCell>
                       <TableCell className="text-right">
