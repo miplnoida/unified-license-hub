@@ -148,8 +148,10 @@ export default function WorkflowList() {
     if (step.approver_role_id) {
       const byId = dynamicRoles.find(r => r.id === step.approver_role_id);
       if (byId) return byId.name;
+      return 'Configured role missing';
     }
-    return roleLabel(step.approver_role);
+    // No dynamic role configured — legacy step.
+    return `Legacy role: ${roleLabel(step.approver_role)}`;
   };
 
   // Live preview of which role will be auto-assigned to Step 1
