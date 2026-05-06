@@ -400,7 +400,7 @@ export function FormRenderer({
     const error = errors[field.fieldName];
     const isUploading = uploadingFields[field.fieldName];
 
-    const fieldLabel = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
+    const fieldLabel = field.type !== 'paragraph' && field.type !== 'heading' && field.type !== 'checkbox' ? (
       <Label className="text-sm">
         {field.label}
         {required && <span className="text-destructive ml-1">*</span>}
@@ -552,6 +552,13 @@ export function FormRenderer({
       case 'paragraph':
         input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{field.content}</p>;
         break;
+      case 'heading': {
+        const level = Math.min(6, Math.max(1, Number(field.headingLevel) || 2));
+        const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+        const sizeClass = ['text-3xl','text-2xl','text-xl','text-lg','text-base','text-sm'][level - 1];
+        input = <Tag className={`${sizeClass} font-semibold text-foreground`}>{field.content || field.label}</Tag>;
+        break;
+      }
       case 'table':
         const tableData = Array.isArray(val) ? val : [{}];
         input = (
