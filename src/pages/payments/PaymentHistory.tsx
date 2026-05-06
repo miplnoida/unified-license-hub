@@ -109,9 +109,39 @@ export default function PaymentHistory() {
       supabase.from('payment_receipts' as any).select('*').order('issued_at', { ascending: false }),
       supabase.from('refunds' as any).select('*').order('created_at', { ascending: false }),
     ]);
-    if (!paymentsRes.error) setPayments((paymentsRes.data || []) as any);
     if (!receiptsRes.error) setReceipts((receiptsRes.data || []) as any);
     if (!refundsRes.error) setRefunds((refundsRes.data || []) as any);
+
+    if (!paymentsRes.error) {
+      const rawPayments = (paymentsRes.data || []) as any[];
+      const appIds = Array.from(new Set(rawPayments.map(p => p.application_id).filter(Boolean)));
+      const appsMap: Record<string, ApplicationLite> = {};
+      const profilesMap: Record<string, ProfileLite> = {};
+
+      if (appIds.length > 0) {
+        const { data: apps } = await supabase
+          .from('applications' as any)
+          .select('id, application_number, license_type, applicant_id, data')
+          .in('id', appIds);
+        (apps || []).forEach((a: any) => { appsMap[a.id] = a; });
+
+        const applicantIds = Array.from(new Set((apps || []).map((a: any) => a.applicant_id).filter(Boolean)));
+        if (applicantIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles' as any)
+            .select('id, full_name, entity_name')
+            .in('id', applicantIds);
+          (profiles || []).forEach((p: any) => { profilesMap[p.id] = p; });
+        }
+      }
+
+      const enriched = rawPayments.map(p => {
+        const app = p.application_id ? appsMap[p.application_id] : null;
+        const applicant = app?.applicant_id ? profilesMap[app.applicant_id] : null;
+        return { ...p, application: app || null, applicant: applicant || null };
+      });
+      setPayments(enriched as any);
+    }
     setLoading(false);
   };
 
