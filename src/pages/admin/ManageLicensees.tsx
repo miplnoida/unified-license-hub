@@ -176,10 +176,8 @@ export default function ManageLicensees() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Licensee Name</TableHead>
-                    <TableHead>Sector</TableHead>
-                    <TableHead>Sub-Sector</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Entity Name</TableHead>
+                    <TableHead>Date Created</TableHead>
                     <TableHead>License #</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
