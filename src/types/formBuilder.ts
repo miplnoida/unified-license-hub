@@ -61,6 +61,7 @@ export type FieldType =
   | 'radio'
   | 'file'
   | 'paragraph'
+  | 'heading'
   | 'table'
   | 'calculated';
 
