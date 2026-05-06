@@ -321,6 +321,25 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           </div>
         )}
 
+        {/* Heading content + level */}
+        {field.type === 'heading' && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2">
+              <Label className="text-xs">Heading Text</Label>
+              <Input value={field.content || ''} onChange={e => update({ content: e.target.value })} className="h-8 text-sm" placeholder="Section heading..." />
+            </div>
+            <div>
+              <Label className="text-xs">Level</Label>
+              <Select value={String(field.headingLevel || 2)} onValueChange={v => update({ headingLevel: Number(v) as 1|2|3|4|5|6 })}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6].map(n => <SelectItem key={n} value={String(n)}>H{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
         {/* Conditional Logic */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
