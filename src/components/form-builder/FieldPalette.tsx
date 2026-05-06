@@ -30,6 +30,7 @@ export const fieldTypes: FieldTypeDefinition[] = [
   { type: 'checkbox', label: 'Checkbox', icon: <CheckSquare className="h-4 w-4" />, group: 'selection' },
   { type: 'radio', label: 'Radio Button', icon: <CircleDot className="h-4 w-4" />, group: 'selection' },
   { type: 'paragraph', label: 'Paragraph', icon: <FileText className="h-4 w-4" />, group: 'content' },
+  { type: 'heading', label: 'Heading', icon: <Heading className="h-4 w-4" />, group: 'content' },
   { type: 'table', label: 'Table / Grid', icon: <Table2 className="h-4 w-4" />, group: 'advanced' },
   { type: 'calculated', label: 'Calculated', icon: <Calculator className="h-4 w-4" />, group: 'advanced' },
 ];
