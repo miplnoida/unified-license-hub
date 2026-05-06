@@ -29,6 +29,7 @@ interface ProfileLite {
   id: string;
   full_name: string | null;
   entity_name: string | null;
+  source?: 'profile' | 'pre_license';
 }
 
 interface Payment {
@@ -128,11 +129,14 @@ export default function PaymentHistory() {
 
         const applicantIds = Array.from(new Set((apps || []).map((a: any) => a.applicant_id).filter(Boolean)));
         if (applicantIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles' as any)
-            .select('id, full_name, entity_name')
-            .in('id', applicantIds);
-          (profiles || []).forEach((p: any) => { profilesMap[p.id] = p; });
+          // Fetch from both profiles and pre_license_users — pre-licensee/temp users live in pre_license_users
+          const [profilesRes, preRes] = await Promise.all([
+            supabase.from('profiles' as any).select('id, full_name, entity_name').in('id', applicantIds),
+            supabase.from('pre_license_users' as any).select('id, full_name, entity_name').in('id', applicantIds),
+          ]);
+          // Prefer pre_license_users (original registered applicant identity) when present
+          (profilesRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'profile' }; });
+          (preRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'pre_license' }; });
         }
       }
 
@@ -157,8 +161,14 @@ export default function PaymentHistory() {
             p.applicant?.entity_name?.toLowerCase().includes(q));
   });
 
+  // Applicant Name = the originally registered pre-licensee / temp user who filed the application.
+  // Order: pre_license_users.full_name → profiles.full_name → application data applicant_name → '-'.
+  // Never use payment payer / gateway name here.
   const getApplicantName = (p: Payment) =>
-    p.applicant?.entity_name || p.applicant?.full_name || (p.application?.data?.applicant_name) || '-';
+    p.applicant?.full_name
+    || (p.application?.data?.applicant_name as string)
+    || (p.application?.data?.primary_user?.full_name as string)
+    || '-';
   const getSectorCategory = (p: Payment) => {
     const d = p.application?.data || {};
     const sector = d.sector || d.sector_name;
