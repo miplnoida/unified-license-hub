@@ -38,6 +38,9 @@ export default function PreLicenseeRegistration() {
     validateDeclarations, reset,
   } = useRegistrationForm();
 
+  const { data: reviewSettings } = useReviewSettings();
+  const reviewEnabled = reviewSettings?.registration_review_enabled ?? true;
+
   const { config, loading: configLoading, error: configError, reload: reloadConfig } = useRegistrationConfig(
     form.sectorId || undefined,
     form.subSectorId || undefined,
