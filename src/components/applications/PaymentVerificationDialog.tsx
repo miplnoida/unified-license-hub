@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
+import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 export interface PaymentInfo {
   id?: string;
@@ -45,6 +46,15 @@ export function PaymentVerificationDialog({
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
+
+  useEffect(() => {
+    if (open && payment?.application_id) {
+      resolveApplicationFeeBreakdown(payment.application_id).then(setFeeComponents).catch(() => setFeeComponents([]));
+    } else if (!open) {
+      setFeeComponents([]);
+    }
+  }, [open, payment?.application_id]);
 
   if (!payment) return null;
 
@@ -183,6 +193,28 @@ export function PaymentVerificationDialog({
                 </div>
               )}
             </div>
+
+            {feeComponents.length > 0 && (
+              <>
+                <Separator className="my-3" />
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Fee Breakdown</h4>
+                  <div className="space-y-1.5">
+                    {feeComponents.map((fc) => (
+                      <div key={fc.id} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{fc.name}</span>
+                        <span className="font-mono">{payment.currency} {Number(fc.amount).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-sm">
+                      <span>Total</span>
+                      <span className="font-mono">{formattedAmount}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Admin Message - only shown for admin users */}

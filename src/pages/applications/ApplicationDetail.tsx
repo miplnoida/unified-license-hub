@@ -19,6 +19,7 @@ import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
+import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
@@ -785,26 +786,34 @@ export default function ApplicationDetail() {
 }
 
 function ViewPaymentButton({ applicationId }: { applicationId: string }) {
-  const navigate = useNavigate();
-  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [payment, setPayment] = useState<any>(null);
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('payments' as any)
-        .select('id,status,created_at')
+        .select('*')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      setPaymentId((data as any)?.id || null);
+      setPayment(data || null);
     })();
   }, [applicationId]);
-  if (!paymentId) return null;
+  if (!payment) return null;
   return (
     <div className="flex justify-end">
-      <Button variant="outline" size="sm" onClick={() => navigate(`/payments/${paymentId}`)}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         View Payment Details
       </Button>
+      <PaymentVerificationDialog
+        open={open}
+        onOpenChange={setOpen}
+        payment={payment}
+        applicationNumber={payment.application_id}
+        isAdminView={payment.status !== 'success'}
+        onVerified={() => setOpen(false)}
+      />
     </div>
   );
 }
