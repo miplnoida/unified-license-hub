@@ -112,7 +112,7 @@ export function buildTypeChangePatch(
   }
 
   // Type-specific containers
-  if (newType !== 'paragraph') patch.content = undefined;
+  if (newType !== 'paragraph' && newType !== 'heading') patch.content = undefined;
   if (newType !== 'table') patch.tableColumns = undefined;
   if (newType !== 'calculated') patch.calculatedExpression = undefined;
 
