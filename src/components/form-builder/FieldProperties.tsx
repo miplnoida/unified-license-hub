@@ -56,6 +56,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
 
   const f = selectedField;
   const isParagraph = f.type === 'paragraph';
+  const isHeading = f.type === 'heading';
   const hasOptions = ['radio', 'select', 'checkbox', 'multi_select'].includes(f.type);
   const isFile = f.type === 'file';
   const isTable = f.type === 'table';
