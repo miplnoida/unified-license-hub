@@ -419,7 +419,7 @@ export default function NewApplication() {
         .from('applications')
         .select('id, status, data')
         .eq('applicant_id', user.id)
-        .not('status', 'in', '("cancelled","rejected","withdrawn","draft","approved")');
+        .not('status', 'in', '("cancelled","rejected","withdrawn","draft")');
 
       if (existingErr) {
         toast.error('Could not verify existing applications. Please try again.');
