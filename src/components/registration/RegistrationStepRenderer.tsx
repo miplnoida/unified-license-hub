@@ -185,7 +185,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
 
   const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
-  const labelEl = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
+  const labelEl = field.type !== 'paragraph' && field.type !== 'heading' && field.type !== 'checkbox' ? (
     <Label className="text-sm">
       {field.label}
       {field.required && <span className="text-destructive ml-1">*</span>}
