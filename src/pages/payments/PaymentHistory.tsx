@@ -14,7 +14,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
-import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
+import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink } from 'lucide-react';
+
+interface ApplicationLite {
+  id: string;
+  application_number: string | null;
+  license_type: string | null;
+  applicant_id: string | null;
+  data: any;
+}
+
+interface ProfileLite {
+  id: string;
+  full_name: string | null;
+  entity_name: string | null;
+}
 
 interface Payment {
   id: string;
@@ -28,6 +42,8 @@ interface Payment {
   paid_at: string | null;
   created_at: string;
   user_id: string;
+  application?: ApplicationLite | null;
+  applicant?: ProfileLite | null;
 }
 
 interface PaymentReceipt {
