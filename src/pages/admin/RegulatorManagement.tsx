@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Edit, Trash2, Building2, Layers, FormInput, GitBranch, DollarSign } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useToast } from '@/hooks/use-toast';
 import { useAllRegulators, useRegulatorMutations } from '@/hooks/useRegulators';
 import { useSectors, useMasterMutations } from '@/hooks/useMasterConfig';
@@ -176,10 +177,10 @@ export default function RegulatorManagement() {
     { key: 'status', label: 'Status', render: r => <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge> },
     {
       key: 'actions', label: '', render: r => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}><Trash2 className="h-4 w-4" /></Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'Edit', icon: Edit, onClick: () => openEdit(r) },
+          { label: 'Delete', icon: Trash2, onClick: () => handleDelete(r.id), destructive: true, separator: true },
+        ]} />
       ),
     },
   ];

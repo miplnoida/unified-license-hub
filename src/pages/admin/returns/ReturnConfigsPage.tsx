@@ -16,6 +16,7 @@ import { useRegulator } from '@/contexts/RegulatorContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { PlusCircle, Pencil, Trash2, Loader2, Settings2, X } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 export default function ReturnConfigsPage() {
   const { activeRegulatorId } = useRegulator();
@@ -131,10 +132,12 @@ export default function ReturnConfigsPage() {
                       <TableCell>{c.return_types?.name || '—'}</TableCell>
                       <TableCell><Badge variant="outline">{c.version}</Badge></TableCell>
                       <TableCell><Badge variant={c.status === 'active' ? 'default' : 'secondary'}>{c.status}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setSelectedConfigId(c.id); setFormAssignOpen(true); }} title="Assign Forms"><Settings2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => remove.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <TableCell className="text-right">
+                        <RowActionsMenu actions={[
+                          { label: 'Assign forms', icon: Settings2, onClick: () => { setSelectedConfigId(c.id); setFormAssignOpen(true); } },
+                          { label: 'Edit', icon: Pencil, onClick: () => openEdit(c) },
+                          { label: 'Delete', icon: Trash2, onClick: () => remove.mutate(c.id), destructive: true, separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}

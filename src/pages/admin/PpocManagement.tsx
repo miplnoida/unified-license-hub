@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 interface PpocMapping {
   id: string;
@@ -195,14 +196,10 @@ export default function PpocManagement() {
     },
     {
       key: 'actions' as any, label: '', render: (r) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)} title="Edit mapping">
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)} title="Delete mapping">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'Edit mapping', icon: Pencil, onClick: () => openEdit(r) },
+          { label: 'Delete mapping', icon: Trash2, onClick: () => handleDelete(r.id), destructive: true, separator: true },
+        ]} />
       ),
     },
   ];

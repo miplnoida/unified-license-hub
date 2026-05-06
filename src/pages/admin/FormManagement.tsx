@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2, Settings2, FileText, FileSpreadsheet, GitBranch } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, useLatestVersionsByTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
@@ -500,16 +501,16 @@ export default function FormManagement() {
                               </TableCell>
                               <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                               <TableCell className="text-right">
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" title="Preview in new tab" onClick={async () => {
+                                <RowActionsMenu actions={[
+                                  { label: 'Preview in new tab', icon: Eye, onClick: async () => {
                                     const { data } = await supabase.from('form_versions').select('id').eq('template_id', tpl.id).order('version', { ascending: false }).limit(1).maybeSingle();
                                     if ((data as any)?.id) window.open(`/preview/${(data as any).id}`, '_blank', 'noopener');
                                     else toast.info('No version exists yet for this form.');
-                                  }}><Eye className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><FileText className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`)}><Pencil className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(tpl.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                </div>
+                                  } },
+                                  { label: 'View', icon: FileText, onClick: () => handleView(tpl.id) },
+                                  { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
+                                  { label: 'Delete', icon: Trash2, onClick: () => handleDelete(tpl.id), destructive: true, separator: true },
+                                ]} />
                               </TableCell>
                             </TableRow>
                           ))}

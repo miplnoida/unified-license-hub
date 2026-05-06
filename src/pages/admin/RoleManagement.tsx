@@ -24,6 +24,7 @@ import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
   Menu as MenuIcon, Route as RouteIcon, Info,
 } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import {
   useRoles, usePermissions, useAllRolePermissions, useRoleUserCounts,
@@ -249,17 +250,11 @@ export default function RoleManagement() {
                           <TableCell>
                             <Badge variant="secondary">{getPermIdsForRole(role.id).length} permissions</Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button variant="ghost" size="icon" onClick={e => openEditDialog(role, e)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              {!role.is_system && (
-                                <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); setDeleteConfirm(role); }}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              )}
-                            </div>
+                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                            <RowActionsMenu actions={[
+                              { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
+                              { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
+                            ]} />
                           </TableCell>
                         </TableRow>
                       ))}

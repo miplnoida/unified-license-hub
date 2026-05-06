@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Bell, Mail, MessageSquare, Smartphone, Copy } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 interface NotificationTemplate {
   id: string;
@@ -188,17 +189,11 @@ export default function NotificationTemplates() {
     },
     {
       key: 'actions' as any, label: '', render: (r) => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(r)}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'Edit', icon: Edit, onClick: () => openEdit(r) },
+          { label: 'Duplicate', icon: Copy, onClick: () => handleDuplicate(r) },
+          { label: 'Delete', icon: Trash2, onClick: () => handleDelete(r.id), destructive: true, separator: true },
+        ]} />
       )
     },
   ];

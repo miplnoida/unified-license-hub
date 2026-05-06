@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Database, Upload, FileSpreadsheet } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useToast } from '@/hooks/use-toast';
 import {
   useMasterDataTypes, useMasterDataItems, useMasterDataMutations,
@@ -141,13 +142,11 @@ export default function MasterDataManagement() {
     { key: 'status', label: 'Status', render: r => <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge> },
     {
       key: 'actions', label: '', render: r => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedTypeId(r.id); setActiveTab('items'); }}>
-            <Database className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditType(r)}><Edit className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteType(r.id)}><Trash2 className="h-4 w-4" /></Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'View items', icon: Database, onClick: () => { setSelectedTypeId(r.id); setActiveTab('items'); } },
+          { label: 'Edit', icon: Edit, onClick: () => openEditType(r) },
+          { label: 'Delete', icon: Trash2, onClick: () => handleDeleteType(r.id), destructive: true, separator: true },
+        ]} />
       ),
     },
   ];
@@ -160,10 +159,10 @@ export default function MasterDataManagement() {
     { key: 'status', label: 'Status', render: r => <Badge variant={r.status === 'active' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge> },
     {
       key: 'actions', label: '', render: r => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditItem(r)}><Edit className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteItem(r.id)}><Trash2 className="h-4 w-4" /></Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'Edit', icon: Edit, onClick: () => openEditItem(r) },
+          { label: 'Delete', icon: Trash2, onClick: () => handleDeleteItem(r.id), destructive: true, separator: true },
+        ]} />
       ),
     },
   ];

@@ -13,6 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { PlusCircle, Eye, Pencil, Trash2, Search, Loader2 } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useFormTemplates, useDeleteFormTemplate, useUpdateTemplateStatus, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -218,11 +219,11 @@ export default function PostLicenseForms() {
                       </TableCell>
                       <TableCell>{new Date(tpl.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" title="View" onClick={() => handleView(tpl.id)}><Eye className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" title="Edit" onClick={() => navigate(`/admin/forms/create?type=post_license&id=${tpl.id}`)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDelete(tpl.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
+                        <RowActionsMenu actions={[
+                          { label: 'View', icon: Eye, onClick: () => handleView(tpl.id) },
+                          { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/forms/create?type=post_license&id=${tpl.id}`) },
+                          { label: 'Delete', icon: Trash2, onClick: () => handleDelete(tpl.id), destructive: true, separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}
