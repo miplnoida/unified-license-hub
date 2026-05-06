@@ -263,17 +263,25 @@ export default function WorkflowList() {
 
   const handleAddStep = async () => {
     if (!selectedId) return;
-    // Prevent duplicate empty steps for the same role at the end
     const lastStep = steps[steps.length - 1];
+    const lastRoleId = lastStep?.approver_role_id || null;
+    const lastRole = lastRoleId
+      ? dynamicRoles.find(r => r.id === lastRoleId)
+      : dynamicRoles[0];
+    if (!lastRole) {
+      toast.error('No roles configured. Please create at least one role.');
+      return;
+    }
     try {
       await createStep.mutateAsync({
         workflow_id: selectedId,
         step_order: steps.length + 1,
         name: `Step ${steps.length + 1}`,
-        approver_role: (lastStep?.approver_role || firstRoleSystem) as any,
+        approver_role: (lastRole.system_role || 'admin') as any,
+        approver_role_id: lastRole.id,
         sla_hours: 48,
         allowed_actions: ['approve', 'reject', 'send_back'],
-      });
+      } as any);
     } catch (err: any) {
       toast.error(err.message);
     }
