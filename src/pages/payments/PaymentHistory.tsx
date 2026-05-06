@@ -14,7 +14,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
-import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
+import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink } from 'lucide-react';
+
+interface ApplicationLite {
+  id: string;
+  application_number: string | null;
+  license_type: string | null;
+  applicant_id: string | null;
+  data: any;
+}
+
+interface ProfileLite {
+  id: string;
+  full_name: string | null;
+  entity_name: string | null;
+}
 
 interface Payment {
   id: string;
@@ -28,6 +42,8 @@ interface Payment {
   paid_at: string | null;
   created_at: string;
   user_id: string;
+  application?: ApplicationLite | null;
+  applicant?: ProfileLite | null;
 }
 
 interface PaymentReceipt {
@@ -93,18 +109,62 @@ export default function PaymentHistory() {
       supabase.from('payment_receipts' as any).select('*').order('issued_at', { ascending: false }),
       supabase.from('refunds' as any).select('*').order('created_at', { ascending: false }),
     ]);
-    if (!paymentsRes.error) setPayments((paymentsRes.data || []) as any);
     if (!receiptsRes.error) setReceipts((receiptsRes.data || []) as any);
     if (!refundsRes.error) setRefunds((refundsRes.data || []) as any);
+
+    if (!paymentsRes.error) {
+      const rawPayments = (paymentsRes.data || []) as any[];
+      const appIds = Array.from(new Set(rawPayments.map(p => p.application_id).filter(Boolean)));
+      const appsMap: Record<string, ApplicationLite> = {};
+      const profilesMap: Record<string, ProfileLite> = {};
+
+      if (appIds.length > 0) {
+        const { data: apps } = await supabase
+          .from('applications' as any)
+          .select('id, application_number, license_type, applicant_id, data')
+          .in('id', appIds);
+        (apps || []).forEach((a: any) => { appsMap[a.id] = a; });
+
+        const applicantIds = Array.from(new Set((apps || []).map((a: any) => a.applicant_id).filter(Boolean)));
+        if (applicantIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles' as any)
+            .select('id, full_name, entity_name')
+            .in('id', applicantIds);
+          (profiles || []).forEach((p: any) => { profilesMap[p.id] = p; });
+        }
+      }
+
+      const enriched = rawPayments.map(p => {
+        const app = p.application_id ? appsMap[p.application_id] : null;
+        const applicant = app?.applicant_id ? profilesMap[app.applicant_id] : null;
+        return { ...p, application: app || null, applicant: applicant || null };
+      });
+      setPayments(enriched as any);
+    }
     setLoading(false);
   };
 
   const filtered = payments.filter(p => {
     if (!search) return true;
-    return (p.transaction_ref?.toLowerCase().includes(search.toLowerCase()) ||
-            p.receipt_number?.toLowerCase().includes(search.toLowerCase()) ||
-            p.status.toLowerCase().includes(search.toLowerCase()));
+    const q = search.toLowerCase();
+    return (p.transaction_ref?.toLowerCase().includes(q) ||
+            p.receipt_number?.toLowerCase().includes(q) ||
+            p.status.toLowerCase().includes(q) ||
+            p.application?.application_number?.toLowerCase().includes(q) ||
+            p.applicant?.full_name?.toLowerCase().includes(q) ||
+            p.applicant?.entity_name?.toLowerCase().includes(q));
   });
+
+  const getApplicantName = (p: Payment) =>
+    p.applicant?.entity_name || p.applicant?.full_name || (p.application?.data?.applicant_name) || '-';
+  const getSectorCategory = (p: Payment) => {
+    const d = p.application?.data || {};
+    const sector = d.sector || d.sector_name;
+    const category = d.category || d.category_name || d.sub_sector;
+    if (sector && category) return `${sector} / ${category}`;
+    return sector || category || '-';
+  };
 
   const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
@@ -189,7 +249,7 @@ export default function PaymentHistory() {
               <CardContent className="pt-6">
                 <div className="relative max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search by reference..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+                  <Input placeholder="Search by reference, application no, applicant..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
@@ -198,10 +258,15 @@ export default function PaymentHistory() {
                 {loading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Application No</TableHead>
+                        <TableHead>Applicant</TableHead>
+                        <TableHead>License Type</TableHead>
+                        <TableHead>Sector / Category</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Method</TableHead>
@@ -211,17 +276,33 @@ export default function PaymentHistory() {
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
-                      ) : filtered.map(p => (
+                        <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
+                      ) : filtered.map(p => {
+                        const appNo = p.application?.application_number || (p.application_id ? p.application_id.slice(0, 8) : null);
+                        const hasApp = !!p.application_id && !!p.application;
+                        return (
                         <TableRow key={p.id}>
-                          <TableCell className="text-sm">{new Date(p.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell className="font-mono">{p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-mono text-sm">{appNo || <span className="text-muted-foreground italic">Not linked</span>}</TableCell>
+                          <TableCell className="text-sm">{getApplicantName(p)}</TableCell>
+                          <TableCell className="text-sm">{p.application?.license_type || '-'}</TableCell>
+                          <TableCell className="text-sm">{getSectorCategory(p)}</TableCell>
+                          <TableCell className="font-mono whitespace-nowrap">{p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
-                          <TableCell className="text-right space-x-1">
+                          <TableCell className="text-right space-x-1 whitespace-nowrap">
                             <Button variant="ghost" size="sm" onClick={() => navigate(`/payments/${p.id}`)}>
                               <Eye className="h-3 w-3 mr-1" />Details
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={!hasApp}
+                              aria-label={hasApp ? `View application ${appNo}` : 'No linked application'}
+                              onClick={() => hasApp && navigate(`/applications/${p.application_id}`)}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />View Application
                             </Button>
                             {isAdmin && (
                               <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
@@ -230,9 +311,11 @@ export default function PaymentHistory() {
                             )}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
