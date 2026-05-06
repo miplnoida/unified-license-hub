@@ -4453,6 +4453,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      provision_application_entity: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       reject_application_action: {
         Args: { _application_id: string; _comments: string }
         Returns: Json
