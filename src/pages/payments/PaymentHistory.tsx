@@ -161,8 +161,14 @@ export default function PaymentHistory() {
             p.applicant?.entity_name?.toLowerCase().includes(q));
   });
 
+  // Applicant Name = the originally registered pre-licensee / temp user who filed the application.
+  // Order: pre_license_users.full_name → profiles.full_name → application data applicant_name → '-'.
+  // Never use payment payer / gateway name here.
   const getApplicantName = (p: Payment) =>
-    p.applicant?.entity_name || p.applicant?.full_name || (p.application?.data?.applicant_name) || '-';
+    p.applicant?.full_name
+    || (p.application?.data?.applicant_name as string)
+    || (p.application?.data?.primary_user?.full_name as string)
+    || '-';
   const getSectorCategory = (p: Payment) => {
     const d = p.application?.data || {};
     const sector = d.sector || d.sector_name;
