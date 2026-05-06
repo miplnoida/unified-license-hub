@@ -258,10 +258,15 @@ export default function PaymentHistory() {
                 {loading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Application No</TableHead>
+                        <TableHead>Applicant</TableHead>
+                        <TableHead>License Type</TableHead>
+                        <TableHead>Sector / Category</TableHead>
                         <TableHead>Amount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Method</TableHead>
@@ -271,17 +276,33 @@ export default function PaymentHistory() {
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
-                      ) : filtered.map(p => (
+                        <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
+                      ) : filtered.map(p => {
+                        const appNo = p.application?.application_number || (p.application_id ? p.application_id.slice(0, 8) : null);
+                        const hasApp = !!p.application_id && !!p.application;
+                        return (
                         <TableRow key={p.id}>
-                          <TableCell className="text-sm">{new Date(p.created_at).toLocaleDateString()}</TableCell>
-                          <TableCell className="font-mono">{p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-mono text-sm">{appNo || <span className="text-muted-foreground italic">Not linked</span>}</TableCell>
+                          <TableCell className="text-sm">{getApplicantName(p)}</TableCell>
+                          <TableCell className="text-sm">{p.application?.license_type || '-'}</TableCell>
+                          <TableCell className="text-sm">{getSectorCategory(p)}</TableCell>
+                          <TableCell className="font-mono whitespace-nowrap">{p.currency} {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
-                          <TableCell className="text-right space-x-1">
+                          <TableCell className="text-right space-x-1 whitespace-nowrap">
                             <Button variant="ghost" size="sm" onClick={() => navigate(`/payments/${p.id}`)}>
                               <Eye className="h-3 w-3 mr-1" />Details
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={!hasApp}
+                              aria-label={hasApp ? `View application ${appNo}` : 'No linked application'}
+                              onClick={() => hasApp && navigate(`/applications/${p.application_id}`)}
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />View Application
                             </Button>
                             {isAdmin && (
                               <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
@@ -290,9 +311,11 @@ export default function PaymentHistory() {
                             )}
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
