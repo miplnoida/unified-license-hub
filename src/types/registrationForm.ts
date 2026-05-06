@@ -13,7 +13,8 @@ export type RegFieldType =
   | 'checkbox'
   | 'radio'
   | 'file'
-  | 'paragraph';
+  | 'paragraph'
+  | 'heading';
 
 export interface RegFieldValidation {
   minLength?: number;
@@ -51,6 +52,8 @@ export interface RegField {
   masterDataParentField?: string;
   validation?: RegFieldValidation;
   conditionalLogic?: RegConditionalRule[];
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  content?: string;
 }
 
 export interface RegColumn {
@@ -97,4 +100,5 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'radio', label: 'Radio' },
   { type: 'file', label: 'File Upload' },
   { type: 'paragraph', label: 'Static Text' },
+  { type: 'heading', label: 'Heading' },
 ];

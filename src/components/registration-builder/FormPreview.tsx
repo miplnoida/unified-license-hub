@@ -170,6 +170,13 @@ function FieldPreview({ field }: { field: RegField }) {
         </div>
       );
 
+    case 'heading': {
+      const lvl = field.headingLevel || 2;
+      const Tag = (`h${lvl}` as unknown) as keyof JSX.IntrinsicElements;
+      const sizeMap: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl', 4: 'text-lg', 5: 'text-base', 6: 'text-sm' };
+      return <Tag className={`font-bold ${sizeMap[lvl]}`}>{field.content || field.label || 'Heading'}</Tag>;
+    }
+
     default:
       return (
         <div className="space-y-1">
