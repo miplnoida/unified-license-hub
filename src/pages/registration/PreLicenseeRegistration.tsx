@@ -17,6 +17,8 @@ import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { useReviewSettings } from '@/hooks/useReviewSettings';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
