@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Loader2, Download, ShieldCheck, Trash2, Eye } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import { secureDownload, secureDelete, getSignedUrl } from '@/lib/secureFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
@@ -223,19 +224,11 @@ export default function DocumentStore() {
                       <TableCell className="text-sm">{file.uploader_email}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(file.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handlePreview(file)} title="Preview (signed URL)">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDownload(file)} title="Download">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          {(isAdmin || file.uploaded_by === user?.id) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(file)} title="Delete">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                        </div>
+                        <RowActionsMenu actions={[
+                          { label: 'Preview', icon: Eye, onClick: () => handlePreview(file) },
+                          { label: 'Download', icon: Download, onClick: () => handleDownload(file) },
+                          { label: 'Delete', icon: Trash2, onClick: () => handleDelete(file), destructive: true, hidden: !(isAdmin || file.uploaded_by === user?.id), separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}

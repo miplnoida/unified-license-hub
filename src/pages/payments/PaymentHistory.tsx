@@ -14,7 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
-import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink } from 'lucide-react';
+import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink, ShieldCheck } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 interface ApplicationLite {
   id: string;
@@ -291,24 +292,12 @@ export default function PaymentHistory() {
                           <TableCell><Badge variant={statusVariant[p.status] || 'outline'} className="capitalize">{p.status}</Badge></TableCell>
                           <TableCell className="text-sm text-muted-foreground capitalize">{p.payment_method?.replace('_', ' ') || '—'}</TableCell>
                           <TableCell className="text-sm font-mono">{p.transaction_ref || '—'}</TableCell>
-                          <TableCell className="text-right space-x-1 whitespace-nowrap">
-                            <Button variant="ghost" size="sm" onClick={() => navigate(`/payments/${p.id}`)}>
-                              <Eye className="h-3 w-3 mr-1" />Details
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={!hasApp}
-                              aria-label={hasApp ? `View application ${appNo}` : 'No linked application'}
-                              onClick={() => hasApp && navigate(`/applications/${p.application_id}`)}
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />View Application
-                            </Button>
-                            {isAdmin && (
-                              <Button variant="ghost" size="sm" onClick={() => openDetailDialog(p)}>
-                                <Eye className="h-3 w-3 mr-1" />Verify
-                              </Button>
-                            )}
+                          <TableCell className="text-right whitespace-nowrap">
+                            <RowActionsMenu actions={[
+                              { label: 'Details', icon: Eye, onClick: () => navigate(`/payments/${p.id}`) },
+                              { label: 'View Application', icon: ExternalLink, onClick: () => hasApp && navigate(`/applications/${p.application_id}`), disabled: !hasApp },
+                              { label: 'Verify', icon: ShieldCheck, onClick: () => openDetailDialog(p), hidden: !isAdmin, separator: true },
+                            ]} />
                           </TableCell>
                         </TableRow>
                         );
@@ -384,17 +373,11 @@ export default function PaymentHistory() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground capitalize">{r.refund_method?.replace('_', ' ') || '—'}</TableCell>
-                        <TableCell className="text-right space-x-1">
-                          {r.status === 'pending' && isAdmin && (
-                            <>
-                              <Button variant="ghost" size="sm" className="text-green-600" onClick={() => handleApproveRefund(r, 'approved')}>
-                                <CheckCircle className="h-3 w-3 mr-1" />Approve
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleApproveRefund(r, 'rejected')}>
-                                <XCircle className="h-3 w-3 mr-1" />Reject
-                              </Button>
-                            </>
-                          )}
+                        <TableCell className="text-right">
+                          <RowActionsMenu actions={[
+                            { label: 'Approve', icon: CheckCircle, onClick: () => handleApproveRefund(r, 'approved'), hidden: !(r.status === 'pending' && isAdmin) },
+                            { label: 'Reject', icon: XCircle, onClick: () => handleApproveRefund(r, 'rejected'), destructive: true, hidden: !(r.status === 'pending' && isAdmin), separator: true },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

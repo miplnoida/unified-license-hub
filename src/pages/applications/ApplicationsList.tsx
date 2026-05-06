@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -726,38 +727,30 @@ export default function ApplicationsList() {
               <span className="text-xs text-muted-foreground">—</span>
             )}
           </TableCell>
-          <TableCell className="text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}`); }}>
-                <Eye className="h-4 w-4 mr-1" />View
-              </Button>
-              {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
-                <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/applications/${app.id}?mode=edit`); }}>
-                  <Pencil className="h-4 w-4 mr-1" />Edit
-                </Button>
-              )}
-              {!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={async e => {
-                    e.stopPropagation();
-                    if (!window.confirm('Are you sure you want to cancel this application?')) return;
-                    const { data, error } = await supabase.rpc('cancel_application' as any, {
-                      _application_id: app.id,
-                      _reason: 'Application cancelled by applicant',
-                    });
-                    if (error) { toast.error(error.message); return; }
-                    if ((data as any)?.error) { toast.error((data as any).error); return; }
-                    toast.success('Application cancelled');
-                    setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
-                  }}
-                >
-                  <Ban className="h-4 w-4 mr-1" />Cancel
-                </Button>
-              )}
-            </div>
+          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+            <RowActionsMenu actions={[
+              { label: 'View', icon: Eye, onClick: () => navigate(`/applications/${app.id}`) },
+              {
+                label: 'Edit', icon: Pencil,
+                onClick: () => navigate(`/applications/${app.id}?mode=edit`),
+                hidden: !(!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status)),
+              },
+              {
+                label: 'Cancel', icon: Ban, destructive: true, separator: true,
+                hidden: !(!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status)),
+                onClick: async () => {
+                  if (!window.confirm('Are you sure you want to cancel this application?')) return;
+                  const { data, error } = await supabase.rpc('cancel_application' as any, {
+                    _application_id: app.id,
+                    _reason: 'Application cancelled by applicant',
+                  });
+                  if (error) { toast.error(error.message); return; }
+                  if ((data as any)?.error) { toast.error((data as any).error); return; }
+                  toast.success('Application cancelled');
+                  setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: 'cancelled' as ApplicationStatus } : a));
+                },
+              },
+            ]} />
           </TableCell>
         </TableRow>
         {isExpanded && (

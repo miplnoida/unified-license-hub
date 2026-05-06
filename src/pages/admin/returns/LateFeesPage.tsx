@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useLateFeeStructures, useMutateLateFee, usePenaltyTiers, useMutatePenaltyTier, useReturnTypes } from '@/hooks/useReturnsManagement';
 import { useSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
-import { PlusCircle, Pencil, Trash2, Loader2, ChevronRight } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, Loader2, ChevronRight, Layers } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 export default function LateFeesPage() {
   const { activeRegulatorId } = useRegulator();
@@ -106,10 +107,12 @@ export default function LateFeesPage() {
                       <TableCell>{s.return_types?.name || 'All'}</TableCell>
                       <TableCell>{s.currency} {s.base_amount}</TableCell>
                       <TableCell><Badge variant={s.status === 'active' ? 'default' : 'secondary'}>{s.status}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setSelectedId(s.id); setTiersOpen(true); }}>Tiers <ChevronRight className="h-3 w-3 ml-1" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => remove.mutate(s.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <TableCell className="text-right">
+                        <RowActionsMenu actions={[
+                          { label: 'Manage tiers', icon: Layers, onClick: () => { setSelectedId(s.id); setTiersOpen(true); } },
+                          { label: 'Edit', icon: Pencil, onClick: () => openEdit(s) },
+                          { label: 'Delete', icon: Trash2, onClick: () => remove.mutate(s.id), destructive: true, separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}

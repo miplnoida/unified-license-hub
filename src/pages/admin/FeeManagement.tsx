@@ -19,6 +19,7 @@ import { useRegulator } from '@/contexts/RegulatorContext';
 import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 interface FeeConfig {
   id: string;
@@ -605,8 +606,10 @@ export default function FeeManagement() {
                           <TableCell className="text-sm text-muted-foreground">{getSectorName(fee.sector_id)}</TableCell>
                           <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(fee)}><Pencil className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(fee.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <RowActionsMenu actions={[
+                              { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },
+                              { label: 'Delete', icon: Trash2, onClick: () => handleDelete(fee.id), destructive: true, separator: true },
+                            ]} />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -755,8 +758,10 @@ export default function FeeManagement() {
                         <TableCell>{rule.priority}</TableCell>
                         <TableCell><Badge variant={rule.is_active ? 'default' : 'secondary'}>{rule.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => openEditRule(rule)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteRule(rule.id)}><Trash2 className="h-4 w-4" /></Button>
+                          <RowActionsMenu actions={[
+                            { label: 'Edit', icon: Pencil, onClick: () => openEditRule(rule) },
+                            { label: 'Delete', icon: Trash2, onClick: () => handleDeleteRule(rule.id), destructive: true, separator: true },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -821,8 +826,10 @@ export default function FeeManagement() {
                         <TableCell className="font-mono text-sm text-muted-foreground">{ft.code || '—'}</TableCell>
                         <TableCell><Badge variant={ft.status === 'active' ? 'default' : 'secondary'}>{ft.status === 'active' ? 'Active' : 'Inactive'}</Badge></TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => openEditFt(ft)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteFt(ft.id)}><Trash2 className="h-4 w-4" /></Button>
+                          <RowActionsMenu actions={[
+                            { label: 'Edit', icon: Pencil, onClick: () => openEditFt(ft) },
+                            { label: 'Delete', icon: Trash2, onClick: () => handleDeleteFt(ft.id), destructive: true, separator: true },
+                          ]} />
                         </TableCell>
                       </TableRow>
                     ))}

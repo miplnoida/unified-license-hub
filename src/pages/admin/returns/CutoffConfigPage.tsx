@@ -12,6 +12,7 @@ import { useCutoffConfigs, useMutateCutoffConfig, useReturnTypes } from '@/hooks
 import { useSectors } from '@/hooks/useMasterConfig';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 export default function CutoffConfigPage() {
   const { activeRegulatorId } = useRegulator();
@@ -103,8 +104,10 @@ export default function CutoffConfigPage() {
                       <TableCell className="font-medium">{c.cutoff_days}</TableCell>
                       <TableCell className="capitalize">{c.cutoff_unit}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => remove.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <RowActionsMenu actions={[
+                          { label: 'Edit', icon: Pencil, onClick: () => openEdit(c) },
+                          { label: 'Delete', icon: Trash2, onClick: () => remove.mutate(c.id), destructive: true, separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}

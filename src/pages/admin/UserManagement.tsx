@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import {
   Users, Shield, UserCheck, UserX, Edit, Lock, Unlock, Plus, Copy, KeyRound, RefreshCw, Upload, User as UserIcon, ShieldCheck,
 } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useRoles, DynamicRole } from '@/hooks/useRoles';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
@@ -433,20 +434,12 @@ export default function UserManagement() {
     },
     {
       key: 'actions' as any, label: '', render: (r) => (
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openProfileEdit(r)} title="Edit profile (name & photo)">
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openRoleEdit(r)} title="Edit roles">
-            <ShieldCheck className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openResetPassword(r)} title="Reset password">
-            <KeyRound className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStatus(r)} title={r.status === 'active' ? 'Deactivate' : 'Activate'}>
-            {r.status === 'active' ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-          </Button>
-        </div>
+        <RowActionsMenu actions={[
+          { label: 'Edit profile', icon: Edit, onClick: () => openProfileEdit(r) },
+          { label: 'Edit roles', icon: ShieldCheck, onClick: () => openRoleEdit(r) },
+          { label: 'Reset password', icon: KeyRound, onClick: () => openResetPassword(r) },
+          { label: r.status === 'active' ? 'Deactivate' : 'Activate', icon: r.status === 'active' ? Lock : Unlock, onClick: () => toggleStatus(r), separator: true },
+        ]} />
       )
     },
   ];

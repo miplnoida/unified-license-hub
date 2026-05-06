@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useReturnTypes, useMutateReturnType } from '@/hooks/useReturnsManagement';
 import { PlusCircle, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 
 export default function ReturnTypesPage() {
   const { data: types = [], isLoading } = useReturnTypes();
@@ -79,8 +80,10 @@ export default function ReturnTypesPage() {
                       <TableCell className="text-muted-foreground max-w-[300px] truncate">{t.description || '—'}</TableCell>
                       <TableCell><Badge variant={t.status === 'active' ? 'default' : 'secondary'}>{t.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => remove.mutate(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                        <RowActionsMenu actions={[
+                          { label: 'Edit', icon: Pencil, onClick: () => openEdit(t) },
+                          { label: 'Delete', icon: Trash2, onClick: () => remove.mutate(t.id), destructive: true, separator: true },
+                        ]} />
                       </TableCell>
                     </TableRow>
                   ))}
