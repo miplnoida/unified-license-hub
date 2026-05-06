@@ -3957,7 +3957,7 @@ export type Database = {
           id: string
           is_system: boolean
           name: string
-          system_role: string
+          system_role: string | null
           updated_at: string
         }
         Insert: {
@@ -3966,7 +3966,7 @@ export type Database = {
           id?: string
           is_system?: boolean
           name: string
-          system_role?: string
+          system_role?: string | null
           updated_at?: string
         }
         Update: {
@@ -3975,7 +3975,7 @@ export type Database = {
           id?: string
           is_system?: boolean
           name?: string
-          system_role?: string
+          system_role?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -4275,7 +4275,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      workflow_steps_legacy_role_report: {
+        Row: {
+          approver_role_id: string | null
+          legacy_approver_role: string | null
+          resolved_role_name: string | null
+          status: string | null
+          step_name: string | null
+          step_order: number | null
+          workflow_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_steps_approver_role_id_fkey"
+            columns: ["approver_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _resolve_application_workflow: {
