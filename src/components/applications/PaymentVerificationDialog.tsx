@@ -46,6 +46,15 @@ export function PaymentVerificationDialog({
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
+
+  useEffect(() => {
+    if (open && payment?.application_id) {
+      resolveApplicationFeeBreakdown(payment.application_id).then(setFeeComponents).catch(() => setFeeComponents([]));
+    } else if (!open) {
+      setFeeComponents([]);
+    }
+  }, [open, payment?.application_id]);
 
   if (!payment) return null;
 
