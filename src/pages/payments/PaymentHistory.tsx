@@ -249,7 +249,7 @@ export default function PaymentHistory() {
               <CardContent className="pt-6">
                 <div className="relative max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search by reference..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
+                  <Input placeholder="Search by reference, application no, applicant..." className="pl-10" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
               </CardContent>
             </Card>
