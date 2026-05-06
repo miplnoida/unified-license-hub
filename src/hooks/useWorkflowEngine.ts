@@ -244,6 +244,7 @@ export function useCreateStep() {
       step_order: number;
       name: string;
       approver_role: AppRole;
+      approver_role_id?: string | null;
       step_type?: string;
       sla_hours?: number;
       allowed_actions?: WorkflowActionType[];
@@ -257,9 +258,12 @@ export function useCreateStep() {
           step_order: params.step_order,
           name: params.name,
           approver_role: params.approver_role,
+          approver_role_id: params.approver_role_id ?? null,
           step_type: params.step_type || 'sequential',
           sla_hours: params.sla_hours || 48,
-          allowed_actions: params.allowed_actions || ['approve', 'reject', 'send_back'],
+          allowed_actions: params.allowed_actions && params.allowed_actions.length > 0
+            ? params.allowed_actions
+            : ['approve', 'reject', 'send_back'],
           escalation_role: params.escalation_role || null,
           escalation_after_hours: params.escalation_after_hours || null,
         } as any)
