@@ -111,10 +111,23 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
-  const { data: effectiveRoles = [] } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
+  const { data: effectiveRoles } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
+  const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
+  const systemRoles = effectiveRoles?.systemRoles || [];
+  const dynamicRoleIds = effectiveRoles?.dynamicRoleIds || [];
+
+  const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
+    if (step.approver_role_id && dynamicRolesMap[step.approver_role_id]) {
+      return dynamicRolesMap[step.approver_role_id];
+    }
+    return ROLE_LABELS[step.approver_role as AppRole] || step.approver_role;
+  };
 
   const userRoleMatchesStep = !!user && !!currentStep && (
-    user.role === 'super_admin' || effectiveRoles.includes(currentStep.approver_role)
+    user.role === 'super_admin' ||
+    (currentStep.approver_role_id
+      ? dynamicRoleIds.includes(currentStep.approver_role_id)
+      : systemRoles.includes(currentStep.approver_role))
   );
 
   // Paused workflow → show info only. The backend (verify-and-submit) resumes it on resubmission.
