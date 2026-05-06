@@ -585,12 +585,15 @@ export default function ApplicationDetail() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="fees" className="mt-4">
+              <TabsContent value="fees" className="mt-4 space-y-4">
                 {isInternal ? (
-                  <FeeComponentsPanel
-                    applicationId={app.id}
-                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                  />
+                  <>
+                    <ViewPaymentButton applicationId={app.id} />
+                    <FeeComponentsPanel
+                      applicationId={app.id}
+                      editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    />
+                  </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
@@ -778,5 +781,30 @@ export default function ApplicationDetail() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function ViewPaymentButton({ applicationId }: { applicationId: string }) {
+  const navigate = useNavigate();
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('payments' as any)
+        .select('id,status,created_at')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setPaymentId((data as any)?.id || null);
+    })();
+  }, [applicationId]);
+  if (!paymentId) return null;
+  return (
+    <div className="flex justify-end">
+      <Button variant="outline" size="sm" onClick={() => navigate(`/payments/${paymentId}`)}>
+        View Payment Details
+      </Button>
+    </div>
   );
 }
