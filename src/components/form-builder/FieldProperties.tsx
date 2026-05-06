@@ -186,6 +186,30 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
           </div>
         )}
 
+        {/* Heading content + level */}
+        {isHeading && (
+          <>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Heading Text</Label>
+              <Input value={f.content || ''} onChange={e => onUpdateField(f.id, { content: e.target.value })} className="h-8 text-sm" placeholder="Section heading" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Heading Level</Label>
+              <Select
+                value={String(f.headingLevel || 2)}
+                onValueChange={v => onUpdateField(f.id, { headingLevel: Number(v) as 1|2|3|4|5|6 })}
+              >
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1,2,3,4,5,6].map(n => (
+                    <SelectItem key={n} value={String(n)}>H{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+
         {/* Data Source & Options */}
         {hasOptions && (
           <div className="space-y-3">
