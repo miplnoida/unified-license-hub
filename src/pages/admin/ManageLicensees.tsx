@@ -14,43 +14,53 @@ import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Bri
 
 interface LicenseeRow {
   id: string;
-  name: string;
   status: string;
   sector_id: string | null;
   sub_sector_id: string | null;
   category_id: string | null;
   license_id: string | null;
   created_at: string;
-  license_number?: string;
-  license_status?: string;
-  approved_date?: string;
+  // resolved
+  licensee_name: string;
+  contact_name: string;
+  sector_name: string;
+  sub_sector_name: string;
+  category_name: string;
+  registered_at: string | null;
+  application_id: string | null;
 }
 
 interface LookupMap { [id: string]: string }
 
 const PAGE_SIZE = 10;
 
+const fmtDate = (d: string | null | undefined) => {
+  if (!d) return '—';
+  try {
+    return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return '—'; }
+};
+
 export default function ManageLicensees() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<LicenseeRow[]>([]);
   const [sectors, setSectors] = useState<LookupMap>({});
-  const [subSectors, setSubSectors] = useState<LookupMap>({});
-  const [categories, setCategories] = useState<LookupMap>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState<'registered_at' | 'licensee_name' | 'sector_name'>('registered_at');
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       const [licRes, secRes, subRes, catRes, licensesRes] = await Promise.all([
-        supabase.from('licensees').select('*').order('name'),
-        supabase.from('sectors').select('id, name').eq('status', 'active'),
-        supabase.from('sub_sectors').select('id, name').eq('status', 'active'),
-        supabase.from('categories').select('id, name').eq('status', 'active'),
-        supabase.from('licenses').select('id, license_number, status, issued_at'),
+        supabase.from('licensees').select('*').order('created_at', { ascending: false }),
+        supabase.from('sectors').select('id, name'),
+        supabase.from('sub_sectors').select('id, name'),
+        supabase.from('categories').select('id, name'),
+        supabase.from('licenses').select('id, application_id'),
       ]);
 
       const sMap: LookupMap = {};
@@ -59,23 +69,75 @@ export default function ManageLicensees() {
 
       const ssMap: LookupMap = {};
       (subRes.data || []).forEach(s => { ssMap[s.id] = s.name; });
-      setSubSectors(ssMap);
 
       const cMap: LookupMap = {};
       (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
-      setCategories(cMap);
 
-      const licenseMap: Record<string, { number: string; status: string; date: string }> = {};
-      (licensesRes.data || []).forEach(l => {
-        licenseMap[l.id] = { number: l.license_number, status: l.status, date: l.issued_at };
+      const licenseToApp: Record<string, string> = {};
+      (licensesRes.data || []).forEach((l: any) => { if (l.application_id) licenseToApp[l.id] = l.application_id; });
+
+      const licensees = (licRes.data || []) as any[];
+      const appIds = Array.from(new Set(
+        licensees.map(l => l.license_id ? licenseToApp[l.license_id] : null).filter(Boolean)
+      )) as string[];
+
+      const appsMap: Record<string, any> = {};
+      const applicantIds: string[] = [];
+      if (appIds.length) {
+        const { data: appsData } = await supabase
+          .from('applications')
+          .select('id, applicant_id, created_at, data')
+          .in('id', appIds);
+        (appsData || []).forEach((a: any) => {
+          appsMap[a.id] = a;
+          if (a.applicant_id) applicantIds.push(a.applicant_id);
+        });
+      }
+
+      const regMap: Record<string, any> = {};
+      if (applicantIds.length) {
+        const { data: regsData } = await supabase
+          .from('registrations')
+          .select('user_id, applicant_name, first_name, last_name, created_at, sector_id, sub_sector_id, category_id')
+          .in('user_id', Array.from(new Set(applicantIds)));
+        (regsData || []).forEach((r: any) => { regMap[r.user_id] = r; });
+      }
+
+      const enriched: LicenseeRow[] = licensees.map(l => {
+        const appId = l.license_id ? licenseToApp[l.license_id] : null;
+        const app = appId ? appsMap[appId] : null;
+        const reg = app?.applicant_id ? regMap[app.applicant_id] : null;
+        const data = app?.data || {};
+
+        const licenseeName =
+          reg?.applicant_name ||
+          data?.applicant_name ||
+          data?.entity_name ||
+          '—';
+
+        const contactName = [reg?.first_name, reg?.last_name].filter(Boolean).join(' ') || '—';
+
+        const sectorId = reg?.sector_id || data?.sector_id || l.sector_id;
+        const subSectorId = reg?.sub_sector_id || data?.sub_sector_id || l.sub_sector_id;
+        const categoryId = reg?.category_id || data?.category_id || l.category_id;
+
+        return {
+          id: l.id,
+          status: l.status,
+          sector_id: l.sector_id,
+          sub_sector_id: l.sub_sector_id,
+          category_id: l.category_id,
+          license_id: l.license_id,
+          created_at: l.created_at,
+          licensee_name: licenseeName,
+          contact_name: contactName,
+          sector_name: (sectorId && sMap[sectorId]) || data?.sector_name || '—',
+          sub_sector_name: (subSectorId && ssMap[subSectorId]) || data?.sub_sector_name || '—',
+          category_name: (categoryId && cMap[categoryId]) || data?.category_name || '—',
+          registered_at: reg?.created_at || app?.created_at || l.created_at,
+          application_id: appId,
+        };
       });
-
-      const enriched: LicenseeRow[] = ((licRes.data || []) as any[]).map(l => ({
-        ...l,
-        license_number: l.license_id ? licenseMap[l.license_id]?.number : undefined,
-        license_status: l.license_id ? licenseMap[l.license_id]?.status : undefined,
-        approved_date: l.license_id ? licenseMap[l.license_id]?.date : undefined,
-      }));
 
       setRows(enriched);
       setLoading(false);
@@ -87,17 +149,31 @@ export default function ManageLicensees() {
   const statusOptions = useMemo(() => [...new Set(rows.map(r => r.status))].sort(), [rows]);
 
   const filtered = useMemo(() => {
-    return rows.filter(r => {
+    const q = search.toLowerCase();
+    const list = rows.filter(r => {
       if (sectorFilter !== 'all' && r.sector_id !== sectorFilter) return false;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-      if (search && !r.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (q) {
+        const hay = [r.licensee_name, r.contact_name, r.sector_name, r.sub_sector_name, r.category_name]
+          .join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [rows, sectorFilter, statusFilter, search]);
+    list.sort((a, b) => {
+      if (sortBy === 'registered_at') {
+        const av = a.registered_at ? new Date(a.registered_at).getTime() : 0;
+        const bv = b.registered_at ? new Date(b.registered_at).getTime() : 0;
+        return bv - av;
+      }
+      if (sortBy === 'licensee_name') return a.licensee_name.localeCompare(b.licensee_name);
+      return a.sector_name.localeCompare(b.sector_name);
+    });
+    return list;
+  }, [rows, sectorFilter, statusFilter, search, sortBy]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-
   const activeCount = rows.filter(r => r.status === 'active').length;
 
   const statusBadge = (status: string) => {
@@ -106,9 +182,7 @@ export default function ManageLicensees() {
       inactive: 'bg-muted text-muted-foreground border-border',
     };
     return (
-      <Badge variant="outline" className={`capitalize ${map[status] || ''}`}>
-        {status}
-      </Badge>
+      <Badge variant="outline" className={`capitalize ${map[status] || ''}`}>{status}</Badge>
     );
   };
 
@@ -117,7 +191,7 @@ export default function ManageLicensees() {
       <div className="space-y-6">
         <PageHeader
           title="Licensee Entities"
-          description="Manage licensee organizations with their license and classification details."
+          description="Manage licensee organizations with registration and application details."
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -126,46 +200,44 @@ export default function ManageLicensees() {
           <StatCard title="Sectors" value={sectorList.length} icon={<Layers className="h-6 w-6" />} variant="primary" />
         </div>
 
-        {/* Toolbar */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative flex-1 min-w-[220px] max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by company name..."
+                  placeholder="Search name, contact, sector..."
                   className="pl-10"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
                 />
               </div>
               <Select value={sectorFilter} onValueChange={v => { setSectorFilter(v); setPage(0); }}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="All Sectors" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Sectors" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sectors</SelectItem>
-                  {sectorList.map(([id, name]) => (
-                    <SelectItem key={id} value={id}>{name}</SelectItem>
-                  ))}
+                  {sectorList.map(([id, name]) => (<SelectItem key={id} value={id}>{name}</SelectItem>))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  {statusOptions.map(s => (
-                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                  ))}
+                  {statusOptions.map(s => (<SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>))}
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="registered_at">Sort: Registered Date</SelectItem>
+                  <SelectItem value="licensee_name">Sort: Licensee Name</SelectItem>
+                  <SelectItem value="sector_name">Sort: Sector</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -173,50 +245,57 @@ export default function ManageLicensees() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Entity Name</TableHead>
-                    <TableHead>Date Created</TableHead>
-                    <TableHead>License #</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paged.length === 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                        No licensees found.
-                      </TableCell>
+                      <TableHead>Licensee Name</TableHead>
+                      <TableHead>Contact Name</TableHead>
+                      <TableHead>Sector</TableHead>
+                      <TableHead>Sub Sector</TableHead>
+                      <TableHead>Category / Service</TableHead>
+                      <TableHead>Registered At</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : paged.map(row => (
-                    <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/licensees/${row.id}`)}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <Building2 className="h-4 w-4" />
+                  </TableHeader>
+                  <TableBody>
+                    {paged.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                          No licensees found.
+                        </TableCell>
+                      </TableRow>
+                    ) : paged.map(row => (
+                      <TableRow key={row.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/admin/licensees/${row.id}`)}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                              <Building2 className="h-4 w-4" />
+                            </div>
+                            <span className="font-medium text-foreground">{row.licensee_name}</span>
                           </div>
-                          <span className="font-medium text-foreground">{row.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}</TableCell>
-                      <TableCell className="text-sm font-mono">{row.license_number || '—'}</TableCell>
-                      <TableCell>{statusBadge(row.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
-                          <Eye className="h-4 w-4 mr-1" />View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </TableCell>
+                        <TableCell className="text-sm">{row.contact_name}</TableCell>
+                        <TableCell className="text-sm">{row.sector_name}</TableCell>
+                        <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
+                        <TableCell className="text-sm">{row.category_name}</TableCell>
+                        <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
+                        <TableCell>{statusBadge(row.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
+                            <Eye className="h-4 w-4 mr-1" />View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
