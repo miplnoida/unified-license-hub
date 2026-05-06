@@ -75,7 +75,11 @@ export default function ManageLicensees() {
       (catRes.data || []).forEach(c => { cMap[c.id] = c.name; });
 
       const licenseToApp: Record<string, string> = {};
-      (licensesRes.data || []).forEach((l: any) => { if (l.application_id) licenseToApp[l.id] = l.application_id; });
+      const licenseToNumber: Record<string, string> = {};
+      (licensesRes.data || []).forEach((l: any) => {
+        if (l.application_id) licenseToApp[l.id] = l.application_id;
+        if (l.license_number) licenseToNumber[l.id] = l.license_number;
+      });
 
       const licensees = (licRes.data || []) as any[];
       const appIds = Array.from(new Set(
@@ -95,28 +99,46 @@ export default function ManageLicensees() {
         });
       }
 
+      const uniqApplicants = Array.from(new Set(applicantIds));
       const regMap: Record<string, any> = {};
-      if (applicantIds.length) {
-        const { data: regsData } = await supabase
-          .from('registrations')
-          .select('user_id, applicant_name, first_name, last_name, created_at, sector_id, sub_sector_id, category_id')
-          .in('user_id', Array.from(new Set(applicantIds)));
-        (regsData || []).forEach((r: any) => { regMap[r.user_id] = r; });
+      const profileMap: Record<string, any> = {};
+      const plMap: Record<string, any> = {};
+      if (uniqApplicants.length) {
+        const [regsRes, profRes, plRes] = await Promise.all([
+          supabase.from('registrations')
+            .select('user_id, applicant_name, first_name, last_name, created_at, sector_id, sub_sector_id, category_id')
+            .in('user_id', uniqApplicants),
+          supabase.from('profiles').select('id, full_name, entity_name').in('id', uniqApplicants),
+          supabase.from('pre_license_users').select('id, full_name, entity_name').in('id', uniqApplicants),
+        ]);
+        (regsRes.data || []).forEach((r: any) => { regMap[r.user_id] = r; });
+        (profRes.data || []).forEach((p: any) => { profileMap[p.id] = p; });
+        (plRes.data || []).forEach((p: any) => { plMap[p.id] = p; });
       }
 
       const enriched: LicenseeRow[] = licensees.map(l => {
         const appId = l.license_id ? licenseToApp[l.license_id] : null;
         const app = appId ? appsMap[appId] : null;
         const reg = app?.applicant_id ? regMap[app.applicant_id] : null;
+        const prof = app?.applicant_id ? profileMap[app.applicant_id] : null;
+        const pl = app?.applicant_id ? plMap[app.applicant_id] : null;
         const data = app?.data || {};
 
         const licenseeName =
           reg?.applicant_name ||
           data?.applicant_name ||
           data?.entity_name ||
+          pl?.entity_name ||
+          prof?.entity_name ||
+          l.name ||
           '—';
 
-        const contactName = [reg?.first_name, reg?.last_name].filter(Boolean).join(' ') || '—';
+        const contactName =
+          [reg?.first_name, reg?.last_name].filter(Boolean).join(' ') ||
+          [data?.first_name, data?.last_name].filter(Boolean).join(' ') ||
+          prof?.full_name ||
+          pl?.full_name ||
+          '—';
 
         const sectorId = reg?.sector_id || data?.sector_id || l.sector_id;
         const subSectorId = reg?.sub_sector_id || data?.sub_sector_id || l.sub_sector_id;
@@ -132,6 +154,7 @@ export default function ManageLicensees() {
           created_at: l.created_at,
           licensee_name: licenseeName,
           contact_name: contactName,
+          license_number: (l.license_id && licenseToNumber[l.license_id]) || '—',
           sector_name: (sectorId && sMap[sectorId]) || data?.sector_name || '—',
           sub_sector_name: (subSectorId && ssMap[subSectorId]) || data?.sub_sector_name || '—',
           category_name: (categoryId && cMap[categoryId]) || data?.category_name || '—',
