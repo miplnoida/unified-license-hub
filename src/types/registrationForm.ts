@@ -13,7 +13,8 @@ export type RegFieldType =
   | 'checkbox'
   | 'radio'
   | 'file'
-  | 'paragraph';
+  | 'paragraph'
+  | 'heading';
 
 export interface RegFieldValidation {
   minLength?: number;
