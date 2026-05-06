@@ -4454,9 +4454,17 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
+      user_can_act_on_workflow_step: {
+        Args: { _step_id: string; _user_id: string }
+        Returns: Json
+      }
       user_can_upload_document_object: {
         Args: { _object_name: string }
         Returns: boolean
+      }
+      workflow_diagnostic_for_application: {
+        Args: { _application_id: string }
+        Returns: Json
       }
     }
     Enums: {
