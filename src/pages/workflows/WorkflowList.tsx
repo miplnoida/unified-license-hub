@@ -182,43 +182,47 @@ export default function WorkflowList() {
       });
 
       // Seed steps from template OR auto-generate the smart default flow
+      const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
+      const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
+      const fallbackRole = defaultRole || dynamicRoles[0];
+      if (!fallbackRole) {
+        toast.error('No roles configured. Please create at least one role before building a workflow.');
+        return;
+      }
+
       if (seedFromTemplateId !== 'blank') {
         const tpl = templates.find(t => t.id === seedFromTemplateId);
         if (tpl?.steps?.length) {
           for (let i = 0; i < tpl.steps.length; i++) {
             const s = tpl.steps[i];
+            const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
             await createStep.mutateAsync({
               workflow_id: wf.id,
               step_order: i + 1,
               name: s.name || `Step ${i + 1}`,
-              approver_role: (s.approver_role || firstRoleSystem) as any,
+              approver_role: (tplRole.system_role || 'admin') as any,
+              approver_role_id: tplRole.id,
               sla_hours: s.sla_hours || 48,
               allowed_actions: ['approve', 'reject', 'send_back'],
             });
           }
         }
       } else {
-        // Smart default: resolve sector → regulator role; fallback to Super Admin
-        const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
-        const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
-        const resolvedSystem = (defaultRole?.system_role || 'super_admin') as any;
-        const stepName = defaultRole?.name
-          ? `${defaultRole.name} Review`
-          : 'Step 1';
+        const stepName = fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1';
         await createStep.mutateAsync({
           workflow_id: wf.id,
           step_order: 1,
           name: stepName,
-          approver_role: resolvedSystem,
-          approver_role_id: defaultRole?.id ?? null,
+          approver_role: (fallbackRole.system_role || 'admin') as any,
+          approver_role_id: fallbackRole.id,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'],
         } as any);
         if (sectorName) {
           toast.success(
             matched
-              ? `Step 1 auto-assigned to "${defaultRole?.name}" based on sector`
-              : `No matching regulator role for "${sectorName}" — defaulted to Super Admin`,
+              ? `Step 1 auto-assigned to "${fallbackRole.name}" based on sector`
+              : `No matching regulator role for "${sectorName}" — defaulted to "${fallbackRole.name}"`,
           );
         }
       }
