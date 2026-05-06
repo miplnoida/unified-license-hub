@@ -23,6 +23,7 @@ interface LicenseeRow {
   // resolved
   licensee_name: string;
   contact_name: string;
+  license_number: string;
   sector_name: string;
   sub_sector_name: string;
   category_name: string;
