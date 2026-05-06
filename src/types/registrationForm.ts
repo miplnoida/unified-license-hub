@@ -52,6 +52,8 @@ export interface RegField {
   masterDataParentField?: string;
   validation?: RegFieldValidation;
   conditionalLogic?: RegConditionalRule[];
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  content?: string;
 }
 
 export interface RegColumn {
