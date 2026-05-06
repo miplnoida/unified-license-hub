@@ -43,6 +43,8 @@ export interface FormField {
   optionSource?: 'manual' | 'master_data';
   masterDataTypeCode?: string; // code from master_data_types table
   masterDataParentField?: string; // fieldName of the parent cascading field
+  // Heading level for heading-type fields (1-6)
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export type FieldType =
