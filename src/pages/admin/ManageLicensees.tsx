@@ -176,10 +176,8 @@ export default function ManageLicensees() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Licensee Name</TableHead>
-                    <TableHead>Sector</TableHead>
-                    <TableHead>Sub-Sector</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Entity Name</TableHead>
+                    <TableHead>Date Created</TableHead>
                     <TableHead>License #</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -188,7 +186,7 @@ export default function ManageLicensees() {
                 <TableBody>
                   {paged.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                         No licensees found.
                       </TableCell>
                     </TableRow>
@@ -202,9 +200,7 @@ export default function ManageLicensees() {
                           <span className="font-medium text-foreground">{row.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{row.sector_id ? sectors[row.sector_id] || '—' : '—'}</TableCell>
-                      <TableCell className="text-sm">{row.sub_sector_id ? subSectors[row.sub_sector_id] || '—' : '—'}</TableCell>
-                      <TableCell className="text-sm">{row.category_id ? categories[row.category_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-sm">{row.created_at ? new Date(row.created_at).toLocaleDateString() : '—'}</TableCell>
                       <TableCell className="text-sm font-mono">{row.license_number || '—'}</TableCell>
                       <TableCell>{statusBadge(row.status)}</TableCell>
                       <TableCell className="text-right">
