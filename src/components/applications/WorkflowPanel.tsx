@@ -207,7 +207,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{currentStep.name}</span>
             <Badge variant="outline" className="text-xs">
-              Pending: {ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}
+              Pending: {stepRoleLabel(currentStep)}
             </Badge>
           </div>
           {currentStep.sla_hours && (
