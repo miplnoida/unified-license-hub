@@ -19,30 +19,49 @@ import { toast } from 'sonner';
 import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
- * Resolve the effective system roles a user has access to (primary + dynamic role mappings).
+ * Resolve the effective system roles + dynamic role IDs a user has access to.
  */
 function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
   return useQuery({
     queryKey: ['effective-system-roles', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const set = new Set<string>();
-      if (primaryRole) set.add(primaryRole);
+      const sysRoles = new Set<string>();
+      if (primaryRole) sysRoles.add(primaryRole);
       const { data: udr } = await supabase
         .from('user_dynamic_roles' as any)
         .select('role_id')
         .eq('user_id', userId!);
-      const roleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
-      if (roleIds.length > 0) {
+      const dynamicRoleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
+      if (dynamicRoleIds.length > 0) {
         const { data: roles } = await supabase
           .from('roles' as any)
           .select('system_role')
-          .in('id', roleIds);
-        ((roles as any[]) || []).forEach(r => { if (r.system_role) set.add(r.system_role); });
+          .in('id', dynamicRoleIds);
+        ((roles as any[]) || []).forEach(r => { if (r.system_role) sysRoles.add(r.system_role); });
       }
-      return Array.from(set);
+      return { systemRoles: Array.from(sysRoles), dynamicRoleIds };
     },
     staleTime: 60_000,
+  });
+}
+
+/**
+ * Fetch all dynamic roles so we can render their friendly names on workflow steps
+ * that are configured against a specific dynamic role (approver_role_id).
+ */
+function useDynamicRolesMap() {
+  return useQuery({
+    queryKey: ['dynamic-roles-map'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('roles' as any)
+        .select('id, name');
+      const map: Record<string, string> = {};
+      ((data as any[]) || []).forEach(r => { if (r.id) map[r.id] = r.name; });
+      return map;
+    },
+    staleTime: 5 * 60_000,
   });
 }
 
