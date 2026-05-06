@@ -186,7 +186,7 @@ export default function ManageLicensees() {
                 <TableBody>
                   {paged.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                         No licensees found.
                       </TableCell>
                     </TableRow>
