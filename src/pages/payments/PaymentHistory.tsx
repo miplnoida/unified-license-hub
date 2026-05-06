@@ -179,7 +179,22 @@ export default function PaymentHistory() {
 
   const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
-    setDetailDialogOpen(true);
+    // Defer opening so the dropdown menu has time to fully unmount,
+    // otherwise Radix leaves `pointer-events: none` on <body>.
+    setTimeout(() => setDetailDialogOpen(true), 0);
+  };
+
+  const handleDetailDialogOpenChange = (open: boolean) => {
+    setDetailDialogOpen(open);
+    if (!open) {
+      // Defensive cleanup: restore body styles Radix may have left behind
+      // when a dialog opens from inside a DropdownMenuItem.
+      requestAnimationFrame(() => {
+        document.body.style.pointerEvents = '';
+        document.body.style.overflow = '';
+      });
+      setTimeout(() => setSelectedPayment(null), 200);
+    }
   };
 
   const handleApproveRefund = async (refund: Refund, action: 'approved' | 'rejected') => {
