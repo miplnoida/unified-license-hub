@@ -4290,6 +4290,14 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      _resolve_effective_regulator: {
+        Args: {
+          _category_id: string
+          _regulator_id: string
+          _sector_id: string
+        }
+        Returns: string
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
