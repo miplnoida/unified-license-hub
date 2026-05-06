@@ -72,6 +72,39 @@ export async function getGlobalReviewEnabled(): Promise<boolean> {
  *   3. exact regulator + license_type
  *   4. license_type only (prefix-tolerant match)
  */
+async function resolveEffectiveRegulator(
+  regulatorId: string | null | undefined,
+  sectorId: string | undefined,
+  categoryId: string | undefined,
+): Promise<string | null> {
+  // Category -> sector -> regulator
+  if (categoryId) {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('sector_id')
+      .eq('id', categoryId)
+      .maybeSingle();
+    const catSector = (cat as any)?.sector_id as string | undefined;
+    if (catSector) {
+      const { data: s } = await supabase
+        .from('sectors')
+        .select('regulator_id')
+        .eq('id', catSector)
+        .maybeSingle();
+      if ((s as any)?.regulator_id) return (s as any).regulator_id;
+    }
+  }
+  if (sectorId) {
+    const { data: s } = await supabase
+      .from('sectors')
+      .select('regulator_id')
+      .eq('id', sectorId)
+      .maybeSingle();
+    if ((s as any)?.regulator_id) return (s as any).regulator_id;
+  }
+  return regulatorId || null;
+}
+
 async function matchWorkflowForApplication(
   appRow: WorkflowApprovalContext['application'],
 ): Promise<{ id: string; is_active: boolean; license_type: string } | null> {
@@ -80,13 +113,19 @@ async function matchWorkflowForApplication(
   const licenseType = appRow?.license_type;
   if (!licenseType) return null;
 
-  if (appRow?.regulator_id) {
+  const effectiveRegulator = await resolveEffectiveRegulator(
+    appRow?.regulator_id,
+    sectorId,
+    categoryId,
+  );
+
+  if (effectiveRegulator) {
     const { data } = await supabase
       .from('approval_workflows')
       .select('id, is_active, license_type, sector_id, category_id')
       .eq('license_type', licenseType)
       .eq('entity_type', 'application')
-      .eq('regulator_id', appRow.regulator_id);
+      .eq('regulator_id', effectiveRegulator);
 
     const candidates = (data || []) as any[];
     const found =
