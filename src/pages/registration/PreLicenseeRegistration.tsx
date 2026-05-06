@@ -17,6 +17,8 @@ import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { useReviewSettings } from '@/hooks/useReviewSettings';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
@@ -35,6 +37,9 @@ export default function PreLicenseeRegistration() {
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
     validateDeclarations, reset,
   } = useRegistrationForm();
+
+  const { data: reviewSettings } = useReviewSettings();
+  const reviewEnabled = reviewSettings?.registration_review_enabled ?? true;
 
   const { config, loading: configLoading, error: configError, reload: reloadConfig } = useRegistrationConfig(
     form.sectorId || undefined,
@@ -57,7 +62,7 @@ export default function PreLicenseeRegistration() {
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
-    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations'; stepData?: RegStep }[] = [];
+    const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
       config.formSchema.forEach((regStep) => {
@@ -74,8 +79,12 @@ export default function PreLicenseeRegistration() {
 
     result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
 
+    if (reviewEnabled) {
+      result.push({ id: 'review', label: 'Review & Submit', type: 'review' as any });
+    }
+
     return result;
-  }, [config]);
+  }, [config, reviewEnabled]);
 
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
@@ -358,10 +367,81 @@ export default function PreLicenseeRegistration() {
           />
         );
 
+      case 'review':
+        return (
+          <ReviewAcknowledgement
+            mode={reviewSettings?.review_mode || 'readonly'}
+            sections={buildReviewSections()}
+            onAcknowledge={handleSubmit}
+            onEdit={(idx) => setCurrentStep(Math.min(idx, steps.length - 2))}
+            loading={submitting}
+            title="Review Your Registration"
+            description="Please review all information before final submission."
+          />
+        );
+
       default:
         return null;
     }
   };
+
+  function buildReviewSections() {
+    const sections: { title: string; fields: { label: string; value: any }[] }[] = [];
+
+    if (config?.formSchema && config.formSchema.length > 0) {
+      config.formSchema.forEach((s) => {
+        const fields: { label: string; value: any }[] = [];
+        s.rows.forEach(r => r.columns.forEach(c => {
+          if (!c.field) return;
+          const v = dynamicFormData[c.field.fieldName];
+          fields.push({ label: c.field.label, value: formatReviewValue(v) });
+        }));
+        sections.push({ title: s.title, fields });
+      });
+    } else {
+      sections.push({
+        title: 'Entity Details',
+        fields: [
+          { label: 'Applicant Name', value: form.applicantName },
+          { label: 'Alt Name', value: form.applicantNameAlt },
+          { label: 'Registration Number', value: form.registrationNumber },
+          { label: 'Mailing Address', value: [form.mailingAddress.street, form.mailingAddress.city, form.mailingAddress.state, form.mailingAddress.country].filter(Boolean).join(', ') },
+          { label: 'Physical Address', value: form.sameAsMailing ? 'Same as mailing' : [form.physicalAddress.street, form.physicalAddress.city, form.physicalAddress.state, form.physicalAddress.country].filter(Boolean).join(', ') },
+        ],
+      });
+      sections.push({
+        title: 'Primary User',
+        fields: [
+          { label: 'First Name', value: form.firstName },
+          { label: 'Last Name', value: form.lastName },
+          { label: 'Email', value: form.email },
+          { label: 'Telephone', value: form.telephone },
+          { label: 'Username', value: form.username },
+        ],
+      });
+    }
+
+    if (form.documents.length > 0 || (config?.requireDocuments ?? true)) {
+      sections.push({
+        title: 'Supporting Documents',
+        fields: form.documents.length > 0
+          ? form.documents.map(d => ({ label: d.label || d.name, value: d.name }))
+          : [{ label: 'Documents', value: 'None uploaded' }],
+      });
+    }
+
+    return sections;
+  }
+
+  function formatReviewValue(v: any): any {
+    if (v == null || v === '') return null;
+    if (typeof v === 'object') {
+      if ('fileName' in v) return v.fileName;
+      if ('name' in v) return v.name;
+      return JSON.stringify(v);
+    }
+    return v;
+  }
 
   if (configLoading) {
     return (
@@ -477,7 +557,7 @@ export default function PreLicenseeRegistration() {
               Next
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          ) : (
+          ) : steps[currentStep]?.type === 'review' ? null : (
             <Button onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
               {submitting ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
