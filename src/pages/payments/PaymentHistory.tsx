@@ -29,6 +29,7 @@ interface ProfileLite {
   id: string;
   full_name: string | null;
   entity_name: string | null;
+  source?: 'profile' | 'pre_license';
 }
 
 interface Payment {
