@@ -557,7 +557,7 @@ export default function PreLicenseeRegistration() {
               Next
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-          ) : (
+          ) : steps[currentStep]?.type === 'review' ? null : (
             <Button onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
               {submitting ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
