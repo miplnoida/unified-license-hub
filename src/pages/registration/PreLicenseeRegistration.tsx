@@ -79,8 +79,12 @@ export default function PreLicenseeRegistration() {
 
     result.push({ id: 'declarations', label: 'Declarations', type: 'declarations' });
 
+    if (reviewEnabled) {
+      result.push({ id: 'review', label: 'Review & Submit', type: 'review' as any });
+    }
+
     return result;
-  }, [config]);
+  }, [config, reviewEnabled]);
 
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
