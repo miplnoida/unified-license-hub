@@ -400,7 +400,7 @@ export function FormRenderer({
     const error = errors[field.fieldName];
     const isUploading = uploadingFields[field.fieldName];
 
-    const fieldLabel = field.type !== 'paragraph' && field.type !== 'checkbox' ? (
+    const fieldLabel = field.type !== 'paragraph' && field.type !== 'heading' && field.type !== 'checkbox' ? (
       <Label className="text-sm">
         {field.label}
         {required && <span className="text-destructive ml-1">*</span>}
