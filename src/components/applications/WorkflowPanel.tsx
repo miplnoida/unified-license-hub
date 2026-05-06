@@ -217,7 +217,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            This step is assigned to <strong>{ROLE_LABELS[currentStep.approver_role as AppRole] || currentStep.approver_role}</strong>. You can view details and history but cannot take action on this step.
+            This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can view details and history but cannot take action on this step.
           </p>
           <ProgressTimeline />
         </CardContent>
