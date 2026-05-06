@@ -147,10 +147,24 @@ export default function PaymentHistory() {
 
   const filtered = payments.filter(p => {
     if (!search) return true;
-    return (p.transaction_ref?.toLowerCase().includes(search.toLowerCase()) ||
-            p.receipt_number?.toLowerCase().includes(search.toLowerCase()) ||
-            p.status.toLowerCase().includes(search.toLowerCase()));
+    const q = search.toLowerCase();
+    return (p.transaction_ref?.toLowerCase().includes(q) ||
+            p.receipt_number?.toLowerCase().includes(q) ||
+            p.status.toLowerCase().includes(q) ||
+            p.application?.application_number?.toLowerCase().includes(q) ||
+            p.applicant?.full_name?.toLowerCase().includes(q) ||
+            p.applicant?.entity_name?.toLowerCase().includes(q));
   });
+
+  const getApplicantName = (p: Payment) =>
+    p.applicant?.entity_name || p.applicant?.full_name || (p.application?.data?.applicant_name) || '-';
+  const getSectorCategory = (p: Payment) => {
+    const d = p.application?.data || {};
+    const sector = d.sector || d.sector_name;
+    const category = d.category || d.category_name || d.sub_sector;
+    if (sector && category) return `${sector} / ${category}`;
+    return sector || category || '-';
+  };
 
   const openDetailDialog = (payment: Payment) => {
     setSelectedPayment(payment);
