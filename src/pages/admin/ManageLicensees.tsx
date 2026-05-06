@@ -274,6 +274,7 @@ export default function ManageLicensees() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Licensee Name</TableHead>
+                      <TableHead>License No.</TableHead>
                       <TableHead>Contact Name</TableHead>
                       <TableHead>Sector</TableHead>
                       <TableHead>Sub Sector</TableHead>
