@@ -129,11 +129,14 @@ export default function PaymentHistory() {
 
         const applicantIds = Array.from(new Set((apps || []).map((a: any) => a.applicant_id).filter(Boolean)));
         if (applicantIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles' as any)
-            .select('id, full_name, entity_name')
-            .in('id', applicantIds);
-          (profiles || []).forEach((p: any) => { profilesMap[p.id] = p; });
+          // Fetch from both profiles and pre_license_users — pre-licensee/temp users live in pre_license_users
+          const [profilesRes, preRes] = await Promise.all([
+            supabase.from('profiles' as any).select('id, full_name, entity_name').in('id', applicantIds),
+            supabase.from('pre_license_users' as any).select('id, full_name, entity_name').in('id', applicantIds),
+          ]);
+          // Prefer pre_license_users (original registered applicant identity) when present
+          (profilesRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'profile' }; });
+          (preRes.data || []).forEach((p: any) => { profilesMap[p.id] = { ...p, source: 'pre_license' }; });
         }
       }
 
