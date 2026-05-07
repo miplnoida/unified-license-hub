@@ -323,6 +323,22 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           )}
         </div>
 
+        {/* Uniqueness — Applicant Name */}
+        {['text'].includes(field.type) && (
+          <div className="flex items-center gap-2 p-2 rounded border bg-muted/30">
+            <Switch
+              checked={!!field.validation?.uniqueApplicantName}
+              onCheckedChange={v => update({ validation: { ...field.validation, uniqueApplicantName: v || undefined } })}
+            />
+            <div className="flex-1">
+              <Label className="text-xs">Unique Applicant Name</Label>
+              <p className="text-[10px] text-muted-foreground">
+                Treat this as the official Applicant Name. Value must be unique across all registrations.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Pattern */}
         {['text', 'email', 'phone', 'password'].includes(field.type) && (
           <div className="grid grid-cols-2 gap-3">
