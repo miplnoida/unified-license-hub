@@ -166,8 +166,8 @@ function defaultFormSchema(): RegFormSchema {
           { span: 6, field: null },
         ]),
         row([
-          { span: 6, field: field('text', 'Password', 'password', true, { placeholder: 'Enter password' }) },
-          { span: 6, field: field('text', 'Confirm Password', 'confirm_password', true, { placeholder: 'Re-enter password' }) },
+          { span: 6, field: field('password', 'Password', 'password', true, { placeholder: 'Enter password' }) },
+          { span: 6, field: field('confirm_password', 'Confirm Password', 'confirm_password', true, { placeholder: 'Re-enter password', matchField: 'password' }) },
         ]),
       ],
     },
