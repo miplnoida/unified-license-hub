@@ -56,6 +56,29 @@ export function EntityDetailsStep({
   const conditionalFields = selectedCategory ? getConditionalFields(form.categoryId, selectedCategory.name) : [];
 
   const [regNumStatus, setRegNumStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [applicantNameStatus, setApplicantNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+
+  // Check applicant name uniqueness
+  useEffect(() => {
+    if (!form.applicantName.trim()) {
+      setApplicantNameStatus('idle');
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setApplicantNameStatus('checking');
+      try {
+        const { data } = await supabase
+          .from('registrations' as any)
+          .select('id')
+          .ilike('applicant_name', form.applicantName.trim())
+          .limit(1);
+        setApplicantNameStatus(data && data.length > 0 ? 'taken' : 'available');
+      } catch {
+        setApplicantNameStatus('idle');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.applicantName]);
 
   // Check registration number uniqueness
   useEffect(() => {
