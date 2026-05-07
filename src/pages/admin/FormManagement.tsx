@@ -509,7 +509,6 @@ export default function FormManagement() {
                                   } },
                                   { label: 'View', icon: FileText, onClick: () => handleView(tpl.id) },
                                   { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
-                                  { label: 'Delete', icon: Trash2, onClick: () => handleDelete(tpl.id), destructive: true, separator: true },
                                 ]} />
                               </TableCell>
                             </TableRow>
