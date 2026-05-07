@@ -704,6 +704,51 @@ export default function ApplicationDetail() {
               </TabsContent>
             </Tabs>
 
+            {/* Admin: Edit Request Pending — bypasses workflow */}
+            {showEditRequestAdminPanel && (
+              <Card className="border-warning/40">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-warning" />
+                    Edit Request Pending
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    The applicant has requested to edit this application. Review the request below and either allow the edit (which will pause the workflow and let the applicant resubmit) or deny it (workflow continues as normal).
+                  </p>
+                  {(() => {
+                    const latestReq = [...events].reverse().find(e => (e as any).action === 'edit_requested') as any;
+                    return latestReq?.comments ? (
+                      <div className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Applicant's reason</p>
+                        <p className="whitespace-pre-wrap">{latestReq.comments}</p>
+                      </div>
+                    ) : null;
+                  })()}
+                  <div className="space-y-2">
+                    <Label className="text-sm">Remarks <span className="text-muted-foreground">(required to deny)</span></Label>
+                    <Textarea
+                      value={actionComment}
+                      onChange={e => setActionComment(e.target.value)}
+                      placeholder="Add remarks for the applicant..."
+                      rows={3}
+                      disabled={processing}
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={handleAllowEdit} disabled={processing}>
+                      {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                      Allow Edit
+                    </Button>
+                    <Button variant="destructive" onClick={handleDenyEdit} disabled={processing}>
+                      <XCircle className="h-4 w-4 mr-2" />Deny Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
             {showWorkflowPanel && (
               <WorkflowPanel
