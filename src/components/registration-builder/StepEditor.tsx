@@ -86,12 +86,17 @@ interface Props {
 
 function clearStuckPointerEvents() {
   // Defensive cleanup: Radix Popover/Dialog can occasionally leave
-  // pointer-events:none on body, blocking all clicks.
-  requestAnimationFrame(() => {
+  // pointer-events:none on body, blocking all clicks. Poll a few frames
+  // because Radix may re-apply it after its own cleanup runs.
+  const clear = () => {
     if (document.body.style.pointerEvents === 'none') {
       document.body.style.pointerEvents = '';
     }
-  });
+  };
+  requestAnimationFrame(clear);
+  setTimeout(clear, 50);
+  setTimeout(clear, 150);
+  setTimeout(clear, 300);
 }
 
 export function StepEditor({ step, onChange, allSteps }: Props) {
