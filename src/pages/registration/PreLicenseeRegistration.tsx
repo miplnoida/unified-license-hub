@@ -19,6 +19,7 @@ import type { RegStep } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
+import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
