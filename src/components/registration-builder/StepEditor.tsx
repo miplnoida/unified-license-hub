@@ -86,6 +86,7 @@ interface Props {
 
 export function StepEditor({ step, onChange, allSteps }: Props) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [openFieldPicker, setOpenFieldPicker] = useState<string | null>(null);
 
   const update = (partial: Partial<RegStep>) => {
     onChange({ ...step, ...partial });
@@ -242,7 +243,10 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                       onLabelChange={(label) => updateColumn(row.id, colIdx, { ...col.field!, label })}
                     />
                   ) : (
-                    <Popover>
+                    <Popover
+                      open={openFieldPicker === `${row.id}:${colIdx}`}
+                      onOpenChange={(o) => setOpenFieldPicker(o ? `${row.id}:${colIdx}` : null)}
+                    >
                       <PopoverTrigger asChild>
                         <button className="w-full h-full flex items-center justify-center text-muted-foreground hover:text-primary text-xs gap-1">
                           <Plus className="h-3 w-3" /> Add Field
@@ -253,7 +257,10 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                           <button
                             key={ft.type}
                             className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                            onClick={() => addFieldToColumn(row.id, colIdx, ft.type)}
+                            onClick={() => {
+                              setOpenFieldPicker(null);
+                              addFieldToColumn(row.id, colIdx, ft.type);
+                            }}
                           >
                             {ft.label}
                           </button>
