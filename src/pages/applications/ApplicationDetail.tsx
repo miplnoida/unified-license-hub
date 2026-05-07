@@ -440,7 +440,10 @@ export default function ApplicationDetail() {
       if (!_lastResAt || t > _lastResAt) _lastResAt = t;
     }
   }
-  const hasPendingEditRequest = !!_lastReqAt && (!_lastResAt || _lastResAt < _lastReqAt);
+  const EDIT_REQUEST_ALLOWED_STATUSES = ['submitted', 'in_progress'];
+  const hasPendingEditRequest =
+    EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) &&
+    !!_lastReqAt && (!_lastResAt || _lastResAt < _lastReqAt);
 
   // Show manual actions for internal users when no workflow is configured.
   // Workflow is effectively ON only when the admin review toggle is enabled
