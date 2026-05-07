@@ -1024,6 +1024,40 @@ export default function NewApplication() {
               );
             })}
 
+            {/* Inline Review (before mandatory final review step) */}
+            {reviewSettings?.application_review_enabled && completedCount > 0 && !showInlineReview && (
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowInlineReview(true)}>
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review Entered Data
+                </Button>
+              </div>
+            )}
+
+            {showInlineReview && (
+              <div className="space-y-3">
+                <ApplicationReviewBuilder
+                  templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
+                  formProgressMap={formProgressMap}
+                  versionIdByTemplate={selectedVersionByTemplate}
+                  mode={reviewSettings?.review_mode || 'editable'}
+                  onAcknowledge={() => setShowInlineReview(false)}
+                  onEdit={(idx) => {
+                    const tmpl = matchedTemplates[idx];
+                    if (tmpl) {
+                      setShowInlineReview(false);
+                      setActiveFormTemplateId(tmpl.id);
+                      setCurrentStep('filling');
+                    }
+                  }}
+                  title="Review Entered Data"
+                  description="Review the data you have entered so far. You can continue editing forms before proceeding."
+                />
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => setShowInlineReview(false)}>Close Review</Button>
+                </div>
+              </div>
+            )}
+
             {/* Navigation */}
             <div className="flex justify-between pt-4 border-t">
               <Button variant="outline" onClick={() => setCurrentStep('selection')}>
