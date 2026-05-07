@@ -86,12 +86,17 @@ interface Props {
 
 function clearStuckPointerEvents() {
   // Defensive cleanup: Radix Popover/Dialog can occasionally leave
-  // pointer-events:none on body, blocking all clicks.
-  requestAnimationFrame(() => {
+  // pointer-events:none on body, blocking all clicks. Poll a few frames
+  // because Radix may re-apply it after its own cleanup runs.
+  const clear = () => {
     if (document.body.style.pointerEvents === 'none') {
       document.body.style.pointerEvents = '';
     }
-  });
+  };
+  requestAnimationFrame(clear);
+  setTimeout(clear, 50);
+  setTimeout(clear, 150);
+  setTimeout(clear, 300);
 }
 
 export function StepEditor({ step, onChange, allSteps }: Props) {
@@ -270,11 +275,15 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                         {REG_FIELD_TYPES.map(ft => (
                           <button
                             key={ft.type}
+                            type="button"
                             className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                            onClick={() => {
+                            onPointerDown={(e) => {
+                              // Run before Radix's outside-pointerdown handler closes the popover
+                              e.preventDefault();
+                              e.stopPropagation();
                               setOpenFieldPicker(null);
-                              clearStuckPointerEvents();
                               addFieldToColumn(row.id, colIdx, ft.type);
+                              clearStuckPointerEvents();
                             }}
                           >
                             {ft.label}
@@ -307,11 +316,14 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
             {COLUMN_PRESETS.map((preset, i) => (
               <button
                 key={i}
+                type="button"
                 className="flex items-center justify-between w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                onClick={() => {
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setOpenRowPicker(false);
-                  clearStuckPointerEvents();
                   addRow(preset.spans);
+                  clearStuckPointerEvents();
                 }}
               >
                 <span>{preset.label}</span>
