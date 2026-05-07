@@ -20,6 +20,7 @@ import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
+import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
@@ -60,6 +61,20 @@ export default function PreLicenseeRegistration() {
     () => resolveRegistrationEmail(form.email, dynamicFormData, config?.formSchema),
     [form.email, dynamicFormData, config?.formSchema],
   );
+
+  // Dynamic Applicant Name uniqueness (resolved from form schema metadata)
+  const applicantNameCheck = useApplicantNameUniqueness(config?.formSchema, dynamicFormData);
+
+  // Surface uniqueness error inline on the resolved field
+  const dynamicErrorsWithUniqueness = useMemo(() => {
+    if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
+      return {
+        ...dynamicErrors,
+        [applicantNameCheck.fieldName]: 'This applicant name is already registered',
+      };
+    }
+    return dynamicErrors;
+  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName]);
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
@@ -141,9 +156,22 @@ export default function PreLicenseeRegistration() {
         }
       }
     }
+    // Applicant Name uniqueness — block step until check resolves to 'available'
+    if (applicantNameCheck.fieldName) {
+      const stepHasField = stepData.rows.some(r =>
+        r.columns.some(c => c.field?.fieldName === applicantNameCheck.fieldName)
+      );
+      if (stepHasField) {
+        if (applicantNameCheck.status === 'taken') {
+          errs[applicantNameCheck.fieldName] = 'This applicant name is already registered';
+        } else if (applicantNameCheck.status === 'checking') {
+          errs[applicantNameCheck.fieldName] = 'Checking applicant name availability…';
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -264,7 +292,9 @@ export default function PreLicenseeRegistration() {
           password: passwordVal,
           first_name: form.firstName || String(dynamicFormData.first_name || ''),
           last_name: form.lastName || String(dynamicFormData.last_name || ''),
-          applicant_name: form.applicantName || String(dynamicFormData.applicant_name || ''),
+          applicant_name: form.applicantName
+            || (applicantNameCheck.fieldName ? String(dynamicFormData[applicantNameCheck.fieldName] || '') : '')
+            || String(dynamicFormData.applicant_name || ''),
           applicant_name_alt: form.applicantNameAlt || String(dynamicFormData.applicant_name_alt || ''),
           sector_id: form.sectorId || String(dynamicFormData.sector || ''),
           sub_sector_id: form.subSectorId || String(dynamicFormData.sub_sector || ''),
@@ -345,7 +375,7 @@ export default function PreLicenseeRegistration() {
             <RegistrationStepRenderer
               step={step.stepData}
               data={dynamicFormData}
-              errors={dynamicErrors}
+              errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
             />
           );

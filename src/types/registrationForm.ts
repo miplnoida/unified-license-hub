@@ -24,6 +24,8 @@ export interface RegFieldValidation {
   max?: number;
   pattern?: string;
   patternMessage?: string;
+  /** When true, this field's value must be unique across registration applicant names. */
+  uniqueApplicantName?: boolean;
 }
 
 export interface RegConditionalRule {

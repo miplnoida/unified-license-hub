@@ -113,7 +113,7 @@ function defaultFormSchema(): RegFormSchema {
         ]),
         // Applicant Info
         row([
-          { span: 6, field: field('text', 'Applicant Name', 'applicant_name', true, { placeholder: 'Enter applicant legal name' }) },
+          { span: 6, field: field('text', 'Applicant Name', 'applicant_name', true, { placeholder: 'Enter applicant legal name', validation: { uniqueApplicantName: true } }) },
           { span: 6, field: field('text', 'Applicant Name (if available)', 'applicant_name_alt', false, { placeholder: 'Alternate or trading name' }) },
         ]),
         // Business Registration
