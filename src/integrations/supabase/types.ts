@@ -4321,6 +4321,10 @@ export type Database = {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
       }
+      check_applicant_name_exists: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       create_audit_log: {
         Args: {
           _action: string

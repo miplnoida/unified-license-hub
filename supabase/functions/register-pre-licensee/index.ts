@@ -99,6 +99,26 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Check applicant name uniqueness (case-insensitive, trimmed)
+    {
+      const normalized = String(applicant_name).trim();
+      const { data: existingName } = await supabaseAdmin
+        .from("registrations")
+        .select("id")
+        .ilike("applicant_name", normalized)
+        .limit(1);
+
+      if (existingName && existingName.length > 0) {
+        return new Response(JSON.stringify({
+          error: "Applicant Name already exists. Please enter a unique applicant name.",
+          code: "APPLICANT_NAME_EXISTS",
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
