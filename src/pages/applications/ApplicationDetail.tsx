@@ -762,8 +762,24 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Applicant request edit (before approval, while submitted/in_progress) */}
-            {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (
+            {/* Applicant request edit (before approval, while submitted/in_progress, no pending request) */}
+            {(() => {
+              const NON_EDITABLE = ['approved', 'rejected', 'cancelled', 'withdrawn', 'draft', 'resubmission_requested', 'query_raised'];
+              if (!isOwner) return false;
+              if (!(app.status === 'submitted' || app.status === 'in_progress')) return false;
+              if (NON_EDITABLE.includes(app.status)) return false;
+              // Check for an open edit request (latest edit_requested without a later resolution)
+              let lastRequestAt: string | null = null;
+              let lastResolutionAt: string | null = null;
+              for (const e of events) {
+                const a = (e as any).action;
+                const t = (e as any).created_at;
+                if (a === 'edit_requested') lastRequestAt = t;
+                else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') lastResolutionAt = t;
+              }
+              const hasPending = !!lastRequestAt && (!lastResolutionAt || lastResolutionAt < lastRequestAt);
+              return !hasPending;
+            })() && (
               <Card>
                 <CardContent className="pt-6 space-y-4">
                   <div className="space-y-2">
