@@ -16,6 +16,7 @@ import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
+import { AttachmentDisplay } from '@/components/registration/AttachmentDisplay';
 
 interface Props {
   step: RegStep;
