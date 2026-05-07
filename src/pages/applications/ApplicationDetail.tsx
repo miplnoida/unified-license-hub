@@ -69,6 +69,8 @@ export default function ApplicationDetail() {
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [showReview, setShowReview] = useState(false);
+  const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isPreLicensee = useIsPreLicensee();
