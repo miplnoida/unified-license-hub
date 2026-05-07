@@ -62,6 +62,20 @@ export default function PreLicenseeRegistration() {
     [form.email, dynamicFormData, config?.formSchema],
   );
 
+  // Dynamic Applicant Name uniqueness (resolved from form schema metadata)
+  const applicantNameCheck = useApplicantNameUniqueness(config?.formSchema, dynamicFormData);
+
+  // Surface uniqueness error inline on the resolved field
+  const dynamicErrorsWithUniqueness = useMemo(() => {
+    if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
+      return {
+        ...dynamicErrors,
+        [applicantNameCheck.fieldName]: 'This applicant name is already registered',
+      };
+    }
+    return dynamicErrors;
+  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName]);
+
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
     const result: { id: string; label: string; type: 'static' | 'dynamic' | 'documents' | 'declarations' | 'review'; stepData?: RegStep }[] = [];
