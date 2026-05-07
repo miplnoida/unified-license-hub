@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
+import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 
 interface ReviewField {
   label: string;
-  value: string | number | boolean | null;
+  value: any;
 }
 
 interface ReviewSection {
