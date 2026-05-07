@@ -128,6 +128,22 @@ export default function ApplicationDetail() {
 
   useEffect(() => { loadData(); }, [id]);
 
+  // Load form template names for review modal
+  useEffect(() => {
+    if (formTemplateIds.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from('form_templates')
+        .select('id, name')
+        .in('id', formTemplateIds);
+      if (data) {
+        const map: Record<string, string> = {};
+        (data as any[]).forEach(t => { map[t.id] = t.name; });
+        setTemplateNames(map);
+      }
+    })();
+  }, [JSON.stringify(formTemplateIds)]);
+
   // Re-validate workflow ON/OFF state when window regains focus
   // (handles case where admin toggled workflow off in another tab)
   useEffect(() => {
