@@ -54,6 +54,10 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   };
 
   const handleSave = async () => {
+    if (nameStatus === 'taken') {
+      toast.error('Entity name already exists');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('licensees').update({
       name: form.name,
