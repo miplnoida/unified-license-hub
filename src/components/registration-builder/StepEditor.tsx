@@ -256,7 +256,10 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                   ) : (
                     <Popover
                       open={openFieldPicker === `${row.id}:${colIdx}`}
-                      onOpenChange={(o) => setOpenFieldPicker(o ? `${row.id}:${colIdx}` : null)}
+                      onOpenChange={(o) => {
+                        setOpenFieldPicker(o ? `${row.id}:${colIdx}` : null);
+                        if (!o) clearStuckPointerEvents();
+                      }}
                     >
                       <PopoverTrigger asChild>
                         <button className="w-full h-full flex items-center justify-center text-muted-foreground hover:text-primary text-xs gap-1">
@@ -270,6 +273,7 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                             className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
                             onClick={() => {
                               setOpenFieldPicker(null);
+                              clearStuckPointerEvents();
                               addFieldToColumn(row.id, colIdx, ft.type);
                             }}
                           >
