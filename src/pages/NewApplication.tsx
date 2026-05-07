@@ -107,6 +107,7 @@ export default function NewApplication() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
+  const [showInlineReview, setShowInlineReview] = useState(false);
 
   const { data: appSettings } = useApplicationSettings();
 
