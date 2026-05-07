@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, MapPin, Phone, Mail, Save, Loader2 } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Save, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
 interface BackgroundInfoTabProps {
   entity: any;
