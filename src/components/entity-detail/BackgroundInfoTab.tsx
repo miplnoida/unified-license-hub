@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Building2, MapPin, Phone, Mail, Save, Loader2 } from 'lucide-react';
+import { Building2, MapPin, Phone, Mail, Save, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 
 interface BackgroundInfoTabProps {
   entity: any;
@@ -28,13 +28,36 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     category_id: entity.category_id || '',
   });
   const [saving, setSaving] = useState(false);
+  const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
     onDirtyChange(true);
+    if (key === 'name') setNameStatus('idle');
+  };
+
+  const checkNameUnique = async () => {
+    const trimmed = form.name.trim();
+    if (!trimmed || trimmed.toLowerCase() === (entity.name || '').toLowerCase()) {
+      setNameStatus('idle');
+      return;
+    }
+    setNameStatus('checking');
+    const { data, error } = await supabase
+      .from('licensees')
+      .select('id')
+      .ilike('name', trimmed)
+      .neq('id', entity.id)
+      .limit(1);
+    if (error) { setNameStatus('idle'); return; }
+    setNameStatus(data && data.length > 0 ? 'taken' : 'available');
   };
 
   const handleSave = async () => {
+    if (nameStatus === 'taken') {
+      toast.error('Entity name already exists');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('licensees').update({
       name: form.name,
@@ -72,7 +95,23 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Entity Name *</Label>
-              <Input id="name" value={form.name} onChange={e => handleChange('name', e.target.value)} />
+              <div className="relative">
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={e => handleChange('name', e.target.value)}
+                  onBlur={checkNameUnique}
+                  className={nameStatus === 'taken' ? 'border-destructive pr-10' : 'pr-10'}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {nameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {nameStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {nameStatus === 'taken' && <XCircle className="h-4 w-4 text-destructive" />}
+                </div>
+              </div>
+              {nameStatus === 'taken' && (
+                <p className="text-sm text-destructive">An entity with this name already exists</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
