@@ -28,10 +28,29 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     category_id: entity.category_id || '',
   });
   const [saving, setSaving] = useState(false);
+  const [nameStatus, setNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
     onDirtyChange(true);
+    if (key === 'name') setNameStatus('idle');
+  };
+
+  const checkNameUnique = async () => {
+    const trimmed = form.name.trim();
+    if (!trimmed || trimmed.toLowerCase() === (entity.name || '').toLowerCase()) {
+      setNameStatus('idle');
+      return;
+    }
+    setNameStatus('checking');
+    const { data, error } = await supabase
+      .from('licensees')
+      .select('id')
+      .ilike('name', trimmed)
+      .neq('id', entity.id)
+      .limit(1);
+    if (error) { setNameStatus('idle'); return; }
+    setNameStatus(data && data.length > 0 ? 'taken' : 'available');
   };
 
   const handleSave = async () => {
