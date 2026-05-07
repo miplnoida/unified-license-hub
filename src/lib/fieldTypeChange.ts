@@ -5,11 +5,11 @@
  */
 
 const CHOICE_TYPES = new Set(['select', 'multi_select', 'checkbox', 'radio']);
-const TEXTUAL_TYPES = new Set(['text', 'textarea', 'email', 'phone', 'password']);
+const TEXTUAL_TYPES = new Set(['text', 'textarea', 'email', 'phone', 'password', 'confirm_password']);
 const NUMERIC_TYPES = new Set(['number', 'decimal']);
 const PATTERN_TYPES = new Set(['text', 'email', 'phone', 'password']);
 const PLACEHOLDER_TYPES = new Set([
-  'text', 'textarea', 'email', 'phone', 'password', 'number', 'decimal', 'date', 'select', 'multi_select',
+  'text', 'textarea', 'email', 'phone', 'password', 'confirm_password', 'number', 'decimal', 'date', 'select', 'multi_select',
 ]);
 
 export interface AnyField {
