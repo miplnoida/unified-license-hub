@@ -890,20 +890,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant request edit (before approval, while submitted/in_progress) */}
-            {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (() => {
-              // Find latest edit_requested vs latest resolution (approved/denied/rejected)
-              let lastRequestAt: string | null = null;
-              let lastResolutionAt: string | null = null;
-              for (const e of events) {
-                const a = (e as any).action as string;
-                const t = (e as any).created_at as string;
-                if (a === 'edit_requested') {
-                  if (!lastRequestAt || t > lastRequestAt) lastRequestAt = t;
-                } else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') {
-                  if (!lastResolutionAt || t > lastResolutionAt) lastResolutionAt = t;
-                }
-              }
-              const hasPendingEditRequest = !!lastRequestAt && (!lastResolutionAt || lastResolutionAt < lastRequestAt);
+            {isOwner && EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) && (() => {
 
               if (hasPendingEditRequest) {
                 return (
