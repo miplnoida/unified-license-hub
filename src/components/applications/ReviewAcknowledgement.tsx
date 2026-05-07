@@ -67,17 +67,19 @@ export function ReviewAcknowledgement({
                   {section.fields.map((field, fIdx) => (
                     <div key={fIdx} className="flex items-start justify-between gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50">
                       <span className="text-muted-foreground min-w-[140px] shrink-0">{field.label}</span>
-                      <span className="font-medium text-right break-words max-w-[300px]">
-                        {field.value == null || field.value === '' ? (
-                          <span className="text-muted-foreground/60 italic">Not provided</span>
-                        ) : isAttachmentValue(field.value) ? (
+                      {field.value == null || field.value === '' ? (
+                        <span className="font-medium text-right break-words max-w-[300px] text-muted-foreground/60 italic">Not provided</span>
+                      ) : isAttachmentValue(field.value) ? (
+                        <div className="flex-1 min-w-0 max-w-[360px]">
                           <AttachmentDisplay value={field.value} />
-                        ) : typeof field.value === 'boolean' ? (
-                          field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'
-                        ) : (
-                          String(field.value)
-                        )}
-                      </span>
+                        </div>
+                      ) : typeof field.value === 'boolean' ? (
+                        <span className="font-medium text-right break-words max-w-[300px]">
+                          {field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'}
+                        </span>
+                      ) : (
+                        <span className="font-medium text-right break-words max-w-[300px]">{String(field.value)}</span>
+                      )}
                     </div>
                   ))}
                 </div>

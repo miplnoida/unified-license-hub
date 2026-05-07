@@ -436,6 +436,13 @@ export default function PreLicenseeRegistration() {
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
           const raw = dynamicFormData[c.field.fieldName];
+          // For file fields, pass the raw upload object straight through so
+          // ReviewAcknowledgement's isAttachmentValue() can detect it and
+          // AttachmentDisplay can render View/Download actions.
+          if (c.field.type === 'file') {
+            fields.push({ label: c.field.label, value: raw ?? null });
+            return;
+          }
           const resolved = resolveReviewValue(c.field, raw);
           fields.push({ label: c.field.label, value: formatReviewValue(resolved) });
         }));
