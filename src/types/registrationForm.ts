@@ -6,6 +6,7 @@ export type RegFieldType =
   | 'email'
   | 'phone'
   | 'password'
+  | 'confirm_password'
   | 'date'
   | 'textarea'
   | 'select'
@@ -54,6 +55,8 @@ export interface RegField {
   conditionalLogic?: RegConditionalRule[];
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   content?: string;
+  /** For 'confirm_password' fields: the fieldName of the password field to match. */
+  matchField?: string;
 }
 
 export interface RegColumn {
@@ -92,6 +95,7 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'email', label: 'Email' },
   { type: 'phone', label: 'Phone' },
   { type: 'password', label: 'Password' },
+  { type: 'confirm_password', label: 'Confirm Password' },
   { type: 'date', label: 'Date' },
   { type: 'textarea', label: 'Text Area' },
   { type: 'select', label: 'Dropdown' },
