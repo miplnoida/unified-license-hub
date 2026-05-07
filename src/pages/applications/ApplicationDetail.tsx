@@ -762,46 +762,64 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
-            {/* Applicant request edit (before approval, while submitted/in_progress, no pending request) */}
-            {(() => {
-              const NON_EDITABLE = ['approved', 'rejected', 'cancelled', 'withdrawn', 'draft', 'resubmission_requested', 'query_raised'];
-              if (!isOwner) return false;
-              if (!(app.status === 'submitted' || app.status === 'in_progress')) return false;
-              if (NON_EDITABLE.includes(app.status)) return false;
-              // Check for an open edit request (latest edit_requested without a later resolution)
+            {/* Applicant request edit (before approval, while submitted/in_progress) */}
+            {isOwner && (app.status === 'submitted' || app.status === 'in_progress') && (() => {
+              // Find latest edit_requested vs latest resolution (approved/denied/rejected)
               let lastRequestAt: string | null = null;
               let lastResolutionAt: string | null = null;
               for (const e of events) {
-                const a = (e as any).action;
-                const t = (e as any).created_at;
-                if (a === 'edit_requested') lastRequestAt = t;
-                else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') lastResolutionAt = t;
+                const a = (e as any).action as string;
+                const t = (e as any).created_at as string;
+                if (a === 'edit_requested') {
+                  if (!lastRequestAt || t > lastRequestAt) lastRequestAt = t;
+                } else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') {
+                  if (!lastResolutionAt || t > lastResolutionAt) lastResolutionAt = t;
+                }
               }
-              const hasPending = !!lastRequestAt && (!lastResolutionAt || lastResolutionAt < lastRequestAt);
-              return !hasPending;
-            })() && (
-              <Card>
-                <CardContent className="pt-6 space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm">Request to Edit Application</Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Explain why you need to edit your application..."
-                      rows={2}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
-                      <Edit className="h-4 w-4 mr-2" />Request Edit
-                    </Button>
-                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                      <Ban className="h-4 w-4 mr-2" />Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              const hasPendingEditRequest = !!lastRequestAt && (!lastResolutionAt || lastResolutionAt < lastRequestAt);
+
+              if (hasPendingEditRequest) {
+                return (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-warning" />
+                        Edit Request Pending
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Your request to edit this application is awaiting administrator review. You'll be notified once it's approved or denied.
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              return (
+                <Card>
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm">Request to Edit Application</Label>
+                      <Textarea
+                        value={actionComment}
+                        onChange={e => setActionComment(e.target.value)}
+                        placeholder="Explain why you need to edit your application..."
+                        rows={2}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={handleRequestEdit} disabled={processing} className="flex-1">
+                        <Edit className="h-4 w-4 mr-2" />Request Edit
+                      </Button>
+                      <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                        <Ban className="h-4 w-4 mr-2" />Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
 
           {/* Sidebar - Activity Log */}
