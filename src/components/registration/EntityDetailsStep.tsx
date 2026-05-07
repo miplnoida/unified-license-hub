@@ -119,6 +119,7 @@ export function EntityDetailsStep({
         applicantNameAlt={form.applicantNameAlt}
         onChange={setField}
         errors={errors}
+        applicantNameStatus={applicantNameStatus}
       />
 
       {/* Registration Number with uniqueness check */}
