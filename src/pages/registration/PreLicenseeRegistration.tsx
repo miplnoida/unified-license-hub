@@ -438,7 +438,7 @@ export default function PreLicenseeRegistration() {
       sections.push({
         title: 'Supporting Documents',
         fields: form.documents.length > 0
-          ? form.documents.map(d => ({ label: d.label || d.name, value: d.name }))
+          ? form.documents.map(d => ({ label: d.label || d.name, value: d }))
           : [{ label: 'Documents', value: 'None uploaded' }],
       });
     }
@@ -449,8 +449,13 @@ export default function PreLicenseeRegistration() {
   function formatReviewValue(v: any): any {
     if (v == null || v === '') return null;
     if (typeof v === 'object') {
-      if ('fileName' in v) return v.fileName;
-      if ('name' in v) return v.name;
+      // Preserve file/attachment objects so AttachmentDisplay can render view/download actions
+      const f = v as Record<string, any>;
+      if (f.path || f.file_path || f.url || f.fileUrl || f.fileName || f.file_name ||
+          ((f.name || f.originalName) && (f.size != null || f.type))) {
+        return v;
+      }
+      if ('name' in f) return f.name;
       return JSON.stringify(v);
     }
     return v;
