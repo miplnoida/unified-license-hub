@@ -7,6 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
+function FormNameLabel({ templateId, fallbackIndex }: { templateId: string; fallbackIndex: number }) {
+  const { data: tpl } = useFormTemplate(templateId);
+  return <span>{tpl?.name || `Form ${fallbackIndex}`}</span>;
+}
+
 interface SingleFormViewerProps {
   templateId: string;
   formData: Record<string, any>;
@@ -234,7 +239,7 @@ export function SubmittedForms({
                   ) : (
                     <Circle className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                   )}
-                  <span>Form {idx + 1}</span>
+                  <FormNameLabel templateId={tid} fallbackIndex={idx + 1} />
                   {completed && (
                     <Badge variant="outline" className="text-[10px] ml-2 border-green-500/40 text-green-700 dark:text-green-400">
                       Completed
