@@ -517,8 +517,8 @@ export default function ApplicationForms() {
               );
             })}
 
-            {/* Review button - available in edit mode whenever any form has data */}
-            {!showReview && reviewSettings?.application_review_enabled && completedCount > 0 && !allFormsCompleted && (
+            {/* Review button - always available in edit mode whenever any form has data */}
+            {!showReview && completedCount > 0 && !allFormsCompleted && (
               <div className="flex justify-end pt-4 border-t">
                 <Button size="lg" variant="outline" onClick={() => setShowReview(true)}>
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Review Entered Data
@@ -526,32 +526,30 @@ export default function ApplicationForms() {
               </div>
             )}
 
-            {/* Submit Application Button - only visible when all forms are completed */}
+            {/* Submit / Review buttons - visible when all forms are completed */}
             {allFormsCompleted && !showReview && (
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-end pt-4 border-t gap-2">
                 <Button
                   size="lg"
-                  onClick={() => {
-                    if (reviewSettings?.application_review_enabled) {
-                      setShowReview(true);
-                    } else {
-                      handleSubmitApplication();
-                    }
-                  }}
+                  variant="outline"
+                  onClick={() => setShowReview(true)}
                   disabled={submitting}
                 >
-                  {submitting ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
-                  ) : reviewSettings?.application_review_enabled ? (
-                    <><CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit</>
-                  ) : (
-                    <><Send className="h-4 w-4 mr-2" /> Submit Application</>
-                  )}
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit
                 </Button>
+                {reviewSettings?.application_review_enabled === false && (
+                  <Button size="lg" onClick={handleSubmitApplication} disabled={submitting}>
+                    {submitting ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Send className="h-4 w-4 mr-2" /> Submit Application</>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
-            {allFormsCompleted && showReview && (
+            {(allFormsCompleted || completedCount > 0) && showReview && (
               <div className="space-y-4 pt-4 border-t">
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
