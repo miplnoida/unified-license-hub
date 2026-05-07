@@ -373,7 +373,7 @@ export default function PreLicenseeRegistration() {
             <RegistrationStepRenderer
               step={step.stepData}
               data={dynamicFormData}
-              errors={dynamicErrors}
+              errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
             />
           );
