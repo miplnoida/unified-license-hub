@@ -693,22 +693,43 @@ export default function ApplicationDetail() {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
+              const canSubmit = allFormsCompleted && paymentComplete;
               return (
-                <div className="flex gap-2">
-                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted || !paymentComplete} className="flex-1">
-                    <Send className="h-4 w-4 mr-2" />
-                    {processing
-                      ? 'Submitting...'
-                      : !allFormsCompleted
-                        ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
-                        : !paymentComplete
-                          ? 'Complete payment to submit'
-                          : 'Submit Application'}
-                  </Button>
-                  <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                    <Ban className="h-4 w-4 mr-2" />Cancel
-                  </Button>
-                </div>
+                <>
+                  <div className="flex gap-2">
+                    <Button onClick={() => setShowReview(true)} disabled={processing || !canSubmit} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />
+                      {processing
+                        ? 'Submitting...'
+                        : !allFormsCompleted
+                          ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                          : !paymentComplete
+                            ? 'Complete payment to submit'
+                            : 'Review & Submit'}
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                  <Dialog open={showReview} onOpenChange={setShowReview}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Review Application</DialogTitle>
+                        <DialogDescription>
+                          Please review your entered information before final submission.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ApplicationReviewBuilder
+                        templates={formTemplateIds.map((tid, i) => ({ id: tid, name: templateNames[tid] || `Form ${i + 1}` }))}
+                        formProgressMap={Object.fromEntries(formTemplateIds.map(tid => [tid, { data: formsData[tid] || {} }]))}
+                        versionIdByTemplate={formVersionIds}
+                        mode="readonly"
+                        loading={processing}
+                        onAcknowledge={async () => { setShowReview(false); await handleSubmit(); }}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </>
               );
             })()}
 
