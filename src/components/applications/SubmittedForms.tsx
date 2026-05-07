@@ -234,7 +234,7 @@ export function SubmittedForms({
                   ) : (
                     <Circle className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')} />
                   )}
-                  <span>Form {idx + 1}</span>
+                  <FormNameLabel templateId={tid} fallbackIndex={idx + 1} />
                   {completed && (
                     <Badge variant="outline" className="text-[10px] ml-2 border-green-500/40 text-green-700 dark:text-green-400">
                       Completed
