@@ -8,6 +8,9 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
 const ApplicationDetail = lazy(() => import('@/pages/applications/ApplicationDetail'));
 const NewApplication = lazy(() => import('@/pages/NewApplication'));
+const NewPostLicenseApplication = lazy(() => import('@/pages/NewPostLicenseApplication'));
+const PostLicenseApplicationForms = lazy(() => import('@/pages/PostLicenseApplicationForms'));
+const ApplicationForms = lazy(() => import('@/pages/ApplicationForms'));
 const LicensesList = lazy(() => import('@/pages/licenses/LicensesList'));
 const LicenseDetail = lazy(() => import('@/pages/licenses/LicenseDetail'));
 const ComplianceReturns = lazy(() => import('@/pages/compliance/ComplianceReturns'));
@@ -39,6 +42,11 @@ export const dashboardRoutes = (
     <Route path="/applications/new" element={<P><NewApplication /></P>} />
     <Route path="/applications/queue" element={<M module="application_management"><ApplicationsList /></M>} />
     <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
+    <Route path="/applications/:applicationId/forms" element={<P><ApplicationForms /></P>} />
+
+    <Route path="/pre-license/new" element={<P><NewApplication /></P>} />
+    <Route path="/post-license/new" element={<P><NewPostLicenseApplication /></P>} />
+    <Route path="/post-licensee/applications/:applicationId/forms" element={<P><PostLicenseApplicationForms /></P>} />
 
     <Route path="/licenses" element={<P><LicensesList /></P>} />
     <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
