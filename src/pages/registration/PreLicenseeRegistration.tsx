@@ -156,9 +156,22 @@ export default function PreLicenseeRegistration() {
         }
       }
     }
+    // Applicant Name uniqueness — block step until check resolves to 'available'
+    if (applicantNameCheck.fieldName) {
+      const stepHasField = stepData.rows.some(r =>
+        r.columns.some(c => c.field?.fieldName === applicantNameCheck.fieldName)
+      );
+      if (stepHasField) {
+        if (applicantNameCheck.status === 'taken') {
+          errs[applicantNameCheck.fieldName] = 'This applicant name is already registered';
+        } else if (applicantNameCheck.status === 'checking') {
+          errs[applicantNameCheck.fieldName] = 'Checking applicant name availability…';
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
