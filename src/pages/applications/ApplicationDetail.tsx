@@ -427,12 +427,91 @@ export default function ApplicationDetail() {
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!app) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">Application not found</div></DashboardLayout>;
 
+  // Determine if there's a pending edit request from the applicant.
+  // Edit-request handling bypasses the normal approval workflow.
+  let _lastReqAt: string | null = null;
+  let _lastResAt: string | null = null;
+  for (const e of events) {
+    const a = (e as any).action as string;
+    const t = (e as any).created_at as string;
+    if (a === 'edit_requested') {
+      if (!_lastReqAt || t > _lastReqAt) _lastReqAt = t;
+    } else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') {
+      if (!_lastResAt || t > _lastResAt) _lastResAt = t;
+    }
+  }
+  const hasPendingEditRequest = !!_lastReqAt && (!_lastResAt || _lastResAt < _lastReqAt);
+
   // Show manual actions for internal users when no workflow is configured.
   // Workflow is effectively ON only when the admin review toggle is enabled
   // and an active workflow with steps is attached.
   const workflowOn = workflowApprovalEnabled && !!app.workflow_id && workflowActive;
-  const showWorkflowPanel = workflowChecked && workflowOn === true;
-  const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'in_progress'].includes(app.status);
+  // Workflow / manual actions are suppressed while an edit request is pending —
+  // admins must first allow or deny the edit request before resuming review.
+  const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
+  const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'in_progress'].includes(app.status) && !hasPendingEditRequest;
+  const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
+
+  // Admin allows the applicant's edit request → pause workflow and move app to
+  // resubmission_requested so the applicant can edit and resubmit.
+  const handleAllowEdit = async () => {
+    if (!app || !user) return;
+    setProcessing(true);
+    try {
+      const reason = actionComment.trim() || 'Edit request approved by administrator';
+      const { data: rpcData, error: rpcErr } = await supabase.rpc(
+        'request_resubmission_for_application' as any,
+        { _application_id: app.id, _comments: reason },
+      );
+      if (rpcErr || (rpcData as any)?.error) {
+        toast.error((rpcData as any)?.error || rpcErr?.message || 'Failed to allow edit');
+        return;
+      }
+      await supabase.from('approval_actions').insert({
+        application_id: app.id, action: 'edit_approved', actor_id: user.id, comments: reason,
+      } as any);
+      await logAudit({ action: 'edit_approved', entityType: 'application', entityId: app.id, newValue: { comments: reason } });
+      toast.success('Edit request approved. Applicant can now edit the application.');
+      setActionComment('');
+      await loadData();
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Admin denies the applicant's edit request → workflow continues as normal.
+  const handleDenyEdit = async () => {
+    if (!app || !user) return;
+    if (!actionComment.trim()) {
+      toast.error('Please provide a reason for denying the edit request');
+      return;
+    }
+    setProcessing(true);
+    try {
+      await supabase.from('approval_actions').insert({
+        application_id: app.id, action: 'edit_denied', actor_id: user.id, comments: actionComment,
+      } as any);
+      await logAudit({ action: 'edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+      try {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            action: 'dispatch',
+            event_type: 'edit_denied',
+            user_id: app.applicant_id,
+            title: `Edit Request Denied: ${app.application_number}`,
+            message: `Your request to edit application ${app.application_number} was denied.\n\nReason: ${actionComment}`,
+            entity_type: 'application',
+            entity_id: app.id,
+          },
+        });
+      } catch (e) { console.error('Notification failed', e); }
+      toast.success('Edit request denied');
+      setActionComment('');
+      await loadData();
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <DashboardLayout>
