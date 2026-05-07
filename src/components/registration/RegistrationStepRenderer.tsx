@@ -16,6 +16,7 @@ import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
+import { AttachmentDisplay } from '@/components/registration/AttachmentDisplay';
 
 interface Props {
   step: RegStep;
@@ -518,12 +519,11 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
 
   if (fileData) {
     return (
-      <div className="flex items-center gap-2 rounded-md border border-border p-2 bg-muted/30">
-        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-sm truncate flex-1">{fileData.name}</span>
+      <div className="space-y-1.5">
+        <AttachmentDisplay value={fileData} />
         {!readOnly && (
-          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={handleRemove}>
-            <X className="h-3 w-3" />
+          <Button type="button" variant="ghost" size="sm" onClick={handleRemove} className="h-7 text-xs text-destructive hover:text-destructive">
+            <X className="h-3 w-3 mr-1" /> Remove
           </Button>
         )}
       </div>

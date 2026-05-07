@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
+import { FileText, Eye, Download } from 'lucide-react';
 import type { RegFormSchema, RegField } from '@/types/registrationForm';
 
 interface Props {
@@ -159,6 +160,16 @@ function FieldPreview({ field }: { field: RegField }) {
         <div className="space-y-1">
           <Label className="text-sm">{field.label}{field.required && <span className="text-destructive"> *</span>}</Label>
           <Input type="file" disabled className="text-sm" />
+          <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5 opacity-70">
+            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-sm truncate flex-1 text-muted-foreground">sample-file.pdf</span>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled title="Preview not available" aria-label="View attachment">
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled title="Download not available" aria-label="Download attachment">
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
         </div>
       );

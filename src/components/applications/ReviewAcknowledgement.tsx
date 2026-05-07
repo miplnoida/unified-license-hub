@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
+import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 
 interface ReviewField {
   label: string;
-  value: string | number | boolean | null;
+  value: any;
 }
 
 interface ReviewSection {
@@ -69,6 +70,8 @@ export function ReviewAcknowledgement({
                       <span className="font-medium text-right break-words max-w-[300px]">
                         {field.value == null || field.value === '' ? (
                           <span className="text-muted-foreground/60 italic">Not provided</span>
+                        ) : isAttachmentValue(field.value) ? (
+                          <AttachmentDisplay value={field.value} />
                         ) : typeof field.value === 'boolean' ? (
                           field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'
                         ) : (
