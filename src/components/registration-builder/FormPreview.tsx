@@ -10,6 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { DynamicRegistrationStepper } from '@/components/registration/DynamicRegistrationStepper';
+import { FileText, Eye, Download } from 'lucide-react';
 import type { RegFormSchema, RegField } from '@/types/registrationForm';
 
 interface Props {
