@@ -84,9 +84,20 @@ interface Props {
   allSteps: RegStep[];
 }
 
+function clearStuckPointerEvents() {
+  // Defensive cleanup: Radix Popover/Dialog can occasionally leave
+  // pointer-events:none on body, blocking all clicks.
+  requestAnimationFrame(() => {
+    if (document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
+  });
+}
+
 export function StepEditor({ step, onChange, allSteps }: Props) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [openFieldPicker, setOpenFieldPicker] = useState<string | null>(null);
+  const [openRowPicker, setOpenRowPicker] = useState(false);
 
   const update = (partial: Partial<RegStep>) => {
     onChange({ ...step, ...partial });
