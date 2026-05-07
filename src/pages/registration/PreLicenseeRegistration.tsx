@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import type { RegStep } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
@@ -436,10 +437,11 @@ export default function PreLicenseeRegistration() {
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
           const raw = dynamicFormData[c.field.fieldName];
-          // For file fields, pass the raw upload object straight through so
+          // For file fields OR any value that already looks like an uploaded
+          // attachment, pass the raw object/array straight through so
           // ReviewAcknowledgement's isAttachmentValue() can detect it and
-          // AttachmentDisplay can render View/Download actions.
-          if (c.field.type === 'file') {
+          // AttachmentDisplay renders View/Download actions.
+          if (c.field.type === 'file' || isAttachmentValue(raw)) {
             fields.push({ label: c.field.label, value: raw ?? null });
             return;
           }
