@@ -316,11 +316,14 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
             {COLUMN_PRESETS.map((preset, i) => (
               <button
                 key={i}
+                type="button"
                 className="flex items-center justify-between w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                onClick={() => {
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setOpenRowPicker(false);
-                  clearStuckPointerEvents();
                   addRow(preset.spans);
+                  clearStuckPointerEvents();
                 }}
               >
                 <span>{preset.label}</span>
