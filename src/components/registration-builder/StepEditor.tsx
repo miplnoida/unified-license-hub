@@ -84,9 +84,20 @@ interface Props {
   allSteps: RegStep[];
 }
 
+function clearStuckPointerEvents() {
+  // Defensive cleanup: Radix Popover/Dialog can occasionally leave
+  // pointer-events:none on body, blocking all clicks.
+  requestAnimationFrame(() => {
+    if (document.body.style.pointerEvents === 'none') {
+      document.body.style.pointerEvents = '';
+    }
+  });
+}
+
 export function StepEditor({ step, onChange, allSteps }: Props) {
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [openFieldPicker, setOpenFieldPicker] = useState<string | null>(null);
+  const [openRowPicker, setOpenRowPicker] = useState(false);
 
   const update = (partial: Partial<RegStep>) => {
     onChange({ ...step, ...partial });
@@ -245,7 +256,10 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                   ) : (
                     <Popover
                       open={openFieldPicker === `${row.id}:${colIdx}`}
-                      onOpenChange={(o) => setOpenFieldPicker(o ? `${row.id}:${colIdx}` : null)}
+                      onOpenChange={(o) => {
+                        setOpenFieldPicker(o ? `${row.id}:${colIdx}` : null);
+                        if (!o) clearStuckPointerEvents();
+                      }}
                     >
                       <PopoverTrigger asChild>
                         <button className="w-full h-full flex items-center justify-center text-muted-foreground hover:text-primary text-xs gap-1">
@@ -259,6 +273,7 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                             className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
                             onClick={() => {
                               setOpenFieldPicker(null);
+                              clearStuckPointerEvents();
                               addFieldToColumn(row.id, colIdx, ft.type);
                             }}
                           >
@@ -275,7 +290,13 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
         ))}
 
         {/* Add row */}
-        <Popover>
+        <Popover
+          open={openRowPicker}
+          onOpenChange={(o) => {
+            setOpenRowPicker(o);
+            if (!o) clearStuckPointerEvents();
+          }}
+        >
           <PopoverTrigger asChild>
             <button className="w-full h-10 rounded-lg border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors text-xs">
               <Columns className="h-3.5 w-3.5" />
@@ -287,7 +308,11 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
               <button
                 key={i}
                 className="flex items-center justify-between w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                onClick={() => addRow(preset.spans)}
+                onClick={() => {
+                  setOpenRowPicker(false);
+                  clearStuckPointerEvents();
+                  addRow(preset.spans);
+                }}
               >
                 <span>{preset.label}</span>
                 <span className="text-muted-foreground">{preset.spans.join('-')}</span>
