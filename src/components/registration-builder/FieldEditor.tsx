@@ -271,9 +271,33 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           </div>
         )}
 
+        {/* Confirm Password match field */}
+        {field.type === 'confirm_password' && (
+          <div>
+            <Label className="text-xs">Match With Password Field</Label>
+            <Select
+              value={field.matchField || '_auto'}
+              onValueChange={v => update({ matchField: v === '_auto' ? undefined : v })}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Auto-detect password field" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_auto">Auto-detect password field</SelectItem>
+                {allFields.filter(f => f.type === 'password').map(f => (
+                  <SelectItem key={f.id} value={f.fieldName}>{f.label} ({f.fieldName})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Value must match the selected password field on submit.
+            </p>
+          </div>
+        )}
+
         {/* Validation */}
         <div className="grid grid-cols-2 gap-3">
-          {['text', 'textarea', 'email', 'phone', 'password'].includes(field.type) && (
+          {['text', 'textarea', 'email', 'phone', 'password', 'confirm_password'].includes(field.type) && (
             <>
               <div>
                 <Label className="text-xs">Min Length</Label>
