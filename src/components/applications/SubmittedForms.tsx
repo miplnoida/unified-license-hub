@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+
+function FormNameLabel({ templateId, fallbackIndex }: { templateId: string; fallbackIndex: number }) {
+  const { data: tpl } = useFormTemplate(templateId);
+  return <span>{tpl?.name || `Form ${fallbackIndex}`}</span>;
+}
+
 import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
