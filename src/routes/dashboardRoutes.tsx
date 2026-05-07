@@ -42,6 +42,11 @@ export const dashboardRoutes = (
     <Route path="/applications/new" element={<P><NewApplication /></P>} />
     <Route path="/applications/queue" element={<M module="application_management"><ApplicationsList /></M>} />
     <Route path="/applications/:id" element={<P><ApplicationDetail /></P>} />
+    <Route path="/applications/:applicationId/forms" element={<P><ApplicationForms /></P>} />
+
+    <Route path="/pre-license/new" element={<P><NewApplication /></P>} />
+    <Route path="/post-license/new" element={<P><NewPostLicenseApplication /></P>} />
+    <Route path="/post-licensee/applications/:applicationId/forms" element={<P><PostLicenseApplicationForms /></P>} />
 
     <Route path="/licenses" element={<P><LicensesList /></P>} />
     <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
