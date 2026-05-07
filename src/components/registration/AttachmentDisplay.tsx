@@ -55,8 +55,12 @@ function isSingleAttachmentObject(v: unknown): boolean {
   return !!(
     f.path || f.file_path || f.storagePath || f.storage_path ||
     f.url || f.fileUrl || f.previewUrl || f.downloadUrl || f.signedUrl ||
-    f.fileName || f.file_name ||
-    ((f.name || f.originalName || f.filename || f.label) && (f.size != null || f.type || f.mimeType || f.mime_type))
+    f.fileName || f.file_name || f.originalName || f.filename ||
+    // Treat any object with just a name/label as an attachment placeholder
+    // so dynamic file fields render with View/Download icons even when only
+    // a filename is stored.
+    (typeof f.name === 'string' && f.name.length > 0) ||
+    (typeof f.label === 'string' && f.label.length > 0)
   );
 }
 

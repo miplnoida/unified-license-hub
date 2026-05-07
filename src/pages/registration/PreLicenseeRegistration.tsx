@@ -429,20 +429,19 @@ export default function PreLicenseeRegistration() {
   const resolveReviewValue = useReviewValueResolver(config?.formSchema);
 
   function buildReviewSections() {
-    const sections: { title: string; fields: { label: string; value: any }[] }[] = [];
+    const sections: { title: string; fields: { label: string; value: any; type?: 'attachment' }[] }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
       config.formSchema.forEach((s) => {
-        const fields: { label: string; value: any }[] = [];
+        const fields: { label: string; value: any; type?: 'attachment' }[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
           const raw = dynamicFormData[c.field.fieldName];
-          // For file fields OR any value that already looks like an uploaded
-          // attachment, pass the raw object/array straight through so
-          // ReviewAcknowledgement's isAttachmentValue() can detect it and
-          // AttachmentDisplay renders View/Download actions.
+          // File fields are always rendered as attachments (driven by field
+          // type, not value-shape guessing) so View/Download icons display
+          // even for legacy or partial value shapes.
           if (c.field.type === 'file' || isAttachmentValue(raw)) {
-            fields.push({ label: c.field.label, value: raw ?? null });
+            fields.push({ label: c.field.label, value: raw ?? null, type: 'attachment' });
             return;
           }
           const resolved = resolveReviewValue(c.field, raw);
@@ -477,7 +476,7 @@ export default function PreLicenseeRegistration() {
       sections.push({
         title: 'Supporting Documents',
         fields: form.documents.length > 0
-          ? form.documents.map(d => ({ label: d.label || d.name, value: d }))
+          ? form.documents.map(d => ({ label: d.label || d.name, value: d, type: 'attachment' as const }))
           : [{ label: 'Documents', value: 'None uploaded' }],
       });
     }
