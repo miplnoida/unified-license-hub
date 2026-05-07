@@ -95,7 +95,23 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Entity Name *</Label>
-              <Input id="name" value={form.name} onChange={e => handleChange('name', e.target.value)} />
+              <div className="relative">
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={e => handleChange('name', e.target.value)}
+                  onBlur={checkNameUnique}
+                  className={nameStatus === 'taken' ? 'border-destructive pr-10' : 'pr-10'}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {nameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  {nameStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {nameStatus === 'taken' && <XCircle className="h-4 w-4 text-destructive" />}
+                </div>
+              </div>
+              {nameStatus === 'taken' && (
+                <p className="text-sm text-destructive">An entity with this name already exists</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
