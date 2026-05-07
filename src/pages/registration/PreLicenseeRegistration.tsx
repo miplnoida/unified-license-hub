@@ -129,6 +129,15 @@ export default function PreLicenseeRegistration() {
             errs[field.fieldName] = `${field.label} is required`;
           }
         }
+        // Confirm password: must match the referenced password field
+        if (field.type === 'confirm_password' && val) {
+          const matchName = field.matchField
+            || stepData.rows.flatMap(r => r.columns.map(c => c.field)).find(f => f?.type === 'password')?.fieldName;
+          const target = matchName ? dynamicFormData[matchName] : undefined;
+          if (String(val) !== String(target ?? '')) {
+            errs[field.fieldName] = 'Passwords do not match';
+          }
+        }
       }
     }
     setDynamicErrors(errs);
