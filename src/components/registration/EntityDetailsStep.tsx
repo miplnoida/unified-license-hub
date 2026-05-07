@@ -67,12 +67,11 @@ export function EntityDetailsStep({
     const timer = setTimeout(async () => {
       setApplicantNameStatus('checking');
       try {
-        const { data } = await supabase
-          .from('registrations' as any)
-          .select('id')
-          .ilike('applicant_name', form.applicantName.trim())
-          .limit(1);
-        setApplicantNameStatus(data && data.length > 0 ? 'taken' : 'available');
+        const { data, error } = await supabase.rpc('check_applicant_name_exists' as any, {
+          p_name: form.applicantName.trim(),
+        });
+        if (error) { setApplicantNameStatus('idle'); return; }
+        setApplicantNameStatus(data === true ? 'taken' : 'available');
       } catch {
         setApplicantNameStatus('idle');
       }
