@@ -21,6 +21,8 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
+import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
@@ -67,6 +69,8 @@ export default function ApplicationDetail() {
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [showReview, setShowReview] = useState(false);
+  const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isPreLicensee = useIsPreLicensee();
@@ -123,6 +127,22 @@ export default function ApplicationDetail() {
   };
 
   useEffect(() => { loadData(); }, [id]);
+
+  // Load form template names for review modal
+  useEffect(() => {
+    if (formTemplateIds.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from('form_templates')
+        .select('id, name')
+        .in('id', formTemplateIds);
+      if (data) {
+        const map: Record<string, string> = {};
+        (data as any[]).forEach(t => { map[t.id] = t.name; });
+        setTemplateNames(map);
+      }
+    })();
+  }, [JSON.stringify(formTemplateIds)]);
 
   // Re-validate workflow ON/OFF state when window regains focus
   // (handles case where admin toggled workflow off in another tab)
@@ -673,22 +693,43 @@ export default function ApplicationDetail() {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
+              const canSubmit = allFormsCompleted && paymentComplete;
               return (
-                <div className="flex gap-2">
-                  <Button onClick={handleSubmit} disabled={processing || !allFormsCompleted || !paymentComplete} className="flex-1">
-                    <Send className="h-4 w-4 mr-2" />
-                    {processing
-                      ? 'Submitting...'
-                      : !allFormsCompleted
-                        ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
-                        : !paymentComplete
-                          ? 'Complete payment to submit'
-                          : 'Submit Application'}
-                  </Button>
-                  <Button variant="destructive" onClick={handleCancel} disabled={processing}>
-                    <Ban className="h-4 w-4 mr-2" />Cancel
-                  </Button>
-                </div>
+                <>
+                  <div className="flex gap-2">
+                    <Button onClick={() => setShowReview(true)} disabled={processing || !canSubmit} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />
+                      {processing
+                        ? 'Submitting...'
+                        : !allFormsCompleted
+                          ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                          : !paymentComplete
+                            ? 'Complete payment to submit'
+                            : 'Review & Submit'}
+                    </Button>
+                    <Button variant="destructive" onClick={handleCancel} disabled={processing}>
+                      <Ban className="h-4 w-4 mr-2" />Cancel
+                    </Button>
+                  </div>
+                  <Dialog open={showReview} onOpenChange={setShowReview}>
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Review Application</DialogTitle>
+                        <DialogDescription>
+                          Please review your entered information before final submission.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ApplicationReviewBuilder
+                        templates={formTemplateIds.map((tid, i) => ({ id: tid, name: templateNames[tid] || `Form ${i + 1}` }))}
+                        formProgressMap={Object.fromEntries(formTemplateIds.map(tid => [tid, { data: formsData[tid] || {} }]))}
+                        versionIdByTemplate={formVersionIds}
+                        mode="readonly"
+                        loading={processing}
+                        onAcknowledge={async () => { setShowReview(false); await handleSubmit(); }}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </>
               );
             })()}
 
