@@ -292,7 +292,9 @@ export default function PreLicenseeRegistration() {
           password: passwordVal,
           first_name: form.firstName || String(dynamicFormData.first_name || ''),
           last_name: form.lastName || String(dynamicFormData.last_name || ''),
-          applicant_name: form.applicantName || String(dynamicFormData.applicant_name || ''),
+          applicant_name: form.applicantName
+            || (applicantNameCheck.fieldName ? String(dynamicFormData[applicantNameCheck.fieldName] || '') : '')
+            || String(dynamicFormData.applicant_name || ''),
           applicant_name_alt: form.applicantNameAlt || String(dynamicFormData.applicant_name_alt || ''),
           sector_id: form.sectorId || String(dynamicFormData.sector || ''),
           sub_sector_id: form.subSectorId || String(dynamicFormData.sub_sector || ''),
