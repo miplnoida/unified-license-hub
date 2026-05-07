@@ -16,7 +16,7 @@ import { Upload, FileText, X, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
-import { AttachmentDisplay } from '@/components/registration/AttachmentDisplay';
+import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 
 interface Props {
   step: RegStep;
@@ -463,9 +463,11 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fileData = value && typeof value === 'object' && 'name' in (value as Record<string, unknown>)
-    ? value as { name: string; path: string; size: number }
-    : null;
+  // Use the shared attachment detector so any file-shaped value (single object,
+  // array, or legacy {fileName,url} shapes) renders View/Download actions.
+  const hasAttachment = isAttachmentValue(value);
+  const firstNormalized = hasAttachment ? normalizeAttachments(value)[0] : null;
+  const fileData = firstNormalized ? { name: firstNormalized.name, path: firstNormalized.path || '', size: firstNormalized.size || 0 } : null;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -517,10 +519,10 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
     onChange('');
   };
 
-  if (fileData) {
+  if (hasAttachment) {
     return (
       <div className="space-y-1.5">
-        <AttachmentDisplay value={fileData} />
+        <AttachmentDisplay value={value} />
         {!readOnly && (
           <Button type="button" variant="ghost" size="sm" onClick={handleRemove} className="h-7 text-xs text-destructive hover:text-destructive">
             <X className="h-3 w-3 mr-1" /> Remove
