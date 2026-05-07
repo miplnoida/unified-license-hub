@@ -6,46 +6,64 @@ import { toast } from 'sonner';
 
 export type NormalizedAttachment = {
   name: string;
+  path?: string;
   viewUrl?: string;
   downloadUrl?: string;
-  path?: string;
+  type?: string;
+  size?: number;
 };
 
 export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
   const arr = Array.isArray(value) ? value : value ? [value] : [];
   return arr
     .map((item): NormalizedAttachment | null => {
-      if (!item) return null;
+      if (item == null || item === '') return null;
       if (typeof item === 'string') {
-        if (!item) return null;
-        const name = item.split('/').pop() || item;
-        const isUrl = /^(https?:|\/)/.test(item);
-        return { name, viewUrl: isUrl ? item : undefined, downloadUrl: isUrl ? item : undefined };
+        const looksLikeUrl = /^(https?:|\/)/.test(item);
+        return {
+          name: item.split('/').pop() || item || 'Attachment',
+          viewUrl: looksLikeUrl ? item : undefined,
+          downloadUrl: looksLikeUrl ? item : undefined,
+        };
       }
       if (typeof item === 'object') {
         const f = item as Record<string, any>;
-        const url = f.url || f.fileUrl || f.previewUrl || f.downloadUrl;
-        const path = f.path || f.file_path;
+        const path = f.path || f.file_path || f.storagePath || f.storage_path;
+        const url = f.url || f.fileUrl || f.previewUrl || f.downloadUrl || f.signedUrl;
         const name =
-          f.name || f.fileName || f.file_name || f.originalName || f.filename ||
+          f.label || f.name || f.fileName || f.file_name || f.originalName || f.filename ||
           (typeof url === 'string' ? url.split('/').pop() : undefined) ||
           (typeof path === 'string' ? path.split('/').pop() : undefined) ||
           'Attachment';
-        return { name, viewUrl: url, downloadUrl: f.downloadUrl || url, path };
+        return {
+          name,
+          path,
+          viewUrl: url,
+          downloadUrl: f.downloadUrl || url,
+          type: f.type || f.mimeType || f.mime_type,
+          size: f.size || f.sizeBytes || f.size_bytes,
+        };
       }
       return null;
     })
     .filter((x): x is NormalizedAttachment => !!x);
 }
 
+function isSingleAttachmentObject(v: unknown): boolean {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const f = v as Record<string, any>;
+  return !!(
+    f.path || f.file_path || f.storagePath || f.storage_path ||
+    f.url || f.fileUrl || f.previewUrl || f.downloadUrl || f.signedUrl ||
+    f.fileName || f.file_name ||
+    ((f.name || f.originalName || f.filename || f.label) && (f.size != null || f.type || f.mimeType || f.mime_type))
+  );
+}
+
 export function isAttachmentValue(v: unknown): boolean {
-  if (!v) return false;
-  if (typeof v === 'object' && !Array.isArray(v)) {
-    const f = v as Record<string, any>;
-    return !!(f.path || f.file_path || f.url || f.fileUrl || f.fileName || f.file_name ||
-      ((f.name || f.originalName) && (f.size != null || f.type)));
-  }
-  if (Array.isArray(v) && v.length > 0) return v.every(isAttachmentValue);
+  if (v == null || v === '') return false;
+  if (Array.isArray(v)) return v.length > 0 && v.every(isAttachmentValue);
+  if (isSingleAttachmentObject(v)) return true;
   return false;
 }
 
