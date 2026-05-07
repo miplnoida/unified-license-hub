@@ -431,12 +431,16 @@ export default function ApplicationDetail() {
   // Edit-request handling bypasses the normal approval workflow.
   let _lastReqAt: string | null = null;
   let _lastResAt: string | null = null;
+  // Any action other than `edit_requested` that happens AFTER the latest edit
+  // request counts as a resolution — admin allow/deny, resubmission flow,
+  // workflow transitions, or applicant resubmit. This avoids the pending card
+  // sticking around when RLS hides specific resolution rows from the owner.
   for (const e of events) {
     const a = (e as any).action as string;
     const t = (e as any).created_at as string;
     if (a === 'edit_requested') {
       if (!_lastReqAt || t > _lastReqAt) _lastReqAt = t;
-    } else if (a === 'edit_approved' || a === 'edit_denied' || a === 'edit_rejected') {
+    } else {
       if (!_lastResAt || t > _lastResAt) _lastResAt = t;
     }
   }
