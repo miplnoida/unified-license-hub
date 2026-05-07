@@ -395,6 +395,8 @@ export default function PreLicenseeRegistration() {
     }
   };
 
+  const resolveReviewValue = useReviewValueResolver(config?.formSchema);
+
   function buildReviewSections() {
     const sections: { title: string; fields: { label: string; value: any }[] }[] = [];
 
@@ -403,8 +405,9 @@ export default function PreLicenseeRegistration() {
         const fields: { label: string; value: any }[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
-          const v = dynamicFormData[c.field.fieldName];
-          fields.push({ label: c.field.label, value: formatReviewValue(v) });
+          const raw = dynamicFormData[c.field.fieldName];
+          const resolved = resolveReviewValue(c.field, raw);
+          fields.push({ label: c.field.label, value: formatReviewValue(resolved) });
         }));
         sections.push({ title: s.title, fields });
       });
