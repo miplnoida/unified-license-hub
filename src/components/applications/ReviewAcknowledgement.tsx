@@ -70,6 +70,8 @@ export function ReviewAcknowledgement({
                       <span className="font-medium text-right break-words max-w-[300px]">
                         {field.value == null || field.value === '' ? (
                           <span className="text-muted-foreground/60 italic">Not provided</span>
+                        ) : isAttachmentValue(field.value) ? (
+                          <AttachmentDisplay value={field.value} />
                         ) : typeof field.value === 'boolean' ? (
                           field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'
                         ) : (
