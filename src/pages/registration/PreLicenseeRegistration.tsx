@@ -20,6 +20,7 @@ import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
+import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
