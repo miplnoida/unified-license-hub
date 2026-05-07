@@ -275,11 +275,15 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
                         {REG_FIELD_TYPES.map(ft => (
                           <button
                             key={ft.type}
+                            type="button"
                             className="flex items-center gap-2 w-full p-2 text-xs rounded hover:bg-accent transition-colors"
-                            onClick={() => {
+                            onPointerDown={(e) => {
+                              // Run before Radix's outside-pointerdown handler closes the popover
+                              e.preventDefault();
+                              e.stopPropagation();
                               setOpenFieldPicker(null);
-                              clearStuckPointerEvents();
                               addFieldToColumn(row.id, colIdx, ft.type);
+                              clearStuckPointerEvents();
                             }}
                           >
                             {ft.label}
