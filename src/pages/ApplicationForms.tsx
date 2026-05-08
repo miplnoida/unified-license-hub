@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useVersionSections, useResolveAppFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,50 +50,41 @@ function ActiveFormFiller({
   versionLocked?: boolean;
   allowVersionSwitching?: boolean;
 }) {
-  const { data: publishedVersion, isLoading: pvLoading } = useLatestPublishedVersion(templateId);
-  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(templateId);
-
-  // Resolve effective version to use:
-  // - If application already has pinned version → use it (locked).
-  // - Otherwise → latest active/effective published version.
-  const resolvedVersionId = pinnedVersionId
-    || activeVersions[0]?.id
-    || publishedVersion?.id
-    || null;
-
-  const versionsLoading = pvLoading || avLoading;
-
-  // Detect pinned-but-missing case (assigned version was deleted/archived).
-  const pinnedMissing = !!pinnedVersionId
-    && !versionsLoading
-    && !activeVersions.find((v: any) => v.id === pinnedVersionId)
-    && publishedVersion?.id !== pinnedVersionId;
-
-  // Pin the resolved version to the application as soon as the form is opened,
-  // so any later activation of a newer version cannot affect this draft.
-  useEffect(() => {
-    if (pinnedVersionId) return;
-    if (versionsLoading) return;
-    if (!resolvedVersionId) return;
-    onVersionChange?.(resolvedVersionId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinnedVersionId, resolvedVersionId, versionsLoading]);
-
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(
-    pinnedMissing ? null : resolvedVersionId,
+  // Backend resolver decides which version to use and pins it on first call.
+  const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
+    applicationId || null,
+    templateId,
   );
 
-  if (pinnedMissing) {
+  const resolvedAny: any = resolved;
+  const resolverError: string | null = rError
+    ? 'The assigned form version could not be loaded. Please try again or contact support.'
+    : (resolvedAny && resolvedAny.error ? resolvedAny.error : null);
+  const resolvedVersionId: string | null = (resolvedAny && resolvedAny.version_id) || null;
+  const versionLabel: string = (resolvedAny && (resolvedAny.semantic_version || resolvedAny.version_number)) || '';
+
+  // Notify parent the moment a version becomes pinned (keeps appData in sync
+  // for save/submit calls that send versionId alongside form data).
+  useEffect(() => {
+    if (!resolvedVersionId) return;
+    if (pinnedVersionId === resolvedVersionId) return;
+    onVersionChange?.(resolvedVersionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedVersionId]);
+
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
+
+  if (resolverError) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-destructive">
-          The assigned form version could not be found. Please contact support.
+          {resolverError}
         </CardContent>
       </Card>
     );
   }
 
-  if (versionsLoading || sLoading || !resolvedVersionId || sections.length === 0) {
+  if (rLoading || sLoading || !resolvedVersionId || sections.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -103,10 +94,6 @@ function ActiveFormFiller({
       </Card>
     );
   }
-
-  const currentVersion: any = activeVersions.find((v: any) => v.id === resolvedVersionId)
-    || (publishedVersion && publishedVersion.id === resolvedVersionId ? publishedVersion : null);
-  const versionLabel = currentVersion?.semantic_version || currentVersion?.version || '';
 
   return (
     <div className="space-y-3">
