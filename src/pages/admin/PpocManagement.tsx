@@ -89,14 +89,45 @@ export default function PpocManagement() {
     setLoading(false);
   };
 
-  const loadOptions = async (includeUserId?: string | null) => {
+  const loadOptions = async (includeUserId?: string | null, keepLicenseeId?: string | null) => {
     const [eligibleUsers, { data: l }, { data: s }] = await Promise.all([
       getEligiblePpocUsers(includeUserId),
-      supabase.from('licensees').select('id, name, sector_id').eq('status', 'active').order('name'),
+      // 'active' is the post-approval status used in this schema (verified: no other status values exist on licensees).
+      supabase
+        .from('licensees')
+        .select('id, name, sector_id, updated_at, created_at')
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false }),
       supabase.from('sectors').select('id, name').eq('status', 'active').order('name'),
     ]);
+
+    // Deduplicate by normalized name + sector_id. Prefer rows with sector_id
+    // populated and most recently updated. Always keep the row matching
+    // keepLicenseeId so edit modals never lose their current selection.
+    const norm = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const rows = ((l || []) as any[]).filter(r => (r.name || '').trim().length > 0);
+    const bestByKey = new Map<string, any>();
+    for (const row of rows) {
+      const key = `${norm(row.name)}::${row.sector_id || ''}`;
+      const prev = bestByKey.get(key);
+      if (!prev) { bestByKey.set(key, row); continue; }
+      const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
+      const curTs = new Date(row.updated_at || row.created_at || 0).getTime();
+      const prevHasSector = !!prev.sector_id;
+      const curHasSector = !!row.sector_id;
+      if ((curHasSector && !prevHasSector) || (curHasSector === prevHasSector && curTs > prevTs)) {
+        bestByKey.set(key, row);
+      }
+    }
+    let deduped = Array.from(bestByKey.values());
+    if (keepLicenseeId && !deduped.some(r => r.id === keepLicenseeId)) {
+      const original = rows.find(r => r.id === keepLicenseeId);
+      if (original) deduped.push(original);
+    }
+    deduped.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
     setUsers(eligibleUsers);
-    setLicensees((l || []) as any[]);
+    setLicensees(deduped as any[]);
     setSectors((s || []) as any[]);
   };
 
