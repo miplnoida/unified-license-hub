@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, Users2, Plus } from 'lucide-react';
+import PrimaryUserCard from './PrimaryUserCard';
 import { toast } from 'sonner';
 
 interface WebUsersTabProps {
