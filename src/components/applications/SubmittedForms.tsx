@@ -53,16 +53,6 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
-        <Badge variant={badgeVariant as any} className="text-[10px]">
-          {badgeLabel}
-        </Badge>
-        {latestVersion && versionId && latestVersion.id !== versionId && (
-          <Badge variant="pending" className="text-[10px]">
-            Latest: v{latestVersion.semantic_version || latestVersion.version}
-          </Badge>
-        )}
-      </div>
       <FormRenderer
         formName={template.name}
         sections={sections}
