@@ -269,20 +269,7 @@ export default function PpocManagement() {
         <DataTableShell columns={columns} data={mappings} searchPlaceholder="Search PPOC mappings..." />
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => {
-        setDialogOpen(o);
-        if (!o) {
-          setEditingId(null);
-          setSelectedSectorIds([]);
-          // Workaround: Radix Dialog can leave body pointer-events:none stuck
-          // when a nested Select/Popover was open at close time.
-          setTimeout(() => {
-            if (document.body.style.pointerEvents === 'none') {
-              document.body.style.pointerEvents = '';
-            }
-          }, 100);
-        }
-      }}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); else setDialogOpen(true); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
