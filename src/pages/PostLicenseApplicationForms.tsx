@@ -82,18 +82,6 @@ function ActiveFormFiller({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
-        <GitBranch className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs text-muted-foreground">Form version:</span>
-        <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
-        {versionLocked ? (
-          <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-        ) : resolvedAny?.was_existing_assignment ? (
-          <span className="text-[11px] text-muted-foreground">You are continuing with the form version assigned when this application was started.</span>
-        ) : (
-          <span className="text-[11px] text-muted-foreground">You are using the latest active form version.</span>
-        )}
-      </div>
       <FormRenderer
         formName=""
         sections={sections}
