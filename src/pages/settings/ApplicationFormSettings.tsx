@@ -24,7 +24,6 @@ export default function ApplicationFormSettings() {
   const saveMutation = useSaveApplicationSettings();
   const [form, setForm] = useState<ApplicationSettings>({
     allow_reapplication: true,
-    allow_reapplication_after_final: true,
     notify_on_form_version_change: true,
     notification_channels: ['in_app', 'email'],
   });
