@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
 
 interface PpocMapping {
   id: string;
