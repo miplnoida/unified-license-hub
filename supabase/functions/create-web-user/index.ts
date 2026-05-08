@@ -51,14 +51,29 @@ Deno.serve(async (req) => {
       if (primaryRoleId) {
         // Dynamic role(s): assign safe baseline; real access controlled via user_dynamic_roles.
         effectiveRole = 'analyst';
-      } else if (user_type) {
+      } else if (user_type === 'primary' || user_type === 'secondary') {
+        // Licensee tenant users only.
         effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
+      } else if (user_type === 'employee') {
+        // Internal/admin/regulator employee — safe baseline; permissions via user_dynamic_roles.
+        effectiveRole = 'analyst';
       } else {
         return new Response(JSON.stringify({ error: "A role must be selected" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
+
+    // Guard: prevent the legacy bug where Employee Management sent user_type='primary'
+    // without a licensee_id, accidentally creating a licensee_primary auth role.
+    if ((user_type === 'primary' || user_type === 'secondary') && !licensee_id) {
+      return new Response(JSON.stringify({
+        error: "Primary/Secondary user_type requires a licensee_id (entity). For internal employees, use user_type='employee'.",
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Guard: if dynamic role(s) provided but caller passed elevated `role`,
