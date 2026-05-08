@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
+import { loadApprovedLicenseeOptions, type ApprovedLicenseeOption } from '@/lib/licenseeOptions';
 
 interface PpocMapping {
   id: string;
@@ -43,7 +44,7 @@ export default function PpocManagement() {
   const [licenseeId, setLicenseeId] = useState('');
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [users, setUsers] = useState<EligiblePpocUser[]>([]);
-  const [licensees, setLicensees] = useState<{ id: string; name: string; sector_id?: string | null }[]>([]);
+  const [licensees, setLicensees] = useState<ApprovedLicenseeOption[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
 
   const load = async () => {
@@ -55,18 +56,19 @@ export default function PpocManagement() {
 
     const rows = (data || []) as any[];
     const userIds = [...new Set(rows.map(r => r.ppoc_user_id))];
-    const licIds = [...new Set(rows.map(r => r.licensee_id))];
     const mappingIds = rows.map(r => r.id);
 
-    const [{ data: profiles }, { data: lics }, { data: mapSectors }, { data: secList }] = await Promise.all([
+    const [{ data: profiles }, enrichedLicensees, { data: mapSectors }, { data: secList }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').in('id', userIds.length ? userIds : ['__none__']),
-      supabase.from('licensees').select('id, name').in('id', licIds.length ? licIds : ['__none__']),
+      // Use enriched helper so mapping table shows the same display name as the Licensee Entities page.
+      // Pass onlyActive:false because mappings may reference any licensee row regardless of status.
+      loadApprovedLicenseeOptions({ onlyActive: false }),
       supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds.length ? mappingIds : ['__none__']),
       supabase.from('sectors').select('id, name'),
     ]);
 
     const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
-    const licMap = Object.fromEntries((lics || []).map((l: any) => [l.id, l]));
+    const licMap = Object.fromEntries(enrichedLicensees.map(l => [l.id, l]));
     const sectorMap = Object.fromEntries((secList || []).map((s: any) => [s.id, s]));
     const sectorsByMapping: Record<string, string[]> = {};
     ((mapSectors || []) as any[]).forEach(r => {
@@ -80,7 +82,7 @@ export default function PpocManagement() {
         ...r,
         ppoc_name: profileMap[r.ppoc_user_id]?.full_name || '—',
         ppoc_email: profileMap[r.ppoc_user_id]?.email || '',
-        licensee_name: licMap[r.licensee_id]?.name || '—',
+        licensee_name: licMap[r.licensee_id]?.display_name || '—',
         sector_ids: sectorIds,
         sector_names: sectorIds.map(id => sectorMap[id]?.name).filter(Boolean),
         needs_sector_assignment: sectorIds.length === 0,
@@ -90,44 +92,16 @@ export default function PpocManagement() {
   };
 
   const loadOptions = async (includeUserId?: string | null, keepLicenseeId?: string | null) => {
-    const [eligibleUsers, { data: l }, { data: s }] = await Promise.all([
+    const [eligibleUsers, deduped, { data: s }] = await Promise.all([
       getEligiblePpocUsers(includeUserId),
-      // 'active' is the post-approval status used in this schema (verified: no other status values exist on licensees).
-      supabase
-        .from('licensees')
-        .select('id, name, sector_id, updated_at, created_at')
-        .eq('status', 'active')
-        .order('updated_at', { ascending: false }),
+      // Use the same enriched/deduped pipeline as the Licensee Entities page so
+      // PPOC entity dropdown shows real entity names and uses resolved sector ids.
+      loadApprovedLicenseeOptions({ keepLicenseeId, onlyActive: true }),
       supabase.from('sectors').select('id, name').eq('status', 'active').order('name'),
     ]);
 
-    // Deduplicate by normalized name + sector_id. Prefer rows with sector_id
-    // populated and most recently updated. Always keep the row matching
-    // keepLicenseeId so edit modals never lose their current selection.
-    const norm = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
-    const rows = ((l || []) as any[]).filter(r => (r.name || '').trim().length > 0);
-    const bestByKey = new Map<string, any>();
-    for (const row of rows) {
-      const key = `${norm(row.name)}::${row.sector_id || ''}`;
-      const prev = bestByKey.get(key);
-      if (!prev) { bestByKey.set(key, row); continue; }
-      const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
-      const curTs = new Date(row.updated_at || row.created_at || 0).getTime();
-      const prevHasSector = !!prev.sector_id;
-      const curHasSector = !!row.sector_id;
-      if ((curHasSector && !prevHasSector) || (curHasSector === prevHasSector && curTs > prevTs)) {
-        bestByKey.set(key, row);
-      }
-    }
-    let deduped = Array.from(bestByKey.values());
-    if (keepLicenseeId && !deduped.some(r => r.id === keepLicenseeId)) {
-      const original = rows.find(r => r.id === keepLicenseeId);
-      if (original) deduped.push(original);
-    }
-    deduped.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
     setUsers(eligibleUsers);
-    setLicensees(deduped as any[]);
+    setLicensees(deduped);
     setSectors((s || []) as any[]);
   };
 
@@ -414,7 +388,7 @@ export default function PpocManagement() {
                         : 'No licensee entities found for the selected sectors.'}
                     </div>
                   ) : dialogLicenseeOptions.map(l => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    <SelectItem key={l.id} value={l.id}>{l.display_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
