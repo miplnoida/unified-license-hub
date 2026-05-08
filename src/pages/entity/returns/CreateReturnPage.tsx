@@ -37,24 +37,9 @@ export default function CreateReturnPage() {
     },
   });
 
-  // PPOC users with multiple mapped licensees must pick one explicitly here
-  const requiresEntityPick = isPpoc && mappedLicensees.length > 1;
-  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>('');
-
-  // Resolve PPOC licensee selection:
-  //  - multi-mapped: user picks; default to active selection if any
-  //  - single-mapped: auto-pick the only mapping (don't wait for header context)
-  useEffect(() => {
-    if (!isPpoc) return;
-    if (mappedLicensees.length === 1) {
-      setSelectedLicenseeId(mappedLicensees[0].licensee_id);
-    } else if (mappedLicensees.length > 1 && activeLicenseeId) {
-      // honour header switcher selection only if it's still in the mapping list
-      if (mappedLicensees.some(l => l.licensee_id === activeLicenseeId)) {
-        setSelectedLicenseeId(prev => prev || activeLicenseeId);
-      }
-    }
-  }, [isPpoc, mappedLicensees, activeLicenseeId]);
+  // PPOC users select the active licensee from the header switcher; this page
+  // simply uses that selection instead of asking again.
+  const selectedLicenseeId = isPpoc ? (activeLicenseeId || '') : '';
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
