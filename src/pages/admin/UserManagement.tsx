@@ -146,11 +146,30 @@ export default function UserManagement() {
       dynMap[r.user_id].push(r.role_id);
     });
 
-    setUsers((profiles || []).map((p: any) => ({
+    const INTERNAL_ROLES = new Set([
+      'super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'developer',
+    ]);
+    const EXCLUDED_USER_TYPES = new Set(['primary', 'secondary', 'pre_licensee', 'applicant']);
+
+    const mapped = (profiles || []).map((p: any) => ({
       ...p,
       app_role: roleMap[p.id] || 'applicant',
       dynamic_role_ids: dynMap[p.id] || (p.role_id ? [p.role_id] : []),
-    })));
+    }));
+
+    // Employee Management = internal/admin/regulator staff only.
+    // Include if user_type is an internal type ('employee'/'internal_employee'),
+    // OR the user holds an internal app_role (covers legacy rows where
+    // user_type was incorrectly set to 'primary' but the role is internal).
+    // Exclude licensee primary/secondary, applicants and pre-licensees outright.
+    const filtered = mapped.filter((u: any) => {
+      if (EXCLUDED_USER_TYPES.has(u.user_type) && !INTERNAL_ROLES.has(u.app_role)) return false;
+      if (u.user_type === 'employee' || u.user_type === 'internal_employee') return true;
+      if (INTERNAL_ROLES.has(u.app_role)) return true;
+      return false;
+    });
+
+    setUsers(filtered);
     setLoading(false);
   };
 
