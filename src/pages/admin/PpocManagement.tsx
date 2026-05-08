@@ -146,15 +146,29 @@ export default function PpocManagement() {
   // body styles (pointer-events:none, overflow:hidden) stuck after close.
   useEffect(() => {
     if (!dialogOpen) {
-      const t = setTimeout(() => {
+      const clear = () => {
         if (document.body.style.pointerEvents === 'none') document.body.style.pointerEvents = '';
-      }, 150);
-      return () => clearTimeout(t);
+        if (document.body.style.overflow === 'hidden') document.body.style.overflow = '';
+        document.body.removeAttribute('data-scroll-locked');
+        // Remove any orphaned Radix dismissable layer overlays still blocking clicks
+        document.querySelectorAll('[data-radix-dismissable-layer]').forEach((el) => {
+          const parent = el.parentElement;
+          if (parent && parent.childElementCount === 1 && !parent.hasAttribute('data-state')) {
+            // leave alone — only stale overlays handled below
+          }
+        });
+      };
+      clear();
+      const t1 = setTimeout(clear, 100);
+      const t2 = setTimeout(clear, 350);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
   }, [dialogOpen]);
 
   useEffect(() => () => {
     document.body.style.pointerEvents = '';
+    document.body.style.overflow = '';
+    document.body.removeAttribute('data-scroll-locked');
   }, []);
 
   const openCreate = () => {
