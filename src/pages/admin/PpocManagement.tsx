@@ -44,6 +44,26 @@ export default function PpocManagement() {
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [sectorSearch, setSectorSearch] = useState('');
+
+  const toggleSector = (sectorId: string) => {
+    setSelectedSectorIds(prev => {
+      const next = prev.includes(sectorId)
+        ? prev.filter(id => id !== sectorId)
+        : [...prev, sectorId];
+      if (licenseeId) {
+        const lic = licensees.find(l => l.id === licenseeId);
+        if (!lic?.sector_id || !next.includes(lic.sector_id)) {
+          setLicenseeId('');
+        }
+      }
+      return next;
+    });
+  };
+
+  const filteredSectors = sectors.filter(s =>
+    s.name.toLowerCase().includes(sectorSearch.toLowerCase())
+  );
   const [users, setUsers] = useState<EligiblePpocUser[]>([]);
   const [licensees, setLicensees] = useState<ApprovedLicenseeOption[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
