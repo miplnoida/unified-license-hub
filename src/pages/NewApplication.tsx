@@ -116,32 +116,12 @@ export default function NewApplication() {
   const { data: allCategories = [] } = useCategories();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
 
-  // Re-application guard: check if user already has an active application
+  // Re-application guard state. The actual per-triple check runs in
+  // handleProceedToForms once the user has chosen sector / sub-sector /
+  // category, since the rule is keyed on (applicant, sector, sub-sector,
+  // category).
   const [reappBlocked, setReappBlocked] = useState(false);
   const [sectorBlockMessage, setSectorBlockMessage] = useState('');
-  useEffect(() => {
-    if (!user) {
-      setReappBlocked(false);
-      return;
-    }
-    (async () => {
-      // Check global re-application setting
-      if (appSettings?.allow_reapplication === false) {
-        const { count } = await supabase
-          .from('applications')
-          .select('id', { count: 'exact', head: true })
-          .eq('applicant_id', user.id)
-          .in('status', ['submitted', 'in_progress']);
-        if ((count || 0) > 0) {
-          setReappBlocked(true);
-          setSectorBlockMessage('You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.');
-          return;
-        }
-      }
-      setReappBlocked(false);
-      setSectorBlockMessage('');
-    })();
-  }, [user, appSettings]);
 
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
