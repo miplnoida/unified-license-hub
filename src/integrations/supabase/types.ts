@@ -4414,6 +4414,10 @@ export type Database = {
         }
         Returns: string
       }
+      activate_form_version_as_current: {
+        Args: { _activation_date?: string; _version_id: string }
+        Returns: Json
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
@@ -4507,6 +4511,14 @@ export type Database = {
         }[]
       }
       get_application_list_stats: { Args: never; Returns: Json }
+      get_form_version_usage_counts: {
+        Args: { _template_id: string }
+        Returns: {
+          in_progress_count: number
+          submitted_response_count: number
+          version_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
