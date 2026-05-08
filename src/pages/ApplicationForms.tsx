@@ -77,43 +77,24 @@ function ActiveFormFiller({
     );
   }
 
-  const showSwitcher = activeVersions.length > 1 && !versionLocked && (!pinnedVersionId || allowVersionSwitching);
-  const showVersionBar = showSwitcher || pinnedVersionId || versionLocked;
+  const currentVersion: any = activeVersions.find((v: any) => v.id === selectedVersionId)
+    || (publishedVersion && publishedVersion.id === selectedVersionId ? publishedVersion : null);
+  const versionLabel = currentVersion?.semantic_version || currentVersion?.version || '';
 
   return (
     <div className="space-y-3">
-      {showVersionBar && (
+      {selectedVersionId && (
         <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
           <GitBranch className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">Form version:</span>
-          {showSwitcher ? (
-            <Select
-              value={selectedVersionId || ''}
-              onValueChange={(v) => { setSelectedVersionId(v); onVersionChange?.(v); }}
-            >
-              <SelectTrigger className="h-7 w-[220px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {activeVersions.map((v: any) => (
-                  <SelectItem key={v.id} value={v.id} className="text-xs">
-                    v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Badge variant="outline" className="text-[10px]">
-              v{(activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.semantic_version
-                || (activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.version
-                || ''}
-            </Badge>
-          )}
+          <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
           {versionLocked ? (
             <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-          ) : pinnedVersionId && !allowVersionSwitching ? (
-            <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
-          ) : showSwitcher ? (
-            <span className="text-[11px] text-muted-foreground">Choose which version to file against.</span>
-          ) : null}
+          ) : pinnedVersionId ? (
+            <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
+          )}
         </div>
       )}
       <FormRenderer
