@@ -4583,6 +4583,10 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      resolve_application_form_version: {
+        Args: { _application_id: string; _template_id: string }
+        Returns: Json
+      }
       save_ppoc_mapping: {
         Args: {
           _licensee_id: string
