@@ -102,6 +102,30 @@ export default function PpocManagement() {
 
   useEffect(() => { load(); loadOptions(); }, []);
 
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingId(null);
+    setPpocUserId('');
+    setLicenseeId('');
+    setSelectedSectorIds([]);
+    setSaving(false);
+  };
+
+  // Fallback cleanup: Radix Dialog + nested Select/Popover portals can leave
+  // body styles (pointer-events:none, overflow:hidden) stuck after close.
+  useEffect(() => {
+    if (!dialogOpen) {
+      const t = setTimeout(() => {
+        if (document.body.style.pointerEvents === 'none') document.body.style.pointerEvents = '';
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [dialogOpen]);
+
+  useEffect(() => () => {
+    document.body.style.pointerEvents = '';
+  }, []);
+
   const openCreate = () => {
     setEditingId(null);
     setPpocUserId('');
