@@ -87,20 +87,36 @@ export default function PpocManagement() {
     setLoading(false);
   };
 
-  const loadOptions = async () => {
-    const [{ data: p }, { data: l }, { data: s }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, email, role, user_type')
-        .eq('status', 'active')
-        .eq('role', 'licensee_primary')
-        .order('full_name'),
+  const loadOptions = async (includeUserId?: string | null) => {
+    const [eligibleUsers, { data: l }, { data: s }] = await Promise.all([
+      getEligiblePpocUsers(includeUserId),
       supabase.from('licensees').select('id, name, sector_id').eq('status', 'active').order('name'),
       supabase.from('sectors').select('id, name').eq('status', 'active').order('name'),
     ]);
-    setUsers((p || []) as any[]);
+    setUsers(eligibleUsers);
     setLicensees((l || []) as any[]);
     setSectors((s || []) as any[]);
+  };
+
+  useEffect(() => { load(); loadOptions(); }, []);
+
+  const openCreate = () => {
+    setEditingId(null);
+    setPpocUserId('');
+    setLicenseeId('');
+    setSelectedSectorIds([]);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (m: PpocMapping) => {
+    setEditingId(m.id);
+    setPpocUserId(m.ppoc_user_id);
+    setLicenseeId(m.licensee_id);
+    setSelectedSectorIds(m.sector_ids || []);
+    // Ensure the currently mapped user is present in the dropdown even if
+    // their role data has drifted away from the eligibility rules.
+    loadOptions(m.ppoc_user_id);
+    setDialogOpen(true);
   };
 
   useEffect(() => { load(); loadOptions(); }, []);
