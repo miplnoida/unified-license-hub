@@ -77,7 +77,6 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
           </Badge>
         )}
       </div>
-      </div>
       <FormRenderer
         formName={template.name}
         sections={sections}
