@@ -366,25 +366,66 @@ export default function PpocManagement() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Assign Sectors</Label>
+              <Label>Assign Sectors *</Label>
               {sectors.length === 0 ? (
                 <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
                   No active sectors found. Please create or activate sectors first.
                 </div>
               ) : (
-              <MultiSelect
-                withinDialog
-                options={sectors.map(s => ({ value: s.id, label: s.name }))}
-                selected={selectedSectorIds}
-                onChange={(ids) => {
-                  setSelectedSectorIds(ids);
-                  if (licenseeId) {
-                    const lic = licensees.find(l => l.id === licenseeId);
-                    if (!lic?.sector_id || !ids.includes(lic.sector_id)) setLicenseeId('');
-                  }
-                }}
-                placeholder="Select one or more sectors"
-              />
+                <>
+                  <Input
+                    placeholder="Search sectors..."
+                    value={sectorSearch}
+                    onChange={(e) => setSectorSearch(e.target.value)}
+                  />
+                  <div className="max-h-56 overflow-y-auto rounded-md border p-1">
+                    {(() => {
+                      const filtered = sectors.filter(s =>
+                        s.name.toLowerCase().includes(sectorSearch.toLowerCase())
+                      );
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="px-2 py-3 text-sm text-muted-foreground">No sectors match your search.</div>
+                        );
+                      }
+                      return filtered.map(sector => {
+                        const checked = selectedSectorIds.includes(sector.id);
+                        return (
+                          <label
+                            key={sector.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleSector(sector.id)}
+                            />
+                            <span className="text-sm">{sector.name}</span>
+                          </label>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedSectorIds.length} sector(s) selected
+                  </div>
+                  {selectedSectorIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedSectorIds.map(id => {
+                        const s = sectors.find(x => x.id === id);
+                        if (!s) return null;
+                        return (
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {s.name}
+                            <X
+                              className="ml-1 h-3 w-3 cursor-pointer"
+                              onClick={() => toggleSector(id)}
+                            />
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
               <p className="text-xs text-muted-foreground">
                 Select one or more sectors. This PPOC will only be assigned entities/applications from these sectors.
