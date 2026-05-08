@@ -43,7 +43,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
   const isLoading = tLoading || lvLoading || sLoading;
-  const canSwitchVersion = editable && applicationStatus === 'draft' && activeVersions.length > 1;
+  const canSwitchVersion = false;
 
   if (isLoading) {
     return (
