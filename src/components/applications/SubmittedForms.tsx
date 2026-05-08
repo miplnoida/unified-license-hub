@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion, useActiveVersions } from '@/hooks/useFormTemplates';
+import { useFormTemplate, useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 function FormNameLabel({ templateId, fallbackIndex }: { templateId: string; fallbackIndex: number }) {
@@ -25,25 +24,11 @@ interface SingleFormViewerProps {
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(versionId || latestVersion?.id || null);
-
-  useEffect(() => {
-    if (versionId) {
-      setSelectedVersionId(versionId);
-      return;
-    }
-    if (!selectedVersionId && latestVersion?.id) {
-      setSelectedVersionId(latestVersion.id);
-    }
-  }, [versionId, latestVersion?.id, selectedVersionId]);
-
-  const resolvedVersionId = selectedVersionId || latestVersion?.id || null;
+  const resolvedVersionId = versionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
   const isLoading = tLoading || lvLoading || sLoading;
-  const canSwitchVersion = false;
 
   if (isLoading) {
     return (
@@ -76,26 +61,6 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
           <Badge variant="pending" className="text-[10px]">
             Latest: v{latestVersion.semantic_version || latestVersion.version}
           </Badge>
-        )}
-        {canSwitchVersion && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-[11px] text-muted-foreground">Version:</span>
-            <Select
-              value={resolvedVersionId || ''}
-              onValueChange={(value) => setSelectedVersionId(value)}
-            >
-              <SelectTrigger className="h-7 w-[180px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activeVersions.map((version: any) => (
-                  <SelectItem key={version.id} value={version.id} className="text-xs">
-                    v{version.semantic_version || version.version}{version.id === activeVersions[0]?.id ? ' (latest)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         )}
       </div>
       <FormRenderer
