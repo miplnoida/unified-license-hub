@@ -1232,12 +1232,68 @@ export function useUpdateVersionSchedule() {
       // Reset notification flag when the schedule moves so a newly-future
       // version can re-trigger an upcoming notification.
       if (params.effective_from !== undefined) patch.notified_for_upcoming = false;
+      // Validate date range: effective_until must not be before effective_from.
+      if (params.effective_from && params.effective_until) {
+        if (new Date(params.effective_until) < new Date(params.effective_from)) {
+          throw new Error('Effective until cannot be before effective from.');
+        }
+      }
       const { error } = await supabase.from('form_versions').update(patch).eq('id', params.versionId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
     },
+  });
+}
+
+/**
+ * Activate a published version as the current default for new applications.
+ * Backend retires other open-ended published versions to current month-end so
+ * already-pinned in-progress applications can still complete on them.
+ */
+export function useActivateVersionAsCurrent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { versionId: string; activationDate?: string | null }) => {
+      const { data, error } = await supabase.rpc('activate_form_version_as_current' as any, {
+        _version_id: params.versionId,
+        _activation_date: params.activationDate ?? null,
+      });
+      if (error) throw error;
+      const res: any = data;
+      if (res?.error) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['form_versions'] });
+    },
+  });
+}
+
+/**
+ * Per-version usage counts (in-progress applications + submitted responses).
+ * Used by the admin version timeline to indicate where each version is in use.
+ */
+export function useFormVersionUsageCounts(templateId: string | null) {
+  return useQuery({
+    queryKey: ['form_versions', 'usage_counts', templateId],
+    queryFn: async () => {
+      if (!templateId) return {} as Record<string, { in_progress: number; submitted: number }>;
+      const { data, error } = await supabase.rpc('get_form_version_usage_counts' as any, {
+        _template_id: templateId,
+      });
+      if (error) throw error;
+      const map: Record<string, { in_progress: number; submitted: number }> = {};
+      for (const row of (data || []) as any[]) {
+        map[row.version_id] = {
+          in_progress: Number(row.in_progress_count) || 0,
+          submitted: Number(row.submitted_response_count) || 0,
+        };
+      }
+      return map;
+    },
+    enabled: !!templateId,
   });
 }
 
