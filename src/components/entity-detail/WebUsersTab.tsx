@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, Users2, Plus } from 'lucide-react';
+import PrimaryUserCard from './PrimaryUserCard';
 import { toast } from 'sonner';
 
 interface WebUsersTabProps {
@@ -78,6 +79,17 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       if (error || data?.error) {
         toast.error(data?.error || error?.message || 'Failed to create user');
       } else {
+        const newUserId = data?.user?.id;
+        // Dual-write: also create the explicit entity_user_access mapping
+        // so Primary/Secondary ownership has a single source of truth going forward.
+        if (newUserId) {
+          await supabase.from('entity_user_access' as any).insert({
+            user_id: newUserId,
+            entity_id: entityId,
+            access_type: userType === 'primary' ? 'primary_user' : 'secondary_contact',
+            is_active: true,
+          });
+        }
         toast.success(`${userType === 'primary' ? 'Primary' : 'Secondary'} user created. Credentials sent to ${email.trim()}`);
         resetForm();
         setOpen(false);
@@ -95,7 +107,9 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <Card>
+    <div className="space-y-4">
+      <PrimaryUserCard entityId={entityId} entityName={entityName} />
+      <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg"><Users2 className="h-5 w-5 text-primary" />Web Portal Users</CardTitle>
@@ -181,5 +195,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 }

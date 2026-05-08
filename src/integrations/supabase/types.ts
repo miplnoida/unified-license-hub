@@ -778,6 +778,67 @@ export type Database = {
           },
         ]
       }
+      entity_user_access: {
+        Row: {
+          access_type: Database["public"]["Enums"]["entity_access_type"]
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          entity_id: string
+          id: string
+          is_active: boolean
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_type: Database["public"]["Enums"]["entity_access_type"]
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entity_id: string
+          id?: string
+          is_active?: boolean
+          start_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_type?: Database["public"]["Enums"]["entity_access_type"]
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entity_id?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_user_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_components: {
         Row: {
           amount: number
@@ -4353,6 +4414,10 @@ export type Database = {
         }
         Returns: string
       }
+      assign_primary_user: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: Json
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
@@ -4453,6 +4518,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_primary_user_of: {
+        Args: { _entity_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_self_audit: {
         Args: {
           _action: string
@@ -4543,6 +4612,7 @@ export type Database = {
         | "licensee_primary"
         | "licensee_secondary"
       cutoff_unit_enum: "days" | "weeks" | "months"
+      entity_access_type: "primary_user" | "employee" | "secondary_contact"
       notification_status_enum: "pending" | "sent" | "failed"
       ontime_status_enum: "ON_TIME" | "LATE"
       return_audit_action:
@@ -4698,6 +4768,7 @@ export const Constants = {
         "licensee_secondary",
       ],
       cutoff_unit_enum: ["days", "weeks", "months"],
+      entity_access_type: ["primary_user", "employee", "secondary_contact"],
       notification_status_enum: ["pending", "sent", "failed"],
       ontime_status_enum: ["ON_TIME", "LATE"],
       return_audit_action: [
