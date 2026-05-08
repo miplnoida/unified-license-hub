@@ -4557,7 +4557,7 @@ export type Database = {
         | "comment_deleted"
       return_request_status: "active" | "resolved"
       return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR"
-      user_type: "primary" | "secondary"
+      user_type: "primary" | "secondary" | "employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4713,7 +4713,7 @@ export const Constants = {
       ],
       return_request_status: ["active", "resolved"],
       return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR"],
-      user_type: ["primary", "secondary"],
+      user_type: ["primary", "secondary", "employee"],
     },
   },
 } as const
