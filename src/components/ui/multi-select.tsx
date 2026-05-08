@@ -28,6 +28,7 @@ interface MultiSelectProps {
   onChange: (selected: string[]) => void;
   placeholder?: string;
   className?: string;
+  withinDialog?: boolean;
 }
 
 export function MultiSelect({
@@ -36,6 +37,7 @@ export function MultiSelect({
   onChange,
   placeholder = "Select...",
   className,
+  withinDialog = false,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -89,7 +91,13 @@ export function MultiSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+        disablePortal={withinDialog}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandList>
@@ -99,6 +107,10 @@ export function MultiSelect({
                 <CommandItem
                   key={option.value}
                   value={option.label}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onSelect={() => handleToggle(option.value)}
                 >
                   <Check

@@ -352,6 +352,7 @@ export default function PpocManagement() {
                 </div>
               ) : (
               <MultiSelect
+                withinDialog
                 options={sectors.map(s => ({ value: s.id, label: s.name }))}
                 selected={selectedSectorIds}
                 onChange={(ids) => {
