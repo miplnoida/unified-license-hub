@@ -171,9 +171,9 @@ export default function PpocManagement() {
     setPpocUserId(m.ppoc_user_id);
     setLicenseeId(m.licensee_id);
     setSelectedSectorIds(m.sector_ids || []);
-    // Ensure the currently mapped user is present in the dropdown even if
-    // their role data has drifted away from the eligibility rules.
-    loadOptions(m.ppoc_user_id);
+    // Ensure the currently mapped user AND licensee are present in the dropdowns
+    // even if dedupe/eligibility rules would otherwise hide them.
+    loadOptions(m.ppoc_user_id, m.licensee_id);
     setDialogOpen(true);
   };
   const handleSave = async () => {
