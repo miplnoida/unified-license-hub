@@ -4,7 +4,6 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 function FormNameLabel({ templateId, fallbackIndex }: { templateId: string; fallbackIndex: number }) {
