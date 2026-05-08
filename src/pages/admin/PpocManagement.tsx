@@ -12,10 +12,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { MultiSelect } from '@/components/ui/multi-select';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Link2, Pencil, X } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
 import { loadApprovedLicenseeOptions, type ApprovedLicenseeOption } from '@/lib/licenseeOptions';
@@ -43,6 +44,23 @@ export default function PpocManagement() {
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [sectorSearch, setSectorSearch] = useState('');
+
+  const toggleSector = (sectorId: string) => {
+    setSelectedSectorIds(prev => {
+      const next = prev.includes(sectorId)
+        ? prev.filter(id => id !== sectorId)
+        : [...prev, sectorId];
+      if (licenseeId) {
+        const lic = licensees.find(l => l.id === licenseeId);
+        if (!lic?.sector_id || !next.includes(lic.sector_id)) {
+          setLicenseeId('');
+        }
+      }
+      return next;
+    });
+  };
+
   const [users, setUsers] = useState<EligiblePpocUser[]>([]);
   const [licensees, setLicensees] = useState<ApprovedLicenseeOption[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
@@ -113,6 +131,7 @@ export default function PpocManagement() {
     setPpocUserId('');
     setLicenseeId('');
     setSelectedSectorIds([]);
+    setSectorSearch('');
     setSaving(false);
   };
 
@@ -150,6 +169,7 @@ export default function PpocManagement() {
     setPpocUserId('');
     setLicenseeId('');
     setSelectedSectorIds([]);
+    setSectorSearch('');
     loadOptions();
     setDialogOpen(true);
   };
@@ -159,6 +179,7 @@ export default function PpocManagement() {
     setPpocUserId(m.ppoc_user_id);
     setLicenseeId(m.licensee_id);
     setSelectedSectorIds(m.sector_ids || []);
+    setSectorSearch('');
     // Ensure the currently mapped user AND licensee are present in the dropdowns
     // even if dedupe/eligibility rules would otherwise hide them.
     loadOptions(m.ppoc_user_id, m.licensee_id);
@@ -345,25 +366,66 @@ export default function PpocManagement() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Assign Sectors</Label>
+              <Label>Assign Sectors *</Label>
               {sectors.length === 0 ? (
                 <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
                   No active sectors found. Please create or activate sectors first.
                 </div>
               ) : (
-              <MultiSelect
-                withinDialog
-                options={sectors.map(s => ({ value: s.id, label: s.name }))}
-                selected={selectedSectorIds}
-                onChange={(ids) => {
-                  setSelectedSectorIds(ids);
-                  if (licenseeId) {
-                    const lic = licensees.find(l => l.id === licenseeId);
-                    if (!lic?.sector_id || !ids.includes(lic.sector_id)) setLicenseeId('');
-                  }
-                }}
-                placeholder="Select one or more sectors"
-              />
+                <>
+                  <Input
+                    placeholder="Search sectors..."
+                    value={sectorSearch}
+                    onChange={(e) => setSectorSearch(e.target.value)}
+                  />
+                  <div className="max-h-56 overflow-y-auto rounded-md border p-1">
+                    {(() => {
+                      const filtered = sectors.filter(s =>
+                        s.name.toLowerCase().includes(sectorSearch.toLowerCase())
+                      );
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="px-2 py-3 text-sm text-muted-foreground">No sectors match your search.</div>
+                        );
+                      }
+                      return filtered.map(sector => {
+                        const checked = selectedSectorIds.includes(sector.id);
+                        return (
+                          <label
+                            key={sector.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleSector(sector.id)}
+                            />
+                            <span className="text-sm">{sector.name}</span>
+                          </label>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedSectorIds.length} sector(s) selected
+                  </div>
+                  {selectedSectorIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedSectorIds.map(id => {
+                        const s = sectors.find(x => x.id === id);
+                        if (!s) return null;
+                        return (
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {s.name}
+                            <X
+                              className="ml-1 h-3 w-3 cursor-pointer"
+                              onClick={() => toggleSector(id)}
+                            />
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
               <p className="text-xs text-muted-foreground">
                 Select one or more sectors. This PPOC will only be assigned entities/applications from these sectors.
