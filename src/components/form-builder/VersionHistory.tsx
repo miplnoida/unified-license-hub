@@ -282,9 +282,9 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                           <span className="ml-2">· Published {new Date(v.published_at).toLocaleDateString()}</span>
                         )}
                       </p>
-                      {usage && (usage.in_progress > 0 || usage.submitted > 0) && (
+                      {v.status === 'published' && (
                         <p className="text-[11px] text-muted-foreground">
-                          In-progress applications: <strong>{usage.in_progress}</strong> · Submitted responses: <strong>{usage.submitted}</strong>
+                          In-progress applications: <strong>{usage?.in_progress ?? 0}</strong> · Submitted responses: <strong>{usage?.submitted ?? 0}</strong>
                         </p>
                       )}
                       {v.change_notes && (
