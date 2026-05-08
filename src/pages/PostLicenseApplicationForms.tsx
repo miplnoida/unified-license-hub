@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
