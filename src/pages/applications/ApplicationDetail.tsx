@@ -21,6 +21,7 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
+import { FormVersionAssignmentsPanel } from '@/components/applications/FormVersionAssignmentsPanel';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
