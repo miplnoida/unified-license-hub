@@ -162,33 +162,55 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
             </DialogTitle>
             <DialogDescription>{formName} — {versions.length} version(s)</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end mb-2">
+          <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+            <p className="text-xs text-muted-foreground max-w-md">
+              New applications use the <strong>current default</strong> version. Applications already started continue with their assigned version.
+            </p>
             <VersionDiffViewer templateId={templateId} formName={formName} />
           </div>
+          {!hasCurrentDefault && versions.some((v: any) => v.status === 'published') && (
+            <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4 mt-[1px] shrink-0" />
+              <span>No current default version is set. New applications may fall back to the latest published version. Activate one below.</span>
+            </div>
+          )}
           <ScrollArea className="max-h-[60vh] pr-2">
             <div className="space-y-3">
               {versions.map((v: any, idx: number) => {
                 const effective = v.status === 'published' && isVersionEffective(v);
                 const scheduled = v.status === 'published' && v.effective_from && v.effective_from > new Date().toISOString();
+                const isCurrentDefault = v.id === currentDefaultId;
+                const isRetiring = v.status === 'published' && effective && !isCurrentDefault && !!v.effective_until;
+                const isRetired = v.status === 'published' && !effective;
+                const usage = usageCounts[v.id];
                 return (
-                  <Card key={v.id} className={idx === 0 ? 'border-primary/50' : ''}>
+                  <Card key={v.id} className={isCurrentDefault ? 'border-primary/60 ring-1 ring-primary/30' : idx === 0 ? 'border-primary/30' : ''}>
                     <CardContent className="py-3 px-4 space-y-2">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={idx === 0 ? 'default' : 'secondary'} className="gap-1">
+                          <Badge variant={isCurrentDefault ? 'default' : 'secondary'} className="gap-1">
                             <GitBranch className="h-3 w-3" />
                             v{v.semantic_version || `${v.version}.0`}
                           </Badge>
                           <Badge variant="outline" className="capitalize text-xs">
                             {v.status}
                           </Badge>
-                          {effective && (
+                          {isCurrentDefault && (
+                            <Badge className="bg-primary hover:bg-primary text-primary-foreground text-[10px] gap-1">
+                              <Star className="h-3 w-3" /> Current default
+                            </Badge>
+                          )}
+                          {isRetiring && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">Retiring</Badge>
+                          )}
+                          {isRetired && (
+                            <Badge variant="outline" className="text-[10px] border-muted-foreground/40 text-muted-foreground">Retired</Badge>
+                          )}
+                          {!isCurrentDefault && effective && !isRetiring && (
                             <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px]">Active</Badge>
                           )}
                           {scheduled && (
-                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">
-                              Scheduled
-                            </Badge>
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700">Scheduled</Badge>
                           )}
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -207,6 +229,17 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          {v.status === 'published' && !isCurrentDefault && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onActivateAsCurrent(v)}
+                              title="Set as current default"
+                              disabled={activateAsCurrent.isPending}
+                            >
+                              <Star className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
                           {v.status === 'published' && (
                             <Button
                               variant="ghost"
@@ -243,16 +276,19 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                           )}
                         </div>
                       </div>
-                      {(v.effective_from || v.effective_until) && (
-                        <p className="text-xs text-muted-foreground">
-                          Effective {v.effective_from ? new Date(v.effective_from).toLocaleDateString() : '—'} → {v.effective_until ? new Date(v.effective_until).toLocaleDateString() : 'no end'}
+                      <p className="text-xs text-muted-foreground">
+                        Effective {v.effective_from ? new Date(v.effective_from).toLocaleDateString() : '—'} → {v.effective_until ? new Date(v.effective_until).toLocaleDateString() : 'Open'}
+                        {v.published_at && (
+                          <span className="ml-2">· Published {new Date(v.published_at).toLocaleDateString()}</span>
+                        )}
+                      </p>
+                      {usage && (usage.in_progress > 0 || usage.submitted > 0) && (
+                        <p className="text-[11px] text-muted-foreground">
+                          In-progress applications: <strong>{usage.in_progress}</strong> · Submitted responses: <strong>{usage.submitted}</strong>
                         </p>
                       )}
                       {v.change_notes && (
                         <p className="text-xs text-muted-foreground">{v.change_notes}</p>
-                      )}
-                      {idx === 0 && (
-                        <span className="text-[10px] text-primary font-medium">Most recent</span>
                       )}
                     </CardContent>
                   </Card>
