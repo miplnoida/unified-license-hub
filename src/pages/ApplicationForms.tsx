@@ -104,9 +104,9 @@ function ActiveFormFiller({
         {versionLocked ? (
           <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
         ) : pinnedVersionId ? (
-          <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
+          <span className="text-[11px] text-muted-foreground">You are continuing with the form version assigned when this application was started.</span>
         ) : (
-          <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
+          <span className="text-[11px] text-muted-foreground">You are using the latest active form version.</span>
         )}
       </div>
       <FormRenderer
