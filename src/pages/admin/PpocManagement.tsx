@@ -268,7 +268,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="A Primary Point of Contact (PPOC) is an external person who acts as the primary user for one or more licensee entities. The same PPOC can be linked to multiple entities (e.g. one person serving as PPOC for both ABC Ltd and DEF Ltd)."
+          description="A Primary Point of Contact (PPOC) is a designated contact person for one or more licensee entities. The PPOC handles communication and access on behalf of the entity but is not automatically the entity's Primary User unless configured separately."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
@@ -286,24 +286,34 @@ export default function PpocManagement() {
               <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
             </DialogTitle>
             <DialogDescription>
-              Select an external licensee user (entity contact) to act as Primary Point of Contact for a licensee entity. Internal staff/employees cannot be assigned as PPOC.
+              Select an active external/licensee contact user to map as PPOC for this entity.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary users only)</span></Label>
+              <Label>PPOC User *</Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select primary user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select contact user..." /></SelectTrigger>
                 <SelectContent>
                   {users.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No active primary users available.</div>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No eligible PPOC users found. Check that the user is active and has a licensee primary/contact role.
+                    </div>
                   ) : users.map(u => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.full_name} ({u.email})
+                      <span className="flex items-center gap-2">
+                        <span>{u.full_name} ({u.email})</span>
+                        {u.status && u.status !== 'active' && (
+                          <Badge variant="secondary" className="text-[10px]">{u.status}</Badge>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Includes licensee primary/secondary contacts and users with a matching dynamic role.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Assign Sectors</Label>
