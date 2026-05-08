@@ -4482,6 +4482,15 @@ export type Database = {
         Args: { _activation_date?: string; _version_id: string }
         Returns: Json
       }
+      admin_override_form_version_assignment: {
+        Args: {
+          _application_id: string
+          _reason: string
+          _template_id: string
+          _version_id: string
+        }
+        Returns: Json
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
