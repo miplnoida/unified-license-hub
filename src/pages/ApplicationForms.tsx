@@ -37,7 +37,6 @@ function ActiveFormFiller({
   pinnedVersionId,
   onVersionChange,
   versionLocked = false,
-  allowVersionSwitching = false,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -48,7 +47,6 @@ function ActiveFormFiller({
   pinnedVersionId?: string | null;
   onVersionChange?: (versionId: string) => void;
   versionLocked?: boolean;
-  allowVersionSwitching?: boolean;
 }) {
   // Backend resolver decides which version to use and pins it on first call.
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
@@ -353,7 +351,6 @@ export default function ApplicationForms() {
             pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
             onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
-            allowVersionSwitching={appData?.status === 'draft'}
           />
         </div>
       </DashboardLayout>

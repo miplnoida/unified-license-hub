@@ -38,7 +38,6 @@ function ActiveFormFiller({
   pinnedVersionId,
   onVersionChange,
   versionLocked = false,
-  allowVersionSwitching = false,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -49,7 +48,6 @@ function ActiveFormFiller({
   pinnedVersionId?: string | null;
   onVersionChange?: (versionId: string) => void;
   versionLocked?: boolean;
-  allowVersionSwitching?: boolean;
 }) {
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
@@ -344,7 +342,6 @@ export default function PostLicenseApplicationForms() {
             pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
             onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
-            allowVersionSwitching={appData?.status === 'draft'}
           />
         </div>
       </DashboardLayout>
