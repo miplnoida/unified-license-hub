@@ -2368,6 +2368,42 @@ export type Database = {
           },
         ]
       }
+      ppoc_mapping_sectors: {
+        Row: {
+          created_at: string
+          id: string
+          mapping_id: string
+          sector_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mapping_id: string
+          sector_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mapping_id?: string
+          sector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ppoc_mapping_sectors_mapping_id_fkey"
+            columns: ["mapping_id"]
+            isOneToOne: false
+            referencedRelation: "ppoc_entity_mappings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ppoc_mapping_sectors_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pre_license_users: {
         Row: {
           avatar_url: string | null
