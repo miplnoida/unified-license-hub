@@ -79,7 +79,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1b. Server-side duplicate-application guard (defense in depth — DB trigger also enforces)
+    // 1b. Server-side duplicate-application & re-application guard
+    //     (defense in depth — frontend + DB triggers also enforce).
+    //     Match key: (applicant + sector + sub_sector + category).
     if (!isResubmission) {
       const appDataObj = (app.data as Record<string, unknown> | null) || {};
       const sectorId = appDataObj.sector_id as string | undefined;
@@ -95,48 +97,79 @@ Deno.serve(async (req) => {
         allow_reapplication?: boolean;
         allow_reapplication_after_final?: boolean;
       };
-      const allowReapply = settingsObj.allow_reapplication !== false;
-      const allowReapplyAfterFinal = settingsObj.allow_reapplication_after_final !== false;
+      // New single switch; fall back to the legacy `_after_final` key.
+      const allowReapply =
+        typeof settingsObj.allow_reapplication === "boolean"
+          ? settingsObj.allow_reapplication
+          : (typeof settingsObj.allow_reapplication_after_final === "boolean"
+            ? settingsObj.allow_reapplication_after_final
+            : true);
 
-      if (sectorId && !allowReapply) {
-        const { data: dupes } = await adminClient
+      if (sectorId && subSectorId && categoryId) {
+        const { data: peers } = await adminClient
           .from("applications")
           .select("id, status, data")
           .eq("applicant_id", user.id)
-          .neq("id", application_id)
-          .not("status", "in", "(draft,cancelled,rejected,withdrawn,approved)");
-        const realDupe = (dupes || []).find((a: { data?: { sector_id?: string } | null }) => a.data?.sector_id === sectorId);
-        if (realDupe) {
+          .neq("id", application_id);
+
+        const sameTriple = (peers || []).filter(
+          (a: { data?: { sector_id?: string; sub_sector_id?: string; category_id?: string } | null }) =>
+            a.data?.sector_id === sectorId &&
+            a.data?.sub_sector_id === subSectorId &&
+            a.data?.category_id === categoryId,
+        );
+
+        const ACTIVE = new Set([
+          "submitted", "in_progress", "in_review", "pending_review",
+          "under_review", "forwarded", "query_raised", "resubmission_requested",
+          "awaiting_approval",
+        ]);
+
+        const activeDupe = sameTriple.find((a) => ACTIVE.has(((a.status as string) || "").toLowerCase()));
+        if (activeDupe) {
           return new Response(
             JSON.stringify({
-              error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
-              code: "DUPLICATE_SECTOR_APPLICATION",
+              error: "You already have an active application for this sector, sub-sector, and service. You cannot submit another until it is finalised.",
+              code: "DUPLICATE_ACTIVE_APPLICATION",
             }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-      }
 
-      if (!allowReapplyAfterFinal && sectorId && subSectorId && categoryId) {
-        const { data: finalDupes } = await adminClient
-          .from("applications")
-          .select("id, status, data")
-          .eq("applicant_id", user.id)
-          .neq("id", application_id)
-          .in("status", ["approved", "rejected"]);
-        const finalDupe = (finalDupes || []).find((a: { data?: { sector_id?: string; sub_sector_id?: string; category_id?: string } | null }) =>
-          a.data?.sector_id === sectorId &&
-          a.data?.sub_sector_id === subSectorId &&
-          a.data?.category_id === categoryId
+        const pendingPay = sameTriple.find((a) =>
+          ["payment_pending", "awaiting_payment", "pending_payment"].includes(((a.status as string) || "").toLowerCase())
         );
-        if (finalDupe) {
+        if (pendingPay) {
           return new Response(
             JSON.stringify({
-              error: "You have already submitted an application for this sector, sub-sector, and service. Re-application is not allowed.",
-              code: "DUPLICATE_FINAL_APPLICATION",
+              error: "You have an application with pending payment for this sector, sub-sector, and service. Please complete payment first.",
+              code: "PENDING_PAYMENT_APPLICATION",
             }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
+        }
+
+        if (!allowReapply) {
+          const approvedDupe = sameTriple.find((a) => ((a.status as string) || "").toLowerCase() === "approved");
+          if (approvedDupe) {
+            return new Response(
+              JSON.stringify({
+                error: "You already have an Approved application for this sector, sub-sector, and service. Please use the renewal flow if available; a fresh application is not permitted.",
+                code: "DUPLICATE_APPROVED_APPLICATION",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          const rejectedDupe = sameTriple.find((a) => ((a.status as string) || "").toLowerCase() === "rejected");
+          if (rejectedDupe) {
+            return new Response(
+              JSON.stringify({
+                error: "Your previous application for this sector, sub-sector, and service was Rejected. Re-application is not allowed.",
+                code: "DUPLICATE_REJECTED_APPLICATION",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
       }
     }
