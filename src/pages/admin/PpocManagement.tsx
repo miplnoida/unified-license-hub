@@ -61,9 +61,6 @@ export default function PpocManagement() {
     });
   };
 
-  const filteredSectors = sectors.filter(s =>
-    s.name.toLowerCase().includes(sectorSearch.toLowerCase())
-  );
   const [users, setUsers] = useState<EligiblePpocUser[]>([]);
   const [licensees, setLicensees] = useState<ApprovedLicenseeOption[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
