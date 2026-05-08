@@ -4518,6 +4518,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_eligible_ppoc_user: {
+        Args: { _existing_mapping_id?: string; _user_id: string }
+        Returns: boolean
+      }
+      is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
       is_primary_user_of: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
@@ -4576,6 +4581,15 @@ export type Database = {
       }
       reset_application_for_provisioning: {
         Args: { _application_id: string }
+        Returns: Json
+      }
+      save_ppoc_mapping: {
+        Args: {
+          _licensee_id: string
+          _mapping_id: string
+          _ppoc_user_id: string
+          _sector_ids: string[]
+        }
         Returns: Json
       }
       submit_application: {

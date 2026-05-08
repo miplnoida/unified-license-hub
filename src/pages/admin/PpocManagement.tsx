@@ -30,6 +30,7 @@ interface PpocMapping {
   licensee_name?: string;
   sector_ids?: string[];
   sector_names?: string[];
+  needs_sector_assignment?: boolean;
 }
 
 export default function PpocManagement() {
@@ -82,6 +83,7 @@ export default function PpocManagement() {
         licensee_name: licMap[r.licensee_id]?.name || '—',
         sector_ids: sectorIds,
         sector_names: sectorIds.map(id => sectorMap[id]?.name).filter(Boolean),
+        needs_sector_assignment: sectorIds.length === 0,
       };
     }));
     setLoading(false);
@@ -105,6 +107,7 @@ export default function PpocManagement() {
     setPpocUserId('');
     setLicenseeId('');
     setSelectedSectorIds([]);
+    loadOptions();
     setDialogOpen(true);
   };
 
@@ -118,59 +121,46 @@ export default function PpocManagement() {
     loadOptions(m.ppoc_user_id);
     setDialogOpen(true);
   };
-
-
-
-  const syncMappingSectors = async (mappingId: string) => {
-    // Replace existing sector rows with the current selection
-    await supabase.from('ppoc_mapping_sectors' as any).delete().eq('mapping_id', mappingId);
-    if (selectedSectorIds.length > 0) {
-      const rows = selectedSectorIds.map(sid => ({ mapping_id: mappingId, sector_id: sid }));
-      const { error } = await supabase.from('ppoc_mapping_sectors' as any).insert(rows);
-      if (error) throw error;
-    }
-  };
-
   const handleSave = async () => {
-    if (!ppocUserId || !licenseeId) {
-      toast.error('Please select both a PPOC user and a licensee');
+    if (!ppocUserId) {
+      toast.error('Please select a PPOC user.');
       return;
     }
-    // Optional warning: licensee sector vs selected sectors
+    if (selectedSectorIds.length === 0) {
+      toast.error('Please select at least one sector for this PPOC mapping.');
+      return;
+    }
+    if (!licenseeId) {
+      toast.error('Please select a licensee entity.');
+      return;
+    }
     const lic = licensees.find(l => l.id === licenseeId);
-    if (selectedSectorIds.length > 0 && lic?.sector_id && !selectedSectorIds.includes(lic.sector_id)) {
+    if (!lic?.sector_id || !selectedSectorIds.includes(lic.sector_id)) {
       toast.error('Selected entity does not belong to the assigned PPOC sectors.');
       return;
     }
 
     setSaving(true);
     try {
-      let mappingId = editingId;
-      if (editingId) {
-        const { error } = await supabase
-          .from('ppoc_entity_mappings' as any)
-          .update({ ppoc_user_id: ppocUserId, licensee_id: licenseeId })
-          .eq('id', editingId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('ppoc_entity_mappings' as any)
-          .insert({ ppoc_user_id: ppocUserId, licensee_id: licenseeId, is_active: true })
-          .select('id')
-          .single();
-        if (error) throw error;
-        mappingId = (data as any).id;
-      }
-      if (mappingId) await syncMappingSectors(mappingId);
+      const { data, error } = await supabase.rpc('save_ppoc_mapping' as any, {
+        _mapping_id: editingId,
+        _ppoc_user_id: ppocUserId,
+        _licensee_id: licenseeId,
+        _sector_ids: selectedSectorIds,
+      });
+      if (error) throw error;
+      const result: any = data;
+      if (result?.error) throw new Error(result.error);
+
       toast.success(editingId ? 'PPOC mapping updated' : 'PPOC mapping created');
       setDialogOpen(false);
       setEditingId(null);
       setPpocUserId('');
       setLicenseeId('');
       setSelectedSectorIds([]);
-      load();
+      await Promise.all([load(), loadOptions()]);
     } catch (e: any) {
-      toast.error(e?.message?.includes('duplicate') ? 'This mapping already exists' : (e?.message || 'Failed to save'));
+      toast.error(e?.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -219,7 +209,7 @@ export default function PpocManagement() {
 
   // When sectors are selected in the dialog, restrict the licensee dropdown to matching sectors.
   const dialogLicenseeOptions = selectedSectorIds.length === 0
-    ? licensees
+    ? []
     : licensees.filter(l => l.sector_id && selectedSectorIds.includes(l.sector_id));
 
   const columns: Column<PpocMapping>[] = [
@@ -237,7 +227,7 @@ export default function PpocManagement() {
         <div className="flex flex-wrap gap-1">
           {(r.sector_names && r.sector_names.length > 0)
             ? r.sector_names.map(n => <Badge key={n} variant="outline" className="text-xs">{n}</Badge>)
-            : <Badge variant="secondary" className="text-xs">All sectors</Badge>}
+            : <Badge variant="secondary" className="text-xs">Needs sector assignment</Badge>}
         </div>
       ),
     },
@@ -268,7 +258,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="A Primary Point of Contact (PPOC) is a designated contact person for one or more licensee entities. The PPOC handles communication and access on behalf of the entity but is not automatically the entity's Primary User unless configured separately."
+          description="PPOC is the Primary Point of Contact mapped to selected licensee entities and sectors. PPOC mapping controls contact/access assignment and is separate from entity Primary User ownership unless explicitly configured elsewhere."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
@@ -297,12 +287,12 @@ export default function PpocManagement() {
                 <SelectContent>
                   {users.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No eligible PPOC users found. Check that the user is active and has a licensee primary/contact role.
+                      No eligible PPOC users found. Check that the user is active and has a licensee/contact role.
                     </div>
                   ) : users.map(u => (
                     <SelectItem key={u.id} value={u.id}>
                       <span className="flex items-center gap-2">
-                        <span>{u.full_name} ({u.email})</span>
+                        <span>{u.full_name || u.email}{u.email ? ` (${u.email})` : ''}</span>
                         {u.status && u.status !== 'active' && (
                           <Badge variant="secondary" className="text-[10px]">{u.status}</Badge>
                         )}
@@ -312,26 +302,31 @@ export default function PpocManagement() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Includes licensee primary/secondary contacts and users with a matching dynamic role.
+                Select an active external/licensee contact user.
               </p>
             </div>
             <div className="space-y-2">
               <Label>Assign Sectors</Label>
+              {sectors.length === 0 ? (
+                <div className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+                  No active sectors found. Please create or activate sectors first.
+                </div>
+              ) : (
               <MultiSelect
                 options={sectors.map(s => ({ value: s.id, label: s.name }))}
                 selected={selectedSectorIds}
                 onChange={(ids) => {
                   setSelectedSectorIds(ids);
-                  // Clear licensee if it no longer matches the selected sectors
-                  if (ids.length > 0 && licenseeId) {
+                  if (licenseeId) {
                     const lic = licensees.find(l => l.id === licenseeId);
-                    if (lic?.sector_id && !ids.includes(lic.sector_id)) setLicenseeId('');
+                    if (!lic?.sector_id || !ids.includes(lic.sector_id)) setLicenseeId('');
                   }
                 }}
-                placeholder="All sectors (leave empty for unrestricted)"
+                placeholder="Select one or more sectors"
               />
+              )}
               <p className="text-xs text-muted-foreground">
-                Selected PPOC will only be assigned entities/applications from the selected sectors. Leave empty to allow all sectors.
+                Select one or more sectors. This PPOC will only be assigned entities/applications from these sectors.
               </p>
             </div>
             <div className="space-y-2">
@@ -339,17 +334,19 @@ export default function PpocManagement() {
               <Select value={licenseeId} onValueChange={setLicenseeId}>
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    selectedSectorIds.length > 0 && dialogLicenseeOptions.length === 0
-                      ? 'No entities match selected sectors'
-                      : 'Select licensee...'
+                    selectedSectorIds.length === 0
+                      ? 'Select sector(s) first.'
+                      : dialogLicenseeOptions.length === 0
+                        ? 'No licensee entities found for the selected sectors.'
+                        : 'Select licensee...'
                   } />
                 </SelectTrigger>
                 <SelectContent>
                   {dialogLicenseeOptions.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
-                      {selectedSectorIds.length > 0
-                        ? 'No entities match selected sectors.'
-                        : 'No licensees available.'}
+                      {selectedSectorIds.length === 0
+                        ? 'Select sector(s) first.'
+                        : 'No licensee entities found for the selected sectors.'}
                     </div>
                   ) : dialogLicenseeOptions.map(l => (
                     <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>

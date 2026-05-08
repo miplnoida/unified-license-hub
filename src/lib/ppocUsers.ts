@@ -7,6 +7,7 @@ export interface EligiblePpocUser {
   id: string;
   full_name: string;
   email: string;
+  role: string | null;
   user_type: string | null;
   status: string | null;
   role_labels: string[];
@@ -16,18 +17,27 @@ export interface EligiblePpocUser {
  * Values in profiles.user_type that qualify a user as an external/licensee
  * primary contact (PPOC candidate).
  */
-const ELIGIBLE_USER_TYPES = ['primary', 'licensee_primary', 'licensee', 'secondary'];
+const ELIGIBLE_USER_TYPES = ['primary', 'secondary'];
+
+/**
+ * Legacy profile.role values that still indicate an external contact user.
+ */
+const ELIGIBLE_PROFILE_ROLES = ['licensee_primary', 'licensee_secondary', 'primary', 'ppoc', 'entity_contact'];
 
 /**
  * app_role values in user_roles that qualify a user as a PPOC candidate.
  */
 const ELIGIBLE_APP_ROLES = ['licensee_primary', 'licensee_secondary'];
 
+const INTERNAL_APP_ROLES = ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'developer'];
+
 /**
  * Tokens (case-insensitive) on roles.system_role / roles.name that mark a
  * dynamic role as a "primary user / licensee contact" role.
  */
-const DYNAMIC_ROLE_TOKENS = ['licensee_primary', 'primary_user', 'primary user', 'licensee primary', 'ppoc'];
+const DYNAMIC_ROLE_TOKENS = ['licensee_primary', 'licensee_secondary', 'primary_user', 'primary user', 'licensee primary', 'licensee secondary', 'ppoc', 'entity contact'];
+
+const INTERNAL_ROLE_TOKENS = ['admin', 'super_admin', 'supervisor', 'analyst', 'officer', 'developer', 'regulator'];
 
 /**
  * Load all eligible PPOC users by combining several role/user sources so the
@@ -42,7 +52,8 @@ const DYNAMIC_ROLE_TOKENS = ['licensee_primary', 'primary_user', 'primary user',
  *  - includeUserId (current selection while editing) — always included
  */
 export async function getEligiblePpocUsers(includeUserId?: string | null): Promise<EligiblePpocUser[]> {
-  const ids = new Set<string>();
+  const candidateIds = new Set<string>();
+  const mappedIds = new Set<string>();
   const roleLabelsByUser: Record<string, Set<string>> = {};
 
   const addLabel = (uid: string, label: string) => {
@@ -50,86 +61,135 @@ export async function getEligiblePpocUsers(includeUserId?: string | null): Promi
     roleLabelsByUser[uid].add(label);
   };
 
-  // 1) profiles.user_type / legacy profiles.role
-  const { data: profileRows } = await supabase
-    .from('profiles')
-    .select('id, role, user_type')
-    .or(
-      [
-        `user_type.in.(${ELIGIBLE_USER_TYPES.join(',')})`,
-        `role.in.(${ELIGIBLE_APP_ROLES.join(',')})`,
-      ].join(','),
-    );
-  (profileRows || []).forEach((p: any) => {
-    ids.add(p.id);
-    if (p.user_type) addLabel(p.id, String(p.user_type));
-    if (p.role) addLabel(p.id, String(p.role));
+  const [{ data: activeProfiles }, { data: userRoles }, { data: roles }, { data: userDynamicRoles }, { data: mapped }] = await Promise.all([
+    supabase.from('profiles').select('id, full_name, email, user_type, role, status, licensee_id, role_id').eq('status', 'active'),
+    supabase.from('user_roles').select('user_id, role'),
+    supabase.from('roles').select('id, name, system_role'),
+    supabase.from('user_dynamic_roles' as any).select('user_id, role_id'),
+    supabase.from('ppoc_entity_mappings' as any).select('ppoc_user_id'),
+  ]);
+
+  const rolesById = Object.fromEntries((roles || []).map((role: any) => [role.id, role]));
+  const internalIds = new Set<string>();
+
+  (userRoles || []).forEach((row: any) => {
+    if (INTERNAL_APP_ROLES.includes(String(row.role))) internalIds.add(row.user_id);
   });
 
-  // 2) user_roles legacy mapping
-  const { data: ur } = await supabase
-    .from('user_roles')
-    .select('user_id, role')
-    .in('role', ELIGIBLE_APP_ROLES as any);
-  (ur || []).forEach((r: any) => {
-    ids.add(r.user_id);
-    addLabel(r.user_id, String(r.role));
+  (activeProfiles || []).forEach((profile: any) => {
+    const roleText = String(profile.role || '').toLowerCase();
+    if (INTERNAL_APP_ROLES.includes(roleText)) internalIds.add(profile.id);
+    const profileRole = profile.role_id ? rolesById[profile.role_id] : null;
+    const profileRoleHay = `${profileRole?.system_role || ''} ${profileRole?.name || ''}`.toLowerCase();
+    if (INTERNAL_ROLE_TOKENS.some((token) => profileRoleHay.includes(token))) {
+      internalIds.add(profile.id);
+    }
   });
 
-  // 3) user_dynamic_roles → roles
-  const { data: roles } = await supabase
-    .from('roles')
-    .select('id, name, system_role');
-  const eligibleRoleIds = (roles || [])
-    .filter((r: any) => {
-      const hay = `${r.system_role || ''} ${r.name || ''}`.toLowerCase();
-      return DYNAMIC_ROLE_TOKENS.some((t) => hay.includes(t));
-    })
-    .map((r: any) => ({ id: r.id, label: r.name as string }));
-  if (eligibleRoleIds.length > 0) {
-    const { data: udr } = await supabase
-      .from('user_dynamic_roles' as any)
-      .select('user_id, role_id')
-      .in('role_id', eligibleRoleIds.map((r) => r.id));
-    const labelById = Object.fromEntries(eligibleRoleIds.map((r) => [r.id, r.label]));
-    (udr || []).forEach((r: any) => {
-      ids.add(r.user_id);
-      addLabel(r.user_id, labelById[r.role_id] || 'dynamic');
-    });
-  }
-
-  // 4) existing PPOC mappings — keep mapped users discoverable even if their
-  // role config drifted away from the eligibility rules.
-  const { data: mapped } = await supabase
-    .from('ppoc_entity_mappings' as any)
-    .select('ppoc_user_id');
-  (mapped || []).forEach((m: any) => {
-    ids.add(m.ppoc_user_id);
-    addLabel(m.ppoc_user_id, 'mapped_ppoc');
+  (userDynamicRoles || []).forEach((row: any) => {
+    const dynamicRole = rolesById[row.role_id];
+    const hay = `${dynamicRole?.system_role || ''} ${dynamicRole?.name || ''}`.toLowerCase();
+    if (INTERNAL_ROLE_TOKENS.some((token) => hay.includes(token))) {
+      internalIds.add(row.user_id);
+    }
   });
 
-  // 5) currently selected user (edit form safety)
-  if (includeUserId) ids.add(includeUserId);
+  let eligibleByProfileRole = 0;
+  let eligibleByProfileType = 0;
+  let eligibleByUserRoles = 0;
+  let eligibleByDynamicRoles = 0;
 
-  if (ids.size === 0) return [];
+  // Debug checklist used during diagnosis:
+  // - active profile count
+  // - eligible by profiles.role
+  // - eligible by profiles.user_type
+  // - eligible by user_roles
+  // - eligible by user_dynamic_roles / profiles.role_id
+  // - final merged PPOC user count
+  (activeProfiles || []).forEach((profile: any) => {
+    if (ELIGIBLE_USER_TYPES.includes(String(profile.user_type))) {
+      candidateIds.add(profile.id);
+      eligibleByProfileType += 1;
+      addLabel(profile.id, String(profile.user_type));
+    }
+    if (ELIGIBLE_PROFILE_ROLES.includes(String(profile.role))) {
+      candidateIds.add(profile.id);
+      eligibleByProfileRole += 1;
+      addLabel(profile.id, String(profile.role));
+    }
 
-  // Hydrate profile details for the merged user-id set
+    const linkedRole = profile.role_id ? rolesById[profile.role_id] : null;
+    const linkedHay = `${linkedRole?.system_role || ''} ${linkedRole?.name || ''}`.toLowerCase();
+    if (linkedRole && DYNAMIC_ROLE_TOKENS.some((token) => linkedHay.includes(token))) {
+      candidateIds.add(profile.id);
+      eligibleByDynamicRoles += 1;
+      addLabel(profile.id, linkedRole.name || linkedRole.system_role || 'dynamic_role');
+    }
+  });
+
+  (userRoles || []).forEach((row: any) => {
+    if (ELIGIBLE_APP_ROLES.includes(String(row.role))) {
+      candidateIds.add(row.user_id);
+      eligibleByUserRoles += 1;
+      addLabel(row.user_id, String(row.role));
+    }
+  });
+
+  (userDynamicRoles || []).forEach((row: any) => {
+    const dynamicRole = rolesById[row.role_id];
+    const hay = `${dynamicRole?.system_role || ''} ${dynamicRole?.name || ''}`.toLowerCase();
+    if (dynamicRole && DYNAMIC_ROLE_TOKENS.some((token) => hay.includes(token))) {
+      candidateIds.add(row.user_id);
+      eligibleByDynamicRoles += 1;
+      addLabel(row.user_id, dynamicRole.name || dynamicRole.system_role || 'dynamic_role');
+    }
+  });
+
+  (mapped || []).forEach((row: any) => {
+    mappedIds.add(row.ppoc_user_id);
+    candidateIds.add(row.ppoc_user_id);
+    addLabel(row.ppoc_user_id, 'mapped_ppoc');
+  });
+
+  if (includeUserId) candidateIds.add(includeUserId);
+
+  if (candidateIds.size === 0) return [];
+
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, email, user_type, status')
-    .in('id', Array.from(ids));
+    .select('id, full_name, email, role, user_type, status')
+    .in('id', Array.from(candidateIds));
 
-  const list: EligiblePpocUser[] = (profiles || []).map((p: any) => ({
-    id: p.id,
-    full_name: p.full_name || '—',
-    email: p.email || '',
-    user_type: p.user_type || null,
-    status: p.status || null,
-    role_labels: Array.from(roleLabelsByUser[p.id] || []),
-  }));
+  const list: EligiblePpocUser[] = (profiles || [])
+    .filter((profile: any) => {
+      const isEditingFallback = includeUserId === profile.id;
+      const isMappedFallback = mappedIds.has(profile.id);
+      const isActive = profile.status === 'active';
+      const isInternal = internalIds.has(profile.id);
+
+      if (isInternal && !isEditingFallback) return false;
+      if (!isActive && !isEditingFallback) return false;
+      return isEditingFallback || isMappedFallback || candidateIds.has(profile.id);
+    })
+    .map((profile: any) => ({
+      id: profile.id,
+      full_name: profile.full_name || '',
+      email: profile.email || '',
+      role: profile.role || null,
+      user_type: profile.user_type || null,
+      status: profile.status || null,
+      role_labels: Array.from(roleLabelsByUser[profile.id] || []),
+    }));
 
   list.sort((a, b) =>
-    (a.full_name || a.email).localeCompare(b.full_name || b.email, undefined, { sensitivity: 'base' }),
+    (a.full_name || a.email).localeCompare(b.full_name || b.email, undefined, { sensitivity: 'base' })
+      || a.email.localeCompare(b.email, undefined, { sensitivity: 'base' }),
   );
+
+  void eligibleByProfileRole;
+  void eligibleByProfileType;
+  void eligibleByUserRoles;
+  void eligibleByDynamicRoles;
+
   return list;
 }
