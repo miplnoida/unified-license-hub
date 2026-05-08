@@ -79,6 +79,17 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       if (error || data?.error) {
         toast.error(data?.error || error?.message || 'Failed to create user');
       } else {
+        const newUserId = data?.user?.id;
+        // Dual-write: also create the explicit entity_user_access mapping
+        // so Primary/Secondary ownership has a single source of truth going forward.
+        if (newUserId) {
+          await supabase.from('entity_user_access' as any).insert({
+            user_id: newUserId,
+            entity_id: entityId,
+            access_type: userType === 'primary' ? 'primary_user' : 'secondary_contact',
+            is_active: true,
+          });
+        }
         toast.success(`${userType === 'primary' ? 'Primary' : 'Secondary'} user created. Credentials sent to ${email.trim()}`);
         resetForm();
         setOpen(false);
