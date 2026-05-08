@@ -177,11 +177,7 @@ export default function PpocManagement() {
       if (result?.error) throw new Error(result.error);
 
       toast.success(editingId ? 'PPOC mapping updated' : 'PPOC mapping created');
-      setDialogOpen(false);
-      setEditingId(null);
-      setPpocUserId('');
-      setLicenseeId('');
-      setSelectedSectorIds([]);
+      closeDialog();
       await Promise.all([load(), loadOptions()]);
     } catch (e: any) {
       toast.error(e?.message || 'Failed to save');
