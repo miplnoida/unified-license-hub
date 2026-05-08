@@ -46,12 +46,52 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
   const [scheduleFrom, setScheduleFrom] = useState('');
   const [scheduleUntil, setScheduleUntil] = useState('');
   const { data: versions = [] } = useFormVersions(templateId);
+  const { data: usageCounts = {} } = useFormVersionUsageCounts(templateId);
   const updateSchedule = useUpdateVersionSchedule();
+  const activateAsCurrent = useActivateVersionAsCurrent();
+
+  // The "current default" is the most recent published version that is currently
+  // effective and has no end date (open-ended). Fallback: most recent effective.
+  const currentDefaultId = (() => {
+    const published = (versions as any[]).filter(v => v.status === 'published' && isVersionEffective(v));
+    const openEnded = published.filter(v => !v.effective_until);
+    const sortByVerDesc = (a: any, b: any) => (b.version || 0) - (a.version || 0);
+    return (openEnded.length > 0 ? openEnded.sort(sortByVerDesc)[0]?.id : published.sort(sortByVerDesc)[0]?.id) || null;
+  })();
+  const hasCurrentDefault = !!currentDefaultId;
 
   const openSchedule = (v: any) => {
     setScheduleVersion(v);
     setScheduleFrom(toDateInput(v.effective_from));
     setScheduleUntil(toDateInput(v.effective_until));
+  };
+
+  const onActivateAsCurrent = async (v: any) => {
+    const res = await Swal.fire({
+      title: 'Set as current default?',
+      html:
+        `<p>v${v.semantic_version || v.version} will become the version used for <strong>new applications</strong>.</p>` +
+        `<p style="color:hsl(var(--muted-foreground));font-size:0.85rem">Previously-current versions will be retired on the last day of the current month so already-started applications can still finish on them.</p>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Activate',
+      cancelButtonText: 'Cancel',
+      heightAuto: false,
+      target: document.body,
+      customClass: { container: 'swal2-on-top' },
+      didOpen: () => {
+        const c = document.querySelector('.swal2-container') as HTMLElement | null;
+        if (c) { c.style.zIndex = '99999'; c.style.pointerEvents = 'auto'; }
+        document.body.style.pointerEvents = 'auto';
+      },
+    });
+    if (!res.isConfirmed) return;
+    try {
+      await activateAsCurrent.mutateAsync({ versionId: v.id });
+      toast.success('Version set as current default.');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to activate version.');
+    }
   };
 
   const saveSchedule = async () => {
