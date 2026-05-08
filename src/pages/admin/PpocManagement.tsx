@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
 
 interface PpocMapping {
   id: string;
@@ -40,7 +41,7 @@ export default function PpocManagement() {
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
-  const [users, setUsers] = useState<{ id: string; full_name: string; email: string; role?: string }[]>([]);
+  const [users, setUsers] = useState<EligiblePpocUser[]>([]);
   const [licensees, setLicensees] = useState<{ id: string; name: string; sector_id?: string | null }[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
 
@@ -86,18 +87,13 @@ export default function PpocManagement() {
     setLoading(false);
   };
 
-  const loadOptions = async () => {
-    const [{ data: p }, { data: l }, { data: s }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, email, role, user_type')
-        .eq('status', 'active')
-        .eq('role', 'licensee_primary')
-        .order('full_name'),
+  const loadOptions = async (includeUserId?: string | null) => {
+    const [eligibleUsers, { data: l }, { data: s }] = await Promise.all([
+      getEligiblePpocUsers(includeUserId),
       supabase.from('licensees').select('id, name, sector_id').eq('status', 'active').order('name'),
       supabase.from('sectors').select('id, name').eq('status', 'active').order('name'),
     ]);
-    setUsers((p || []) as any[]);
+    setUsers(eligibleUsers);
     setLicensees((l || []) as any[]);
     setSectors((s || []) as any[]);
   };
@@ -117,8 +113,13 @@ export default function PpocManagement() {
     setPpocUserId(m.ppoc_user_id);
     setLicenseeId(m.licensee_id);
     setSelectedSectorIds(m.sector_ids || []);
+    // Ensure the currently mapped user is present in the dropdown even if
+    // their role data has drifted away from the eligibility rules.
+    loadOptions(m.ppoc_user_id);
     setDialogOpen(true);
   };
+
+
 
   const syncMappingSectors = async (mappingId: string) => {
     // Replace existing sector rows with the current selection
@@ -267,7 +268,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="A Primary Point of Contact (PPOC) is an external person who acts as the primary user for one or more licensee entities. The same PPOC can be linked to multiple entities (e.g. one person serving as PPOC for both ABC Ltd and DEF Ltd)."
+          description="A Primary Point of Contact (PPOC) is a designated contact person for one or more licensee entities. The PPOC handles communication and access on behalf of the entity but is not automatically the entity's Primary User unless configured separately."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
@@ -285,24 +286,34 @@ export default function PpocManagement() {
               <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
             </DialogTitle>
             <DialogDescription>
-              Select an external licensee user (entity contact) to act as Primary Point of Contact for a licensee entity. Internal staff/employees cannot be assigned as PPOC.
+              Select an active external/licensee contact user to map as PPOC for this entity.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User * <span className="text-xs text-muted-foreground font-normal">(licensee primary users only)</span></Label>
+              <Label>PPOC User *</Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select primary user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select contact user..." /></SelectTrigger>
                 <SelectContent>
                   {users.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No active primary users available.</div>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No eligible PPOC users found. Check that the user is active and has a licensee primary/contact role.
+                    </div>
                   ) : users.map(u => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.full_name} ({u.email})
+                      <span className="flex items-center gap-2">
+                        <span>{u.full_name} ({u.email})</span>
+                        {u.status && u.status !== 'active' && (
+                          <Badge variant="secondary" className="text-[10px]">{u.status}</Badge>
+                        )}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Includes licensee primary/secondary contacts and users with a matching dynamic role.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Assign Sectors</Label>
