@@ -24,25 +24,11 @@ interface SingleFormViewerProps {
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(versionId || latestVersion?.id || null);
-
-  useEffect(() => {
-    if (versionId) {
-      setSelectedVersionId(versionId);
-      return;
-    }
-    if (!selectedVersionId && latestVersion?.id) {
-      setSelectedVersionId(latestVersion.id);
-    }
-  }, [versionId, latestVersion?.id, selectedVersionId]);
-
-  const resolvedVersionId = selectedVersionId || latestVersion?.id || null;
+  const resolvedVersionId = versionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
   const isLoading = tLoading || lvLoading || sLoading;
-  const canSwitchVersion = false;
 
   if (isLoading) {
     return (
