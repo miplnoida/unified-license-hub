@@ -119,23 +119,7 @@ export default function PpocManagement() {
     setDialogOpen(true);
   };
 
-  useEffect(() => { load(); loadOptions(); }, []);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setPpocUserId('');
-    setLicenseeId('');
-    setSelectedSectorIds([]);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (m: PpocMapping) => {
-    setEditingId(m.id);
-    setPpocUserId(m.ppoc_user_id);
-    setLicenseeId(m.licensee_id);
-    setSelectedSectorIds(m.sector_ids || []);
-    setDialogOpen(true);
-  };
 
   const syncMappingSectors = async (mappingId: string) => {
     // Replace existing sector rows with the current selection
