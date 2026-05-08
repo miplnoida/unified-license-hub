@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
-import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useResolveAppFormVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
@@ -47,45 +47,6 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
   { key: 'payment', label: 'Payment', icon: <CreditCard className="h-4 w-4" /> },
   { key: 'review', label: 'Submit', icon: <Send className="h-4 w-4" /> },
 ];
-
-function FormCardVersionPicker({
-  templateId,
-  selectedVersionId,
-  onChange,
-  locked = false,
-}: {
-  templateId: string;
-  selectedVersionId?: string;
-  onChange: (versionId: string) => void;
-  locked?: boolean;
-}) {
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
-  if (activeVersions.length === 0) return null;
-  const value = selectedVersionId || activeVersions[0]?.id || '';
-  const single = activeVersions.length === 1;
-  const disabled = single || locked;
-  return (
-    <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap">
-      <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-[11px] text-muted-foreground">Form version:</span>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="h-7 w-[200px] text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {activeVersions.map((v: any) => (
-            <SelectItem key={v.id} value={v.id} className="text-xs">
-              v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {locked ? (
-        <span className="text-[10px] text-muted-foreground">Form completed — version is locked.</span>
-      ) : !single && (
-        <span className="text-[10px] text-muted-foreground">Choose which version to file against.</span>
-      )}
-    </div>
-  );
-}
 
 export default function NewApplication() {
   const navigate = useNavigate();
@@ -164,19 +125,18 @@ export default function NewApplication() {
     return matchedTemplates.find(t => t.id === activeFormTemplateId) || null;
   }, [activeFormTemplateId, matchedTemplates]);
 
-  const { data: latestPublishedVersion } = useLatestPublishedVersion(activeTemplate?.id || null);
-  const { data: activeVersions = [] } = useActiveVersions(activeTemplate?.id || null);
-  // Per-template selected version (allow user to switch between active versions).
-  // Falls back to a previously-pinned version (from existing draft data) when present.
-  const [selectedVersionByTemplate, setSelectedVersionByTemplate] = useState<Record<string, string>>({});
-  const selectedVersionId = activeTemplate
-    ? selectedVersionByTemplate[activeTemplate.id]
-      || activeVersions[0]?.id
-      || latestPublishedVersion?.id
-      || null
-    : null;
-  const publishedVersion = activeVersions.find((v: any) => v.id === selectedVersionId) || latestPublishedVersion || null;
-  const { data: sections = [] } = useVersionSections(selectedVersionId);
+  const [assignedVersionByTemplate, setAssignedVersionByTemplate] = useState<Record<string, string>>({});
+  const { data: resolvedFormVersion, isLoading: resolvingFormVersion, error: resolveFormVersionError } = useResolveAppFormVersion(
+    applicationId,
+    activeTemplate?.id || null,
+  );
+  const resolvedVersion: any = resolvedFormVersion;
+  const resolvedVersionId = resolvedVersion?.version_id || null;
+  const resolvedVersionLabel = resolvedVersion?.semantic_version || resolvedVersion?.version_number || null;
+  const resolverMessage = resolveFormVersionError
+    ? 'The assigned form version could not be loaded. Please try again or contact support.'
+    : resolvedVersion?.error || null;
+  const { data: sections = [] } = useVersionSections(resolvedVersionId);
 
   // Hydrate previously-pinned versions from an existing draft application so
   // the user keeps editing the version they started on.
@@ -185,9 +145,18 @@ export default function NewApplication() {
     (async () => {
       const { data } = await supabase.from('applications').select('data').eq('id', applicationId).maybeSingle();
       const pinned = (data?.data as any)?.form_version_ids as Record<string, string> | undefined;
-      if (pinned) setSelectedVersionByTemplate(prev => ({ ...pinned, ...prev }));
+      if (pinned) setAssignedVersionByTemplate(prev => ({ ...pinned, ...prev }));
     })();
   }, [applicationId]);
+
+  useEffect(() => {
+    if (!activeTemplate?.id || !resolvedVersionId) return;
+    setAssignedVersionByTemplate(prev => (
+      prev[activeTemplate.id] === resolvedVersionId
+        ? prev
+        : { ...prev, [activeTemplate.id]: resolvedVersionId }
+    ));
+  }, [activeTemplate?.id, resolvedVersionId]);
 
   // Progress calculations
   const completedCount = matchedTemplates.filter(t => formProgressMap[t.id]?.status === 'completed').length;
@@ -246,7 +215,7 @@ export default function NewApplication() {
             setFormProgressMap(progress);
           }
           if (d.form_version_ids && typeof d.form_version_ids === 'object') {
-            setSelectedVersionByTemplate(d.form_version_ids);
+            setAssignedVersionByTemplate(d.form_version_ids);
           }
           if (d.category_id && tmplIds.length > 0) {
             setCurrentStep('forms');
@@ -526,7 +495,7 @@ export default function NewApplication() {
           sub_sector_name: subSectorObj?.name,
           category_name: categoryObj?.name,
           form_template_ids: matchedTemplates.map(t => t.id),
-          form_version_ids: { ...existingVersionIds, ...(publishedVersion ? { [activeFormTemplateId]: publishedVersion.id } : {}) },
+          form_version_ids: { ...existingVersionIds, ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}) },
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
@@ -546,11 +515,11 @@ export default function NewApplication() {
       },
     }));
 
-    if (applicationId && activeTemplate && publishedVersion && user) {
+    if (applicationId && activeTemplate && resolvedVersionId && user) {
       setSaving(true);
       await supabase.from('form_responses').upsert({
         template_id: activeTemplate.id,
-        version_id: publishedVersion.id,
+        version_id: resolvedVersionId,
         user_id: user.id,
         response_data: data,
         status: 'draft',
@@ -569,7 +538,7 @@ export default function NewApplication() {
           sub_sector_name: subSectorObj?.name,
           category_name: categoryObj?.name,
           form_template_ids: matchedTemplates.map(t => t.id),
-          form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: publishedVersion.id },
+          form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: resolvedVersionId },
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
@@ -1036,12 +1005,12 @@ export default function NewApplication() {
                         )}
                       </Button>
                     </div>
-                    <FormCardVersionPicker
-                      templateId={tmpl.id}
-                      selectedVersionId={selectedVersionByTemplate[tmpl.id]}
-                      onChange={(v) => setSelectedVersionByTemplate(prev => ({ ...prev, [tmpl.id]: v }))}
-                      locked={status === 'completed'}
-                    />
+                    {assignedVersionByTemplate[tmpl.id] && (
+                      <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                        <Layers className="h-3.5 w-3.5" />
+                        <span>Form version assigned for this draft.</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -1061,7 +1030,7 @@ export default function NewApplication() {
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
                   formProgressMap={formProgressMap}
-                  versionIdByTemplate={selectedVersionByTemplate}
+                  versionIdByTemplate={assignedVersionByTemplate}
                   mode={reviewSettings?.review_mode || 'editable'}
                   onAcknowledge={() => setShowInlineReview(false)}
                   onEdit={(idx) => {
@@ -1100,32 +1069,21 @@ export default function NewApplication() {
         {/* Filling a specific form */}
         {currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
-            {activeVersions.length > 0 && (
+            {(resolvedVersionLabel || resolverMessage || resolvingFormVersion) && (
               <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
                 <Layers className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Form version:</span>
-                <Select
-                  value={selectedVersionId || ''}
-                  onValueChange={(v) => setSelectedVersionByTemplate(prev => ({ ...prev, [activeTemplate.id]: v }))}
-                  disabled={activeVersions.length <= 1}
-                >
-                  <SelectTrigger className="h-8 w-[240px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {activeVersions.map((v: any) => (
-                      <SelectItem key={v.id} value={v.id} className="text-xs">
-                        v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {resolvedVersionLabel ? <Badge variant="outline" className="text-[10px]">v{resolvedVersionLabel}</Badge> : null}
                 <span className="text-[11px] text-muted-foreground">
-                  {activeVersions.length > 1
-                    ? 'Multiple active versions are available — pick which one to file against.'
-                    : 'Filing against the only active version of this form.'}
+                  {resolverMessage
+                    ? resolverMessage
+                    : resolvedVersion?.was_existing_assignment
+                      ? 'You are continuing with the form version assigned when this application was started.'
+                      : 'You are using the latest active form version.'}
                 </span>
               </div>
             )}
-            {sections.length > 0 ? (
+            {!resolverMessage && sections.length > 0 ? (
               <FormRenderer
                 formName={activeTemplate.name}
                 sections={sections}
@@ -1135,6 +1093,13 @@ export default function NewApplication() {
                 saving={saving}
                 applicationId={applicationId || undefined}
               />
+            ) : resolverMessage ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>{activeTemplate.name}</CardTitle>
+                  <CardDescription>{resolverMessage}</CardDescription>
+                </CardHeader>
+              </Card>
             ) : (
               <Card>
                 <CardHeader>
@@ -1369,7 +1334,7 @@ export default function NewApplication() {
             <ApplicationReviewBuilder
               templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
               formProgressMap={formProgressMap}
-              versionIdByTemplate={selectedVersionByTemplate}
+              versionIdByTemplate={assignedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
               onAcknowledge={() =>

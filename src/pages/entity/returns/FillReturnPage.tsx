@@ -11,11 +11,9 @@ import {
   useSaveReturnFormData, useMutateReturn, useInsertReturnAudit,
   useReturnRequests, useReturnComments,
 } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useResolveReturnFormVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { GitBranch } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -30,35 +28,30 @@ import { format, differenceInDays } from 'date-fns';
 /*  Sub-component: renders a single form template using FormRenderer  */
 /* ------------------------------------------------------------------ */
 interface SingleReturnFormProps {
+  returnId: string;
   formTemplateId: string;
   initialData: Record<string, any>;
   readOnly: boolean;
   onDataChange: (formId: string, data: Record<string, any>, versionId: string | null) => void;
   saving?: boolean;
-  pinnedVersionId?: string | null;
 }
 
-function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange, saving, pinnedVersionId }: SingleReturnFormProps) {
-  const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(formTemplateId);
-  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(formTemplateId);
+function SingleReturnForm({ returnId, formTemplateId, initialData, readOnly, onDataChange, saving }: SingleReturnFormProps) {
+  const { data: resolved, isLoading: rLoading, error: rError } = useResolveReturnFormVersion(returnId, formTemplateId);
+  const resolvedAny: any = resolved;
+  const resolvedVersionId: string | null = resolvedAny?.version_id || null;
+  const versionLabel = resolvedAny?.semantic_version || resolvedAny?.version_number || null;
+  const resolverError = rError
+    ? 'The assigned form version could not be loaded. Please try again or contact support.'
+    : resolvedAny?.error || null;
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
 
-  // Pin to a previously-saved version when present (so a draft started against
-  // v2 keeps showing v2 even if v3 becomes available). Otherwise default to
-  // the latest active version and let the user switch.
-  const defaultVersionId = pinnedVersionId
-    || activeVersions[0]?.id
-    || latestVersion?.id
-    || null;
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
-
-  // Re-sync when defaults arrive
   useEffect(() => {
-    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
-  }, [defaultVersionId, selectedVersionId]);
+    if (!resolvedVersionId) return;
+    onDataChange(formTemplateId, initialData, resolvedVersionId);
+  }, [formTemplateId, initialData, onDataChange, resolvedVersionId]);
 
-  const { data: sections = [], isLoading: sLoading } = useVersionSections(selectedVersionId);
-
-  if (lvLoading || avLoading || sLoading) {
+  if (rLoading || sLoading) {
     return (
       <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading form...
@@ -66,49 +59,34 @@ function SingleReturnForm({ formTemplateId, initialData, readOnly, onDataChange,
     );
   }
 
+  if (resolverError) {
+    return <p className="text-sm text-destructive py-2">{resolverError}</p>;
+  }
+
   if (sections.length === 0) {
     return <p className="text-sm text-muted-foreground py-2">No fields defined for this form.</p>;
   }
 
-  const showSwitcher = !readOnly && activeVersions.length > 1 && !pinnedVersionId;
-
   return (
     <div className="space-y-3">
-      {(showSwitcher || pinnedVersionId) && (
-        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Form version:</span>
-          {showSwitcher ? (
-            <Select value={selectedVersionId || ''} onValueChange={(v) => setSelectedVersionId(v)}>
-              <SelectTrigger className="h-7 w-[220px] text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {activeVersions.map((v: any) => (
-                  <SelectItem key={v.id} value={v.id} className="text-xs">
-                    v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Badge variant="outline" className="text-[10px]">
-              v{(activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.semantic_version
-                || (activeVersions.find((v: any) => v.id === selectedVersionId) as any)?.version
-                || ''}
-            </Badge>
-          )}
-          {pinnedVersionId && (
-            <span className="text-[11px] text-muted-foreground">Locked to the version this draft was started on.</span>
-          )}
-        </div>
-      )}
+      <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+        <GitBranch className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Form version:</span>
+        {versionLabel ? <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge> : null}
+        <span className="text-[11px] text-muted-foreground">
+          {resolvedAny?.was_existing_assignment
+            ? 'You are continuing with the form version assigned when this return was started.'
+            : 'You are using the latest active form version.'}
+        </span>
+      </div>
 
       <FormRenderer
         formName=""
         sections={sections}
         initialData={initialData}
-        onSaveDraft={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
-        onSubmit={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
-        onChange={(data) => onDataChange(formTemplateId, data, selectedVersionId)}
+        onSaveDraft={(data) => onDataChange(formTemplateId, data, resolvedVersionId)}
+        onSubmit={(data) => onDataChange(formTemplateId, data, resolvedVersionId)}
+        onChange={(data) => onDataChange(formTemplateId, data, resolvedVersionId)}
         readOnly={readOnly}
         saving={saving}
         showFullTabTitles
@@ -460,12 +438,12 @@ export default function FillReturnPage() {
                       </CardHeader>
                       <CardContent>
                         <SingleReturnForm
+                          returnId={id!}
                           formTemplateId={cf.form_id}
                           initialData={allData[cf.form_id] || {}}
                           readOnly={!isEditable}
                           onDataChange={handleDataChange}
                           saving={saving}
-                          pinnedVersionId={versionByForm[cf.form_id] || null}
                         />
                       </CardContent>
                     </Card>

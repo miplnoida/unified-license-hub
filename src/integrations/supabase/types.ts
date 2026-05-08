@@ -3716,6 +3716,67 @@ export type Database = {
           },
         ]
       }
+      return_form_versions: {
+        Row: {
+          assigned_by: string | null
+          assigned_reason: string
+          created_at: string
+          id: string
+          locked_at: string
+          return_id: string
+          status: string
+          template_id: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assigned_reason?: string
+          created_at?: string
+          id?: string
+          locked_at?: string
+          return_id: string
+          status?: string
+          template_id: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assigned_reason?: string
+          created_at?: string
+          id?: string
+          locked_at?: string
+          return_id?: string
+          status?: string
+          template_id?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_form_versions_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns_filed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_form_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_form_versions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_notification_templates: {
         Row: {
           body_template: string
@@ -4670,6 +4731,10 @@ export type Database = {
       }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
+        Returns: Json
+      }
+      resolve_return_form_version: {
+        Args: { _return_submission_id: string; _template_id: string }
         Returns: Json
       }
       save_ppoc_mapping: {

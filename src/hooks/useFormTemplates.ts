@@ -1424,7 +1424,17 @@ export interface ResolvedAppFormVersion {
   version_id: string;
   version_number: number | null;
   semantic_version: string | null;
-  assigned_reason: 'existing_pin' | 'latest_effective';
+  assigned_reason: 'latest_at_start' | 'resumed_existing' | 'migrated_from_json';
+  was_existing_assignment: boolean;
+}
+
+export interface ResolvedReturnFormVersion {
+  return_submission_id: string;
+  template_id: string;
+  version_id: string;
+  version_number: number | null;
+  semantic_version: string | null;
+  assigned_reason: 'latest_at_start' | 'resumed_existing' | 'migrated_from_return_form_data';
   was_existing_assignment: boolean;
 }
 
@@ -1446,14 +1456,35 @@ export function useResolveAppFormVersion(
     queryKey: ['resolve_app_form_version', applicationId, templateId],
     queryFn: async () => {
       if (!applicationId || !templateId) return null;
-      const { data, error } = await supabase.rpc('resolve_application_form_version', {
+      const { data, error } = await (supabase as any).rpc('resolve_application_form_version', {
         _application_id: applicationId,
         _template_id: templateId,
-      } as any);
+      });
       if (error) throw error;
       return data as unknown as ResolvedAppFormVersion | ResolveAppFormVersionError;
     },
     enabled: !!applicationId && !!templateId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useResolveReturnFormVersion(
+  returnSubmissionId: string | null | undefined,
+  templateId: string | null | undefined,
+) {
+  return useQuery<ResolvedReturnFormVersion | ResolveAppFormVersionError | null>({
+    queryKey: ['resolve_return_form_version', returnSubmissionId, templateId],
+    queryFn: async () => {
+      if (!returnSubmissionId || !templateId) return null;
+      const { data, error } = await (supabase as any).rpc('resolve_return_form_version', {
+        _return_submission_id: returnSubmissionId,
+        _template_id: templateId,
+      });
+      if (error) throw error;
+      return data as unknown as ResolvedReturnFormVersion | ResolveAppFormVersionError;
+    },
+    enabled: !!returnSubmissionId && !!templateId,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
