@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GitBranch, Layers } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -51,22 +50,50 @@ function ActiveFormFiller({
   versionLocked?: boolean;
   allowVersionSwitching?: boolean;
 }) {
-  const { data: publishedVersion } = useLatestPublishedVersion(templateId);
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
+  const { data: publishedVersion, isLoading: pvLoading } = useLatestPublishedVersion(templateId);
+  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(templateId);
 
-  const defaultVersionId = pinnedVersionId
+  // Resolve effective version to use:
+  // - If application already has pinned version → use it (locked).
+  // - Otherwise → latest active/effective published version.
+  const resolvedVersionId = pinnedVersionId
     || activeVersions[0]?.id
     || publishedVersion?.id
     || null;
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
 
+  const versionsLoading = pvLoading || avLoading;
+
+  // Detect pinned-but-missing case (assigned version was deleted/archived).
+  const pinnedMissing = !!pinnedVersionId
+    && !versionsLoading
+    && !activeVersions.find((v: any) => v.id === pinnedVersionId)
+    && publishedVersion?.id !== pinnedVersionId;
+
+  // Pin the resolved version to the application as soon as the form is opened,
+  // so any later activation of a newer version cannot affect this draft.
   useEffect(() => {
-    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
-  }, [defaultVersionId, selectedVersionId]);
+    if (pinnedVersionId) return;
+    if (versionsLoading) return;
+    if (!resolvedVersionId) return;
+    onVersionChange?.(resolvedVersionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedVersionId, resolvedVersionId, versionsLoading]);
 
-  const { data: sections = [] } = useVersionSections(selectedVersionId);
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(
+    pinnedMissing ? null : resolvedVersionId,
+  );
 
-  if (!selectedVersionId || sections.length === 0) {
+  if (pinnedMissing) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-destructive">
+          The assigned form version could not be found. Please contact support.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (versionsLoading || sLoading || !resolvedVersionId || sections.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -77,32 +104,30 @@ function ActiveFormFiller({
     );
   }
 
-  const currentVersion: any = activeVersions.find((v: any) => v.id === selectedVersionId)
-    || (publishedVersion && publishedVersion.id === selectedVersionId ? publishedVersion : null);
+  const currentVersion: any = activeVersions.find((v: any) => v.id === resolvedVersionId)
+    || (publishedVersion && publishedVersion.id === resolvedVersionId ? publishedVersion : null);
   const versionLabel = currentVersion?.semantic_version || currentVersion?.version || '';
 
   return (
     <div className="space-y-3">
-      {selectedVersionId && (
-        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Form version:</span>
-          <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
-          {versionLocked ? (
-            <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-          ) : pinnedVersionId ? (
-            <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
-          )}
-        </div>
-      )}
+      <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+        <GitBranch className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Form version:</span>
+        <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
+        {versionLocked ? (
+          <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
+        ) : pinnedVersionId ? (
+          <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
+        )}
+      </div>
       <FormRenderer
         formName=""
         sections={sections}
         initialData={initialData}
-        onSaveDraft={(d) => onSaveDraft(d, selectedVersionId)}
-        onSubmit={(d) => onSubmit(d, selectedVersionId)}
+        onSaveDraft={(d) => onSaveDraft(d, resolvedVersionId)}
+        onSubmit={(d) => onSubmit(d, resolvedVersionId)}
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
@@ -111,44 +136,6 @@ function ActiveFormFiller({
   );
 }
 
-function FormCardVersionPicker({
-  templateId,
-  selectedVersionId,
-  onChange,
-  locked = false,
-}: {
-  templateId: string;
-  selectedVersionId?: string | null;
-  onChange: (versionId: string) => void;
-  locked?: boolean;
-}) {
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
-  if (activeVersions.length === 0) return null;
-  const value = selectedVersionId || activeVersions[0]?.id || '';
-  const single = activeVersions.length === 1;
-  const disabled = single || locked;
-  return (
-    <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap">
-      <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-[11px] text-muted-foreground">Form version:</span>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="h-7 w-[200px] text-xs"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {activeVersions.map((v: any) => (
-            <SelectItem key={v.id} value={v.id} className="text-xs">
-              v{v.semantic_version || v.version}{v.id === activeVersions[0]?.id ? ' (latest)' : ''}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {locked ? (
-        <span className="text-[10px] text-muted-foreground">Form completed — version is locked.</span>
-      ) : !single && (
-        <span className="text-[10px] text-muted-foreground">Choose which version to file against.</span>
-      )}
-    </div>
-  );
-}
 
 export default function ApplicationForms() {
   const { applicationId } = useParams<{ applicationId: string }>();
@@ -485,14 +472,6 @@ export default function ApplicationForms() {
                         )}
                       </Button>
                     </div>
-                    {appData?.status === 'draft' && (
-                      <FormCardVersionPicker
-                        templateId={tmpl.id}
-                        selectedVersionId={(appData as any)?.data?.form_version_ids?.[tmpl.id] || null}
-                        onChange={(v) => handleVersionPin(tmpl.id, v)}
-                        locked={status === 'completed'}
-                      />
-                    )}
                   </CardContent>
                 </Card>
               );

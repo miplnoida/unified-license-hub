@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { GitBranch } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,22 +51,46 @@ function ActiveFormFiller({
   versionLocked?: boolean;
   allowVersionSwitching?: boolean;
 }) {
-  const { data: publishedVersion } = useLatestPublishedVersion(templateId);
-  const { data: activeVersions = [] } = useActiveVersions(templateId);
+  const { data: publishedVersion, isLoading: pvLoading } = useLatestPublishedVersion(templateId);
+  const { data: activeVersions = [], isLoading: avLoading } = useActiveVersions(templateId);
 
-  const defaultVersionId = pinnedVersionId
+  const resolvedVersionId = pinnedVersionId
     || activeVersions[0]?.id
     || publishedVersion?.id
     || null;
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(defaultVersionId);
 
+  const versionsLoading = pvLoading || avLoading;
+
+  const pinnedMissing = !!pinnedVersionId
+    && !versionsLoading
+    && !activeVersions.find((v: any) => v.id === pinnedVersionId)
+    && publishedVersion?.id !== pinnedVersionId;
+
+  // Pin the resolved version immediately on first form open so later
+  // version activations cannot affect this in-progress application.
   useEffect(() => {
-    if (!selectedVersionId && defaultVersionId) setSelectedVersionId(defaultVersionId);
-  }, [defaultVersionId, selectedVersionId]);
+    if (pinnedVersionId) return;
+    if (versionsLoading) return;
+    if (!resolvedVersionId) return;
+    onVersionChange?.(resolvedVersionId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedVersionId, resolvedVersionId, versionsLoading]);
 
-  const { data: sections = [] } = useVersionSections(selectedVersionId);
+  const { data: sections = [], isLoading: sLoading } = useVersionSections(
+    pinnedMissing ? null : resolvedVersionId,
+  );
 
-  if (!selectedVersionId || sections.length === 0) {
+  if (pinnedMissing) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-sm text-destructive">
+          The assigned form version could not be found. Please contact support.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (versionsLoading || sLoading || !resolvedVersionId || sections.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
@@ -77,32 +101,30 @@ function ActiveFormFiller({
     );
   }
 
-  const currentVersion: any = activeVersions.find((v: any) => v.id === selectedVersionId)
-    || (publishedVersion && publishedVersion.id === selectedVersionId ? publishedVersion : null);
+  const currentVersion: any = activeVersions.find((v: any) => v.id === resolvedVersionId)
+    || (publishedVersion && publishedVersion.id === resolvedVersionId ? publishedVersion : null);
   const versionLabel = currentVersion?.semantic_version || currentVersion?.version || '';
 
   return (
     <div className="space-y-3">
-      {selectedVersionId && (
-        <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Form version:</span>
-          <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
-          {versionLocked ? (
-            <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-          ) : pinnedVersionId ? (
-            <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
-          )}
-        </div>
-      )}
+      <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
+        <GitBranch className="h-4 w-4 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Form version:</span>
+        <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
+        {versionLocked ? (
+          <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
+        ) : pinnedVersionId ? (
+          <span className="text-[11px] text-muted-foreground">Locked to version active when this application was started.</span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">Latest active version will be used.</span>
+        )}
+      </div>
       <FormRenderer
         formName=""
         sections={sections}
         initialData={initialData}
-        onSaveDraft={(d) => onSaveDraft(d, selectedVersionId)}
-        onSubmit={(d) => onSubmit(d, selectedVersionId)}
+        onSaveDraft={(d) => onSaveDraft(d, resolvedVersionId)}
+        onSubmit={(d) => onSubmit(d, resolvedVersionId)}
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
