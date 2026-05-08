@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_form_versions: {
+        Row: {
+          application_id: string
+          assigned_at: string
+          assigned_by: string | null
+          assigned_reason: string
+          created_at: string
+          id: string
+          locked_at: string | null
+          status: string
+          template_id: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          application_id: string
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_reason: string
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          status?: string
+          template_id: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          application_id?: string
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_reason?: string
+          created_at?: string
+          id?: string
+          locked_at?: string | null
+          status?: string
+          template_id?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_form_versions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_form_versions_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           ack_at: string | null
