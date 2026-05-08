@@ -1069,9 +1069,7 @@ export default function NewApplication() {
         {/* Filling a specific form */}
         {currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
-            {false && (resolvedVersionLabel || resolverMessage || resolvingFormVersion) && (
-              <div className="hidden" />
-            )}
+            {/* Version badge hidden from applicants */}
             {!resolverMessage && sections.length > 0 ? (
               <FormRenderer
                 formName={activeTemplate.name}
