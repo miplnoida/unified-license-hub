@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useFormTemplates, useLatestPublishedVersion, useVersionSections, useActiveVersions } from '@/hooks/useFormTemplates';
+import { useFormTemplates, useVersionSections, useResolveAppFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
 import { GitBranch } from 'lucide-react';
