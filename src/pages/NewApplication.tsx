@@ -468,6 +468,7 @@ export default function NewApplication() {
         toast.error(msg);
         return;
       }
+    }
 
     setSaving(true);
     const appId = await upsertDraftApplication();
