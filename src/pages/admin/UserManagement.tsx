@@ -449,7 +449,7 @@ export default function UserManagement() {
       <div className="space-y-6">
         <PageHeader
           title="Employee Management"
-          description="Manage admin and regulator employee accounts, roles, and access."
+          description="Manage internal/admin/regulator employee accounts, profiles, roles, and access. (Primary Users for licensee entities are managed from the Entity detail page.)"
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Create Employee
