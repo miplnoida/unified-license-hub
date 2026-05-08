@@ -81,33 +81,62 @@ Deno.serve(async (req) => {
 
     // 1b. Server-side duplicate-application guard (defense in depth — DB trigger also enforces)
     if (!isResubmission) {
-      const sectorId = (app.data as Record<string, unknown> | null)?.sector_id as string | undefined;
-      if (sectorId) {
-        const { data: setting } = await adminClient
-          .from("site_settings")
-          .select("value")
-          .eq("key", "application_settings")
-          .maybeSingle();
-        const settingsObj = (setting?.value || {}) as { allow_reapplication?: boolean };
-        const allowReapply = settingsObj.allow_reapplication === true;
+      const appDataObj = (app.data as Record<string, unknown> | null) || {};
+      const sectorId = appDataObj.sector_id as string | undefined;
+      const subSectorId = appDataObj.sub_sector_id as string | undefined;
+      const categoryId = appDataObj.category_id as string | undefined;
 
-        if (!allowReapply) {
-          const { data: dupes } = await adminClient
-            .from("applications")
-            .select("id, status, data")
-            .eq("applicant_id", user.id)
-            .neq("id", application_id)
-            .not("status", "in", "(draft,cancelled,rejected,withdrawn)");
-          const realDupe = (dupes || []).find((a: { data?: { sector_id?: string } | null }) => a.data?.sector_id === sectorId);
-          if (realDupe) {
-            return new Response(
-              JSON.stringify({
-                error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
-                code: "DUPLICATE_SECTOR_APPLICATION",
-              }),
-              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
+      const { data: setting } = await adminClient
+        .from("site_settings")
+        .select("value")
+        .eq("key", "application_settings")
+        .maybeSingle();
+      const settingsObj = (setting?.value || {}) as {
+        allow_reapplication?: boolean;
+        allow_reapplication_after_final?: boolean;
+      };
+      const allowReapply = settingsObj.allow_reapplication !== false;
+      const allowReapplyAfterFinal = settingsObj.allow_reapplication_after_final !== false;
+
+      if (sectorId && !allowReapply) {
+        const { data: dupes } = await adminClient
+          .from("applications")
+          .select("id, status, data")
+          .eq("applicant_id", user.id)
+          .neq("id", application_id)
+          .not("status", "in", "(draft,cancelled,rejected,withdrawn,approved)");
+        const realDupe = (dupes || []).find((a: { data?: { sector_id?: string } | null }) => a.data?.sector_id === sectorId);
+        if (realDupe) {
+          return new Response(
+            JSON.stringify({
+              error: "You already have an active application for this sector. Re-apply is allowed only after cancellation, rejection, or withdrawal.",
+              code: "DUPLICATE_SECTOR_APPLICATION",
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      if (!allowReapplyAfterFinal && sectorId && subSectorId && categoryId) {
+        const { data: finalDupes } = await adminClient
+          .from("applications")
+          .select("id, status, data")
+          .eq("applicant_id", user.id)
+          .neq("id", application_id)
+          .in("status", ["approved", "rejected"]);
+        const finalDupe = (finalDupes || []).find((a: { data?: { sector_id?: string; sub_sector_id?: string; category_id?: string } | null }) =>
+          a.data?.sector_id === sectorId &&
+          a.data?.sub_sector_id === subSectorId &&
+          a.data?.category_id === categoryId
+        );
+        if (finalDupe) {
+          return new Response(
+            JSON.stringify({
+              error: "You have already submitted an application for this sector, sub-sector, and service. Re-application is not allowed.",
+              code: "DUPLICATE_FINAL_APPLICATION",
+            }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
     }
