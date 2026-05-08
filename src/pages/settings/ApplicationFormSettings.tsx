@@ -199,6 +199,30 @@ export default function ApplicationFormSettings() {
                 </span>
               </div>
             )}
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="allow-reapp-final">Allow Re-Application (After Approved/Rejected)</Label>
+                <p className="text-sm text-muted-foreground">
+                  When disabled, users cannot submit a new application for the same sector, sub-sector, and category/service if a previous application is Approved or Rejected.
+                </p>
+              </div>
+              <Switch
+                id="allow-reapp-final"
+                checked={form.allow_reapplication_after_final}
+                onCheckedChange={(v) => setForm(prev => ({ ...prev, allow_reapplication_after_final: v }))}
+              />
+            </div>
+            {!form.allow_reapplication_after_final && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 text-sm">
+                <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground">
+                  Users with an Approved or Rejected application for the same sector / sub-sector / service will be blocked from re-applying.
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
