@@ -102,6 +102,30 @@ export default function PpocManagement() {
 
   useEffect(() => { load(); loadOptions(); }, []);
 
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditingId(null);
+    setPpocUserId('');
+    setLicenseeId('');
+    setSelectedSectorIds([]);
+    setSaving(false);
+  };
+
+  // Fallback cleanup: Radix Dialog + nested Select/Popover portals can leave
+  // body styles (pointer-events:none, overflow:hidden) stuck after close.
+  useEffect(() => {
+    if (!dialogOpen) {
+      const t = setTimeout(() => {
+        if (document.body.style.pointerEvents === 'none') document.body.style.pointerEvents = '';
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [dialogOpen]);
+
+  useEffect(() => () => {
+    document.body.style.pointerEvents = '';
+  }, []);
+
   const openCreate = () => {
     setEditingId(null);
     setPpocUserId('');
@@ -153,11 +177,7 @@ export default function PpocManagement() {
       if (result?.error) throw new Error(result.error);
 
       toast.success(editingId ? 'PPOC mapping updated' : 'PPOC mapping created');
-      setDialogOpen(false);
-      setEditingId(null);
-      setPpocUserId('');
-      setLicenseeId('');
-      setSelectedSectorIds([]);
+      closeDialog();
       await Promise.all([load(), loadOptions()]);
     } catch (e: any) {
       toast.error(e?.message || 'Failed to save');
@@ -269,20 +289,7 @@ export default function PpocManagement() {
         <DataTableShell columns={columns} data={mappings} searchPlaceholder="Search PPOC mappings..." />
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => {
-        setDialogOpen(o);
-        if (!o) {
-          setEditingId(null);
-          setSelectedSectorIds([]);
-          // Workaround: Radix Dialog can leave body pointer-events:none stuck
-          // when a nested Select/Popover was open at close time.
-          setTimeout(() => {
-            if (document.body.style.pointerEvents === 'none') {
-              document.body.style.pointerEvents = '';
-            }
-          }, 100);
-        }
-      }}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); else setDialogOpen(true); }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
