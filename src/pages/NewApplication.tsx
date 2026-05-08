@@ -1069,20 +1069,7 @@ export default function NewApplication() {
         {/* Filling a specific form */}
         {currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
-            {(resolvedVersionLabel || resolverMessage || resolvingFormVersion) && (
-              <div className="flex items-center gap-2 flex-wrap rounded-md border bg-muted/30 px-3 py-2">
-                <Layers className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Form version:</span>
-                {resolvedVersionLabel ? <Badge variant="outline" className="text-[10px]">v{resolvedVersionLabel}</Badge> : null}
-                <span className="text-[11px] text-muted-foreground">
-                  {resolverMessage
-                    ? resolverMessage
-                    : resolvedVersion?.was_existing_assignment
-                      ? 'You are continuing with the form version assigned when this application was started.'
-                      : 'You are using the latest active form version.'}
-                </span>
-              </div>
-            )}
+            {/* Version badge hidden from applicants */}
             {!resolverMessage && sections.length > 0 ? (
               <FormRenderer
                 formName={activeTemplate.name}
