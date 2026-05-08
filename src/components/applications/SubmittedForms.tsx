@@ -76,26 +76,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
             Latest: v{latestVersion.semantic_version || latestVersion.version}
           </Badge>
         )}
-        {canSwitchVersion && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-[11px] text-muted-foreground">Version:</span>
-            <Select
-              value={resolvedVersionId || ''}
-              onValueChange={(value) => setSelectedVersionId(value)}
-            >
-              <SelectTrigger className="h-7 w-[180px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {activeVersions.map((version: any) => (
-                  <SelectItem key={version.id} value={version.id} className="text-xs">
-                    v{version.semantic_version || version.version}{version.id === activeVersions[0]?.id ? ' (latest)' : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      </div>
       </div>
       <FormRenderer
         formName={template.name}
