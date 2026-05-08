@@ -195,5 +195,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 }
