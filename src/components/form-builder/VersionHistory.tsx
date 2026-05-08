@@ -340,12 +340,24 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
             </div>
             <div className="space-y-1">
               <Label htmlFor="eff-until">Effective until</Label>
-              <Input id="eff-until" type="date" value={scheduleUntil} onChange={(e) => setScheduleUntil(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Leave empty for no end date.</p>
+              <Input
+                id="eff-until"
+                type="date"
+                value={scheduleUntil}
+                min={scheduleFrom || undefined}
+                onChange={(e) => setScheduleUntil(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Leave empty for no end date. Existing in-progress applications keep their pinned version regardless.</p>
             </div>
+            {scheduleFrom && scheduleUntil && scheduleUntil < scheduleFrom && (
+              <p className="text-xs text-destructive">Effective until cannot be before effective from.</p>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setScheduleVersion(null)}>Cancel</Button>
-              <Button onClick={saveSchedule} disabled={updateSchedule.isPending}>
+              <Button
+                onClick={saveSchedule}
+                disabled={updateSchedule.isPending || (!!scheduleFrom && !!scheduleUntil && scheduleUntil < scheduleFrom)}
+              >
                 {updateSchedule.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                 Save schedule
               </Button>
