@@ -6,10 +6,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2 } from 'lucide-react';
+import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle } from 'lucide-react';
 import {
   useFormVersions,
   useUpdateVersionSchedule,
+  useActivateVersionAsCurrent,
+  useFormVersionUsageCounts,
   isVersionEffective,
   notifyUpcomingVersionIfNeeded,
   notifyVersionToLicensees,
