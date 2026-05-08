@@ -12,6 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
@@ -26,6 +27,8 @@ interface PpocMapping {
   ppoc_name?: string;
   ppoc_email?: string;
   licensee_name?: string;
+  sector_ids?: string[];
+  sector_names?: string[];
 }
 
 export default function PpocManagement() {
@@ -36,8 +39,10 @@ export default function PpocManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [ppocUserId, setPpocUserId] = useState('');
   const [licenseeId, setLicenseeId] = useState('');
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [users, setUsers] = useState<{ id: string; full_name: string; email: string; role?: string }[]>([]);
-  const [licensees, setLicensees] = useState<{ id: string; name: string }[]>([]);
+  const [licensees, setLicensees] = useState<{ id: string; name: string; sector_id?: string | null }[]>([]);
+  const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -49,38 +54,52 @@ export default function PpocManagement() {
     const rows = (data || []) as any[];
     const userIds = [...new Set(rows.map(r => r.ppoc_user_id))];
     const licIds = [...new Set(rows.map(r => r.licensee_id))];
+    const mappingIds = rows.map(r => r.id);
 
-    const [{ data: profiles }, { data: lics }] = await Promise.all([
+    const [{ data: profiles }, { data: lics }, { data: mapSectors }, { data: secList }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').in('id', userIds.length ? userIds : ['__none__']),
       supabase.from('licensees').select('id, name').in('id', licIds.length ? licIds : ['__none__']),
+      supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds.length ? mappingIds : ['__none__']),
+      supabase.from('sectors').select('id, name'),
     ]);
 
     const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
     const licMap = Object.fromEntries((lics || []).map((l: any) => [l.id, l]));
+    const sectorMap = Object.fromEntries((secList || []).map((s: any) => [s.id, s]));
+    const sectorsByMapping: Record<string, string[]> = {};
+    ((mapSectors || []) as any[]).forEach(r => {
+      if (!sectorsByMapping[r.mapping_id]) sectorsByMapping[r.mapping_id] = [];
+      sectorsByMapping[r.mapping_id].push(r.sector_id);
+    });
 
-    setMappings(rows.map(r => ({
-      ...r,
-      ppoc_name: profileMap[r.ppoc_user_id]?.full_name || '—',
-      ppoc_email: profileMap[r.ppoc_user_id]?.email || '',
-      licensee_name: licMap[r.licensee_id]?.name || '—',
-    })));
+    setMappings(rows.map(r => {
+      const sectorIds = sectorsByMapping[r.id] || [];
+      return {
+        ...r,
+        ppoc_name: profileMap[r.ppoc_user_id]?.full_name || '—',
+        ppoc_email: profileMap[r.ppoc_user_id]?.email || '',
+        licensee_name: licMap[r.licensee_id]?.name || '—',
+        sector_ids: sectorIds,
+        sector_names: sectorIds.map(id => sectorMap[id]?.name).filter(Boolean),
+      };
+    }));
     setLoading(false);
   };
 
   const loadOptions = async () => {
-    // PPOC must be a licensee-side primary user (an entity contact),
-    // NOT an internal employee/admin of the regulator.
-    const [{ data: p }, { data: l }] = await Promise.all([
+    const [{ data: p }, { data: l }, { data: s }] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, full_name, email, role, user_type')
         .eq('status', 'active')
         .eq('role', 'licensee_primary')
         .order('full_name'),
-      supabase.from('licensees').select('id, name').eq('status', 'active').order('name'),
+      supabase.from('licensees').select('id, name, sector_id').eq('status', 'active').order('name'),
+      supabase.from('sectors').select('id, name').eq('status', 'active').order('name'),
     ]);
     setUsers((p || []) as any[]);
     setLicensees((l || []) as any[]);
+    setSectors((s || []) as any[]);
   };
 
   useEffect(() => { load(); loadOptions(); }, []);
@@ -89,6 +108,7 @@ export default function PpocManagement() {
     setEditingId(null);
     setPpocUserId('');
     setLicenseeId('');
+    setSelectedSectorIds([]);
     setDialogOpen(true);
   };
 
@@ -96,7 +116,18 @@ export default function PpocManagement() {
     setEditingId(m.id);
     setPpocUserId(m.ppoc_user_id);
     setLicenseeId(m.licensee_id);
+    setSelectedSectorIds(m.sector_ids || []);
     setDialogOpen(true);
+  };
+
+  const syncMappingSectors = async (mappingId: string) => {
+    // Replace existing sector rows with the current selection
+    await supabase.from('ppoc_mapping_sectors' as any).delete().eq('mapping_id', mappingId);
+    if (selectedSectorIds.length > 0) {
+      const rows = selectedSectorIds.map(sid => ({ mapping_id: mappingId, sector_id: sid }));
+      const { error } = await supabase.from('ppoc_mapping_sectors' as any).insert(rows);
+      if (error) throw error;
+    }
   };
 
   const handleSave = async () => {
@@ -104,31 +135,44 @@ export default function PpocManagement() {
       toast.error('Please select both a PPOC user and a licensee');
       return;
     }
-    setSaving(true);
-    let error;
-    if (editingId) {
-      ({ error } = await supabase
-        .from('ppoc_entity_mappings' as any)
-        .update({ ppoc_user_id: ppocUserId, licensee_id: licenseeId })
-        .eq('id', editingId));
-    } else {
-      ({ error } = await supabase.from('ppoc_entity_mappings' as any).insert({
-        ppoc_user_id: ppocUserId,
-        licensee_id: licenseeId,
-        is_active: true,
-      }));
+    // Optional warning: licensee sector vs selected sectors
+    const lic = licensees.find(l => l.id === licenseeId);
+    if (selectedSectorIds.length > 0 && lic?.sector_id && !selectedSectorIds.includes(lic.sector_id)) {
+      toast.error('Selected entity does not belong to the assigned PPOC sectors.');
+      return;
     }
-    if (error) {
-      toast.error(error.message?.includes('duplicate') ? 'This mapping already exists' : error.message);
-    } else {
+
+    setSaving(true);
+    try {
+      let mappingId = editingId;
+      if (editingId) {
+        const { error } = await supabase
+          .from('ppoc_entity_mappings' as any)
+          .update({ ppoc_user_id: ppocUserId, licensee_id: licenseeId })
+          .eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('ppoc_entity_mappings' as any)
+          .insert({ ppoc_user_id: ppocUserId, licensee_id: licenseeId, is_active: true })
+          .select('id')
+          .single();
+        if (error) throw error;
+        mappingId = (data as any).id;
+      }
+      if (mappingId) await syncMappingSectors(mappingId);
       toast.success(editingId ? 'PPOC mapping updated' : 'PPOC mapping created');
       setDialogOpen(false);
       setEditingId(null);
       setPpocUserId('');
       setLicenseeId('');
+      setSelectedSectorIds([]);
       load();
+    } catch (e: any) {
+      toast.error(e?.message?.includes('duplicate') ? 'This mapping already exists' : (e?.message || 'Failed to save'));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -172,6 +216,11 @@ export default function PpocManagement() {
     load();
   };
 
+  // When sectors are selected in the dialog, restrict the licensee dropdown to matching sectors.
+  const dialogLicenseeOptions = selectedSectorIds.length === 0
+    ? licensees
+    : licensees.filter(l => l.sector_id && selectedSectorIds.includes(l.sector_id));
+
   const columns: Column<PpocMapping>[] = [
     {
       key: 'ppoc_name' as any, label: 'PPOC User', render: (r) => (
@@ -182,6 +231,15 @@ export default function PpocManagement() {
       ),
     },
     { key: 'licensee_name' as any, label: 'Licensee Entity', render: (r) => <span className="font-medium">{r.licensee_name}</span> },
+    {
+      key: 'sector_names' as any, label: 'Assigned Sectors', render: (r) => (
+        <div className="flex flex-wrap gap-1">
+          {(r.sector_names && r.sector_names.length > 0)
+            ? r.sector_names.map(n => <Badge key={n} variant="outline" className="text-xs">{n}</Badge>)
+            : <Badge variant="secondary" className="text-xs">All sectors</Badge>}
+        </div>
+      ),
+    },
     {
       key: 'is_active', label: 'Status', render: (r) => (
         <Badge variant={r.is_active ? 'default' : 'secondary'} className="cursor-pointer" onClick={() => handleToggle(r)}>
@@ -220,7 +278,7 @@ export default function PpocManagement() {
         <DataTableShell columns={columns} data={mappings} searchPlaceholder="Search PPOC mappings..." />
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingId(null); }}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setSelectedSectorIds([]); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -247,11 +305,42 @@ export default function PpocManagement() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Assign Sectors</Label>
+              <MultiSelect
+                options={sectors.map(s => ({ value: s.id, label: s.name }))}
+                selected={selectedSectorIds}
+                onChange={(ids) => {
+                  setSelectedSectorIds(ids);
+                  // Clear licensee if it no longer matches the selected sectors
+                  if (ids.length > 0 && licenseeId) {
+                    const lic = licensees.find(l => l.id === licenseeId);
+                    if (lic?.sector_id && !ids.includes(lic.sector_id)) setLicenseeId('');
+                  }
+                }}
+                placeholder="All sectors (leave empty for unrestricted)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Selected PPOC will only be assigned entities/applications from the selected sectors. Leave empty to allow all sectors.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Licensee Entity *</Label>
               <Select value={licenseeId} onValueChange={setLicenseeId}>
-                <SelectTrigger><SelectValue placeholder="Select licensee..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    selectedSectorIds.length > 0 && dialogLicenseeOptions.length === 0
+                      ? 'No entities match selected sectors'
+                      : 'Select licensee...'
+                  } />
+                </SelectTrigger>
                 <SelectContent>
-                  {licensees.map(l => (
+                  {dialogLicenseeOptions.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {selectedSectorIds.length > 0
+                        ? 'No entities match selected sectors.'
+                        : 'No licensees available.'}
+                    </div>
+                  ) : dialogLicenseeOptions.map(l => (
                     <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
                   ))}
                 </SelectContent>

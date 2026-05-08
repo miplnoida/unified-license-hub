@@ -53,7 +53,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const { data: mappings, error } = await supabase
         .from('ppoc_entity_mappings' as any)
-        .select('licensee_id')
+        .select('id, licensee_id')
         .eq('ppoc_user_id', user.id)
         .eq('is_active', true);
 
@@ -65,14 +65,39 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const ids = (mappings as any[]).map(m => m.licensee_id);
-      const { data: lics } = await supabase
-        .from('licensees')
-        .select('id, name')
-        .in('id', ids);
+      const mappingRows = mappings as any[];
+      const mappingIds = mappingRows.map(m => m.id);
+      const ids = mappingRows.map(m => m.licensee_id);
+
+      const [{ data: lics }, { data: mapSectors }] = await Promise.all([
+        supabase.from('licensees').select('id, name, sector_id').in('id', ids),
+        supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds),
+      ]);
+
+      // Build per-mapping sector restriction sets. Empty => all sectors.
+      const sectorsByMapping: Record<string, Set<string>> = {};
+      ((mapSectors || []) as any[]).forEach(r => {
+        if (!sectorsByMapping[r.mapping_id]) sectorsByMapping[r.mapping_id] = new Set();
+        sectorsByMapping[r.mapping_id].add(r.sector_id);
+      });
+
+      const licMap = Object.fromEntries(((lics || []) as any[]).map(l => [l.id, l]));
+      const allowedLicenseeIds = new Set<string>();
+      mappingRows.forEach(m => {
+        const lic = licMap[m.licensee_id];
+        if (!lic) return;
+        const restriction = sectorsByMapping[m.id];
+        if (!restriction || restriction.size === 0) {
+          allowedLicenseeIds.add(m.licensee_id);
+        } else if (lic.sector_id && restriction.has(lic.sector_id)) {
+          allowedLicenseeIds.add(m.licensee_id);
+        }
+      });
+
+      const filteredLics = (lics || []).filter((l: any) => allowedLicenseeIds.has(l.id));
 
       if (cancelled) return;
-      const list: MappedLicensee[] = (lics || []).map((l: any) => ({
+      const list: MappedLicensee[] = filteredLics.map((l: any) => ({
         licensee_id: l.id,
         licensee_name: l.name,
       }));
