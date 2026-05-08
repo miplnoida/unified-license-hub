@@ -44,7 +44,7 @@ export default function PpocManagement() {
   const [licenseeId, setLicenseeId] = useState('');
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [users, setUsers] = useState<EligiblePpocUser[]>([]);
-  const [licensees, setLicensees] = useState<{ id: string; name: string; sector_id?: string | null }[]>([]);
+  const [licensees, setLicensees] = useState<ApprovedLicenseeOption[]>([]);
   const [sectors, setSectors] = useState<{ id: string; name: string }[]>([]);
 
   const load = async () => {
