@@ -175,27 +175,20 @@ export default function CreateReturnPage() {
                 <h3 className="text-lg font-semibold">Select Return Configuration</h3>
 
                 {isPpoc && mappedLicensees.length > 1 && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
+                  selectedLicenseeId ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900">
                       <Building2 className="h-4 w-4 text-amber-700" />
-                      Filing on behalf of (Licensee) *
-                    </Label>
-                    <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select the licensee to file for" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mappedLicensees.map(l => (
-                          <SelectItem key={l.licensee_id} value={l.licensee_id}>
-                            {l.licensee_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      You are mapped as PPOC for {mappedLicensees.length} licensees. Pick which one this return is for.
-                    </p>
-                  </div>
+                      <span>
+                        Filing as PPOC on behalf of <strong>{selectedLicenseeName}</strong>.
+                        {' '}Use the licensee switcher in the header to change.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
+                      <Building2 className="h-4 w-4" />
+                      <span>Select a licensee from the header switcher to file a return.</span>
+                    </div>
+                  )
                 )}
 
                 {isPpoc && mappedLicensees.length === 1 && (
