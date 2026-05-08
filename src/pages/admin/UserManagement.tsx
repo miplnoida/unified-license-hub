@@ -305,7 +305,7 @@ export default function UserManagement() {
           email: form.email,
           password: generatedPassword,
           full_name: fullName,
-          user_type: 'primary',
+          user_type: 'employee',
           entity_name: '',
           // Do NOT pass elevated `role`; let the edge function pick a safe baseline
           // and rely on user_dynamic_roles for actual permissions.
