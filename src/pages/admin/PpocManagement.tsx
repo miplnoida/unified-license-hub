@@ -388,7 +388,7 @@ export default function PpocManagement() {
                         : 'No licensee entities found for the selected sectors.'}
                     </div>
                   ) : dialogLicenseeOptions.map(l => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    <SelectItem key={l.id} value={l.id}>{l.display_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
