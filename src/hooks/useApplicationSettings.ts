@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ApplicationSettings {
   allow_reapplication: boolean;
+  allow_reapplication_after_final: boolean;
   notify_on_form_version_change: boolean;
   notification_channels: ('in_app' | 'email')[];
 }
 
 const DEFAULTS: ApplicationSettings = {
   allow_reapplication: true,
+  allow_reapplication_after_final: true,
   notify_on_form_version_change: true,
   notification_channels: ['in_app', 'email'],
 };

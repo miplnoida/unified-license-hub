@@ -446,6 +446,30 @@ export default function NewApplication() {
       }
     }
 
+    // Re-application after Approved/Rejected guard — block same sector/sub-sector/category
+    if (user && appSettings?.allow_reapplication_after_final === false) {
+      const { data: finalApps, error: finalErr } = await supabase
+        .from('applications')
+        .select('id, status, data')
+        .eq('applicant_id', user.id)
+        .in('status', ['approved', 'rejected']);
+      if (finalErr) {
+        toast.error('Could not verify previous applications. Please try again.');
+        return;
+      }
+      const dupe = (finalApps || []).find((a: any) => {
+        const d = (a.data || {}) as Record<string, any>;
+        return d.sector_id === selectedSector
+          && d.sub_sector_id === selectedSubSector
+          && d.category_id === selectedCategory;
+      });
+      if (dupe) {
+        const msg = 'You have already submitted an application for this sector, sub-sector, and service. Re-application is not allowed.';
+        toast.error(msg);
+        return;
+      }
+    }
+
     setSaving(true);
     const appId = await upsertDraftApplication();
     if (appId) {
