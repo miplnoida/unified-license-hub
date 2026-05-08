@@ -1357,3 +1357,49 @@ export async function notifyVersionToLicensees(versionId: string): Promise<numbe
 
 // Re-export helpers for use in FormBuilder
 export { sectionsToFieldRows, fieldRowsToSections };
+
+// ───────────────────────────────────────────────────────────
+// Backend resolver: pin & return the form version an
+// application should use for a given template.
+// ───────────────────────────────────────────────────────────
+export interface ResolvedAppFormVersion {
+  application_id: string;
+  template_id: string;
+  version_id: string;
+  version_number: number | null;
+  semantic_version: string | null;
+  assigned_reason: 'existing_pin' | 'latest_effective';
+  was_existing_assignment: boolean;
+}
+
+export interface ResolveAppFormVersionError {
+  error: string;
+  code: string;
+}
+
+/**
+ * Calls the `resolve_application_form_version` Postgres RPC. The backend
+ * decides which version to use, pins it on first call, and returns it.
+ * The frontend never picks the version itself.
+ */
+export function useResolveAppFormVersion(
+  applicationId: string | null | undefined,
+  templateId: string | null | undefined,
+) {
+  return useQuery<ResolvedAppFormVersion | ResolveAppFormVersionError | null>({
+    queryKey: ['resolve_app_form_version', applicationId, templateId],
+    queryFn: async () => {
+      if (!applicationId || !templateId) return null;
+      const { data, error } = await supabase.rpc('resolve_application_form_version', {
+        _application_id: applicationId,
+        _template_id: templateId,
+      } as any);
+      if (error) throw error;
+      return data as unknown as ResolvedAppFormVersion | ResolveAppFormVersionError;
+    },
+    enabled: !!applicationId && !!templateId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
