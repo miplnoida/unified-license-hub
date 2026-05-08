@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
+import { loadApprovedLicenseeOptions, type ApprovedLicenseeOption } from '@/lib/licenseeOptions';
 
 interface PpocMapping {
   id: string;
