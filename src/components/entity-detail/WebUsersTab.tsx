@@ -107,7 +107,9 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <Card>
+    <div className="space-y-4">
+      <PrimaryUserCard entityId={entityId} entityName={entityName} />
+      <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg"><Users2 className="h-5 w-5 text-primary" />Web Portal Users</CardTitle>
