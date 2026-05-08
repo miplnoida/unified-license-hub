@@ -21,7 +21,7 @@ const QUARTERS = ['Q1','Q2','Q3','Q4'];
 export default function CreateReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isPpoc, mappedLicensees, activeLicenseeId, setActiveLicenseeId } = usePpoc();
+  const { isPpoc, mappedLicensees, activeLicenseeId } = usePpoc();
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
@@ -37,24 +37,9 @@ export default function CreateReturnPage() {
     },
   });
 
-  // PPOC users with multiple mapped licensees must pick one explicitly here
-  const requiresEntityPick = isPpoc && mappedLicensees.length > 1;
-  const [selectedLicenseeId, setSelectedLicenseeId] = useState<string>('');
-
-  // Resolve PPOC licensee selection:
-  //  - multi-mapped: user picks; default to active selection if any
-  //  - single-mapped: auto-pick the only mapping (don't wait for header context)
-  useEffect(() => {
-    if (!isPpoc) return;
-    if (mappedLicensees.length === 1) {
-      setSelectedLicenseeId(mappedLicensees[0].licensee_id);
-    } else if (mappedLicensees.length > 1 && activeLicenseeId) {
-      // honour header switcher selection only if it's still in the mapping list
-      if (mappedLicensees.some(l => l.licensee_id === activeLicenseeId)) {
-        setSelectedLicenseeId(prev => prev || activeLicenseeId);
-      }
-    }
-  }, [isPpoc, mappedLicensees, activeLicenseeId]);
+  // PPOC users select the active licensee from the header switcher; this page
+  // simply uses that selection instead of asking again.
+  const selectedLicenseeId = isPpoc ? (activeLicenseeId || '') : '';
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
@@ -111,11 +96,6 @@ export default function CreateReturnPage() {
     if (!effectiveLicenseeId) {
       toast.error('No licensee context found. Please select a licensee or contact your administrator.');
       return;
-    }
-    // Sync the global PPOC active licensee with the chosen entity so downstream
-    // pages (fill/view) stay consistent with the user's selection here.
-    if (isPpoc && selectedLicenseeId && selectedLicenseeId !== activeLicenseeId) {
-      setActiveLicenseeId(selectedLicenseeId);
     }
     const dates = getPeriodDates();
     const dueDate = getDueDate();
@@ -195,27 +175,20 @@ export default function CreateReturnPage() {
                 <h3 className="text-lg font-semibold">Select Return Configuration</h3>
 
                 {isPpoc && mappedLicensees.length > 1 && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
+                  selectedLicenseeId ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-900">
                       <Building2 className="h-4 w-4 text-amber-700" />
-                      Filing on behalf of (Licensee) *
-                    </Label>
-                    <Select value={selectedLicenseeId} onValueChange={setSelectedLicenseeId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select the licensee to file for" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mappedLicensees.map(l => (
-                          <SelectItem key={l.licensee_id} value={l.licensee_id}>
-                            {l.licensee_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      You are mapped as PPOC for {mappedLicensees.length} licensees. Pick which one this return is for.
-                    </p>
-                  </div>
+                      <span>
+                        Filing as PPOC on behalf of <strong>{selectedLicenseeName}</strong>.
+                        {' '}Use the licensee switcher in the header to change.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/40 bg-destructive/10 text-sm text-destructive">
+                      <Building2 className="h-4 w-4" />
+                      <span>Select a licensee from the header switcher to file a return.</span>
+                    </div>
+                  )
                 )}
 
                 {isPpoc && mappedLicensees.length === 1 && (
