@@ -35,8 +35,6 @@ function ActiveFormFiller({
   onSaveDraft,
   onSubmit,
   applicationId,
-  pinnedVersionId,
-  onVersionChange,
   versionLocked = false,
 }: {
   templateId: string;
@@ -45,8 +43,6 @@ function ActiveFormFiller({
   onSaveDraft: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   applicationId?: string;
-  pinnedVersionId?: string | null;
-  onVersionChange?: (versionId: string) => void;
   versionLocked?: boolean;
 }) {
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
@@ -60,13 +56,6 @@ function ActiveFormFiller({
     : (resolvedAny && resolvedAny.error ? resolvedAny.error : null);
   const resolvedVersionId: string | null = (resolvedAny && resolvedAny.version_id) || null;
   const versionLabel: string = (resolvedAny && (resolvedAny.semantic_version || resolvedAny.version_number)) || '';
-
-  useEffect(() => {
-    if (!resolvedVersionId) return;
-    if (pinnedVersionId === resolvedVersionId) return;
-    onVersionChange?.(resolvedVersionId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedVersionId]);
 
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
 
@@ -99,7 +88,7 @@ function ActiveFormFiller({
         <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
         {versionLocked ? (
           <span className="text-[11px] text-muted-foreground">Form completed — version is locked.</span>
-        ) : pinnedVersionId ? (
+        ) : resolvedAny?.was_existing_assignment ? (
           <span className="text-[11px] text-muted-foreground">You are continuing with the form version assigned when this application was started.</span>
         ) : (
           <span className="text-[11px] text-muted-foreground">You are using the latest active form version.</span>
@@ -273,21 +262,6 @@ export default function PostLicenseApplicationForms() {
     setSaving(false);
   };
 
-  const handleVersionPin = async (templateId: string, versionId: string) => {
-    if (!applicationId || !appData) return;
-    const appJson = (appData as any).data || {};
-    const existingVersionIds = appJson.form_version_ids || {};
-    if (existingVersionIds[templateId] === versionId) return;
-    const updatedVersionIds = { ...existingVersionIds, [templateId]: versionId };
-    await supabase.from('applications').update({
-      data: { ...appJson, form_version_ids: updatedVersionIds },
-    } as any).eq('id', applicationId);
-    setAppData((prev: any) => ({
-      ...prev,
-      data: { ...appJson, form_version_ids: updatedVersionIds },
-    }));
-  };
-
   const handleSubmitApplication = async () => {
     if (!applicationId || !allFormsCompleted) return;
     setSubmitting(true);
@@ -339,8 +313,6 @@ export default function PostLicenseApplicationForms() {
             onSaveDraft={handleFormSaveDraft}
             onSubmit={handleFormSubmit}
             applicationId={applicationId}
-            pinnedVersionId={(appData as any)?.data?.form_version_ids?.[activeTemplate.id] || null}
-            onVersionChange={(vid) => handleVersionPin(activeTemplate.id, vid)}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
           />
         </div>
