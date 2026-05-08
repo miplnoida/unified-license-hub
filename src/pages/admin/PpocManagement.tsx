@@ -169,6 +169,7 @@ export default function PpocManagement() {
     setPpocUserId('');
     setLicenseeId('');
     setSelectedSectorIds([]);
+    setSectorSearch('');
     loadOptions();
     setDialogOpen(true);
   };
