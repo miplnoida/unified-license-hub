@@ -822,11 +822,15 @@ export default function NewApplication() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">New License Application</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isContinuingDraft ? 'Continue Draft Application' : 'New License Application'}
+            </h1>
             <p className="text-muted-foreground text-sm">
               {currentStep === 'filling'
                 ? `Filling: ${activeTemplate?.name || 'Form'}`
-                : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
+                : isContinuingDraft
+                  ? 'Resume where you left off — your saved progress has been loaded.'
+                  : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
           {applicationId && (
@@ -841,9 +845,15 @@ export default function NewApplication() {
           </div>
         )}
 
-        {applicationId && currentStep === 'selection' && !hydratingDraft && (
-          <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground">
-            Continuing your draft application — your previous selections have been restored.
+        {/* Persistent banner: shown for the entire continue-draft session,
+            not just on the selection step, and survives page reloads since
+            it is keyed off the URL ?draft=… param. */}
+        {isContinuingDraft && applicationId && !hydratingDraft && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <span>
+              You are continuing an existing draft application. Your previously saved progress has been loaded.
+            </span>
           </div>
         )}
 
