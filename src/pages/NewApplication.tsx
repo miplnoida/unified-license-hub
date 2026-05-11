@@ -748,14 +748,6 @@ export default function NewApplication() {
         return;
       }
 
-      if (existing.pending) {
-        setPaymentId(existing.pending.id);
-        setPaymentReceiptNumber(await loadReceiptNumber(existing.pending.id, existing.pending.receipt_number || existing.pending.transaction_ref || null));
-        setPaymentStatus('pending');
-        toast.info('Payment is already pending for this application.');
-        return;
-      }
-
       const { data: paymentResult, error: paymentResultError } = await (supabase as any).rpc(
         'create_or_get_application_payment',
         { _application_id: applicationId, _amount: feeAmount },
@@ -784,8 +776,26 @@ export default function NewApplication() {
         setPaymentId(paymentRowId);
         setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
         setPaymentStatus('pending');
-        toast.info('Payment is already pending for this application.');
-        return;
+
+        const { data: completedPaymentResult, error: completedPaymentError } = await (supabase as any).rpc(
+          'complete_or_get_application_payment',
+          { _application_id: applicationId, _amount: feeAmount },
+        );
+
+        if (completedPaymentError) throw completedPaymentError;
+
+        const completedPayment = completedPaymentResult || {};
+        const completedAction = completedPayment.action as string | undefined;
+        const completedPaymentRowId = completedPayment.payment_id as string | undefined;
+
+        if (!completedPaymentRowId || !['paid', 'completed'].includes(completedAction || '')) {
+          throw new Error('Payment could not be completed for this application.');
+        }
+
+        setPaymentId(completedPaymentRowId);
+        setPaymentReceiptNumber(completedPayment.receipt_number || completedPayment.transaction_ref || null);
+        setPaymentStatus('success');
+        setHasSuccessfulPaymentRecord(true);
       } else {
         throw new Error('Payment could not be completed for this application.');
       }
