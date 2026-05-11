@@ -201,6 +201,7 @@ export default function NewApplication() {
     const existing = await loadExistingPayment(targetApplicationId);
 
     if (existing.successful) {
+      setHasSuccessfulPaymentRecord(true);
       setPaymentId(existing.successful.id);
       setPaymentReceiptNumber(existing.successful.receipt_number || existing.successful.transaction_ref || null);
       setPaymentStatus('success');
@@ -211,6 +212,7 @@ export default function NewApplication() {
     }
 
     if (existing.pending) {
+      setHasSuccessfulPaymentRecord(false);
       setPaymentId(existing.pending.id);
       setPaymentReceiptNumber(existing.pending.receipt_number || existing.pending.transaction_ref || null);
       setPaymentStatus('pending');
@@ -220,6 +222,7 @@ export default function NewApplication() {
       return existing;
     }
 
+    setHasSuccessfulPaymentRecord(false);
     setPaymentId(null);
     setPaymentReceiptNumber(null);
     setPaymentStatus('pending');
