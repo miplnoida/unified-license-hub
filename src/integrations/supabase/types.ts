@@ -4652,6 +4652,15 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_application_guard: {
+        Args: {
+          _category_id: string
+          _sector_id: string
+          _service_id?: string
+          _sub_sector_id: string
+        }
+        Returns: Json
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
