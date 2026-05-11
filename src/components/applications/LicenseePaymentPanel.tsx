@@ -101,53 +101,31 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         return;
       }
 
-      const pending = existingList.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
-      let paymentRowId = pending?.id;
+      const { data: paymentResult, error: paymentError } = await (supabase as any).rpc(
+        'complete_or_get_application_payment',
+        { _application_id: applicationId, _amount: totalDue },
+      );
+      if (paymentError) throw paymentError;
 
-      if (!paymentRowId) {
-        const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        const { data: created, error: createErr } = await supabase
-          .from('payments')
-          .insert({
-            user_id: user.id,
-            application_id: applicationId,
-            amount: totalDue,
-            status: 'pending',
-            payment_method: 'online',
-            transaction_ref: txnRef,
-          } as any)
-          .select('id')
-          .single();
-        if (createErr || !created) throw createErr || new Error('Failed to create payment');
-        paymentRowId = (created as any).id;
+      const paymentAction = paymentResult?.action as string | undefined;
+      const paymentRowId = paymentResult?.payment_id as string | undefined;
+
+      if (paymentAction === 'block') {
+        throw new Error(paymentResult?.message || 'Payment could not be processed for this application.');
       }
 
-      // Simulated gateway processing (matches NewApplication flow)
-      const { error: updErr } = await supabase
-        .from('payments')
-        .update({
-          status: 'completed',
-          paid_at: new Date().toISOString(),
-        } as any)
-        .eq('id', paymentRowId);
-      if (updErr) {
-        if ((updErr.message || '').includes('unique_successful_payment_per_application')) {
-          await loadData();
-          toast.info('Payment already completed for this application.');
-          onPaid?.();
-          return;
-        }
-        throw updErr;
+      if (!paymentRowId || !['paid', 'completed'].includes(paymentAction || '')) {
+        throw new Error('Payment could not be completed for this application.');
       }
 
       await logAudit({
         action: 'payment_completed',
         entityType: 'payment',
         entityId: paymentRowId,
-        metadata: { application_id: applicationId, amount: totalDue },
+        metadata: { application_id: applicationId, amount: Number(paymentResult?.amount ?? totalDue), payment_action: paymentAction },
       });
 
-      toast.success('Payment completed successfully');
+      toast.success(paymentAction === 'paid' ? 'Payment already completed for this application.' : 'Payment completed successfully');
       onPaid?.();
       await loadData();
     } catch (e: any) {
