@@ -37,6 +37,7 @@ export interface FormVersion {
   template_id: string;
   version: number;
   semantic_version?: string | null;
+  branched_from_version_id?: string | null;
   schema_snapshot: FormSection[];
   status: string;
   published_at: string | null;
@@ -203,6 +204,17 @@ function fieldRowsToSections(
       const bIdx = fieldRows.findIndex(r => r.id === b.id);
       return aIdx - bIdx;
     }) }));
+}
+
+function isValidSectionSnapshot(snapshot: unknown): snapshot is FormSection[] {
+  return Array.isArray(snapshot) && snapshot.every((section) => {
+    if (!section || typeof section !== 'object') return false;
+    const maybeSection = section as Partial<FormSection>;
+    return typeof maybeSection.id === 'string'
+      && typeof maybeSection.title === 'string'
+      && Array.isArray(maybeSection.fields)
+      && maybeSection.fields.every((field) => !!field && typeof field === 'object');
+  });
 }
 
 function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
@@ -548,23 +560,36 @@ export function useFieldConditions(versionId: string | null) {
 
 // Combined: load sections from version (from schema_snapshot or normalized fields)
 export function useVersionSections(versionId: string | null) {
-  const { data: version } = useFormVersion(versionId);
-  const { data: fieldRows = [] } = useFormFields(versionId);
-  const { data: conditionRows = [] } = useFieldConditions(versionId);
+  const { data: version, isFetched: versionFetched } = useFormVersion(versionId);
+  const {
+    data: fieldRows = [],
+    isFetched: fieldsFetched,
+    isFetching: fieldsFetching,
+  } = useFormFields(versionId);
+  const {
+    data: conditionRows = [],
+    isFetched: conditionsFetched,
+    isFetching: conditionsFetching,
+  } = useFieldConditions(versionId);
 
   return useQuery({
-    queryKey: ['version_sections', versionId, fieldRows.length, conditionRows.length],
+    queryKey: ['version_sections', versionId, fieldRows.length, conditionRows.length, version?.id],
     queryFn: () => {
-      // Prefer normalized fields if available, fall back to snapshot
       if (fieldRows.length > 0) {
         return fieldRowsToSections(fieldRows, conditionRows);
       }
-      if (version?.schema_snapshot) {
+      if (isValidSectionSnapshot(version?.schema_snapshot)) {
         return version.schema_snapshot as unknown as FormSection[];
       }
       return [];
     },
-    enabled: !!versionId && (!!version || fieldRows.length > 0),
+    enabled:
+      !!versionId
+      && versionFetched
+      && fieldsFetched
+      && !fieldsFetching
+      && conditionsFetched
+      && !conditionsFetching,
   });
 }
 
