@@ -270,7 +270,13 @@ export default function NewApplication() {
   }, [activeTemplate?.id, resolvedVersionId]);
 
   // Progress calculations
-  const completedCount = matchedTemplates.filter(t => formProgressMap[t.id]?.status === 'completed').length;
+  const isFormComplete = (tid: string) => {
+    const fp = formProgressMap[tid];
+    if (!fp) return false;
+    if (fp.status === 'completed') return true;
+    return !!(fp.data && Object.keys(fp.data).length > 0);
+  };
+  const completedCount = matchedTemplates.filter(t => isFormComplete(t.id)).length;
   const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
 
   // Wizard step index (skip 'filling' from display)
@@ -321,9 +327,11 @@ export default function NewApplication() {
             tmplIds.forEach(tid => {
               const fdata = formsData[tid] || {};
               const hasData = fdata && Object.keys(fdata).length > 0;
+              // Treat any saved data as completed for navigation purposes;
+              // user can still re-open the form to edit.
               progress[tid] = {
                 templateId: tid,
-                status: hasData ? 'in_progress' : 'not_started',
+                status: hasData ? 'completed' : 'not_started',
                 data: fdata,
               };
             });
