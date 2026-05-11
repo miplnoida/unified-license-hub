@@ -629,41 +629,76 @@ export default function NewApplication() {
     setProcessingPayment(true);
 
     try {
-      // Create payment record with 'pending' status first
-      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const { data: payment, error: payErr } = await supabase
+      // Re-check for an existing payment for this application BEFORE inserting
+      // a new one, to prevent duplicate charges (race-safe via DB unique index).
+      const { data: existingPayments } = await supabase
         .from('payments')
-        .insert({
-          user_id: user.id,
-          application_id: applicationId,
-          amount: feeAmount,
-          status: 'pending',
-          payment_method: 'online',
-          transaction_ref: txnRef,
-        } as any)
-        .select()
-        .single();
+        .select('id, status, amount')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
 
-      if (payErr) throw payErr;
+      const existingList = (existingPayments || []) as any[];
+      const existingSuccess = existingList.find(p =>
+        ['completed', 'success', 'paid'].includes(p.status)
+      );
+      if (existingSuccess) {
+        setPaymentId(existingSuccess.id);
+        setPaymentStatus('success');
+        toast.info('Payment already completed for this application.');
+        return;
+      }
 
-      // Simulate payment processing (in production, this would call a payment gateway)
-      // For now we update to completed after a brief delay to simulate real flow
+      // Reuse the latest pending payment instead of creating another one.
+      const existingPending = existingList.find(p => p.status === 'pending');
+      let paymentRowId: string;
+
+      if (existingPending) {
+        paymentRowId = existingPending.id;
+      } else {
+        const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const { data: payment, error: payErr } = await supabase
+          .from('payments')
+          .insert({
+            user_id: user.id,
+            application_id: applicationId,
+            amount: feeAmount,
+            status: 'pending',
+            payment_method: 'online',
+            transaction_ref: txnRef,
+          } as any)
+          .select()
+          .single();
+        if (payErr) throw payErr;
+        paymentRowId = (payment as any).id;
+      }
+
+      // Simulate gateway success
       const { error: updateErr } = await supabase
         .from('payments')
         .update({
           status: 'completed',
           paid_at: new Date().toISOString(),
         } as any)
-        .eq('id', (payment as any).id);
+        .eq('id', paymentRowId);
 
-      if (updateErr) throw updateErr;
+      if (updateErr) {
+        // Surface the unique-index violation as a clean message
+        const msg = (updateErr as any)?.message || '';
+        if (msg.includes('unique_successful_payment_per_application')) {
+          setPaymentStatus('success');
+          setPaymentId(paymentRowId);
+          toast.info('Payment already completed for this application.');
+          return;
+        }
+        throw updateErr;
+      }
 
-      setPaymentId((payment as any).id);
+      setPaymentId(paymentRowId);
       setPaymentStatus('success');
 
       // Generate receipt
       await supabase.from('payment_receipts').insert({
-        payment_id: (payment as any).id,
+        payment_id: paymentRowId,
         amount: feeAmount,
         issued_to_name: user.fullName || user.email || 'Applicant',
         issued_to_email: user.email,
@@ -673,13 +708,12 @@ export default function NewApplication() {
       await logAudit({
         action: 'payment_completed',
         entityType: 'payment',
-        entityId: (payment as any).id,
+        entityId: paymentRowId,
         newValue: { amount: feeAmount, application_id: applicationId },
       });
 
       toast.success('Payment successful!');
     } catch (err: any) {
-      // Mark payment as failed if it was created
       setPaymentStatus('failed');
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
     } finally {
