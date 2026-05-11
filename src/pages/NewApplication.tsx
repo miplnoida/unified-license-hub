@@ -50,8 +50,9 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
 
 export default function NewApplication() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draft');
+  const isContinuingDraft = !!draftIdParam;
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
@@ -149,6 +150,29 @@ export default function NewApplication() {
       const pinned = (data?.data as any)?.form_version_ids as Record<string, string> | undefined;
       if (pinned) setAssignedVersionByTemplate(prev => ({ ...pinned, ...prev }));
     })();
+  }, [applicationId]);
+
+  // Hydrate existing payment for this application so the user cannot pay twice.
+  // If a successful payment exists we lock the payment step into the success state.
+  useEffect(() => {
+    if (!applicationId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('id, status, amount')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      const list = (payments || []) as any[];
+      const successful = list.find(p => ['completed', 'success', 'paid'].includes(p.status));
+      if (successful) {
+        setPaymentId(successful.id);
+        setPaymentStatus('success');
+        if (Number(successful.amount) > 0) setFeeAmount(prev => prev || Number(successful.amount));
+      }
+    })();
+    return () => { cancelled = true; };
   }, [applicationId]);
 
   useEffect(() => {
@@ -395,8 +419,10 @@ export default function NewApplication() {
 
       if (guard.action === 'continue_draft' && guard.application_id && guard.application_id !== applicationId) {
         toast.info(guard.message || 'Continuing your existing draft for this selection.');
-        navigate(`/applications/new?draft=${guard.application_id}`);
-        setTimeout(() => window.location.reload(), 50);
+        // Update URL so the hydration effect picks up the draft cleanly (no reload).
+        hasHydratedRef.current = false;
+        hasUserInteractedRef.current = false;
+        setSearchParams({ draft: guard.application_id, mode: 'continue' }, { replace: true });
         return;
       }
       if (guard.action === 'redirect_payment' && guard.application_id) {
@@ -603,41 +629,76 @@ export default function NewApplication() {
     setProcessingPayment(true);
 
     try {
-      // Create payment record with 'pending' status first
-      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const { data: payment, error: payErr } = await supabase
+      // Re-check for an existing payment for this application BEFORE inserting
+      // a new one, to prevent duplicate charges (race-safe via DB unique index).
+      const { data: existingPayments } = await supabase
         .from('payments')
-        .insert({
-          user_id: user.id,
-          application_id: applicationId,
-          amount: feeAmount,
-          status: 'pending',
-          payment_method: 'online',
-          transaction_ref: txnRef,
-        } as any)
-        .select()
-        .single();
+        .select('id, status, amount')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
 
-      if (payErr) throw payErr;
+      const existingList = (existingPayments || []) as any[];
+      const existingSuccess = existingList.find(p =>
+        ['completed', 'success', 'paid'].includes(p.status)
+      );
+      if (existingSuccess) {
+        setPaymentId(existingSuccess.id);
+        setPaymentStatus('success');
+        toast.info('Payment already completed for this application.');
+        return;
+      }
 
-      // Simulate payment processing (in production, this would call a payment gateway)
-      // For now we update to completed after a brief delay to simulate real flow
+      // Reuse the latest pending payment instead of creating another one.
+      const existingPending = existingList.find(p => p.status === 'pending');
+      let paymentRowId: string;
+
+      if (existingPending) {
+        paymentRowId = existingPending.id;
+      } else {
+        const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const { data: payment, error: payErr } = await supabase
+          .from('payments')
+          .insert({
+            user_id: user.id,
+            application_id: applicationId,
+            amount: feeAmount,
+            status: 'pending',
+            payment_method: 'online',
+            transaction_ref: txnRef,
+          } as any)
+          .select()
+          .single();
+        if (payErr) throw payErr;
+        paymentRowId = (payment as any).id;
+      }
+
+      // Simulate gateway success
       const { error: updateErr } = await supabase
         .from('payments')
         .update({
           status: 'completed',
           paid_at: new Date().toISOString(),
         } as any)
-        .eq('id', (payment as any).id);
+        .eq('id', paymentRowId);
 
-      if (updateErr) throw updateErr;
+      if (updateErr) {
+        // Surface the unique-index violation as a clean message
+        const msg = (updateErr as any)?.message || '';
+        if (msg.includes('unique_successful_payment_per_application')) {
+          setPaymentStatus('success');
+          setPaymentId(paymentRowId);
+          toast.info('Payment already completed for this application.');
+          return;
+        }
+        throw updateErr;
+      }
 
-      setPaymentId((payment as any).id);
+      setPaymentId(paymentRowId);
       setPaymentStatus('success');
 
       // Generate receipt
       await supabase.from('payment_receipts').insert({
-        payment_id: (payment as any).id,
+        payment_id: paymentRowId,
         amount: feeAmount,
         issued_to_name: user.fullName || user.email || 'Applicant',
         issued_to_email: user.email,
@@ -647,13 +708,12 @@ export default function NewApplication() {
       await logAudit({
         action: 'payment_completed',
         entityType: 'payment',
-        entityId: (payment as any).id,
+        entityId: paymentRowId,
         newValue: { amount: feeAmount, application_id: applicationId },
       });
 
       toast.success('Payment successful!');
     } catch (err: any) {
-      // Mark payment as failed if it was created
       setPaymentStatus('failed');
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
     } finally {
@@ -762,11 +822,15 @@ export default function NewApplication() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">New License Application</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isContinuingDraft ? 'Continue Draft Application' : 'New License Application'}
+            </h1>
             <p className="text-muted-foreground text-sm">
               {currentStep === 'filling'
                 ? `Filling: ${activeTemplate?.name || 'Form'}`
-                : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
+                : isContinuingDraft
+                  ? 'Resume where you left off — your saved progress has been loaded.'
+                  : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
           {applicationId && (
@@ -781,9 +845,15 @@ export default function NewApplication() {
           </div>
         )}
 
-        {applicationId && currentStep === 'selection' && !hydratingDraft && (
-          <div className="rounded-md border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground">
-            Continuing your draft application — your previous selections have been restored.
+        {/* Persistent banner: shown for the entire continue-draft session,
+            not just on the selection step, and survives page reloads since
+            it is keyed off the URL ?draft=… param. */}
+        {isContinuingDraft && applicationId && !hydratingDraft && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <span>
+              You are continuing an existing draft application. Your previously saved progress has been loaded.
+            </span>
           </div>
         )}
 
