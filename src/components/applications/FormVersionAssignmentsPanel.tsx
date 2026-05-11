@@ -28,7 +28,10 @@ const REASON_LABELS: Record<string, string> = {
   legacy_backfill: 'Legacy backfill',
 };
 
-export function FormVersionAssignmentsPanel({ applicationId }: Props) {
+export function FormVersionAssignmentsPanel(_props: Props) {
+  // Panel intentionally disabled — no longer rendered on application detail.
+  return null;
+  // eslint-disable-next-line no-unreachable
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
