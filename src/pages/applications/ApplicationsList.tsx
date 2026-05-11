@@ -44,11 +44,36 @@ const licenseTypeBadgeVariant = (t: string) => {
 };
 
 const paymentBadgeVariant = (s: string) => {
-  switch (s) {
-    case 'success': return 'approved';
-    case 'pending': return 'pending';
-    case 'failed': return 'rejected';
-    default: return 'draft';
+  switch ((s || '').toLowerCase()) {
+    case 'success':
+    case 'completed':
+    case 'paid':
+      return 'approved';
+    case 'pending':
+    case 'processing':
+    case 'initiated':
+      return 'pending';
+    case 'failed':
+      return 'rejected';
+    default:
+      return 'draft';
+  }
+};
+
+const paymentStatusLabel = (s: string) => {
+  switch ((s || '').toLowerCase()) {
+    case 'success':
+    case 'completed':
+    case 'paid':
+      return 'Paid';
+    case 'pending':
+    case 'processing':
+    case 'initiated':
+      return 'Pending';
+    case 'failed':
+      return 'Failed';
+    default:
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
   }
 };
 
@@ -71,7 +96,7 @@ interface Application {
   sub_sector_name?: string | null;
   category_name?: string | null;
   service_name?: string | null;
-  /** Embedded payment summary (latest payment) */
+  /** Embedded payment summary resolved from payments, preferring successful rows over stale pending ones */
   payment?: PaymentInfo | null;
   /** Number of approval_actions for this app — full list lazy-loaded on expand */
   action_count?: number;
@@ -214,7 +239,7 @@ export default function ApplicationsList() {
   // The RPC handles: visibility (applicant vs internal), draft hiding for internal,
   // status filter (incl. resubmission_requested → query_raised), version filter,
   // text search across application#/applicant name/email, sorting, and total count.
-  // It also embeds applicant name/email, taxonomy labels, latest payment, and
+  // It also embeds applicant name/email, taxonomy labels, resolved payment state, and
   // approval_actions count per row — eliminating the previous N+1 fetches.
   useEffect(() => {
     let cancelled = false;
@@ -687,8 +712,8 @@ export default function ApplicationsList() {
                 }}
               >
                 <span className="text-xs font-medium">{payment.currency === 'USD' ? '$' : payment.currency}{Number(payment.amount).toLocaleString()}</span>
-                <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
-                  {payment.status === 'success' ? 'Paid' : payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                  <Badge variant={paymentBadgeVariant(payment.status) as any} className="text-[10px]">
+                    {paymentStatusLabel(payment.status)}
                 </Badge>
               </div>
             ) : (

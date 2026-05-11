@@ -119,13 +119,46 @@ Deno.serve(async (req) => {
             a.data?.category_id === categoryId,
         );
 
+        const peerIds = sameTriple.map((a) => a.id);
+        const paymentSummaryByApp = new Map<string, { hasSuccessfulPayment: boolean; latestPaymentStatus: string | null }>();
+
+        if (peerIds.length > 0) {
+          const { data: peerPayments } = await adminClient
+            .from("payments")
+            .select("application_id, status, created_at")
+            .in("application_id", peerIds)
+            .order("created_at", { ascending: false });
+
+          for (const payment of ((peerPayments || []) as Array<{ application_id: string; status: string | null }>)) {
+            const existing = paymentSummaryByApp.get(payment.application_id) || {
+              hasSuccessfulPayment: false,
+              latestPaymentStatus: null,
+            };
+            const normalizedPaymentStatus = ((payment.status as string) || "").toLowerCase();
+            if (!existing.latestPaymentStatus) {
+              existing.latestPaymentStatus = normalizedPaymentStatus || null;
+            }
+            if (["completed", "success", "paid"].includes(normalizedPaymentStatus)) {
+              existing.hasSuccessfulPayment = true;
+            }
+            paymentSummaryByApp.set(payment.application_id, existing);
+          }
+        }
+
         const ACTIVE = new Set([
           "submitted", "in_progress", "in_review", "pending_review",
           "under_review", "forwarded", "query_raised", "resubmission_requested",
           "awaiting_approval",
         ]);
 
-        const activeDupe = sameTriple.find((a) => ACTIVE.has(((a.status as string) || "").toLowerCase()));
+        const activeDupe = sameTriple.find((a) => {
+          const normalizedStatus = ((a.status as string) || "").toLowerCase();
+          const paymentSummary = paymentSummaryByApp.get(a.id);
+          return ACTIVE.has(normalizedStatus) || (
+            ["payment_pending", "awaiting_payment", "pending_payment"].includes(normalizedStatus)
+            && !!paymentSummary?.hasSuccessfulPayment
+          );
+        });
         if (activeDupe) {
           return new Response(
             JSON.stringify({
@@ -136,9 +169,14 @@ Deno.serve(async (req) => {
           );
         }
 
-        const pendingPay = sameTriple.find((a) =>
-          ["payment_pending", "awaiting_payment", "pending_payment"].includes(((a.status as string) || "").toLowerCase())
-        );
+        const pendingPay = sameTriple.find((a) => {
+          const normalizedStatus = ((a.status as string) || "").toLowerCase();
+          const paymentSummary = paymentSummaryByApp.get(a.id);
+          if (paymentSummary?.hasSuccessfulPayment) return false;
+
+          return ["payment_pending", "awaiting_payment", "pending_payment"].includes(normalizedStatus)
+            || ["pending", "processing", "initiated"].includes(paymentSummary?.latestPaymentStatus || "");
+        });
         if (pendingPay) {
           return new Response(
             JSON.stringify({
