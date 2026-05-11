@@ -103,16 +103,16 @@ export default function ApplicationDetail() {
 
     const { data: actions } = await supabase.from('approval_actions').select('*').eq('application_id', id).order('created_at', { ascending: true });
     if (actions) {
-      const userIds = [...new Set((actions as any[]).map(a => a.actor_id))];
-      let emailMap: Record<string, string> = {};
+      const userIds = [...new Set((actions as any[]).map(a => a.actor_id).filter(Boolean))];
+      let nameMap: Record<string, string> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, email').in('id', userIds);
-        profiles?.forEach(p => { emailMap[p.id] = p.email; });
+        const { data: profiles } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
+        profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || p.id; });
       }
       setEvents((actions as any[]).map(a => ({
         ...a,
         status: a.action,
-        actor_email: emailMap[a.actor_id] || a.actor_id,
+        actor_email: nameMap[a.actor_id] || a.actor_id,
       })));
     }
 
@@ -581,7 +581,7 @@ export default function ApplicationDetail() {
                     onPaid={loadData}
                   />
                 ))}
-                {isInternal && <FormVersionAssignmentsPanel applicationId={app.id} />}
+                {user?.role === 'super_admin' && <FormVersionAssignmentsPanel applicationId={app.id} />}
               </TabsContent>
 
               {hasSubmittedForms && (
