@@ -321,6 +321,31 @@ Deno.serve(async (req) => {
       console.warn("Acknowledgement email failed:", emailErr);
     }
 
+    // 5. Fire template-driven notifications (in_app + email) via the central dispatcher.
+    //    Best-effort: never block registration on dispatch failures.
+    const dispatchPayload = {
+      applicant_id: authData.user.id,
+      applicant_name,
+      applicant_email: email,
+      registration_reference: regData.registration_reference,
+      sector_id,
+      sector_name: sectorName,
+    };
+    for (const event_key of ["registration.submitted", "registration.received"]) {
+      try {
+        await supabaseAdmin.functions.invoke("dispatch-notification-event", {
+          body: {
+            event_key,
+            entity_type: "registration",
+            entity_id: regData.registration_reference,
+            payload: dispatchPayload,
+          },
+        });
+      } catch (dispatchErr) {
+        console.warn(`dispatch ${event_key} failed:`, dispatchErr);
+      }
+    }
+
     return new Response(JSON.stringify({
       user_id: authData.user.id,
       registration_reference: regData.registration_reference,
