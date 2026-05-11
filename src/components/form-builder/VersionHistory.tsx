@@ -26,6 +26,7 @@ import Swal from 'sweetalert2';
 interface VersionHistoryProps {
   templateId: string;
   formName: string;
+  formType?: string;
   trigger?: React.ReactNode;
 }
 
@@ -40,7 +41,8 @@ function fromDateInput(value: string): string | null {
   return new Date(`${value}T00:00:00Z`).toISOString();
 }
 
-export function VersionHistory({ templateId, formName, trigger }: VersionHistoryProps) {
+export function VersionHistory({ templateId, formName, formType, trigger }: VersionHistoryProps) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<{ sections: FormSection[]; label: string } | null>(null);
   const [scheduleVersion, setScheduleVersion] = useState<any | null>(null);
