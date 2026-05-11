@@ -480,9 +480,10 @@ export default function FormBuilder() {
           backLabel="Form Management"
           actions={
             <div className="flex items-center gap-2">
-              {editId && latestVersion && (
-                <Badge variant="secondary" className="gap-1">
-                  <GitBranch className="h-3 w-3" /> v{currentVersionStr}
+              {editId && activeVersion && (
+                <Badge variant={selectedVersionId ? 'default' : 'secondary'} className="gap-1">
+                  <GitBranch className="h-3 w-3" />
+                  {selectedVersionId ? `Editing v${currentVersionStr}` : `v${currentVersionStr}`}
                 </Badge>
               )}
               {/* "New Version" button removed — versions are managed automatically on Publish.
