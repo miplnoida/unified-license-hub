@@ -83,6 +83,12 @@ export default function ApplicationDetail() {
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
   const hasSubmittedForms = formTemplateIds.length > 0;
 
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.debug('[ApplicationDetail] rendered from src/pages/applications/ApplicationDetail.tsx');
+    }
+  }, []);
+
   const loadData = async () => {
     if (!id) return;
     setWorkflowChecked(false);
@@ -532,138 +538,150 @@ export default function ApplicationDetail() {
               </TabsList>
 
               <TabsContent value="details" className="space-y-4 mt-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Application Number</p>
-                        <p className="font-mono font-medium">{app.application_number}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">License Type</p>
-                        <p className="font-medium">{app.license_type}</p>
-                      </div>
-                      {appData.sector_name && (
-                        <div className="flex items-start gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Sector</p>
-                            <p className="text-sm font-medium">{appData.sector_name}</p>
-                          </div>
-                        </div>
-                      )}
-                      {appData.sub_sector_name && (
-                        <div className="flex items-start gap-2">
-                          <Layers className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Sub-Sector</p>
-                            <p className="text-sm font-medium">{appData.sub_sector_name}</p>
-                          </div>
-                        </div>
-                      )}
-                      {appData.category_name && (
-                        <div className="flex items-start gap-2">
-                          <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Category</p>
-                            <p className="text-sm font-medium">{appData.category_name}</p>
-                          </div>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm text-muted-foreground">Created</p>
-                        <p className="text-sm">{new Date(app.created_at).toLocaleString()}</p>
-                      </div>
-                      {app.submitted_at && (
+                {activeTab === 'details' && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-muted-foreground">Submitted</p>
-                          <p className="text-sm">{new Date(app.submitted_at).toLocaleString()}</p>
+                          <p className="text-sm text-muted-foreground">Application Number</p>
+                          <p className="font-mono font-medium">{app.application_number}</p>
                         </div>
-                      )}
-                      {app.approved_at && (
                         <div>
-                          <p className="text-sm text-muted-foreground">Approved</p>
-                          <p className="text-sm">{new Date(app.approved_at).toLocaleString()}</p>
+                          <p className="text-sm text-muted-foreground">License Type</p>
+                          <p className="font-medium">{app.license_type}</p>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                        {appData.sector_name && (
+                          <div className="flex items-start gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Sector</p>
+                              <p className="text-sm font-medium">{appData.sector_name}</p>
+                            </div>
+                          </div>
+                        )}
+                        {appData.sub_sector_name && (
+                          <div className="flex items-start gap-2">
+                            <Layers className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Sub-Sector</p>
+                              <p className="text-sm font-medium">{appData.sub_sector_name}</p>
+                            </div>
+                          </div>
+                        )}
+                        {appData.category_name && (
+                          <div className="flex items-start gap-2">
+                            <Tag className="h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div>
+                              <p className="text-sm text-muted-foreground">Category</p>
+                              <p className="text-sm font-medium">{appData.category_name}</p>
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm text-muted-foreground">Created</p>
+                          <p className="text-sm">{new Date(app.created_at).toLocaleString()}</p>
+                        </div>
+                        {app.submitted_at && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Submitted</p>
+                            <p className="text-sm">{new Date(app.submitted_at).toLocaleString()}</p>
+                          </div>
+                        )}
+                        {app.approved_at && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Approved</p>
+                            <p className="text-sm">{new Date(app.approved_at).toLocaleString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {hasSubmittedForms && (
                 <TabsContent value="form" className="mt-4">
-                  <SubmittedForms
-                    formTemplateIds={formTemplateIds}
-                    formsData={formsData}
-                    formVersionIds={formVersionIds}
-                    formMeta={(appData.form_meta as Record<string, { saved_at?: string | null }>) || {}}
-                    applicationStatus={app.status}
-                    editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
-                    onSave={async (templateId, data, versionId) => {
-                      const updatedFormsData = { ...formsData, [templateId]: data };
-                      const updatedFormVersionIds = versionId
-                        ? { ...formVersionIds, [templateId]: versionId }
-                        : formVersionIds;
-                      const prevMeta = (appData.form_meta as Record<string, { saved_at?: string | null }>) || {};
-                      const updatedFormMeta = {
-                        ...prevMeta,
-                        [templateId]: { ...(prevMeta[templateId] || {}), saved_at: new Date().toISOString() },
-                      };
-                      const updatedAppData = {
-                        ...appData,
-                        forms_data: updatedFormsData,
-                        form_version_ids: updatedFormVersionIds,
-                        form_meta: updatedFormMeta,
-                      };
-                      const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
-                      if (error) { toast.error('Failed to save form'); return; }
-                      // Lightweight inline state via SubmittedForms; no per-save toast spam.
-                      await loadData();
-                    }}
-                    onAllFormsCompleted={() => {
-                      // Auto-advance to next pending step after all forms are filled
-                      const next = !paymentComplete ? 'fees' : 'documents';
-                      toast.success('All forms saved — continue with the next step');
-                      setActiveTab(next);
-                    }}
-                  />
+                  {activeTab === 'form' && (
+                    <SubmittedForms
+                      formTemplateIds={formTemplateIds}
+                      formsData={formsData}
+                      formVersionIds={formVersionIds}
+                      formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
+                      applicationStatus={app.status}
+                      editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      onSave={async (templateId, data, versionId) => {
+                        const updatedFormsData = { ...formsData, [templateId]: data };
+                        const updatedFormVersionIds = versionId
+                          ? { ...formVersionIds, [templateId]: versionId }
+                          : formVersionIds;
+                        const now = new Date().toISOString();
+                        const prevMeta = (appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {};
+                        const updatedFormMeta = {
+                          ...prevMeta,
+                          [templateId]: {
+                            ...(prevMeta[templateId] || {}),
+                            saved_at: now,
+                            updated_at: now,
+                            created_at: prevMeta[templateId]?.created_at || now,
+                          },
+                        };
+                        const updatedAppData = {
+                          ...appData,
+                          forms_data: updatedFormsData,
+                          form_version_ids: updatedFormVersionIds,
+                          form_meta: updatedFormMeta,
+                        };
+                        const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
+                        if (error) { toast.error('Failed to save form'); return; }
+                        // Lightweight inline state via SubmittedForms; no per-save toast spam.
+                        await loadData();
+                      }}
+                      onAllFormsCompleted={() => {
+                        // Auto-advance to next pending step after all forms are filled
+                        const next = !paymentComplete ? 'fees' : 'documents';
+                        toast.success('All forms saved — continue with the next step');
+                        setActiveTab(next);
+                      }}
+                    />
+                  )}
                 </TabsContent>
               )}
 
               <TabsContent value="documents" className="mt-4">
-                <Card>
-                  {isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        Upload Supporting Documents
-                      </CardTitle>
-                    </CardHeader>
-                  )}
-                  <CardContent className="pt-6 space-y-6">
+                {activeTab === 'documents' && (
+                  <Card>
                     {isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
-                      <DocumentUpload
-                        entityType="application"
-                        entityId={app.id}
-                        onUploaded={() => setDocRefresh(p => p + 1)}
-                      />
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          Upload Supporting Documents
+                        </CardTitle>
+                      </CardHeader>
                     )}
-                    <div key={docRefresh} className="space-y-4">
-                      <AttachmentList
-                        entityType="application"
-                        entityId={app.id}
-                        includeFormFields
-                        showHeader
-                        title="All Application Documents"
-                        emptyText="No documents uploaded yet"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                    <CardContent className="pt-6 space-y-6">
+                      {isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
+                        <DocumentUpload
+                          entityType="application"
+                          entityId={app.id}
+                          onUploaded={() => setDocRefresh(p => p + 1)}
+                        />
+                      )}
+                      <div key={docRefresh} className="space-y-4">
+                        <AttachmentList
+                          entityType="application"
+                          entityId={app.id}
+                          includeFormFields
+                          showHeader
+                          title="All Application Documents"
+                          emptyText="No documents uploaded yet"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="fees" className="mt-4 space-y-4">
-                {isInternal ? (
+                {activeTab === 'fees' && (isInternal ? (
                   <>
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
@@ -677,7 +695,7 @@ export default function ApplicationDetail() {
                     canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
-                )}
+                ))}
               </TabsContent>
             </Tabs>
 
