@@ -100,14 +100,12 @@ export function PaymentVerificationDialog({
           event_key: 'payment.received',
           entity_type: 'payment',
           entity_id: payment.application_id || payment.id,
-          tokens: {
+          payload: {
             receipt_number: payment.receipt_number || payment.transaction_ref || '',
             amount: String(payment.amount),
             currency: payment.currency,
             application_number: applicationNumber || '',
             comments: message.trim(),
-          },
-          context: {
             applicant_id: applicantId,
             application_id: payment.application_id,
           },
