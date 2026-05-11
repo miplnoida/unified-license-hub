@@ -152,6 +152,29 @@ export default function NewApplication() {
     })();
   }, [applicationId]);
 
+  // Hydrate existing payment for this application so the user cannot pay twice.
+  // If a successful payment exists we lock the payment step into the success state.
+  useEffect(() => {
+    if (!applicationId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('id, status, amount')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      const list = (payments || []) as any[];
+      const successful = list.find(p => ['completed', 'success', 'paid'].includes(p.status));
+      if (successful) {
+        setPaymentId(successful.id);
+        setPaymentStatus('success');
+        if (Number(successful.amount) > 0) setFeeAmount(prev => prev || Number(successful.amount));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [applicationId]);
+
   useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
     setAssignedVersionByTemplate(prev => (
