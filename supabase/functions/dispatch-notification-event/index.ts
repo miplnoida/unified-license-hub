@@ -58,7 +58,8 @@ async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Pro
     admin.from("profiles").select("email").eq("id", userId).maybeSingle(),
     admin.from("pre_license_users").select("email").eq("id", userId).maybeSingle(),
   ]);
-  return profile?.email || preLicenseUser?.email || null;
+  const email = profile?.email || preLicenseUser?.email || null;
+  return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
 }
 
 async function sectorRegulators(
