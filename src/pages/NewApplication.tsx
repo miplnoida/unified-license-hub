@@ -88,6 +88,7 @@ export default function NewApplication() {
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentReceiptNumber, setPaymentReceiptNumber] = useState<string | null>(null);
+  const [hasSuccessfulPaymentRecord, setHasSuccessfulPaymentRecord] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
   const [showInlineReview, setShowInlineReview] = useState(false);
@@ -255,7 +256,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
-  const paymentComplete = feeAmount === 0 || paymentStatus === 'success';
+  const paymentComplete = feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
