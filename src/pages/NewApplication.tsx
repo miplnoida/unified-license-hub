@@ -1394,7 +1394,7 @@ export default function NewApplication() {
 
                 {/* Payment Action */}
                 {hasReusablePendingPayment && feeAmount > 0 && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-6 text-center space-y-2">
+                  <div className="flex flex-col items-center gap-4 py-4">
                     <AlertCircle className="h-8 w-8 text-amber-600 mx-auto" />
                     <h3 className="font-semibold text-amber-800">Payment Pending</h3>
                     <p className="text-sm text-amber-800">Payment is already pending for this application.</p>
@@ -1404,6 +1404,18 @@ export default function NewApplication() {
                     {paymentReceiptNumber && (
                       <p className="text-xs text-amber-700 font-mono">Receipt: {paymentReceiptNumber}</p>
                     )}
+                    <Button
+                      size="lg"
+                      onClick={handleProcessPayment}
+                      disabled={processingPayment || hasSuccessfulPaymentRecord}
+                      className="min-w-[200px]"
+                    >
+                      {processingPayment ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                      ) : (
+                        <><CreditCard className="h-4 w-4 mr-2" /> Complete Payment</>
+                      )}
+                    </Button>
                   </div>
                 )}
 
