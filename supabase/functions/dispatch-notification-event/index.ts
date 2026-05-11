@@ -324,13 +324,8 @@ Deno.serve(async (req) => {
             });
             if (error) throw error;
           } else if (channel === "email") {
-            // Look up the email address; queue if SMTP is configured, else best-effort.
-            const { data: prof } = await admin
-              .from("profiles")
-              .select("email")
-              .eq("id", userId)
-              .maybeSingle();
-            const email = prof?.email;
+            // Look up the email address across supported user sources; queue if SMTP is configured, else best-effort.
+            const email = await resolveRecipientEmail(admin, userId);
             if (!email) {
               summary.failed++;
               await admin
