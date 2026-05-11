@@ -725,7 +725,7 @@ export default function NewApplication() {
       }
 
       const { data: paymentResult, error: paymentResultError } = await (supabase as any).rpc(
-        'create_or_get_application_payment',
+        'complete_or_get_application_payment',
         { _application_id: applicationId, _amount: feeAmount },
       );
       if (paymentResultError) throw paymentResultError;
@@ -733,48 +733,24 @@ export default function NewApplication() {
       const payment = paymentResult || {};
       const paymentAction = payment.action as string | undefined;
       const paymentRowId = payment.payment_id as string | undefined;
+      const paidAmount = Number(payment.amount ?? feeAmount ?? 0);
 
       if (!paymentRowId) {
         throw new Error('Could not initialize payment for this application.');
       }
 
-      if (paymentAction === 'paid') {
+      if (paymentAction === 'block') {
+        throw new Error((payment.message as string | undefined) || 'Payment could not be processed for this application.');
+      }
+
+      if (paymentAction === 'paid' || paymentAction === 'completed') {
         setPaymentId(paymentRowId);
         setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
         setPaymentStatus('success');
-        toast.info('Payment already completed for this application.');
-        return;
+        setHasSuccessfulPaymentRecord(true);
+      } else {
+        throw new Error('Payment could not be completed for this application.');
       }
-
-      if (paymentAction === 'pending') {
-        setPaymentId(paymentRowId);
-        setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
-        setPaymentStatus('pending');
-        toast.info('Payment is already pending for this application.');
-      }
-
-      // Simulate gateway success
-      const { error: updateErr } = await supabase
-        .from('payments')
-        .update({
-          status: 'completed',
-          paid_at: new Date().toISOString(),
-        } as any)
-        .eq('id', paymentRowId);
-
-      if (updateErr) {
-        // Surface the unique-index violation as a clean message
-        const msg = (updateErr as any)?.message || '';
-        if (msg.includes('unique_successful_payment_per_application')) {
-          await hydratePaymentState(applicationId);
-          toast.info('Payment already completed for this application.');
-          return;
-        }
-        throw updateErr;
-      }
-
-      setPaymentId(paymentRowId);
-      setPaymentStatus('success');
 
       const { data: existingReceipt } = await supabase
         .from('payment_receipts')
@@ -787,7 +763,7 @@ export default function NewApplication() {
           .from('payment_receipts')
           .insert({
             payment_id: paymentRowId,
-            amount: feeAmount,
+            amount: paidAmount,
             issued_to_name: user.fullName || user.email || 'Applicant',
             issued_to_email: user.email,
             fee_breakdown: feeBreakdown,
@@ -803,11 +779,11 @@ export default function NewApplication() {
         action: 'payment_completed',
         entityType: 'payment',
         entityId: paymentRowId,
-        newValue: { amount: feeAmount, application_id: applicationId, payment_action: paymentAction },
+        newValue: { amount: paidAmount, application_id: applicationId, payment_action: paymentAction },
       });
 
       await hydratePaymentState(applicationId);
-      toast.success('Payment successful!');
+      toast.success(paymentAction === 'paid' ? 'Payment already completed for this application.' : 'Payment successful!');
     } catch (err: any) {
       setPaymentStatus('failed');
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
