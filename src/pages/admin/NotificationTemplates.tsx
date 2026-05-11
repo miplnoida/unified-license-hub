@@ -63,7 +63,7 @@ const MERGE_FIELDS = [
 ];
 
 export default function NotificationTemplates() {
-  const { user } = useAuth();
+  useAuth();
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
