@@ -539,6 +539,7 @@ export default function FormBuilder() {
         )}
 
         {/* Form Metadata */}
+        {(initialized || !editId) && (<>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Form Details</CardTitle>
