@@ -333,11 +333,9 @@ export default function FillReturnPage() {
             event_key: 'compliance.return_submitted',
             entity_type: 'compliance_return',
             entity_id: id,
-            tokens: {
+            payload: {
               return_name: returnData?.unique_id || 'Compliance return',
               actor_name: user?.email || 'User',
-            },
-            context: {
               licensee_id: (returnData as any)?.licensee_id,
               sector_id: (returnData as any)?.sector_id,
             },
