@@ -37,8 +37,16 @@ interface Props {
   isAdminView?: boolean;
 }
 
+const normalizePaymentStatus = (status?: string | null) => {
+  const normalized = (status || '').toLowerCase();
+  if (['completed', 'success', 'paid'].includes(normalized)) return 'paid';
+  if (['pending', 'processing', 'initiated'].includes(normalized)) return 'pending';
+  if (normalized === 'failed') return 'failed';
+  return normalized || 'unknown';
+};
+
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  pending: 'outline', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
+  pending: 'outline', paid: 'default', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
 };
 
 export function PaymentVerificationDialog({
@@ -59,6 +67,7 @@ export function PaymentVerificationDialog({
   if (!payment) return null;
 
 
+  const normalizedPaymentStatus = normalizePaymentStatus(payment.status);
   const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const handleVerify = async () => {
@@ -165,8 +174,10 @@ export function PaymentVerificationDialog({
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Status</p>
-                <Badge variant={(statusVariant[payment.status] || 'outline') as any} className="capitalize mt-1">
-                  {payment.status === 'success' ? 'Paid' : payment.status}
+                <Badge variant={(statusVariant[normalizedPaymentStatus] || 'outline') as any} className="capitalize mt-1">
+                  {normalizedPaymentStatus === 'paid'
+                    ? 'Paid'
+                    : normalizedPaymentStatus.charAt(0).toUpperCase() + normalizedPaymentStatus.slice(1)}
                 </Badge>
               </div>
               <div>
@@ -221,7 +232,7 @@ export function PaymentVerificationDialog({
           </div>
 
           {/* Admin Message - only shown for admin users */}
-          {isAdminView && payment.status !== 'success' && (
+          {isAdminView && normalizedPaymentStatus !== 'paid' && (
             <>
               <Separator />
               <div className="space-y-2">
