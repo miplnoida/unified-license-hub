@@ -72,7 +72,7 @@ interface SubmittedFormsProps {
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
   /** Per-template save metadata used to order most-recently-saved first. */
-  formMeta?: Record<string, { saved_at?: string | null } | undefined>;
+  formMeta?: Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null } | undefined>;
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
@@ -92,13 +92,26 @@ export function SubmittedForms({
   applicationStatus,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
-  // Order: latest saved first (saved_at desc); forms with no save metadata fall
-  // back to their original index so the layout stays stable for blank apps.
+  const getMostRecentTimestamp = (templateId: string) => {
+    const meta = formMeta[templateId];
+    const candidates = [meta?.submitted_at, meta?.updated_at, meta?.saved_at, meta?.created_at]
+      .map((value) => (value ? Date.parse(value) : Number.NaN))
+      .filter((value) => !Number.isNaN(value));
+
+    if (candidates.length > 0) {
+      return candidates[0];
+    }
+
+    return 0;
+  };
+
+  // Order: newest submitted response first, then updated, then created. Forms
+  // with no timestamp metadata fall back to their original index.
   const formTemplateIds = useMemo(() => {
     const indexed = rawTemplateIds.map((tid, idx) => ({ tid, idx }));
     indexed.sort((a, b) => {
-      const aTs = formMeta[a.tid]?.saved_at ? Date.parse(formMeta[a.tid]!.saved_at as string) : 0;
-      const bTs = formMeta[b.tid]?.saved_at ? Date.parse(formMeta[b.tid]!.saved_at as string) : 0;
+      const aTs = getMostRecentTimestamp(a.tid);
+      const bTs = getMostRecentTimestamp(b.tid);
       if (bTs !== aTs) return bTs - aTs;
       return a.idx - b.idx;
     });
