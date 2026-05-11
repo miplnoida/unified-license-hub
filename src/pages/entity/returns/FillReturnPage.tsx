@@ -327,6 +327,22 @@ export default function FillReturnPage() {
           new_status: 'SUB',
           performed_by: user?.id,
         });
+        // Fire-and-forget notification dispatch
+        supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'compliance.return_submitted',
+            entity_type: 'compliance_return',
+            entity_id: id,
+            tokens: {
+              return_name: returnData?.unique_id || 'Compliance return',
+              actor_name: user?.email || 'User',
+            },
+            context: {
+              licensee_id: (returnData as any)?.licensee_id,
+              sector_id: (returnData as any)?.sector_id,
+            },
+          },
+        }).catch(() => {});
         toast.success('Return submitted successfully!');
         navigate(`/entity/returns/${id}/view`);
       },
