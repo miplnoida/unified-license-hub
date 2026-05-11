@@ -1369,6 +1369,11 @@ export default function NewApplication() {
                 {/* Payment Action */}
                 {paymentStatus === 'pending' && feeAmount > 0 && (
                   <div className="flex flex-col items-center gap-4 py-4">
+                    {paymentId && (
+                      <div className="w-full rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-800">
+                        Payment is already pending for this application.
+                      </div>
+                    )}
                     <Button
                       size="lg"
                       onClick={handleProcessPayment}
@@ -1404,6 +1409,7 @@ export default function NewApplication() {
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
                     <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
                     <h3 className="font-semibold text-emerald-800">Payment Completed</h3>
+                    <p className="text-sm font-medium text-emerald-800">Payment already completed for this application.</p>
                     <p className="text-sm text-emerald-700">
                       Your payment of <strong>${feeAmount.toFixed(2)}</strong> has already been received for this application.
                     </p>
