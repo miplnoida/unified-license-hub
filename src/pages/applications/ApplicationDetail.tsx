@@ -259,22 +259,6 @@ export default function ApplicationDetail() {
         setProcessing(false);
         return;
       }
-      // Server already wrote the in-app notification. Fire email/SMS dispatch.
-      try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            action: 'dispatch',
-            event_type: 'application_rejected',
-            user_id: app.applicant_id,
-            title: `Application Rejected: ${app.application_number}`,
-            message: `Your application ${app.application_number} has been rejected.\n\nRemarks: ${comment}`,
-            entity_type: 'application',
-            entity_id: app.id,
-          },
-        });
-      } catch (e) {
-        console.error('Notification failed', e);
-      }
       toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
       setActionComment('');
       loadData();
@@ -399,23 +383,6 @@ export default function ApplicationDetail() {
       toast.error((rpcData as any)?.error || rpcErr?.message || 'Failed to request resubmission');
       setProcessing(false);
       return;
-    }
-
-    // Email/SMS dispatch (in-app notification was already inserted by RPC)
-    try {
-      await supabase.functions.invoke('send-notification', {
-        body: {
-          action: 'dispatch',
-          event_type: 'resubmission_requested',
-          user_id: app.applicant_id,
-          title: `Resubmission Requested: ${app.application_number}`,
-          message: `Your application ${app.application_number} requires revisions.\n\nRemarks: ${actionComment}`,
-          entity_type: 'application',
-          entity_id: app.id,
-        },
-      });
-    } catch (e) {
-      console.error('Notification failed', e);
     }
 
     await logAudit({ action: 'resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
