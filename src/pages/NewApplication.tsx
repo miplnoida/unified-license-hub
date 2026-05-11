@@ -806,7 +806,18 @@ export default function NewApplication() {
     }
   };
 
-  const handleRetryPayment = () => {
+  const handleRetryPayment = async () => {
+    if (!applicationId) return;
+    const existing = await hydratePaymentState(applicationId);
+    if (existing.successful) {
+      toast.info('Payment already completed for this application.');
+      return;
+    }
+    if (existing.pending) {
+      toast.info('Payment is already pending for this application.');
+      return;
+    }
+    setHasSuccessfulPaymentRecord(false);
     setPaymentStatus('pending');
     setPaymentId(null);
     setPaymentReceiptNumber(null);
