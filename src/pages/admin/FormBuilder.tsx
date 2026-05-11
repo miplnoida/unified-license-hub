@@ -39,6 +39,17 @@ function toFieldName(label: string): string {
   return label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
+function isValidSnapshotSections(snapshot: unknown): snapshot is FormSection[] {
+  return Array.isArray(snapshot) && snapshot.every((section) => {
+    if (!section || typeof section !== 'object') return false;
+    const maybeSection = section as Partial<FormSection>;
+    return typeof maybeSection.id === 'string'
+      && typeof maybeSection.title === 'string'
+      && Array.isArray(maybeSection.fields)
+      && maybeSection.fields.every((field) => !!field && typeof field === 'object');
+  });
+}
+
 export default function FormBuilder() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -65,7 +76,11 @@ export default function FormBuilder() {
     isFetched: fieldsFetched,
     isFetching: fieldsFetching,
   } = useFormFields(activeVersion?.id || null);
-  const { data: versionConditionRows = [] } = useFieldConditions(activeVersion?.id || null);
+  const {
+    data: versionConditionRows = [],
+    isFetched: conditionsFetched,
+    isFetching: conditionsFetching,
+  } = useFieldConditions(activeVersion?.id || null);
 
   const { data: dbSectors = [] } = useSectors();
   const { data: dbSubSectors = [] } = useSubSectors();
@@ -93,6 +108,43 @@ export default function FormBuilder() {
   const activeReturnTypes = (returnTypes || []).filter((rt: any) => rt.status === 'active');
   const [initialized, setInitialized] = useState(false);
 
+  const validSnapshotSections = useMemo(
+    () => (isValidSnapshotSections(activeVersion?.schema_snapshot) ? activeVersion.schema_snapshot : []),
+    [activeVersion?.schema_snapshot],
+  );
+  const parsedSections = useMemo(() => {
+    if (versionFieldRows.length > 0) {
+      return fieldRowsToSections(versionFieldRows, versionConditionRows);
+    }
+    if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
+      return validSnapshotSections;
+    }
+    return [];
+  }, [versionFieldRows, versionConditionRows, fieldsFetched, fieldsFetching, validSnapshotSections]);
+  const builderReady = !editId || (
+    templateFetched
+    && !!existingTemplate
+    && activeVersionFetched
+    && !!activeVersion
+    && fieldsFetched
+    && !fieldsFetching
+    && conditionsFetched
+    && !conditionsFetching
+  );
+  const hasNoFields = builderReady && !!editId && parsedSections.length === 0;
+
+  useEffect(() => {
+    if (import.meta.env.DEV && editId && builderReady) {
+      console.debug('[FormBuilder] hydrate', {
+        activeVersionId: activeVersion?.id ?? null,
+        fieldRowCount: versionFieldRows.length,
+        conditionRowCount: versionConditionRows.length,
+        snapshotSectionCount: validSnapshotSections.length,
+        parsedSectionCount: parsedSections.length,
+      });
+    }
+  }, [editId, builderReady, activeVersion?.id, versionFieldRows.length, versionConditionRows.length, validSnapshotSections.length, parsedSections.length]);
+
   // Reset hydration when target template/version changes so we re-load cleanly.
   useEffect(() => {
     setInitialized(false);
@@ -112,23 +164,10 @@ export default function FormBuilder() {
   // Populate state when existing template + version loads.
   useEffect(() => {
     if (!editId || initialized || dbSectors.length === 0) return;
-    // Wait for template + active version queries to settle.
-    if (!templateFetched || !existingTemplate) return;
-    if (!activeVersionFetched) return;
+    if (!builderReady) return;
 
-    const loadedSections = activeVersion?.schema_snapshot as unknown as FormSection[] | undefined;
-    const snapshotSections = Array.isArray(loadedSections) ? loadedSections : [];
-
-    // If snapshot is empty and we have a version, wait for normalized fields query
-    // to finish before deciding it's truly empty.
-    if (snapshotSections.length === 0 && activeVersion?.id && (!fieldsFetched || fieldsFetching)) return;
-
-    const parsed = snapshotSections.length > 0
-      ? snapshotSections
-      : (versionFieldRows.length > 0 ? fieldRowsToSections(versionFieldRows, versionConditionRows) : []);
-
-    setSections(parsed);
-    setInitialSections(JSON.parse(JSON.stringify(parsed)));
+    setSections(parsedSections);
+    setInitialSections(JSON.parse(JSON.stringify(parsedSections)));
     setFormName(existingTemplate.name || '');
     setFormDescription(existingTemplate.description || '');
     setTabName((existingTemplate as any).tab_name || '');
@@ -148,12 +187,9 @@ export default function FormBuilder() {
     editId,
     existingTemplate,
     templateFetched,
-    activeVersion,
     activeVersionFetched,
-    versionFieldRows,
-    versionConditionRows,
-    fieldsFetched,
-    fieldsFetching,
+    builderReady,
+    parsedSections,
     initialized,
     dbSectors,
     dbSubSectors,
@@ -500,14 +536,14 @@ export default function FormBuilder() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (latestVersion?.id) {
-                    window.open(`/preview/${latestVersion.id}`, '_blank', 'noopener');
+                  if (activeVersion?.id) {
+                    window.open(`/preview/${activeVersion.id}`, '_blank', 'noopener');
                   } else {
                     toast.info('Save the form first to preview it in a new tab.');
                     setShowPreview(true);
                   }
                 }}
-                title={latestVersion?.id ? 'Open preview in new tab' : 'Save first to enable new-tab preview'}
+                title={activeVersion?.id ? 'Open preview in new tab' : 'Save first to enable new-tab preview'}
               >
                 <Eye className="h-4 w-4 mr-2" /> Preview
               </Button>
@@ -521,11 +557,19 @@ export default function FormBuilder() {
         />
 
         {/* Loading state while existing template/version/fields are loading */}
-        {editId && !initialized && (
+        {editId && !initialized && !builderReady && (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-8 w-8 animate-spin mb-3" />
             <p className="text-sm">Loading form…</p>
           </div>
+        )}
+
+        {editId && initialized && hasNoFields && (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground">
+              <p className="text-sm font-medium">No fields found in this version.</p>
+            </CardContent>
+          </Card>
         )}
 
         {/* Warning when editing a published/archived historical version */}
