@@ -644,9 +644,14 @@ export function useSaveFormTemplate() {
 
       let workingRow = sourceRow;
       let vid = versionId || crypto.randomUUID();
-      let createNewDraftFromPublished = false;
+      // Branch a brand-new draft when editing any historical (non-draft)
+      // version — published OR archived — so we never overwrite history.
+      let createNewDraftFromHistorical = false;
 
-      if (sourceRow?.status === 'published') {
+      const isHistoricalSource =
+        sourceRow?.status === 'published' || sourceRow?.status === 'archived';
+
+      if (isHistoricalSource) {
         const { data: latestDraft, error: draftErr } = await supabase
           .from('form_versions')
           .select('*')
@@ -664,7 +669,7 @@ export function useSaveFormTemplate() {
         } else {
           workingRow = null;
           vid = crypto.randomUUID();
-          createNewDraftFromPublished = true;
+          createNewDraftFromHistorical = true;
         }
       }
 
