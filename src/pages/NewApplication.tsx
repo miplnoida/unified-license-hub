@@ -255,7 +255,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
-  const paymentComplete = paymentStatus === 'success' || (feeAmount === 0 && feeBreakdown.length === 0);
+  const paymentComplete = feeAmount === 0 || paymentStatus === 'success';
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
@@ -687,6 +687,14 @@ export default function NewApplication() {
 
   const handleProceedToPayment = async () => {
     await loadFees();
+    if (applicationId) {
+      const existing = await hydratePaymentState(applicationId);
+      if (existing.successful) {
+        toast.info('Payment already completed for this application.');
+      } else if (existing.pending) {
+        toast.info('Payment is already pending for this application.');
+      }
+    }
     setCurrentStep('payment');
   };
 
@@ -695,50 +703,40 @@ export default function NewApplication() {
     setProcessingPayment(true);
 
     try {
-      // Re-check for an existing payment for this application BEFORE inserting
-      // a new one, to prevent duplicate charges (race-safe via DB unique index).
-      const { data: existingPayments } = await supabase
-        .from('payments')
-        .select('id, status, amount')
-        .eq('application_id', applicationId)
-        .order('created_at', { ascending: false });
-
-      const existingList = (existingPayments || []) as any[];
-      const existingSuccess = existingList.find(p =>
-        ['completed', 'success', 'paid'].includes(p.status)
-      );
-      if (existingSuccess) {
-        setPaymentId(existingSuccess.id);
-        setPaymentReceiptNumber((existingSuccess as any).receipt_number || null);
+      const existing = await hydratePaymentState(applicationId);
+      if (existing.successful) {
         setPaymentStatus('success');
         toast.info('Payment already completed for this application.');
         return;
       }
 
-      // Reuse the latest pending payment instead of creating another one.
-      const existingPending = existingList.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
-      let paymentRowId: string;
-      let createdNewPayment = false;
+      const { data: paymentResult, error: paymentResultError } = await (supabase as any).rpc(
+        'create_or_get_application_payment',
+        { _application_id: applicationId, _amount: feeAmount },
+      );
+      if (paymentResultError) throw paymentResultError;
 
-      if (existingPending) {
-        paymentRowId = existingPending.id;
-      } else {
-        const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        const { data: payment, error: payErr } = await supabase
-          .from('payments')
-          .insert({
-            user_id: user.id,
-            application_id: applicationId,
-            amount: feeAmount,
-            status: 'pending',
-            payment_method: 'online',
-            transaction_ref: txnRef,
-          } as any)
-          .select()
-          .single();
-        if (payErr) throw payErr;
-        paymentRowId = (payment as any).id;
-        createdNewPayment = true;
+      const payment = paymentResult || {};
+      const paymentAction = payment.action as string | undefined;
+      const paymentRowId = payment.payment_id as string | undefined;
+
+      if (!paymentRowId) {
+        throw new Error('Could not initialize payment for this application.');
+      }
+
+      if (paymentAction === 'paid') {
+        setPaymentId(paymentRowId);
+        setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
+        setPaymentStatus('success');
+        toast.info('Payment already completed for this application.');
+        return;
+      }
+
+      if (paymentAction === 'pending') {
+        setPaymentId(paymentRowId);
+        setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
+        setPaymentStatus('pending');
+        toast.info('Payment is already pending for this application.');
       }
 
       // Simulate gateway success
@@ -754,8 +752,7 @@ export default function NewApplication() {
         // Surface the unique-index violation as a clean message
         const msg = (updateErr as any)?.message || '';
         if (msg.includes('unique_successful_payment_per_application')) {
-          setPaymentStatus('success');
-          setPaymentId(paymentRowId);
+          await hydratePaymentState(applicationId);
           toast.info('Payment already completed for this application.');
           return;
         }
@@ -792,7 +789,7 @@ export default function NewApplication() {
         action: 'payment_completed',
         entityType: 'payment',
         entityId: paymentRowId,
-        newValue: { amount: feeAmount, application_id: applicationId, reused_pending_payment: !createdNewPayment },
+        newValue: { amount: feeAmount, application_id: applicationId, payment_action: paymentAction },
       });
 
       await hydratePaymentState(applicationId);
