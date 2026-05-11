@@ -102,19 +102,39 @@ export default function ApplicationDetail() {
     }
 
     const { data: actions } = await supabase.from('approval_actions').select('*').eq('application_id', id).order('created_at', { ascending: true });
-    if (actions) {
-      const userIds = [...new Set((actions as any[]).map(a => a.actor_id).filter(Boolean))];
-      let nameMap: Record<string, string> = {};
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
-        profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || p.id; });
-      }
-      setEvents((actions as any[]).map(a => ({
-        ...a,
-        status: a.action,
-        actor_email: nameMap[a.actor_id] || a.actor_id,
-      })));
+    const actionList = (actions as any[]) || [];
+    const appAny = appRow as any;
+    const applicantId = appAny?.applicant_id as string | undefined;
+    const userIds = [...new Set([...actionList.map(a => a.actor_id).filter(Boolean), applicantId].filter(Boolean))] as string[];
+    let nameMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
+      profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
     }
+    const resolveActor = (uid?: string | null) => {
+      if (!uid) return 'Unknown User';
+      if (nameMap[uid]) return nameMap[uid];
+      const d = appAny?.data || {};
+      return d.applicant_name || d.full_name || d.contact_person || d.email || 'Unknown User';
+    };
+    const enriched: TimelineEvent[] = actionList.map(a => ({
+      ...a,
+      status: a.action,
+      actor_email: resolveActor(a.actor_id),
+    }));
+    const hasSubmittedAction = enriched.some(e => e.action === 'submitted' || e.action === 'submit');
+    if (!hasSubmittedAction && appAny?.submitted_at) {
+      enriched.unshift({
+        id: `synthetic-submitted-${appAny.id}`,
+        action: 'submitted',
+        status: 'submitted',
+        comments: null,
+        actor_id: applicantId || '',
+        created_at: appAny.submitted_at,
+        actor_email: resolveActor(applicantId),
+      });
+    }
+    setEvents(enriched);
 
     // Check if a successful payment exists for this application
     const { data: pays } = await supabase
