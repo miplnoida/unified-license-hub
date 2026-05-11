@@ -16,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Eye, Save, GitBranch, History } from 'lucide-react';
+import { Eye, Save, GitBranch, History, Loader2, AlertTriangle } from 'lucide-react';
 import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette'
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
-  useFormTemplate, useLatestVersion, useSaveFormTemplate,
+  useFormTemplate, useLatestVersion, useFormVersion, useSaveFormTemplate,
   useFormFields, useFieldConditions, fieldRowsToSections,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -44,15 +44,28 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const formType = searchParams.get('type') || 'pre_license';
   const editId = searchParams.get('id');
+  const selectedVersionId = searchParams.get('versionId');
   const isViewMode = searchParams.get('mode') === 'view';
   const { activeRegulatorId } = useRegulator();
 
   const saveTemplateMutation = useSaveFormTemplate();
 
-  const { data: existingTemplate } = useFormTemplate(editId);
-  const { data: latestVersion } = useLatestVersion(editId);
-  const { data: versionFieldRows = [], isFetched: fieldsFetched } = useFormFields(latestVersion?.id || null);
-  const { data: versionConditionRows = [] } = useFieldConditions(latestVersion?.id || null);
+  const { data: existingTemplate, isFetched: templateFetched } = useFormTemplate(editId);
+  const { data: latestVersion, isFetched: latestVersionFetched } = useLatestVersion(editId);
+  const { data: selectedVersion, isFetched: selectedVersionFetched } = useFormVersion(
+    editId && selectedVersionId ? selectedVersionId : null,
+  );
+
+  // Active version: explicit selection wins, otherwise latest.
+  const activeVersion = selectedVersionId ? selectedVersion : latestVersion;
+  const activeVersionFetched = selectedVersionId ? selectedVersionFetched : latestVersionFetched;
+
+  const {
+    data: versionFieldRows = [],
+    isFetched: fieldsFetched,
+    isFetching: fieldsFetching,
+  } = useFormFields(activeVersion?.id || null);
+  const { data: versionConditionRows = [] } = useFieldConditions(activeVersion?.id || null);
 
   const { data: dbSectors = [] } = useSectors();
   const { data: dbSubSectors = [] } = useSubSectors();
@@ -80,14 +93,35 @@ export default function FormBuilder() {
   const activeReturnTypes = (returnTypes || []).filter((rt: any) => rt.status === 'active');
   const [initialized, setInitialized] = useState(false);
 
-  // Populate state when existing template + version loads
+  // Reset hydration when target template/version changes so we re-load cleanly.
   useEffect(() => {
-    if (!existingTemplate || initialized || dbSectors.length === 0) return;
-    const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
+    setInitialized(false);
+    setSections([]);
+    setInitialSections([]);
+    setSelectedField(null);
+    setSelectedSectionId(null);
+  }, [editId, selectedVersionId]);
+
+  // For new-form mode (no editId) initialize immediately so the empty builder shows.
+  useEffect(() => {
+    if (!editId && !initialized && dbSectors.length > 0) {
+      setInitialized(true);
+    }
+  }, [editId, initialized, dbSectors.length]);
+
+  // Populate state when existing template + version loads.
+  useEffect(() => {
+    if (!editId || initialized || dbSectors.length === 0) return;
+    // Wait for template + active version queries to settle.
+    if (!templateFetched || !existingTemplate) return;
+    if (!activeVersionFetched) return;
+
+    const loadedSections = activeVersion?.schema_snapshot as unknown as FormSection[] | undefined;
     const snapshotSections = Array.isArray(loadedSections) ? loadedSections : [];
 
-    // If snapshot is empty, wait for normalized fields and rebuild sections from rows.
-    if (snapshotSections.length === 0 && latestVersion?.id && !fieldsFetched) return;
+    // If snapshot is empty and we have a version, wait for normalized fields query
+    // to finish before deciding it's truly empty.
+    if (snapshotSections.length === 0 && activeVersion?.id && (!fieldsFetched || fieldsFetching)) return;
 
     const parsed = snapshotSections.length > 0
       ? snapshotSections
@@ -111,17 +145,22 @@ export default function FormBuilder() {
     setSelectedReturnTypeId(resolvedReturnTypeId);
     setInitialized(true);
   }, [
+    editId,
     existingTemplate,
-    latestVersion,
+    templateFetched,
+    activeVersion,
+    activeVersionFetched,
     versionFieldRows,
     versionConditionRows,
     fieldsFetched,
+    fieldsFetching,
     initialized,
     dbSectors,
     dbSubSectors,
     dbCategories,
     dbServices,
   ]);
+
 
   const filteredSubSectors = useMemo(
     () => dbSubSectors.filter(s => s.sector_id === selectedSector && s.status === 'active'),
@@ -215,10 +254,16 @@ export default function FormBuilder() {
     setSelectedSectionId(sectionId);
   }, []);
 
-  // Compute display version
-  const currentVersionStr = latestVersion
-    ? (latestVersion as any).semantic_version || `${latestVersion.version}.0`
+  // Compute display version (active = the one being edited)
+  const currentVersionStr = activeVersion
+    ? (activeVersion as any).semantic_version || `${activeVersion.version}.0`
     : '1.0';
+
+  // Are we editing a historical (non-draft) version explicitly?
+  const isEditingHistoricalVersion = !!selectedVersionId
+    && !!activeVersion
+    && activeVersion.status !== 'draft'
+    && activeVersion.id !== latestVersion?.id;
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
@@ -230,8 +275,11 @@ export default function FormBuilder() {
       const serviceName = selectedService ? (dbServices.find(s => s.id === selectedService)?.name || '') : '';
 
       const templateId = editId || crypto.randomUUID();
-      const versionId = latestVersion?.id || crypto.randomUUID();
-      const intVersion = latestVersion?.version || 1;
+      // Use the active (selected or latest) version as the base. The save
+      // mutation auto-branches a new draft if the source is published/archived,
+      // so historical versions are never overwritten.
+      const versionId = activeVersion?.id || crypto.randomUUID();
+      const intVersion = activeVersion?.version || 1;
 
       // Save never bumps the version. Versioning is handled exclusively at
       // Publish time so submissions stay linked to their original published
@@ -432,15 +480,16 @@ export default function FormBuilder() {
           backLabel="Form Management"
           actions={
             <div className="flex items-center gap-2">
-              {editId && latestVersion && (
-                <Badge variant="secondary" className="gap-1">
-                  <GitBranch className="h-3 w-3" /> v{currentVersionStr}
+              {editId && activeVersion && (
+                <Badge variant={selectedVersionId ? 'default' : 'secondary'} className="gap-1">
+                  <GitBranch className="h-3 w-3" />
+                  {selectedVersionId ? `Editing v${currentVersionStr}` : `v${currentVersionStr}`}
                 </Badge>
               )}
               {/* "New Version" button removed — versions are managed automatically on Publish.
                   Structural changes auto-create a new version; cosmetic changes keep the same version. */}
               {editId && (
-                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
+                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} formType={formType} />
               )}
               <FileImportDialog
                 onImport={handleFileImport}
@@ -471,7 +520,26 @@ export default function FormBuilder() {
           }
         />
 
+        {/* Loading state while existing template/version/fields are loading */}
+        {editId && !initialized && (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mb-3" />
+            <p className="text-sm">Loading form…</p>
+          </div>
+        )}
+
+        {/* Warning when editing a published/archived historical version */}
+        {initialized && isEditingHistoricalVersion && !isViewMode && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 mt-[1px] shrink-0" />
+            <span>
+              You are editing from an older version (v{currentVersionStr}). Saving will create a new draft version based on this version — the historical version and its submissions will not be modified.
+            </span>
+          </div>
+        )}
+
         {/* Form Metadata */}
+        {(initialized || !editId) && (<>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Form Details</CardTitle>
@@ -622,6 +690,7 @@ export default function FormBuilder() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
       {/* Preview Dialog */}

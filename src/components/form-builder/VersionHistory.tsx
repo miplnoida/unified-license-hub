@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle } from 'lucide-react';
+import { History, Eye, GitBranch, Calendar, Send, Power, PowerOff, CalendarClock, Loader2, Star, AlertTriangle, Pencil } from 'lucide-react';
 import {
   useFormVersions,
   useUpdateVersionSchedule,
@@ -25,6 +26,7 @@ import Swal from 'sweetalert2';
 interface VersionHistoryProps {
   templateId: string;
   formName: string;
+  formType?: string;
   trigger?: React.ReactNode;
 }
 
@@ -39,7 +41,8 @@ function fromDateInput(value: string): string | null {
   return new Date(`${value}T00:00:00Z`).toISOString();
 }
 
-export function VersionHistory({ templateId, formName, trigger }: VersionHistoryProps) {
+export function VersionHistory({ templateId, formName, formType, trigger }: VersionHistoryProps) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<{ sections: FormSection[]; label: string } | null>(null);
   const [scheduleVersion, setScheduleVersion] = useState<any | null>(null);
@@ -228,6 +231,18 @@ export function VersionHistory({ templateId, formName, trigger }: VersionHistory
                             title="View"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const type = formType || 'pre_license';
+                              setOpen(false);
+                              navigate(`/admin/forms/create?type=${type}&id=${templateId}&versionId=${v.id}`);
+                            }}
+                            title="Edit this version (creates a new draft if published/archived)"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           {v.status === 'published' && !isCurrentDefault && (
                             <Button
