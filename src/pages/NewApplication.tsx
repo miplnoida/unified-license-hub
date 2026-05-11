@@ -712,6 +712,8 @@ export default function NewApplication() {
       const existing = await hydratePaymentState(applicationId);
       if (existing.successful) {
         toast.info('Payment already completed for this application.');
+        setCurrentStep('review');
+        return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
@@ -721,6 +723,13 @@ export default function NewApplication() {
 
   const handleProcessPayment = async () => {
     if (!applicationId || !user) return;
+    if (processingPayment) return;
+
+    if (paymentStatus === 'success' || hasSuccessfulPaymentRecord) {
+      toast.info('Payment already completed for this application.');
+      return;
+    }
+
     setProcessingPayment(true);
 
     try {
@@ -731,8 +740,16 @@ export default function NewApplication() {
         return;
       }
 
+      if (existing.pending) {
+        setPaymentId(existing.pending.id);
+        setPaymentReceiptNumber(await loadReceiptNumber(existing.pending.id, existing.pending.receipt_number || existing.pending.transaction_ref || null));
+        setPaymentStatus('pending');
+        toast.info('Payment is already pending for this application.');
+        return;
+      }
+
       const { data: paymentResult, error: paymentResultError } = await (supabase as any).rpc(
-        'complete_or_get_application_payment',
+        'create_or_get_application_payment',
         { _application_id: applicationId, _amount: feeAmount },
       );
       if (paymentResultError) throw paymentResultError;
@@ -755,6 +772,12 @@ export default function NewApplication() {
         setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
         setPaymentStatus('success');
         setHasSuccessfulPaymentRecord(true);
+      } else if (paymentAction === 'pending' || paymentAction === 'created') {
+        setPaymentId(paymentRowId);
+        setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
+        setPaymentStatus('pending');
+        toast.info('Payment is already pending for this application.');
+        return;
       } else {
         throw new Error('Payment could not be completed for this application.');
       }
