@@ -720,6 +720,23 @@ export default function NewApplication() {
     () => matchedTemplates.map(t => t.id).sort().join(','),
     [matchedTemplates]
   );
+  const assignedVersionKey = useMemo(
+    () => matchedTemplates.map((template) => `${template.id}:${assignedVersionByTemplate[template.id] || ''}`).sort().join('|'),
+    [assignedVersionByTemplate, matchedTemplates]
+  );
+
+  useEffect(() => {
+    if (!applicationId || matchedTemplates.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await hydrateFormProgress(applicationId, matchedTemplates, assignedVersionByTemplate);
+      } catch (err) {
+        if (!cancelled) console.warn('[NewApplication] form progress hydration failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [applicationId, matchedTemplateIdsKey, assignedVersionKey, hydrateFormProgress]);
 
   // NOTE: Draft is no longer auto-saved on Sector/Sub-Sector/Category change.
   // It is upserted only when the user clicks "Proceed to Forms" (see handleProceedToForms).
@@ -800,6 +817,11 @@ export default function NewApplication() {
         Object.keys(next).forEach(k => { if (!validIds.has(k)) delete next[k]; });
         return next;
       });
+      try {
+        await hydrateFormProgress(appId, matchedTemplates, assignedVersionByTemplate);
+      } catch (formHydrationError) {
+        console.warn('[NewApplication] form progress hydration after proceed failed:', formHydrationError);
+      }
       setCurrentStep('forms');
     }
     setSaving(false);
@@ -826,6 +848,8 @@ export default function NewApplication() {
         ...prev[activeFormTemplateId],
         status: 'in_progress',
         data,
+        versionId: resolvedVersionId,
+        assignedVersionId: resolvedVersionId,
       },
     }));
     if (applicationId) {
@@ -847,6 +871,10 @@ export default function NewApplication() {
       } as any).eq('id', applicationId);
       toast.success('Draft saved');
       setSaving(false);
+      await hydrateFormProgress(applicationId, matchedTemplates, {
+        ...assignedVersionByTemplate,
+        ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
+      });
     }
   };
 
@@ -858,6 +886,8 @@ export default function NewApplication() {
         ...prev[activeFormTemplateId],
         status: 'completed',
         data,
+        versionId: resolvedVersionId,
+        assignedVersionId: resolvedVersionId,
       },
     }));
 
@@ -889,6 +919,10 @@ export default function NewApplication() {
         },
       } as any).eq('id', applicationId);
       setSaving(false);
+      await hydrateFormProgress(applicationId, matchedTemplates, {
+        ...assignedVersionByTemplate,
+        [activeFormTemplateId]: resolvedVersionId,
+      });
     }
 
     toast.success('Form completed!');
