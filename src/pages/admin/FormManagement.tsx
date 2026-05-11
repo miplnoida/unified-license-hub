@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import Swal from 'sweetalert2';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -78,6 +77,36 @@ export default function FormManagement() {
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: React.ReactNode;
+    confirmLabel: string;
+    destructive?: boolean;
+    onConfirm?: () => void | Promise<void>;
+  }>({ open: false, title: '', description: '', confirmLabel: 'Confirm' });
+  const [resultDialog, setResultDialog] = useState<{
+    open: boolean; title: string; description: React.ReactNode;
+  }>({ open: false, title: '', description: '' });
+
+  // Defensive: remove any stale SweetAlert2 backdrop on unmount, route change,
+  // or tab change. Prevents click/scroll being blocked if a legacy modal lingers.
+  const cleanupStaleOverlays = () => {
+    document.querySelectorAll('.swal2-container, .swal2-backdrop-show').forEach((el) => el.remove());
+    document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+    document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto');
+  };
+  useEffect(() => {
+    cleanupStaleOverlays();
+    return () => cleanupStaleOverlays();
+  }, [activeTab]);
+
+  const openConfirm = (cfg: Omit<typeof confirmDialog, 'open'>) => {
+    // Defer to next frame so any closing Select/Popover portals release focus
+    // and backdrops first, avoiding overlapping overlays.
+    requestAnimationFrame(() => setConfirmDialog({ ...cfg, open: true }));
+  };
+
 
   const activeSectors = useMemo(() => dbSectors.filter(s => s.status === 'active'), [dbSectors]);
   const filteredSubSectors = useMemo(() => {
@@ -127,32 +156,17 @@ export default function FormManagement() {
     });
   };
 
-  const handleBulkPublish = async () => {
-    const ids = Array.from(selectedIds);
-    const result = await Swal.fire({
-      title: 'Bulk Publish',
-      text: `Publish ${ids.length} selected form(s)?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, publish all',
-    });
-    if (!result.isConfirmed) return;
+  const doBulkPublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
-      // Route each publish through the status mutation so version-handling
-      // logic (structural-change detection, semantic bumping, snapshotting)
-      // runs per template — preserving links to existing submissions.
       const results = await Promise.allSettled(
         ids.map((id) => updateStatusMutation.mutateAsync({ id, status: 'published' }))
       );
       const failed = results.filter(r => r.status === 'rejected').length;
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
-      if (failed > 0) {
-        toast.error(`${failed} form(s) failed to publish.`);
-      } else {
-        toast.success(`${ids.length} form(s) published successfully.`);
-      }
+      if (failed > 0) toast.error(`${failed} form(s) failed to publish.`);
+      else toast.success(`${ids.length} form(s) published successfully.`);
       setSelectedIds(new Set());
     } catch {
       toast.error('Failed to bulk publish forms.');
@@ -161,27 +175,22 @@ export default function FormManagement() {
     }
   };
 
+  const handleBulkPublish = () => {
+    const ids = Array.from(selectedIds);
+    openConfirm({
+      title: 'Bulk Publish',
+      description: `Publish ${ids.length} selected form(s)?`,
+      confirmLabel: 'Yes, publish all',
+      onConfirm: () => doBulkPublish(ids),
+    });
+  };
+
   const selectedPublishedIds = useMemo(
     () => filtered.filter(t => selectedIds.has(t.id) && t.status === 'published').map(t => t.id),
     [filtered, selectedIds]
   );
 
-  const handleBulkUnpublish = async () => {
-    const ids = selectedPublishedIds;
-    const skipped = selectedIds.size - ids.length;
-    if (ids.length === 0) {
-      toast.error('No published forms selected. Only published forms can be unpublished.');
-      return;
-    }
-    const result = await Swal.fire({
-      title: 'Bulk Unpublish',
-      html: `Unpublish <b>${ids.length}</b> selected published form(s)?` +
-        (skipped > 0 ? `<br/><span style="color:hsl(var(--muted-foreground));font-size:0.875rem">${skipped} non-published form(s) will be skipped.</span>` : ''),
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, unpublish all',
-    });
-    if (!result.isConfirmed) return;
+  const doBulkUnpublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
       const { error } = await supabase.from('form_templates').update({ status: 'draft' } as any).in('id', ids);
@@ -196,17 +205,31 @@ export default function FormManagement() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    const result = await Swal.fire({
-      title: 'Bulk Delete',
-      text: `Permanently delete ${ids.length} selected form(s)? This cannot be undone.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'hsl(var(--destructive))',
-      confirmButtonText: 'Yes, delete all',
+  const handleBulkUnpublish = () => {
+    const ids = selectedPublishedIds;
+    const skipped = selectedIds.size - ids.length;
+    if (ids.length === 0) {
+      toast.error('No published forms selected. Only published forms can be unpublished.');
+      return;
+    }
+    openConfirm({
+      title: 'Bulk Unpublish',
+      description: (
+        <>
+          Unpublish <strong>{ids.length}</strong> selected published form(s)?
+          {skipped > 0 && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {skipped} non-published form(s) will be skipped.
+            </div>
+          )}
+        </>
+      ),
+      confirmLabel: 'Yes, unpublish all',
+      onConfirm: () => doBulkUnpublish(ids),
     });
-    if (!result.isConfirmed) return;
+  };
+
+  const doBulkDelete = async (ids: string[]) => {
     setBulkLoading(true);
     const failures: string[] = [];
     for (const id of ids) {
@@ -221,28 +244,42 @@ export default function FormManagement() {
     if (failures.length === 0) {
       toast.success(`${ids.length} form(s) deleted successfully.`);
     } else {
-      Swal.fire({
+      requestAnimationFrame(() => setResultDialog({
+        open: true,
         title: 'Some deletes failed',
-        html: `<div style="text-align:left;font-size:12px"><b>${ids.length - failures.length}</b> deleted, <b>${failures.length}</b> failed:<br/><pre style="white-space:pre-wrap">${failures.join('\n')}</pre></div>`,
-        icon: 'warning',
-      });
+        description: (
+          <div className="text-xs text-left">
+            <b>{ids.length - failures.length}</b> deleted, <b>{failures.length}</b> failed:
+            <pre className="whitespace-pre-wrap mt-2">{failures.join('\n')}</pre>
+          </div>
+        ),
+      }));
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: 'This form template will be permanently deleted.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'hsl(var(--destructive))',
-      cancelButtonColor: 'hsl(var(--muted-foreground))',
-      confirmButtonText: 'Yes, delete it!',
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    openConfirm({
+      title: 'Bulk Delete',
+      description: `Permanently delete ${ids.length} selected form(s)? This cannot be undone.`,
+      confirmLabel: 'Yes, delete all',
+      destructive: true,
+      onConfirm: () => doBulkDelete(ids),
     });
-    if (!result.isConfirmed) return;
-    deleteTemplateMutation.mutate(id, {
-      onSuccess: () => Swal.fire({ title: 'Deleted!', text: 'Form template has been deleted.', icon: 'success', timer: 1500, showConfirmButton: false }),
-      onError: (err: any) => Swal.fire({ title: 'Error', text: err?.message || 'Failed to delete form template.', icon: 'error' }),
+  };
+
+  const handleDelete = (id: string) => {
+    openConfirm({
+      title: 'Delete form template?',
+      description: 'This form template will be permanently deleted. This action cannot be undone.',
+      confirmLabel: 'Yes, delete it',
+      destructive: true,
+      onConfirm: () => {
+        deleteTemplateMutation.mutate(id, {
+          onSuccess: () => toast.success('Form template deleted.'),
+          onError: (err: any) => toast.error(err?.message || 'Failed to delete form template.'),
+        });
+      },
     });
   };
 
@@ -252,8 +289,13 @@ export default function FormManagement() {
 
   const requestStatusChange = (template: FormTemplate, newStatus: string) => {
     if (newStatus === template.status) return;
-    setStatusDialog({ open: true, id: template.id, name: template.name, currentStatus: template.status, newStatus });
+    // Defer so the Select dropdown closes/releases its overlay before the
+    // AlertDialog mounts — prevents stacked Radix portals/backdrop conflicts.
+    requestAnimationFrame(() => {
+      setStatusDialog({ open: true, id: template.id, name: template.name, currentStatus: template.status, newStatus });
+    });
   };
+
 
   const confirmStatusChange = () => {
     const { id, newStatus } = statusDialog;
@@ -504,7 +546,8 @@ export default function FormManagement() {
                                     else toast.info('No version exists yet for this form.');
                                   } },
                                   { label: 'View', icon: FileText, onClick: () => handleView(tpl.id) },
-                                  { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
+                                  { label: 'Edit', icon: Pencil, hidden: !canEditForms, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
+                                  { label: 'Delete', icon: Trash2, hidden: !canEditForms, destructive: true, separator: true, onClick: () => handleDelete(tpl.id) },
                                 ]} />
                               </TableCell>
                             </TableRow>
@@ -525,15 +568,55 @@ export default function FormManagement() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Change Form Status</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to change the status of <strong>"{statusDialog.name}"</strong> from{' '}
-              <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge> to{' '}
-              <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
+            <AlertDialogDescription asChild>
+              <div>
+                Are you sure you want to change the status of <strong>"{statusDialog.name}"</strong> from{' '}
+                <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge> to{' '}
+                <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmStatusChange}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>{confirmDialog.description}</div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmDialog.destructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+              onClick={() => {
+                const fn = confirmDialog.onConfirm;
+                setConfirmDialog((prev) => ({ ...prev, open: false }));
+                if (fn) Promise.resolve(fn()).catch(() => {});
+              }}
+            >
+              {confirmDialog.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resultDialog.open} onOpenChange={(open) => setResultDialog((prev) => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{resultDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>{resultDialog.description}</div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setResultDialog((prev) => ({ ...prev, open: false }))}>OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
