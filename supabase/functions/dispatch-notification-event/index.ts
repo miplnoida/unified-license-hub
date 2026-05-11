@@ -55,21 +55,17 @@ async function loadApplication(admin: SupabaseClient, id: string) {
 
 async function sectorRegulators(admin: SupabaseClient, sectorId: string | null | undefined): Promise<string[]> {
   if (!sectorId) return [];
-  // Sector -> regulator_id is a single org id; we resolve to all admin/supervisor/licensing_officer
-  // users scoped to that regulator via profiles.regulator_id if such linkage exists, else fall back
-  // to ppoc_entity_mappings on the same sector.
-  const ids = new Set<string>();
-  // 1) profiles linked to the regulator
-  const { data: regRow } = await admin.from("sectors").select("regulator_id").eq("id", sectorId).maybeSingle();
-  const regulatorId = regRow?.regulator_id as string | undefined;
-  if (regulatorId) {
-    const { data: profs } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("regulator_id", regulatorId);
-    (profs || []).forEach((p: any) => p?.id && ids.add(p.id));
+  // Resolve regulator users for the given sector. The data model does not link
+  // profiles directly to a regulator, so we approximate by returning all users
+  // with regulator-side built-in roles (supervisor + licensing_officer + analyst).
+  // This stays dynamic and template-driven; admins can refine recipients later
+  // by editing the recipient_rules JSON for any event_key.
+  const out = new Set<string>();
+  for (const role of ["supervisor", "licensing_officer", "analyst"]) {
+    const r = await recipientsForRole(admin, role);
+    r.forEach((u) => u && out.add(u));
   }
-  return Array.from(ids);
+  return Array.from(out);
 }
 
 async function licenseePrimaryUsers(admin: SupabaseClient, licenseeId: string | null | undefined): Promise<string[]> {
