@@ -396,8 +396,10 @@ export default function NewApplication() {
 
       if (guard.action === 'continue_draft' && guard.application_id && guard.application_id !== applicationId) {
         toast.info(guard.message || 'Continuing your existing draft for this selection.');
-        navigate(`/applications/new?draft=${guard.application_id}`);
-        setTimeout(() => window.location.reload(), 50);
+        // Update URL so the hydration effect picks up the draft cleanly (no reload).
+        hasHydratedRef.current = false;
+        hasUserInteractedRef.current = false;
+        setSearchParams({ draft: guard.application_id, mode: 'continue' }, { replace: true });
         return;
       }
       if (guard.action === 'redirect_payment' && guard.application_id) {
