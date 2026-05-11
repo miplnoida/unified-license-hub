@@ -368,78 +368,50 @@ export default function NewApplication() {
       return;
     }
 
-    // ─── Re-application & duplicate guards ──────────────────────────────
-    // The match key is (applicant + sector + sub_sector + category/service).
+    // ─── Server-side guard (RPC apply_application_guard) ────────────────
+    // Single source of truth for: continue-draft / pending-payment redirect /
+    // active duplicate block / re-application policy. Mirrored by a DB
+    // trigger so direct inserts can't bypass it.
     if (user) {
-      const { data: matchingApps, error: matchErr } = await supabase
-        .from('applications')
-        .select('id, status, data')
-        .eq('applicant_id', user.id);
-
-      if (matchErr) {
+      const { data: guardRaw, error: guardErr } = await (supabase as any).rpc(
+        'apply_application_guard',
+        {
+          _sector_id: selectedSector,
+          _sub_sector_id: selectedSubSector || null,
+          _category_id: selectedCategory || null,
+          _service_id: null,
+        },
+      );
+      if (guardErr) {
         toast.error('Could not verify existing applications. Please try again.');
         return;
       }
+      const guard = (guardRaw || {}) as {
+        action?: string;
+        application_id?: string;
+        message?: string;
+        code?: string;
+      };
 
-      const sameTriple = (matchingApps || []).filter((a: any) => {
-        const d = (a.data || {}) as Record<string, any>;
-        return d.sector_id === selectedSector
-          && d.sub_sector_id === selectedSubSector
-          && d.category_id === selectedCategory;
-      });
-
-      // 1. Existing draft for the same triple (other than the one we may
-      //    already be editing) → continue that draft instead of creating a
-      //    duplicate.
-      const existingDraft = sameTriple.find((a: any) => a.status === 'draft' && a.id !== applicationId);
-      if (existingDraft) {
-        toast.info('You already have a draft for this sector, sub-sector, and service. Continuing your draft.');
-        navigate(`/applications/new?draft=${existingDraft.id}`);
-        // Hard reload guarantees the wizard rehydrates the right draft.
+      if (guard.action === 'continue_draft' && guard.application_id && guard.application_id !== applicationId) {
+        toast.info(guard.message || 'Continuing your existing draft for this selection.');
+        navigate(`/applications/new?draft=${guard.application_id}`);
         setTimeout(() => window.location.reload(), 50);
         return;
       }
-
-      // 2. Pending payment for the same triple → block & ask to complete.
-      const pendingPaymentApp = sameTriple.find((a: any) =>
-        ['payment_pending', 'awaiting_payment', 'pending_payment'].includes((a.status || '').toLowerCase())
-      );
-      if (pendingPaymentApp) {
-        toast.error('You have an application with pending payment for the same sector, sub-sector, and service. Please complete payment to continue.');
-        navigate(`/applications/${pendingPaymentApp.id}`);
+      if (guard.action === 'redirect_payment' && guard.application_id) {
+        toast.error(guard.message || 'Please complete payment for your existing application first.');
+        navigate(`/applications/${guard.application_id}`);
         return;
       }
-
-      // 3. Active / in-progress duplicate for the same triple is ALWAYS
-      //    blocked, regardless of the Allow Re-Application setting.
-      const ACTIVE_STATUSES = new Set([
-        'submitted', 'in_progress', 'in_review', 'pending_review',
-        'under_review', 'forwarded', 'query_raised', 'resubmission_requested',
-        'awaiting_approval',
-      ]);
-      const activeDupe = sameTriple.find((a: any) => ACTIVE_STATUSES.has((a.status || '').toLowerCase()));
-      if (activeDupe) {
-        const msg = 'You already have an active application for this sector, sub-sector, and service. You cannot start a new one until it is finalised.';
-        setReappBlocked(true);
-        setSectorBlockMessage(msg);
+      if (guard.action === 'block') {
+        const msg = guard.message || 'This application cannot be started.';
+        if (guard.code === 'DUPLICATE_ACTIVE') {
+          setReappBlocked(true);
+          setSectorBlockMessage(msg);
+        }
         toast.error(msg);
         return;
-      }
-
-      // 4. Re-application after Approved / Rejected — controlled by the
-      //    single Allow Re-Application switch.
-      if (appSettings?.allow_reapplication === false) {
-        const approvedDupe = sameTriple.find((a: any) => (a.status || '').toLowerCase() === 'approved');
-        if (approvedDupe) {
-          const msg = 'You already have an Approved application for this sector, sub-sector, and service. Please use the renewal flow if available; a fresh application is not permitted.';
-          toast.error(msg);
-          return;
-        }
-        const rejectedDupe = sameTriple.find((a: any) => (a.status || '').toLowerCase() === 'rejected');
-        if (rejectedDupe) {
-          toast.error('Your previous application for this sector, sub-sector, and service was Rejected. Re-application is not allowed.');
-          return;
-        }
       }
     }
 
