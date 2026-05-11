@@ -84,20 +84,43 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
     }
     setProcessing(true);
     try {
-      const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const { data: created, error: createErr } = await supabase
+      const { data: existingPayments, error: existingErr } = await supabase
         .from('payments')
-        .insert({
-          user_id: user.id,
-          application_id: applicationId,
-          amount: totalDue,
-          status: 'pending',
-          payment_method: 'online',
-          transaction_ref: txnRef,
-        } as any)
-        .select('id')
-        .single();
-      if (createErr || !created) throw createErr || new Error('Failed to create payment');
+        .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
+        .eq('application_id', applicationId)
+        .order('created_at', { ascending: false });
+      if (existingErr) throw existingErr;
+
+      const existingList = (existingPayments || []) as PaymentRow[];
+      const successful = existingList.find(p => ['success', 'paid', 'completed'].includes((p.status || '').toLowerCase()));
+      if (successful) {
+        setPayment(successful);
+        if (successful.currency) setCurrency(successful.currency);
+        toast.info('Payment already completed for this application.');
+        onPaid?.();
+        return;
+      }
+
+      const pending = existingList.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
+      let paymentRowId = pending?.id;
+
+      if (!paymentRowId) {
+        const txnRef = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        const { data: created, error: createErr } = await supabase
+          .from('payments')
+          .insert({
+            user_id: user.id,
+            application_id: applicationId,
+            amount: totalDue,
+            status: 'pending',
+            payment_method: 'online',
+            transaction_ref: txnRef,
+          } as any)
+          .select('id')
+          .single();
+        if (createErr || !created) throw createErr || new Error('Failed to create payment');
+        paymentRowId = (created as any).id;
+      }
 
       // Simulated gateway processing (matches NewApplication flow)
       const { error: updErr } = await supabase
@@ -106,19 +129,27 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
           status: 'completed',
           paid_at: new Date().toISOString(),
         } as any)
-        .eq('id', (created as any).id);
-      if (updErr) throw updErr;
+        .eq('id', paymentRowId);
+      if (updErr) {
+        if ((updErr.message || '').includes('unique_successful_payment_per_application')) {
+          await loadData();
+          toast.info('Payment already completed for this application.');
+          onPaid?.();
+          return;
+        }
+        throw updErr;
+      }
 
       await logAudit({
         action: 'payment_completed',
         entityType: 'payment',
-        entityId: (created as any).id,
+        entityId: paymentRowId,
         metadata: { application_id: applicationId, amount: totalDue },
       });
 
       toast.success('Payment completed successfully');
       onPaid?.();
-      loadData();
+      await loadData();
     } catch (e: any) {
       toast.error(e?.message || 'Payment failed. Please try again.');
     } finally {

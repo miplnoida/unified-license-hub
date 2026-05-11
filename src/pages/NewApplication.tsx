@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useApplicationSettings } from '@/hooks/useApplicationSettings';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -50,9 +50,16 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
 
 export default function NewApplication() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draft');
-  const isContinuingDraft = !!draftIdParam;
+  const continueModeParam = searchParams.get('mode') === 'continue';
+  const continueIdFromPath = useMemo(() => {
+    const match = location.pathname.match(/^\/applications\/([^/]+)\/continue$/);
+    return match?.[1] || null;
+  }, [location.pathname]);
+  const continuedApplicationId = continueIdFromPath || draftIdParam;
+  const isContinuingDraft = !!continuedApplicationId && continueModeParam;
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
@@ -69,6 +76,7 @@ export default function NewApplication() {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [paymentReceiptNumber, setPaymentReceiptNumber] = useState<string | null>(null);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
   const [showInlineReview, setShowInlineReview] = useState(false);
@@ -154,26 +162,61 @@ export default function NewApplication() {
 
   // Hydrate existing payment for this application so the user cannot pay twice.
   // If a successful payment exists we lock the payment step into the success state.
+  const hydratePaymentState = useCallback(async (targetApplicationId: string) => {
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select('id, status, amount, transaction_ref, receipt_number, currency, paid_at, created_at')
+      .eq('application_id', targetApplicationId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const list = (payments || []) as Array<{
+      id: string;
+      status: string;
+      amount: number | null;
+      receipt_number?: string | null;
+    }>;
+    const successful = list.find(p => ['completed', 'success', 'paid'].includes((p.status || '').toLowerCase()));
+    const pending = list.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
+
+    if (successful) {
+      setPaymentId(successful.id);
+      setPaymentReceiptNumber(successful.receipt_number || null);
+      setPaymentStatus('success');
+      if (Number(successful.amount || 0) > 0) {
+        setFeeAmount(prev => prev || Number(successful.amount || 0));
+      }
+      return;
+    }
+
+    if (pending) {
+      setPaymentId(pending.id);
+      setPaymentReceiptNumber(pending.receipt_number || null);
+      setPaymentStatus('pending');
+      if (Number(pending.amount || 0) > 0) {
+        setFeeAmount(prev => prev || Number(pending.amount || 0));
+      }
+      return;
+    }
+
+    setPaymentId(null);
+    setPaymentReceiptNumber(null);
+    setPaymentStatus('pending');
+  }, []);
+
   useEffect(() => {
     if (!applicationId) return;
     let cancelled = false;
     (async () => {
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('id, status, amount')
-        .eq('application_id', applicationId)
-        .order('created_at', { ascending: false });
-      if (cancelled) return;
-      const list = (payments || []) as any[];
-      const successful = list.find(p => ['completed', 'success', 'paid'].includes(p.status));
-      if (successful) {
-        setPaymentId(successful.id);
-        setPaymentStatus('success');
-        if (Number(successful.amount) > 0) setFeeAmount(prev => prev || Number(successful.amount));
+      try {
+        await hydratePaymentState(applicationId);
+      } catch (err) {
+        if (!cancelled) console.warn('[NewApplication] payment hydration failed:', err);
       }
     })();
     return () => { cancelled = true; };
-  }, [applicationId]);
+  }, [applicationId, hydratePaymentState]);
 
   useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
@@ -214,14 +257,14 @@ export default function NewApplication() {
           .select('*')
           .eq('applicant_id', user.id)
           .eq('status', 'draft');
-        if (draftIdParam) {
-          query = query.eq('id', draftIdParam);
+        if (continuedApplicationId) {
+          query = query.eq('id', continuedApplicationId);
         } else {
           query = query.order('created_at', { ascending: false }).limit(1);
         }
         const { data: draft } = await query.maybeSingle();
 
-        if (draft && (draftIdParam || !hasUserInteractedRef.current)) {
+        if (draft && (continuedApplicationId || !hasUserInteractedRef.current)) {
           const d = ((draft as any).data || {}) as Record<string, any>;
           setApplicationId((draft as any).id);
           if (d.sector_id) setSelectedSector(d.sector_id);
@@ -249,6 +292,10 @@ export default function NewApplication() {
           if (d.category_id && tmplIds.length > 0) {
             setCurrentStep('forms');
           }
+
+          if (continueIdFromPath) {
+            setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
+          }
         }
       } catch (err) {
         console.warn('[NewApplication] draft hydration failed:', err);
@@ -256,7 +303,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, draftIdParam]);
+  }, [user?.id, continuedApplicationId, continueIdFromPath, setSearchParams]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
@@ -419,10 +466,9 @@ export default function NewApplication() {
 
       if (guard.action === 'continue_draft' && guard.application_id && guard.application_id !== applicationId) {
         toast.info(guard.message || 'Continuing your existing draft for this selection.');
-        // Update URL so the hydration effect picks up the draft cleanly (no reload).
         hasHydratedRef.current = false;
         hasUserInteractedRef.current = false;
-        setSearchParams({ draft: guard.application_id, mode: 'continue' }, { replace: true });
+        navigate(`/applications/${guard.application_id}/continue?draft=${guard.application_id}&mode=continue`, { replace: true });
         return;
       }
       if (guard.action === 'redirect_payment' && guard.application_id) {
@@ -643,14 +689,16 @@ export default function NewApplication() {
       );
       if (existingSuccess) {
         setPaymentId(existingSuccess.id);
+        setPaymentReceiptNumber((existingSuccess as any).receipt_number || null);
         setPaymentStatus('success');
         toast.info('Payment already completed for this application.');
         return;
       }
 
       // Reuse the latest pending payment instead of creating another one.
-      const existingPending = existingList.find(p => p.status === 'pending');
+      const existingPending = existingList.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
       let paymentRowId: string;
+      let createdNewPayment = false;
 
       if (existingPending) {
         paymentRowId = existingPending.id;
@@ -670,6 +718,7 @@ export default function NewApplication() {
           .single();
         if (payErr) throw payErr;
         paymentRowId = (payment as any).id;
+        createdNewPayment = true;
       }
 
       // Simulate gateway success
@@ -696,22 +745,37 @@ export default function NewApplication() {
       setPaymentId(paymentRowId);
       setPaymentStatus('success');
 
-      // Generate receipt
-      await supabase.from('payment_receipts').insert({
-        payment_id: paymentRowId,
-        amount: feeAmount,
-        issued_to_name: user.fullName || user.email || 'Applicant',
-        issued_to_email: user.email,
-        fee_breakdown: feeBreakdown,
-      } as any);
+      const { data: existingReceipt } = await supabase
+        .from('payment_receipts')
+        .select('id, receipt_number')
+        .eq('payment_id', paymentRowId)
+        .maybeSingle();
+
+      if (!existingReceipt) {
+        const { data: insertedReceipt } = await supabase
+          .from('payment_receipts')
+          .insert({
+            payment_id: paymentRowId,
+            amount: feeAmount,
+            issued_to_name: user.fullName || user.email || 'Applicant',
+            issued_to_email: user.email,
+            fee_breakdown: feeBreakdown,
+          } as any)
+          .select('receipt_number')
+          .maybeSingle();
+        setPaymentReceiptNumber((insertedReceipt as any)?.receipt_number || null);
+      } else {
+        setPaymentReceiptNumber((existingReceipt as any).receipt_number || null);
+      }
 
       await logAudit({
         action: 'payment_completed',
         entityType: 'payment',
         entityId: paymentRowId,
-        newValue: { amount: feeAmount, application_id: applicationId },
+        newValue: { amount: feeAmount, application_id: applicationId, reused_pending_payment: !createdNewPayment },
       });
 
+      await hydratePaymentState(applicationId);
       toast.success('Payment successful!');
     } catch (err: any) {
       setPaymentStatus('failed');
@@ -724,6 +788,7 @@ export default function NewApplication() {
   const handleRetryPayment = () => {
     setPaymentStatus('pending');
     setPaymentId(null);
+    setPaymentReceiptNumber(null);
   };
 
   const handleFinalSubmit = async (ackText?: string) => {
@@ -822,13 +887,13 @@ export default function NewApplication() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">
-              {isContinuingDraft ? 'Continue Draft Application' : 'New License Application'}
+              <h1 className="text-2xl font-bold text-foreground">
+               {isContinuingDraft || applicationId ? 'Continue Draft Application' : 'New License Application'}
             </h1>
             <p className="text-muted-foreground text-sm">
               {currentStep === 'filling'
                 ? `Filling: ${activeTemplate?.name || 'Form'}`
-                : isContinuingDraft
+                  : isContinuingDraft || applicationId
                   ? 'Resume where you left off — your saved progress has been loaded.'
                   : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
@@ -848,11 +913,11 @@ export default function NewApplication() {
         {/* Persistent banner: shown for the entire continue-draft session,
             not just on the selection step, and survives page reloads since
             it is keyed off the URL ?draft=… param. */}
-        {isContinuingDraft && applicationId && !hydratingDraft && (
+        {(isContinuingDraft || (!!applicationId && continueModeParam)) && applicationId && !hydratingDraft && (
           <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground flex items-start gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <span>
-              You are continuing an existing draft application. Your previously saved progress has been loaded.
+              You are continuing an existing draft application. Your saved progress has been loaded.
             </span>
           </div>
         )}
@@ -1277,6 +1342,11 @@ export default function NewApplication() {
                     <p className="text-xs text-muted-foreground text-center">
                       Payment is mandatory before final submission.
                     </p>
+                    {paymentId && (
+                      <p className="text-xs text-muted-foreground text-center font-mono">
+                        Existing payment reference loaded: {paymentId.substring(0, 8).toUpperCase()}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -1291,12 +1361,15 @@ export default function NewApplication() {
                 {paymentStatus === 'success' && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
                     <CheckCircle2 className="h-10 w-10 text-emerald-600 mx-auto" />
-                    <h3 className="font-semibold text-emerald-800">Payment Successful</h3>
+                    <h3 className="font-semibold text-emerald-800">Payment Completed</h3>
                     <p className="text-sm text-emerald-700">
-                      Your payment of <strong>${feeAmount.toFixed(2)}</strong> has been processed successfully.
+                      Your payment of <strong>${feeAmount.toFixed(2)}</strong> has already been received for this application.
                     </p>
                     {paymentId && (
                       <p className="text-xs text-emerald-600 font-mono">Payment ID: {paymentId.substring(0, 8).toUpperCase()}</p>
+                    )}
+                    {paymentReceiptNumber && (
+                      <p className="text-xs text-emerald-600 font-mono">Receipt: {paymentReceiptNumber}</p>
                     )}
                   </div>
                 )}
