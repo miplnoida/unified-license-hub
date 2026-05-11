@@ -185,16 +185,19 @@ export default function NewApplication() {
     setHydratingDraft(true);
     (async () => {
       try {
-        const { data: draft } = await supabase
+        let query = supabase
           .from('applications')
           .select('*')
           .eq('applicant_id', user.id)
-          .eq('status', 'draft')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .eq('status', 'draft');
+        if (draftIdParam) {
+          query = query.eq('id', draftIdParam);
+        } else {
+          query = query.order('created_at', { ascending: false }).limit(1);
+        }
+        const { data: draft } = await query.maybeSingle();
 
-        if (draft && !hasUserInteractedRef.current) {
+        if (draft && (draftIdParam || !hasUserInteractedRef.current)) {
           const d = ((draft as any).data || {}) as Record<string, any>;
           setApplicationId((draft as any).id);
           if (d.sector_id) setSelectedSector(d.sector_id);
