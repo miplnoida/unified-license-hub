@@ -31,7 +31,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
-type FormStatus = 'not_started' | 'in_progress' | 'completed';
+type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
 type PaymentStatus = 'pending' | 'success' | 'failed';
 
 type ExistingPaymentRecord = {
@@ -45,14 +45,29 @@ type ExistingPaymentRecord = {
   created_at: string;
 };
 
+type ExistingFormResponseRecord = {
+  template_id: string;
+  version_id: string | null;
+  response_data: Record<string, any> | null;
+  status: string | null;
+  updated_at?: string | null;
+};
+
 const SUCCESSFUL_PAYMENT_STATUSES = new Set(['completed', 'success', 'paid']);
 const PENDING_PAYMENT_STATUSES = new Set(['pending', 'processing', 'initiated']);
+const SAVED_FORM_RESPONSE_STATUSES = new Set(['draft', 'submitted', 'completed']);
 
 interface FormProgress {
   templateId: string;
   status: FormStatus;
   data: Record<string, any>;
+  versionId?: string | null;
+  assignedVersionId?: string | null;
 }
+
+const hasNonEmptyFormData = (data?: Record<string, any> | null) => (
+  !!data && typeof data === 'object' && Object.keys(data).length > 0
+);
 
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
@@ -196,6 +211,213 @@ export default function NewApplication() {
     };
   }, []);
 
+  const latestPublishedVersionRef = useRef<Record<string, string | null>>({});
+  useEffect(() => {
+    if (matchedTemplates.length === 0) {
+      latestPublishedVersionRef.current = {};
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const templateIds = matchedTemplates.map((template) => template.id);
+      const { data, error } = await supabase
+        .from('form_versions')
+        .select('id, template_id, version, status, effective_from, effective_until')
+        .in('template_id', templateIds)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+
+      if (cancelled || error) {
+        if (error) console.warn('[NewApplication] latest version lookup failed:', error);
+        return;
+      }
+
+      const now = new Date();
+      const nextMap: Record<string, string | null> = {};
+      templateIds.forEach((id) => { nextMap[id] = null; });
+
+      for (const row of (data || []) as Array<{ id: string; template_id: string; effective_from?: string | null; effective_until?: string | null }>) {
+        if (nextMap[row.template_id]) continue;
+        const fromOk = !row.effective_from || new Date(row.effective_from) <= now;
+        let untilOk = true;
+        if (row.effective_until) {
+          const until = new Date(row.effective_until);
+          until.setUTCHours(23, 59, 59, 999);
+          untilOk = until >= now;
+        }
+        if (fromOk && untilOk) {
+          nextMap[row.template_id] = row.id;
+        }
+      }
+
+      latestPublishedVersionRef.current = nextMap;
+    })();
+
+    return () => { cancelled = true; };
+  }, [matchedTemplates]);
+
+  const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
+  const activeFormTemplateIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeFormTemplateIdRef.current = activeFormTemplateId;
+  }, [activeFormTemplateId]);
+
+  const loadExistingFormResponses = useCallback(async (
+    targetApplicationId: string,
+    templates: Array<{ id: string }>,
+    versionMap: Record<string, string>,
+  ) => {
+    if (!targetApplicationId || templates.length === 0) {
+      existingFormResponsesRef.current = {};
+      return {} as Record<string, ExistingFormResponseRecord>;
+    }
+
+    const templateIds = templates.map((template) => template.id);
+    const { data, error } = await supabase
+      .from('form_responses')
+      .select('template_id, version_id, response_data, status, updated_at')
+      .eq('entity_id', targetApplicationId)
+      .eq('entity_type', 'application')
+      .in('template_id', templateIds)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    const responseMap: Record<string, ExistingFormResponseRecord> = {};
+    for (const response of (data || []) as ExistingFormResponseRecord[]) {
+      const assignedVersionId = versionMap[response.template_id] || null;
+      const normalizedStatus = (response.status || '').toLowerCase();
+      const hasData = hasNonEmptyFormData(response.response_data || {});
+      const isEligible = hasData || SAVED_FORM_RESPONSE_STATUSES.has(normalizedStatus);
+      if (!isEligible) continue;
+
+      const current = responseMap[response.template_id];
+      const isAssignedVersionMatch = !!assignedVersionId && response.version_id === assignedVersionId;
+
+      if (!current) {
+        responseMap[response.template_id] = response;
+        continue;
+      }
+
+      const currentMatchesAssigned = !!assignedVersionId && current.version_id === assignedVersionId;
+      if (!currentMatchesAssigned && isAssignedVersionMatch) {
+        responseMap[response.template_id] = response;
+      }
+    }
+
+    existingFormResponsesRef.current = responseMap;
+    return responseMap;
+  }, []);
+
+  const hydrateFormProgress = useCallback(async (
+    targetApplicationId: string,
+    templates: typeof matchedTemplates,
+    versionMap: Record<string, string>,
+  ) => {
+    if (!targetApplicationId || templates.length === 0) {
+      existingFormResponsesRef.current = {};
+      setFormProgressMap((prev) => {
+        if (Object.keys(prev).length === 0) return prev;
+        return {};
+      });
+      return;
+    }
+
+    const templateIds = templates.map((template) => template.id);
+    const { data: appRecord, error: appError } = await supabase
+      .from('applications')
+      .select('data')
+      .eq('id', targetApplicationId)
+      .maybeSingle();
+
+    if (appError) throw appError;
+
+    const appData = ((appRecord as any)?.data || {}) as Record<string, any>;
+    const storedFormsData = (appData.forms_data || {}) as Record<string, Record<string, any>>;
+    const storedVersionIds = (appData.form_version_ids || {}) as Record<string, string>;
+
+    const effectiveVersionMap = templateIds.reduce<Record<string, string>>((acc, templateId) => {
+      const resolved = versionMap[templateId] || storedVersionIds[templateId] || latestPublishedVersionRef.current[templateId] || '';
+      if (resolved) acc[templateId] = resolved;
+      return acc;
+    }, {});
+
+    const responseMap = await loadExistingFormResponses(targetApplicationId, templates, effectiveVersionMap);
+
+    setAssignedVersionByTemplate((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const templateId of templateIds) {
+        const resolved = effectiveVersionMap[templateId];
+        if (resolved && next[templateId] !== resolved) {
+          next[templateId] = resolved;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    setFormProgressMap((prev) => {
+      const next: Record<string, FormProgress> = {};
+
+      for (const templateId of templateIds) {
+        const assignedVersionId = effectiveVersionMap[templateId] || storedVersionIds[templateId] || null;
+        const existingResponse = responseMap[templateId];
+        const responseVersionMatches = !!assignedVersionId && existingResponse?.version_id === assignedVersionId;
+        const responseData = existingResponse?.response_data || {};
+        const storedData = storedFormsData[templateId] || {};
+        const storedVersionMatches = !!assignedVersionId
+          ? (storedVersionIds[templateId] ? storedVersionIds[templateId] === assignedVersionId : true)
+          : hasNonEmptyFormData(storedData);
+        const localProgress = prev[templateId];
+        const localAssignedVersionMatches = !!assignedVersionId
+          ? (localProgress?.versionId ? localProgress.versionId === assignedVersionId : true)
+          : hasNonEmptyFormData(localProgress?.data);
+        const activeLocalData = activeFormTemplateIdRef.current === templateId ? localProgress?.data || {} : {};
+        const shouldPreserveLocalActiveData = activeFormTemplateIdRef.current === templateId && hasNonEmptyFormData(activeLocalData);
+
+        let status: FormStatus = 'not_started';
+        let data: Record<string, any> = {};
+        let versionId: string | null = assignedVersionId;
+
+        if (responseVersionMatches && hasNonEmptyFormData(responseData)) {
+          status = 'completed';
+          data = responseData;
+          versionId = existingResponse?.version_id || assignedVersionId;
+        } else if (hasNonEmptyFormData(storedData) && storedVersionMatches) {
+          status = 'completed';
+          data = storedData;
+          versionId = assignedVersionId || storedVersionIds[templateId] || null;
+        } else if ((existingResponse && hasNonEmptyFormData(responseData) && !responseVersionMatches) || (hasNonEmptyFormData(storedData) && !storedVersionMatches)) {
+          status = 'needs_update';
+          data = {};
+          versionId = assignedVersionId;
+        } else if (localProgress && hasNonEmptyFormData(localProgress.data) && localAssignedVersionMatches) {
+          status = localProgress.status === 'completed' ? 'completed' : 'in_progress';
+          data = localProgress.data;
+          versionId = localProgress.versionId || assignedVersionId;
+        }
+
+        if (shouldPreserveLocalActiveData) {
+          data = activeLocalData;
+          status = localProgress?.status === 'completed' && localAssignedVersionMatches ? 'completed' : 'in_progress';
+          versionId = localProgress?.versionId || assignedVersionId;
+        }
+
+        next[templateId] = {
+          templateId,
+          status,
+          data,
+          versionId,
+          assignedVersionId,
+        };
+      }
+
+      return next;
+    });
+  }, [loadExistingFormResponses, matchedTemplates]);
+
   const loadReceiptNumber = useCallback(async (targetPaymentId: string, fallback?: string | null) => {
     if (fallback) return fallback;
     const { data: receipt } = await supabase
@@ -270,12 +492,21 @@ export default function NewApplication() {
   }, [activeTemplate?.id, resolvedVersionId]);
 
   // Progress calculations
-  const isFormComplete = (tid: string) => {
+  const isFormComplete = useCallback((tid: string) => {
     const fp = formProgressMap[tid];
-    if (!fp) return false;
-    if (fp.status === 'completed') return true;
-    return !!(fp.data && Object.keys(fp.data).length > 0);
-  };
+    const assignedVersionId = fp?.assignedVersionId || assignedVersionByTemplate[tid] || null;
+    const hasMatchingLocalData = !!fp && hasNonEmptyFormData(fp.data) && (!assignedVersionId || !fp.versionId || fp.versionId === assignedVersionId);
+
+    if (fp?.status === 'completed' && hasMatchingLocalData) return true;
+    if (hasMatchingLocalData && fp?.status !== 'needs_update') return true;
+
+    const existingResponse = existingFormResponsesRef.current[tid];
+    const hasMatchingSavedResponse = !!existingResponse
+      && hasNonEmptyFormData(existingResponse.response_data || {})
+      && (!assignedVersionId || existingResponse.version_id === assignedVersionId);
+
+    return hasMatchingSavedResponse;
+  }, [assignedVersionByTemplate, formProgressMap]);
   const completedCount = matchedTemplates.filter(t => isFormComplete(t.id)).length;
   const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
 
@@ -321,18 +552,15 @@ export default function NewApplication() {
           if (d.category_id) setSelectedCategory(d.category_id);
 
           const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
-          const formsData: Record<string, any> = d.forms_data || {};
           if (tmplIds.length > 0) {
             const progress: Record<string, FormProgress> = {};
             tmplIds.forEach(tid => {
-              const fdata = formsData[tid] || {};
-              const hasData = fdata && Object.keys(fdata).length > 0;
-              // Treat any saved data as completed for navigation purposes;
-              // user can still re-open the form to edit.
               progress[tid] = {
                 templateId: tid,
-                status: hasData ? 'completed' : 'not_started',
-                data: fdata,
+                status: 'not_started',
+                data: {},
+                versionId: null,
+                assignedVersionId: d.form_version_ids?.[tid] || null,
               };
             });
             setFormProgressMap(progress);
@@ -350,6 +578,18 @@ export default function NewApplication() {
             console.warn('[NewApplication] draft payment hydration failed:', paymentHydrationError);
           }
 
+          try {
+            const pinnedVersions = (d.form_version_ids && typeof d.form_version_ids === 'object') ? d.form_version_ids : {};
+            const hydratedTemplates = tmplIds
+              .map((templateId) => formTemplates.find((template) => template.id === templateId))
+              .filter(Boolean) as typeof matchedTemplates;
+            if (hydratedTemplates.length > 0) {
+              await hydrateFormProgress((draft as any).id, hydratedTemplates, pinnedVersions);
+            }
+          } catch (formHydrationError) {
+            console.warn('[NewApplication] draft form hydration failed:', formHydrationError);
+          }
+
           if (continueIdFromPath) {
             setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
           }
@@ -360,7 +600,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, continueIdFromPath, hydratePaymentState, setSearchParams]);
+  }, [user?.id, continuedApplicationId, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, setSearchParams]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
@@ -480,6 +720,23 @@ export default function NewApplication() {
     () => matchedTemplates.map(t => t.id).sort().join(','),
     [matchedTemplates]
   );
+  const assignedVersionKey = useMemo(
+    () => matchedTemplates.map((template) => `${template.id}:${assignedVersionByTemplate[template.id] || ''}`).sort().join('|'),
+    [assignedVersionByTemplate, matchedTemplates]
+  );
+
+  useEffect(() => {
+    if (!applicationId || matchedTemplates.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await hydrateFormProgress(applicationId, matchedTemplates, assignedVersionByTemplate);
+      } catch (err) {
+        if (!cancelled) console.warn('[NewApplication] form progress hydration failed:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [applicationId, matchedTemplateIdsKey, assignedVersionKey, hydrateFormProgress]);
 
   // NOTE: Draft is no longer auto-saved on Sector/Sub-Sector/Category change.
   // It is upserted only when the user clicks "Proceed to Forms" (see handleProceedToForms).
@@ -560,6 +817,11 @@ export default function NewApplication() {
         Object.keys(next).forEach(k => { if (!validIds.has(k)) delete next[k]; });
         return next;
       });
+      try {
+        await hydrateFormProgress(appId, matchedTemplates, assignedVersionByTemplate);
+      } catch (formHydrationError) {
+        console.warn('[NewApplication] form progress hydration after proceed failed:', formHydrationError);
+      }
       setCurrentStep('forms');
     }
     setSaving(false);
@@ -586,6 +848,8 @@ export default function NewApplication() {
         ...prev[activeFormTemplateId],
         status: 'in_progress',
         data,
+        versionId: resolvedVersionId,
+        assignedVersionId: resolvedVersionId,
       },
     }));
     if (applicationId) {
@@ -607,6 +871,10 @@ export default function NewApplication() {
       } as any).eq('id', applicationId);
       toast.success('Draft saved');
       setSaving(false);
+      await hydrateFormProgress(applicationId, matchedTemplates, {
+        ...assignedVersionByTemplate,
+        ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
+      });
     }
   };
 
@@ -618,6 +886,8 @@ export default function NewApplication() {
         ...prev[activeFormTemplateId],
         status: 'completed',
         data,
+        versionId: resolvedVersionId,
+        assignedVersionId: resolvedVersionId,
       },
     }));
 
@@ -649,6 +919,10 @@ export default function NewApplication() {
         },
       } as any).eq('id', applicationId);
       setSaving(false);
+      await hydrateFormProgress(applicationId, matchedTemplates, {
+        ...assignedVersionByTemplate,
+        [activeFormTemplateId]: resolvedVersionId,
+      });
     }
 
     toast.success('Form completed!');
@@ -905,10 +1179,29 @@ export default function NewApplication() {
     }
   };
 
+  const handleProceedFromForms = async () => {
+    if (!applicationId) return;
+    try {
+      await hydrateFormProgress(applicationId, matchedTemplates, assignedVersionByTemplate);
+    } catch (err) {
+      console.warn('[NewApplication] form completion recheck failed:', err);
+    }
+
+    const formsReady = matchedTemplates.every((template) => isFormComplete(template.id));
+    if (!formsReady) {
+      toast.error('Please complete all required forms before continuing.');
+      return;
+    }
+
+    setCurrentStep('documents');
+  };
+
   const getFormStatusBadge = (status: FormStatus) => {
     switch (status) {
       case 'completed':
         return <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
+      case 'needs_update':
+        return <Badge variant="returned" className="gap-1"><RefreshCw className="h-3 w-3" /> Needs Update</Badge>;
       case 'in_progress':
         return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
       default:
@@ -1154,8 +1447,9 @@ export default function NewApplication() {
             {matchedTemplates.map((tmpl, idx) => {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
+              const cardComplete = isFormComplete(tmpl.id);
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${cardComplete ? 'border-emerald-200 bg-emerald-50/30' : status === 'needs_update' ? 'border-yellow-200 bg-yellow-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1179,11 +1473,13 @@ export default function NewApplication() {
                       </div>
                       <Button
                         size="sm"
-                        variant={status === 'completed' ? 'outline' : 'default'}
+                        variant={cardComplete ? 'outline' : 'default'}
                         onClick={() => handleStartForm(tmpl.id)}
                       >
-                        {status === 'completed' ? (
-                          <><CheckCircle2 className="h-4 w-4 mr-1" /> Review</>
+                        {cardComplete ? (
+                          <><CheckCircle2 className="h-4 w-4 mr-1" /> Continue</>
+                        ) : status === 'needs_update' ? (
+                          <><RefreshCw className="h-4 w-4 mr-1" /> Update</>
                         ) : status === 'in_progress' ? (
                           <><PlayCircle className="h-4 w-4 mr-1" /> Continue</>
                         ) : (
@@ -1242,10 +1538,10 @@ export default function NewApplication() {
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button
-                onClick={() => setCurrentStep('documents')}
+                onClick={handleProceedFromForms}
                 disabled={!allFormsCompleted}
               >
-                {allFormsCompleted ? 'Proceed to Documents' : `Complete all forms (${completedCount}/${matchedTemplates.length})`}
+                {allFormsCompleted ? 'Continue' : `Complete all forms (${completedCount}/${matchedTemplates.length})`}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
