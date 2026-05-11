@@ -135,7 +135,94 @@ export async function handler(req: Request): Promise<Response> {
         });
       }
       delete (provJson as any).web_user_password;
+      // Fire template-driven final-approval notifications. Never block on failure.
+      try {
+        await admin.functions.invoke("dispatch-notification-event", {
+          body: {
+            event_key: "application.final_approved",
+            entity_type: "application",
+            entity_id: application_id,
+            payload: {
+              application_id,
+              application_number: (finalResult as any).application_number,
+              license_number: (provJson as any).license_number,
+              actor_id: caller.id,
+              comments,
+            },
+          },
+        });
+        if ((provJson as any).license_id) {
+          await admin.functions.invoke("dispatch-notification-event", {
+            body: {
+              event_key: "license.created",
+              entity_type: "license",
+              entity_id: (provJson as any).license_id,
+              payload: {
+                application_id,
+                license_number: (provJson as any).license_number,
+                licensee_id: (provJson as any).licensee_id,
+              },
+            },
+          });
+        }
+        if ((provJson as any).licensee_id) {
+          await admin.functions.invoke("dispatch-notification-event", {
+            body: {
+              event_key: "licensee.created",
+              entity_type: "licensee",
+              entity_id: (provJson as any).licensee_id,
+              payload: {
+                licensee_id: (provJson as any).licensee_id,
+                licensee_name: (provJson as any).licensee_name,
+                application_id,
+              },
+            },
+          });
+        }
+      } catch (dispatchErr) {
+        console.warn("dispatch final approval failed:", dispatchErr);
+      }
       return jsonResponse(req, 200, { success: true, ...finalResult, ...provJson });
+    }
+
+    // Fire template-driven notification for the workflow action. Best-effort.
+    try {
+      const eventForAction =
+        raw_action === "reject" ? "application.rejected" :
+        raw_action === "request_resubmission" ? "application.resubmission_requested" :
+        raw_action === "send_back" ? "application.send_back" :
+        raw_action === "approve" ? "application.approved_step" :
+        "application.workflow_action_taken";
+      await admin.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: eventForAction,
+          entity_type: "application",
+          entity_id: application_id,
+          payload: {
+            application_id,
+            action_type: raw_action,
+            comments,
+            actor_id: caller.id,
+            step_id: (result as any).new_step_id,
+          },
+        },
+      });
+      // Always also publish the generic regulator-action event for super_admins/applicants.
+      await admin.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "regulator.action_taken_on_application",
+          entity_type: "application",
+          entity_id: application_id,
+          payload: {
+            application_id,
+            action_type: raw_action,
+            comments,
+            actor_id: caller.id,
+          },
+        },
+      });
+    } catch (dispatchErr) {
+      console.warn("dispatch workflow action failed:", dispatchErr);
     }
 
     return jsonResponse(req, 200, result);
