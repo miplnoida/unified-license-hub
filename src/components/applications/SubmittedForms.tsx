@@ -72,7 +72,7 @@ interface SubmittedFormsProps {
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
   /** Per-template save metadata used to order most-recently-saved first. */
-  formMeta?: Record<string, { saved_at?: string | null } | undefined>;
+  formMeta?: Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null } | undefined>;
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
@@ -92,14 +92,31 @@ export function SubmittedForms({
   applicationStatus,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
-  // Order: latest saved first (saved_at desc); forms with no save metadata fall
-  // back to their original index so the layout stays stable for blank apps.
+  const getTimestamp = (value?: string | null) => {
+    if (!value) return Number.NEGATIVE_INFINITY;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+  };
+
+  const getSortKey = (templateId: string) => {
+    const meta = formMeta[templateId];
+    return [
+      getTimestamp(meta?.submitted_at),
+      getTimestamp(meta?.updated_at ?? meta?.saved_at),
+      getTimestamp(meta?.created_at),
+    ] as const;
+  };
+
+  // Order: newest submitted response first, then updated, then created. Forms
+  // with no timestamp metadata fall back to their original index.
   const formTemplateIds = useMemo(() => {
     const indexed = rawTemplateIds.map((tid, idx) => ({ tid, idx }));
     indexed.sort((a, b) => {
-      const aTs = formMeta[a.tid]?.saved_at ? Date.parse(formMeta[a.tid]!.saved_at as string) : 0;
-      const bTs = formMeta[b.tid]?.saved_at ? Date.parse(formMeta[b.tid]!.saved_at as string) : 0;
-      if (bTs !== aTs) return bTs - aTs;
+      const aKey = getSortKey(a.tid);
+      const bKey = getSortKey(b.tid);
+      for (let i = 0; i < bKey.length; i += 1) {
+        if (bKey[i] !== aKey[i]) return bKey[i] - aKey[i];
+      }
       return a.idx - b.idx;
     });
     return indexed.map(x => x.tid);
