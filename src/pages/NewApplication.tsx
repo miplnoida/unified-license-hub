@@ -195,6 +195,16 @@ export default function NewApplication() {
     };
   }, []);
 
+  const loadReceiptNumber = useCallback(async (targetPaymentId: string, fallback?: string | null) => {
+    if (fallback) return fallback;
+    const { data: receipt } = await supabase
+      .from('payment_receipts')
+      .select('receipt_number')
+      .eq('payment_id', targetPaymentId)
+      .maybeSingle();
+    return (receipt as { receipt_number?: string | null } | null)?.receipt_number || null;
+  }, []);
+
   // Hydrate existing payment for this application so the user cannot pay twice.
   // If a successful payment exists we lock the payment step into the success state.
   const hydratePaymentState = useCallback(async (targetApplicationId: string) => {
@@ -203,7 +213,7 @@ export default function NewApplication() {
     if (existing.successful) {
       setHasSuccessfulPaymentRecord(true);
       setPaymentId(existing.successful.id);
-      setPaymentReceiptNumber(existing.successful.receipt_number || existing.successful.transaction_ref || null);
+      setPaymentReceiptNumber(await loadReceiptNumber(existing.successful.id, existing.successful.receipt_number || existing.successful.transaction_ref || null));
       setPaymentStatus('success');
       if (Number(existing.successful.amount || 0) > 0) {
         setFeeAmount(prev => prev || Number(existing.successful.amount || 0));
@@ -214,7 +224,7 @@ export default function NewApplication() {
     if (existing.pending) {
       setHasSuccessfulPaymentRecord(false);
       setPaymentId(existing.pending.id);
-      setPaymentReceiptNumber(existing.pending.receipt_number || existing.pending.transaction_ref || null);
+      setPaymentReceiptNumber(await loadReceiptNumber(existing.pending.id, existing.pending.receipt_number || existing.pending.transaction_ref || null));
       setPaymentStatus('pending');
       if (Number(existing.pending.amount || 0) > 0) {
         setFeeAmount(prev => prev || Number(existing.pending.amount || 0));
@@ -227,7 +237,7 @@ export default function NewApplication() {
     setPaymentReceiptNumber(null);
     setPaymentStatus('pending');
     return existing;
-  }, [loadExistingPayment]);
+  }, [loadExistingPayment, loadReceiptNumber]);
 
   useEffect(() => {
     if (!applicationId) return;
