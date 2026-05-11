@@ -124,6 +124,8 @@ export default function NewApplication() {
   // category).
   const [reappBlocked, setReappBlocked] = useState(false);
   const [sectorBlockMessage, setSectorBlockMessage] = useState('');
+  const [blockedExistingAppId, setBlockedExistingAppId] = useState<string | null>(null);
+  const [blockedCode, setBlockedCode] = useState<string | null>(null);
 
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
