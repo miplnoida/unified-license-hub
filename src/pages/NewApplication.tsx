@@ -232,7 +232,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id]);
+  }, [user?.id, draftIdParam]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
