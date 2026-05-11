@@ -526,6 +526,7 @@ export default function FormManagement() {
                                 <VersionHistory
                                   templateId={tpl.id}
                                   formName={tpl.name}
+                                  formType={(tpl as any).form_type}
                                   trigger={
                                     <Badge variant="outline" className="text-[11px] font-mono cursor-pointer hover:bg-accent" title="View version history">
                                       <GitBranch className="h-3 w-3 mr-1" />
