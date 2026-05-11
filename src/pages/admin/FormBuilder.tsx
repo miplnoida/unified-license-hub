@@ -686,6 +686,7 @@ export default function FormBuilder() {
         )}
 
         {/* Builder: 3-column layout */}
+        {!hasNoFields ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4" style={{ minHeight: 'calc(100vh - 400px)' }}>
           {/* Left: Field Palette — hidden in view mode */}
           {!isViewMode && (
@@ -734,6 +735,13 @@ export default function FormBuilder() {
             </div>
           )}
         </div>
+        ) : (
+          <Card>
+            <CardContent className="py-10 text-center text-muted-foreground">
+              <p className="text-sm font-medium">No fields found in this version.</p>
+            </CardContent>
+          </Card>
+        )}
         </>)}
       </div>
 
