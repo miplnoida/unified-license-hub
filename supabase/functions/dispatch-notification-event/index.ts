@@ -53,18 +53,63 @@ async function loadApplication(admin: SupabaseClient, id: string) {
   return data || null;
 }
 
-async function sectorRegulators(admin: SupabaseClient, sectorId: string | null | undefined): Promise<string[]> {
-  if (!sectorId) return [];
-  // Resolve regulator users for the given sector. The data model does not link
-  // profiles directly to a regulator, so we approximate by returning all users
-  // with regulator-side built-in roles (supervisor + licensing_officer + analyst).
-  // This stays dynamic and template-driven; admins can refine recipients later
-  // by editing the recipient_rules JSON for any event_key.
-  const out = new Set<string>();
-  for (const role of ["supervisor", "licensing_officer", "analyst"]) {
-    const r = await recipientsForRole(admin, role);
-    r.forEach((u) => u && out.add(u));
+async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Promise<string | null> {
+  const [{ data: profile }, { data: preLicenseUser }] = await Promise.all([
+    admin.from("profiles").select("email").eq("id", userId).maybeSingle(),
+    admin.from("pre_license_users").select("email").eq("id", userId).maybeSingle(),
+  ]);
+  return profile?.email || preLicenseUser?.email || null;
+}
+
+async function sectorRegulators(
+  admin: SupabaseClient,
+  args: { sectorId?: string | null; categoryId?: string | null; regulatorId?: string | null },
+): Promise<string[]> {
+  let regulatorId = args.regulatorId || null;
+  if (!regulatorId && args.sectorId) {
+    const { data: sector } = await admin
+      .from("sectors")
+      .select("regulator_id")
+      .eq("id", args.sectorId)
+      .maybeSingle();
+    regulatorId = sector?.regulator_id || null;
   }
+  if (!regulatorId) return [];
+
+  let workflowQuery = admin
+    .from("approval_workflows")
+    .select("id")
+    .eq("entity_type", "application")
+    .eq("is_active", true)
+    .eq("regulator_id", regulatorId);
+
+  if (args.categoryId) workflowQuery = workflowQuery.or(`category_id.eq.${args.categoryId},category_id.is.null`);
+  else if (args.sectorId) workflowQuery = workflowQuery.or(`sector_id.eq.${args.sectorId},sector_id.is.null`);
+
+  const { data: workflows } = await workflowQuery;
+  const workflowIds = (workflows || []).map((row: any) => row.id).filter(Boolean);
+  if (workflowIds.length === 0) return [];
+
+  const { data: steps } = await admin
+    .from("approval_steps")
+    .select("approver_role, approver_role_id")
+    .in("workflow_id", workflowIds);
+
+  const out = new Set<string>();
+  for (const step of steps || []) {
+    if (step.approver_role) {
+      const roleRecipients = await recipientsForRole(admin, String(step.approver_role));
+      roleRecipients.forEach((u) => u && out.add(u));
+    }
+    if (step.approver_role_id) {
+      const { data: udr } = await admin
+        .from("user_dynamic_roles")
+        .select("user_id")
+        .eq("role_id", step.approver_role_id);
+      (udr || []).forEach((row: any) => row.user_id && out.add(row.user_id));
+    }
+  }
+
   return Array.from(out);
 }
 
@@ -159,8 +204,11 @@ async function resolveRecipients(
           break;
         }
         case "sector_regulators": {
-          const sid = ctx.payload?.sector_id || ctx.app?.data?.sector_id;
-          (await sectorRegulators(admin, sid)).forEach((u) => out.add(u));
+          (await sectorRegulators(admin, {
+            sectorId: ctx.payload?.sector_id || ctx.app?.data?.sector_id,
+            categoryId: ctx.payload?.category_id || ctx.app?.data?.category_id,
+            regulatorId: ctx.payload?.regulator_id || ctx.app?.regulator_id,
+          })).forEach((u) => out.add(u));
           break;
         }
         case "workflow_step_approvers": {
