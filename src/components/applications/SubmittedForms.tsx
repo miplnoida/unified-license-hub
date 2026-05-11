@@ -71,6 +71,8 @@ interface SubmittedFormsProps {
   formTemplateIds: string[];
   formsData: Record<string, Record<string, any>>;
   formVersionIds?: Record<string, string>;
+  /** Per-template save metadata used to order most-recently-saved first. */
+  formMeta?: Record<string, { saved_at?: string | null } | undefined>;
   editable?: boolean;
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
@@ -80,15 +82,28 @@ interface SubmittedFormsProps {
 }
 
 export function SubmittedForms({
-  formTemplateIds,
+  formTemplateIds: rawTemplateIds,
   formsData,
   formVersionIds = {},
+  formMeta = {},
   editable,
   onSave,
   saving,
   applicationStatus,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
+  // Order: latest saved first (saved_at desc); forms with no save metadata fall
+  // back to their original index so the layout stays stable for blank apps.
+  const formTemplateIds = useMemo(() => {
+    const indexed = rawTemplateIds.map((tid, idx) => ({ tid, idx }));
+    indexed.sort((a, b) => {
+      const aTs = formMeta[a.tid]?.saved_at ? Date.parse(formMeta[a.tid]!.saved_at as string) : 0;
+      const bTs = formMeta[b.tid]?.saved_at ? Date.parse(formMeta[b.tid]!.saved_at as string) : 0;
+      if (bTs !== aTs) return bTs - aTs;
+      return a.idx - b.idx;
+    });
+    return indexed.map(x => x.tid);
+  }, [rawTemplateIds, formMeta]);
   // Determine which forms are "completed" (have any data saved)
   const isFormCompleted = (tid: string) => {
     const fd = formsData[tid];

@@ -597,6 +597,7 @@ export default function ApplicationDetail() {
                     formTemplateIds={formTemplateIds}
                     formsData={formsData}
                     formVersionIds={formVersionIds}
+                    formMeta={(appData.form_meta as Record<string, { saved_at?: string | null }>) || {}}
                     applicationStatus={app.status}
                     editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onSave={async (templateId, data, versionId) => {
@@ -604,10 +605,16 @@ export default function ApplicationDetail() {
                       const updatedFormVersionIds = versionId
                         ? { ...formVersionIds, [templateId]: versionId }
                         : formVersionIds;
+                      const prevMeta = (appData.form_meta as Record<string, { saved_at?: string | null }>) || {};
+                      const updatedFormMeta = {
+                        ...prevMeta,
+                        [templateId]: { ...(prevMeta[templateId] || {}), saved_at: new Date().toISOString() },
+                      };
                       const updatedAppData = {
                         ...appData,
                         forms_data: updatedFormsData,
                         form_version_ids: updatedFormVersionIds,
+                        form_meta: updatedFormMeta,
                       };
                       const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
                       if (error) { toast.error('Failed to save form'); return; }
