@@ -45,6 +45,9 @@ type ExistingPaymentRecord = {
   created_at: string;
 };
 
+const SUCCESSFUL_PAYMENT_STATUSES = new Set(['completed', 'success', 'paid']);
+const PENDING_PAYMENT_STATUSES = new Set(['pending', 'processing', 'initiated']);
+
 interface FormProgress {
   templateId: string;
   status: FormStatus;
@@ -182,10 +185,8 @@ export default function NewApplication() {
     if (error) throw error;
 
     const list = (payments || []) as ExistingPaymentRecord[];
-    const paidStatuses = ['completed', 'success', 'paid'];
-    const pendingStatuses = ['pending', 'processing', 'initiated'];
-    const successful = list.find((payment) => paidStatuses.includes((payment.status || '').toLowerCase())) || null;
-    const pending = list.find((payment) => pendingStatuses.includes((payment.status || '').toLowerCase())) || null;
+    const successful = list.find((payment) => SUCCESSFUL_PAYMENT_STATUSES.has((payment.status || '').toLowerCase())) || null;
+    const pending = list.find((payment) => PENDING_PAYMENT_STATUSES.has((payment.status || '').toLowerCase())) || null;
 
     return {
       successful,
@@ -253,6 +254,13 @@ export default function NewApplication() {
   }, [applicationId, hydratePaymentState]);
 
   useEffect(() => {
+    if (!applicationId || currentStep !== 'payment') return;
+    void hydratePaymentState(applicationId).catch((err) => {
+      console.warn('[NewApplication] payment-step hydration failed:', err);
+    });
+  }, [applicationId, currentStep, hydratePaymentState]);
+
+  useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
     setAssignedVersionByTemplate(prev => (
       prev[activeTemplate.id] === resolvedVersionId
@@ -270,6 +278,7 @@ export default function NewApplication() {
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
   const paymentComplete = feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord;
+  const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
@@ -327,6 +336,12 @@ export default function NewApplication() {
             setCurrentStep('forms');
           }
 
+          try {
+            await hydratePaymentState((draft as any).id);
+          } catch (paymentHydrationError) {
+            console.warn('[NewApplication] draft payment hydration failed:', paymentHydrationError);
+          }
+
           if (continueIdFromPath) {
             setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
           }
@@ -337,7 +352,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, continueIdFromPath, setSearchParams]);
+  }, [user?.id, continuedApplicationId, continueIdFromPath, hydratePaymentState, setSearchParams]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
@@ -705,6 +720,8 @@ export default function NewApplication() {
       const existing = await hydratePaymentState(applicationId);
       if (existing.successful) {
         toast.info('Payment already completed for this application.');
+        setCurrentStep('review');
+        return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
@@ -714,6 +731,13 @@ export default function NewApplication() {
 
   const handleProcessPayment = async () => {
     if (!applicationId || !user) return;
+    if (processingPayment) return;
+
+    if (paymentStatus === 'success' || hasSuccessfulPaymentRecord) {
+      toast.info('Payment already completed for this application.');
+      return;
+    }
+
     setProcessingPayment(true);
 
     try {
@@ -725,7 +749,7 @@ export default function NewApplication() {
       }
 
       const { data: paymentResult, error: paymentResultError } = await (supabase as any).rpc(
-        'complete_or_get_application_payment',
+        'create_or_get_application_payment',
         { _application_id: applicationId, _amount: feeAmount },
       );
       if (paymentResultError) throw paymentResultError;
@@ -746,6 +770,30 @@ export default function NewApplication() {
       if (paymentAction === 'paid' || paymentAction === 'completed') {
         setPaymentId(paymentRowId);
         setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
+        setPaymentStatus('success');
+        setHasSuccessfulPaymentRecord(true);
+      } else if (paymentAction === 'pending' || paymentAction === 'created') {
+        setPaymentId(paymentRowId);
+        setPaymentReceiptNumber(payment.receipt_number || payment.transaction_ref || null);
+        setPaymentStatus('pending');
+
+        const { data: completedPaymentResult, error: completedPaymentError } = await (supabase as any).rpc(
+          'complete_or_get_application_payment',
+          { _application_id: applicationId, _amount: feeAmount },
+        );
+
+        if (completedPaymentError) throw completedPaymentError;
+
+        const completedPayment = completedPaymentResult || {};
+        const completedAction = completedPayment.action as string | undefined;
+        const completedPaymentRowId = completedPayment.payment_id as string | undefined;
+
+        if (!completedPaymentRowId || !['paid', 'completed'].includes(completedAction || '')) {
+          throw new Error('Payment could not be completed for this application.');
+        }
+
+        setPaymentId(completedPaymentRowId);
+        setPaymentReceiptNumber(completedPayment.receipt_number || completedPayment.transaction_ref || null);
         setPaymentStatus('success');
         setHasSuccessfulPaymentRecord(true);
       } else {
@@ -1272,7 +1320,7 @@ export default function NewApplication() {
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
                 <Button onClick={handleProceedToPayment}>
-                  Proceed to Payment
+                  {paymentComplete ? 'View Payment / Continue to Review' : 'Proceed to Payment'}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -1292,7 +1340,9 @@ export default function NewApplication() {
                       Application Payment
                     </CardTitle>
                     <CardDescription>
-                      Complete payment to proceed with submission.
+                      {paymentComplete
+                        ? 'Payment has already been resolved for this application. Review the receipt details and continue to submission.'
+                        : 'Complete payment to proceed with submission.'}
                     </CardDescription>
                   </div>
                   {getPaymentStatusBadge()}
@@ -1343,33 +1393,49 @@ export default function NewApplication() {
                 </div>
 
                 {/* Payment Action */}
-                {paymentStatus === 'pending' && feeAmount > 0 && (
+                {hasReusablePendingPayment && feeAmount > 0 && (
                   <div className="flex flex-col items-center gap-4 py-4">
+                    <AlertCircle className="h-8 w-8 text-amber-600 mx-auto" />
+                    <h3 className="font-semibold text-amber-800">Payment Pending</h3>
+                    <p className="text-sm text-amber-800">Payment is already pending for this application.</p>
                     {paymentId && (
-                      <div className="w-full rounded-lg border border-amber-200 bg-amber-50/50 px-4 py-3 text-sm text-amber-800">
-                        Payment is already pending for this application.
-                      </div>
+                      <p className="text-xs text-amber-700 font-mono">Reference: {paymentId.substring(0, 8).toUpperCase()}</p>
+                    )}
+                    {paymentReceiptNumber && (
+                      <p className="text-xs text-amber-700 font-mono">Receipt: {paymentReceiptNumber}</p>
                     )}
                     <Button
                       size="lg"
                       onClick={handleProcessPayment}
-                      disabled={processingPayment}
+                      disabled={processingPayment || hasSuccessfulPaymentRecord}
                       className="min-w-[200px]"
                     >
                       {processingPayment ? (
                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
                       ) : (
-                        <><CreditCard className="h-4 w-4 mr-2" /> Proceed to Pay</>
+                        <><CreditCard className="h-4 w-4 mr-2" /> Complete Payment</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                {paymentStatus === 'pending' && feeAmount > 0 && !hasReusablePendingPayment && !hasSuccessfulPaymentRecord && (
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    <Button
+                      size="lg"
+                      onClick={handleProcessPayment}
+                      disabled={processingPayment || hasSuccessfulPaymentRecord}
+                      className="min-w-[200px]"
+                    >
+                      {processingPayment ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
+                      ) : (
+                        <><CreditCard className="h-4 w-4 mr-2" /> Pay Now</>
                       )}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
                       Payment is mandatory before final submission.
                     </p>
-                    {paymentId && (
-                      <p className="text-xs text-muted-foreground text-center font-mono">
-                        Existing payment reference loaded: {paymentId.substring(0, 8).toUpperCase()}
-                      </p>
-                    )}
                   </div>
                 )}
 
@@ -1390,7 +1456,7 @@ export default function NewApplication() {
                       Your payment of <strong>${feeAmount.toFixed(2)}</strong> has already been received for this application.
                     </p>
                     {paymentId && (
-                      <p className="text-xs text-emerald-600 font-mono">Payment ID: {paymentId.substring(0, 8).toUpperCase()}</p>
+                      <p className="text-xs text-emerald-600 font-mono">Reference: {paymentId.substring(0, 8).toUpperCase()}</p>
                     )}
                     {paymentReceiptNumber && (
                       <p className="text-xs text-emerald-600 font-mono">Receipt: {paymentReceiptNumber}</p>
