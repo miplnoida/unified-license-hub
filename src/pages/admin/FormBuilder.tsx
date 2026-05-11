@@ -44,15 +44,28 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const formType = searchParams.get('type') || 'pre_license';
   const editId = searchParams.get('id');
+  const selectedVersionId = searchParams.get('versionId');
   const isViewMode = searchParams.get('mode') === 'view';
   const { activeRegulatorId } = useRegulator();
 
   const saveTemplateMutation = useSaveFormTemplate();
 
-  const { data: existingTemplate } = useFormTemplate(editId);
-  const { data: latestVersion } = useLatestVersion(editId);
-  const { data: versionFieldRows = [], isFetched: fieldsFetched } = useFormFields(latestVersion?.id || null);
-  const { data: versionConditionRows = [] } = useFieldConditions(latestVersion?.id || null);
+  const { data: existingTemplate, isFetched: templateFetched } = useFormTemplate(editId);
+  const { data: latestVersion, isFetched: latestVersionFetched } = useLatestVersion(editId);
+  const { data: selectedVersion, isFetched: selectedVersionFetched } = useFormVersion(
+    editId && selectedVersionId ? selectedVersionId : null,
+  );
+
+  // Active version: explicit selection wins, otherwise latest.
+  const activeVersion = selectedVersionId ? selectedVersion : latestVersion;
+  const activeVersionFetched = selectedVersionId ? selectedVersionFetched : latestVersionFetched;
+
+  const {
+    data: versionFieldRows = [],
+    isFetched: fieldsFetched,
+    isFetching: fieldsFetching,
+  } = useFormFields(activeVersion?.id || null);
+  const { data: versionConditionRows = [] } = useFieldConditions(activeVersion?.id || null);
 
   const { data: dbSectors = [] } = useSectors();
   const { data: dbSubSectors = [] } = useSubSectors();
@@ -80,14 +93,35 @@ export default function FormBuilder() {
   const activeReturnTypes = (returnTypes || []).filter((rt: any) => rt.status === 'active');
   const [initialized, setInitialized] = useState(false);
 
-  // Populate state when existing template + version loads
+  // Reset hydration when target template/version changes so we re-load cleanly.
   useEffect(() => {
-    if (!existingTemplate || initialized || dbSectors.length === 0) return;
-    const loadedSections = latestVersion?.schema_snapshot as unknown as FormSection[];
+    setInitialized(false);
+    setSections([]);
+    setInitialSections([]);
+    setSelectedField(null);
+    setSelectedSectionId(null);
+  }, [editId, selectedVersionId]);
+
+  // For new-form mode (no editId) initialize immediately so the empty builder shows.
+  useEffect(() => {
+    if (!editId && !initialized && dbSectors.length > 0) {
+      setInitialized(true);
+    }
+  }, [editId, initialized, dbSectors.length]);
+
+  // Populate state when existing template + version loads.
+  useEffect(() => {
+    if (!editId || initialized || dbSectors.length === 0) return;
+    // Wait for template + active version queries to settle.
+    if (!templateFetched || !existingTemplate) return;
+    if (!activeVersionFetched) return;
+
+    const loadedSections = activeVersion?.schema_snapshot as unknown as FormSection[] | undefined;
     const snapshotSections = Array.isArray(loadedSections) ? loadedSections : [];
 
-    // If snapshot is empty, wait for normalized fields and rebuild sections from rows.
-    if (snapshotSections.length === 0 && latestVersion?.id && !fieldsFetched) return;
+    // If snapshot is empty and we have a version, wait for normalized fields query
+    // to finish before deciding it's truly empty.
+    if (snapshotSections.length === 0 && activeVersion?.id && (!fieldsFetched || fieldsFetching)) return;
 
     const parsed = snapshotSections.length > 0
       ? snapshotSections
@@ -111,17 +145,22 @@ export default function FormBuilder() {
     setSelectedReturnTypeId(resolvedReturnTypeId);
     setInitialized(true);
   }, [
+    editId,
     existingTemplate,
-    latestVersion,
+    templateFetched,
+    activeVersion,
+    activeVersionFetched,
     versionFieldRows,
     versionConditionRows,
     fieldsFetched,
+    fieldsFetching,
     initialized,
     dbSectors,
     dbSubSectors,
     dbCategories,
     dbServices,
   ]);
+
 
   const filteredSubSectors = useMemo(
     () => dbSubSectors.filter(s => s.sector_id === selectedSector && s.status === 'active'),
