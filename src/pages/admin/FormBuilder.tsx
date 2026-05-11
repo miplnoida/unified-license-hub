@@ -564,14 +564,6 @@ export default function FormBuilder() {
           </div>
         )}
 
-        {editId && initialized && hasNoFields && (
-          <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              <p className="text-sm font-medium">No fields found in this version.</p>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Warning when editing a published/archived historical version */}
         {initialized && isEditingHistoricalVersion && !isViewMode && (
           <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
