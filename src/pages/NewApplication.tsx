@@ -211,6 +211,213 @@ export default function NewApplication() {
     };
   }, []);
 
+  const latestPublishedVersionRef = useRef<Record<string, string | null>>({});
+  useEffect(() => {
+    if (matchedTemplates.length === 0) {
+      latestPublishedVersionRef.current = {};
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const templateIds = matchedTemplates.map((template) => template.id);
+      const { data, error } = await supabase
+        .from('form_versions')
+        .select('id, template_id, version, status, effective_from, effective_until')
+        .in('template_id', templateIds)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+
+      if (cancelled || error) {
+        if (error) console.warn('[NewApplication] latest version lookup failed:', error);
+        return;
+      }
+
+      const now = new Date();
+      const nextMap: Record<string, string | null> = {};
+      templateIds.forEach((id) => { nextMap[id] = null; });
+
+      for (const row of (data || []) as Array<{ id: string; template_id: string; effective_from?: string | null; effective_until?: string | null }>) {
+        if (nextMap[row.template_id]) continue;
+        const fromOk = !row.effective_from || new Date(row.effective_from) <= now;
+        let untilOk = true;
+        if (row.effective_until) {
+          const until = new Date(row.effective_until);
+          until.setUTCHours(23, 59, 59, 999);
+          untilOk = until >= now;
+        }
+        if (fromOk && untilOk) {
+          nextMap[row.template_id] = row.id;
+        }
+      }
+
+      latestPublishedVersionRef.current = nextMap;
+    })();
+
+    return () => { cancelled = true; };
+  }, [matchedTemplates]);
+
+  const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
+  const activeFormTemplateIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeFormTemplateIdRef.current = activeFormTemplateId;
+  }, [activeFormTemplateId]);
+
+  const loadExistingFormResponses = useCallback(async (
+    targetApplicationId: string,
+    templates: Array<{ id: string }>,
+    versionMap: Record<string, string>,
+  ) => {
+    if (!targetApplicationId || templates.length === 0) {
+      existingFormResponsesRef.current = {};
+      return {} as Record<string, ExistingFormResponseRecord>;
+    }
+
+    const templateIds = templates.map((template) => template.id);
+    const { data, error } = await supabase
+      .from('form_responses')
+      .select('template_id, version_id, response_data, status, updated_at')
+      .eq('entity_id', targetApplicationId)
+      .eq('entity_type', 'application')
+      .in('template_id', templateIds)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    const responseMap: Record<string, ExistingFormResponseRecord> = {};
+    for (const response of (data || []) as ExistingFormResponseRecord[]) {
+      const assignedVersionId = versionMap[response.template_id] || null;
+      const normalizedStatus = (response.status || '').toLowerCase();
+      const hasData = hasNonEmptyFormData(response.response_data || {});
+      const isEligible = hasData || SAVED_FORM_RESPONSE_STATUSES.has(normalizedStatus);
+      if (!isEligible) continue;
+
+      const current = responseMap[response.template_id];
+      const isAssignedVersionMatch = !!assignedVersionId && response.version_id === assignedVersionId;
+
+      if (!current) {
+        responseMap[response.template_id] = response;
+        continue;
+      }
+
+      const currentMatchesAssigned = !!assignedVersionId && current.version_id === assignedVersionId;
+      if (!currentMatchesAssigned && isAssignedVersionMatch) {
+        responseMap[response.template_id] = response;
+      }
+    }
+
+    existingFormResponsesRef.current = responseMap;
+    return responseMap;
+  }, []);
+
+  const hydrateFormProgress = useCallback(async (
+    targetApplicationId: string,
+    templates: typeof matchedTemplates,
+    versionMap: Record<string, string>,
+  ) => {
+    if (!targetApplicationId || templates.length === 0) {
+      existingFormResponsesRef.current = {};
+      setFormProgressMap((prev) => {
+        if (Object.keys(prev).length === 0) return prev;
+        return {};
+      });
+      return;
+    }
+
+    const templateIds = templates.map((template) => template.id);
+    const { data: appRecord, error: appError } = await supabase
+      .from('applications')
+      .select('data')
+      .eq('id', targetApplicationId)
+      .maybeSingle();
+
+    if (appError) throw appError;
+
+    const appData = ((appRecord as any)?.data || {}) as Record<string, any>;
+    const storedFormsData = (appData.forms_data || {}) as Record<string, Record<string, any>>;
+    const storedVersionIds = (appData.form_version_ids || {}) as Record<string, string>;
+
+    const effectiveVersionMap = templateIds.reduce<Record<string, string>>((acc, templateId) => {
+      const resolved = versionMap[templateId] || storedVersionIds[templateId] || latestPublishedVersionRef.current[templateId] || '';
+      if (resolved) acc[templateId] = resolved;
+      return acc;
+    }, {});
+
+    const responseMap = await loadExistingFormResponses(targetApplicationId, templates, effectiveVersionMap);
+
+    setAssignedVersionByTemplate((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const templateId of templateIds) {
+        const resolved = effectiveVersionMap[templateId];
+        if (resolved && next[templateId] !== resolved) {
+          next[templateId] = resolved;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    setFormProgressMap((prev) => {
+      const next: Record<string, FormProgress> = {};
+
+      for (const templateId of templateIds) {
+        const assignedVersionId = effectiveVersionMap[templateId] || storedVersionIds[templateId] || null;
+        const existingResponse = responseMap[templateId];
+        const responseVersionMatches = !!assignedVersionId && existingResponse?.version_id === assignedVersionId;
+        const responseData = existingResponse?.response_data || {};
+        const storedData = storedFormsData[templateId] || {};
+        const storedVersionMatches = !!assignedVersionId
+          ? (storedVersionIds[templateId] ? storedVersionIds[templateId] === assignedVersionId : true)
+          : hasNonEmptyFormData(storedData);
+        const localProgress = prev[templateId];
+        const localAssignedVersionMatches = !!assignedVersionId
+          ? (localProgress?.versionId ? localProgress.versionId === assignedVersionId : true)
+          : hasNonEmptyFormData(localProgress?.data);
+        const activeLocalData = activeFormTemplateIdRef.current === templateId ? localProgress?.data || {} : {};
+        const shouldPreserveLocalActiveData = activeFormTemplateIdRef.current === templateId && hasNonEmptyFormData(activeLocalData);
+
+        let status: FormStatus = 'not_started';
+        let data: Record<string, any> = {};
+        let versionId: string | null = assignedVersionId;
+
+        if (responseVersionMatches && hasNonEmptyFormData(responseData)) {
+          status = 'completed';
+          data = responseData;
+          versionId = existingResponse?.version_id || assignedVersionId;
+        } else if (hasNonEmptyFormData(storedData) && storedVersionMatches) {
+          status = 'completed';
+          data = storedData;
+          versionId = assignedVersionId || storedVersionIds[templateId] || null;
+        } else if ((existingResponse && hasNonEmptyFormData(responseData) && !responseVersionMatches) || (hasNonEmptyFormData(storedData) && !storedVersionMatches)) {
+          status = 'needs_update';
+          data = {};
+          versionId = assignedVersionId;
+        } else if (localProgress && hasNonEmptyFormData(localProgress.data) && localAssignedVersionMatches) {
+          status = localProgress.status === 'completed' ? 'completed' : 'in_progress';
+          data = localProgress.data;
+          versionId = localProgress.versionId || assignedVersionId;
+        }
+
+        if (shouldPreserveLocalActiveData) {
+          data = activeLocalData;
+          status = localProgress?.status === 'completed' && localAssignedVersionMatches ? 'completed' : 'in_progress';
+          versionId = localProgress?.versionId || assignedVersionId;
+        }
+
+        next[templateId] = {
+          templateId,
+          status,
+          data,
+          versionId,
+          assignedVersionId,
+        };
+      }
+
+      return next;
+    });
+  }, [loadExistingFormResponses, matchedTemplates]);
+
   const loadReceiptNumber = useCallback(async (targetPaymentId: string, fallback?: string | null) => {
     if (fallback) return fallback;
     const { data: receipt } = await supabase
