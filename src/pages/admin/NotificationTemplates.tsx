@@ -63,7 +63,7 @@ const MERGE_FIELDS = [
 ];
 
 export default function NotificationTemplates() {
-  const { user } = useAuth();
+  useAuth();
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,10 +82,28 @@ export default function NotificationTemplates() {
   const loadTemplates = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('notification_templates')
+      .from('notification_event_configs')
       .select('*')
-      .order('event_type', { ascending: true });
-    if (!error) setTemplates((data || []) as any);
+      .order('event_key', { ascending: true });
+    if (!error) {
+      const rows = (data || []).flatMap((row: any) => {
+        const channels = Array.isArray(row.channels) && row.channels.length ? row.channels : ['in_app'];
+        return channels.map((channel: string) => ({
+          id: `${row.id}:${channel}`,
+          source_id: row.id,
+          name: row.description || row.event_key,
+          event_type: row.event_key,
+          channel,
+          subject: channel === 'email' ? row.email_subject_template : row.title_template,
+          body: channel === 'email' ? (row.email_body_template || row.message_template) : row.message_template,
+          variables: [],
+          is_active: !!row.is_active,
+          regulator_id: null,
+          created_at: row.created_at,
+        }));
+      });
+      setTemplates(rows as any);
+    }
     setLoading(false);
   };
 
@@ -111,19 +129,33 @@ export default function NotificationTemplates() {
       return;
     }
     setSaving(true);
+    const sourceId = (editing as any)?.source_id;
+    const existing = templates.filter(t => t.event_type === eventType);
+    const nextChannels = Array.from(new Set([
+      ...existing.filter(t => !sourceId || (t as any).source_id === sourceId).map(t => t.channel),
+      channel,
+    ]));
     const payload: any = {
-      name: name.trim(), event_type: eventType, channel, body: body.trim(),
-      subject: channel === 'email' ? subject.trim() || null : null,
-      is_active: isActive, variables: MERGE_FIELDS,
-      created_by: user?.id || null,
+      description: name.trim(),
+      event_key: eventType,
+      title_template: channel === 'email' ? (editing?.subject || name.trim()) : name.trim(),
+      message_template: channel === 'email' ? body.trim() : body.trim(),
+      email_subject_template: channel === 'email' ? subject.trim() || null : editing?.subject || null,
+      email_body_template: channel === 'email' ? body.trim() : body.trim(),
+      channels: nextChannels,
+      is_active: isActive,
     };
 
-    if (editing) {
-      const { error } = await supabase.from('notification_templates').update(payload).eq('id', editing.id);
+    if (editing && sourceId) {
+      const { error } = await supabase.from('notification_event_configs').update(payload).eq('id', sourceId);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Template updated');
     } else {
-      const { error } = await supabase.from('notification_templates').insert(payload);
+      const { error } = await supabase.from('notification_event_configs').insert({
+        ...payload,
+        recipient_rules: [],
+        notification_type: 'info',
+      });
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success('Template created');
     }
@@ -131,16 +163,24 @@ export default function NotificationTemplates() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('notification_templates').delete().eq('id', id);
+    const sourceId = (templates.find(t => t.id === id) as any)?.source_id;
+    const { error } = await supabase.from('notification_event_configs').delete().eq('id', sourceId);
     if (error) { toast.error(error.message); return; }
     toast.success('Template deleted'); loadTemplates();
   };
 
   const handleDuplicate = async (t: NotificationTemplate) => {
-    const { error } = await supabase.from('notification_templates').insert({
-      name: `${t.name} (Copy)`, event_type: t.event_type, channel: t.channel,
-      subject: t.subject, body: t.body, is_active: false, variables: t.variables,
-      created_by: user?.id || null,
+    const { error } = await supabase.from('notification_event_configs').insert({
+      event_key: `${t.event_type}.copy.${Date.now()}`,
+      description: `${t.name} (Copy)`,
+      title_template: t.channel === 'email' ? (t.subject || t.name) : t.name,
+      message_template: t.body,
+      email_subject_template: t.channel === 'email' ? t.subject : null,
+      email_body_template: t.channel === 'email' ? t.body : null,
+      channels: [t.channel],
+      recipient_rules: [],
+      notification_type: 'info',
+      is_active: false,
     });
     if (error) { toast.error(error.message); return; }
     toast.success('Template duplicated'); loadTemplates();
