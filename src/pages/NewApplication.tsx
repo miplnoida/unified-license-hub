@@ -45,6 +45,9 @@ type ExistingPaymentRecord = {
   created_at: string;
 };
 
+const SUCCESSFUL_PAYMENT_STATUSES = new Set(['completed', 'success', 'paid']);
+const PENDING_PAYMENT_STATUSES = new Set(['pending', 'processing', 'initiated']);
+
 interface FormProgress {
   templateId: string;
   status: FormStatus;
@@ -182,10 +185,8 @@ export default function NewApplication() {
     if (error) throw error;
 
     const list = (payments || []) as ExistingPaymentRecord[];
-    const paidStatuses = ['completed', 'success', 'paid'];
-    const pendingStatuses = ['pending', 'processing', 'initiated'];
-    const successful = list.find((payment) => paidStatuses.includes((payment.status || '').toLowerCase())) || null;
-    const pending = list.find((payment) => pendingStatuses.includes((payment.status || '').toLowerCase())) || null;
+    const successful = list.find((payment) => SUCCESSFUL_PAYMENT_STATUSES.has((payment.status || '').toLowerCase())) || null;
+    const pending = list.find((payment) => PENDING_PAYMENT_STATUSES.has((payment.status || '').toLowerCase())) || null;
 
     return {
       successful,
@@ -327,6 +328,12 @@ export default function NewApplication() {
             setCurrentStep('forms');
           }
 
+          try {
+            await hydratePaymentState((draft as any).id);
+          } catch (paymentHydrationError) {
+            console.warn('[NewApplication] draft payment hydration failed:', paymentHydrationError);
+          }
+
           if (continueIdFromPath) {
             setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
           }
@@ -337,7 +344,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, continueIdFromPath, setSearchParams]);
+  }, [user?.id, continuedApplicationId, continueIdFromPath, hydratePaymentState, setSearchParams]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
