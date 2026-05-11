@@ -546,7 +546,8 @@ export default function FormManagement() {
                                     else toast.info('No version exists yet for this form.');
                                   } },
                                   { label: 'View', icon: FileText, onClick: () => handleView(tpl.id) },
-                                  { label: 'Edit', icon: Pencil, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
+                                  { label: 'Edit', icon: Pencil, hidden: !canEditForms, onClick: () => navigate(`/admin/forms/create?type=${activeTab}&id=${tpl.id}`) },
+                                  { label: 'Delete', icon: Trash2, hidden: !canEditForms, destructive: true, separator: true, onClick: () => handleDelete(tpl.id) },
                                 ]} />
                               </TableCell>
                             </TableRow>
