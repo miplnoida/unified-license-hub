@@ -687,7 +687,7 @@ export function useSaveFormTemplate() {
           .order('version', { ascending: false })
           .limit(1);
         const maxV = (maxRows?.[0] as any)?.version ?? 0;
-        if (createNewDraftFromPublished) {
+        if (createNewDraftFromHistorical) {
           resolvedVersion = maxV + 1;
         } else if (!sourceRow) {
           // Brand-new template save: use requested version if free, else max+1
@@ -711,7 +711,7 @@ export function useSaveFormTemplate() {
       // CRITICAL: when branching a brand-new draft off a published version,
       // we must reassign field IDs. Also repair legacy drafts that still carry
       // IDs already used by another version of the same form.
-      const baseSectionsForDraft = createNewDraftFromPublished
+      const baseSectionsForDraft = createNewDraftFromHistorical
         ? cloneSectionsWithNewFieldIds(sections)
         : sections;
       const sectionsForDraft = await ensureVersionScopedFieldIds(vid, baseSectionsForDraft);
@@ -724,10 +724,10 @@ export function useSaveFormTemplate() {
         status: 'draft',
         published_at: null,
         created_by: template.created_by,
-        change_notes: changeNotes ?? workingRow?.change_notes ?? (createNewDraftFromPublished ? null : sourceRow?.change_notes) ?? null,
+        change_notes: changeNotes ?? workingRow?.change_notes ?? (createNewDraftFromHistorical ? null : sourceRow?.change_notes) ?? null,
         semantic_version: baseSemver,
-        effective_from: workingRow?.effective_from ?? (createNewDraftFromPublished ? null : sourceRow?.effective_from) ?? null,
-        effective_until: workingRow?.effective_until ?? (createNewDraftFromPublished ? null : sourceRow?.effective_until) ?? null,
+        effective_from: workingRow?.effective_from ?? (createNewDraftFromHistorical ? null : sourceRow?.effective_from) ?? null,
+        effective_until: workingRow?.effective_until ?? (createNewDraftFromHistorical ? null : sourceRow?.effective_until) ?? null,
       };
 
       const { error: vErr } = await supabase.from('form_versions').upsert(versionRow);
