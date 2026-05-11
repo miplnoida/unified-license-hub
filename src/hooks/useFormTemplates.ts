@@ -37,6 +37,7 @@ export interface FormVersion {
   template_id: string;
   version: number;
   semantic_version?: string | null;
+  branched_from_version_id?: string | null;
   schema_snapshot: FormSection[];
   status: string;
   published_at: string | null;
@@ -203,6 +204,17 @@ function fieldRowsToSections(
       const bIdx = fieldRows.findIndex(r => r.id === b.id);
       return aIdx - bIdx;
     }) }));
+}
+
+function isValidSectionSnapshot(snapshot: unknown): snapshot is FormSection[] {
+  return Array.isArray(snapshot) && snapshot.every((section) => {
+    if (!section || typeof section !== 'object') return false;
+    const maybeSection = section as Partial<FormSection>;
+    return typeof maybeSection.id === 'string'
+      && typeof maybeSection.title === 'string'
+      && Array.isArray(maybeSection.fields)
+      && maybeSection.fields.every((field) => !!field && typeof field === 'object');
+  });
 }
 
 function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
@@ -548,23 +560,36 @@ export function useFieldConditions(versionId: string | null) {
 
 // Combined: load sections from version (from schema_snapshot or normalized fields)
 export function useVersionSections(versionId: string | null) {
-  const { data: version } = useFormVersion(versionId);
-  const { data: fieldRows = [] } = useFormFields(versionId);
-  const { data: conditionRows = [] } = useFieldConditions(versionId);
+  const { data: version, isFetched: versionFetched } = useFormVersion(versionId);
+  const {
+    data: fieldRows = [],
+    isFetched: fieldsFetched,
+    isFetching: fieldsFetching,
+  } = useFormFields(versionId);
+  const {
+    data: conditionRows = [],
+    isFetched: conditionsFetched,
+    isFetching: conditionsFetching,
+  } = useFieldConditions(versionId);
 
   return useQuery({
-    queryKey: ['version_sections', versionId, fieldRows.length, conditionRows.length],
+    queryKey: ['version_sections', versionId, fieldRows.length, conditionRows.length, version?.id],
     queryFn: () => {
-      // Prefer normalized fields if available, fall back to snapshot
       if (fieldRows.length > 0) {
         return fieldRowsToSections(fieldRows, conditionRows);
       }
-      if (version?.schema_snapshot) {
+      if (isValidSectionSnapshot(version?.schema_snapshot)) {
         return version.schema_snapshot as unknown as FormSection[];
       }
       return [];
     },
-    enabled: !!versionId && (!!version || fieldRows.length > 0),
+    enabled:
+      !!versionId
+      && versionFetched
+      && fieldsFetched
+      && !fieldsFetching
+      && conditionsFetched
+      && !conditionsFetching,
   });
 }
 
@@ -642,27 +667,28 @@ export function useSaveFormTemplate() {
         sourceRow = data || null;
       }
 
+      const isHistoricalSource =
+        sourceRow?.status === 'published' || sourceRow?.status === 'archived';
       let workingRow = sourceRow;
       let vid = versionId || crypto.randomUUID();
       // Branch a brand-new draft when editing any historical (non-draft)
       // version — published OR archived — so we never overwrite history.
       let createNewDraftFromHistorical = false;
-
-      const isHistoricalSource =
-        sourceRow?.status === 'published' || sourceRow?.status === 'archived';
+      const sourceHistoricalVersionId = isHistoricalSource ? sourceRow?.id ?? null : null;
 
       if (isHistoricalSource) {
-        const { data: latestDraft, error: draftErr } = await supabase
+        const { data: matchingDrafts, error: draftErr } = await supabase
           .from('form_versions')
           .select('*')
           .eq('template_id', template.id)
           .eq('status', 'draft')
+          .eq('branched_from_version_id', sourceRow.id)
           .order('version', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
         if (draftErr) throw draftErr;
 
+        const latestDraft = matchingDrafts?.[0] || null;
         if (latestDraft) {
           workingRow = latestDraft;
           vid = latestDraft.id;
@@ -720,6 +746,9 @@ export function useSaveFormTemplate() {
         id: vid,
         template_id: template.id,
         version: resolvedVersion,
+        branched_from_version_id: createNewDraftFromHistorical
+          ? sourceHistoricalVersionId
+          : (workingRow?.branched_from_version_id ?? sourceHistoricalVersionId),
         schema_snapshot: JSON.parse(JSON.stringify(sectionsForDraft)),
         status: 'draft',
         published_at: null,

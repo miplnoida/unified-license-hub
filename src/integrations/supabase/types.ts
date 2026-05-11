@@ -1543,6 +1543,7 @@ export type Database = {
       }
       form_versions: {
         Row: {
+          branched_from_version_id: string | null
           change_notes: string | null
           created_at: string
           created_by: string | null
@@ -1558,6 +1559,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          branched_from_version_id?: string | null
           change_notes?: string | null
           created_at?: string
           created_by?: string | null
@@ -1573,6 +1575,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          branched_from_version_id?: string | null
           change_notes?: string | null
           created_at?: string
           created_by?: string | null
@@ -1588,6 +1591,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "form_versions_branched_from_version_id_fkey"
+            columns: ["branched_from_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "form_versions_template_id_fkey"
             columns: ["template_id"]
