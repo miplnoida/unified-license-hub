@@ -193,7 +193,7 @@ export default function ApplicationFormSettings() {
             <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 text-sm">
               <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground">
-                Note: regardless of this setting, duplicate active or in-progress applications for the same sector / sub-sector / service are always blocked. Existing drafts will redirect the applicant to continue the draft, and applications with pending payment will prompt the applicant to complete payment.
+                Note: regardless of this setting, duplicate active or in-progress applications for the same sector / sub-sector / category are always blocked. Existing drafts will redirect the applicant to continue the draft, and applications with pending payment will prompt the applicant to complete payment.
               </span>
             </div>
           </CardContent>
