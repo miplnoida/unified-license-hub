@@ -254,6 +254,13 @@ export default function NewApplication() {
   }, [applicationId, hydratePaymentState]);
 
   useEffect(() => {
+    if (!applicationId || currentStep !== 'payment') return;
+    void hydratePaymentState(applicationId).catch((err) => {
+      console.warn('[NewApplication] payment-step hydration failed:', err);
+    });
+  }, [applicationId, currentStep, hydratePaymentState]);
+
+  useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
     setAssignedVersionByTemplate(prev => (
       prev[activeTemplate.id] === resolvedVersionId
@@ -271,6 +278,7 @@ export default function NewApplication() {
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
   const paymentComplete = feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord;
+  const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
   const subSectorObj = allSubSectors.find(s => s.id === selectedSubSector);
