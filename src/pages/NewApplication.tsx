@@ -492,12 +492,21 @@ export default function NewApplication() {
   }, [activeTemplate?.id, resolvedVersionId]);
 
   // Progress calculations
-  const isFormComplete = (tid: string) => {
+  const isFormComplete = useCallback((tid: string) => {
     const fp = formProgressMap[tid];
-    if (!fp) return false;
-    if (fp.status === 'completed') return true;
-    return !!(fp.data && Object.keys(fp.data).length > 0);
-  };
+    const assignedVersionId = fp?.assignedVersionId || assignedVersionByTemplate[tid] || null;
+    const hasMatchingLocalData = !!fp && hasNonEmptyFormData(fp.data) && (!assignedVersionId || !fp.versionId || fp.versionId === assignedVersionId);
+
+    if (fp?.status === 'completed' && hasMatchingLocalData) return true;
+    if (hasMatchingLocalData && fp?.status !== 'needs_update') return true;
+
+    const existingResponse = existingFormResponsesRef.current[tid];
+    const hasMatchingSavedResponse = !!existingResponse
+      && hasNonEmptyFormData(existingResponse.response_data || {})
+      && (!assignedVersionId || existingResponse.version_id === assignedVersionId);
+
+    return hasMatchingSavedResponse;
+  }, [assignedVersionByTemplate, formProgressMap]);
   const completedCount = matchedTemplates.filter(t => isFormComplete(t.id)).length;
   const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
 
@@ -543,18 +552,15 @@ export default function NewApplication() {
           if (d.category_id) setSelectedCategory(d.category_id);
 
           const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
-          const formsData: Record<string, any> = d.forms_data || {};
           if (tmplIds.length > 0) {
             const progress: Record<string, FormProgress> = {};
             tmplIds.forEach(tid => {
-              const fdata = formsData[tid] || {};
-              const hasData = fdata && Object.keys(fdata).length > 0;
-              // Treat any saved data as completed for navigation purposes;
-              // user can still re-open the form to edit.
               progress[tid] = {
                 templateId: tid,
-                status: hasData ? 'completed' : 'not_started',
-                data: fdata,
+                status: 'not_started',
+                data: {},
+                versionId: null,
+                assignedVersionId: d.form_version_ids?.[tid] || null,
               };
             });
             setFormProgressMap(progress);
@@ -572,6 +578,18 @@ export default function NewApplication() {
             console.warn('[NewApplication] draft payment hydration failed:', paymentHydrationError);
           }
 
+          try {
+            const pinnedVersions = (d.form_version_ids && typeof d.form_version_ids === 'object') ? d.form_version_ids : {};
+            const hydratedTemplates = tmplIds
+              .map((templateId) => formTemplates.find((template) => template.id === templateId))
+              .filter(Boolean) as typeof matchedTemplates;
+            if (hydratedTemplates.length > 0) {
+              await hydrateFormProgress((draft as any).id, hydratedTemplates, pinnedVersions);
+            }
+          } catch (formHydrationError) {
+            console.warn('[NewApplication] draft form hydration failed:', formHydrationError);
+          }
+
           if (continueIdFromPath) {
             setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
           }
@@ -582,7 +600,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, continueIdFromPath, hydratePaymentState, setSearchParams]);
+  }, [user?.id, continuedApplicationId, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, setSearchParams]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
