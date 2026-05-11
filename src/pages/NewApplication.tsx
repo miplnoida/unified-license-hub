@@ -171,9 +171,7 @@ export default function NewApplication() {
     })();
   }, [applicationId]);
 
-  // Hydrate existing payment for this application so the user cannot pay twice.
-  // If a successful payment exists we lock the payment step into the success state.
-  const hydratePaymentState = useCallback(async (targetApplicationId: string) => {
+  const loadExistingPayment = useCallback(async (targetApplicationId: string) => {
     const { data: payments, error } = await supabase
       .from('payments')
       .select('id, status, amount, transaction_ref, receipt_number, currency, paid_at, created_at')
@@ -182,39 +180,50 @@ export default function NewApplication() {
 
     if (error) throw error;
 
-    const list = (payments || []) as Array<{
-      id: string;
-      status: string;
-      amount: number | null;
-      receipt_number?: string | null;
-    }>;
-    const successful = list.find(p => ['completed', 'success', 'paid'].includes((p.status || '').toLowerCase()));
-    const pending = list.find(p => ['pending', 'payment_pending', 'awaiting_payment', 'pending_payment'].includes((p.status || '').toLowerCase()));
+    const list = (payments || []) as ExistingPaymentRecord[];
+    const paidStatuses = ['completed', 'success', 'paid'];
+    const pendingStatuses = ['pending', 'processing', 'initiated'];
+    const successful = list.find((payment) => paidStatuses.includes((payment.status || '').toLowerCase())) || null;
+    const pending = list.find((payment) => pendingStatuses.includes((payment.status || '').toLowerCase())) || null;
 
-    if (successful) {
-      setPaymentId(successful.id);
-      setPaymentReceiptNumber(successful.receipt_number || null);
+    return {
+      successful,
+      pending,
+      latest: successful || pending || list[0] || null,
+      hasSuccessfulPayment: !!successful,
+    };
+  }, []);
+
+  // Hydrate existing payment for this application so the user cannot pay twice.
+  // If a successful payment exists we lock the payment step into the success state.
+  const hydratePaymentState = useCallback(async (targetApplicationId: string) => {
+    const existing = await loadExistingPayment(targetApplicationId);
+
+    if (existing.successful) {
+      setPaymentId(existing.successful.id);
+      setPaymentReceiptNumber(existing.successful.receipt_number || existing.successful.transaction_ref || null);
       setPaymentStatus('success');
-      if (Number(successful.amount || 0) > 0) {
-        setFeeAmount(prev => prev || Number(successful.amount || 0));
+      if (Number(existing.successful.amount || 0) > 0) {
+        setFeeAmount(prev => prev || Number(existing.successful.amount || 0));
       }
-      return;
+      return existing;
     }
 
-    if (pending) {
-      setPaymentId(pending.id);
-      setPaymentReceiptNumber(pending.receipt_number || null);
+    if (existing.pending) {
+      setPaymentId(existing.pending.id);
+      setPaymentReceiptNumber(existing.pending.receipt_number || existing.pending.transaction_ref || null);
       setPaymentStatus('pending');
-      if (Number(pending.amount || 0) > 0) {
-        setFeeAmount(prev => prev || Number(pending.amount || 0));
+      if (Number(existing.pending.amount || 0) > 0) {
+        setFeeAmount(prev => prev || Number(existing.pending.amount || 0));
       }
-      return;
+      return existing;
     }
 
     setPaymentId(null);
     setPaymentReceiptNumber(null);
     setPaymentStatus('pending');
-  }, []);
+    return existing;
+  }, [loadExistingPayment]);
 
   useEffect(() => {
     if (!applicationId) return;
