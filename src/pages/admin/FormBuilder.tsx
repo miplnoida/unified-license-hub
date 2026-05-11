@@ -254,10 +254,16 @@ export default function FormBuilder() {
     setSelectedSectionId(sectionId);
   }, []);
 
-  // Compute display version
-  const currentVersionStr = latestVersion
-    ? (latestVersion as any).semantic_version || `${latestVersion.version}.0`
+  // Compute display version (active = the one being edited)
+  const currentVersionStr = activeVersion
+    ? (activeVersion as any).semantic_version || `${activeVersion.version}.0`
     : '1.0';
+
+  // Are we editing a historical (non-draft) version explicitly?
+  const isEditingHistoricalVersion = !!selectedVersionId
+    && !!activeVersion
+    && activeVersion.status !== 'draft'
+    && activeVersion.id !== latestVersion?.id;
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Please enter a form name.'); return; }
@@ -269,8 +275,11 @@ export default function FormBuilder() {
       const serviceName = selectedService ? (dbServices.find(s => s.id === selectedService)?.name || '') : '';
 
       const templateId = editId || crypto.randomUUID();
-      const versionId = latestVersion?.id || crypto.randomUUID();
-      const intVersion = latestVersion?.version || 1;
+      // Use the active (selected or latest) version as the base. The save
+      // mutation auto-branches a new draft if the source is published/archived,
+      // so historical versions are never overwritten.
+      const versionId = activeVersion?.id || crypto.randomUUID();
+      const intVersion = activeVersion?.version || 1;
 
       // Save never bumps the version. Versioning is handled exclusively at
       // Publish time so submissions stay linked to their original published
