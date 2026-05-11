@@ -232,6 +232,18 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const type = formType || 'pre_license';
+                              setOpen(false);
+                              navigate(`/admin/forms/create?type=${type}&id=${templateId}&versionId=${v.id}`);
+                            }}
+                            title="Edit this version (creates a new draft if published/archived)"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           {v.status === 'published' && !isCurrentDefault && (
                             <Button
                               variant="ghost"
