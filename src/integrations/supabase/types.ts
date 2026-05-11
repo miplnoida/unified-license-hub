@@ -2151,6 +2151,96 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_dispatch_log: {
+        Row: {
+          channel: string
+          created_at: string
+          dedupe_key: string
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          event_key: string
+          id: string
+          recipient_user_id: string | null
+          status: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          dedupe_key: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_key: string
+          id?: string
+          recipient_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          dedupe_key?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          event_key?: string
+          id?: string
+          recipient_user_id?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      notification_event_configs: {
+        Row: {
+          channels: string[]
+          created_at: string
+          dedupe_window_seconds: number
+          description: string | null
+          email_body_template: string | null
+          email_subject_template: string | null
+          event_key: string
+          id: string
+          is_active: boolean
+          message_template: string
+          notification_type: string
+          recipient_rules: Json
+          title_template: string
+          updated_at: string
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          dedupe_window_seconds?: number
+          description?: string | null
+          email_body_template?: string | null
+          email_subject_template?: string | null
+          event_key: string
+          id?: string
+          is_active?: boolean
+          message_template: string
+          notification_type?: string
+          recipient_rules?: Json
+          title_template: string
+          updated_at?: string
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          dedupe_window_seconds?: number
+          description?: string | null
+          email_body_template?: string | null
+          email_subject_template?: string | null
+          event_key?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          notification_type?: string
+          recipient_rules?: Json
+          title_template?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_templates: {
         Row: {
           body: string
@@ -4683,6 +4773,10 @@ export type Database = {
           _old_value?: Json
         }
         Returns: string
+      }
+      notification_recipients_for_role: {
+        Args: { _role: string }
+        Returns: string[]
       }
       perform_final_workflow_approval: {
         Args: {

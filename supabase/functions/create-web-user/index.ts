@@ -152,6 +152,29 @@ Deno.serve(async (req) => {
           console.error("Failed to send credentials email:", emailErr);
         }
       }
+
+      // Fire template-driven notifications for entity user creation. Best-effort.
+      try {
+        const event_key =
+          user_type === "secondary" ? "entity.secondary_user_created" : "entity.primary_user_created";
+        await supabaseAdmin.functions.invoke("dispatch-notification-event", {
+          body: {
+            event_key,
+            entity_type: "user",
+            entity_id: userData.user.id,
+            payload: {
+              new_user_id: userData.user.id,
+              full_name,
+              email,
+              entity_name: entity_name || "",
+              licensee_id: licensee_id || null,
+              user_type: user_type || "primary",
+            },
+          },
+        });
+      } catch (dispatchErr) {
+        console.warn("dispatch entity user creation failed:", dispatchErr);
+      }
     }
 
     return new Response(JSON.stringify({ user: userData.user }), {
