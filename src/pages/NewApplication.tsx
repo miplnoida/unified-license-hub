@@ -31,7 +31,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
-type FormStatus = 'not_started' | 'in_progress' | 'completed';
+type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
 type PaymentStatus = 'pending' | 'success' | 'failed';
 
 type ExistingPaymentRecord = {
@@ -45,14 +45,29 @@ type ExistingPaymentRecord = {
   created_at: string;
 };
 
+type ExistingFormResponseRecord = {
+  template_id: string;
+  version_id: string | null;
+  response_data: Record<string, any> | null;
+  status: string | null;
+  updated_at?: string | null;
+};
+
 const SUCCESSFUL_PAYMENT_STATUSES = new Set(['completed', 'success', 'paid']);
 const PENDING_PAYMENT_STATUSES = new Set(['pending', 'processing', 'initiated']);
+const SAVED_FORM_RESPONSE_STATUSES = new Set(['draft', 'submitted', 'completed']);
 
 interface FormProgress {
   templateId: string;
   status: FormStatus;
   data: Record<string, any>;
+  versionId?: string | null;
+  assignedVersionId?: string | null;
 }
+
+const hasNonEmptyFormData = (data?: Record<string, any> | null) => (
+  !!data && typeof data === 'object' && Object.keys(data).length > 0
+);
 
 const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] = [
   { key: 'selection', label: 'Select Category', icon: <Layers className="h-4 w-4" /> },
