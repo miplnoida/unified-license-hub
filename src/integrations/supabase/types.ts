@@ -4726,14 +4726,14 @@ export type Database = {
       }
       get_application_list_page: {
         Args: {
-          _page?: number
-          _page_size?: number
-          _search?: string
-          _search_mode?: string
-          _sort_by?: string
-          _sort_dir?: string
-          _status?: string
-          _version_id?: string
+          _page: number
+          _page_size: number
+          _search: string
+          _search_mode: string
+          _sort_by: string
+          _sort_dir: string
+          _status: string
+          _version_id: string
         }
         Returns: {
           action_count: number
