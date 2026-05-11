@@ -1179,10 +1179,29 @@ export default function NewApplication() {
     }
   };
 
+  const handleProceedFromForms = async () => {
+    if (!applicationId) return;
+    try {
+      await hydrateFormProgress(applicationId, matchedTemplates, assignedVersionByTemplate);
+    } catch (err) {
+      console.warn('[NewApplication] form completion recheck failed:', err);
+    }
+
+    const formsReady = matchedTemplates.every((template) => isFormComplete(template.id));
+    if (!formsReady) {
+      toast.error('Please complete all required forms before continuing.');
+      return;
+    }
+
+    setCurrentStep('documents');
+  };
+
   const getFormStatusBadge = (status: FormStatus) => {
     switch (status) {
       case 'completed':
         return <Badge variant="approved" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
+      case 'needs_update':
+        return <Badge variant="returned" className="gap-1"><RefreshCw className="h-3 w-3" /> Needs Update</Badge>;
       case 'in_progress':
         return <Badge variant="pending" className="gap-1"><Clock className="h-3 w-3" /> In Progress</Badge>;
       default:
