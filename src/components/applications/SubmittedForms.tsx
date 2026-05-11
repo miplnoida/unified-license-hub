@@ -92,17 +92,19 @@ export function SubmittedForms({
   applicationStatus,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
-  const getMostRecentTimestamp = (templateId: string) => {
+  const getTimestamp = (value?: string | null) => {
+    if (!value) return Number.NEGATIVE_INFINITY;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+  };
+
+  const getSortKey = (templateId: string) => {
     const meta = formMeta[templateId];
-    const candidates = [meta?.submitted_at, meta?.updated_at, meta?.saved_at, meta?.created_at]
-      .map((value) => (value ? Date.parse(value) : Number.NaN))
-      .filter((value) => !Number.isNaN(value));
-
-    if (candidates.length > 0) {
-      return candidates[0];
-    }
-
-    return 0;
+    return [
+      getTimestamp(meta?.submitted_at),
+      getTimestamp(meta?.updated_at ?? meta?.saved_at),
+      getTimestamp(meta?.created_at),
+    ] as const;
   };
 
   // Order: newest submitted response first, then updated, then created. Forms
@@ -110,9 +112,11 @@ export function SubmittedForms({
   const formTemplateIds = useMemo(() => {
     const indexed = rawTemplateIds.map((tid, idx) => ({ tid, idx }));
     indexed.sort((a, b) => {
-      const aTs = getMostRecentTimestamp(a.tid);
-      const bTs = getMostRecentTimestamp(b.tid);
-      if (bTs !== aTs) return bTs - aTs;
+      const aKey = getSortKey(a.tid);
+      const bKey = getSortKey(b.tid);
+      for (let i = 0; i < bKey.length; i += 1) {
+        if (bKey[i] !== aKey[i]) return bKey[i] - aKey[i];
+      }
       return a.idx - b.idx;
     });
     return indexed.map(x => x.tid);
