@@ -4673,6 +4673,10 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      complete_or_get_application_payment: {
+        Args: { _amount?: number; _application_id: string }
+        Returns: Json
+      }
       create_audit_log: {
         Args: {
           _action: string
