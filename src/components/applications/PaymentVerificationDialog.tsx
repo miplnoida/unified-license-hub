@@ -94,20 +94,23 @@ export function PaymentVerificationDialog({
         }
       }
 
-      // Send notification if applicant info is available
-      if (applicantId) {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            action: 'dispatch',
-            event_type: 'payment_verified',
-            user_id: applicantId,
-            title: 'Payment Verified',
-            message: `Your payment of ${formattedAmount}${applicationNumber ? ` for application ${applicationNumber}` : ''} has been verified. Admin remarks: ${message.trim()}`,
-            entity_type: 'payment',
-            entity_id: payment.application_id || payment.id,
+      // Dynamic notification dispatch (fire-and-forget; failures must not block)
+      supabase.functions.invoke('dispatch-notification-event', {
+        body: {
+          event_key: 'payment.received',
+          entity_type: 'payment',
+          entity_id: payment.application_id || payment.id,
+          payload: {
+            receipt_number: payment.receipt_number || payment.transaction_ref || '',
+            amount: String(payment.amount),
+            currency: payment.currency,
+            application_number: applicationNumber || '',
+            comments: message.trim(),
+            applicant_id: applicantId,
+            application_id: payment.application_id,
           },
-        });
-      }
+        },
+      }).catch(() => {});
 
       toast.success('Payment verified and notification sent to licensee.');
       setMessage('');
