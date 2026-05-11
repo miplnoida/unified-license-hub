@@ -672,22 +672,24 @@ export function useSaveFormTemplate() {
       // Branch a brand-new draft when editing any historical (non-draft)
       // version — published OR archived — so we never overwrite history.
       let createNewDraftFromHistorical = false;
+      const sourceHistoricalVersionId = isHistoricalSource ? sourceRow?.id ?? null : null;
 
       const isHistoricalSource =
         sourceRow?.status === 'published' || sourceRow?.status === 'archived';
 
       if (isHistoricalSource) {
-        const { data: latestDraft, error: draftErr } = await supabase
+        const { data: matchingDrafts, error: draftErr } = await supabase
           .from('form_versions')
           .select('*')
           .eq('template_id', template.id)
           .eq('status', 'draft')
+          .eq('branched_from_version_id', sourceRow.id)
           .order('version', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
         if (draftErr) throw draftErr;
 
+        const latestDraft = matchingDrafts?.[0] || null;
         if (latestDraft) {
           workingRow = latestDraft;
           vid = latestDraft.id;
@@ -745,6 +747,9 @@ export function useSaveFormTemplate() {
         id: vid,
         template_id: template.id,
         version: resolvedVersion,
+        branched_from_version_id: createNewDraftFromHistorical
+          ? sourceHistoricalVersionId
+          : (workingRow?.branched_from_version_id ?? sourceHistoricalVersionId),
         schema_snapshot: JSON.parse(JSON.stringify(sectionsForDraft)),
         status: 'draft',
         published_at: null,
