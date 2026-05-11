@@ -156,32 +156,17 @@ export default function FormManagement() {
     });
   };
 
-  const handleBulkPublish = async () => {
-    const ids = Array.from(selectedIds);
-    const result = await Swal.fire({
-      title: 'Bulk Publish',
-      text: `Publish ${ids.length} selected form(s)?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, publish all',
-    });
-    if (!result.isConfirmed) return;
+  const doBulkPublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
-      // Route each publish through the status mutation so version-handling
-      // logic (structural-change detection, semantic bumping, snapshotting)
-      // runs per template — preserving links to existing submissions.
       const results = await Promise.allSettled(
         ids.map((id) => updateStatusMutation.mutateAsync({ id, status: 'published' }))
       );
       const failed = results.filter(r => r.status === 'rejected').length;
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
-      if (failed > 0) {
-        toast.error(`${failed} form(s) failed to publish.`);
-      } else {
-        toast.success(`${ids.length} form(s) published successfully.`);
-      }
+      if (failed > 0) toast.error(`${failed} form(s) failed to publish.`);
+      else toast.success(`${ids.length} form(s) published successfully.`);
       setSelectedIds(new Set());
     } catch {
       toast.error('Failed to bulk publish forms.');
@@ -190,27 +175,22 @@ export default function FormManagement() {
     }
   };
 
+  const handleBulkPublish = () => {
+    const ids = Array.from(selectedIds);
+    openConfirm({
+      title: 'Bulk Publish',
+      description: `Publish ${ids.length} selected form(s)?`,
+      confirmLabel: 'Yes, publish all',
+      onConfirm: () => doBulkPublish(ids),
+    });
+  };
+
   const selectedPublishedIds = useMemo(
     () => filtered.filter(t => selectedIds.has(t.id) && t.status === 'published').map(t => t.id),
     [filtered, selectedIds]
   );
 
-  const handleBulkUnpublish = async () => {
-    const ids = selectedPublishedIds;
-    const skipped = selectedIds.size - ids.length;
-    if (ids.length === 0) {
-      toast.error('No published forms selected. Only published forms can be unpublished.');
-      return;
-    }
-    const result = await Swal.fire({
-      title: 'Bulk Unpublish',
-      html: `Unpublish <b>${ids.length}</b> selected published form(s)?` +
-        (skipped > 0 ? `<br/><span style="color:hsl(var(--muted-foreground));font-size:0.875rem">${skipped} non-published form(s) will be skipped.</span>` : ''),
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, unpublish all',
-    });
-    if (!result.isConfirmed) return;
+  const doBulkUnpublish = async (ids: string[]) => {
     setBulkLoading(true);
     try {
       const { error } = await supabase.from('form_templates').update({ status: 'draft' } as any).in('id', ids);
@@ -225,17 +205,31 @@ export default function FormManagement() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
-    const result = await Swal.fire({
-      title: 'Bulk Delete',
-      text: `Permanently delete ${ids.length} selected form(s)? This cannot be undone.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'hsl(var(--destructive))',
-      confirmButtonText: 'Yes, delete all',
+  const handleBulkUnpublish = () => {
+    const ids = selectedPublishedIds;
+    const skipped = selectedIds.size - ids.length;
+    if (ids.length === 0) {
+      toast.error('No published forms selected. Only published forms can be unpublished.');
+      return;
+    }
+    openConfirm({
+      title: 'Bulk Unpublish',
+      description: (
+        <>
+          Unpublish <strong>{ids.length}</strong> selected published form(s)?
+          {skipped > 0 && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {skipped} non-published form(s) will be skipped.
+            </div>
+          )}
+        </>
+      ),
+      confirmLabel: 'Yes, unpublish all',
+      onConfirm: () => doBulkUnpublish(ids),
     });
-    if (!result.isConfirmed) return;
+  };
+
+  const doBulkDelete = async (ids: string[]) => {
     setBulkLoading(true);
     const failures: string[] = [];
     for (const id of ids) {
@@ -250,28 +244,42 @@ export default function FormManagement() {
     if (failures.length === 0) {
       toast.success(`${ids.length} form(s) deleted successfully.`);
     } else {
-      Swal.fire({
+      requestAnimationFrame(() => setResultDialog({
+        open: true,
         title: 'Some deletes failed',
-        html: `<div style="text-align:left;font-size:12px"><b>${ids.length - failures.length}</b> deleted, <b>${failures.length}</b> failed:<br/><pre style="white-space:pre-wrap">${failures.join('\n')}</pre></div>`,
-        icon: 'warning',
-      });
+        description: (
+          <div className="text-xs text-left">
+            <b>{ids.length - failures.length}</b> deleted, <b>{failures.length}</b> failed:
+            <pre className="whitespace-pre-wrap mt-2">{failures.join('\n')}</pre>
+          </div>
+        ),
+      }));
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: 'This form template will be permanently deleted.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'hsl(var(--destructive))',
-      cancelButtonColor: 'hsl(var(--muted-foreground))',
-      confirmButtonText: 'Yes, delete it!',
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds);
+    openConfirm({
+      title: 'Bulk Delete',
+      description: `Permanently delete ${ids.length} selected form(s)? This cannot be undone.`,
+      confirmLabel: 'Yes, delete all',
+      destructive: true,
+      onConfirm: () => doBulkDelete(ids),
     });
-    if (!result.isConfirmed) return;
-    deleteTemplateMutation.mutate(id, {
-      onSuccess: () => Swal.fire({ title: 'Deleted!', text: 'Form template has been deleted.', icon: 'success', timer: 1500, showConfirmButton: false }),
-      onError: (err: any) => Swal.fire({ title: 'Error', text: err?.message || 'Failed to delete form template.', icon: 'error' }),
+  };
+
+  const handleDelete = (id: string) => {
+    openConfirm({
+      title: 'Delete form template?',
+      description: 'This form template will be permanently deleted. This action cannot be undone.',
+      confirmLabel: 'Yes, delete it',
+      destructive: true,
+      onConfirm: () => {
+        deleteTemplateMutation.mutate(id, {
+          onSuccess: () => toast.success('Form template deleted.'),
+          onError: (err: any) => toast.error(err?.message || 'Failed to delete form template.'),
+        });
+      },
     });
   };
 
@@ -281,8 +289,13 @@ export default function FormManagement() {
 
   const requestStatusChange = (template: FormTemplate, newStatus: string) => {
     if (newStatus === template.status) return;
-    setStatusDialog({ open: true, id: template.id, name: template.name, currentStatus: template.status, newStatus });
+    // Defer so the Select dropdown closes/releases its overlay before the
+    // AlertDialog mounts — prevents stacked Radix portals/backdrop conflicts.
+    requestAnimationFrame(() => {
+      setStatusDialog({ open: true, id: template.id, name: template.name, currentStatus: template.status, newStatus });
+    });
   };
+
 
   const confirmStatusChange = () => {
     const { id, newStatus } = statusDialog;
