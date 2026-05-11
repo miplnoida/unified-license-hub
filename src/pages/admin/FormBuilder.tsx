@@ -16,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Eye, Save, GitBranch, History } from 'lucide-react';
+import { Eye, Save, GitBranch, History, Loader2, AlertTriangle } from 'lucide-react';
 import { VersionHistory } from '@/components/form-builder/VersionHistory';
 import { FileImportDialog, type MultiSheetParseResult } from '@/components/form-builder/FileImport';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ import { FormBuilderFieldPalette } from '@/components/form-builder/FieldPalette'
 import { SectionManager } from '@/components/form-builder/SectionManager';
 import { FormBuilderFieldProperties } from '@/components/form-builder/FieldProperties';
 import {
-  useFormTemplate, useLatestVersion, useSaveFormTemplate,
+  useFormTemplate, useLatestVersion, useFormVersion, useSaveFormTemplate,
   useFormFields, useFieldConditions, fieldRowsToSections,
 } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
