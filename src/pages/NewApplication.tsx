@@ -1447,8 +1447,9 @@ export default function NewApplication() {
             {matchedTemplates.map((tmpl, idx) => {
               const fp = formProgressMap[tmpl.id];
               const status: FormStatus = fp?.status || 'not_started';
+              const cardComplete = isFormComplete(tmpl.id);
               return (
-                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${status === 'completed' ? 'border-emerald-200 bg-emerald-50/30' : ''}`}>
+                <Card key={tmpl.id} className={`transition-shadow hover:shadow-md ${cardComplete ? 'border-emerald-200 bg-emerald-50/30' : status === 'needs_update' ? 'border-yellow-200 bg-yellow-50/30' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1472,11 +1473,13 @@ export default function NewApplication() {
                       </div>
                       <Button
                         size="sm"
-                        variant={status === 'completed' ? 'outline' : 'default'}
+                        variant={cardComplete ? 'outline' : 'default'}
                         onClick={() => handleStartForm(tmpl.id)}
                       >
-                        {status === 'completed' ? (
-                          <><CheckCircle2 className="h-4 w-4 mr-1" /> Review</>
+                        {cardComplete ? (
+                          <><CheckCircle2 className="h-4 w-4 mr-1" /> Continue</>
+                        ) : status === 'needs_update' ? (
+                          <><RefreshCw className="h-4 w-4 mr-1" /> Update</>
                         ) : status === 'in_progress' ? (
                           <><PlayCircle className="h-4 w-4 mr-1" /> Continue</>
                         ) : (
@@ -1535,10 +1538,10 @@ export default function NewApplication() {
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button
-                onClick={() => setCurrentStep('documents')}
+                onClick={handleProceedFromForms}
                 disabled={!allFormsCompleted}
               >
-                {allFormsCompleted ? 'Proceed to Documents' : `Complete all forms (${completedCount}/${matchedTemplates.length})`}
+                {allFormsCompleted ? 'Continue' : `Complete all forms (${completedCount}/${matchedTemplates.length})`}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
