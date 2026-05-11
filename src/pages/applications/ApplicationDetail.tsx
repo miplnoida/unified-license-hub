@@ -581,7 +581,7 @@ export default function ApplicationDetail() {
                     onPaid={loadData}
                   />
                 ))}
-                {isInternal && <FormVersionAssignmentsPanel applicationId={app.id} />}
+                {user?.role === 'super_admin' && <FormVersionAssignmentsPanel applicationId={app.id} />}
               </TabsContent>
 
               {hasSubmittedForms && (
