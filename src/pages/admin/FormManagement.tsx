@@ -77,6 +77,36 @@ export default function FormManagement() {
   const [statusDialog, setStatusDialog] = useState<{
     open: boolean; id: string; name: string; currentStatus: string; newStatus: string;
   }>({ open: false, id: '', name: '', currentStatus: '', newStatus: 'draft' });
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: React.ReactNode;
+    confirmLabel: string;
+    destructive?: boolean;
+    onConfirm?: () => void | Promise<void>;
+  }>({ open: false, title: '', description: '', confirmLabel: 'Confirm' });
+  const [resultDialog, setResultDialog] = useState<{
+    open: boolean; title: string; description: React.ReactNode;
+  }>({ open: false, title: '', description: '' });
+
+  // Defensive: remove any stale SweetAlert2 backdrop on unmount, route change,
+  // or tab change. Prevents click/scroll being blocked if a legacy modal lingers.
+  const cleanupStaleOverlays = () => {
+    document.querySelectorAll('.swal2-container, .swal2-backdrop-show').forEach((el) => el.remove());
+    document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+    document.documentElement.classList.remove('swal2-shown', 'swal2-height-auto');
+  };
+  useEffect(() => {
+    cleanupStaleOverlays();
+    return () => cleanupStaleOverlays();
+  }, [activeTab]);
+
+  const openConfirm = (cfg: Omit<typeof confirmDialog, 'open'>) => {
+    // Defer to next frame so any closing Select/Popover portals release focus
+    // and backdrops first, avoiding overlapping overlays.
+    requestAnimationFrame(() => setConfirmDialog({ ...cfg, open: true }));
+  };
+
 
   const activeSectors = useMemo(() => dbSectors.filter(s => s.status === 'active'), [dbSectors]);
   const filteredSubSectors = useMemo(() => {
