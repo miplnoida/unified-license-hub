@@ -124,6 +124,8 @@ export default function NewApplication() {
   // category).
   const [reappBlocked, setReappBlocked] = useState(false);
   const [sectorBlockMessage, setSectorBlockMessage] = useState('');
+  const [blockedExistingAppId, setBlockedExistingAppId] = useState<string | null>(null);
+  const [blockedCode, setBlockedCode] = useState<string | null>(null);
 
   const filteredSubSectors = allSubSectors.filter(s => s.sector_id === selectedSector);
   const filteredCategories = allCategories.filter(c => c.sub_sector_id === selectedSubSector);
@@ -758,25 +760,40 @@ export default function NewApplication() {
     // active duplicate block / re-application policy. Mirrored by a DB
     // trigger so direct inserts can't bypass it.
     if (user) {
-      const { data: guardRaw, error: guardErr } = await (supabase as any).rpc(
-        'apply_application_guard',
-        {
-          _sector_id: selectedSector,
-          _sub_sector_id: selectedSubSector || null,
-          _category_id: selectedCategory || null,
-          _service_id: null,
-        },
-      );
-      if (guardErr) {
-        toast.error('Could not verify existing applications. Please try again.');
-        return;
+      let guardRaw: any = null;
+      let guardErr: any = null;
+      try {
+        const res = await (supabase as any).rpc(
+          'apply_application_guard',
+          {
+            _sector_id: selectedSector,
+            _sub_sector_id: selectedSubSector || null,
+            _category_id: selectedCategory || null,
+            _service_id: null,
+          },
+        );
+        guardRaw = res?.data;
+        guardErr = res?.error;
+      } catch (e) {
+        guardErr = e;
       }
+
       const guard = (guardRaw || {}) as {
         action?: string;
         application_id?: string;
         message?: string;
         code?: string;
       };
+
+      // If we got a structured business response, use it even if an
+      // accompanying error was reported (defensive).
+      if (!guard.action && guardErr) {
+        // Genuine technical failure — log raw error for developers.
+        // eslint-disable-next-line no-console
+        console.error('[apply_application_guard] technical error:', guardErr);
+        toast.error('Could not verify existing applications. Please try again.');
+        return;
+      }
 
       if (guard.action === 'continue_draft' && guard.application_id && guard.application_id !== applicationId) {
         toast.info(guard.message || 'Continuing your existing draft for this selection.');
@@ -791,11 +808,11 @@ export default function NewApplication() {
         return;
       }
       if (guard.action === 'block') {
-        const msg = guard.message || 'This application cannot be started.';
-        if (guard.code === 'DUPLICATE_ACTIVE') {
-          setReappBlocked(true);
-          setSectorBlockMessage(msg);
-        }
+        const msg = guard.message || 'You already have an active application for this sector, sub-sector, and category. You cannot start a new application until the existing application is finalized.';
+        setReappBlocked(true);
+        setSectorBlockMessage(msg);
+        setBlockedCode(guard.code || null);
+        setBlockedExistingAppId(guard.application_id || null);
         toast.error(msg);
         return;
       }
@@ -1241,9 +1258,14 @@ export default function NewApplication() {
           <p className="text-muted-foreground">
             {sectorBlockMessage || 'You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.'}
           </p>
-          <div className="flex gap-3 justify-center pt-4">
+          <div className="flex gap-3 justify-center pt-4 flex-wrap">
+            {blockedCode === 'DUPLICATE_ACTIVE' && blockedExistingAppId && (
+              <Button onClick={() => navigate(`/applications/${blockedExistingAppId}`)}>
+                View Existing Application
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
-            <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
           </div>
         </div>
       ) : (
