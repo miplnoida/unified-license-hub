@@ -1402,7 +1402,7 @@ export default function NewApplication() {
                     <Button
                       size="lg"
                       onClick={handleProcessPayment}
-                      disabled={processingPayment || paymentStatus === 'success' || hasSuccessfulPaymentRecord}
+                      disabled={processingPayment || hasSuccessfulPaymentRecord}
                       className="min-w-[200px]"
                     >
                       {processingPayment ? (
