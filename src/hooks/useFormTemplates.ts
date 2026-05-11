@@ -667,15 +667,14 @@ export function useSaveFormTemplate() {
         sourceRow = data || null;
       }
 
+      const isHistoricalSource =
+        sourceRow?.status === 'published' || sourceRow?.status === 'archived';
       let workingRow = sourceRow;
       let vid = versionId || crypto.randomUUID();
       // Branch a brand-new draft when editing any historical (non-draft)
       // version — published OR archived — so we never overwrite history.
       let createNewDraftFromHistorical = false;
       const sourceHistoricalVersionId = isHistoricalSource ? sourceRow?.id ?? null : null;
-
-      const isHistoricalSource =
-        sourceRow?.status === 'published' || sourceRow?.status === 'archived';
 
       if (isHistoricalSource) {
         const { data: matchingDrafts, error: draftErr } = await supabase
