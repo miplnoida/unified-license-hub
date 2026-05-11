@@ -50,8 +50,9 @@ const WIZARD_STEPS: { key: WizardStep; label: string; icon: React.ReactNode }[] 
 
 export default function NewApplication() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draft');
+  const isContinuingDraft = !!draftIdParam;
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
