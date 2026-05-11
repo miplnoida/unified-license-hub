@@ -4696,6 +4696,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_or_get_application_payment: {
+        Args: { _amount?: number; _application_id: string }
+        Returns: Json
+      }
       expire_delegation_rules: { Args: never; Returns: number }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
