@@ -1258,9 +1258,14 @@ export default function NewApplication() {
           <p className="text-muted-foreground">
             {sectorBlockMessage || 'You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.'}
           </p>
-          <div className="flex gap-3 justify-center pt-4">
+          <div className="flex gap-3 justify-center pt-4 flex-wrap">
+            {blockedCode === 'DUPLICATE_ACTIVE' && blockedExistingAppId && (
+              <Button onClick={() => navigate(`/applications/${blockedExistingAppId}`)}>
+                View Existing Application
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
-            <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
           </div>
         </div>
       ) : (
