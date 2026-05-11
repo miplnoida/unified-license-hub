@@ -321,9 +321,11 @@ export default function NewApplication() {
             tmplIds.forEach(tid => {
               const fdata = formsData[tid] || {};
               const hasData = fdata && Object.keys(fdata).length > 0;
+              // Treat any saved data as completed for navigation purposes;
+              // user can still re-open the form to edit.
               progress[tid] = {
                 templateId: tid,
-                status: hasData ? 'in_progress' : 'not_started',
+                status: hasData ? 'completed' : 'not_started',
                 data: fdata,
               };
             });
