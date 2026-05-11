@@ -520,6 +520,24 @@ export default function FormBuilder() {
           }
         />
 
+        {/* Loading state while existing template/version/fields are loading */}
+        {editId && !initialized && (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mb-3" />
+            <p className="text-sm">Loading form…</p>
+          </div>
+        )}
+
+        {/* Warning when editing a published/archived historical version */}
+        {initialized && isEditingHistoricalVersion && !isViewMode && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4 mt-[1px] shrink-0" />
+            <span>
+              You are editing from an older version (v{currentVersionStr}). Saving will create a new draft version based on this version — the historical version and its submissions will not be modified.
+            </span>
+          </div>
+        )}
+
         {/* Form Metadata */}
         <Card>
           <CardHeader className="pb-3">
