@@ -34,6 +34,17 @@ type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
 type PaymentStatus = 'pending' | 'success' | 'failed';
 
+type ExistingPaymentRecord = {
+  id: string;
+  status: string;
+  amount: number | null;
+  transaction_ref?: string | null;
+  receipt_number?: string | null;
+  currency?: string | null;
+  paid_at?: string | null;
+  created_at: string;
+};
+
 interface FormProgress {
   templateId: string;
   status: FormStatus;
