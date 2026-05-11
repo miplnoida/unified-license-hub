@@ -182,6 +182,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    let sectorName = "";
+    let subSectorName = "";
+    let categoryName = "";
+    let regulatorId: string | null = null;
+
     // 2b. Create a draft application pre-populated with selected sector/sub-sector/category
     try {
       const [{ data: sectorRow }, { data: subSectorRow }, { data: categoryRow }] = await Promise.all([
@@ -190,10 +195,10 @@ Deno.serve(async (req) => {
         supabaseAdmin.from("categories").select("id,name").eq("id", category_id).maybeSingle(),
       ]);
 
-      const sectorName = sectorRow?.name || "";
-      const subSectorName = subSectorRow?.name || "";
-      const categoryName = categoryRow?.name || "";
-      const regulatorId = sectorRow?.regulator_id || null;
+      sectorName = sectorRow?.name || "";
+      subSectorName = subSectorRow?.name || "";
+      categoryName = categoryRow?.name || "";
+      regulatorId = sectorRow?.regulator_id || null;
       const licenseType = [sectorName, subSectorName, categoryName].filter(Boolean).join(" - ");
 
       // Match form templates using the same priority logic as NewApplication
@@ -262,66 +267,7 @@ Deno.serve(async (req) => {
       console.warn("Draft application creation failed:", draftErr);
     }
 
-    // 3. Queue admin notification
-    try {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: authData.user.id, // Will be re-targeted to admins below
-        title: "New Registration Application",
-        message: `New registration from ${applicant_name} (${email}) - Ref: ${regData.registration_reference}`,
-        type: "info",
-        entity_type: "registration",
-        entity_id: regData.registration_reference,
-      });
-
-      // Notify all admin users
-      const { data: adminRoles } = await supabaseAdmin
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["super_admin", "admin"]);
-
-      if (adminRoles && adminRoles.length > 0) {
-        const adminNotifications = adminRoles
-          .filter(r => r.user_id !== authData.user.id)
-          .map(r => ({
-            user_id: r.user_id,
-            title: "New Registration Requires Review",
-            message: `${applicant_name} has submitted a registration application (${regData.registration_reference}). Please review.`,
-            type: "action",
-            entity_type: "registration",
-            entity_id: regData.registration_reference,
-          }));
-
-        if (adminNotifications.length > 0) {
-          await supabaseAdmin.from("notifications").insert(adminNotifications);
-        }
-      }
-    } catch (notifErr) {
-      console.warn("Admin notification failed:", notifErr);
-    }
-
-    // 4. Send acknowledgement email
-    try {
-      await fetch(
-        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-notification`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({
-            to_email: email,
-            subject: "Registration Received - " + regData.registration_reference,
-            body: `Dear ${first_name},\n\nYour registration application has been received successfully.\n\nRegistration Reference: ${regData.registration_reference}\n\nYour application is now under review. You will be notified once it has been processed.\n\nExpected processing time: 3-5 business days.\n\nThank you.`,
-            channel: "email",
-          }),
-        }
-      );
-    } catch (emailErr) {
-      console.warn("Acknowledgement email failed:", emailErr);
-    }
-
-    // 5. Fire template-driven notifications (in_app + email) via the central dispatcher.
+    // 3. Fire template-driven notifications (in_app + email) via the central dispatcher.
     //    Best-effort: never block registration on dispatch failures.
     const dispatchPayload = {
       applicant_id: authData.user.id,
@@ -329,6 +275,8 @@ Deno.serve(async (req) => {
       applicant_email: email,
       registration_reference: regData.registration_reference,
       sector_id,
+      category_id,
+      regulator_id: regulatorId,
       sector_name: sectorName,
     };
     for (const event_key of ["registration.submitted", "registration.received"]) {
