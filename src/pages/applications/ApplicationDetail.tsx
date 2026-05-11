@@ -467,19 +467,6 @@ export default function ApplicationDetail() {
         application_id: app.id, action: 'edit_denied', actor_id: user.id, comments: actionComment,
       } as any);
       await logAudit({ action: 'edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
-      try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            action: 'dispatch',
-            event_type: 'edit_denied',
-            user_id: app.applicant_id,
-            title: `Edit Request Denied: ${app.application_number}`,
-            message: `Your request to edit application ${app.application_number} was denied.\n\nReason: ${actionComment}`,
-            entity_type: 'application',
-            entity_id: app.id,
-          },
-        });
-      } catch (e) { console.error('Notification failed', e); }
       toast.success('Edit request denied');
       setActionComment('');
       await loadData();
