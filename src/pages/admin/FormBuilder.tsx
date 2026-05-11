@@ -690,6 +690,7 @@ export default function FormBuilder() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
       {/* Preview Dialog */}
