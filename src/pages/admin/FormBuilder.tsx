@@ -489,7 +489,7 @@ export default function FormBuilder() {
               {/* "New Version" button removed — versions are managed automatically on Publish.
                   Structural changes auto-create a new version; cosmetic changes keep the same version. */}
               {editId && (
-                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} />
+                <VersionHistory templateId={editId} formName={formName || 'Untitled Form'} formType={formType} />
               )}
               <FileImportDialog
                 onImport={handleFileImport}
