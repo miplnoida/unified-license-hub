@@ -4801,6 +4801,10 @@ export type Database = {
         }
         Returns: string
       }
+      mark_application_in_progress: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
