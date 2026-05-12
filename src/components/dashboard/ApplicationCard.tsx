@@ -13,6 +13,7 @@ interface ApplicationCardProps {
 
 const statusLabels: Record<string, string> = {
   draft: 'Draft',
+  in_progress: 'In Progress',
   submitted: 'Submitted',
   under_review: 'Under Review',
   query_raised: 'Query Raised',
