@@ -4,6 +4,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +89,7 @@ export default function FormManagement() {
   const [resultDialog, setResultDialog] = useState<{
     open: boolean; title: string; description: React.ReactNode;
   }>({ open: false, title: '', description: '' });
+  const [publishEffectiveFrom, setPublishEffectiveFrom] = useState('');
 
   // Defensive: remove any stale SweetAlert2 backdrop on unmount, route change,
   // or tab change. Prevents click/scroll being blocked if a legacy modal lingers.
@@ -289,6 +291,7 @@ export default function FormManagement() {
 
   const requestStatusChange = (template: FormTemplate, newStatus: string) => {
     if (newStatus === template.status) return;
+    setPublishEffectiveFrom('');
     // Defer so the Select dropdown closes/releases its overlay before the
     // AlertDialog mounts — prevents stacked Radix portals/backdrop conflicts.
     requestAnimationFrame(() => {
@@ -300,12 +303,19 @@ export default function FormManagement() {
   const confirmStatusChange = () => {
     const { id, newStatus } = statusDialog;
     updateStatusMutation.mutate(
-      { id, status: newStatus },
+      {
+        id,
+        status: newStatus,
+        effective_from: newStatus === 'published' && publishEffectiveFrom
+          ? new Date(`${publishEffectiveFrom}T00:00:00Z`).toISOString()
+          : null,
+      },
       {
         onSuccess: () => toast.success(`Form status changed to "${newStatus}".`),
         onError: () => toast.error('Failed to update status.'),
       }
     );
+    setPublishEffectiveFrom('');
     setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
@@ -574,6 +584,18 @@ export default function FormManagement() {
                 Are you sure you want to change the status of <strong>"{statusDialog.name}"</strong> from{' '}
                 <Badge variant={statusVariant[statusDialog.currentStatus]} className="capitalize mx-1">{statusDialog.currentStatus}</Badge> to{' '}
                 <Badge variant={statusVariant[statusDialog.newStatus]} className="capitalize mx-1">{statusDialog.newStatus}</Badge>?
+                {statusDialog.newStatus === 'published' && (
+                  <div className="mt-4 space-y-2 text-left">
+                    <Label htmlFor="publish-effective-from">Start Date</Label>
+                    <Input
+                      id="publish-effective-from"
+                      type="date"
+                      value={publishEffectiveFrom}
+                      onChange={(e) => setPublishEffectiveFrom(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Leave empty to start today.</p>
+                  </div>
+                )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
