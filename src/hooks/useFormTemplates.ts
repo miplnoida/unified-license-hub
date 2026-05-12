@@ -1018,20 +1018,42 @@ export function useUpdateTemplateStatus() {
       // to the prior published version remain stable and independent.
       const newSections = cloneSectionsWithNewFieldIds(draftSections);
 
+      const nowDate = new Date();
+      const nowIso = nowDate.toISOString();
+      // Last day of the current month at end-of-day, used to retire prior
+      // open-ended published versions when a new version goes live.
+      const monthEnd = new Date(
+        nowDate.getFullYear(),
+        nowDate.getMonth() + 1,
+        0,
+        23, 59, 59, 999,
+      ).toISOString();
+
+      // Close out any prior published versions for this template that are still
+      // open-ended (effective_until IS NULL). Their effective_from is preserved.
+      await supabase
+        .from('form_versions')
+        .update({ effective_until: monthEnd } as any)
+        .eq('template_id', id)
+        .eq('status', 'published')
+        .is('effective_until', null);
+
       const { error: vErr } = await supabase.from('form_versions').insert({
         id: newVid,
         template_id: id,
         version: newVersionNum,
         schema_snapshot: JSON.parse(JSON.stringify(newSections)),
         status: 'published',
-        published_at: new Date().toISOString(),
+        published_at: nowIso,
         change_notes:
           latestDraft.change_notes ||
           (lastPublished
             ? `Published v${newSemver} (${changeKind} update)`
             : 'Initial publish'),
         semantic_version: newSemver,
-        effective_from: latestDraft.effective_from ?? null,
+        // New version starts today (or admin-chosen date from draft) and is
+        // open-ended by default. Admin can edit effective_until later.
+        effective_from: latestDraft.effective_from ?? nowIso,
         effective_until: latestDraft.effective_until ?? null,
         notified_for_upcoming: false,
       } as any);
