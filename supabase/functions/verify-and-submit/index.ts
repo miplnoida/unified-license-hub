@@ -145,11 +145,21 @@ Deno.serve(async (req) => {
           }
         }
 
-        const ACTIVE = new Set([
-          "submitted", "in_progress", "in_review", "pending_review",
-          "under_review", "forwarded", "query_raised", "resubmission_requested",
-          "awaiting_approval",
-        ]);
+        // Editable statuses belong to peer applications the user is actively
+        // working on. When Allow Re-Application is ON, those should NOT block
+        // submitting a different application for the same triple.
+        const ACTIVE = new Set(
+          allowReapply
+            ? [
+              "submitted", "in_review", "pending_review",
+              "under_review", "forwarded", "awaiting_approval",
+            ]
+            : [
+              "submitted", "in_progress", "in_review", "pending_review",
+              "under_review", "forwarded", "query_raised", "resubmission_requested",
+              "awaiting_approval",
+            ],
+        );
 
         const activeDupe = sameTriple.find((a) => {
           const normalizedStatus = ((a.status as string) || "").toLowerCase();
