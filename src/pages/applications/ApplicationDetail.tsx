@@ -27,8 +27,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
+import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -59,6 +61,7 @@ export default function ApplicationDetail() {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [app, setApp] = useState<Application | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -635,6 +638,19 @@ export default function ApplicationDetail() {
                         };
                         const { error } = await supabase.from('applications').update({ data: updatedAppData } as any).eq('id', app.id);
                         if (error) { toast.error('Failed to save form'); return; }
+                        try {
+                          const nextStatus = await markApplicationInProgressIfDraft(app.id);
+                          if (nextStatus) {
+                            setApp((prev) => (prev ? { ...prev, status: normalizeApplicationStatus(nextStatus) as ApplicationStatus } : prev));
+                          }
+                          await Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
+                            queryClient.invalidateQueries({ queryKey: ['applications'] }),
+                          ]);
+                        } catch (statusError: any) {
+                          console.error('[ApplicationDetail] Failed to promote draft application after form save:', statusError);
+                          toast.error(statusError?.message || 'Form saved, but failed to update application status');
+                        }
                         // Lightweight inline state via SubmittedForms; no per-save toast spam.
                         await loadData();
                       }}
