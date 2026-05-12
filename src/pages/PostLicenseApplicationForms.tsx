@@ -26,6 +26,7 @@ interface FormProgress {
   templateId: string;
   status: FormStatus;
   data: Record<string, any>;
+  versionId?: string | null;
 }
 
 function ActiveFormFiller({
@@ -230,7 +231,7 @@ export default function PostLicenseApplicationForms() {
     setSaving(true);
     setFormProgressMap(prev => ({
       ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data },
+      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'in_progress', data, versionId },
     }));
     await persistFormsData(activeFormTemplateId, data, versionId);
     toast.success('Draft saved');
@@ -242,7 +243,7 @@ export default function PostLicenseApplicationForms() {
     setSaving(true);
     setFormProgressMap(prev => ({
       ...prev,
-      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data },
+      [activeFormTemplateId]: { ...prev[activeFormTemplateId], status: 'completed', data, versionId },
     }));
     await persistFormsData(activeFormTemplateId, data, versionId);
     toast.success('Form completed!');
@@ -446,7 +447,11 @@ export default function PostLicenseApplicationForms() {
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
                   formProgressMap={formProgressMap}
-                  versionIdByTemplate={(appData?.data?.form_version_ids || {}) as Record<string, string>}
+                  versionIdByTemplate={Object.fromEntries(
+                    Object.entries(formProgressMap).flatMap(([templateId, progress]) => (
+                      progress?.versionId ? [[templateId, progress.versionId]] : []
+                    ))
+                  ) as Record<string, string>}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
                   onAcknowledge={handleSubmitApplication}
