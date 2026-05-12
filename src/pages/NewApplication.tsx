@@ -1531,18 +1531,22 @@ export default function NewApplication() {
       {reappBlocked ? (
         <div className="max-w-2xl mx-auto py-20 text-center space-y-4">
           <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <h2 className="text-xl font-semibold text-foreground">Application Already In Progress</h2>
+          <h2 className="text-xl font-semibold text-foreground">Application Already Exists</h2>
           <p className="text-muted-foreground">
-            {sectorBlockMessage || 'You already have an application that is submitted or being processed. You cannot create a new application until your current one is resolved.'}
+            {sectorBlockMessage || 'You already have an application for this sector, sub-sector, and category/service. Re-application is currently not allowed.'}
           </p>
           <div className="flex gap-3 justify-center pt-4 flex-wrap">
-            {blockedCode === 'DUPLICATE_ACTIVE' && blockedExistingAppId && (
-              <Button onClick={() => navigate(`/applications/${blockedExistingAppId}`)}>
-                View Existing Application
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => navigate('/applications')}>View My Applications</Button>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+            <Button onClick={() => navigate('/applications')}>
+              Go to My Applications
+            </Button>
+            <Button variant="outline" onClick={() => {
+              setReappBlocked(false);
+              setSectorBlockMessage('');
+              setBlockedCode(null);
+              setBlockedExistingAppId(null);
+            }}>
+              Back
+            </Button>
           </div>
         </div>
       ) : (
