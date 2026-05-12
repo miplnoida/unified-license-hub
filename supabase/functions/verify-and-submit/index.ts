@@ -145,38 +145,34 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Editable statuses belong to peer applications the user is actively
-        // working on. When Allow Re-Application is ON, those should NOT block
-        // submitting a different application for the same triple.
-        const ACTIVE = new Set(
-          allowReapply
-            ? [
-              "submitted", "in_review", "pending_review",
-              "under_review", "forwarded", "awaiting_approval",
-            ]
-            : [
-              "submitted", "in_progress", "in_review", "pending_review",
-              "under_review", "forwarded", "query_raised", "resubmission_requested",
-              "awaiting_approval",
-            ],
-        );
+        // When Allow Re-Application is ON, the user is explicitly permitted
+        // to submit a parallel application for the same sector/sub-sector/
+        // category — skip the duplicate-active check entirely. Only enforce
+        // it when the admin setting is OFF.
+        if (!allowReapply) {
+          const ACTIVE = new Set([
+            "submitted", "in_progress", "in_review", "pending_review",
+            "under_review", "forwarded", "query_raised", "resubmission_requested",
+            "awaiting_approval",
+          ]);
 
-        const activeDupe = sameTriple.find((a) => {
-          const normalizedStatus = ((a.status as string) || "").toLowerCase();
-          const paymentSummary = paymentSummaryByApp.get(a.id);
-          return ACTIVE.has(normalizedStatus) || (
-            ["payment_pending", "awaiting_payment", "pending_payment"].includes(normalizedStatus)
-            && !!paymentSummary?.hasSuccessfulPayment
-          );
-        });
-        if (activeDupe) {
-          return new Response(
-            JSON.stringify({
-              error: "You already have an active application for this sector, sub-sector, and service. You cannot submit another until it is finalised.",
-              code: "DUPLICATE_ACTIVE_APPLICATION",
-            }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          const activeDupe = sameTriple.find((a) => {
+            const normalizedStatus = ((a.status as string) || "").toLowerCase();
+            const paymentSummary = paymentSummaryByApp.get(a.id);
+            return ACTIVE.has(normalizedStatus) || (
+              ["payment_pending", "awaiting_payment", "pending_payment"].includes(normalizedStatus)
+              && !!paymentSummary?.hasSuccessfulPayment
+            );
+          });
+          if (activeDupe) {
+            return new Response(
+              JSON.stringify({
+                error: "You already have an active application for this sector, sub-sector, and service. You cannot submit another until it is finalised.",
+                code: "DUPLICATE_ACTIVE_APPLICATION",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
 
         const pendingPay = sameTriple.find((a) => {
