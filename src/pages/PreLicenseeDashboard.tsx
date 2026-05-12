@@ -81,7 +81,8 @@ export default function PreLicenseeDashboard() {
 
   const totalApps = applications.length;
   const draftCount = applications.filter((a: any) => a.status === 'draft').length;
-  const submittedCount = applications.filter((a: any) => ['submitted', 'in_progress'].includes(a.status)).length;
+  const inProgressCount = applications.filter((a: any) => a.status === 'in_progress').length;
+  const submittedCount = applications.filter((a: any) => ['submitted', 'under_review', 'query_raised', 'resubmission_requested'].includes(a.status)).length;
   const approvedCount = applications.filter((a: any) => a.status === 'approved').length;
 
   if (!user) return null;
