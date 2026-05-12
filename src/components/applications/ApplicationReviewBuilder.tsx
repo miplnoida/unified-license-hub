@@ -123,6 +123,7 @@ function useTemplateSections(templateId: string, pinnedVersionId?: string) {
 
 function formatValue(value: any, field: FormField): any {
   if (value === undefined || value === null || value === '') return null;
+  if (field.type === 'file' || isAttachmentValue(value)) return value;
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
     if (field.type === 'table') {
@@ -213,9 +214,11 @@ function resolveDynamicFieldValue(data: Record<string, any>, field: FormField): 
     field.id,
     (field as any).field_name,
     field.fieldName ? normalizeKey(field.fieldName) : null,
+    field.id ? normalizeKey(field.id) : null,
     field.label ? normalizeKey(field.label) : null,
     field.label,
     ...legacyAliases,
+    ...legacyAliases.map((alias: string) => normalizeKey(alias)),
   ].filter((k): k is string => typeof k === 'string' && k.length > 0);
 
   for (const key of candidates) {
