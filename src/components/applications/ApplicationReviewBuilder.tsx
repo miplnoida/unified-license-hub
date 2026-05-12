@@ -114,7 +114,7 @@ function useTemplateSections(templateId: string, pinnedVersionId?: string) {
 }
 
 function formatValue(value: any, field: FormField): any {
-  if (value == null || value === '') return null;
+  if (value === undefined || value === null || value === '') return null;
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
     if (field.type === 'table') {
@@ -127,5 +127,41 @@ function formatValue(value: any, field: FormField): any {
     if ((value as any).name) return (value as any).name;
     return JSON.stringify(value);
   }
+  if (typeof value === 'boolean') return value;
   return value;
 }
+
+function normalizeKey(value: any): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function resolveDynamicFieldValue(data: Record<string, any>, field: FormField): any {
+  if (!data || !field) return undefined;
+  const candidates = [
+    field.fieldName,
+    field.id,
+    (field as any).field_name,
+    field.fieldName ? normalizeKey(field.fieldName) : null,
+    field.label ? normalizeKey(field.label) : null,
+    field.label,
+  ].filter((k): k is string => typeof k === 'string' && k.length > 0);
+
+  for (const key of candidates) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      return data[key];
+    }
+  }
+  // Case-insensitive fallback
+  const lowerMap: Record<string, string> = {};
+  Object.keys(data).forEach(k => { lowerMap[k.toLowerCase()] = k; });
+  for (const key of candidates) {
+    const hit = lowerMap[String(key).toLowerCase()];
+    if (hit) return data[hit];
+  }
+  return undefined;
+}
+
