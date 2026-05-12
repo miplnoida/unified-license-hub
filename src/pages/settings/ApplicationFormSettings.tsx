@@ -49,6 +49,10 @@ export default function ApplicationFormSettings() {
 
   const updateVersionDates = useMutation({
     mutationFn: async ({ versionId, effective_from, effective_until }: { versionId: string; effective_from: string | null; effective_until: string | null }) => {
+      if (effective_from && effective_until && new Date(effective_until) < new Date(effective_from)) {
+        throw new Error('End date cannot be before start date.');
+      }
+
       const { error } = await (supabase
         .from('form_versions')
         .update({ effective_from, effective_until } as any)
@@ -56,6 +60,7 @@ export default function ApplicationFormSettings() {
       if (error) throw error;
     },
     onSuccess: () => toast.success('Version dates updated'),
+    onError: (err: any) => toast.error(err?.message || 'Failed to update version dates'),
   });
 
   const notifyVersionChange = useMutation({
@@ -112,6 +117,7 @@ export default function ApplicationFormSettings() {
           type="date"
           className="w-40"
           defaultValue={r.effective_until ? r.effective_until.split('T')[0] : ''}
+          min={r.effective_from ? r.effective_from.split('T')[0] : undefined}
           onBlur={(e) => {
             const val = e.target.value || null;
             updateVersionDates.mutate({ versionId: r.id, effective_from: r.effective_from, effective_until: val ? new Date(val).toISOString() : null });
