@@ -696,12 +696,14 @@ export default function NewApplication() {
     const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
     if (tmplIds.length === 0) return 'forms';
     const formsData = (d.forms_data || {}) as Record<string, any>;
-    const hasAllFormsData = tmplIds.every(
-      (tid) => formsData[tid] && Object.keys(formsData[tid]).length > 0
-    );
+    const versionIds = (d.form_version_ids || {}) as Record<string, string>;
+    const hasFormDataFor = (tid: string) =>
+      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
+    const hasAllFormsData = tmplIds.every(hasFormDataFor);
     if (!hasAllFormsData) return 'forms';
+    if (d.payment_status === 'success') return 'review';
     if (d.payment_status && d.payment_status !== 'success') return 'payment';
-    return 'review';
+    return 'payment';
   };
 
   const updateWizardUrl = useCallback((draftId: string, step: WizardStep) => {
