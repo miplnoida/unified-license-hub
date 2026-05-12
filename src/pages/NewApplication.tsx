@@ -676,7 +676,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, getDraftTemplateIds, hydrateFormProgress, hydratePaymentState, loadDraftTemplatesByIds, formTemplates, matchedTemplates, navigate, location.pathname]);
+  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, loadDraftTemplatesByIds, formTemplates, matchedTemplates, navigate, location.pathname]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
