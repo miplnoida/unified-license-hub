@@ -13,7 +13,7 @@ import { Save, ArrowLeft, Loader2, Info, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationSettings, useSaveApplicationSettings, ApplicationSettings } from '@/hooks/useApplicationSettings';
 import { useUpdateVersionSchedule } from '@/hooks/useFormTemplates';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
