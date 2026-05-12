@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
     const isResubmission = app.status === "resubmission_requested" || app.status === "query_raised";
 
-    if (app.status !== "draft" && !isResubmission) {
+    if (app.status !== "draft" && app.status !== "in_progress" && !isResubmission) {
       return new Response(
         JSON.stringify({ error: `Application is already ${app.status}, cannot submit` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
