@@ -82,6 +82,7 @@ export default function NewApplication() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draft');
+  const stepParam = searchParams.get('step');
   const continueModeParam = searchParams.get('mode') === 'continue';
   const continueIdFromPath = useMemo(() => {
     const match = location.pathname.match(/^\/applications\/([^/]+)\/continue$/);
