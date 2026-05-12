@@ -673,17 +673,21 @@ export default function NewApplication() {
     const hasSelection = !!d.sector_id && !!d.sub_sector_id && !!d.category_id;
     const tmplIds = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
     const formsData = (d.forms_data || {}) as Record<string, any>;
+    const versionIds = (d.form_version_ids || {}) as Record<string, string>;
     const hasTemplates = tmplIds.length > 0;
-    const hasAnyFormData = Object.values(formsData).some(
-      (v) => v && typeof v === 'object' && Object.keys(v).length > 0
-    );
+    // Form responses may live in `forms_data` OR in the separate `form_responses`
+    // table (in which case `form_version_ids` will have an entry per template).
+    const hasFormDataFor = (tid: string) =>
+      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
+    const hasAnyFormData = tmplIds.some(hasFormDataFor) ||
+      Object.keys(versionIds).length > 0;
+    const hasAllFormsData = tmplIds.every(hasFormDataFor);
+    const hasPaymentSignal = !!d.payment_status || !!d.payment_id;
     if (step === 'selection') return true;
     if (!hasSelection || !hasTemplates) return false;
     if (step === 'forms' || step === 'filling') return true;
-    if (step === 'documents' || step === 'payment') return hasAnyFormData;
-    if (step === 'review') {
-      return tmplIds.every((tid: string) => formsData[tid] && Object.keys(formsData[tid]).length > 0);
-    }
+    if (step === 'documents' || step === 'payment') return hasAnyFormData || hasPaymentSignal;
+    if (step === 'review') return hasAllFormsData || hasPaymentSignal;
     return false;
   };
 
@@ -692,12 +696,14 @@ export default function NewApplication() {
     const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
     if (tmplIds.length === 0) return 'forms';
     const formsData = (d.forms_data || {}) as Record<string, any>;
-    const hasAllFormsData = tmplIds.every(
-      (tid) => formsData[tid] && Object.keys(formsData[tid]).length > 0
-    );
+    const versionIds = (d.form_version_ids || {}) as Record<string, string>;
+    const hasFormDataFor = (tid: string) =>
+      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
+    const hasAllFormsData = tmplIds.every(hasFormDataFor);
     if (!hasAllFormsData) return 'forms';
+    if (d.payment_status === 'success') return 'review';
     if (d.payment_status && d.payment_status !== 'success') return 'payment';
-    return 'review';
+    return 'payment';
   };
 
   const updateWizardUrl = useCallback((draftId: string, step: WizardStep) => {
