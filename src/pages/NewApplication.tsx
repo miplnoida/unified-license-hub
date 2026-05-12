@@ -21,6 +21,7 @@ import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
+import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
