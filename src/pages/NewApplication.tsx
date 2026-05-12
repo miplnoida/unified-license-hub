@@ -1218,6 +1218,8 @@ export default function NewApplication() {
         ...assignedVersionByTemplate,
         [activeFormTemplateId]: resolvedVersionId,
       });
+      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
 
     toast.success('Form completed!');
