@@ -1578,9 +1578,24 @@ export default function NewApplication() {
                   : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
-          {applicationId && (
-            <Badge variant="outline" className="font-mono text-xs">Draft · {applicationId.substring(0, 8).toUpperCase()}</Badge>
-          )}
+          {applicationId && (() => {
+            const statusLabelMap: Record<string, string> = {
+              draft: 'Draft',
+              in_progress: 'In Progress',
+              submitted: 'Submitted',
+              under_review: 'Under Review',
+              query_raised: 'Query Raised',
+              resubmission_requested: 'Resubmit Requested',
+              approved: 'Approved',
+              rejected: 'Rejected',
+            };
+            const label = statusLabelMap[appStatus] || appStatus.replace(/_/g, ' ');
+            return (
+              <Badge variant="outline" className="font-mono text-xs">
+                {label} · {applicationId.substring(0, 8).toUpperCase()}
+              </Badge>
+            );
+          })()}
         </div>
 
         {hydratingDraft && (
