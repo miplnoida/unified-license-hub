@@ -535,19 +535,22 @@ export default function NewApplication() {
     setHydratingDraft(true);
     (async () => {
       try {
+        // Resolve which draft to load: explicit URL ?draft=, /:id/continue,
+        // otherwise fall back to latest draft for current user.
+        const targetDraftId = continuedApplicationId || draftIdParam;
         let query = supabase
           .from('applications')
           .select('*')
           .eq('applicant_id', user.id)
           .eq('status', 'draft');
-        if (continuedApplicationId) {
-          query = query.eq('id', continuedApplicationId);
+        if (targetDraftId) {
+          query = query.eq('id', targetDraftId);
         } else {
           query = query.order('created_at', { ascending: false }).limit(1);
         }
         const { data: draft } = await query.maybeSingle();
 
-        if (draft && (continuedApplicationId || !hasUserInteractedRef.current)) {
+        if (draft && (targetDraftId || !hasUserInteractedRef.current)) {
           const d = ((draft as any).data || {}) as Record<string, any>;
           setApplicationId((draft as any).id);
           if (d.sector_id) setSelectedSector(d.sector_id);
@@ -571,9 +574,21 @@ export default function NewApplication() {
           if (d.form_version_ids && typeof d.form_version_ids === 'object') {
             setAssignedVersionByTemplate(d.form_version_ids);
           }
-          if (d.category_id && tmplIds.length > 0) {
-            setCurrentStep('forms');
+
+          // Restore wizard step from URL → saved → inferred (with access guard).
+          const savedStep = d.wizard_step;
+          let hydratedStep: WizardStep | null = null;
+          if (isValidWizardStep(stepParam) && canAccessStep(stepParam, d)) {
+            hydratedStep = stepParam;
+          } else if (isValidWizardStep(savedStep) && canAccessStep(savedStep, d)) {
+            hydratedStep = savedStep;
+          } else {
+            hydratedStep = inferWizardStepFromDraft(d);
           }
+          if (hydratedStep === 'filling' && d.last_active_form_template_id) {
+            setActiveFormTemplateId(d.last_active_form_template_id);
+          }
+          setCurrentStep(hydratedStep);
 
           try {
             await hydratePaymentState((draft as any).id);
@@ -593,9 +608,13 @@ export default function NewApplication() {
             console.warn('[NewApplication] draft form hydration failed:', formHydrationError);
           }
 
-          if (continueIdFromPath) {
-            setSearchParams({ draft: (draft as any).id, mode: 'continue' }, { replace: true });
-          }
+          // Always reflect the loaded draft id + step in the URL so refresh
+          // restores the same view.
+          const params = new URLSearchParams(window.location.search);
+          params.set('draft', (draft as any).id);
+          params.set('step', hydratedStep);
+          if (continueIdFromPath) params.set('mode', 'continue');
+          navigate(`${location.pathname}?${params.toString()}`, { replace: true });
         }
       } catch (err) {
         console.warn('[NewApplication] draft hydration failed:', err);
@@ -603,7 +622,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, setSearchParams]);
+  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, navigate, location.pathname]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
