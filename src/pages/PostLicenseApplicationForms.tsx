@@ -223,8 +223,10 @@ export default function PostLicenseApplicationForms() {
     await supabase.from('applications').update({
       data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     } as any).eq('id', applicationId);
+    await markApplicationInProgressIfDraft(applicationId);
     setAppData((prev: any) => ({
       ...prev,
+      status: prev?.status === 'draft' ? 'in_progress' : prev?.status,
       data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     }));
   };
