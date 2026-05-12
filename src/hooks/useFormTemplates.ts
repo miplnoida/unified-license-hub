@@ -331,6 +331,18 @@ async function deleteVersionDraft(versionId: string) {
   if (versionErr) throw versionErr;
 }
 
+function getCurrentMonthEndIso(at: Date = new Date()): string {
+  return new Date(Date.UTC(
+    at.getUTCFullYear(),
+    at.getUTCMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999,
+  )).toISOString();
+}
+
 // ─── Queries ───
 
 export function useFormTemplates(formType?: string, regulatorId?: string | null) {
@@ -1008,26 +1020,28 @@ export function useUpdateTemplateStatus() {
 
       const nowDate = new Date();
       const nowIso = nowDate.toISOString();
-      // Last day of the current month at end-of-day, used to retire prior
-      // open-ended published versions when a new version goes live.
-      const monthEnd = new Date(
-        nowDate.getFullYear(),
-        nowDate.getMonth() + 1,
-        0,
-        23, 59, 59, 999,
-      ).toISOString();
+      const currentMonthEnd = getCurrentMonthEndIso(nowDate);
 
       const nextEffectiveFrom = latestDraft.effective_from ?? effective_from ?? nowIso;
       const nextEffectiveUntil = null;
 
-      // Close out any prior published versions for this template that are still
-      // open-ended (effective_until IS NULL). Their effective_from is preserved.
-      await supabase
+      // Close out old published versions for this template while preserving
+      // their original effective_from values.
+      const { error: closeOpenPublishedErr } = await supabase
         .from('form_versions')
-        .update({ effective_until: monthEnd } as any)
+        .update({ effective_until: currentMonthEnd } as any)
         .eq('template_id', id)
         .eq('status', 'published')
         .is('effective_until', null);
+      if (closeOpenPublishedErr) throw closeOpenPublishedErr;
+
+      const { error: closeFuturePublishedErr } = await supabase
+        .from('form_versions')
+        .update({ effective_until: currentMonthEnd } as any)
+        .eq('template_id', id)
+        .eq('status', 'published')
+        .gt('effective_until', currentMonthEnd);
+      if (closeFuturePublishedErr) throw closeFuturePublishedErr;
 
       const { error: vErr } = await supabase.from('form_versions').insert({
         id: newVid,
