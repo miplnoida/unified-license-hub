@@ -102,6 +102,7 @@ export default function NewApplication() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [formProgressMap, setFormProgressMap] = useState<Record<string, FormProgress>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [appStatus, setAppStatus] = useState<string>('draft');
   const [saving, setSaving] = useState(false);
   const { data: reviewSettings } = useReviewSettings();
   const [submitting, setSubmitting] = useState(false);
