@@ -1167,6 +1167,8 @@ export default function NewApplication() {
         ...assignedVersionByTemplate,
         ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
       });
+      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
   };
 
