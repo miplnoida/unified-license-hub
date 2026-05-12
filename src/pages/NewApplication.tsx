@@ -30,6 +30,7 @@ import {
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
+import { useQueryClient } from '@tanstack/react-query';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
