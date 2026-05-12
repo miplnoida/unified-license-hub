@@ -6,23 +6,58 @@ export const APPLICATION_STATUS = {
   SUBMITTED: 'submitted',
 } as const;
 
-const TERMINAL_STATUSES = new Set([
+export const EDITABLE_APPLICATION_STATUSES = [
+  'draft',
+  'in_progress',
+  'resubmission_requested',
+  'query_raised',
+];
+
+export const SUBMITTED_APPLICATION_STATUSES = [
   'submitted',
   'under_review',
+  'review',
+  'pending_review',
+];
+
+export const FINAL_APPLICATION_STATUSES = [
   'approved',
   'rejected',
   'cancelled',
   'withdrawn',
-  'resubmission_requested',
-  'query_raised',
+];
+
+const TERMINAL_STATUSES = new Set([
+  ...SUBMITTED_APPLICATION_STATUSES,
+  ...FINAL_APPLICATION_STATUSES,
 ]);
 
+export function normalizeApplicationStatus(status?: string | null) {
+  return String(status || 'draft').trim().toLowerCase();
+}
+
+export function isApplicationEditable(status?: string | null) {
+  return EDITABLE_APPLICATION_STATUSES.includes(normalizeApplicationStatus(status));
+}
+
+export function isApplicationSubmittedLike(status?: string | null) {
+  return SUBMITTED_APPLICATION_STATUSES.includes(normalizeApplicationStatus(status));
+}
+
+export function isApplicationFinal(status?: string | null) {
+  return FINAL_APPLICATION_STATUSES.includes(normalizeApplicationStatus(status));
+}
+
+export function shouldShowRequestEdit(status?: string | null) {
+  return isApplicationSubmittedLike(status);
+}
+
 export function shouldMoveDraftToInProgress(status?: string | null) {
-  return !status || String(status).toLowerCase() === 'draft';
+  return !status || normalizeApplicationStatus(status) === 'draft';
 }
 
 export function isTerminalApplicationStatus(status?: string | null) {
-  return TERMINAL_STATUSES.has(String(status || '').toLowerCase());
+  return TERMINAL_STATUSES.has(normalizeApplicationStatus(status));
 }
 
 /**

@@ -438,7 +438,9 @@ export default function ApplicationDetail() {
       if (!_lastResAt || t > _lastResAt) _lastResAt = t;
     }
   }
-  const EDIT_REQUEST_ALLOWED_STATUSES = ['submitted', 'in_progress'];
+  // Request Edit only applies once the application has been submitted for review.
+  // 'in_progress' means the user has merely saved a form — they can still edit freely.
+  const EDIT_REQUEST_ALLOWED_STATUSES = ['submitted', 'under_review', 'review', 'pending_review'];
   const hasPendingEditRequest =
     EDIT_REQUEST_ALLOWED_STATUSES.includes(app.status) &&
     !!_lastReqAt && (!_lastResAt || _lastResAt < _lastReqAt);
@@ -450,7 +452,7 @@ export default function ApplicationDetail() {
   // Workflow / manual actions are suppressed while an edit request is pending —
   // admins must first allow or deny the edit request before resuming review.
   const showWorkflowPanel = workflowChecked && workflowOn === true && !hasPendingEditRequest;
-  const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'in_progress'].includes(app.status) && !hasPendingEditRequest;
+  const showManualActions = workflowChecked && workflowOn === false && isInternal && ['submitted', 'under_review', 'review', 'pending_review'].includes(app.status) && !hasPendingEditRequest;
   const showEditRequestAdminPanel = isInternal && hasPendingEditRequest;
 
   // Admin allows the applicant's edit request → pause workflow and move app to
@@ -608,7 +610,7 @@ export default function ApplicationDetail() {
                       formVersionIds={formVersionIds}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -686,13 +688,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={isOwner && (app.status === 'draft' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
                 ))}
@@ -807,7 +809,7 @@ export default function ApplicationDetail() {
             )}
 
             {/* Applicant submit action */}
-            {isOwner && app.status === 'draft' && (() => {
+            {isOwner && (app.status === 'draft' || app.status === 'in_progress') && (() => {
               const allFormsCompleted = formTemplateIds.length > 0 && formTemplateIds.every(tid => {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
