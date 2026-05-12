@@ -286,13 +286,13 @@ function MyApplications({ widget, context }: RendererProps) {
 }
 
 function DraftApplications({ widget, context }: RendererProps) {
-  const [drafts, setDrafts] = useState<Array<{ id: string; application_number: string; updated_at: string }>>([]);
+  const [drafts, setDrafts] = useState<Array<{ id: string; application_number: string; updated_at: string; status: string }>>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
     supabase.from('applications')
-      .select('id, application_number, updated_at')
-      .eq('applicant_id', context.userId).eq('status', 'draft')
+      .select('id, application_number, updated_at, status')
+      .eq('applicant_id', context.userId).in('status', ['draft', 'in_progress'])
       .order('updated_at', { ascending: false }).limit(5)
       .then(({ data }) => { if (alive) setDrafts((data || []) as any); })
       .then(() => { if (alive) setLoading(false); });
@@ -318,20 +318,20 @@ function DraftApplications({ widget, context }: RendererProps) {
           <Skeleton className="h-16 w-full" />
         ) : drafts.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No draft applications yet.
+            No draft or in-progress applications yet.
           </p>
         ) : (
           <div className="space-y-2">
             {drafts.map(d => (
               <Link
                 key={d.id}
-                to={`/applications/${d.id}`}
+                to={`/pre-license/new?draft=${d.id}&mode=continue`}
                 className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 transition-colors"
               >
                 <div>
                   <p className="font-mono text-sm font-medium">{d.application_number}</p>
                   <p className="text-xs text-muted-foreground">
-                    Last modified: {new Date(d.updated_at).toLocaleDateString()}
+                    {d.status === 'in_progress' ? 'In Progress' : 'Draft'} · Last modified: {new Date(d.updated_at).toLocaleDateString()}
                   </p>
                 </div>
                 <Button size="sm" variant="outline" className="gap-1 pointer-events-none">

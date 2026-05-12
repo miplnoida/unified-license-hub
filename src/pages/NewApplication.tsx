@@ -102,6 +102,7 @@ export default function NewApplication() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [formProgressMap, setFormProgressMap] = useState<Record<string, FormProgress>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [appStatus, setAppStatus] = useState<string>('draft');
   const [saving, setSaving] = useState(false);
   const { data: reviewSettings } = useReviewSettings();
   const [submitting, setSubmitting] = useState(false);
@@ -599,6 +600,7 @@ export default function NewApplication() {
           const d = ((draft as any).data || {}) as Record<string, any>;
           latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
+          setAppStatus(((draft as any).status || 'draft').toLowerCase());
           if (d.sector_id) setSelectedSector(d.sector_id);
           if (d.sub_sector_id) setSelectedSubSector(d.sub_sector_id);
           if (d.category_id) setSelectedCategory(d.category_id);
@@ -1161,6 +1163,7 @@ export default function NewApplication() {
         },
       } as any).eq('id', applicationId);
       await markApplicationInProgressIfDraft(applicationId);
+      setAppStatus(prev => (prev === 'draft' ? 'in_progress' : prev));
       toast.success('Draft saved');
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
@@ -1213,6 +1216,7 @@ export default function NewApplication() {
         },
       } as any).eq('id', applicationId);
       await markApplicationInProgressIfDraft(applicationId);
+      setAppStatus(prev => (prev === 'draft' ? 'in_progress' : prev));
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
         ...assignedVersionByTemplate,
@@ -1574,9 +1578,24 @@ export default function NewApplication() {
                   : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
-          {applicationId && (
-            <Badge variant="outline" className="font-mono text-xs">Draft · {applicationId.substring(0, 8).toUpperCase()}</Badge>
-          )}
+          {applicationId && (() => {
+            const statusLabelMap: Record<string, string> = {
+              draft: 'Draft',
+              in_progress: 'In Progress',
+              submitted: 'Submitted',
+              under_review: 'Under Review',
+              query_raised: 'Query Raised',
+              resubmission_requested: 'Resubmit Requested',
+              approved: 'Approved',
+              rejected: 'Rejected',
+            };
+            const label = statusLabelMap[appStatus] || appStatus.replace(/_/g, ' ');
+            return (
+              <Badge variant="outline" className="font-mono text-xs">
+                {label} · {applicationId.substring(0, 8).toUpperCase()}
+              </Badge>
+            );
+          })()}
         </div>
 
         {hydratingDraft && (
