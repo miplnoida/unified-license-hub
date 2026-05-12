@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { useIsPreLicensee } from '@/hooks/useUserPermissions';
 import { resolveWorkflowApproval } from '@/lib/workflowApprovalResolver';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
@@ -60,6 +61,7 @@ export default function ApplicationDetail() {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [app, setApp] = useState<Application | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -641,6 +643,10 @@ export default function ApplicationDetail() {
                           if (nextStatus) {
                             setApp((prev) => (prev ? { ...prev, status: normalizeApplicationStatus(nextStatus) as ApplicationStatus } : prev));
                           }
+                          await Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
+                            queryClient.invalidateQueries({ queryKey: ['applications'] }),
+                          ]);
                         } catch (statusError: any) {
                           console.error('[ApplicationDetail] Failed to promote draft application after form save:', statusError);
                           toast.error(statusError?.message || 'Form saved, but failed to update application status');
