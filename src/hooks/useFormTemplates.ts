@@ -866,7 +866,7 @@ export function useDeleteFormTemplate() {
 export function useUpdateTemplateStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, effective_from }: { id: string; status: string; effective_from?: string | null }) => {
       // Always update the template's status first.
       const { error } = await supabase.from('form_templates').update({ status } as any).eq('id', id);
       if (error) throw error;
@@ -1017,7 +1017,7 @@ export function useUpdateTemplateStatus() {
         23, 59, 59, 999,
       ).toISOString();
 
-      const nextEffectiveFrom = latestDraft.effective_from ?? nowIso;
+      const nextEffectiveFrom = latestDraft.effective_from ?? effective_from ?? nowIso;
       const nextEffectiveUntil = latestDraft.effective_until ?? null;
 
       if (nextEffectiveUntil && new Date(nextEffectiveUntil) < new Date(nextEffectiveFrom)) {
