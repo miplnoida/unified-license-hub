@@ -1514,12 +1514,12 @@ export default function NewApplication() {
   const handleBack = () => {
     if (currentStep === 'filling') {
       setActiveFormTemplateId(null);
-      setCurrentStep('forms');
+      void goToStep('forms', { last_active_form_template_id: null });
     } else if (currentStep === 'selection') {
       navigate(-1);
     } else {
       const prevIdx = stepIndex - 1;
-      if (prevIdx >= 0) setCurrentStep(WIZARD_STEPS[prevIdx].key);
+      if (prevIdx >= 0) void goToStep(WIZARD_STEPS[prevIdx].key);
     }
   };
 
@@ -1567,10 +1567,14 @@ export default function NewApplication() {
         </div>
 
         {hydratingDraft && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Checking for existing draft...
-          </div>
+          <Card>
+            <CardContent className="py-10">
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Restoring your draft...
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Persistent banner: shown for the entire continue-draft session,
@@ -1631,7 +1635,7 @@ export default function NewApplication() {
         </div>
 
         {/* Step 1: Category Selection */}
-        {currentStep === 'selection' && (
+        {!hydratingDraft && currentStep === 'selection' && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1716,7 +1720,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 2: Forms List (mandatory all) */}
-        {currentStep === 'forms' && (
+        {!hydratingDraft && currentStep === 'forms' && (
           <div className="space-y-4">
             {/* Progress Summary */}
             <Card className="border-primary/20 bg-primary/5">
