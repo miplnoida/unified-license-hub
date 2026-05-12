@@ -1163,6 +1163,7 @@ export default function NewApplication() {
         },
       } as any).eq('id', applicationId);
       await markApplicationInProgressIfDraft(applicationId);
+      setAppStatus(prev => (prev === 'draft' ? 'in_progress' : prev));
       toast.success('Draft saved');
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
