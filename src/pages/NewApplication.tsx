@@ -1933,7 +1933,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 4: Payment */}
-        {currentStep === 'payment' && applicationId && (
+        {!hydratingDraft && currentStep === 'payment' && applicationId && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -2084,11 +2084,11 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+              <Button variant="outline" onClick={() => void goToStep('documents')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
               <Button
-                onClick={() => setCurrentStep('review')}
+                onClick={() => void goToStep('review', { wizard_step: 'review', completed_steps: ['selection', 'forms', 'documents', 'payment'] })}
                 disabled={!paymentComplete}
               >
                 {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
@@ -2099,7 +2099,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 5: Review & Submit */}
-        {currentStep === 'review' && (
+        {!hydratingDraft && currentStep === 'review' && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -2133,8 +2133,8 @@ export default function NewApplication() {
             </Card>
 
             <ApplicationReviewBuilder
-              templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
-              formProgressMap={formProgressMap}
+              templates={reviewTemplates}
+              formProgressMap={buildReviewProgressMap()}
               versionIdByTemplate={assignedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
@@ -2143,11 +2143,11 @@ export default function NewApplication() {
                   'I have reviewed all the information and confirm the details provided are accurate and complete.'
                 )
               }
-              onEdit={(idx) => {
-                const tmpl = matchedTemplates[idx];
+                onEdit={(idx) => {
+                  const tmpl = reviewTemplates[idx];
                 if (tmpl) {
                   setActiveFormTemplateId(tmpl.id);
-                  setCurrentStep('forms');
+                    void goToStep('forms', { last_active_form_template_id: tmpl.id });
                 }
               }}
               title="Review Your Application"
@@ -2170,7 +2170,7 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-start">
-              <Button variant="outline" onClick={() => setCurrentStep('payment')}>
+              <Button variant="outline" onClick={() => void goToStep('payment')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
             </div>
