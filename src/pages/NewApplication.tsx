@@ -575,25 +575,25 @@ export default function NewApplication() {
     if (hasHydratedRef.current) return;
     if (!user) return;
     hasHydratedRef.current = true;
+    // Only hydrate an existing application when the URL explicitly asks
+    // for it (?draft=<id> or /applications/<id>/continue). Clicking
+    // "New Application" must always start a clean selection flow and
+    // must NOT silently auto-load an older draft / in-progress app.
+    const targetDraftId = continuedApplicationId || draftIdParam;
+    if (!targetDraftId) {
+      return;
+    }
     setHydratingDraft(true);
     (async () => {
       try {
-        // Resolve which draft to load: explicit URL ?draft=, /:id/continue,
-        // otherwise fall back to latest draft for current user.
-        const targetDraftId = continuedApplicationId || draftIdParam;
-        let query = supabase
+        const { data: draft } = await supabase
           .from('applications')
           .select('*')
           .eq('applicant_id', user.id)
-          .eq('status', 'draft');
-        if (targetDraftId) {
-          query = query.eq('id', targetDraftId);
-        } else {
-          query = query.order('created_at', { ascending: false }).limit(1);
-        }
-        const { data: draft } = await query.maybeSingle();
+          .eq('id', targetDraftId)
+          .maybeSingle();
 
-        if (draft && (targetDraftId || !hasUserInteractedRef.current)) {
+        if (draft) {
           const d = ((draft as any).data || {}) as Record<string, any>;
           latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
