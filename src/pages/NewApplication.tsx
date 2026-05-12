@@ -1629,12 +1629,12 @@ export default function NewApplication() {
           </Button>
           <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground">
-               {isContinuingDraft || applicationId ? 'Continue Application' : 'New License Application'}
+               {isContinuingDraft ? 'Continue Application' : 'New License Application'}
             </h1>
             <p className="text-muted-foreground text-sm">
               {currentStep === 'filling'
                 ? `Filling: ${activeTemplate?.name || 'Form'}`
-                  : isContinuingDraft || applicationId
+                  : isContinuingDraft
                   ? 'Resume where you left off — your saved progress has been loaded.'
                   : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
