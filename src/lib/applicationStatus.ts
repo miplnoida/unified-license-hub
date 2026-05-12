@@ -34,18 +34,9 @@ export async function markApplicationInProgressIfDraft(
 ): Promise<void> {
   if (!applicationId) return;
   try {
-    const { data, error } = await supabase
-      .from('applications')
-      .select('id, status')
-      .eq('id', applicationId)
-      .maybeSingle();
-    if (error || !data) return;
-    if (!shouldMoveDraftToInProgress((data as any).status)) return;
-    await supabase
-      .from('applications')
-      .update({ status: 'in_progress' as any, updated_at: new Date().toISOString() } as any)
-      .eq('id', applicationId)
-      .eq('status', 'draft');
+    await supabase.rpc('mark_application_in_progress' as any, {
+      _application_id: applicationId,
+    } as any);
   } catch (err) {
     console.warn('[applicationStatus] markApplicationInProgressIfDraft failed:', err);
   }
