@@ -1158,6 +1158,7 @@ export default function NewApplication() {
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
+      await markApplicationInProgressIfDraft(applicationId);
       toast.success('Draft saved');
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
