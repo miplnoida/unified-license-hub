@@ -1849,7 +1849,7 @@ export default function NewApplication() {
         )}
 
         {/* Filling a specific form */}
-        {currentStep === 'filling' && activeTemplate && (
+        {!hydratingDraft && currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
             {/* Version badge hidden from applicants */}
             {!resolverMessage && sections.length > 0 ? (
@@ -1885,7 +1885,7 @@ export default function NewApplication() {
                         [activeTemplate.id]: { ...prev[activeTemplate.id], status: 'completed' },
                       }));
                       setActiveFormTemplateId(null);
-                      setCurrentStep('forms');
+                      void goToStep('forms', { last_active_form_template_id: null });
                     }}>
                       Mark Complete & Return
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -1898,7 +1898,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 3: Documents */}
-        {currentStep === 'documents' && applicationId && (
+        {!hydratingDraft && currentStep === 'documents' && applicationId && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1920,7 +1920,7 @@ export default function NewApplication() {
               </div>
 
               <div className="flex justify-between pt-4 border-t">
-                <Button variant="outline" onClick={() => setCurrentStep('forms')}>
+                <Button variant="outline" onClick={() => void goToStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
                 <Button onClick={handleProceedToPayment}>
