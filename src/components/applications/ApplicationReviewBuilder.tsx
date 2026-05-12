@@ -35,7 +35,8 @@ export function ApplicationReviewBuilder(props: Props) {
 function ReviewBuilderInner({
   templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description,
 }: Props) {
-  // Fetch sections + version info for each template (hooks called in stable order)
+  // Review must use the pinned form version (versionIdByTemplate) used to fill the application
+  // to avoid mismatched dynamic field keys. Latest is only a fallback for legacy/no-pinned cases.
   const templateSections = templates.map(t =>
     useTemplateSections(t.id, versionIdByTemplate?.[t.id])
   );
@@ -48,8 +49,18 @@ function ReviewBuilderInner({
 
       secs.forEach((sec: FormSection) => {
         (sec.fields || []).forEach((f: FormField) => {
-          if (f.type === 'paragraph') return;
-          const raw = data[f.fieldName];
+          if (f.type === 'paragraph' || f.type === 'heading') return;
+          if (!f.label && !f.fieldName) return;
+          const raw = resolveDynamicFieldValue(data, f);
+          if (import.meta.env.DEV && raw === undefined && Object.keys(data).length > 0) {
+            // eslint-disable-next-line no-console
+            console.debug('[ReviewBuilder] Missing value for field', {
+              label: f.label,
+              fieldName: f.fieldName,
+              id: f.id,
+              availableKeys: Object.keys(data),
+            });
+          }
           fields.push({
             label: f.label || f.fieldName,
             value: formatValue(raw, f),
