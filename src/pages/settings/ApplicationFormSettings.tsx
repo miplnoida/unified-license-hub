@@ -12,10 +12,16 @@ import { DataTableShell, Column } from '@/components/shared/DataTableShell';
 import { Save, ArrowLeft, Loader2, Info, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationSettings, useSaveApplicationSettings, ApplicationSettings } from '@/hooks/useApplicationSettings';
+import { useUpdateVersionSchedule } from '@/hooks/useFormTemplates';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+
+function toUtcDateStartIso(value: string | null): string | null {
+  if (!value) return null;
+  return new Date(`${value}T00:00:00Z`).toISOString();
+}
 
 export default function ApplicationFormSettings() {
   const navigate = useNavigate();
@@ -47,21 +53,7 @@ export default function ApplicationFormSettings() {
     },
   });
 
-  const updateVersionDates = useMutation({
-    mutationFn: async ({ versionId, effective_from, effective_until }: { versionId: string; effective_from: string | null; effective_until: string | null }) => {
-      if (effective_from && effective_until && new Date(effective_until) < new Date(effective_from)) {
-        throw new Error('End date cannot be before start date.');
-      }
-
-      const { error } = await (supabase
-        .from('form_versions')
-        .update({ effective_from, effective_until } as any)
-        .eq('id', versionId) as any);
-      if (error) throw error;
-    },
-    onSuccess: () => toast.success('Version dates updated'),
-    onError: (err: any) => toast.error(err?.message || 'Failed to update version dates'),
-  });
+  const updateVersionDates = useUpdateVersionSchedule();
 
   const notifyVersionChange = useMutation({
     mutationFn: async ({ templateName, semanticVersion }: { versionId: string; templateName: string; semanticVersion: string }) => {
@@ -104,14 +96,20 @@ export default function ApplicationFormSettings() {
           defaultValue={r.effective_from ? r.effective_from.split('T')[0] : ''}
           onBlur={(e) => {
             const val = e.target.value || null;
-            updateVersionDates.mutate({ versionId: r.id, effective_from: val ? new Date(val).toISOString() : null, effective_until: r.effective_until });
+            updateVersionDates.mutate(
+              { versionId: r.id, effective_from: toUtcDateStartIso(val), effective_until: r.effective_until },
+              {
+                onSuccess: () => toast.success('Version dates updated'),
+                onError: (err: any) => toast.error(err?.message || 'Failed to update version dates'),
+              }
+            );
           }}
         />
       ),
     },
     {
       key: 'effective_until',
-      label: 'Effective Until',
+      label: 'End Date',
       render: (r) => (
         <Input
           type="date"
@@ -120,7 +118,13 @@ export default function ApplicationFormSettings() {
           min={r.effective_from ? r.effective_from.split('T')[0] : undefined}
           onBlur={(e) => {
             const val = e.target.value || null;
-            updateVersionDates.mutate({ versionId: r.id, effective_from: r.effective_from, effective_until: val ? new Date(val).toISOString() : null });
+            updateVersionDates.mutate(
+              { versionId: r.id, effective_from: r.effective_from, effective_until: toUtcDateStartIso(val) },
+              {
+                onSuccess: () => toast.success('Version dates updated'),
+                onError: (err: any) => toast.error(err?.message || 'Failed to update version dates'),
+              }
+            );
           }}
         />
       ),
