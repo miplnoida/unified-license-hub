@@ -594,12 +594,24 @@ export default function NewApplication() {
 
         if (draft && (targetDraftId || !hasUserInteractedRef.current)) {
           const d = ((draft as any).data || {}) as Record<string, any>;
+          latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
           if (d.sector_id) setSelectedSector(d.sector_id);
           if (d.sub_sector_id) setSelectedSubSector(d.sub_sector_id);
           if (d.category_id) setSelectedCategory(d.category_id);
 
-          const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+          const tmplIds = getDraftTemplateIds(d);
+          setHydratedDraftTemplates(await loadDraftTemplatesByIds(tmplIds));
+          if (import.meta.env.DEV) {
+            console.debug('[NewApplication] hydrate draft', {
+              draftId: (draft as any).id,
+              savedStep: d.wizard_step,
+              urlStep: stepParam,
+              formTemplateIds: tmplIds,
+              formsDataKeys: Object.keys(d.forms_data || {}),
+              formVersionIds: Object.keys(d.form_version_ids || {}),
+            });
+          }
           if (tmplIds.length > 0) {
             const progress: Record<string, FormProgress> = {};
             tmplIds.forEach(tid => {
@@ -664,7 +676,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, navigate, location.pathname]);
+  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, getDraftTemplateIds, hydrateFormProgress, hydratePaymentState, loadDraftTemplatesByIds, formTemplates, matchedTemplates, navigate, location.pathname]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
@@ -1098,12 +1110,12 @@ export default function NewApplication() {
       } catch (formHydrationError) {
         console.warn('[NewApplication] form progress hydration after proceed failed:', formHydrationError);
       }
-      setCurrentStep('forms');
+      await goToStep('forms', { wizard_step: 'forms' });
     }
     setSaving(false);
   };
 
-  const handleStartForm = (templateId: string) => {
+  const handleStartForm = async (templateId: string) => {
     setActiveFormTemplateId(templateId);
     // Mark as in_progress if not_started
     setFormProgressMap(prev => ({
@@ -1113,7 +1125,7 @@ export default function NewApplication() {
         status: prev[templateId]?.status === 'completed' ? 'completed' : 'in_progress',
       },
     }));
-    setCurrentStep('filling');
+    await goToStep('filling', { last_active_form_template_id: templateId });
   };
 
   const handleFormSaveDraft = async (data: Record<string, any>) => {
@@ -1203,7 +1215,7 @@ export default function NewApplication() {
 
     toast.success('Form completed!');
     setActiveFormTemplateId(null);
-    setCurrentStep('forms');
+    await goToStep('forms', { last_active_form_template_id: null });
   };
 
   // Load applicable fees dynamically from Fee Management (single source of truth)
@@ -1276,15 +1288,18 @@ export default function NewApplication() {
     await loadFees();
     if (applicationId) {
       const existing = await hydratePaymentState(applicationId);
-      if (existing.successful) {
+        if (existing.successful) {
         toast.info('Payment already completed for this application.');
-        setCurrentStep('review');
+          await goToStep('review', {
+            wizard_step: 'review',
+            completed_steps: ['selection', 'forms', 'documents', 'payment'],
+          });
         return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
     }
-    setCurrentStep('payment');
+    await goToStep('payment', { wizard_step: 'payment' });
   };
 
   const handleProcessPayment = async () => {
@@ -1469,7 +1484,7 @@ export default function NewApplication() {
       return;
     }
 
-    setCurrentStep('documents');
+    await goToStep('documents', { wizard_step: 'documents' });
   };
 
   const getFormStatusBadge = (status: FormStatus) => {
