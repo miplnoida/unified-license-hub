@@ -202,6 +202,21 @@ export default function PreLicenseeDashboard() {
                                   <TooltipContent>Delete</TooltipContent>
                                 </Tooltip>
                               )}
+                              {(app.status === 'draft' || app.status === 'in_progress') && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => navigate(`/applications/${app.id}/continue?draft=${app.id}&mode=continue`)}
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Continue</TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
