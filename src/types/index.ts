@@ -58,7 +58,7 @@ export interface Service {
 }
 
 // Application Types
-export type ApplicationStatus = 'draft' | 'work_in_progress' | 'submitted' | 'under_review' | 'query_raised' | 'approved' | 'rejected' | 'returned';
+export type ApplicationStatus = 'draft' | 'in_progress' | 'submitted' | 'under_review' | 'query_raised' | 'approved' | 'rejected' | 'returned';
 export type FeeStatus = 'paid' | 'pending';
 
 export interface Application {
