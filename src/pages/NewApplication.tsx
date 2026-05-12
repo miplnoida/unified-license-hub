@@ -111,7 +111,7 @@ export default function NewApplication() {
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
   const [showInlineReview, setShowInlineReview] = useState(false);
-  const [hydratedDraftTemplateIds, setHydratedDraftTemplateIds] = useState<string[]>([]);
+  const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
   const { data: appSettings } = useApplicationSettings();
 
@@ -164,6 +164,45 @@ export default function NewApplication() {
       (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
     );
   }, [selectedCategory, selectedSubSector, selectedSector, formTemplates, allCategories, allSubSectors, sectors]);
+
+  const reviewTemplates = useMemo(
+    () => (matchedTemplates.length > 0
+      ? matchedTemplates.map((template) => ({ id: template.id, name: template.name }))
+      : hydratedDraftTemplates),
+    [matchedTemplates, hydratedDraftTemplates]
+  );
+
+  const loadDraftTemplatesByIds = useCallback(async (templateIds: string[]) => {
+    if (templateIds.length === 0) return [] as Array<{ id: string; name: string }>;
+
+    const knownTemplates = new Map(
+      formTemplates.map((template) => [template.id, { id: template.id, name: template.name }])
+    );
+
+    const missingIds = templateIds.filter((templateId) => !knownTemplates.has(templateId));
+    if (missingIds.length > 0) {
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, name')
+        .in('id', missingIds);
+
+      if (error) {
+        console.warn('[NewApplication] failed to load draft template metadata:', error);
+      } else {
+        for (const template of (data || []) as Array<{ id: string; name: string | null }>) {
+          knownTemplates.set(template.id, {
+            id: template.id,
+            name: template.name || `Form ${template.id.slice(0, 8).toUpperCase()}`,
+          });
+        }
+      }
+    }
+
+    return templateIds.map((templateId) => knownTemplates.get(templateId) || {
+      id: templateId,
+      name: `Form ${templateId.slice(0, 8).toUpperCase()}`,
+    });
+  }, [formTemplates]);
 
   // Active form template being filled
   const activeTemplate = useMemo(() => {
