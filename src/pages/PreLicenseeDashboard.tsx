@@ -81,7 +81,8 @@ export default function PreLicenseeDashboard() {
 
   const totalApps = applications.length;
   const draftCount = applications.filter((a: any) => a.status === 'draft').length;
-  const submittedCount = applications.filter((a: any) => ['submitted', 'in_progress'].includes(a.status)).length;
+  const inProgressCount = applications.filter((a: any) => a.status === 'in_progress').length;
+  const submittedCount = applications.filter((a: any) => ['submitted', 'under_review', 'query_raised', 'resubmission_requested'].includes(a.status)).length;
   const approvedCount = applications.filter((a: any) => a.status === 'approved').length;
 
   if (!user) return null;
@@ -104,9 +105,10 @@ export default function PreLicenseeDashboard() {
           <p className="mt-1 text-muted-foreground">Manage your license applications and track their status.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard title="Total Applications" value={totalApps} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Drafts" value={draftCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
+          <StatCard title="In Progress" value={inProgressCount} icon={<RotateCcw className="h-6 w-6" />} variant="primary" />
           <StatCard title="In Review" value={submittedCount} icon={<AlertTriangle className="h-6 w-6" />} variant="primary" />
           <StatCard title="Approved" value={approvedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
@@ -209,7 +211,7 @@ export default function PreLicenseeDashboard() {
                                       variant="ghost"
                                       size="icon"
                                       className="h-8 w-8"
-                                      onClick={() => navigate(`/applications/${app.id}/continue?draft=${app.id}&mode=continue`)}
+                                      onClick={() => navigate(`/pre-license/new?draft=${app.id}&mode=continue`)}
                                     >
                                       <RotateCcw className="h-4 w-4" />
                                     </Button>
