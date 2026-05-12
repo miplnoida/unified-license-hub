@@ -111,6 +111,7 @@ export default function NewApplication() {
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
   const [showInlineReview, setShowInlineReview] = useState(false);
+  const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
   const { data: appSettings } = useApplicationSettings();
 
@@ -163,6 +164,45 @@ export default function NewApplication() {
       (t.sector && t.sector === secObj.name && !t.category && !t.sub_sector)
     );
   }, [selectedCategory, selectedSubSector, selectedSector, formTemplates, allCategories, allSubSectors, sectors]);
+
+  const reviewTemplates = useMemo(
+    () => (matchedTemplates.length > 0
+      ? matchedTemplates.map((template) => ({ id: template.id, name: template.name }))
+      : hydratedDraftTemplates),
+    [matchedTemplates, hydratedDraftTemplates]
+  );
+
+  const loadDraftTemplatesByIds = useCallback(async (templateIds: string[]) => {
+    if (templateIds.length === 0) return [] as Array<{ id: string; name: string }>;
+
+    const knownTemplates = new Map(
+      formTemplates.map((template) => [template.id, { id: template.id, name: template.name }])
+    );
+
+    const missingIds = templateIds.filter((templateId) => !knownTemplates.has(templateId));
+    if (missingIds.length > 0) {
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, name')
+        .in('id', missingIds);
+
+      if (error) {
+        console.warn('[NewApplication] failed to load draft template metadata:', error);
+      } else {
+        for (const template of (data || []) as Array<{ id: string; name: string | null }>) {
+          knownTemplates.set(template.id, {
+            id: template.id,
+            name: template.name || `Form ${template.id.slice(0, 8).toUpperCase()}`,
+          });
+        }
+      }
+    }
+
+    return templateIds.map((templateId) => knownTemplates.get(templateId) || {
+      id: templateId,
+      name: `Form ${templateId.slice(0, 8).toUpperCase()}`,
+    });
+  }, [formTemplates]);
 
   // Active form template being filled
   const activeTemplate = useMemo(() => {
@@ -262,6 +302,7 @@ export default function NewApplication() {
 
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
+  const latestDraftDataRef = useRef<Record<string, any>>({});
   useEffect(() => {
     activeFormTemplateIdRef.current = activeFormTemplateId;
   }, [activeFormTemplateId]);
@@ -315,7 +356,7 @@ export default function NewApplication() {
 
   const hydrateFormProgress = useCallback(async (
     targetApplicationId: string,
-    templates: typeof matchedTemplates,
+    templates: Array<{ id: string }>,
     versionMap: Record<string, string>,
   ) => {
     if (!targetApplicationId || templates.length === 0) {
@@ -337,6 +378,7 @@ export default function NewApplication() {
     if (appError) throw appError;
 
     const appData = ((appRecord as any)?.data || {}) as Record<string, any>;
+    latestDraftDataRef.current = appData;
     const storedFormsData = (appData.forms_data || {}) as Record<string, Record<string, any>>;
     const storedVersionIds = (appData.form_version_ids || {}) as Record<string, string>;
 
@@ -552,12 +594,24 @@ export default function NewApplication() {
 
         if (draft && (targetDraftId || !hasUserInteractedRef.current)) {
           const d = ((draft as any).data || {}) as Record<string, any>;
+          latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
           if (d.sector_id) setSelectedSector(d.sector_id);
           if (d.sub_sector_id) setSelectedSubSector(d.sub_sector_id);
           if (d.category_id) setSelectedCategory(d.category_id);
 
-          const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+          const tmplIds = getDraftTemplateIds(d);
+          setHydratedDraftTemplates(await loadDraftTemplatesByIds(tmplIds));
+          if (import.meta.env.DEV) {
+            console.debug('[NewApplication] hydrate draft', {
+              draftId: (draft as any).id,
+              savedStep: d.wizard_step,
+              urlStep: stepParam,
+              formTemplateIds: tmplIds,
+              formsDataKeys: Object.keys(d.forms_data || {}),
+              formVersionIds: Object.keys(d.form_version_ids || {}),
+            });
+          }
           if (tmplIds.length > 0) {
             const progress: Record<string, FormProgress> = {};
             tmplIds.forEach(tid => {
@@ -622,7 +676,7 @@ export default function NewApplication() {
         setHydratingDraft(false);
       }
     })();
-  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, formTemplates, matchedTemplates, navigate, location.pathname]);
+  }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, loadDraftTemplatesByIds, formTemplates, matchedTemplates, navigate, location.pathname]);
 
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
@@ -669,37 +723,119 @@ export default function NewApplication() {
     }
   };
 
+  const getDraftTemplateIds = useCallback((d?: Record<string, any> | null) => {
+    if (!d) return [] as string[];
+    if (Array.isArray(d.form_template_ids)) return d.form_template_ids.filter((value): value is string => typeof value === 'string' && value.length > 0);
+    return reviewTemplates.map((template) => template.id);
+  }, [reviewTemplates]);
+
+  const hasResponseDataForTemplate = useCallback((templateId: string, versionId?: string | null) => {
+    const existingResponse = existingFormResponsesRef.current[templateId];
+    if (!existingResponse || !hasNonEmptyFormData(existingResponse.response_data || {})) return false;
+    return !versionId || !existingResponse.version_id || existingResponse.version_id === versionId;
+  }, []);
+
+  const hasSavedFormDataForTemplate = useCallback((templateId: string, draftData?: Record<string, any> | null) => {
+    const normalizedDraft = draftData || latestDraftDataRef.current || {};
+    const formsData = (normalizedDraft.forms_data || {}) as Record<string, Record<string, any>>;
+    const versionIds = (normalizedDraft.form_version_ids || {}) as Record<string, string>;
+    const localProgress = formProgressMap[templateId];
+    const assignedVersionId = localProgress?.assignedVersionId
+      || localProgress?.versionId
+      || assignedVersionByTemplate[templateId]
+      || versionIds[templateId]
+      || null;
+
+    const hasLocalData = hasNonEmptyFormData(localProgress?.data || {})
+      && (!assignedVersionId || !localProgress?.versionId || localProgress.versionId === assignedVersionId);
+    const hasStoredData = hasNonEmptyFormData(formsData[templateId] || {})
+      && (!assignedVersionId || !versionIds[templateId] || versionIds[templateId] === assignedVersionId);
+    const hasSavedResponse = hasResponseDataForTemplate(templateId, assignedVersionId);
+
+    return hasLocalData || hasSavedResponse || hasStoredData || !!versionIds[templateId];
+  }, [assignedVersionByTemplate, formProgressMap, hasResponseDataForTemplate]);
+
+  const buildReviewProgressMap = useCallback(() => {
+    const draftData = latestDraftDataRef.current || {};
+    const storedFormsData = (draftData.forms_data || {}) as Record<string, Record<string, any>>;
+    const versionIds = (draftData.form_version_ids || {}) as Record<string, string>;
+    const next: Record<string, FormProgress> = { ...formProgressMap };
+
+    for (const template of reviewTemplates) {
+      const templateId = template.id;
+      const local = formProgressMap[templateId];
+      const response = existingFormResponsesRef.current[templateId];
+      const appStored = storedFormsData[templateId];
+
+      let data: Record<string, any> = {};
+      let source: 'local' | 'form_responses' | 'applications.data.forms_data' | 'empty' = 'empty';
+
+      if (hasNonEmptyFormData(local?.data || {})) {
+        data = local?.data || {};
+        source = 'local';
+      } else if (hasNonEmptyFormData(response?.response_data || {})) {
+        data = response?.response_data || {};
+        source = 'form_responses';
+      } else if (hasNonEmptyFormData(appStored || {})) {
+        data = appStored || {};
+        source = 'applications.data.forms_data';
+      }
+
+      if (import.meta.env.DEV) {
+        console.debug('[NewApplication] review data source', {
+          templateId,
+          source,
+          keys: Object.keys(data || {}),
+        });
+      }
+
+      next[templateId] = {
+        templateId,
+        status: hasNonEmptyFormData(data) ? 'completed' : local?.status || 'not_started',
+        data,
+        versionId: local?.versionId || response?.version_id || assignedVersionByTemplate[templateId] || versionIds[templateId] || null,
+        assignedVersionId: assignedVersionByTemplate[templateId] || versionIds[templateId] || null,
+      };
+    }
+
+    return next;
+  }, [assignedVersionByTemplate, formProgressMap, reviewTemplates]);
+
   const canAccessStep = (step: WizardStep, d: Record<string, any>): boolean => {
     const hasSelection = !!d.sector_id && !!d.sub_sector_id && !!d.category_id;
-    const tmplIds = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    const tmplIds = getDraftTemplateIds(d);
     const formsData = (d.forms_data || {}) as Record<string, any>;
     const versionIds = (d.form_version_ids || {}) as Record<string, string>;
     const hasTemplates = tmplIds.length > 0;
-    // Form responses may live in `forms_data` OR in the separate `form_responses`
-    // table (in which case `form_version_ids` will have an entry per template).
-    const hasFormDataFor = (tid: string) =>
-      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
-    const hasAnyFormData = tmplIds.some(hasFormDataFor) ||
-      Object.keys(versionIds).length > 0;
+    const hasFormDataFor = (tid: string) => hasSavedFormDataForTemplate(tid, d);
+    const hasAnyFormData = tmplIds.some(hasFormDataFor) || Object.keys(versionIds).length > 0;
     const hasAllFormsData = tmplIds.every(hasFormDataFor);
     const hasPaymentSignal = !!d.payment_status || !!d.payment_id;
+    const reviewDraftShapeValid = hasSelection && hasTemplates && tmplIds.every((tid) => !!versionIds[tid] || hasSavedFormDataForTemplate(tid, d));
+
+    if (import.meta.env.DEV && step === 'review') {
+      console.debug('[NewApplication] canAccess review', {
+        templateIds: tmplIds,
+        formsDataKeys: Object.keys(formsData || {}),
+        formVersionIds: Object.keys(versionIds || {}),
+        responseKeys: Object.keys(existingFormResponsesRef.current || {}),
+        result: hasAllFormsData || hasPaymentSignal || reviewDraftShapeValid,
+      });
+    }
+
     if (step === 'selection') return true;
     if (!hasSelection || !hasTemplates) return false;
     if (step === 'forms' || step === 'filling') return true;
     if (step === 'documents' || step === 'payment') return hasAnyFormData || hasPaymentSignal;
-    if (step === 'review') return hasAllFormsData || hasPaymentSignal;
+    if (step === 'review') return hasAllFormsData || hasPaymentSignal || reviewDraftShapeValid;
     return false;
   };
 
   const inferWizardStepFromDraft = (d: Record<string, any>): WizardStep => {
     if (!d.sector_id || !d.sub_sector_id || !d.category_id) return 'selection';
-    const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    const tmplIds = getDraftTemplateIds(d);
     if (tmplIds.length === 0) return 'forms';
-    const formsData = (d.forms_data || {}) as Record<string, any>;
-    const versionIds = (d.form_version_ids || {}) as Record<string, string>;
-    const hasFormDataFor = (tid: string) =>
-      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
-    const hasAllFormsData = tmplIds.every(hasFormDataFor);
+    const hasAllFormsData = tmplIds.every((templateId) => hasSavedFormDataForTemplate(templateId, d));
     if (!hasAllFormsData) return 'forms';
     if (d.payment_status === 'success') return 'review';
     if (d.payment_status && d.payment_status !== 'success') return 'payment';
@@ -974,12 +1110,12 @@ export default function NewApplication() {
       } catch (formHydrationError) {
         console.warn('[NewApplication] form progress hydration after proceed failed:', formHydrationError);
       }
-      setCurrentStep('forms');
+      await goToStep('forms', { wizard_step: 'forms' });
     }
     setSaving(false);
   };
 
-  const handleStartForm = (templateId: string) => {
+  const handleStartForm = async (templateId: string) => {
     setActiveFormTemplateId(templateId);
     // Mark as in_progress if not_started
     setFormProgressMap(prev => ({
@@ -989,7 +1125,7 @@ export default function NewApplication() {
         status: prev[templateId]?.status === 'completed' ? 'completed' : 'in_progress',
       },
     }));
-    setCurrentStep('filling');
+    await goToStep('filling', { last_active_form_template_id: templateId });
   };
 
   const handleFormSaveDraft = async (data: Record<string, any>) => {
@@ -1079,7 +1215,7 @@ export default function NewApplication() {
 
     toast.success('Form completed!');
     setActiveFormTemplateId(null);
-    setCurrentStep('forms');
+    await goToStep('forms', { last_active_form_template_id: null });
   };
 
   // Load applicable fees dynamically from Fee Management (single source of truth)
@@ -1152,15 +1288,18 @@ export default function NewApplication() {
     await loadFees();
     if (applicationId) {
       const existing = await hydratePaymentState(applicationId);
-      if (existing.successful) {
+        if (existing.successful) {
         toast.info('Payment already completed for this application.');
-        setCurrentStep('review');
+          await goToStep('review', {
+            wizard_step: 'review',
+            completed_steps: ['selection', 'forms', 'documents', 'payment'],
+          });
         return;
       } else if (existing.pending) {
         toast.info('Payment is already pending for this application.');
       }
     }
-    setCurrentStep('payment');
+    await goToStep('payment', { wizard_step: 'payment' });
   };
 
   const handleProcessPayment = async () => {
@@ -1345,7 +1484,7 @@ export default function NewApplication() {
       return;
     }
 
-    setCurrentStep('documents');
+    await goToStep('documents', { wizard_step: 'documents' });
   };
 
   const getFormStatusBadge = (status: FormStatus) => {
@@ -1375,12 +1514,12 @@ export default function NewApplication() {
   const handleBack = () => {
     if (currentStep === 'filling') {
       setActiveFormTemplateId(null);
-      setCurrentStep('forms');
+      void goToStep('forms', { last_active_form_template_id: null });
     } else if (currentStep === 'selection') {
       navigate(-1);
     } else {
       const prevIdx = stepIndex - 1;
-      if (prevIdx >= 0) setCurrentStep(WIZARD_STEPS[prevIdx].key);
+      if (prevIdx >= 0) void goToStep(WIZARD_STEPS[prevIdx].key);
     }
   };
 
@@ -1428,10 +1567,14 @@ export default function NewApplication() {
         </div>
 
         {hydratingDraft && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Checking for existing draft...
-          </div>
+          <Card>
+            <CardContent className="py-10">
+              <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Restoring your draft...
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Persistent banner: shown for the entire continue-draft session,
@@ -1469,7 +1612,7 @@ export default function NewApplication() {
                   onClick={() => {
                     if (!clickable) return;
                     setActiveFormTemplateId(null);
-                    setCurrentStep(WIZARD_STEPS[i].key);
+                    void goToStep(WIZARD_STEPS[i].key);
                   }}
                   disabled={!clickable}
                   className={`flex items-center gap-1.5 text-xs font-medium transition-colors rounded-md px-1 py-0.5 ${
@@ -1492,7 +1635,7 @@ export default function NewApplication() {
         </div>
 
         {/* Step 1: Category Selection */}
-        {currentStep === 'selection' && (
+        {!hydratingDraft && currentStep === 'selection' && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1577,7 +1720,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 2: Forms List (mandatory all) */}
-        {currentStep === 'forms' && (
+        {!hydratingDraft && currentStep === 'forms' && (
           <div className="space-y-4">
             {/* Progress Summary */}
             <Card className="border-primary/20 bg-primary/5">
@@ -1667,17 +1810,17 @@ export default function NewApplication() {
             {showInlineReview && (
               <div className="space-y-3">
                 <ApplicationReviewBuilder
-                  templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
-                  formProgressMap={formProgressMap}
+                  templates={reviewTemplates}
+                  formProgressMap={buildReviewProgressMap()}
                   versionIdByTemplate={assignedVersionByTemplate}
                   mode={reviewSettings?.review_mode || 'editable'}
                   onAcknowledge={() => setShowInlineReview(false)}
                   onEdit={(idx) => {
-                    const tmpl = matchedTemplates[idx];
+                    const tmpl = reviewTemplates[idx];
                     if (tmpl) {
                       setShowInlineReview(false);
                       setActiveFormTemplateId(tmpl.id);
-                      setCurrentStep('filling');
+                      void goToStep('filling', { last_active_form_template_id: tmpl.id });
                     }
                   }}
                   title="Review Entered Data"
@@ -1691,7 +1834,7 @@ export default function NewApplication() {
 
             {/* Navigation */}
             <div className="flex justify-between pt-4 border-t">
-              <Button variant="outline" onClick={() => setCurrentStep('selection')}>
+              <Button variant="outline" onClick={() => void goToStep('selection')}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button
@@ -1706,7 +1849,7 @@ export default function NewApplication() {
         )}
 
         {/* Filling a specific form */}
-        {currentStep === 'filling' && activeTemplate && (
+        {!hydratingDraft && currentStep === 'filling' && activeTemplate && (
           <div className="space-y-3">
             {/* Version badge hidden from applicants */}
             {!resolverMessage && sections.length > 0 ? (
@@ -1742,7 +1885,7 @@ export default function NewApplication() {
                         [activeTemplate.id]: { ...prev[activeTemplate.id], status: 'completed' },
                       }));
                       setActiveFormTemplateId(null);
-                      setCurrentStep('forms');
+                      void goToStep('forms', { last_active_form_template_id: null });
                     }}>
                       Mark Complete & Return
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -1755,7 +1898,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 3: Documents */}
-        {currentStep === 'documents' && applicationId && (
+        {!hydratingDraft && currentStep === 'documents' && applicationId && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1777,7 +1920,7 @@ export default function NewApplication() {
               </div>
 
               <div className="flex justify-between pt-4 border-t">
-                <Button variant="outline" onClick={() => setCurrentStep('forms')}>
+                <Button variant="outline" onClick={() => void goToStep('forms')}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Back to Forms
                 </Button>
                 <Button onClick={handleProceedToPayment}>
@@ -1790,7 +1933,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 4: Payment */}
-        {currentStep === 'payment' && applicationId && (
+        {!hydratingDraft && currentStep === 'payment' && applicationId && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -1941,11 +2084,11 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep('documents')}>
+              <Button variant="outline" onClick={() => void goToStep('documents')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
               <Button
-                onClick={() => setCurrentStep('review')}
+                onClick={() => void goToStep('review', { wizard_step: 'review', completed_steps: ['selection', 'forms', 'documents', 'payment'] })}
                 disabled={!paymentComplete}
               >
                 {paymentComplete ? 'Proceed to Submit' : 'Complete payment first'}
@@ -1956,7 +2099,7 @@ export default function NewApplication() {
         )}
 
         {/* Step 5: Review & Submit */}
-        {currentStep === 'review' && (
+        {!hydratingDraft && currentStep === 'review' && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -1990,8 +2133,8 @@ export default function NewApplication() {
             </Card>
 
             <ApplicationReviewBuilder
-              templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
-              formProgressMap={formProgressMap}
+              templates={reviewTemplates}
+              formProgressMap={buildReviewProgressMap()}
               versionIdByTemplate={assignedVersionByTemplate}
               mode={reviewSettings?.review_mode || 'readonly'}
               loading={submitting}
@@ -2000,11 +2143,11 @@ export default function NewApplication() {
                   'I have reviewed all the information and confirm the details provided are accurate and complete.'
                 )
               }
-              onEdit={(idx) => {
-                const tmpl = matchedTemplates[idx];
+                onEdit={(idx) => {
+                  const tmpl = reviewTemplates[idx];
                 if (tmpl) {
                   setActiveFormTemplateId(tmpl.id);
-                  setCurrentStep('forms');
+                    void goToStep('forms', { last_active_form_template_id: tmpl.id });
                 }
               }}
               title="Review Your Application"
@@ -2027,7 +2170,7 @@ export default function NewApplication() {
             </Card>
 
             <div className="flex justify-start">
-              <Button variant="outline" onClick={() => setCurrentStep('payment')}>
+              <Button variant="outline" onClick={() => void goToStep('payment')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />Back
               </Button>
             </div>
