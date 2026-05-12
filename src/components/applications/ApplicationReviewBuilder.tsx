@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { ReviewAcknowledgement } from './ReviewAcknowledgement';
 import { Badge } from '@/components/ui/badge';
-import type { FormSection, FormField } from '@/types/formBuilder';
+import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
+import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 
 interface TemplateLite {
   id: string;
@@ -45,13 +46,18 @@ function ReviewBuilderInner({
     return templates.map((t, idx) => {
       const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
+      const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
       const fields: { label: string; value: any }[] = [];
 
       secs.forEach((sec: FormSection) => {
+        if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
+
         (sec.fields || []).forEach((f: FormField) => {
           if (f.type === 'paragraph' || f.type === 'heading') return;
           if (!f.label && !f.fieldName) return;
-          const raw = resolveDynamicFieldValue(data, f);
+          if (!isConditionalTargetVisible(f.conditionalLogic, data, allFields)) return;
+
+          const raw = resolveDynamicFieldValue(data, f, sec);
           if (import.meta.env.DEV && raw === undefined && Object.keys(data).length > 0) {
             // eslint-disable-next-line no-console
             console.debug('[ReviewBuilder] Missing value for field', {
@@ -61,9 +67,11 @@ function ReviewBuilderInner({
               availableKeys: Object.keys(data),
             });
           }
+          const formatted = formatValue(raw, f);
           fields.push({
             label: f.label || f.fieldName,
-            value: formatValue(raw, f),
+            value: formatted,
+            type: f.type === 'file' || isAttachmentValue(formatted) ? 'attachment' : undefined,
           });
         });
       });
@@ -71,7 +79,7 @@ function ReviewBuilderInner({
       // Fallback: if no schema fields resolved yet, dump raw entries
       if (fields.length === 0) {
         Object.entries(data)
-          .filter(([k]) => !k.startsWith('_'))
+          .filter(([k]) => !k.startsWith('_') && k.trim().length > 0)
           .forEach(([k, v]) => {
             fields.push({
               label: k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
