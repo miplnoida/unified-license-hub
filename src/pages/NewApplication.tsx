@@ -600,6 +600,7 @@ export default function NewApplication() {
           const d = ((draft as any).data || {}) as Record<string, any>;
           latestDraftDataRef.current = d;
           setApplicationId((draft as any).id);
+          setAppStatus(((draft as any).status || 'draft').toLowerCase());
           if (d.sector_id) setSelectedSector(d.sector_id);
           if (d.sub_sector_id) setSelectedSubSector(d.sub_sector_id);
           if (d.category_id) setSelectedCategory(d.category_id);
