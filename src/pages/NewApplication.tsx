@@ -632,8 +632,117 @@ export default function NewApplication() {
     });
   }, []);
 
-  // Build the draft payload, preserving existing forms_data / form_version_ids
-  // for templates that are still applicable.
+  // ─── Wizard step persistence ──────────────────────────────────────────
+  // Source of truth for current step is applications.data.wizard_step so
+  // browser refresh restores the user to the same step.
+  const isValidWizardStep = (step: any): step is WizardStep =>
+    ['selection', 'forms', 'filling', 'documents', 'payment', 'review'].includes(step);
+
+  const computeCompletedSteps = (step: WizardStep): WizardStep[] => {
+    switch (step) {
+      case 'selection': return [];
+      case 'forms': return ['selection'];
+      case 'filling': return ['selection', 'forms'];
+      case 'documents': return ['selection', 'forms'];
+      case 'payment': return ['selection', 'forms', 'documents'];
+      case 'review': return ['selection', 'forms', 'documents', 'payment'];
+      default: return [];
+    }
+  };
+
+  const canAccessStep = (step: WizardStep, d: Record<string, any>): boolean => {
+    const hasSelection = !!d.sector_id && !!d.sub_sector_id && !!d.category_id;
+    const tmplIds = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    const formsData = (d.forms_data || {}) as Record<string, any>;
+    const hasTemplates = tmplIds.length > 0;
+    const hasAnyFormData = Object.values(formsData).some(
+      (v) => v && typeof v === 'object' && Object.keys(v).length > 0
+    );
+    if (step === 'selection') return true;
+    if (!hasSelection || !hasTemplates) return false;
+    if (step === 'forms' || step === 'filling') return true;
+    if (step === 'documents' || step === 'payment') return hasAnyFormData;
+    if (step === 'review') {
+      return tmplIds.every((tid: string) => formsData[tid] && Object.keys(formsData[tid]).length > 0);
+    }
+    return false;
+  };
+
+  const inferWizardStepFromDraft = (d: Record<string, any>): WizardStep => {
+    if (!d.sector_id || !d.sub_sector_id || !d.category_id) return 'selection';
+    const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    if (tmplIds.length === 0) return 'forms';
+    const formsData = (d.forms_data || {}) as Record<string, any>;
+    const hasAllFormsData = tmplIds.every(
+      (tid) => formsData[tid] && Object.keys(formsData[tid]).length > 0
+    );
+    if (!hasAllFormsData) return 'forms';
+    if (d.payment_status && d.payment_status !== 'success') return 'payment';
+    return 'review';
+  };
+
+  const updateWizardUrl = useCallback((draftId: string, step: WizardStep) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('draft', draftId);
+    params.set('step', step);
+    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+  }, [navigate, location.pathname]);
+
+  const persistWizardStep = useCallback(async (
+    step: WizardStep,
+    extra?: Record<string, any>,
+  ) => {
+    if (!applicationId) return;
+    try {
+      const { data: existing, error } = await supabase
+        .from('applications')
+        .select('data')
+        .eq('id', applicationId)
+        .maybeSingle();
+      if (error) {
+        console.warn('[NewApplication] Failed to load application for wizard step persistence', error);
+        return;
+      }
+      const existingData = ((existing as any)?.data || {}) as Record<string, any>;
+      const updatedData = {
+        ...existingData,
+        wizard_step: step,
+        completed_steps: computeCompletedSteps(step),
+        last_active_form_template_id: step === 'filling' ? activeFormTemplateId : null,
+        wizard_updated_at: new Date().toISOString(),
+        ...(extra || {}),
+      };
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ data: updatedData } as any)
+        .eq('id', applicationId);
+      if (updateError) {
+        console.warn('[NewApplication] Failed to persist wizard step', updateError);
+      }
+    } catch (e) {
+      console.warn('[NewApplication] persistWizardStep error', e);
+    }
+  }, [applicationId, activeFormTemplateId]);
+
+  const goToStep = useCallback(async (
+    step: WizardStep,
+    extra?: Record<string, any>,
+  ) => {
+    setCurrentStep(step);
+    if (applicationId) {
+      updateWizardUrl(applicationId, step);
+      await persistWizardStep(step, extra);
+    }
+  }, [applicationId, persistWizardStep, updateWizardUrl]);
+
+  // Auto-sync URL + draft data whenever step changes for an existing draft.
+  useEffect(() => {
+    if (!applicationId) return;
+    updateWizardUrl(applicationId, currentStep);
+    void persistWizardStep(currentStep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicationId, currentStep, activeFormTemplateId]);
+
   const buildDraftPayload = (existing: Record<string, any> | null) => {
     const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name].filter(Boolean).join(' - ');
     const tmplIds = matchedTemplates.map(t => t.id);
