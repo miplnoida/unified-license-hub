@@ -47,7 +47,7 @@ function ReviewBuilderInner({
       const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: { label: string; value: any }[] = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
@@ -57,7 +57,7 @@ function ReviewBuilderInner({
           if (!f.label && !f.fieldName) return;
           if (!isConditionalTargetVisible(f.conditionalLogic, data, allFields)) return;
 
-          const raw = resolveDynamicFieldValue(data, f, sec);
+          const raw = resolveDynamicFieldValue(data, f);
           if (import.meta.env.DEV && raw === undefined && Object.keys(data).length > 0) {
             // eslint-disable-next-line no-console
             console.debug('[ReviewBuilder] Missing value for field', {
@@ -147,8 +147,67 @@ function normalizeKey(value: any): string {
     .replace(/^_+|_+$/g, '');
 }
 
+function getConditionalRuleValue(rule: ConditionalRule, data: Record<string, any>, allFields: FormField[]) {
+  const watchedField = allFields.find((candidate) => candidate.id === rule.fieldId);
+  if (!watchedField) return undefined;
+  return resolveDynamicFieldValue(data, watchedField);
+}
+
+function evaluateConditionalRule(rule: ConditionalRule, data: Record<string, any>, allFields: FormField[]) {
+  const rawValue = getConditionalRuleValue(rule, data, allFields);
+  const normalizedString = Array.isArray(rawValue)
+    ? rawValue.map((item) => String(item)).join(',')
+    : rawValue == null ? '' : String(rawValue);
+
+  switch (rule.operator) {
+    case 'equals': return normalizedString === String(rule.value || '');
+    case 'not_equals': return normalizedString !== String(rule.value || '');
+    case 'contains':
+      return Array.isArray(rawValue)
+        ? rawValue.map((item) => String(item)).includes(String(rule.value || ''))
+        : normalizedString.includes(String(rule.value || ''));
+    case 'not_contains':
+      return Array.isArray(rawValue)
+        ? !rawValue.map((item) => String(item)).includes(String(rule.value || ''))
+        : !normalizedString.includes(String(rule.value || ''));
+    case 'greater_than': return Number(rawValue) > Number(rule.value || 0);
+    case 'less_than': return Number(rawValue) < Number(rule.value || 0);
+    case 'is_empty':
+      return rawValue == null
+        || rawValue === ''
+        || (Array.isArray(rawValue) && rawValue.length === 0);
+    case 'is_not_empty':
+      return !(
+        rawValue == null
+        || rawValue === ''
+        || (Array.isArray(rawValue) && rawValue.length === 0)
+      );
+    default:
+      return false;
+  }
+}
+
+function isConditionalTargetVisible(
+  conditionalLogic: ConditionalRule[] | undefined,
+  data: Record<string, any>,
+  allFields: FormField[],
+) {
+  if (!conditionalLogic?.length) return true;
+  for (const rule of conditionalLogic) {
+    const result = evaluateConditionalRule(rule, data, allFields);
+    if (rule.action === 'show' && !result) return false;
+    if (rule.action === 'hide' && result) return false;
+  }
+  return true;
+}
+
 function resolveDynamicFieldValue(data: Record<string, any>, field: FormField): any {
   if (!data || !field) return undefined;
+  const legacyAliases = [
+    ...(Array.isArray((field as any).aliases) ? (field as any).aliases : []),
+    ...(Array.isArray((field as any).legacyAliases) ? (field as any).legacyAliases : []),
+    ...(Array.isArray((field as any).metadata?.aliases) ? (field as any).metadata.aliases : []),
+  ];
   const candidates = [
     field.fieldName,
     field.id,
@@ -156,6 +215,7 @@ function resolveDynamicFieldValue(data: Record<string, any>, field: FormField): 
     field.fieldName ? normalizeKey(field.fieldName) : null,
     field.label ? normalizeKey(field.label) : null,
     field.label,
+    ...legacyAliases,
   ].filter((k): k is string => typeof k === 'string' && k.length > 0);
 
   for (const key of candidates) {
