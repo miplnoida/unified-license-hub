@@ -30,6 +30,7 @@ import {
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
+import { useQueryClient } from '@tanstack/react-query';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
@@ -93,6 +94,7 @@ export default function NewApplication() {
   const isContinuingDraft = !!continuedApplicationId && continueModeParam;
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
   const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState('');
@@ -1165,6 +1167,8 @@ export default function NewApplication() {
         ...assignedVersionByTemplate,
         ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
       });
+      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
   };
 
@@ -1214,6 +1218,8 @@ export default function NewApplication() {
         ...assignedVersionByTemplate,
         [activeFormTemplateId]: resolvedVersionId,
       });
+      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
 
     toast.success('Form completed!');
