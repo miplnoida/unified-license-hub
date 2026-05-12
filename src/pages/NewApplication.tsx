@@ -1612,7 +1612,7 @@ export default function NewApplication() {
                   onClick={() => {
                     if (!clickable) return;
                     setActiveFormTemplateId(null);
-                    setCurrentStep(WIZARD_STEPS[i].key);
+                    void goToStep(WIZARD_STEPS[i].key);
                   }}
                   disabled={!clickable}
                   className={`flex items-center gap-1.5 text-xs font-medium transition-colors rounded-md px-1 py-0.5 ${
@@ -1810,17 +1810,17 @@ export default function NewApplication() {
             {showInlineReview && (
               <div className="space-y-3">
                 <ApplicationReviewBuilder
-                  templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
-                  formProgressMap={formProgressMap}
+                  templates={reviewTemplates}
+                  formProgressMap={buildReviewProgressMap()}
                   versionIdByTemplate={assignedVersionByTemplate}
                   mode={reviewSettings?.review_mode || 'editable'}
                   onAcknowledge={() => setShowInlineReview(false)}
                   onEdit={(idx) => {
-                    const tmpl = matchedTemplates[idx];
+                    const tmpl = reviewTemplates[idx];
                     if (tmpl) {
                       setShowInlineReview(false);
                       setActiveFormTemplateId(tmpl.id);
-                      setCurrentStep('filling');
+                      void goToStep('filling', { last_active_form_template_id: tmpl.id });
                     }
                   }}
                   title="Review Entered Data"
@@ -1834,7 +1834,7 @@ export default function NewApplication() {
 
             {/* Navigation */}
             <div className="flex justify-between pt-4 border-t">
-              <Button variant="outline" onClick={() => setCurrentStep('selection')}>
+              <Button variant="outline" onClick={() => void goToStep('selection')}>
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back
               </Button>
               <Button
