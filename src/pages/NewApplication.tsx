@@ -21,6 +21,7 @@ import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
+import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
@@ -1157,6 +1158,7 @@ export default function NewApplication() {
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
+      await markApplicationInProgressIfDraft(applicationId);
       toast.success('Draft saved');
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
@@ -1206,6 +1208,7 @@ export default function NewApplication() {
           forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
         },
       } as any).eq('id', applicationId);
+      await markApplicationInProgressIfDraft(applicationId);
       setSaving(false);
       await hydrateFormProgress(applicationId, matchedTemplates, {
         ...assignedVersionByTemplate,

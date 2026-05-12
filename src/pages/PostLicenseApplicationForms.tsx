@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
+import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import {
@@ -222,8 +223,10 @@ export default function PostLicenseApplicationForms() {
     await supabase.from('applications').update({
       data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     } as any).eq('id', applicationId);
+    await markApplicationInProgressIfDraft(applicationId);
     setAppData((prev: any) => ({
       ...prev,
+      status: prev?.status === 'draft' ? 'in_progress' : prev?.status,
       data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     }));
   };

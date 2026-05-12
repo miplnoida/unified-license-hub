@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
+import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
@@ -224,8 +225,11 @@ export default function ApplicationForms() {
       },
     } as any).eq('id', applicationId);
 
+    await markApplicationInProgressIfDraft(applicationId);
+
     setAppData((prev: any) => ({
       ...prev,
+      status: prev?.status === 'draft' ? 'in_progress' : prev?.status,
       data: { ...appJson, forms_data: updatedFormsData, form_version_ids: updatedVersionIds },
     }));
   };
