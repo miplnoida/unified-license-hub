@@ -111,6 +111,7 @@ export default function NewApplication() {
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
   const [showInlineReview, setShowInlineReview] = useState(false);
+  const [hydratedDraftTemplateIds, setHydratedDraftTemplateIds] = useState<string[]>([]);
 
   const { data: appSettings } = useApplicationSettings();
 
@@ -262,6 +263,7 @@ export default function NewApplication() {
 
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
+  const latestDraftDataRef = useRef<Record<string, any>>({});
   useEffect(() => {
     activeFormTemplateIdRef.current = activeFormTemplateId;
   }, [activeFormTemplateId]);
@@ -315,7 +317,7 @@ export default function NewApplication() {
 
   const hydrateFormProgress = useCallback(async (
     targetApplicationId: string,
-    templates: typeof matchedTemplates,
+    templates: Array<{ id: string }>,
     versionMap: Record<string, string>,
   ) => {
     if (!targetApplicationId || templates.length === 0) {
@@ -337,6 +339,7 @@ export default function NewApplication() {
     if (appError) throw appError;
 
     const appData = ((appRecord as any)?.data || {}) as Record<string, any>;
+    latestDraftDataRef.current = appData;
     const storedFormsData = (appData.forms_data || {}) as Record<string, Record<string, any>>;
     const storedVersionIds = (appData.form_version_ids || {}) as Record<string, string>;
 
