@@ -1018,11 +1018,7 @@ export function useUpdateTemplateStatus() {
       ).toISOString();
 
       const nextEffectiveFrom = latestDraft.effective_from ?? effective_from ?? nowIso;
-      const nextEffectiveUntil = latestDraft.effective_until ?? null;
-
-      if (nextEffectiveUntil && new Date(nextEffectiveUntil) < new Date(nextEffectiveFrom)) {
-        throw new Error('End date cannot be before effective from.');
-      }
+      const nextEffectiveUntil = null;
 
       // Close out any prior published versions for this template that are still
       // open-ended (effective_until IS NULL). Their effective_from is preserved.
@@ -1046,7 +1042,7 @@ export function useUpdateTemplateStatus() {
             ? `Published v${newSemver} (${changeKind} update)`
             : 'Initial publish'),
         semantic_version: newSemver,
-        // New version starts today (or admin-chosen date from draft) and is
+        // New version starts on the selected date or today and is always
         // open-ended by default. Admin can edit effective_until later.
         effective_from: nextEffectiveFrom,
         effective_until: nextEffectiveUntil,
