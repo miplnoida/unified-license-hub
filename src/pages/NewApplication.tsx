@@ -711,37 +711,119 @@ export default function NewApplication() {
     }
   };
 
+  const getDraftTemplateIds = useCallback((d?: Record<string, any> | null) => {
+    if (!d) return [] as string[];
+    if (Array.isArray(d.form_template_ids)) return d.form_template_ids.filter((value): value is string => typeof value === 'string' && value.length > 0);
+    return reviewTemplates.map((template) => template.id);
+  }, [reviewTemplates]);
+
+  const hasResponseDataForTemplate = useCallback((templateId: string, versionId?: string | null) => {
+    const existingResponse = existingFormResponsesRef.current[templateId];
+    if (!existingResponse || !hasNonEmptyFormData(existingResponse.response_data || {})) return false;
+    return !versionId || !existingResponse.version_id || existingResponse.version_id === versionId;
+  }, []);
+
+  const hasSavedFormDataForTemplate = useCallback((templateId: string, draftData?: Record<string, any> | null) => {
+    const normalizedDraft = draftData || latestDraftDataRef.current || {};
+    const formsData = (normalizedDraft.forms_data || {}) as Record<string, Record<string, any>>;
+    const versionIds = (normalizedDraft.form_version_ids || {}) as Record<string, string>;
+    const localProgress = formProgressMap[templateId];
+    const assignedVersionId = localProgress?.assignedVersionId
+      || localProgress?.versionId
+      || assignedVersionByTemplate[templateId]
+      || versionIds[templateId]
+      || null;
+
+    const hasLocalData = hasNonEmptyFormData(localProgress?.data || {})
+      && (!assignedVersionId || !localProgress?.versionId || localProgress.versionId === assignedVersionId);
+    const hasStoredData = hasNonEmptyFormData(formsData[templateId] || {})
+      && (!assignedVersionId || !versionIds[templateId] || versionIds[templateId] === assignedVersionId);
+    const hasSavedResponse = hasResponseDataForTemplate(templateId, assignedVersionId);
+
+    return hasLocalData || hasSavedResponse || hasStoredData || !!versionIds[templateId];
+  }, [assignedVersionByTemplate, formProgressMap, hasResponseDataForTemplate]);
+
+  const buildReviewProgressMap = useCallback(() => {
+    const draftData = latestDraftDataRef.current || {};
+    const storedFormsData = (draftData.forms_data || {}) as Record<string, Record<string, any>>;
+    const versionIds = (draftData.form_version_ids || {}) as Record<string, string>;
+    const next: Record<string, FormProgress> = { ...formProgressMap };
+
+    for (const template of reviewTemplates) {
+      const templateId = template.id;
+      const local = formProgressMap[templateId];
+      const response = existingFormResponsesRef.current[templateId];
+      const appStored = storedFormsData[templateId];
+
+      let data: Record<string, any> = {};
+      let source: 'local' | 'form_responses' | 'applications.data.forms_data' | 'empty' = 'empty';
+
+      if (hasNonEmptyFormData(local?.data || {})) {
+        data = local?.data || {};
+        source = 'local';
+      } else if (hasNonEmptyFormData(response?.response_data || {})) {
+        data = response?.response_data || {};
+        source = 'form_responses';
+      } else if (hasNonEmptyFormData(appStored || {})) {
+        data = appStored || {};
+        source = 'applications.data.forms_data';
+      }
+
+      if (import.meta.env.DEV) {
+        console.debug('[NewApplication] review data source', {
+          templateId,
+          source,
+          keys: Object.keys(data || {}),
+        });
+      }
+
+      next[templateId] = {
+        templateId,
+        status: hasNonEmptyFormData(data) ? 'completed' : local?.status || 'not_started',
+        data,
+        versionId: local?.versionId || response?.version_id || assignedVersionByTemplate[templateId] || versionIds[templateId] || null,
+        assignedVersionId: assignedVersionByTemplate[templateId] || versionIds[templateId] || null,
+      };
+    }
+
+    return next;
+  }, [assignedVersionByTemplate, formProgressMap, reviewTemplates]);
+
   const canAccessStep = (step: WizardStep, d: Record<string, any>): boolean => {
     const hasSelection = !!d.sector_id && !!d.sub_sector_id && !!d.category_id;
-    const tmplIds = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    const tmplIds = getDraftTemplateIds(d);
     const formsData = (d.forms_data || {}) as Record<string, any>;
     const versionIds = (d.form_version_ids || {}) as Record<string, string>;
     const hasTemplates = tmplIds.length > 0;
-    // Form responses may live in `forms_data` OR in the separate `form_responses`
-    // table (in which case `form_version_ids` will have an entry per template).
-    const hasFormDataFor = (tid: string) =>
-      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
-    const hasAnyFormData = tmplIds.some(hasFormDataFor) ||
-      Object.keys(versionIds).length > 0;
+    const hasFormDataFor = (tid: string) => hasSavedFormDataForTemplate(tid, d);
+    const hasAnyFormData = tmplIds.some(hasFormDataFor) || Object.keys(versionIds).length > 0;
     const hasAllFormsData = tmplIds.every(hasFormDataFor);
     const hasPaymentSignal = !!d.payment_status || !!d.payment_id;
+    const reviewDraftShapeValid = hasSelection && hasTemplates && tmplIds.every((tid) => !!versionIds[tid] || hasSavedFormDataForTemplate(tid, d));
+
+    if (import.meta.env.DEV && step === 'review') {
+      console.debug('[NewApplication] canAccess review', {
+        templateIds: tmplIds,
+        formsDataKeys: Object.keys(formsData || {}),
+        formVersionIds: Object.keys(versionIds || {}),
+        responseKeys: Object.keys(existingFormResponsesRef.current || {}),
+        result: hasAllFormsData || hasPaymentSignal || reviewDraftShapeValid,
+      });
+    }
+
     if (step === 'selection') return true;
     if (!hasSelection || !hasTemplates) return false;
     if (step === 'forms' || step === 'filling') return true;
     if (step === 'documents' || step === 'payment') return hasAnyFormData || hasPaymentSignal;
-    if (step === 'review') return hasAllFormsData || hasPaymentSignal;
+    if (step === 'review') return hasAllFormsData || hasPaymentSignal || reviewDraftShapeValid;
     return false;
   };
 
   const inferWizardStepFromDraft = (d: Record<string, any>): WizardStep => {
     if (!d.sector_id || !d.sub_sector_id || !d.category_id) return 'selection';
-    const tmplIds: string[] = Array.isArray(d.form_template_ids) ? d.form_template_ids : [];
+    const tmplIds = getDraftTemplateIds(d);
     if (tmplIds.length === 0) return 'forms';
-    const formsData = (d.forms_data || {}) as Record<string, any>;
-    const versionIds = (d.form_version_ids || {}) as Record<string, string>;
-    const hasFormDataFor = (tid: string) =>
-      (formsData[tid] && Object.keys(formsData[tid]).length > 0) || !!versionIds[tid];
-    const hasAllFormsData = tmplIds.every(hasFormDataFor);
+    const hasAllFormsData = tmplIds.every((templateId) => hasSavedFormDataForTemplate(templateId, d));
     if (!hasAllFormsData) return 'forms';
     if (d.payment_status === 'success') return 'review';
     if (d.payment_status && d.payment_status !== 'success') return 'payment';
