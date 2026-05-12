@@ -94,6 +94,7 @@ export default function NewApplication() {
   const isContinuingDraft = !!continuedApplicationId && continueModeParam;
   const { user } = useAuth();
   const { activeRegulator } = useRegulator();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
   const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState('');
