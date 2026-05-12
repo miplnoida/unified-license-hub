@@ -105,9 +105,10 @@ export default function PreLicenseeDashboard() {
           <p className="mt-1 text-muted-foreground">Manage your license applications and track their status.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard title="Total Applications" value={totalApps} icon={<FileText className="h-6 w-6" />} />
           <StatCard title="Drafts" value={draftCount} icon={<Clock className="h-6 w-6" />} variant="warning" />
+          <StatCard title="In Progress" value={inProgressCount} icon={<RotateCcw className="h-6 w-6" />} variant="primary" />
           <StatCard title="In Review" value={submittedCount} icon={<AlertTriangle className="h-6 w-6" />} variant="primary" />
           <StatCard title="Approved" value={approvedCount} icon={<CheckCircle className="h-6 w-6" />} variant="success" />
         </div>
