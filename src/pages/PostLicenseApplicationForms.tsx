@@ -129,6 +129,7 @@ export default function PostLicenseApplicationForms() {
         const appJson = (data as any).data || {};
         const templateIds: string[] = appJson.form_template_ids || [];
         const formsData: Record<string, any> = appJson.forms_data || {};
+        const formVersionIds: Record<string, string> = appJson.form_version_ids || {};
         const initial: Record<string, FormProgress> = {};
         templateIds.forEach(tid => {
           const hasData = formsData[tid] && Object.keys(formsData[tid]).length > 0;
@@ -139,6 +140,7 @@ export default function PostLicenseApplicationForms() {
             templateId: tid,
             status: formStatus,
             data: formsData[tid] || {},
+            versionId: formVersionIds[tid] || null,
           };
         });
         setFormProgressMap(initial);
@@ -447,11 +449,14 @@ export default function PostLicenseApplicationForms() {
                 <ApplicationReviewBuilder
                   templates={matchedTemplates.map(t => ({ id: t.id, name: t.name }))}
                   formProgressMap={formProgressMap}
-                  versionIdByTemplate={Object.fromEntries(
-                    Object.entries(formProgressMap).flatMap(([templateId, progress]) => (
-                      progress?.versionId ? [[templateId, progress.versionId]] : []
-                    ))
-                  ) as Record<string, string>}
+                  versionIdByTemplate={{
+                    ...((appData?.data?.form_version_ids || {}) as Record<string, string>),
+                    ...(Object.fromEntries(
+                      Object.entries(formProgressMap).flatMap(([templateId, progress]) => (
+                        progress?.versionId ? [[templateId, progress.versionId]] : []
+                      ))
+                    ) as Record<string, string>),
+                  }}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
                   onAcknowledge={handleSubmitApplication}
