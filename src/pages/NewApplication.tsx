@@ -1204,16 +1204,41 @@ export default function NewApplication() {
     if (applicationId && activeTemplate && resolvedVersionId && user) {
       setSaving(true);
       try {
-        const { error: formResponseError } = await supabase.from('form_responses').upsert({
-          template_id: activeTemplate.id,
-          version_id: resolvedVersionId,
-          user_id: user.id,
-          response_data: data,
-          status: 'draft',
-          entity_type: 'application',
-          entity_id: applicationId,
-        } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
-        if (formResponseError) throw formResponseError;
+        // Explicit select → update/insert to avoid PG ON CONFLICT inference
+        // failing against the partial unique index on form_responses
+        // (entity_id, entity_type, template_id) WHERE entity_id IS NOT NULL.
+        const { data: existingResponse, error: existingResponseErr } = await supabase
+          .from('form_responses')
+          .select('id')
+          .eq('entity_id', applicationId)
+          .eq('entity_type', 'application')
+          .eq('template_id', activeTemplate.id)
+          .maybeSingle();
+        if (existingResponseErr) throw existingResponseErr;
+
+        if (existingResponse?.id) {
+          const { error: updateRespErr } = await supabase
+            .from('form_responses')
+            .update({
+              version_id: resolvedVersionId,
+              user_id: user.id,
+              response_data: data,
+              status: 'draft',
+            } as any)
+            .eq('id', existingResponse.id);
+          if (updateRespErr) throw updateRespErr;
+        } else {
+          const { error: insertRespErr } = await supabase.from('form_responses').insert({
+            template_id: activeTemplate.id,
+            version_id: resolvedVersionId,
+            user_id: user.id,
+            response_data: data,
+            status: 'draft',
+            entity_type: 'application',
+            entity_id: applicationId,
+          } as any);
+          if (insertRespErr) throw insertRespErr;
+        }
 
         const existingApp2 = await supabase.from('applications').select('data').eq('id', applicationId).single();
         if (existingApp2.error) throw existingApp2.error;
