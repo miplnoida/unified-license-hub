@@ -21,7 +21,7 @@ import { AttachmentList } from '@/components/shared/AttachmentList';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
-import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
+import { getApplicationStatusLabel, markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, FileText, Upload, Loader2,
   Building2, Layers, Tag, ClipboardList, Paperclip, Send, Clock, PlayCircle,
@@ -1147,31 +1147,44 @@ export default function NewApplication() {
     }));
     if (applicationId) {
       setSaving(true);
-      const existingApp = await supabase.from('applications').select('data').eq('id', applicationId).single();
-      const existingVersionIds = (existingApp.data?.data as any)?.form_version_ids || {};
-      await supabase.from('applications').update({
-        data: {
-          sector_id: selectedSector,
-          sub_sector_id: selectedSubSector,
-          category_id: selectedCategory,
-          sector_name: sectorObj?.name,
-          sub_sector_name: subSectorObj?.name,
-          category_name: categoryObj?.name,
-          form_template_ids: matchedTemplates.map(t => t.id),
-          form_version_ids: { ...existingVersionIds, ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}) },
-          forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
-        },
-      } as any).eq('id', applicationId);
-      await markApplicationInProgressIfDraft(applicationId);
-      setAppStatus(prev => (prev === 'draft' ? 'in_progress' : prev));
-      toast.success('Draft saved');
-      setSaving(false);
-      await hydrateFormProgress(applicationId, matchedTemplates, {
-        ...assignedVersionByTemplate,
-        ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
-      });
-      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      try {
+        const existingApp = await supabase.from('applications').select('data').eq('id', applicationId).single();
+        if (existingApp.error) throw existingApp.error;
+
+        const existingVersionIds = (existingApp.data?.data as any)?.form_version_ids || {};
+        const { error: updateError } = await supabase.from('applications').update({
+          data: {
+            sector_id: selectedSector,
+            sub_sector_id: selectedSubSector,
+            category_id: selectedCategory,
+            sector_name: sectorObj?.name,
+            sub_sector_name: subSectorObj?.name,
+            category_name: categoryObj?.name,
+            form_template_ids: matchedTemplates.map(t => t.id),
+            form_version_ids: { ...existingVersionIds, ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}) },
+            forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
+          },
+        } as any).eq('id', applicationId);
+        if (updateError) throw updateError;
+
+        const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
+        if (updatedStatus) setAppStatus(updatedStatus);
+
+        await hydrateFormProgress(applicationId, matchedTemplates, {
+          ...assignedVersionByTemplate,
+          ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
+        });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
+          queryClient.invalidateQueries({ queryKey: ['applications'] }),
+        ]);
+        toast.success('Draft saved');
+      } catch (error: any) {
+        console.error('[NewApplication] handleFormSaveDraft failed:', error);
+        toast.error(error?.message || 'Failed to save draft');
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -1190,40 +1203,56 @@ export default function NewApplication() {
 
     if (applicationId && activeTemplate && resolvedVersionId && user) {
       setSaving(true);
-      await supabase.from('form_responses').upsert({
-        template_id: activeTemplate.id,
-        version_id: resolvedVersionId,
-        user_id: user.id,
-        response_data: data,
-        status: 'draft',
-        entity_type: 'application',
-        entity_id: applicationId,
-      } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
+      try {
+        const { error: formResponseError } = await supabase.from('form_responses').upsert({
+          template_id: activeTemplate.id,
+          version_id: resolvedVersionId,
+          user_id: user.id,
+          response_data: data,
+          status: 'draft',
+          entity_type: 'application',
+          entity_id: applicationId,
+        } as any, { onConflict: 'entity_id,entity_type,template_id' }).select();
+        if (formResponseError) throw formResponseError;
 
-      const existingApp2 = await supabase.from('applications').select('data').eq('id', applicationId).single();
-      const existingVersionIds2 = (existingApp2.data?.data as any)?.form_version_ids || {};
-      await supabase.from('applications').update({
-        data: {
-          sector_id: selectedSector,
-          sub_sector_id: selectedSubSector,
-          category_id: selectedCategory,
-          sector_name: sectorObj?.name,
-          sub_sector_name: subSectorObj?.name,
-          category_name: categoryObj?.name,
-          form_template_ids: matchedTemplates.map(t => t.id),
-          form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: resolvedVersionId },
-          forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
-        },
-      } as any).eq('id', applicationId);
-      await markApplicationInProgressIfDraft(applicationId);
-      setAppStatus(prev => (prev === 'draft' ? 'in_progress' : prev));
+        const existingApp2 = await supabase.from('applications').select('data').eq('id', applicationId).single();
+        if (existingApp2.error) throw existingApp2.error;
+
+        const existingVersionIds2 = (existingApp2.data?.data as any)?.form_version_ids || {};
+        const { error: updateError } = await supabase.from('applications').update({
+          data: {
+            sector_id: selectedSector,
+            sub_sector_id: selectedSubSector,
+            category_id: selectedCategory,
+            sector_name: sectorObj?.name,
+            sub_sector_name: subSectorObj?.name,
+            category_name: categoryObj?.name,
+            form_template_ids: matchedTemplates.map(t => t.id),
+            form_version_ids: { ...existingVersionIds2, [activeFormTemplateId]: resolvedVersionId },
+            forms_data: { ...Object.fromEntries(Object.entries(formProgressMap).map(([k, v]) => [k, v.data])), [activeFormTemplateId]: data },
+          },
+        } as any).eq('id', applicationId);
+        if (updateError) throw updateError;
+
+        const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
+        if (updatedStatus) setAppStatus(updatedStatus);
+
+        await hydrateFormProgress(applicationId, matchedTemplates, {
+          ...assignedVersionByTemplate,
+          [activeFormTemplateId]: resolvedVersionId,
+        });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
+          queryClient.invalidateQueries({ queryKey: ['applications'] }),
+        ]);
+      } catch (error: any) {
+        console.error('[NewApplication] handleFormSubmit failed:', error);
+        toast.error(error?.message || 'Failed to save form');
+        setSaving(false);
+        return;
+      }
+
       setSaving(false);
-      await hydrateFormProgress(applicationId, matchedTemplates, {
-        ...assignedVersionByTemplate,
-        [activeFormTemplateId]: resolvedVersionId,
-      });
-      queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
     }
 
     toast.success('Form completed!');
@@ -1474,6 +1503,13 @@ export default function NewApplication() {
         return;
       }
 
+      const submittedStatus = normalizeApplicationStatus(data?.status || 'submitted');
+      setAppStatus(submittedStatus);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
+        queryClient.invalidateQueries({ queryKey: ['applications'] }),
+      ]);
+
       toast.success(data?.message || 'Application submitted successfully!');
       navigate(`/applications/${applicationId}`);
     } catch (err: any) {
@@ -1568,7 +1604,7 @@ export default function NewApplication() {
           </Button>
           <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground">
-               {isContinuingDraft || applicationId ? 'Continue Draft Application' : 'New License Application'}
+               {isContinuingDraft || applicationId ? 'Continue Application' : 'New License Application'}
             </h1>
             <p className="text-muted-foreground text-sm">
               {currentStep === 'filling'
@@ -1578,24 +1614,11 @@ export default function NewApplication() {
                   : `Step ${stepIndex + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[stepIndex].label}`}
             </p>
           </div>
-          {applicationId && (() => {
-            const statusLabelMap: Record<string, string> = {
-              draft: 'Draft',
-              in_progress: 'In Progress',
-              submitted: 'Submitted',
-              under_review: 'Under Review',
-              query_raised: 'Query Raised',
-              resubmission_requested: 'Resubmit Requested',
-              approved: 'Approved',
-              rejected: 'Rejected',
-            };
-            const label = statusLabelMap[appStatus] || appStatus.replace(/_/g, ' ');
-            return (
-              <Badge variant="outline" className="font-mono text-xs">
-                {label} · {applicationId.substring(0, 8).toUpperCase()}
-              </Badge>
-            );
-          })()}
+          {applicationId && (
+            <Badge variant="outline" className="font-mono text-xs">
+              {getApplicationStatusLabel(appStatus)} · {applicationId.substring(0, 8).toUpperCase()}
+            </Badge>
+          )}
         </div>
 
         {hydratingDraft && (
