@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
+import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
 import {
