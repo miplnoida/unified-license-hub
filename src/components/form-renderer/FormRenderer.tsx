@@ -26,6 +26,7 @@ import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData }
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
+import { isDisplayOnlyFieldType, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 // Returns Tailwind col-span class for a field's row width.
 // Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
@@ -87,6 +88,7 @@ function isFieldVisible(field: FormField, formData: Record<string, any>, allFiel
 }
 
 function isFieldRequired(field: FormField, formData: Record<string, any>, allFields: FormField[]): boolean {
+  if (isDisplayOnlyFieldType(field.type)) return false;
   let required = field.required;
   if (field.conditionalLogic) {
     for (const rule of field.conditionalLogic) {
@@ -264,6 +266,7 @@ export function FormRenderer({
   // Check if a section has any data filled in
   const isSectionCompleted = useCallback((section: FormSection): boolean => {
     return section.fields.some(f => {
+      if (isDisplayOnlyFieldType(f.type)) return false;
       const val = formData[f.fieldName];
       return val !== undefined && val !== null && val !== '';
     });
@@ -444,7 +447,7 @@ export function FormRenderer({
     const error = errors[field.fieldName];
     const isUploading = uploadingFields[field.fieldName];
 
-    const fieldLabel = field.type !== 'paragraph' && field.type !== 'heading' && field.type !== 'checkbox' ? (
+    const fieldLabel = !isDisplayOnlyFieldType(field.type) && field.type !== 'checkbox' ? (
       <Label className="text-sm">
         {field.label}
         {required && <span className="text-destructive ml-1">*</span>}
@@ -594,13 +597,21 @@ export function FormRenderer({
         );
         break;
       case 'paragraph':
-        input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{field.content}</p>;
+      case 'static_text':
+      case 'info':
+        input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{resolveDisplayOnlyFieldText(field)}</p>;
+        break;
+      case 'section_title':
         break;
       case 'heading': {
         const level = Math.min(6, Math.max(1, Number(field.headingLevel) || 2));
         const Tag = `h${level}` as keyof JSX.IntrinsicElements;
         const sizeClass = ['text-3xl','text-2xl','text-xl','text-lg','text-base','text-sm'][level - 1];
-        input = <Tag className={`${sizeClass} font-semibold text-foreground`}>{field.content || field.label}</Tag>;
+        input = <Tag className={`${sizeClass} font-semibold text-foreground`}>{resolveDisplayOnlyFieldText(field)}</Tag>;
+        break;
+      }
+      case 'divider': {
+        input = <div className="border-t border-border my-2" aria-hidden="true" />;
         break;
       }
       case 'table':
