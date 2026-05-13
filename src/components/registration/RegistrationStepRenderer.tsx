@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
-import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 interface Props {
   step: RegStep;
@@ -187,7 +187,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
 
   const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
-  const labelEl = !isDisplayOnlyFieldType(field.type) && field.type !== 'checkbox' ? (
+  const labelEl = !isDisplayOnlyField(field) && field.type !== 'checkbox' ? (
     <Label className="text-sm">
       {field.label}
       {field.required && <span className="text-destructive ml-1">*</span>}
@@ -435,14 +435,14 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
         const sizeMap: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl', 4: 'text-lg', 5: 'text-base', 6: 'text-sm' };
         return (
           <Tag className={`font-semibold text-foreground ${sizeMap[lvl]}`}>
-            {field.label || field.defaultValue || field.content || 'Heading'}
+            {resolveDisplayOnlyFieldText(field) || 'Heading'}
           </Tag>
         );
       }
 
       return (
         <div className="p-3 rounded-md bg-muted/30 text-sm text-muted-foreground">
-          {field.defaultValue || field.content || field.helpText || field.label || 'Information'}
+          {resolveDisplayOnlyFieldText(field) || 'Information'}
         </div>
       );
     }

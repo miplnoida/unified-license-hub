@@ -22,7 +22,7 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
-import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
 
@@ -146,7 +146,7 @@ export default function PreLicenseeRegistration() {
         const field = col.field;
         if (!field) continue;
         // Display-only field types have no input/value — skip validation entirely
-        if (isDisplayOnlyFieldType(field.type)) continue;
+        if (isDisplayOnlyField(field)) continue;
         const val = dynamicFormData[field.fieldName];
 
         if (field.required && (val === undefined || val === null || val === '')) {
@@ -473,14 +473,11 @@ export default function PreLicenseeRegistration() {
           if (!c.field) return;
           const f = c.field;
           // Render display-only fields inline (heading/info/divider), no value
-          if (isDisplayOnlyFieldType(f.type)) {
+          if (isDisplayOnlyField(f)) {
             const kind = resolveDisplayKind(f.type);
-            const text = kind === 'heading'
-              ? (f.label || (f as any).defaultValue || (f as any).content || '')
-              : ((f as any).defaultValue || (f as any).content || (f as any).helpText || f.label || '');
             fields.push({
               label: f.label || '',
-              value: text,
+              value: resolveDisplayOnlyFieldText(f),
               type: 'display',
               displayKind: kind,
               headingLevel: (f as any).headingLevel,

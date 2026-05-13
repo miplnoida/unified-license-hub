@@ -4,7 +4,7 @@ import { ReviewAcknowledgement } from './ReviewAcknowledgement';
 import { Badge } from '@/components/ui/badge';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
-import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 interface TemplateLite {
   id: string;
@@ -57,13 +57,11 @@ function ReviewBuilderInner({
           if (!f.label && !f.fieldName) return;
           if (!isConditionalTargetVisible(f.conditionalLogic, data, allFields)) return;
 
-          if (isDisplayOnlyFieldType(f.type)) {
+          if (isDisplayOnlyField(f)) {
             const kind = resolveDisplayKind(f.type);
             fields.push({
               label: f.label || '',
-              value: kind === 'heading'
-                ? (f.label || f.defaultValue || f.content || f.helpText || '')
-                : (f.defaultValue || f.content || f.helpText || f.label || ''),
+              value: resolveDisplayOnlyFieldText(f),
               type: 'display',
               displayKind: kind,
               headingLevel: f.headingLevel,

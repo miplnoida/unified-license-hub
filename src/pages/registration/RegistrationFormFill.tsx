@@ -10,7 +10,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import type { FormSection } from '@/types/formBuilder';
 import type { Json } from '@/integrations/supabase/types';
-import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 export default function RegistrationFormFill() {
   const navigate = useNavigate();
@@ -226,15 +226,12 @@ export default function RegistrationFormFill() {
             sections={formDef.sections.map(section => ({
               title: section.title,
               fields: section.fields.map(f => {
-                if (isDisplayOnlyFieldType(f.type)) {
+                if (isDisplayOnlyField(f)) {
                   const kind = resolveDisplayKind(f.type);
-                  const text = kind === 'heading'
-                    ? (f.label || f.defaultValue || f.content || '')
-                    : (f.defaultValue || f.content || f.helpText || f.label || '');
 
                   return {
                     label: f.label,
-                    value: text,
+                    value: resolveDisplayOnlyFieldText(f),
                     type: 'display' as const,
                     displayKind: kind,
                   };
