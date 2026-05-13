@@ -53,11 +53,22 @@ export default function PreLicenseeRegistration() {
     form.categoryId || undefined,
   );
 
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem(STEP_KEY);
+      const n = saved != null ? Number(saved) : 0;
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    } catch { return 0; }
+  });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+
+  // Persist current step across page refreshes (cleared on submit/reset)
+  useEffect(() => {
+    try { sessionStorage.setItem(STEP_KEY, String(currentStep)); } catch {}
+  }, [currentStep]);
 
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
