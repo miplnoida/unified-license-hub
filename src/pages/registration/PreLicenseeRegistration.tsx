@@ -25,6 +25,15 @@ import { useApplicantNameUniqueness } from '@/components/registration/useApplica
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
+const DYNAMIC_DATA_KEY = 'preLicenseRegistrationDynamicData';
+
+function loadDynamicData(): Record<string, unknown> {
+  try {
+    const saved = sessionStorage.getItem(DYNAMIC_DATA_KEY);
+    if (saved) return JSON.parse(saved) as Record<string, unknown>;
+  } catch {}
+  return {};
+}
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
@@ -60,11 +69,14 @@ export default function PreLicenseeRegistration() {
   });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
-  const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
 
   const clearPersistedStep = useCallback(() => {
-    try { sessionStorage.removeItem(STEP_KEY); } catch {}
+    try {
+      sessionStorage.removeItem(STEP_KEY);
+      sessionStorage.removeItem(DYNAMIC_DATA_KEY);
+    } catch {}
   }, []);
 
   const resetRegistrationFlow = useCallback(() => {
@@ -80,6 +92,13 @@ export default function PreLicenseeRegistration() {
   useEffect(() => {
     sessionStorage.setItem(STEP_KEY, String(currentStep));
   }, [currentStep]);
+
+  // Persist dynamic step data so going back to previous steps preserves entries
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DYNAMIC_DATA_KEY, JSON.stringify(dynamicFormData));
+    } catch {}
+  }, [dynamicFormData]);
 
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
