@@ -167,7 +167,7 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
 }
 
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
+  formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -180,6 +180,8 @@ export function FormRenderer({
   const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Normalize incoming sections so every section has a `rows` layout.
+  const sections = useMemo(() => migrateSectionsToRows(rawSections), [rawSections]);
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
   const visibleSections = useMemo(() =>
     sections.filter(s => {
