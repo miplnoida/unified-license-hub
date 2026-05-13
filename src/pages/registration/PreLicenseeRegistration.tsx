@@ -445,25 +445,40 @@ export default function PreLicenseeRegistration() {
   const resolveReviewValue = useReviewValueResolver(config?.formSchema);
 
   function buildReviewSections() {
-    const sections: { title: string; fields: { label: string; value: any; type?: 'attachment' }[] }[] = [];
+    type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 };
+    const sections: { title: string; fields: RF[] }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
       config.formSchema.forEach((s) => {
-        const fields: { label: string; value: any; type?: 'attachment' }[] = [];
+        const fields: RF[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
-          // Skip display-only fields (no value to render in review)
-          if (c.field.type === 'heading' || c.field.type === 'paragraph') return;
-          const raw = dynamicFormData[c.field.fieldName];
+          const f = c.field;
+          // Render display-only fields inline (heading/info/divider), no value
+          if (isDisplayOnlyFieldType(f.type)) {
+            const kind = resolveDisplayKind(f.type);
+            const text = kind === 'heading'
+              ? (f.label || (f as any).defaultValue || (f as any).content || '')
+              : ((f as any).defaultValue || (f as any).content || (f as any).helpText || f.label || '');
+            fields.push({
+              label: f.label || '',
+              value: text,
+              type: 'display',
+              displayKind: kind,
+              headingLevel: (f as any).headingLevel,
+            });
+            return;
+          }
+          const raw = dynamicFormData[f.fieldName];
           // File fields are always rendered as attachments (driven by field
           // type, not value-shape guessing) so View/Download icons display
           // even for legacy or partial value shapes.
-          if (c.field.type === 'file' || isAttachmentValue(raw)) {
-            fields.push({ label: c.field.label, value: raw ?? null, type: 'attachment' });
+          if (f.type === 'file' || isAttachmentValue(raw)) {
+            fields.push({ label: f.label, value: raw ?? null, type: 'attachment' });
             return;
           }
-          const resolved = resolveReviewValue(c.field, raw);
-          fields.push({ label: c.field.label, value: formatReviewValue(resolved) });
+          const resolved = resolveReviewValue(f, raw);
+          fields.push({ label: f.label, value: formatReviewValue(resolved) });
         }));
         sections.push({ title: s.title, fields });
       });
