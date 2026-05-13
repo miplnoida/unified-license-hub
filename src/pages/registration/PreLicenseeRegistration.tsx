@@ -25,6 +25,15 @@ import { useApplicantNameUniqueness } from '@/components/registration/useApplica
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
+const DYNAMIC_DATA_KEY = 'preLicenseRegistrationDynamicData';
+
+function loadDynamicData(): Record<string, unknown> {
+  try {
+    const saved = sessionStorage.getItem(DYNAMIC_DATA_KEY);
+    if (saved) return JSON.parse(saved) as Record<string, unknown>;
+  } catch {}
+  return {};
+}
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
