@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,9 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
+import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
+
+const STEP_KEY = 'preLicenseRegistrationCurrentStep';
 
 /** Converts a declaration label into a stable field key (same logic as DeclarationsStep) */
 function declFieldKey(label: string, idx: number): string {
@@ -50,11 +53,22 @@ export default function PreLicenseeRegistration() {
     form.categoryId || undefined,
   );
 
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem(STEP_KEY);
+      const n = saved != null ? Number(saved) : 0;
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    } catch { return 0; }
+  });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+
+  // Persist current step across page refreshes (cleared on submit/reset)
+  useEffect(() => {
+    try { sessionStorage.setItem(STEP_KEY, String(currentStep)); } catch {}
+  }, [currentStep]);
 
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
@@ -106,6 +120,13 @@ export default function PreLicenseeRegistration() {
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
 
+  // Clamp currentStep when steps array shrinks (e.g. saved index from older config)
+  useEffect(() => {
+    if (STEP_COUNT > 0 && currentStep > STEP_COUNT - 1) {
+      setCurrentStep(STEP_COUNT - 1);
+    }
+  }, [STEP_COUNT, currentStep]);
+
   // Validate a dynamic step's required fields
   const validateDynamicStep = useCallback((stepData: RegStep): boolean => {
     const errs: Record<string, string> = {};
@@ -114,7 +135,7 @@ export default function PreLicenseeRegistration() {
         const field = col.field;
         if (!field) continue;
         // Display-only field types have no input/value — skip validation entirely
-        if (field.type === 'heading' || field.type === 'paragraph') continue;
+        if (isDisplayOnlyFieldType(field.type)) continue;
         const val = dynamicFormData[field.fieldName];
 
         if (field.required && (val === undefined || val === null || val === '')) {
@@ -336,6 +357,7 @@ export default function PreLicenseeRegistration() {
         });
         if (signInError) {
           toast.error('Account created but sign-in failed. Please log in manually.');
+          try { sessionStorage.removeItem(STEP_KEY); } catch {}
           reset();
           navigate('/');
           return;
@@ -343,6 +365,7 @@ export default function PreLicenseeRegistration() {
       }
 
       const registrationRef = data?.registration_reference || '';
+      try { sessionStorage.removeItem(STEP_KEY); } catch {}
       reset();
       toast.success('Registration submitted successfully!');
       navigate('/registration/success', { state: { registrationReference: registrationRef } });
@@ -431,25 +454,40 @@ export default function PreLicenseeRegistration() {
   const resolveReviewValue = useReviewValueResolver(config?.formSchema);
 
   function buildReviewSections() {
-    const sections: { title: string; fields: { label: string; value: any; type?: 'attachment' }[] }[] = [];
+    type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 };
+    const sections: { title: string; fields: RF[] }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
       config.formSchema.forEach((s) => {
-        const fields: { label: string; value: any; type?: 'attachment' }[] = [];
+        const fields: RF[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
-          // Skip display-only fields (no value to render in review)
-          if (c.field.type === 'heading' || c.field.type === 'paragraph') return;
-          const raw = dynamicFormData[c.field.fieldName];
+          const f = c.field;
+          // Render display-only fields inline (heading/info/divider), no value
+          if (isDisplayOnlyFieldType(f.type)) {
+            const kind = resolveDisplayKind(f.type);
+            const text = kind === 'heading'
+              ? (f.label || (f as any).defaultValue || (f as any).content || '')
+              : ((f as any).defaultValue || (f as any).content || (f as any).helpText || f.label || '');
+            fields.push({
+              label: f.label || '',
+              value: text,
+              type: 'display',
+              displayKind: kind,
+              headingLevel: (f as any).headingLevel,
+            });
+            return;
+          }
+          const raw = dynamicFormData[f.fieldName];
           // File fields are always rendered as attachments (driven by field
           // type, not value-shape guessing) so View/Download icons display
           // even for legacy or partial value shapes.
-          if (c.field.type === 'file' || isAttachmentValue(raw)) {
-            fields.push({ label: c.field.label, value: raw ?? null, type: 'attachment' });
+          if (f.type === 'file' || isAttachmentValue(raw)) {
+            fields.push({ label: f.label, value: raw ?? null, type: 'attachment' });
             return;
           }
-          const resolved = resolveReviewValue(c.field, raw);
-          fields.push({ label: c.field.label, value: formatReviewValue(resolved) });
+          const resolved = resolveReviewValue(f, raw);
+          fields.push({ label: f.label, value: formatReviewValue(resolved) });
         }));
         sections.push({ title: s.title, fields });
       });
