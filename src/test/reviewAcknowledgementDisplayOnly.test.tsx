@@ -29,7 +29,7 @@ describe('ReviewAcknowledgement display-only fields', () => {
     );
 
     expect(screen.getByText('Physical Address')).toBeInTheDocument();
-    expect(screen.getByText('Not provided')).toBeInTheDocument();
+    expect(screen.getByText('Company Name')).toBeInTheDocument();
     expect(screen.getAllByText('Not provided')).toHaveLength(1);
   });
 });
