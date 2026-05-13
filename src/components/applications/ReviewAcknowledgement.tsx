@@ -48,7 +48,7 @@ export function ReviewAcknowledgement({
   const [acknowledged, setAcknowledged] = useState(false);
 
   const isDisplayOnlyReviewField = (field: ReviewField) => {
-    return field.type === 'display' || isDisplayOnlyField(field);
+    return field.type === 'display' || !!field.displayKind || isDisplayOnlyField(field);
   };
 
   const getDisplayText = (field: ReviewField) => {
@@ -61,6 +61,29 @@ export function ReviewAcknowledgement({
   const getResolvedDisplayKind = (field: ReviewField): DisplayKind => {
     if (field.displayKind) return field.displayKind;
     return resolveDisplayKind(field.type);
+  };
+
+  const renderDisplayOnlyField = (field: ReviewField, key: number) => {
+    const displayKind = getResolvedDisplayKind(field);
+    const displayText = getDisplayText(field);
+
+    if (displayKind === 'divider') {
+      return <Separator key={key} className="my-2" />;
+    }
+
+    if (displayKind === 'heading') {
+      return (
+        <h4 key={key} className="font-semibold text-base mt-4 mb-2 text-foreground">
+          {displayText}
+        </h4>
+      );
+    }
+
+    return (
+      <div key={key} className="text-sm text-muted-foreground my-2">
+        {displayText}
+      </div>
+    );
   };
 
   return (
@@ -89,28 +112,7 @@ export function ReviewAcknowledgement({
                 <div className="grid gap-3 py-2">
                   {section.fields.map((field, fIdx) => {
                     if (isDisplayOnlyReviewField(field)) {
-                      const displayKind = getResolvedDisplayKind(field);
-                      const displayText = getDisplayText(field);
-
-                      if (displayKind === 'divider') {
-                        return <Separator key={fIdx} className="my-2" />;
-                      }
-
-                      if (displayKind === 'heading') {
-                        const lvl = field.headingLevel || 3;
-                        const sizeCls = lvl <= 2 ? 'text-base' : 'text-sm';
-                        return (
-                          <div key={fIdx} className={`font-semibold text-foreground ${sizeCls} pt-2`}>
-                            {displayText}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <p key={fIdx} className="text-sm text-muted-foreground px-2">
-                          {displayText}
-                        </p>
-                      );
+                      return renderDisplayOnlyField(field, fIdx);
                     }
                     return (
                       <div key={fIdx} className="flex items-start justify-between gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50">
