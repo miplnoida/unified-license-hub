@@ -120,6 +120,13 @@ export default function PreLicenseeRegistration() {
   const STEP_COUNT = steps.length;
   const isLastStep = currentStep === STEP_COUNT - 1;
 
+  // Clamp currentStep when steps array shrinks (e.g. saved index from older config)
+  useEffect(() => {
+    if (STEP_COUNT > 0 && currentStep > STEP_COUNT - 1) {
+      setCurrentStep(STEP_COUNT - 1);
+    }
+  }, [STEP_COUNT, currentStep]);
+
   // Validate a dynamic step's required fields
   const validateDynamicStep = useCallback((stepData: RegStep): boolean => {
     const errs: Record<string, string> = {};
