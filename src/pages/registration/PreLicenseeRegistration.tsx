@@ -481,6 +481,7 @@ export default function PreLicenseeRegistration() {
               type: 'display',
               displayKind: kind,
               headingLevel: (f as any).headingLevel,
+              placeholder: (f as any).placeholder,
             });
             return;
           }
