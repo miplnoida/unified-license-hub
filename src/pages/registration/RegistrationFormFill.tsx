@@ -30,6 +30,7 @@ export default function RegistrationFormFill() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pendingData, setPendingData] = useState<Record<string, any> | null>(null);
+  const stepStorageKey = buildStepStorageKey(formId, submissionId);
 
   useEffect(() => {
     if (authLoading) return;
@@ -177,7 +178,11 @@ export default function RegistrationFormFill() {
       .eq('id', submissionId);
     setSaving(false);
     if (error) toast.error('Failed to submit.');
-    else { toast.success('Form completed!'); navigate('/registration/portal'); }
+    else {
+      try { sessionStorage.removeItem(stepStorageKey); } catch {}
+      toast.success('Form completed!');
+      navigate('/registration/portal');
+    }
   }
 
   if (authLoading || loading) {
@@ -219,7 +224,7 @@ export default function RegistrationFormFill() {
           onSaveDraft={handleSave}
           onSubmit={handleSubmitClick}
           saving={saving}
-          stepStorageKey={buildStepStorageKey(formId, submissionId)}
+          stepStorageKey={stepStorageKey}
         />
 
         {pendingData && (
