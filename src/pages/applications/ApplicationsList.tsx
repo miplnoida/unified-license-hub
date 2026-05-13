@@ -493,11 +493,17 @@ export default function ApplicationsList() {
     return list;
   }, [applications, versions, versionSort]);
 
+  // Always sort by created_at DESC so newest applications show first.
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ),
+    [filtered]
+  );
+
   // Server-driven pagination: totalCount comes from the .range() count.
-  // `filtered` here is the in-page filter (search + version filter + sort) applied
-  // to the loaded page. Status filter + draft hiding are pushed to the server.
   const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const paged = filtered;
+  const paged = sortedFiltered;
 
   const approved = statCounts.approved;
   const pending = statCounts.pending;
@@ -521,6 +527,11 @@ export default function ApplicationsList() {
     if (!groupingEnabled) return null;
     type GroupNode = { label: string; children: GroupNode[] | Application[] };
     
+    const sortAppsDesc = (apps: Application[]) =>
+      [...apps].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
     const buildGroups = (items: Application[], levels: GroupByField[], depth: number): GroupNode[] => {
       if (depth >= levels.length) return [];
       const field = levels[depth];
@@ -534,11 +545,11 @@ export default function ApplicationsList() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([label, apps]) => ({
           label,
-          children: depth + 1 < levels.length ? buildGroups(apps, levels, depth + 1) : apps,
+          children: depth + 1 < levels.length ? buildGroups(apps, levels, depth + 1) : sortAppsDesc(apps),
         }));
     };
-    return buildGroups(filtered, groupByOrder, 0);
-  }, [filtered, groupingEnabled, groupByOrder, sectors, subSectors]);
+    return buildGroups(sortedFiltered, groupByOrder, 0);
+  }, [sortedFiltered, groupingEnabled, groupByOrder, sectors, subSectors]);
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
