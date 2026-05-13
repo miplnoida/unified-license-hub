@@ -438,6 +438,8 @@ export default function PreLicenseeRegistration() {
         const fields: { label: string; value: any; type?: 'attachment' }[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
+          // Skip display-only fields (no value to render in review)
+          if (c.field.type === 'heading' || c.field.type === 'paragraph') return;
           const raw = dynamicFormData[c.field.fieldName];
           // File fields are always rendered as attachments (driven by field
           // type, not value-shape guessing) so View/Download icons display
