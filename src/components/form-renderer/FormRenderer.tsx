@@ -785,8 +785,12 @@ export function FormRenderer({
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentSection.fields.map(field => renderField(field, formData, updateField))}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {currentSection.fields.map(field => (
+                <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
+                  {renderField(field, formData, updateField)}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-4">
@@ -801,10 +805,12 @@ export function FormRenderer({
                     )}
                   </CardHeader>
                   <CardContent className="pb-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {currentSection.fields.map(field =>
-                        renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))
-                      )}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {currentSection.fields.map(field => (
+                        <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
+                          {renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
