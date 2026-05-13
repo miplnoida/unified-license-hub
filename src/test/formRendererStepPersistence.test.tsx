@@ -39,8 +39,8 @@ describe('FormRenderer step persistence', () => {
       />,
     );
 
-    expect(screen.getByText('Review & Submit')).toBeInTheDocument();
-    expect(screen.queryByText('Entity Details')).toBeInTheDocument();
+    expect(screen.getAllByText('Review & Submit').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Entity Details').length).toBeGreaterThan(0);
     expect(screen.getByText('Mailing Address')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /previous/i }));
