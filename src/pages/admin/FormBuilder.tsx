@@ -737,49 +737,23 @@ export default function FormBuilder() {
         </>)}
       </div>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog — uses the same FormRenderer (rows-based) as the live form */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{formName || 'Untitled Form'}</DialogTitle>
             <DialogDescription>
               Preview — {sections.length} sections, {allFields.length} fields
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            {sections.map(section => (
-              <div key={section.id} className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
-                  {section.description && <p className="text-xs text-muted-foreground">{section.description}</p>}
-                  {section.isRepeatable && <Badge variant="outline" className="text-[10px] mt-1">Repeatable Section</Badge>}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {section.fields.map(field => {
-                    const fallback: 1|2|3|4 = ['paragraph','heading','table','calculated'].includes(field.type) ? 4 : 2;
-                    const span = field.colSpan ?? fallback;
-                    const spanClass = span === 1 ? 'md:col-span-1' : span === 2 ? 'md:col-span-2' : span === 3 ? 'md:col-span-3' : 'md:col-span-4';
-                    return (
-                      <div key={field.id} className={`space-y-1.5 ${spanClass} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                        {field.type !== 'paragraph' && (
-                          <Label className="text-xs">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                          </Label>
-                        )}
-                        {field.type === 'paragraph' ? (
-                          <p className="text-sm text-muted-foreground">{field.content}</p>
-                        ) : field.type === 'textarea' ? (
-                          <Textarea disabled placeholder={field.placeholder} className="text-sm" rows={2} />
-                        ) : (
-                          <Input disabled placeholder={field.placeholder || field.label} className="text-sm" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="pt-4">
+            <FormRenderer
+              formName={formName || 'Untitled Form'}
+              sections={sections}
+              onSaveDraft={() => {}}
+              onSubmit={() => {}}
+              readOnly
+            />
           </div>
         </DialogContent>
       </Dialog>
