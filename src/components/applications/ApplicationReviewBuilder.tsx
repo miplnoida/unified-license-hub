@@ -4,6 +4,7 @@ import { ReviewAcknowledgement } from './ReviewAcknowledgement';
 import { Badge } from '@/components/ui/badge';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
+import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
 
 interface TemplateLite {
   id: string;
@@ -47,15 +48,28 @@ function ReviewBuilderInner({
       const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' }> = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
 
         (sec.fields || []).forEach((f: FormField) => {
-          if (f.type === 'paragraph' || f.type === 'heading') return;
           if (!f.label && !f.fieldName) return;
           if (!isConditionalTargetVisible(f.conditionalLogic, data, allFields)) return;
+
+          if (isDisplayOnlyFieldType(f.type)) {
+            const kind = resolveDisplayKind(f.type);
+            fields.push({
+              label: f.label || '',
+              value: kind === 'heading'
+                ? (f.label || f.defaultValue || f.content || f.helpText || '')
+                : (f.defaultValue || f.content || f.helpText || f.label || ''),
+              type: 'display',
+              displayKind: kind,
+              headingLevel: f.headingLevel,
+            });
+            return;
+          }
 
           const raw = resolveDynamicFieldValue(data, f);
           if (import.meta.env.DEV && raw === undefined && Object.keys(data).length > 0) {
