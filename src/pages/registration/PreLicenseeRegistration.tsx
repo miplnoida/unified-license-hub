@@ -73,7 +73,10 @@ export default function PreLicenseeRegistration() {
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
 
   const clearPersistedStep = useCallback(() => {
-    try { sessionStorage.removeItem(STEP_KEY); } catch {}
+    try {
+      sessionStorage.removeItem(STEP_KEY);
+      sessionStorage.removeItem(DYNAMIC_DATA_KEY);
+    } catch {}
   }, []);
 
   const resetRegistrationFlow = useCallback(() => {
@@ -89,6 +92,13 @@ export default function PreLicenseeRegistration() {
   useEffect(() => {
     sessionStorage.setItem(STEP_KEY, String(currentStep));
   }, [currentStep]);
+
+  // Persist dynamic step data so going back to previous steps preserves entries
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DYNAMIC_DATA_KEY, JSON.stringify(dynamicFormData));
+    } catch {}
+  }, [dynamicFormData]);
 
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
