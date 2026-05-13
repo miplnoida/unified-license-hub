@@ -493,11 +493,17 @@ export default function ApplicationsList() {
     return list;
   }, [applications, versions, versionSort]);
 
+  // Always sort by created_at DESC so newest applications show first.
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ),
+    [filtered]
+  );
+
   // Server-driven pagination: totalCount comes from the .range() count.
-  // `filtered` here is the in-page filter (search + version filter + sort) applied
-  // to the loaded page. Status filter + draft hiding are pushed to the server.
   const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const paged = filtered;
+  const paged = sortedFiltered;
 
   const approved = statCounts.approved;
   const pending = statCounts.pending;
