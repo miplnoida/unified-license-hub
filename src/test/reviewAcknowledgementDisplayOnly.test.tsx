@@ -32,4 +32,30 @@ describe('ReviewAcknowledgement display-only fields', () => {
     expect(screen.getByText('Company Name')).toBeInTheDocument();
     expect(screen.getAllByText('Not provided')).toHaveLength(1);
   });
+
+  it('falls back to placeholder text for display-only headings', () => {
+    render(
+      <ReviewAcknowledgement
+        mode="readonly"
+        onAcknowledge={() => {}}
+        sections={[
+          {
+            title: 'Registration',
+            fields: [
+              {
+                label: '',
+                placeholder: 'Mailing Address',
+                value: '',
+                type: 'display',
+                displayKind: 'heading',
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Mailing Address')).toBeInTheDocument();
+    expect(screen.queryByText('Not provided')).not.toBeInTheDocument();
+  });
 });
