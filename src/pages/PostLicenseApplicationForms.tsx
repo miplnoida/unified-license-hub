@@ -21,6 +21,9 @@ import {
   ClipboardList, Clock, PlayCircle, Send,
 } from 'lucide-react';
 
+const buildPostLicenseViewStateKey = (applicationId: string | undefined) =>
+  `postLicenseRegistrationCurrentStep:${applicationId || 'unknown'}`;
+
 type FormStatus = 'not_started' | 'in_progress' | 'completed';
 
 interface FormProgress {
@@ -104,15 +107,41 @@ export default function PostLicenseApplicationForms() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: allTemplates = [], isLoading: templatesLoading } = useFormTemplates();
+  const postLicenseStepStorageKey = buildPostLicenseViewStateKey(applicationId);
 
   const [appData, setAppData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [formProgressMap, setFormProgressMap] = useState<Record<string, FormProgress>>({});
-  const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(null);
+  const [activeFormTemplateId, setActiveFormTemplateId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem(postLicenseStepStorageKey) || null;
+    } catch {
+      return null;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [showReview, setShowReview] = useState(false);
+  const [showReview, setShowReview] = useState(() => {
+    try {
+      return sessionStorage.getItem(`${postLicenseStepStorageKey}:review`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const { data: reviewSettings } = useReviewSettings();
+
+  useEffect(() => {
+    try {
+      if (activeFormTemplateId) {
+        sessionStorage.setItem(postLicenseStepStorageKey, activeFormTemplateId);
+      } else {
+        sessionStorage.removeItem(postLicenseStepStorageKey);
+      }
+      sessionStorage.setItem(`${postLicenseStepStorageKey}:review`, String(showReview));
+    } catch {
+      // noop
+    }
+  }, [postLicenseStepStorageKey, activeFormTemplateId, showReview]);
 
   const serviceName = searchParams.get('service') || '';
 
@@ -267,6 +296,12 @@ export default function PostLicenseApplicationForms() {
       if (data?.error) {
         toast.error(data.error);
         return;
+      }
+      try {
+        sessionStorage.removeItem(postLicenseStepStorageKey);
+        sessionStorage.removeItem(`${postLicenseStepStorageKey}:review`);
+      } catch {
+        // noop
       }
       toast.success(data?.message || 'Application submitted successfully!');
       navigate(`/applications/${applicationId}`);
