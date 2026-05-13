@@ -12,6 +12,12 @@ import type { FormSection } from '@/types/formBuilder';
 import type { Json } from '@/integrations/supabase/types';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
+const buildStepStorageKey = (formId: string | undefined, submissionId: string | null) => {
+  const formKey = formId || 'unknown-form';
+  const submissionKey = submissionId || 'draft';
+  return `registrationFormCurrentStep:${formKey}:${submissionKey}`;
+};
+
 export default function RegistrationFormFill() {
   const navigate = useNavigate();
   const { formId } = useParams<{ formId: string }>();
@@ -213,6 +219,7 @@ export default function RegistrationFormFill() {
           onSaveDraft={handleSave}
           onSubmit={handleSubmitClick}
           saving={saving}
+          stepStorageKey={buildStepStorageKey(formId, submissionId)}
         />
 
         {pendingData && (
