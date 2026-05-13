@@ -10,6 +10,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import type { FormSection } from '@/types/formBuilder';
 import type { Json } from '@/integrations/supabase/types';
+import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
 
 export default function RegistrationFormFill() {
   const navigate = useNavigate();
@@ -224,12 +225,26 @@ export default function RegistrationFormFill() {
             description="Confirm the details below. Click 'Edit Section' to make changes."
             sections={formDef.sections.map(section => ({
               title: section.title,
-              fields: section.fields
-                .filter(f => f.type !== 'paragraph' && f.type !== 'heading' && (f.type as string) !== 'static_text' && (f.type as string) !== 'section_title' && (f.type as string) !== 'divider')
-                .map(f => ({
+              fields: section.fields.map(f => {
+                if (isDisplayOnlyFieldType(f.type)) {
+                  const kind = resolveDisplayKind(f.type);
+                  const text = kind === 'heading'
+                    ? (f.label || f.defaultValue || f.content || '')
+                    : (f.defaultValue || f.content || f.helpText || f.label || '');
+
+                  return {
+                    label: f.label,
+                    value: text,
+                    type: 'display' as const,
+                    displayKind: kind,
+                  };
+                }
+
+                return {
                   label: f.label,
                   value: pendingData?.[f.fieldName] ?? null,
-                })),
+                };
+              }),
             }))}
           />
         )}
