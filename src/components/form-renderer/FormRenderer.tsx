@@ -19,7 +19,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
+import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
+import { migrateSectionsToRows } from '@/lib/formRows';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
@@ -165,8 +166,34 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
   return null;
 }
 
+function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field: FormField) => React.ReactNode }) {
+  if (!rows.length) return null;
+  const colsClass: Record<1 | 2 | 3 | 4, string> = {
+    1: 'md:grid-cols-1',
+    2: 'md:grid-cols-2',
+    3: 'md:grid-cols-3',
+    4: 'md:grid-cols-4',
+  };
+  return (
+    <div className="space-y-4">
+      {rows.map((row) => (
+        <div key={row.id} className={`grid gap-4 grid-cols-1 ${colsClass[row.columns] || 'md:grid-cols-1'}`}>
+          {Array.from({ length: row.columns }).map((_, i) => {
+            const field = row.fields[i] || null;
+            return (
+              <div key={field ? field.id : `empty-${row.id}-${i}`} className="min-w-0">
+                {field ? renderField(field) : null}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function FormRenderer({
-  formName, sections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
+  formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -179,6 +206,8 @@ export function FormRenderer({
   const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Normalize incoming sections so every section has a `rows` layout.
+  const sections = useMemo(() => migrateSectionsToRows(rawSections), [rawSections]);
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
   const visibleSections = useMemo(() =>
     sections.filter(s => {
@@ -800,13 +829,10 @@ export function FormRenderer({
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {currentSection.fields.map(field => (
-                <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                  {renderField(field, formData, updateField)}
-                </div>
-              ))}
-            </div>
+            <RowsGrid
+              rows={currentSection.rows || []}
+              renderField={(field) => renderField(field, formData, updateField)}
+            />
           ) : (
             <div className="space-y-4">
               {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => (
@@ -820,13 +846,10 @@ export function FormRenderer({
                     )}
                   </CardHeader>
                   <CardContent className="pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      {currentSection.fields.map(field => (
-                        <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                          {renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
-                        </div>
-                      ))}
-                    </div>
+                    <RowsGrid
+                      rows={currentSection.rows || []}
+                      renderField={(field) => renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                    />
                   </CardContent>
                 </Card>
               ))}

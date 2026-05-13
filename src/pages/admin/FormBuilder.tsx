@@ -33,7 +33,9 @@ import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
+import type { FormField, FormSection, FieldType, FormRow } from '@/types/formBuilder';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { migrateSectionsToRows, syncSectionFields, appendFieldToRows } from '@/lib/formRows';
 
 function toFieldName(label: string): string {
   return label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -113,13 +115,13 @@ export default function FormBuilder() {
     [activeVersion?.schema_snapshot],
   );
   const parsedSections = useMemo(() => {
+    let result: FormSection[] = [];
     if (versionFieldRows.length > 0) {
-      return fieldRowsToSections(versionFieldRows, versionConditionRows);
+      result = fieldRowsToSections(versionFieldRows, versionConditionRows);
+    } else if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
+      result = validSnapshotSections;
     }
-    if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
-      return validSnapshotSections;
-    }
-    return [];
+    return migrateSectionsToRows(result);
   }, [versionFieldRows, versionConditionRows, fieldsFetched, fieldsFetching, validSnapshotSections]);
   const builderReady = !editId || (
     templateFetched
@@ -216,11 +218,10 @@ export default function FormBuilder() {
 
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
 
-  // Field operations
-  const handleAddField = useCallback((sectionId: string, type: FieldType) => {
+  const buildNewField = useCallback((type: FieldType): FormField => {
     const ft = fieldTypes.find(f => f.type === type);
     const label = ft?.label || 'New Field';
-    const newField: FormField = {
+    return {
       id: crypto.randomUUID(),
       type,
       label,
@@ -231,57 +232,91 @@ export default function FormBuilder() {
       content: type === 'paragraph' ? 'Enter text here...' : undefined,
       tableColumns: type === 'table' ? [{ id: crypto.randomUUID(), label: 'Column 1', type: 'text' }] : undefined,
     };
-    setSections(prev => prev.map(s =>
-      s.id === sectionId ? { ...s, fields: [...s.fields, newField] } : s
-    ));
+  }, []);
+
+  // Append field into a section's rows (last empty slot, or new 1-col row).
+  const handleAddField = useCallback((sectionId: string, type: FieldType) => {
+    const newField = buildNewField(type);
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const rows = appendFieldToRows(s.rows || [], newField);
+      return syncSectionFields({ ...s, rows });
+    }));
     setSelectedField(newField);
     setSelectedSectionId(sectionId);
-  }, []);
+  }, [buildNewField]);
 
   const handleAddFieldFromPalette = useCallback((type: FieldType) => {
     if (sections.length === 0) {
       const sId = crypto.randomUUID();
-      const ft = fieldTypes.find(f => f.type === type);
-      const label = ft?.label || 'New Field';
-      const newField: FormField = {
-        id: crypto.randomUUID(), type, label, fieldName: toFieldName(label), required: false,
-        options: ['radio', 'select', 'checkbox', 'multi_select'].includes(type) ? ['Option 1', 'Option 2'] : undefined,
-        content: type === 'paragraph' ? 'Enter text here...' : undefined,
-        tableColumns: type === 'table' ? [{ id: crypto.randomUUID(), label: 'Column 1', type: 'text' }] : undefined,
-      };
-      setSections([{ id: sId, title: 'Section 1', sortOrder: 0, isRepeatable: false, fields: [newField] }]);
+      const newField = buildNewField(type);
+      const section = syncSectionFields({
+        id: sId,
+        title: 'Section 1',
+        sortOrder: 0,
+        isRepeatable: false,
+        rows: [{ id: crypto.randomUUID(), columns: 1, fields: [newField] }],
+        fields: [],
+      });
+      setSections([section]);
       setSelectedField(newField);
       setSelectedSectionId(sId);
     } else {
       handleAddField(sections[sections.length - 1].id, type);
     }
-  }, [sections, handleAddField]);
+  }, [sections, handleAddField, buildNewField]);
 
   const handleDeleteField = useCallback((sectionId: string, fieldId: string) => {
-    setSections(prev => prev.map(s =>
-      s.id === sectionId ? { ...s, fields: s.fields.filter(f => f.id !== fieldId) } : s
-    ));
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const rows = (s.rows || []).map(r => ({
+        ...r,
+        fields: r.fields.map(f => (f && f.id === fieldId ? null : f)),
+      }));
+      return syncSectionFields({ ...s, rows });
+    }));
     if (selectedField?.id === fieldId) setSelectedField(null);
   }, [selectedField]);
 
   const handleDuplicateField = useCallback((sectionId: string, fieldId: string) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
-      const field = s.fields.find(f => f.id === fieldId);
-      if (!field) return s;
-      const clone = { ...field, id: crypto.randomUUID(), fieldName: field.fieldName + '_copy' };
-      const idx = s.fields.findIndex(f => f.id === fieldId);
-      const fields = [...s.fields];
-      fields.splice(idx + 1, 0, clone);
-      return { ...s, fields };
+      const rows = s.rows || [];
+      // Find the row+slot containing the field
+      let foundRowIdx = -1;
+      let foundSlotIdx = -1;
+      for (let i = 0; i < rows.length; i++) {
+        const idx = rows[i].fields.findIndex(f => f && f.id === fieldId);
+        if (idx >= 0) { foundRowIdx = i; foundSlotIdx = idx; break; }
+      }
+      if (foundRowIdx === -1) return s;
+      const orig = rows[foundRowIdx].fields[foundSlotIdx]!;
+      const clone: FormField = { ...orig, id: crypto.randomUUID(), fieldName: orig.fieldName + '_copy' };
+      // Try to put in next empty slot of same row, else new 1-col row right after
+      const row = rows[foundRowIdx];
+      const emptyIdx = row.fields.findIndex((f, i) => i > foundSlotIdx && !f);
+      let newRows: FormRow[];
+      if (emptyIdx >= 0) {
+        const newFields = row.fields.slice();
+        newFields[emptyIdx] = clone;
+        newRows = rows.slice();
+        newRows[foundRowIdx] = { ...row, fields: newFields };
+      } else {
+        newRows = [...rows];
+        newRows.splice(foundRowIdx + 1, 0, { id: crypto.randomUUID(), columns: 1, fields: [clone] });
+      }
+      return syncSectionFields({ ...s, rows: newRows });
     }));
   }, []);
 
   const handleUpdateField = useCallback((id: string, updates: Partial<FormField>) => {
-    setSections(prev => prev.map(s => ({
-      ...s,
-      fields: s.fields.map(f => f.id === id ? { ...f, ...updates } : f),
-    })));
+    setSections(prev => prev.map(s => {
+      const rows = (s.rows || []).map(r => ({
+        ...r,
+        fields: r.fields.map(f => (f && f.id === id ? { ...f, ...updates } : f)),
+      }));
+      return syncSectionFields({ ...s, rows });
+    }));
     setSelectedField(prev => prev?.id === id ? { ...prev, ...updates } : prev);
   }, []);
 
@@ -700,7 +735,7 @@ export default function FormBuilder() {
                   sections={sections}
                   selectedFieldId={selectedField?.id || null}
                   onSelectField={isViewMode ? () => {} : handleSelectField}
-                  onSectionsChange={isViewMode ? () => {} : setSections}
+                  onSectionsChange={isViewMode ? () => {} : (next) => setSections(next.map(syncSectionFields))}
                   onAddField={isViewMode ? () => {} : handleAddField}
                   onDeleteField={isViewMode ? () => {} : handleDeleteField}
                   onDuplicateField={isViewMode ? () => {} : handleDuplicateField}
@@ -737,49 +772,23 @@ export default function FormBuilder() {
         </>)}
       </div>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog — uses the same FormRenderer (rows-based) as the live form */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{formName || 'Untitled Form'}</DialogTitle>
             <DialogDescription>
               Preview — {sections.length} sections, {allFields.length} fields
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 pt-4">
-            {sections.map(section => (
-              <div key={section.id} className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
-                  {section.description && <p className="text-xs text-muted-foreground">{section.description}</p>}
-                  {section.isRepeatable && <Badge variant="outline" className="text-[10px] mt-1">Repeatable Section</Badge>}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  {section.fields.map(field => {
-                    const fallback: 1|2|3|4 = ['paragraph','heading','table','calculated'].includes(field.type) ? 4 : 2;
-                    const span = field.colSpan ?? fallback;
-                    const spanClass = span === 1 ? 'md:col-span-1' : span === 2 ? 'md:col-span-2' : span === 3 ? 'md:col-span-3' : 'md:col-span-4';
-                    return (
-                      <div key={field.id} className={`space-y-1.5 ${spanClass} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                        {field.type !== 'paragraph' && (
-                          <Label className="text-xs">
-                            {field.label}
-                            {field.required && <span className="text-destructive ml-1">*</span>}
-                          </Label>
-                        )}
-                        {field.type === 'paragraph' ? (
-                          <p className="text-sm text-muted-foreground">{field.content}</p>
-                        ) : field.type === 'textarea' ? (
-                          <Textarea disabled placeholder={field.placeholder} className="text-sm" rows={2} />
-                        ) : (
-                          <Input disabled placeholder={field.placeholder || field.label} className="text-sm" />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="pt-4">
+            <FormRenderer
+              formName={formName || 'Untitled Form'}
+              sections={sections}
+              onSaveDraft={() => {}}
+              onSubmit={() => {}}
+              readOnly
+            />
           </div>
         </DialogContent>
       </Dialog>
