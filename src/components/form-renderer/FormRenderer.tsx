@@ -19,7 +19,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
+import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
+import { migrateSectionsToRows } from '@/lib/formRows';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
