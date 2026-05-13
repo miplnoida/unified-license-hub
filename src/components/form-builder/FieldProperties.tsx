@@ -178,6 +178,34 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
           </Select>
         </div>
 
+        {/* Row Layout: width + new row */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Width</Label>
+            <Select
+              value={String(f.colSpan ?? (['paragraph','heading','table','calculated'].includes(f.type) ? 4 : 2))}
+              onValueChange={v => onUpdateField(f.id, { colSpan: Number(v) as 1|2|3|4 })}
+            >
+              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1/4 (4 per row)</SelectItem>
+                <SelectItem value="2">1/2 (2 per row)</SelectItem>
+                <SelectItem value="3">3/4</SelectItem>
+                <SelectItem value="4">Full (1 per row)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Start New Row</Label>
+            <div className="h-8 flex items-center">
+              <Switch
+                checked={!!f.newRow}
+                onCheckedChange={v => onUpdateField(f.id, { newRow: v })}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Paragraph content */}
         {isParagraph && (
           <div className="space-y-1.5">

@@ -26,6 +26,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
 
+// Returns Tailwind col-span class for a field's row width.
+// Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
+function getFieldSpanClass(field: FormField): string {
+  const fallback: 1 | 2 | 3 | 4 =
+    ['paragraph', 'heading', 'table', 'calculated'].includes(field.type) ? 4 : 2;
+  const span = field.colSpan ?? fallback;
+  switch (span) {
+    case 1: return 'md:col-span-1';
+    case 2: return 'md:col-span-2';
+    case 3: return 'md:col-span-3';
+    case 4:
+    default: return 'md:col-span-4';
+  }
+}
+
 interface Props {
   formName: string;
   sections: FormSection[];
@@ -785,8 +800,12 @@ export function FormRenderer({
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentSection.fields.map(field => renderField(field, formData, updateField))}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {currentSection.fields.map(field => (
+                <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
+                  {renderField(field, formData, updateField)}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-4">
@@ -801,10 +820,12 @@ export function FormRenderer({
                     )}
                   </CardHeader>
                   <CardContent className="pb-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {currentSection.fields.map(field =>
-                        renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))
-                      )}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {currentSection.fields.map(field => (
+                        <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
+                          {renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>

@@ -45,6 +45,11 @@ export interface FormField {
   masterDataParentField?: string; // fieldName of the parent cascading field
   // Heading level for heading-type fields (1-6)
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  // Row layout: width of this field on a 4-column grid (1=quarter, 2=half, 3=three-quarters, 4=full).
+  // Default behavior (undefined) = 2 (half width), preserving the legacy 2-column layout.
+  colSpan?: 1 | 2 | 3 | 4;
+  // When true, this field starts a new row regardless of remaining space in the previous row.
+  newRow?: boolean;
 }
 
 export type FieldType =
