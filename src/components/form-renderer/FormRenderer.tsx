@@ -166,6 +166,30 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
   return null;
 }
 
+function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field: FormField) => React.ReactNode }) {
+  if (!rows.length) return null;
+  return (
+    <div className="space-y-4">
+      {rows.map((row) => (
+        <div
+          key={row.id}
+          className="grid gap-4 grid-cols-1"
+          style={{ gridTemplateColumns: `repeat(${row.columns}, minmax(0, 1fr))` }}
+        >
+          {Array.from({ length: row.columns }).map((_, i) => {
+            const field = row.fields[i] || null;
+            return (
+              <div key={field ? field.id : `empty-${row.id}-${i}`} className="min-w-0">
+                {field ? renderField(field) : null}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
 }: Props) {
