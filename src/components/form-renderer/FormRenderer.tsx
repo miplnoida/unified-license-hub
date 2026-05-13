@@ -26,6 +26,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
 
+// Returns Tailwind col-span class for a field's row width.
+// Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
+function getFieldSpanClass(field: FormField): string {
+  const fallback: 1 | 2 | 3 | 4 =
+    ['paragraph', 'heading', 'table', 'calculated'].includes(field.type) ? 4 : 2;
+  const span = field.colSpan ?? fallback;
+  switch (span) {
+    case 1: return 'md:col-span-1';
+    case 2: return 'md:col-span-2';
+    case 3: return 'md:col-span-3';
+    case 4:
+    default: return 'md:col-span-4';
+  }
+}
+
 interface Props {
   formName: string;
   sections: FormSection[];
