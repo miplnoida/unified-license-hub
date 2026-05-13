@@ -236,7 +236,7 @@ function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
         field.id = newId;
       }
     }
-    syncSectionFields(section);
+    Object.assign(section, syncSectionFields(section));
   }
 
   for (const section of newSections) {
@@ -250,7 +250,7 @@ function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
         }
       }
     }
-    syncSectionFields(section);
+    Object.assign(section, syncSectionFields(section));
   }
 
   return newSections;
