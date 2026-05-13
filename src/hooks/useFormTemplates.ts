@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
+import { migrateSectionsToRows, syncSectionFields } from '@/lib/formRows';
 
 // ─── Types ───
 export interface FormTemplate {
@@ -197,13 +198,18 @@ function fieldRowsToSections(
     section.fields.push(field);
   }
 
-  return Array.from(sectionMap.values())
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map(s => ({ ...s, fields: s.fields.sort((a, b) => {
-      const aIdx = fieldRows.findIndex(r => r.id === a.id);
-      const bIdx = fieldRows.findIndex(r => r.id === b.id);
-      return aIdx - bIdx;
-    }) }));
+  return migrateSectionsToRows(
+    Array.from(sectionMap.values())
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((s) => ({
+        ...s,
+        fields: s.fields.sort((a, b) => {
+          const aIdx = fieldRows.findIndex(r => r.id === a.id);
+          const bIdx = fieldRows.findIndex(r => r.id === b.id);
+          return aIdx - bIdx;
+        }),
+      }))
+  );
 }
 
 function isValidSectionSnapshot(snapshot: unknown): snapshot is FormSection[] {
@@ -218,26 +224,33 @@ function isValidSectionSnapshot(snapshot: unknown): snapshot is FormSection[] {
 }
 
 function cloneSectionsWithNewFieldIds(sections: FormSection[]): FormSection[] {
-  const newSections = JSON.parse(JSON.stringify(sections)) as FormSection[];
+  const newSections = migrateSectionsToRows(JSON.parse(JSON.stringify(sections)) as FormSection[]);
   const idMap = new Map<string, string>();
 
   for (const section of newSections) {
-    for (const field of section.fields) {
-      const newId = crypto.randomUUID();
-      idMap.set(field.id, newId);
-      field.id = newId;
+    for (const row of section.rows || []) {
+      for (const field of row.fields) {
+        if (!field) continue;
+        const newId = crypto.randomUUID();
+        idMap.set(field.id, newId);
+        field.id = newId;
+      }
     }
+    Object.assign(section, syncSectionFields(section));
   }
 
   for (const section of newSections) {
-    for (const field of section.fields) {
-      if (!field.conditionalLogic) continue;
-      for (const rule of field.conditionalLogic) {
-        if (rule.fieldId && idMap.has(rule.fieldId)) {
-          rule.fieldId = idMap.get(rule.fieldId)!;
+    for (const row of section.rows || []) {
+      for (const field of row.fields) {
+        if (!field?.conditionalLogic) continue;
+        for (const rule of field.conditionalLogic) {
+          if (rule.fieldId && idMap.has(rule.fieldId)) {
+            rule.fieldId = idMap.get(rule.fieldId)!;
+          }
         }
       }
     }
+    Object.assign(section, syncSectionFields(section));
   }
 
   return newSections;
@@ -573,11 +586,11 @@ export function useVersionSections(versionId: string | null) {
   return useQuery({
     queryKey: ['version_sections', versionId, fieldRows.length, conditionRows.length, version?.id],
     queryFn: () => {
+      if (isValidSectionSnapshot(version?.schema_snapshot)) {
+        return migrateSectionsToRows(version.schema_snapshot as unknown as FormSection[]);
+      }
       if (fieldRows.length > 0) {
         return fieldRowsToSections(fieldRows, conditionRows);
-      }
-      if (isValidSectionSnapshot(version?.schema_snapshot)) {
-        return version.schema_snapshot as unknown as FormSection[];
       }
       return [];
     },
@@ -792,26 +805,33 @@ export function useCreateNewFormVersion() {
       const vid = crypto.randomUUID();
 
       // Generate new IDs for fields first, then build snapshot
-      const newSections = JSON.parse(JSON.stringify(params.sections)) as FormSection[];
+      const newSections = migrateSectionsToRows(JSON.parse(JSON.stringify(params.sections)) as FormSection[]);
       const idMap = new Map<string, string>();
       for (const section of newSections) {
-        for (const field of section.fields) {
-          const newId = crypto.randomUUID();
-          idMap.set(field.id, newId);
-          field.id = newId;
+        for (const row of section.rows || []) {
+          for (const field of row.fields) {
+            if (!field) continue;
+            const newId = crypto.randomUUID();
+            idMap.set(field.id, newId);
+            field.id = newId;
+          }
         }
+        Object.assign(section, syncSectionFields(section));
       }
       // Update conditional logic references to use new IDs
       for (const section of newSections) {
-        for (const field of section.fields) {
-          if (field.conditionalLogic) {
-            for (const rule of field.conditionalLogic) {
-              if (rule.fieldId && idMap.has(rule.fieldId)) {
-                rule.fieldId = idMap.get(rule.fieldId)!;
+        for (const row of section.rows || []) {
+          for (const field of row.fields) {
+            if (field?.conditionalLogic) {
+              for (const rule of field.conditionalLogic) {
+                if (rule.fieldId && idMap.has(rule.fieldId)) {
+                  rule.fieldId = idMap.get(rule.fieldId)!;
+                }
               }
             }
           }
         }
+        Object.assign(section, syncSectionFields(section));
       }
 
       const { error: vErr } = await supabase.from('form_versions').insert({
