@@ -16,6 +16,7 @@ export const DISPLAY_ONLY_TYPES = DISPLAY_ONLY_FIELD_TYPES;
 export type DisplayOnlyFieldLike = {
   type?: string | null;
   label?: string | null;
+  placeholder?: string | null;
   defaultValue?: string | null;
   content?: string | null;
   helpText?: string | null;
@@ -49,8 +50,8 @@ export function resolveDisplayOnlyFieldText(field: DisplayOnlyFieldLike | null |
 
   const kind = resolveDisplayKind(field.type);
   if (kind === 'heading') {
-    return field.label || field.defaultValue || field.content || field.helpText || '';
+    return field.label || field.placeholder || field.defaultValue || field.content || field.helpText || '';
   }
 
-  return field.defaultValue || field.content || field.helpText || field.label || '';
+  return field.defaultValue || field.content || field.helpText || field.label || field.placeholder || '';
 }
