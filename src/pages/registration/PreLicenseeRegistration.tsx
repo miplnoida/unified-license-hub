@@ -146,7 +146,7 @@ export default function PreLicenseeRegistration() {
         const field = col.field;
         if (!field) continue;
         // Display-only field types have no input/value — skip validation entirely
-        if (isDisplayOnlyFieldType(field.type)) continue;
+        if (isDisplayOnlyField(field)) continue;
         const val = dynamicFormData[field.fieldName];
 
         if (field.required && (val === undefined || val === null || val === '')) {
