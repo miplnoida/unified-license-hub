@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seed Registration Review</title>
+  </head>
+  <body>
+    <script>
+      const data = {
+        sectorId: 'insurance',
+        subSectorId: 'domestic-insurance',
+        categoryId: 'local',
+        applicantName: 'Acme Insurance',
+        applicantNameAlt: '',
+        registrationNumber: 'REG-123',
+        mailingAddress: { street: '1 Main St', city: 'Townsville', state: 'Providence', country: 'United States' },
+        physicalAddress: { street: '2 Side St', city: 'Villagetown', state: 'Region', country: 'United States' },
+        sameAsMailing: false,
+        entitySpecificData: {},
+        firstName: 'Jane',
+        lastName: 'Doe',
+        telephone: '1234567890',
+        email: 'jane.doe@example.com',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        documents: [{ id: 'doc-1', name: 'Certificate.pdf', size: 1000, type: 'application/pdf', path: 'fake/path/certificate.pdf', label: 'Certificate of Incorporation' }],
+        termsAccepted: true,
+        privacyAccepted: true,
+        dataProtectionAccepted: true,
+        captchaChecked: true,
+        emailVerified: true,
+        i_agree_to_the_terms_conditions: true,
+        i_agree_to_the_privacy_policy: true,
+      };
+
+      sessionStorage.setItem('pre-licensee-registration-form', JSON.stringify(data));
+      sessionStorage.setItem('preLicenseRegistrationCurrentStep', '4');
+      location.replace('/register');
+    </script>
+  </body>
+</html>
