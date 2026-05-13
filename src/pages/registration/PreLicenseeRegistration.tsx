@@ -350,6 +350,7 @@ export default function PreLicenseeRegistration() {
         });
         if (signInError) {
           toast.error('Account created but sign-in failed. Please log in manually.');
+          try { sessionStorage.removeItem(STEP_KEY); } catch {}
           reset();
           navigate('/');
           return;
@@ -357,6 +358,7 @@ export default function PreLicenseeRegistration() {
       }
 
       const registrationRef = data?.registration_reference || '';
+      try { sessionStorage.removeItem(STEP_KEY); } catch {}
       reset();
       toast.success('Registration submitted successfully!');
       navigate('/registration/success', { state: { registrationReference: registrationRef } });
