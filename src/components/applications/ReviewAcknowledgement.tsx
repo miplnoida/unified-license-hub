@@ -62,34 +62,55 @@ export function ReviewAcknowledgement({
                   <FileText className="h-4 w-4 text-primary" />
                   {section.title}
                   <Badge variant="outline" className="text-[10px]">
-                    {section.fields.filter(f => f.value != null && f.value !== '').length}/{section.fields.length} filled
+                    {section.fields.filter(f => f.type !== 'display' && f.value != null && f.value !== '').length}/{section.fields.filter(f => f.type !== 'display').length} filled
                   </Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="grid gap-3 py-2">
-                  {section.fields.map((field, fIdx) => (
-                    <div key={fIdx} className="flex items-start justify-between gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50">
-                      <span className="text-muted-foreground min-w-[140px] shrink-0">{field.label}</span>
-                      {field.type === 'attachment' ? (
-                        <div className="flex-1 min-w-0 max-w-[360px]">
-                          <AttachmentDisplay value={field.value} />
-                        </div>
-                      ) : field.value == null || field.value === '' ? (
-                        <span className="font-medium text-right break-words max-w-[300px] text-muted-foreground/60 italic">Not provided</span>
-                      ) : isAttachmentValue(field.value) ? (
-                        <div className="flex-1 min-w-0 max-w-[360px]">
-                          <AttachmentDisplay value={field.value} />
-                        </div>
-                      ) : typeof field.value === 'boolean' ? (
-                        <span className="font-medium text-right break-words max-w-[300px]">
-                          {field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'}
-                        </span>
-                      ) : (
-                        <span className="font-medium text-right break-words max-w-[300px]">{String(field.value)}</span>
-                      )}
-                    </div>
-                  ))}
+                  {section.fields.map((field, fIdx) => {
+                    if (field.type === 'display') {
+                      if (field.displayKind === 'divider') {
+                        return <Separator key={fIdx} className="my-2" />;
+                      }
+                      if (field.displayKind === 'heading') {
+                        const lvl = field.headingLevel || 3;
+                        const sizeCls = lvl <= 2 ? 'text-base' : 'text-sm';
+                        return (
+                          <div key={fIdx} className={`font-semibold text-foreground ${sizeCls} pt-2`}>
+                            {field.value || field.label}
+                          </div>
+                        );
+                      }
+                      return (
+                        <p key={fIdx} className="text-sm text-muted-foreground px-2">
+                          {field.value || field.label}
+                        </p>
+                      );
+                    }
+                    return (
+                      <div key={fIdx} className="flex items-start justify-between gap-4 text-sm px-2 py-1.5 rounded-md hover:bg-muted/50">
+                        <span className="text-muted-foreground min-w-[140px] shrink-0">{field.label}</span>
+                        {field.type === 'attachment' ? (
+                          <div className="flex-1 min-w-0 max-w-[360px]">
+                            <AttachmentDisplay value={field.value} />
+                          </div>
+                        ) : field.value == null || field.value === '' ? (
+                          <span className="font-medium text-right break-words max-w-[300px] text-muted-foreground/60 italic">Not provided</span>
+                        ) : isAttachmentValue(field.value) ? (
+                          <div className="flex-1 min-w-0 max-w-[360px]">
+                            <AttachmentDisplay value={field.value} />
+                          </div>
+                        ) : typeof field.value === 'boolean' ? (
+                          <span className="font-medium text-right break-words max-w-[300px]">
+                            {field.value ? <CheckCircle2 className="h-4 w-4 text-emerald-500 inline" /> : '—'}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-right break-words max-w-[300px]">{String(field.value)}</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 {mode === 'editable' && onEdit && (
                   <div className="flex justify-end pt-2">
