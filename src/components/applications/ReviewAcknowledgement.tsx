@@ -16,6 +16,9 @@ interface ReviewField {
   type?: 'attachment' | 'display' | string;
   displayKind?: DisplayKind;
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  placeholder?: string;
+  defaultValue?: string;
+  helpText?: string;
 }
 
 interface ReviewSection {
@@ -50,7 +53,7 @@ export function ReviewAcknowledgement({
 
   const getDisplayText = (field: ReviewField) => {
     if (field.type === 'display') {
-      return field.value != null && field.value !== '' ? field.value : field.label || '';
+      return field.value != null && field.value !== '' ? field.value : resolveDisplayOnlyFieldText(field);
     }
     return resolveDisplayOnlyFieldText(field);
   };
