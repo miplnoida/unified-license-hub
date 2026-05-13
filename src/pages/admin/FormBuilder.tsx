@@ -194,10 +194,10 @@ export default function FormBuilder() {
   );
   const parsedSections = useMemo(() => {
     let result: FormSection[] = [];
-    if (versionFieldRows.length > 0) {
-      result = fieldRowsToSections(versionFieldRows, versionConditionRows);
-    } else if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
+    if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
       result = validSnapshotSections;
+    } else if (versionFieldRows.length > 0) {
+      result = fieldRowsToSections(versionFieldRows, versionConditionRows);
     }
     return migrateSectionsToRows(result);
   }, [versionFieldRows, versionConditionRows, fieldsFetched, fieldsFetching, validSnapshotSections]);
