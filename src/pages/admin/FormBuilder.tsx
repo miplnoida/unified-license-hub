@@ -33,7 +33,9 @@ import { useRegulator } from '@/contexts/RegulatorContext';
 import { fieldTypes } from '@/components/form-builder/FieldPalette';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { FormField, FormSection, FieldType } from '@/types/formBuilder';
+import type { FormField, FormSection, FieldType, FormRow } from '@/types/formBuilder';
+import { FormRenderer } from '@/components/form-renderer/FormRenderer';
+import { migrateSectionsToRows, syncSectionFields, resizeRow, appendFieldToRows, emptyRow } from '@/lib/formRows';
 
 function toFieldName(label: string): string {
   return label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
