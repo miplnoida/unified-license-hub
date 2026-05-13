@@ -1733,7 +1733,7 @@ export default function NewApplication() {
                   <SelectTrigger id="sector">
                     <SelectValue placeholder="Select Sector" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                     {sectors.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
@@ -1747,7 +1747,7 @@ export default function NewApplication() {
                   <SelectTrigger id="subsector">
                     <SelectValue placeholder={selectedSector ? 'Select Sub-Sector' : 'Select a sector first'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                     {filteredSubSectors.map(s => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}
@@ -1761,7 +1761,7 @@ export default function NewApplication() {
                   <SelectTrigger id="category">
                     <SelectValue placeholder={selectedSubSector ? 'Select Category' : 'Select a sub-sector first'} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                     {filteredCategories.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}

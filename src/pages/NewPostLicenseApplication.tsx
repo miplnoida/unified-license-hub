@@ -158,7 +158,7 @@ export default function NewPostLicenseApplication() {
                 <SelectTrigger id="sector">
                   <SelectValue placeholder={loadingSectors ? 'Loading...' : 'Select Sector'} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                   {activeSectors.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -176,7 +176,7 @@ export default function NewPostLicenseApplication() {
                 <SelectTrigger id="subsector">
                   <SelectValue placeholder={!selectedSector ? 'Select a sector first' : loadingSubSectors ? 'Loading...' : 'Select Sub-Sector'} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                   {filteredSubSectors.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -194,7 +194,7 @@ export default function NewPostLicenseApplication() {
                 <SelectTrigger id="service">
                   <SelectValue placeholder={!selectedSubSector ? 'Select a sub-sector first' : loadingServices ? 'Loading...' : 'Select Service'} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" side="bottom" align="start" sideOffset={4} className="z-[9999] max-h-[300px] overflow-y-auto bg-popover">
                   {filteredServices.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
