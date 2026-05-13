@@ -803,13 +803,10 @@ export function FormRenderer({
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           {!currentSection.isRepeatable ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {currentSection.fields.map(field => (
-                <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                  {renderField(field, formData, updateField)}
-                </div>
-              ))}
-            </div>
+            <RowsGrid
+              rows={currentSection.rows || []}
+              renderField={(field) => renderField(field, formData, updateField)}
+            />
           ) : (
             <div className="space-y-4">
               {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => (
@@ -823,13 +820,10 @@ export function FormRenderer({
                     )}
                   </CardHeader>
                   <CardContent className="pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      {currentSection.fields.map(field => (
-                        <div key={field.id} className={`${getFieldSpanClass(field)} ${field.newRow ? 'md:col-start-1' : ''}`}>
-                          {renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
-                        </div>
-                      ))}
-                    </div>
+                    <RowsGrid
+                      rows={currentSection.rows || []}
+                      renderField={(field) => renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                    />
                   </CardContent>
                 </Card>
               ))}
