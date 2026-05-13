@@ -113,6 +113,8 @@ export default function PreLicenseeRegistration() {
       for (const col of row.columns) {
         const field = col.field;
         if (!field) continue;
+        // Display-only field types have no input/value — skip validation entirely
+        if (field.type === 'heading' || field.type === 'paragraph') continue;
         const val = dynamicFormData[field.fieldName];
 
         if (field.required && (val === undefined || val === null || val === '')) {
@@ -436,6 +438,8 @@ export default function PreLicenseeRegistration() {
         const fields: { label: string; value: any; type?: 'attachment' }[] = [];
         s.rows.forEach(r => r.columns.forEach(c => {
           if (!c.field) return;
+          // Skip display-only fields (no value to render in review)
+          if (c.field.type === 'heading' || c.field.type === 'paragraph') return;
           const raw = dynamicFormData[c.field.fieldName];
           // File fields are always rendered as attachments (driven by field
           // type, not value-shape guessing) so View/Download icons display
