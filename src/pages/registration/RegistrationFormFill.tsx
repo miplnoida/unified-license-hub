@@ -246,6 +246,9 @@ export default function RegistrationFormFill() {
                     value: resolveDisplayOnlyFieldText(f),
                     type: 'display' as const,
                     displayKind: kind,
+                    placeholder: f.placeholder,
+                    defaultValue: f.defaultValue,
+                    helpText: f.helpText,
                   };
                 }
 

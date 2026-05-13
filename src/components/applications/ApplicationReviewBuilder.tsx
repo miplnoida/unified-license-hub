@@ -48,7 +48,7 @@ function ReviewBuilderInner({
       const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 }> = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
@@ -65,6 +65,9 @@ function ReviewBuilderInner({
               type: 'display',
               displayKind: kind,
               headingLevel: f.headingLevel,
+              placeholder: f.placeholder,
+              defaultValue: f.defaultValue,
+              helpText: f.helpText,
             });
             return;
           }
