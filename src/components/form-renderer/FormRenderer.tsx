@@ -425,7 +425,15 @@ export function FormRenderer({
   const handleSaveDraft = () => onSaveDraft(getMergedData());
 
   const handleSubmit = () => {
-    if (validateCurrentStep()) onSubmit(getMergedData());
+    if (!validateCurrentStep()) return;
+    if (stepStorageKey) {
+      try {
+        sessionStorage.removeItem(stepStorageKey);
+      } catch {
+        // noop
+      }
+    }
+    onSubmit(getMergedData());
   };
 
   // Handle file upload to storage
