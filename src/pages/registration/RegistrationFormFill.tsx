@@ -225,7 +225,7 @@ export default function RegistrationFormFill() {
             sections={formDef.sections.map(section => ({
               title: section.title,
               fields: section.fields
-                .filter(f => f.type !== 'paragraph')
+                .filter(f => f.type !== 'paragraph' && f.type !== 'heading' && (f.type as string) !== 'static_text' && (f.type as string) !== 'section_title' && (f.type as string) !== 'divider')
                 .map(f => ({
                   label: f.label,
                   value: pendingData?.[f.fieldName] ?? null,
