@@ -218,11 +218,10 @@ export default function FormBuilder() {
 
   const allFields = useMemo(() => sections.flatMap(s => s.fields), [sections]);
 
-  // Field operations
-  const handleAddField = useCallback((sectionId: string, type: FieldType) => {
+  const buildNewField = useCallback((type: FieldType): FormField => {
     const ft = fieldTypes.find(f => f.type === type);
     const label = ft?.label || 'New Field';
-    const newField: FormField = {
+    return {
       id: crypto.randomUUID(),
       type,
       label,
@@ -233,57 +232,91 @@ export default function FormBuilder() {
       content: type === 'paragraph' ? 'Enter text here...' : undefined,
       tableColumns: type === 'table' ? [{ id: crypto.randomUUID(), label: 'Column 1', type: 'text' }] : undefined,
     };
-    setSections(prev => prev.map(s =>
-      s.id === sectionId ? { ...s, fields: [...s.fields, newField] } : s
-    ));
+  }, []);
+
+  // Append field into a section's rows (last empty slot, or new 1-col row).
+  const handleAddField = useCallback((sectionId: string, type: FieldType) => {
+    const newField = buildNewField(type);
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const rows = appendFieldToRows(s.rows || [], newField);
+      return syncSectionFields({ ...s, rows });
+    }));
     setSelectedField(newField);
     setSelectedSectionId(sectionId);
-  }, []);
+  }, [buildNewField]);
 
   const handleAddFieldFromPalette = useCallback((type: FieldType) => {
     if (sections.length === 0) {
       const sId = crypto.randomUUID();
-      const ft = fieldTypes.find(f => f.type === type);
-      const label = ft?.label || 'New Field';
-      const newField: FormField = {
-        id: crypto.randomUUID(), type, label, fieldName: toFieldName(label), required: false,
-        options: ['radio', 'select', 'checkbox', 'multi_select'].includes(type) ? ['Option 1', 'Option 2'] : undefined,
-        content: type === 'paragraph' ? 'Enter text here...' : undefined,
-        tableColumns: type === 'table' ? [{ id: crypto.randomUUID(), label: 'Column 1', type: 'text' }] : undefined,
-      };
-      setSections([{ id: sId, title: 'Section 1', sortOrder: 0, isRepeatable: false, fields: [newField] }]);
+      const newField = buildNewField(type);
+      const section = syncSectionFields({
+        id: sId,
+        title: 'Section 1',
+        sortOrder: 0,
+        isRepeatable: false,
+        rows: [{ id: crypto.randomUUID(), columns: 1, fields: [newField] }],
+        fields: [],
+      });
+      setSections([section]);
       setSelectedField(newField);
       setSelectedSectionId(sId);
     } else {
       handleAddField(sections[sections.length - 1].id, type);
     }
-  }, [sections, handleAddField]);
+  }, [sections, handleAddField, buildNewField]);
 
   const handleDeleteField = useCallback((sectionId: string, fieldId: string) => {
-    setSections(prev => prev.map(s =>
-      s.id === sectionId ? { ...s, fields: s.fields.filter(f => f.id !== fieldId) } : s
-    ));
+    setSections(prev => prev.map(s => {
+      if (s.id !== sectionId) return s;
+      const rows = (s.rows || []).map(r => ({
+        ...r,
+        fields: r.fields.map(f => (f && f.id === fieldId ? null : f)),
+      }));
+      return syncSectionFields({ ...s, rows });
+    }));
     if (selectedField?.id === fieldId) setSelectedField(null);
   }, [selectedField]);
 
   const handleDuplicateField = useCallback((sectionId: string, fieldId: string) => {
     setSections(prev => prev.map(s => {
       if (s.id !== sectionId) return s;
-      const field = s.fields.find(f => f.id === fieldId);
-      if (!field) return s;
-      const clone = { ...field, id: crypto.randomUUID(), fieldName: field.fieldName + '_copy' };
-      const idx = s.fields.findIndex(f => f.id === fieldId);
-      const fields = [...s.fields];
-      fields.splice(idx + 1, 0, clone);
-      return { ...s, fields };
+      const rows = s.rows || [];
+      // Find the row+slot containing the field
+      let foundRowIdx = -1;
+      let foundSlotIdx = -1;
+      for (let i = 0; i < rows.length; i++) {
+        const idx = rows[i].fields.findIndex(f => f && f.id === fieldId);
+        if (idx >= 0) { foundRowIdx = i; foundSlotIdx = idx; break; }
+      }
+      if (foundRowIdx === -1) return s;
+      const orig = rows[foundRowIdx].fields[foundSlotIdx]!;
+      const clone: FormField = { ...orig, id: crypto.randomUUID(), fieldName: orig.fieldName + '_copy' };
+      // Try to put in next empty slot of same row, else new 1-col row right after
+      const row = rows[foundRowIdx];
+      const emptyIdx = row.fields.findIndex((f, i) => i > foundSlotIdx && !f);
+      let newRows: FormRow[];
+      if (emptyIdx >= 0) {
+        const newFields = row.fields.slice();
+        newFields[emptyIdx] = clone;
+        newRows = rows.slice();
+        newRows[foundRowIdx] = { ...row, fields: newFields };
+      } else {
+        newRows = [...rows];
+        newRows.splice(foundRowIdx + 1, 0, { id: crypto.randomUUID(), columns: 1, fields: [clone] });
+      }
+      return syncSectionFields({ ...s, rows: newRows });
     }));
   }, []);
 
   const handleUpdateField = useCallback((id: string, updates: Partial<FormField>) => {
-    setSections(prev => prev.map(s => ({
-      ...s,
-      fields: s.fields.map(f => f.id === id ? { ...f, ...updates } : f),
-    })));
+    setSections(prev => prev.map(s => {
+      const rows = (s.rows || []).map(r => ({
+        ...r,
+        fields: r.fields.map(f => (f && f.id === id ? { ...f, ...updates } : f)),
+      }));
+      return syncSectionFields({ ...s, rows });
+    }));
     setSelectedField(prev => prev?.id === id ? { ...prev, ...updates } : prev);
   }, []);
 
