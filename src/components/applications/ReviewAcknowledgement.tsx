@@ -8,12 +8,12 @@ import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
-import type { DisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyFieldType, type DisplayKind } from '@/lib/registrationDisplayTypes';
 
 interface ReviewField {
   label: string;
   value: any;
-  type?: 'attachment' | 'display';
+  type?: 'attachment' | 'display' | string;
   displayKind?: DisplayKind;
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 }
@@ -44,6 +44,17 @@ export function ReviewAcknowledgement({
 }: ReviewAcknowledgementProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
+  const isDisplayOnlyReviewField = (field: ReviewField) => {
+    return field.type === 'display' || isDisplayOnlyFieldType(field.type);
+  };
+
+  const getResolvedDisplayKind = (field: ReviewField): DisplayKind => {
+    if (field.displayKind) return field.displayKind;
+    if (field.type === 'divider') return 'divider';
+    if (field.type === 'heading' || field.type === 'section_title') return 'heading';
+    return 'info';
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -62,18 +73,21 @@ export function ReviewAcknowledgement({
                   <FileText className="h-4 w-4 text-primary" />
                   {section.title}
                   <Badge variant="outline" className="text-[10px]">
-                    {section.fields.filter(f => f.type !== 'display' && f.value != null && f.value !== '').length}/{section.fields.filter(f => f.type !== 'display').length} filled
+                    {section.fields.filter(f => !isDisplayOnlyReviewField(f) && f.value != null && f.value !== '').length}/{section.fields.filter(f => !isDisplayOnlyReviewField(f)).length} filled
                   </Badge>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="grid gap-3 py-2">
                   {section.fields.map((field, fIdx) => {
-                    if (field.type === 'display') {
-                      if (field.displayKind === 'divider') {
+                    if (isDisplayOnlyReviewField(field)) {
+                      const displayKind = getResolvedDisplayKind(field);
+
+                      if (displayKind === 'divider') {
                         return <Separator key={fIdx} className="my-2" />;
                       }
-                      if (field.displayKind === 'heading') {
+
+                      if (displayKind === 'heading') {
                         const lvl = field.headingLevel || 3;
                         const sizeCls = lvl <= 2 ? 'text-base' : 'text-sm';
                         return (
@@ -82,6 +96,7 @@ export function ReviewAcknowledgement({
                           </div>
                         );
                       }
+
                       return (
                         <p key={fIdx} className="text-sm text-muted-foreground px-2">
                           {field.value || field.label}
