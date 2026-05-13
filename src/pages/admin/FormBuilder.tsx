@@ -735,7 +735,7 @@ export default function FormBuilder() {
                   sections={sections}
                   selectedFieldId={selectedField?.id || null}
                   onSelectField={isViewMode ? () => {} : handleSelectField}
-                  onSectionsChange={isViewMode ? () => {} : setSections}
+                  onSectionsChange={isViewMode ? () => {} : (next) => setSections(next.map(syncSectionFields))}
                   onAddField={isViewMode ? () => {} : handleAddField}
                   onDeleteField={isViewMode ? () => {} : handleDeleteField}
                   onDuplicateField={isViewMode ? () => {} : handleDuplicateField}
