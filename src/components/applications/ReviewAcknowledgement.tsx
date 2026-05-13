@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
-import { isDisplayOnlyFieldType, type DisplayKind } from '@/lib/registrationDisplayTypes';
+import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText, type DisplayKind } from '@/lib/registrationDisplayTypes';
 
 interface ReviewField {
   label: string;
@@ -45,20 +45,19 @@ export function ReviewAcknowledgement({
   const [acknowledged, setAcknowledged] = useState(false);
 
   const isDisplayOnlyReviewField = (field: ReviewField) => {
-    return field.type === 'display' || isDisplayOnlyFieldType(field.type);
+    return field.type === 'display' || isDisplayOnlyField(field);
   };
 
   const getDisplayText = (field: ReviewField) => {
-    if (field.value != null && field.value !== '') return field.value;
-    if (field.label != null && field.label !== '') return field.label;
-    return '';
+    if (field.type === 'display') {
+      return field.value != null && field.value !== '' ? field.value : field.label || '';
+    }
+    return resolveDisplayOnlyFieldText(field);
   };
 
   const getResolvedDisplayKind = (field: ReviewField): DisplayKind => {
     if (field.displayKind) return field.displayKind;
-    if (field.type === 'divider') return 'divider';
-    if (field.type === 'heading' || field.type === 'section_title') return 'heading';
-    return 'info';
+    return resolveDisplayKind(field.type);
   };
 
   return (
