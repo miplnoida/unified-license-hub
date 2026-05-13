@@ -35,7 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { FormField, FormSection, FieldType, FormRow } from '@/types/formBuilder';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { migrateSectionsToRows, syncSectionFields, resizeRow, appendFieldToRows, emptyRow } from '@/lib/formRows';
+import { migrateSectionsToRows, syncSectionFields, appendFieldToRows } from '@/lib/formRows';
 
 function toFieldName(label: string): string {
   return label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
