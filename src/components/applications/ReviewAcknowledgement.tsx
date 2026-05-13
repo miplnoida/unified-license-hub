@@ -8,11 +8,14 @@ import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
+import type { DisplayKind } from '@/lib/registrationDisplayTypes';
 
 interface ReviewField {
   label: string;
   value: any;
-  type?: 'attachment';
+  type?: 'attachment' | 'display';
+  displayKind?: DisplayKind;
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 interface ReviewSection {
