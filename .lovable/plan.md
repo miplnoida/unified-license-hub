@@ -1,137 +1,115 @@
-# Tenant Model Refactor — Users, Entities, Primary Users, Employees, Roles
+# Form Builder: Row-Based Layout Refactor
 
-This is a large, cross-cutting change. To keep risk low and the codebase shippable at every step, the work is broken into 5 phases. Each phase ends in a working app — you can stop or re-prioritize after any phase.
+Make rows the single source of truth for layout in Add/Edit Form, Preview, and Published rendering — same model as the Register Form. Stop relying on flat `fields[]` + `colSpan/newRow` for layout.
 
-> Before starting, I need a couple of decisions from you (see **Open questions** at the bottom). The rest of the plan assumes the most likely answers, but I'll adjust before touching the database.
+## Data model
 
----
+Add an explicit row container on each section:
 
-## Goal — the target model
+```ts
+// src/types/formBuilder.ts
+interface FormSection {
+  id: string;
+  title: string;
+  description?: string;
+  sortOrder: number;
+  isRepeatable: boolean;
+  rows: FormRow[];                // NEW: source of truth
+  fields: FormField[];            // KEPT: derived flat list (for queries/validation/conditional)
+  conditionalLogic?: ConditionalRule[];
+}
 
-```text
-Entity (tenant / licensed organization)
-  ├── exactly ONE active Primary User   (via entity_user_access, access_type='primary_user')
-  ├── many Employees                    (via entity_user_access, access_type='employee')
-  ├── many PPOCs                        (via ppoc_entity_mappings — kept separate)
-  └── other contacts                    (access_type='secondary_contact', etc.)
-
-User (login account = profiles row)
-  ├── global Roles                      (user_dynamic_roles — source of truth)
-  ├── may be Primary User of 0..N entities
-  ├── may be Employee of 0..N entities
-  └── login context only                (user_type: 'internal' | 'licensee' | 'pre_licensee' | 'applicant')
+interface FormRow {
+  id: string;
+  columns: 1 | 2 | 3 | 4;
+  fields: (FormField | null)[];   // length === columns
+}
 ```
 
-Key rules enforced at DB + API + UI:
-- One active `primary_user` mapping per entity.
-- A user can be primary for many entities.
-- Employee creation never grants entity ownership.
-- Roles are global; same role set applies across every entity the user can access.
-- PPOC ≠ Primary User (separate `access_type`).
+Invariant: `section.fields = section.rows.flatMap(r => r.fields).filter(Boolean)`. Maintained by a single helper `syncSectionFields(section)` called after every row mutation.
 
----
+## Migration (one-time, on load)
 
-## Phase 1 — Data model (migration)
+Helper `migrateSectionsToRows(sections)`:
+- If `section.rows` is a non-empty array → use as-is.
+- Else build from legacy flat `fields[]`: pack into rows of `columns: 1` (one field per row). For backward compatibility, if a field has `colSpan/newRow`, keep them but ignore at render time (rows now drive layout).
+- Always call when hydrating from `useFormFields` / `schema_snapshot` / legacy `forms.rows` JSON.
 
-New table `entity_user_access`:
+## Persistence
 
-| column | type | notes |
-|---|---|---|
-| id | uuid PK | |
-| user_id | uuid → profiles.id | |
-| entity_id | uuid → licensees.id | "Entity" = `licensees` row |
-| access_type | enum | `primary_user`, `employee`, `secondary_contact` |
-| is_active | boolean | default true |
-| start_date / end_date | timestamptz | optional |
-| created_by, created_at, updated_at | | |
+- Snapshot path (`form_versions.schema_snapshot`) already stores `FormSection[]` → automatically carries `rows` once added. No DB migration needed.
+- Loader `useVersionSections`: prefer `schema_snapshot` when it contains `rows` on any section; otherwise build sections from normalized `form_fields` then `migrateSectionsToRows`.
+- `sectionsToFieldRows` (normalized save) keeps writing the flat `fields[]` for query/validation use; row layout lives in the snapshot.
+- Save flow in `FormBuilder.handleSave` already saves `schema_snapshot` and legacy `forms.rows` — no change needed besides ensuring `sections` carries `rows`.
 
-Constraint: **partial unique index** on `(entity_id) WHERE access_type='primary_user' AND is_active=true` → guarantees max one active primary per entity.
+## Builder UI — `SectionManager.tsx`
 
-New table `employee_profiles` (only if you confirm — see Q3):
-- `user_id`, `entity_id`, `employee_code`, `designation`, `department`, `status`.
+Replace flat field list inside each section with a row list:
 
-`profiles.user_type` semantics tightened:
-- `primary` / `secondary` → kept as legacy column (do not break existing code), but no longer used to *decide* who is the primary user. Source of truth becomes `entity_user_access`.
-- New employees created from Employee Management get `user_type='primary'` only if they are the first user of an entity tenant; for **internal/admin/regulator employees**, we stop sending `user_type:'primary'` and send `'internal_employee'` (added to `user_type` enum).
+- "Add Row" button with column-count picker (1 / 2 / 3 / 4).
+- Each row renders as a horizontal grid of N slots (`grid-template-columns: repeat(N, 1fr)`).
+- Slot states:
+  - Empty → "+ Add Field" popover (existing field-type list).
+  - Filled → existing field card (label, type icon, required badge, duplicate, delete) — clicking selects it for the right-side properties panel.
+- Row actions: change column count (preserve fields up to new count, append `null` slots when growing, drop overflow with confirm when shrinking), duplicate row, delete row, drag-reorder rows.
+- Field drag: allow moving a field between slots/rows in the same section.
+- "Add Field" from the left palette appends to the last row if it has an empty slot, otherwise creates a new 1-col row.
+- After every mutation, call `syncSectionFields` so `section.fields` stays consistent for the right-panel `allFields` and conditional logic.
 
-Backfill (logged, reversible):
-- For every `licensees` row, find the existing `profiles` with `licensee_id = licensee.id AND user_type='primary'` → insert `entity_user_access(access_type='primary_user', is_active=true)`.
-- Secondaries → `access_type='secondary_contact'`.
-- PPOC mappings stay where they are; we do NOT copy them into `entity_user_access` (PPOC ≠ Primary).
+## Renderer — `FormRenderer.tsx`
 
-RLS:
-- Internal roles: full read; admins/super_admins: write.
-- Licensee primary/secondary: read mappings of their own entity.
-- Helper function `is_primary_user_of(entity_id, user_id)` for use in other RLS policies that currently rely on `user_type`.
+Replace the current 4-col grid + colSpan/newRow logic with a per-row grid:
 
----
+```tsx
+{section.rows.map(row => (
+  <div
+    key={row.id}
+    className="grid gap-4"
+    style={{ gridTemplateColumns: `repeat(${row.columns}, minmax(0, 1fr))` }}
+  >
+    {row.fields.map((f, i) =>
+      f ? <FieldRenderer key={f.id} field={f} ... /> : <div key={i} />
+    )}
+  </div>
+))}
+```
 
-## Phase 2 — Employee Management fix (smallest, highest value)
+- Keep `getAllFields(section)` helper for validation / conditional / progress / file handling — it returns `section.fields` (the synced flat list).
+- Remove `getFieldSpanClass` usage from layout (kept only as no-op fallback for any legacy renderer that still references it).
+- Mobile: each slot collapses to full width (single column) under `md`.
 
-`src/pages/admin/UserManagement.tsx` (the "Employee Management" page) and `supabase/functions/create-web-user`:
+## Builder Preview Dialog — `FormBuilder.tsx`
 
-1. Stop sending `user_type:'primary'` for internal employees. Send `user_type:'internal_employee'` (or omit entirely and rely on roles).
-2. Page copy: "Employee Management — Manage internal/admin/regulator employee accounts, profiles, roles, and access."
-3. Remove any "Primary User" affordance from this screen. Add a banner linking to the new Primary User assignment screen.
-4. Multi-role assignment via `user_dynamic_roles` (already supported — keep working).
-5. Backend (`create-web-user`): reject the combination `user_type='primary' + no licensee_id` to prevent the current bug from recurring.
+Replace the inline 4-col grid in the preview dialog with the same row renderer pattern (or just reuse `<FormRenderer readOnly />` with current `sections`).
 
-`src/components/entity-detail/WebUsersTab.tsx` continues to create **licensee** primary/secondary users — that flow is correct and stays, but now also writes the matching `entity_user_access` row in addition to `profiles.user_type` (transitional dual-write).
+## Edge cases
 
----
+- Sections with zero rows → show "Add Row" empty state.
+- Deleting the last field in a row keeps the (empty) row; user removes the row explicitly.
+- Duplicating a section deep-clones rows + fields with new IDs.
+- Historical versions (`schema_snapshot` without `rows`) auto-migrate at load and re-save into row form on next save.
 
-## Phase 3 — Primary User assignment flow
+## Out of scope / untouched
 
-New section inside `src/pages/admin/LicenseeDetail.tsx` → "Primary User" tab (or a new card in the existing Web Users tab):
+- Register Form builder + renderer (`src/components/registration-builder/*`, `src/components/registration/*`) — unchanged.
+- Form versioning, publish, status flow, payment, reapplication — unchanged.
+- DB schema — no migration; rows ride in `schema_snapshot` JSON.
 
-- Shows current active Primary User.
-- "Change Primary User" → modal:
-  - Pick existing user (search) **or** create new.
-  - On submit: SweetAlert2 confirm — *"This entity already has an active Primary User. Assigning a new Primary User will deactivate the existing one."*
-  - Calls new RPC `assign_primary_user(entity_id, user_id)` which atomically: deactivates current primary mapping, inserts new active mapping, writes audit log.
-- "Entities managed" view on user detail (added to admin user view).
+## Files to change
 
-Frontend errors map to spec:
-- *Each entity can have only one active Primary User.*
-- *This user is already the active Primary User for this entity.*
-- *Please assign a replacement Primary User before deactivating the current one.*
+- `src/types/formBuilder.ts` — add `rows` to `FormSection`, keep `FormRow`.
+- `src/components/form-builder/SectionManager.tsx` — row-based UI.
+- `src/components/form-renderer/FormRenderer.tsx` — row-based render + `syncSectionFields` on incoming sections.
+- `src/pages/admin/FormBuilder.tsx` — row-aware add-from-palette, delete/duplicate, preview dialog uses row renderer.
+- `src/hooks/useFormTemplates.ts` — `useVersionSections` & `fieldRowsToSections` paths run `migrateSectionsToRows`; `sectionsToFieldRows` stays compatible (rows live in snapshot).
+- (new) small helper module `src/lib/formRows.ts` — `migrateSectionsToRows`, `syncSectionFields`, `resizeRow`.
 
----
+## Test matrix
 
-## Phase 4 — PPOC alignment + Entity Detail polish
-
-- PPOC management (`src/pages/admin/PpocManagement.tsx`) unchanged in storage, but UI labels clarified: "PPOC ≠ Primary User".
-- `LicenseeDetail` shows four distinct sections: Entity details · Active Primary User · Employees · PPOC mappings · Other access.
-- Admin user detail (in `UserManagement` row drilldown) shows: profile, global roles, entity access list, "Primary user of: …", "Employee of: …".
-
----
-
-## Phase 5 — Cleanup, tests, docs
-
-- Remove dead code paths that read `profiles.user_type='primary'` to identify ownership; replace with `entity_user_access` queries (search & swap, ~10–15 spots based on a quick scan).
-- Add Vitest unit tests:
-  - `assign_primary_user` deactivates the previous mapping.
-  - `create-web-user` for internal employee does NOT create a primary mapping.
-  - One-active-primary constraint blocks duplicates at DB level.
-- Update README/admin docs.
-
----
-
-## What stays the same (no behavioral change)
-
-- Login & auth flows.
-- Existing role permission checks (`has_role`, `user_dynamic_roles`).
-- PPOC sector restrictions (recently added).
-- Pre-licensee and applicant flows.
-- All existing `profiles.user_type` values continue to satisfy current RLS — we add new values, never repurpose old ones.
-
----
-
-## Open questions (need your call before Phase 1)
-
-1. **Entity table** — Use the existing `licensees` table as "Entity" (recommended, no rename), or introduce a new `entities` table? If rename, every page using `licensees` needs touching; recommend keep `licensees`.
-2. **Internal employees & entities** — Should internal regulator/admin employees be tied to a "regulator entity" (using `regulators` table), or have no entity at all? Current code treats them as standalone. Recommend: no entity required.
-3. **`employee_profiles` table** — Add a dedicated `employee_profiles` table (employee_code, designation, department), or keep those fields on `profiles` (which already has `department`, `position`)? Recommend: keep on `profiles` to avoid a second source of truth.
-4. **Backfill scope** — OK to auto-create `entity_user_access` rows from existing `profiles.user_type` data, with a one-time audit log? (Reversible.)
-
-Once you confirm 1–4 (or just say "use your recommendations"), I'll start with Phase 1's migration.
+Manually verify in builder, preview dialog, `/preview/:versionId`, and live application form:
+1. New form → add row 1col, 2col, 3col, 4col → fields render in correct grid in builder, preview, and live form.
+2. Save → reopen edit → row layout restored exactly.
+3. Old form with only flat fields → opens with each field on its own 1-col row; saving persists new row layout.
+4. Resize row 2 → 4 (preserves 2 fields, adds 2 empty slots) and 4 → 2 (with confirm; trims overflow).
+5. Mixed sections with multiple rows + repeatable section still works.
+6. Submission save/submit on live form unchanged (uses synced `section.fields`).
