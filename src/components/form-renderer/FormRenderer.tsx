@@ -455,6 +455,27 @@ export function FormRenderer({
     ) : null;
 
     let input: React.ReactNode;
+    const fieldType = String(field.type || '');
+
+    if (isDisplayOnlyFieldType(fieldType)) {
+      if (fieldType === 'divider') {
+        input = <div className="border-t border-border my-2" aria-hidden="true" />;
+      } else if (fieldType === 'heading' || fieldType === 'section_title') {
+        const level = Math.min(6, Math.max(1, Number(field.headingLevel) || 2));
+        const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+        const sizeClass = ['text-3xl', 'text-2xl', 'text-xl', 'text-lg', 'text-base', 'text-sm'][level - 1];
+        input = <Tag className={`${sizeClass} font-semibold text-foreground`}>{resolveDisplayOnlyFieldText(field)}</Tag>;
+      } else {
+        input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{resolveDisplayOnlyFieldText(field)}</p>;
+      }
+
+      return (
+        <div className="space-y-1.5">
+          {input}
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </div>
+      );
+    }
 
     switch (field.type) {
       case 'text':
@@ -596,24 +617,6 @@ export function FormRenderer({
           </div>
         );
         break;
-      case 'paragraph':
-      case 'static_text':
-      case 'info':
-        input = <p className="text-sm text-muted-foreground whitespace-pre-wrap">{resolveDisplayOnlyFieldText(field)}</p>;
-        break;
-      case 'section_title':
-        break;
-      case 'heading': {
-        const level = Math.min(6, Math.max(1, Number(field.headingLevel) || 2));
-        const Tag = `h${level}` as keyof JSX.IntrinsicElements;
-        const sizeClass = ['text-3xl','text-2xl','text-xl','text-lg','text-base','text-sm'][level - 1];
-        input = <Tag className={`${sizeClass} font-semibold text-foreground`}>{resolveDisplayOnlyFieldText(field)}</Tag>;
-        break;
-      }
-      case 'divider': {
-        input = <div className="border-t border-border my-2" aria-hidden="true" />;
-        break;
-      }
       case 'table':
         const tableData = Array.isArray(val) ? val : [{}];
         input = (
