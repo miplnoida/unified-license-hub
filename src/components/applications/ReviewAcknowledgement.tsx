@@ -48,6 +48,12 @@ export function ReviewAcknowledgement({
     return field.type === 'display' || isDisplayOnlyFieldType(field.type);
   };
 
+  const getDisplayText = (field: ReviewField) => {
+    if (field.value != null && field.value !== '') return field.value;
+    if (field.label != null && field.label !== '') return field.label;
+    return '';
+  };
+
   const getResolvedDisplayKind = (field: ReviewField): DisplayKind => {
     if (field.displayKind) return field.displayKind;
     if (field.type === 'divider') return 'divider';
@@ -82,6 +88,7 @@ export function ReviewAcknowledgement({
                   {section.fields.map((field, fIdx) => {
                     if (isDisplayOnlyReviewField(field)) {
                       const displayKind = getResolvedDisplayKind(field);
+                      const displayText = getDisplayText(field);
 
                       if (displayKind === 'divider') {
                         return <Separator key={fIdx} className="my-2" />;
@@ -92,14 +99,14 @@ export function ReviewAcknowledgement({
                         const sizeCls = lvl <= 2 ? 'text-base' : 'text-sm';
                         return (
                           <div key={fIdx} className={`font-semibold text-foreground ${sizeCls} pt-2`}>
-                            {field.value || field.label}
+                            {displayText}
                           </div>
                         );
                       }
 
                       return (
                         <p key={fIdx} className="text-sm text-muted-foreground px-2">
-                          {field.value || field.label}
+                          {displayText}
                         </p>
                       );
                     }

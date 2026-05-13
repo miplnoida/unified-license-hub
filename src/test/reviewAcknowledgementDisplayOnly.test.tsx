@@ -1,0 +1,35 @@
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
+
+describe('ReviewAcknowledgement display-only fields', () => {
+  it('renders heading fields without showing Not provided', () => {
+    render(
+      <ReviewAcknowledgement
+        mode="readonly"
+        onAcknowledge={() => {}}
+        sections={[
+          {
+            title: 'Registration',
+            fields: [
+              {
+                label: 'Physical Address',
+                value: '',
+                type: 'display',
+                displayKind: 'heading',
+              },
+              {
+                label: 'Company Name',
+                value: '',
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Physical Address')).toBeInTheDocument();
+    expect(screen.getByText('Not provided')).toBeInTheDocument();
+    expect(screen.getAllByText('Not provided')).toHaveLength(1);
+  });
+});

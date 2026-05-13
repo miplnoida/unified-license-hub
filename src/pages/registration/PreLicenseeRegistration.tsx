@@ -54,11 +54,9 @@ export default function PreLicenseeRegistration() {
   );
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
-    try {
-      const saved = sessionStorage.getItem(STEP_KEY);
-      const n = saved != null ? Number(saved) : 0;
-      return Number.isFinite(n) && n >= 0 ? n : 0;
-    } catch { return 0; }
+    const saved = sessionStorage.getItem(STEP_KEY);
+    const parsed = saved ? Number(saved) : 0;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
   });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +78,7 @@ export default function PreLicenseeRegistration() {
 
   // Persist current step across page refreshes (cleared on submit/reset)
   useEffect(() => {
-    try { sessionStorage.setItem(STEP_KEY, String(currentStep)); } catch {}
+    sessionStorage.setItem(STEP_KEY, String(currentStep));
   }, [currentStep]);
 
   // Resolve the effective verification email across static + dynamic schemas.
