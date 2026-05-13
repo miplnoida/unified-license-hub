@@ -15,7 +15,11 @@ export type RegFieldType =
   | 'radio'
   | 'file'
   | 'paragraph'
-  | 'heading';
+  | 'heading'
+  | 'static_text'
+  | 'section_title'
+  | 'divider'
+  | 'info';
 
 export interface RegFieldValidation {
   minLength?: number;
@@ -107,4 +111,8 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'file', label: 'File Upload' },
   { type: 'paragraph', label: 'Static Text' },
   { type: 'heading', label: 'Heading' },
+  { type: 'static_text', label: 'Static Text Block' },
+  { type: 'section_title', label: 'Section Title' },
+  { type: 'divider', label: 'Divider' },
+  { type: 'info', label: 'Info Text' },
 ];
