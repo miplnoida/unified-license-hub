@@ -41,6 +41,84 @@ function toFieldName(label: string): string {
   return label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
+// Lightweight read-only field renderer used only by the preview dialog.
+function FieldPreview({ field }: { field: FormField }) {
+  const label = (
+    <Label className="text-sm">
+      {field.label}
+      {field.required && <span className="text-destructive ml-1">*</span>}
+    </Label>
+  );
+  let control: React.ReactNode;
+  switch (field.type) {
+    case 'textarea':
+      control = <Textarea placeholder={field.placeholder} disabled rows={3} />;
+      break;
+    case 'paragraph':
+      return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{field.content}</p>;
+    case 'heading': {
+      const lvl = field.headingLevel || 3;
+      const Tag = (`h${lvl}` as unknown) as keyof JSX.IntrinsicElements;
+      return <Tag className="font-semibold">{field.label}</Tag>;
+    }
+    case 'select':
+    case 'multi_select':
+      control = (
+        <Select disabled>
+          <SelectTrigger><SelectValue placeholder={field.placeholder || 'Select...'} /></SelectTrigger>
+          <SelectContent>
+            {(field.options || []).map((opt) => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      );
+      break;
+    case 'radio':
+      control = (
+        <div className="space-y-1">
+          {(field.options || []).map((opt) => (
+            <div key={opt} className="flex items-center gap-2 text-sm">
+              <input type="radio" disabled /> {opt}
+            </div>
+          ))}
+        </div>
+      );
+      break;
+    case 'checkbox':
+      control = (
+        <div className="space-y-1">
+          {(field.options || []).map((opt) => (
+            <div key={opt} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" disabled /> {opt}
+            </div>
+          ))}
+        </div>
+      );
+      break;
+    case 'file':
+      control = <Input type="file" disabled />;
+      break;
+    case 'date':
+      control = <Input type="date" disabled />;
+      break;
+    case 'number':
+    case 'decimal':
+      control = <Input type="number" placeholder={field.placeholder} disabled />;
+      break;
+    default:
+      control = <Input type="text" placeholder={field.placeholder} disabled />;
+  }
+  return (
+    <div className="space-y-1">
+      {label}
+      {control}
+      {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+    </div>
+  );
+}
+
+
 function isValidSnapshotSections(snapshot: unknown): snapshot is FormSection[] {
   return Array.isArray(snapshot) && snapshot.every((section) => {
     if (!section || typeof section !== 'object') return false;
