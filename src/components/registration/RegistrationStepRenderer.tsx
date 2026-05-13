@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
+import { isDisplayOnlyFieldType, resolveDisplayKind } from '@/lib/registrationDisplayTypes';
 
 interface Props {
   step: RegStep;
@@ -186,7 +187,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
 
   const isMasterData = field.optionSource === 'master_data' && field.masterDataTypeCode;
 
-  const labelEl = field.type !== 'paragraph' && field.type !== 'heading' && field.type !== 'checkbox' ? (
+  const labelEl = !isDisplayOnlyFieldType(field.type) && field.type !== 'checkbox' ? (
     <Label className="text-sm">
       {field.label}
       {field.required && <span className="text-destructive ml-1">*</span>}
@@ -418,16 +419,32 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
       );
       break;
     case 'paragraph':
+    case 'heading':
+    case 'section_title':
+    case 'static_text':
+    case 'info':
+    case 'divider': {
+      const displayKind = resolveDisplayKind(field.type);
+      if (displayKind === 'divider') {
+        return <div className="border-t border-border my-2" aria-hidden="true" />;
+      }
+
+      if (displayKind === 'heading') {
+        const lvl = field.headingLevel || (field.type === 'section_title' ? 3 : 2);
+        const Tag = (`h${lvl}` as unknown) as keyof JSX.IntrinsicElements;
+        const sizeMap: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl', 4: 'text-lg', 5: 'text-base', 6: 'text-sm' };
+        return (
+          <Tag className={`font-semibold text-foreground ${sizeMap[lvl]}`}>
+            {field.label || field.defaultValue || field.content || 'Heading'}
+          </Tag>
+        );
+      }
+
       return (
-        <div className="p-3 rounded bg-muted/30 text-sm text-muted-foreground">
-          {field.defaultValue || 'Static text block'}
+        <div className="p-3 rounded-md bg-muted/30 text-sm text-muted-foreground">
+          {field.defaultValue || field.content || field.helpText || field.label || 'Information'}
         </div>
       );
-    case 'heading': {
-      const lvl = field.headingLevel || 2;
-      const Tag = (`h${lvl}` as unknown) as keyof JSX.IntrinsicElements;
-      const sizeMap: Record<number, string> = { 1: 'text-3xl', 2: 'text-2xl', 3: 'text-xl', 4: 'text-lg', 5: 'text-base', 6: 'text-sm' };
-      return <Tag className={`font-bold ${sizeMap[lvl]}`}>{field.content || field.label || 'Heading'}</Tag>;
     }
     default:
       input = (
