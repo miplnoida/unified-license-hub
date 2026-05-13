@@ -115,13 +115,13 @@ export default function FormBuilder() {
     [activeVersion?.schema_snapshot],
   );
   const parsedSections = useMemo(() => {
+    let result: FormSection[] = [];
     if (versionFieldRows.length > 0) {
-      return fieldRowsToSections(versionFieldRows, versionConditionRows);
+      result = fieldRowsToSections(versionFieldRows, versionConditionRows);
+    } else if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
+      result = validSnapshotSections;
     }
-    if (fieldsFetched && !fieldsFetching && validSnapshotSections.length > 0) {
-      return validSnapshotSections;
-    }
-    return [];
+    return migrateSectionsToRows(result);
   }, [versionFieldRows, versionConditionRows, fieldsFetched, fieldsFetching, validSnapshotSections]);
   const builderReady = !editId || (
     templateFetched
