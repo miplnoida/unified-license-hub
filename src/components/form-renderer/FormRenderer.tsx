@@ -168,14 +168,16 @@ function MasterDataField({ field, value, onChange, disabled, placeholder, allFor
 
 function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field: FormField) => React.ReactNode }) {
   if (!rows.length) return null;
+  const colsClass: Record<1 | 2 | 3 | 4, string> = {
+    1: 'md:grid-cols-1',
+    2: 'md:grid-cols-2',
+    3: 'md:grid-cols-3',
+    4: 'md:grid-cols-4',
+  };
   return (
     <div className="space-y-4">
       {rows.map((row) => (
-        <div
-          key={row.id}
-          className="grid gap-4 grid-cols-1"
-          style={{ gridTemplateColumns: `repeat(${row.columns}, minmax(0, 1fr))` }}
-        >
+        <div key={row.id} className={`grid gap-4 grid-cols-1 ${colsClass[row.columns] || 'md:grid-cols-1'}`}>
           {Array.from({ length: row.columns }).map((_, i) => {
             const field = row.fields[i] || null;
             return (
