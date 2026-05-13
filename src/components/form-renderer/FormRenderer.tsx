@@ -54,6 +54,7 @@ interface Props {
   saving?: boolean;
   readOnly?: boolean;
   applicationId?: string;
+  stepStorageKey?: string;
   /** When true, section tabs show full title instead of letter-prefixed labels */
   showFullTabTitles?: boolean;
 }
@@ -195,10 +196,20 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 }
 
 export function FormRenderer({
-  formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, showFullTabTitles,
+  formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
 }: Props) {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (!stepStorageKey) return 0;
+    try {
+      const raw = sessionStorage.getItem(stepStorageKey);
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw) as { currentStep?: number; activeFormIdx?: number; activeGroup?: string };
+      return Number.isFinite(parsed.currentStep) && (parsed.currentStep ?? 0) >= 0 ? parsed.currentStep! : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [formData, setFormData] = useState<Record<string, any>>(initialData || {});
   const [repeatableData, setRepeatableData] = useState<Record<string, Record<string, any>[]>>(
     initialData?.__repeatable || {}
@@ -242,16 +253,49 @@ export function FormRenderer({
   }, [visibleSections]);
 
   const groupKeys = useMemo(() => sectionGroups ? Array.from(sectionGroups.keys()).sort() : [], [sectionGroups]);
-  const [activeGroup, setActiveGroup] = useState(groupKeys[0] || '');
-  const [activeFormIdx, setActiveFormIdx] = useState(0);
+  const [activeGroup, setActiveGroup] = useState(() => {
+    if (!stepStorageKey) return groupKeys[0] || '';
+    try {
+      const raw = sessionStorage.getItem(stepStorageKey);
+      if (!raw) return groupKeys[0] || '';
+      const parsed = JSON.parse(raw) as { activeGroup?: string };
+      return parsed.activeGroup || groupKeys[0] || '';
+    } catch {
+      return groupKeys[0] || '';
+    }
+  });
+  const [activeFormIdx, setActiveFormIdx] = useState(() => {
+    if (!stepStorageKey) return 0;
+    try {
+      const raw = sessionStorage.getItem(stepStorageKey);
+      if (!raw) return 0;
+      const parsed = JSON.parse(raw) as { activeFormIdx?: number };
+      return Number.isFinite(parsed.activeFormIdx) && (parsed.activeFormIdx ?? 0) >= 0 ? parsed.activeFormIdx! : 0;
+    } catch {
+      return 0;
+    }
+  });
 
   // Keep activeGroup valid if groupKeys change
-  useMemo(() => {
+  useEffect(() => {
     if (groupKeys.length > 0 && !groupKeys.includes(activeGroup)) {
       setActiveGroup(groupKeys[0]);
       setActiveFormIdx(0);
     }
-  }, [groupKeys]);
+  }, [groupKeys, activeGroup]);
+
+  useEffect(() => {
+    if (!stepStorageKey) return;
+    try {
+      sessionStorage.setItem(stepStorageKey, JSON.stringify({
+        currentStep,
+        activeGroup,
+        activeFormIdx,
+      }));
+    } catch {
+      // noop
+    }
+  }, [stepStorageKey, currentStep, activeGroup, activeFormIdx]);
 
   const activeGroupForms = sectionGroups?.get(activeGroup) || [];
   const currentSection = sectionGroups
