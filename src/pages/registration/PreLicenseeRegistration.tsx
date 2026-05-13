@@ -65,6 +65,19 @@ export default function PreLicenseeRegistration() {
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
 
+  const clearPersistedStep = useCallback(() => {
+    try { sessionStorage.removeItem(STEP_KEY); } catch {}
+  }, []);
+
+  const resetRegistrationFlow = useCallback(() => {
+    clearPersistedStep();
+    setCurrentStep(0);
+    setCompletedSteps(new Set());
+    setDynamicFormData({});
+    setDynamicErrors({});
+    reset();
+  }, [clearPersistedStep, reset]);
+
   // Persist current step across page refreshes (cleared on submit/reset)
   useEffect(() => {
     try { sessionStorage.setItem(STEP_KEY, String(currentStep)); } catch {}
@@ -357,16 +370,14 @@ export default function PreLicenseeRegistration() {
         });
         if (signInError) {
           toast.error('Account created but sign-in failed. Please log in manually.');
-          try { sessionStorage.removeItem(STEP_KEY); } catch {}
-          reset();
+          resetRegistrationFlow();
           navigate('/');
           return;
         }
       }
 
       const registrationRef = data?.registration_reference || '';
-      try { sessionStorage.removeItem(STEP_KEY); } catch {}
-      reset();
+      resetRegistrationFlow();
       toast.success('Registration submitted successfully!');
       navigate('/registration/success', { state: { registrationReference: registrationRef } });
     } catch (err) {
