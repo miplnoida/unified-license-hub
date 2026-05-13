@@ -463,7 +463,7 @@ export default function PreLicenseeRegistration() {
   const resolveReviewValue = useReviewValueResolver(config?.formSchema);
 
   function buildReviewSections() {
-    type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6 };
+    type RF = { label: string; value: any; type?: 'attachment' | 'display'; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string };
     const sections: { title: string; fields: RF[] }[] = [];
 
     if (config?.formSchema && config.formSchema.length > 0) {
@@ -482,6 +482,8 @@ export default function PreLicenseeRegistration() {
               displayKind: kind,
               headingLevel: (f as any).headingLevel,
               placeholder: (f as any).placeholder,
+              defaultValue: (f as any).defaultValue,
+              helpText: (f as any).helpText,
             });
             return;
           }
