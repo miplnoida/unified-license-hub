@@ -772,7 +772,7 @@ export default function FormBuilder() {
         </>)}
       </div>
 
-      {/* Preview Dialog — uses the same FormRenderer (rows-based) as the live form */}
+      {/* Preview Dialog — renders saved row.fields/row.columns directly (no flat fields, no colSpan). */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -781,14 +781,34 @@ export default function FormBuilder() {
               Preview — {sections.length} sections, {allFields.length} fields
             </DialogDescription>
           </DialogHeader>
-          <div className="pt-4">
-            <FormRenderer
-              formName={formName || 'Untitled Form'}
-              sections={sections}
-              onSaveDraft={() => {}}
-              onSubmit={() => {}}
-              readOnly
-            />
+          <div className="pt-4 space-y-6">
+            {sections.map((section) => (
+              <div key={section.id} className="space-y-3">
+                <div>
+                  <h3 className="text-base font-semibold">{section.title}</h3>
+                  {section.description && (
+                    <p className="text-sm text-muted-foreground">{section.description}</p>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {(section.rows || []).map((row) => (
+                    <div
+                      key={row.id}
+                      className="grid gap-4"
+                      style={{ gridTemplateColumns: `repeat(${row.columns}, minmax(0, 1fr))` }}
+                    >
+                      {row.fields.map((field, index) =>
+                        field ? (
+                          <FieldPreview key={field.id} field={field} />
+                        ) : (
+                          <div key={`empty-${index}`} />
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
