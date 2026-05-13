@@ -527,6 +527,11 @@ export default function ApplicationsList() {
     if (!groupingEnabled) return null;
     type GroupNode = { label: string; children: GroupNode[] | Application[] };
     
+    const sortAppsDesc = (apps: Application[]) =>
+      [...apps].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
     const buildGroups = (items: Application[], levels: GroupByField[], depth: number): GroupNode[] => {
       if (depth >= levels.length) return [];
       const field = levels[depth];
@@ -540,11 +545,11 @@ export default function ApplicationsList() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([label, apps]) => ({
           label,
-          children: depth + 1 < levels.length ? buildGroups(apps, levels, depth + 1) : apps,
+          children: depth + 1 < levels.length ? buildGroups(apps, levels, depth + 1) : sortAppsDesc(apps),
         }));
     };
-    return buildGroups(filtered, groupByOrder, 0);
-  }, [filtered, groupingEnabled, groupByOrder, sectors, subSectors]);
+    return buildGroups(sortedFiltered, groupByOrder, 0);
+  }, [sortedFiltered, groupingEnabled, groupByOrder, sectors, subSectors]);
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => {
