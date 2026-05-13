@@ -84,6 +84,16 @@ export interface FormSection {
   description?: string;
   sortOrder: number;
   isRepeatable: boolean;
+  /**
+   * Source of truth for layout. Each row holds `columns` slots (1..4) where
+   * each slot is either a FormField or null (empty placeholder).
+   */
+  rows: FormRow[];
+  /**
+   * Derived flat list of all fields in this section (in row order).
+   * Kept in sync with `rows` via `syncSectionFields`. Used for validation,
+   * conditional-logic resolution, progress, and normalized persistence.
+   */
   fields: FormField[];
   conditionalLogic?: ConditionalRule[];
 }
