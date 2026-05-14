@@ -296,11 +296,21 @@ export default function PreLicenseeRegistration() {
     return true;
   }, [form.sectorId, form.subSectorId, form.categoryId]);
 
+  const emailUniqueness = usePrimaryUserEmailUniqueness(effectiveEmail);
+
   const handleNext = () => {
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
+    if (emailUniqueness.status === 'taken') {
+      toast.error('This email is already registered. Please use a different email.');
       return;
     }
     setCompletedSteps(prev => new Set([...prev, currentStep]));
