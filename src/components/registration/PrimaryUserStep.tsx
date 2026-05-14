@@ -140,13 +140,22 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
                 placeholder="name@company.com"
                 className={`pl-10 ${errors.email ? 'border-destructive' : ''}`}
               />
-              {emailValid !== null && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  {emailValid ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-destructive" />}
-                </div>
-              )}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                {emailStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {emailStatus !== 'checking' && emailValid !== null && (
+                  emailValid && emailStatus !== 'taken'
+                    ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    : <XCircle className="h-4 w-4 text-destructive" />
+                )}
+              </div>
             </div>
             {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            {!errors.email && emailStatus === 'taken' && (
+              <p className="text-sm text-destructive">This email is already registered</p>
+            )}
+            {!errors.email && emailStatus === 'available' && (
+              <p className="text-sm text-green-600">Email is available</p>
+            )}
           </div>
         </div>
       </div>
