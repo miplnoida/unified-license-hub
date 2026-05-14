@@ -21,6 +21,26 @@ const PASSWORD_RULES = [
 
 export function PrimaryUserStep({ form, errors, setField }: Props) {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+
+  useEffect(() => {
+    const v = form.email.trim().toLowerCase();
+    if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      setEmailStatus('idle');
+      return;
+    }
+    setEmailStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc('check_primary_user_email_exists' as any, { p_email: v });
+        if (error) { setEmailStatus('idle'); return; }
+        setEmailStatus(data === true ? 'taken' : 'available');
+      } catch {
+        setEmailStatus('idle');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.email]);
 
   useEffect(() => {
     if (!form.username.trim() || form.username.trim().length < 3) {
