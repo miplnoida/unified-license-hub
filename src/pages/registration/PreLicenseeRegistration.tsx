@@ -339,6 +339,10 @@ export default function PreLicenseeRegistration() {
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    if (emailUniqueness.status === 'taken') {
+      toast.error('This email is already registered. Please use a different email.');
+      return;
+    }
 
     setSubmitting(true);
     try {
