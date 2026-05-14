@@ -4673,6 +4673,10 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      check_primary_user_email_exists: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json

@@ -22,6 +22,7 @@ import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useReviewValueResolver } from '@/components/registration/useReviewValueResolver';
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
+import { usePrimaryUserEmailUniqueness } from '@/components/registration/usePrimaryUserEmailUniqueness';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
@@ -295,11 +296,21 @@ export default function PreLicenseeRegistration() {
     return true;
   }, [form.sectorId, form.subSectorId, form.categoryId]);
 
+  const emailUniqueness = usePrimaryUserEmailUniqueness(effectiveEmail);
+
   const handleNext = () => {
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
+    if (emailUniqueness.status === 'taken') {
+      toast.error('This email is already registered. Please use a different email.');
       return;
     }
     setCompletedSteps(prev => new Set([...prev, currentStep]));
@@ -326,6 +337,10 @@ export default function PreLicenseeRegistration() {
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (emailUniqueness.status === 'taken') {
+      toast.error('This email is already registered. Please use a different email.');
       return;
     }
 
