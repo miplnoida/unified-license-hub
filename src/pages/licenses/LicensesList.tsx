@@ -35,6 +35,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function LicensesList() {
   const { user } = useAuth();
   const { isPpoc, activeLicenseeId } = usePpoc();
+  const { activeSectorId } = useActiveSector();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
