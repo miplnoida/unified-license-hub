@@ -73,12 +73,16 @@ export default function LicensesList() {
           .order('created_at', { ascending: false });
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
+      // Scope to active sector when set (licensee context).
+      if (!error && activeSectorId && data) {
+        data = (data as any[]).filter((l: any) => !l.sector_id || l.sector_id === activeSectorId) as any;
+      }
       if (!error) setLicenses((data || []) as any);
       setLoading(false);
     }
     load();
-  }, [isPpoc, activeLicenseeId]);
+  }, [isPpoc, activeLicenseeId, activeSectorId]);
 
   const filtered = licenses.filter(l => {
     if (search && !l.license_number.toLowerCase().includes(search.toLowerCase()) &&
