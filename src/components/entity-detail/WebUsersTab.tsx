@@ -317,7 +317,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       </Dialog>
 
       {/* View dialog */}
-      <Dialog open={!!viewUser} onOpenChange={v => { if (!v) setViewUser(null); }}>
+      <Dialog open={!!viewUser} onOpenChange={v => { if (!v) { setViewUser(null); setTimeout(() => { document.body.style.pointerEvents = ''; }, 0); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
@@ -350,7 +350,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       </Dialog>
 
       {/* Edit dialog */}
-      <Dialog open={!!editUser} onOpenChange={v => { if (!savingEdit && !v) setEditUser(null); }}>
+      <Dialog open={!!editUser} onOpenChange={v => { if (!savingEdit && !v) { setEditUser(null); setTimeout(() => { document.body.style.pointerEvents = ''; }, 0); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
