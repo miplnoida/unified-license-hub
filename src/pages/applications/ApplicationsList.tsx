@@ -270,6 +270,7 @@ export default function ApplicationsList() {
         _sort_by: 'created_at',
         _sort_dir: 'desc',
         _licensee_id: resolvedLicenseeId,
+        _sector_id: activeSectorId,
       });
 
       if (cancelled) return;
@@ -290,9 +291,6 @@ export default function ApplicationsList() {
         rows = rows.filter((r: any) => (r.data?.type !== 'post_license'));
       }
       // Scope to the active sector when one is set (licensee context).
-      if (activeSectorId) {
-        rows = rows.filter((r: any) => r.resolved_sector_id === activeSectorId || r.sector_id === activeSectorId);
-      }
       setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
       setApplications(rows.map((r: any): Application => ({
         id: r.id,
@@ -336,6 +334,7 @@ export default function ApplicationsList() {
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
+        _sector_id: activeSectorId,
       });
       if (error) return;
       const s = (data as any) || {};
@@ -394,6 +393,7 @@ export default function ApplicationsList() {
           _sort_by: 'created_at',
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
+          _sector_id: activeSectorId,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];
@@ -401,9 +401,6 @@ export default function ApplicationsList() {
           rows = rows.filter((r: any) => r.data?.type === 'post_license');
         } else if (typeFilter === 'pre') {
           rows = rows.filter((r: any) => r.data?.type !== 'post_license');
-        }
-        if (activeSectorId) {
-          rows = rows.filter((r: any) => r.resolved_sector_id === activeSectorId || r.sector_id === activeSectorId);
         }
         all = all.concat(rows);
         offset += PAGE;
