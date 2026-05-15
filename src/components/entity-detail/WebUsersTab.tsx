@@ -250,7 +250,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell>{u.email}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{u.role?.replace(/_/g, ' ')}</Badge></TableCell>
                     <TableCell className="capitalize">{u.user_type}</TableCell>
                     <TableCell><Badge variant="outline" className={isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}>{u.status}</Badge></TableCell>
                     <TableCell className="text-right">
