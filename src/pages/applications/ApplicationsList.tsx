@@ -93,6 +93,11 @@ interface Application {
   submitted_at: string | null;
   created_at: string;
   form_version_id?: string | null;
+  sector_id?: string | null;
+  resolved_sector_id?: string | null;
+  sub_sector_id?: string | null;
+  category_id?: string | null;
+  service_id?: string | null;
   /** Embedded by RPC */
   sector_name?: string | null;
   sub_sector_name?: string | null;
@@ -164,8 +169,8 @@ const PAGE_SIZE = 10;
 
 export default function ApplicationsList() {
   const { user } = useAuth();
-  const { isPpoc, activeLicenseeId } = usePpoc();
-  const { activeSectorName } = useActiveSector();
+  const { resolvedLicenseeId } = usePpoc();
+  const { activeSectorId } = useActiveSector();
   const [searchParamsRaw] = useSearchParams();
   const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
@@ -264,7 +269,7 @@ export default function ApplicationsList() {
         _version_id: versionFilter === 'all' ? null : versionFilter,
         _sort_by: 'created_at',
         _sort_dir: 'desc',
-        _licensee_id: isPpoc ? activeLicenseeId : null,
+        _licensee_id: resolvedLicenseeId,
       });
 
       if (cancelled) return;
@@ -285,8 +290,8 @@ export default function ApplicationsList() {
         rows = rows.filter((r: any) => (r.data?.type !== 'post_license'));
       }
       // Scope to the active sector when one is set (licensee context).
-      if (activeSectorName) {
-        rows = rows.filter((r: any) => !r.sector_name || r.sector_name === activeSectorName);
+      if (activeSectorId) {
+        rows = rows.filter((r: any) => r.resolved_sector_id === activeSectorId || r.sector_id === activeSectorId);
       }
       setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
       setApplications(rows.map((r: any): Application => ({
@@ -301,6 +306,11 @@ export default function ApplicationsList() {
         submitted_at: r.submitted_at,
         created_at: r.created_at,
         form_version_id: r.form_version_id,
+        sector_id: r.sector_id,
+        resolved_sector_id: r.resolved_sector_id,
+        sub_sector_id: r.sub_sector_id,
+        category_id: r.category_id,
+        service_id: r.service_id,
         sector_name: r.sector_name,
         sub_sector_name: r.sub_sector_name,
         category_name: r.category_name,
@@ -319,13 +329,13 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId, typeFilter, activeSectorName]);
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, activeSectorId]);
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
-        _licensee_id: isPpoc ? activeLicenseeId : null,
+        _licensee_id: resolvedLicenseeId,
       });
       if (error) return;
       const s = (data as any) || {};
@@ -337,7 +347,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, isPpoc, activeLicenseeId]);
+  }, [refreshKey, resolvedLicenseeId]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
