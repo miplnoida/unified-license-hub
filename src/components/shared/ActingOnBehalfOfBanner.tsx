@@ -83,12 +83,7 @@ export function ActingOnBehalfOfBanner() {
     };
   }, [user]);
 
-  // PPOC-only banner: shown when the user is mapped to exactly one licensee
-  // (in which case the header switcher is hidden but they still need a clear cue
-  // that they're acting on behalf of an entity).
-  const showPpocSoloBanner = isPpoc && mappedLicensees.length === 1 && activeLicensee;
-
-  if (loading || (delegations.length === 0 && !showPpocSoloBanner && !user?.delegatedRole)) return null;
+  if (loading || (delegations.length === 0 && !user?.delegatedRole)) return null;
 
   const delegatedRoleLabel = user?.delegatedRole ? ROLE_LABELS[user.delegatedRole] : null;
 
@@ -96,22 +91,11 @@ export function ActingOnBehalfOfBanner() {
     <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800">
       <UserCheck className="h-4 w-4 text-amber-700 dark:text-amber-400" />
       <AlertTitle className="text-amber-900 dark:text-amber-200">
-        {showPpocSoloBanner
-          ? `Acting as PPOC for ${activeLicensee!.licensee_name}`
-          : delegatedRoleLabel
+        {delegatedRoleLabel
           ? `Acting as ${delegatedRoleLabel}${user?.delegatedFromName ? ` (delegated by ${user.delegatedFromName})` : ''}`
           : `Acting on behalf of ${delegations.length === 1 ? 'another user' : `${delegations.length} users`}`}
       </AlertTitle>
       <AlertDescription className="text-amber-800 dark:text-amber-300 space-y-1 mt-1">
-        {showPpocSoloBanner && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <Badge variant="outline" className="border-amber-400 text-amber-900 dark:text-amber-200">
-              <Building2 className="h-3 w-3 mr-1" />
-              {activeLicensee!.licensee_name}
-            </Badge>
-            <span>All return submissions will be tagged to this licensee.</span>
-          </div>
-        )}
         {delegatedRoleLabel && (user?.delegationFrom || user?.delegationUntil) && (
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <Badge variant="outline" className="border-amber-400 text-amber-900 dark:text-amber-200">
