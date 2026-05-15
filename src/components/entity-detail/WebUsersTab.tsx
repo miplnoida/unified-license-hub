@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, Users2, Plus } from 'lucide-react';
+import { Loader2, Search, Users2, Plus, Eye, Pencil, Trash2, Power, KeyRound } from 'lucide-react';
 import PrimaryUserCard from './PrimaryUserCard';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
+import RowActionsMenu, { type RowAction } from '@/components/common/RowActionsMenu';
 
 interface WebUsersTabProps {
   entityId: string;
@@ -30,6 +32,15 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [position, setPosition] = useState('');
+
+  // View / Edit dialogs
+  const [viewUser, setViewUser] = useState<any | null>(null);
+  const [editUser, setEditUser] = useState<any | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editUsername, setEditUsername] = useState('');
+  const [editPosition, setEditPosition] = useState('');
+  const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const loadUsers = async () => {
     const { data } = await supabase.from('profiles').select('*').eq('licensee_id', entityId).order('full_name');
@@ -80,8 +91,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         toast.error(data?.error || error?.message || 'Failed to create user');
       } else {
         const newUserId = data?.user?.id;
-        // Dual-write: also create the explicit entity_user_access mapping
-        // so Primary/Secondary ownership has a single source of truth going forward.
         if (newUserId) {
           await supabase.from('entity_user_access' as any).insert({
             user_id: newUserId,
@@ -99,6 +108,105 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       toast.error(e.message || 'Unexpected error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEdit = (u: any) => {
+    setEditUser(u);
+    setEditFullName(u.full_name || '');
+    setEditUsername(u.username || '');
+    setEditPosition(u.position || '');
+    setEditStatus((u.status === 'inactive' ? 'inactive' : 'active'));
+  };
+
+  const saveEdit = async () => {
+    if (!editUser) return;
+    if (!editFullName.trim()) { toast.error('Full name is required'); return; }
+    setSavingEdit(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-web-user', {
+        body: {
+          action: 'update',
+          user_id: editUser.id,
+          updates: {
+            full_name: editFullName.trim(),
+            username: editUsername.trim(),
+            position: editPosition.trim(),
+            status: editStatus,
+          },
+        },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || 'Failed to update user');
+      } else {
+        toast.success('User updated');
+        setEditUser(null);
+        await loadUsers();
+      }
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const toggleStatus = async (u: any) => {
+    const next = u.status === 'active' ? 'inactive' : 'active';
+    const result = await Swal.fire({
+      title: `${next === 'active' ? 'Activate' : 'Deactivate'} user?`,
+      text: `${u.full_name || u.email} will be ${next === 'active' ? 'allowed to log in' : 'blocked from logging in'}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: `Yes, ${next === 'active' ? 'activate' : 'deactivate'}`,
+    });
+    if (!result.isConfirmed) return;
+    const { data, error } = await supabase.functions.invoke('toggle-user-status', {
+      body: { user_id: u.id, status: next },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || 'Failed to update status');
+    } else {
+      toast.success(`User ${next === 'active' ? 'activated' : 'deactivated'}`);
+      await loadUsers();
+    }
+  };
+
+  const resetPassword = async (u: any) => {
+    const result = await Swal.fire({
+      title: 'Reset password?',
+      text: `A new temporary password will be generated and emailed to ${u.email}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, reset',
+    });
+    if (!result.isConfirmed) return;
+    const newPassword = crypto.randomUUID().slice(0, 12) + 'A1!';
+    const { data, error } = await supabase.functions.invoke('toggle-user-status', {
+      body: { user_id: u.id, action: 'reset_password', new_password: newPassword },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || 'Failed to reset password');
+    } else {
+      toast.success('Password reset; temporary password sent to user');
+    }
+  };
+
+  const deleteUser = async (u: any) => {
+    const result = await Swal.fire({
+      title: 'Delete user?',
+      html: `This permanently removes <b>${u.full_name || u.email}</b> and revokes their access. This cannot be undone.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      confirmButtonColor: '#dc2626',
+    });
+    if (!result.isConfirmed) return;
+    const { data, error } = await supabase.functions.invoke('manage-web-user', {
+      body: { action: 'delete', user_id: u.id },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || 'Failed to delete user');
+    } else {
+      toast.success('User deleted');
+      await loadUsers();
     }
   };
 
@@ -127,17 +235,30 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
           <div className="text-center py-8 text-muted-foreground"><Users2 className="h-10 w-10 mx-auto mb-3 opacity-30" /><p>No web users linked to this entity.</p></div>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
-              {filtered.map(u => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">{u.full_name}</TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell><Badge variant="outline" className="capitalize">{u.role?.replace(/_/g, ' ')}</Badge></TableCell>
-                  <TableCell className="capitalize">{u.user_type}</TableCell>
-                  <TableCell><Badge variant="outline" className={u.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : ''}>{u.status}</Badge></TableCell>
-                </TableRow>
-              ))}
+              {filtered.map(u => {
+                const isActive = u.status === 'active';
+                const actions: RowAction[] = [
+                  { label: 'View', icon: Eye, onClick: () => setViewUser(u) },
+                  { label: 'Edit', icon: Pencil, onClick: () => openEdit(u) },
+                  { label: isActive ? 'Deactivate' : 'Activate', icon: Power, onClick: () => toggleStatus(u) },
+                  { label: 'Reset Password', icon: KeyRound, onClick: () => resetPassword(u) },
+                  { label: 'Delete', icon: Trash2, destructive: true, separator: true, onClick: () => deleteUser(u) },
+                ];
+                return (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.full_name}</TableCell>
+                    <TableCell>{u.email}</TableCell>
+                    <TableCell><Badge variant="outline" className="capitalize">{u.role?.replace(/_/g, ' ')}</Badge></TableCell>
+                    <TableCell className="capitalize">{u.user_type}</TableCell>
+                    <TableCell><Badge variant="outline" className={isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}>{u.status}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <RowActionsMenu actions={actions} label="Manage user" />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
@@ -190,6 +311,84 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               {buttonLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View dialog */}
+      <Dialog open={!!viewUser} onOpenChange={v => { if (!v) setViewUser(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>Read-only view of the selected web user.</DialogDescription>
+          </DialogHeader>
+          {viewUser && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm py-2">
+              <div className="text-muted-foreground">Full Name</div>
+              <div className="font-medium">{viewUser.full_name || '—'}</div>
+              <div className="text-muted-foreground">Email</div>
+              <div className="font-medium break-all">{viewUser.email || '—'}</div>
+              <div className="text-muted-foreground">Username</div>
+              <div className="font-medium">{viewUser.username || '—'}</div>
+              <div className="text-muted-foreground">Position</div>
+              <div className="font-medium">{viewUser.position || '—'}</div>
+              <div className="text-muted-foreground">Role</div>
+              <div className="font-medium capitalize">{viewUser.role?.replace(/_/g, ' ') || '—'}</div>
+              <div className="text-muted-foreground">User Type</div>
+              <div className="font-medium capitalize">{viewUser.user_type || '—'}</div>
+              <div className="text-muted-foreground">Status</div>
+              <div className="font-medium capitalize">{viewUser.status || '—'}</div>
+              <div className="text-muted-foreground">Created</div>
+              <div className="font-medium">{viewUser.created_at ? new Date(viewUser.created_at).toLocaleString() : '—'}</div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewUser(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editUser} onOpenChange={v => { if (!savingEdit && !v) setEditUser(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update profile details and account status.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input value={editUser?.email || ''} disabled className="bg-muted" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Full Name <span className="text-destructive">*</span></Label>
+              <Input value={editFullName} onChange={e => setEditFullName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Username</Label>
+              <Input value={editUsername} onChange={e => setEditUsername(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Position</Label>
+              <Input value={editPosition} onChange={e => setEditPosition(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Status</Label>
+              <Select value={editStatus} onValueChange={(v) => setEditStatus(v as 'active' | 'inactive')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)} disabled={savingEdit}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
