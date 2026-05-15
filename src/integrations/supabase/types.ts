@@ -4708,6 +4708,7 @@ export type Database = {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
       }
+      delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       expire_delegation_rules: { Args: never; Returns: number }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
@@ -4877,6 +4878,10 @@ export type Database = {
       }
       submit_application: {
         Args: { _ack_text?: string; _application_id: string }
+        Returns: Json
+      }
+      toggle_ppoc_mapping_status: {
+        Args: { _is_active: boolean; _mapping_id: string }
         Returns: Json
       }
       user_can_access_document_object: {
