@@ -111,16 +111,18 @@ export default function PreLicenseeRegistration() {
   // Dynamic Applicant Name uniqueness (resolved from form schema metadata)
   const applicantNameCheck = useApplicantNameUniqueness(config?.formSchema, dynamicFormData);
 
-  // Surface uniqueness error inline on the resolved field
+  // Surface uniqueness errors inline on the resolved fields (applicant name + primary email)
+  const emailUniquenessPreview = usePrimaryUserEmailUniqueness(effectiveEmail, config?.formSchema);
   const dynamicErrorsWithUniqueness = useMemo(() => {
+    const next = { ...dynamicErrors };
     if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
-      return {
-        ...dynamicErrors,
-        [applicantNameCheck.fieldName]: 'This applicant name is already registered',
-      };
+      next[applicantNameCheck.fieldName] = 'This applicant name is already registered';
     }
-    return dynamicErrors;
-  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName]);
+    if (emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
+      next[emailUniquenessPreview.fieldName] = 'This email is already registered';
+    }
+    return next;
+  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
@@ -224,9 +226,22 @@ export default function PreLicenseeRegistration() {
         }
       }
     }
+    // Primary email uniqueness — block step until check resolves to 'available'
+    if (emailUniquenessPreview.fieldName) {
+      const stepHasField = stepData.rows.some(r =>
+        r.columns.some(c => c.field?.fieldName === emailUniquenessPreview.fieldName)
+      );
+      if (stepHasField) {
+        if (emailUniquenessPreview.status === 'taken') {
+          errs[emailUniquenessPreview.fieldName] = 'This email is already registered';
+        } else if (emailUniquenessPreview.status === 'checking') {
+          errs[emailUniquenessPreview.fieldName] = 'Checking email availability…';
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -296,7 +311,7 @@ export default function PreLicenseeRegistration() {
     return true;
   }, [form.sectorId, form.subSectorId, form.categoryId]);
 
-  const emailUniqueness = usePrimaryUserEmailUniqueness(effectiveEmail);
+  const emailUniqueness = emailUniquenessPreview;
 
   const handleNext = () => {
     if (!validateScope()) return;
