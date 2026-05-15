@@ -288,15 +288,30 @@ export default function PreLicenseeRegistration() {
       );
       if (stepHasField) {
         if (emailUniquenessPreview.status === 'taken') {
-          errs[emailUniquenessPreview.fieldName] = 'This email is already registered';
+          errs[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
         } else if (emailUniquenessPreview.status === 'checking') {
           errs[emailUniquenessPreview.fieldName] = 'Checking email availability…';
         }
       }
     }
+    const primaryEmailBlockers = getPrimaryEmailBlockers(stepData);
+    if (primaryEmailBlockers.hasPending) {
+      for (const field of getPrimaryEmailFieldsForStep(stepData)) {
+        if (pendingPrimaryEmailChecks[field.fieldName]) {
+          errs[field.fieldName] = 'Checking email availability…';
+        }
+      }
+    }
+    if (primaryEmailBlockers.hasDuplicate) {
+      for (const field of getPrimaryEmailFieldsForStep(stepData)) {
+        if (dynamicErrors[field.fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) {
+          errs[field.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -369,18 +384,20 @@ export default function PreLicenseeRegistration() {
   const emailUniqueness = emailUniquenessPreview;
 
   const handleNext = () => {
+    const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
+    const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
+    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (emailUniqueness.status === 'checking') {
-      toast.error('Please wait — verifying email availability…');
-      return;
-    }
-    if (emailUniqueness.status === 'taken') {
-      toast.error('This email is already registered. Please use a different email.');
+    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+      toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
     setCompletedSteps(prev => new Set([...prev, currentStep]));
@@ -400,17 +417,28 @@ export default function PreLicenseeRegistration() {
       delete next[fieldName];
       return next;
     });
+    setPendingPrimaryEmailChecks(prev => {
+      if (!(fieldName in prev)) return prev;
+      return { ...prev, [fieldName]: false };
+    });
+    latestPrimaryEmailCheckRef.current[fieldName] = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
   }, []);
 
   const handleSubmit = async () => {
+    const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
+    const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
+    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (emailUniqueness.status === 'taken') {
-      toast.error('This email is already registered. Please use a different email.');
+    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+      toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
 
@@ -516,6 +544,7 @@ export default function PreLicenseeRegistration() {
               data={dynamicFormData}
               errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
+              onBlur={handleDynamicFieldBlur}
             />
           );
         }
