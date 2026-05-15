@@ -1,12 +1,13 @@
-import { Bell, Search, UserCircle, LogOut } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { ROLE_LABELS } from '@/types/platform';
+import { ROLE_LABELS, LICENSEE_ROLES } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
+import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
