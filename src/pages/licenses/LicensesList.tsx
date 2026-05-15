@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Search, Eye, Loader2, Shield } from 'lucide-react';
+import { Search, Eye, Loader2 } from 'lucide-react';
 
 interface License {
   id: string;
