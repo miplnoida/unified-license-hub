@@ -319,7 +319,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId]);
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId, typeFilter, activeSectorName]);
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
