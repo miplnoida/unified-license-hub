@@ -170,7 +170,7 @@ const PAGE_SIZE = 10;
 export default function ApplicationsList() {
   const { user } = useAuth();
   const { resolvedLicenseeId } = usePpoc();
-  const { activeSectorId } = useActiveSector();
+  const { activeSectorId, availableSectors } = useActiveSector();
   const [searchParamsRaw] = useSearchParams();
   const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
@@ -213,6 +213,9 @@ export default function ApplicationsList() {
     right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
   } | null>(null);
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
+    ? activeSectorId
+    : null;
 
   // Bounded reference data — small admin-config tables. Loaded once.
   // Profiles, pre_license_users, payments, and approval_actions are NO LONGER
@@ -260,7 +263,7 @@ export default function ApplicationsList() {
       const effectivePage = groupingEnabled ? 0 : page;
       const effectivePageSize = groupingEnabled ? 200 : PAGE_SIZE;
 
-      const { data, error } = await supabase.rpc('get_application_list_page' as any, {
+      const rpcParams = {
         _page: effectivePage,
         _page_size: effectivePageSize,
         _search: debouncedSearch || null,
@@ -270,8 +273,19 @@ export default function ApplicationsList() {
         _sort_by: 'created_at',
         _sort_dir: 'desc',
         _licensee_id: resolvedLicenseeId,
-        _sector_id: activeSectorId,
-      });
+        _sector_id: validActiveSectorId,
+      };
+      const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
+
+      if (import.meta.env.DEV) {
+        console.log('licensee context', {
+          userId: user?.id,
+          role: user?.role,
+          profileLicenseeId: user?.licenseeId ?? null,
+          resolvedLicenseeId,
+          activeSectorId: validActiveSectorId,
+        });
+      }
 
       if (cancelled) return;
       if (error) {
@@ -323,18 +337,29 @@ export default function ApplicationsList() {
         } : null,
         action_count: r.action_count ?? 0,
       })));
+      if (import.meta.env.DEV && rows.length === 0) {
+        console.log('applications empty state debug', {
+          userId: user?.id,
+          role: user?.role,
+          profileLicenseeId: user?.licenseeId ?? null,
+          resolvedLicenseeId,
+          activeSectorId: validActiveSectorId,
+          rpcParams,
+          returnedCount: 0,
+        });
+      }
       setLoading(false);
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, activeSectorId]);
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
-        _sector_id: activeSectorId,
+        _sector_id: validActiveSectorId,
       });
       if (error) return;
       const s = (data as any) || {};
@@ -346,7 +371,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId, activeSectorId]);
+  }, [refreshKey, resolvedLicenseeId, validActiveSectorId]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
@@ -393,7 +418,7 @@ export default function ApplicationsList() {
           _sort_by: 'created_at',
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
-          _sector_id: activeSectorId,
+          _sector_id: validActiveSectorId,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];
