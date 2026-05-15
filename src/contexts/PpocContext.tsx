@@ -92,15 +92,13 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         });
       };
 
-      approvedLicensees.forEach(addResolved);
-
       const profileLicenseeId = (profileRes.data as any)?.licensee_id ?? user.licenseeId ?? null;
       if (profileLicenseeId && approvedById.has(profileLicenseeId)) {
         addResolved(approvedById.get(profileLicenseeId));
       }
 
       if (!profileLicenseeId) {
-        const [directLicenseeRes, holderLicenseRowsRes, applicantLicenseRowsRes, applicantRowsRes, registrationRes] = await Promise.all([
+        const [directLicenseeRes, holderLicenseRowsRes, applicantRowsRes, registrationRes] = await Promise.all([
           supabase
             .from('licensees' as any)
             .select('id, license_id, sector_id, created_at, name, status')
@@ -110,10 +108,6 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             .from('licenses' as any)
             .select('id')
             .eq('holder_id', user.id),
-          supabase
-            .from('licenses' as any)
-            .select('id, application_id')
-            .eq('application_id', user.id),
           supabase
             .from('applications' as any)
             .select('id, created_at')
@@ -133,9 +127,6 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         ((holderLicenseRowsRes.data || []) as any[]).forEach((row: any) => {
           if (row?.id) licenseIds.add(row.id);
         });
-        ((applicantLicenseRowsRes.data || []) as any[]).forEach((row: any) => {
-          if (row?.id) licenseIds.add(row.id);
-        });
 
         if (licenseIds.size > 0) {
           const linkedLicensees = approvedLicensees.filter((licensee: any) => licensee.raw?.license_id && licenseIds.has(licensee.raw.license_id));
@@ -151,6 +142,10 @@ export function PpocProvider({ children }: { children: ReactNode }) {
           approvedLicensees
             .filter((licensee: any) => (licensee.resolved_sector_id || licensee.sector_id) === registrationSectorId)
             .forEach(addResolved);
+        }
+
+        if (resolvedMap.size === 0 && approvedLicensees.length === 1) {
+          addResolved(approvedLicensees[0]);
         }
       }
 
@@ -215,6 +210,14 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       }
 
       setResolvedLicensees(resolvedList);
+      if (import.meta.env.DEV) {
+        console.log('licensee context', {
+          userId: user.id,
+          role: user.role,
+          profileLicenseeId,
+          resolvedLicenseeId: profileLicenseeId || resolvedList[0]?.licensee_id || null,
+        });
+      }
       setLoading(false);
     };
 
