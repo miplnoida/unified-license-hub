@@ -276,7 +276,18 @@ export default function ApplicationsList() {
         return;
       }
 
-      const rows = (data as any[]) || [];
+      let rows = (data as any[]) || [];
+      // Client-side filter for pre/post licensing applications.
+      // Post-license apps are tagged with data.type === 'post_license' (set by NewPostLicenseApplication).
+      if (typeFilter === 'post') {
+        rows = rows.filter((r: any) => (r.data?.type === 'post_license'));
+      } else if (typeFilter === 'pre') {
+        rows = rows.filter((r: any) => (r.data?.type !== 'post_license'));
+      }
+      // Scope to the active sector when one is set (licensee context).
+      if (activeSectorName) {
+        rows = rows.filter((r: any) => !r.sector_name || r.sector_name === activeSectorName);
+      }
       setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
       setApplications(rows.map((r: any): Application => ({
         id: r.id,
