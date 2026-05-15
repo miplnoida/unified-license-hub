@@ -18,12 +18,14 @@ import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { isPrimaryEmailField } from '@/lib/primaryEmailValidation';
 
 interface Props {
   step: RegStep;
   data: Record<string, unknown>;
   errors: Record<string, string>;
   onChange: (fieldName: string, value: unknown) => void;
+  onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
 }
 
@@ -31,7 +33,7 @@ interface Props {
  * Renders a single registration step using the builder's row → column → field
  * grid layout. Responsive: columns collapse on mobile.
  */
-export function RegistrationStepRenderer({ step, data, errors, onChange, readOnly }: Props) {
+export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur, readOnly }: Props) {
   const allFields = useMemo(() => {
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
@@ -60,6 +62,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, readOnl
                     value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
                     error={errors[col.field.fieldName]}
                     onChange={onChange}
+                    onBlur={onBlur}
                     readOnly={readOnly}
                     allData={data}
                     allFields={allFields}
@@ -85,6 +88,7 @@ interface FieldProps {
   value: unknown;
   error?: string;
   onChange: (fieldName: string, value: unknown) => void;
+  onBlur?: (fieldName: string, value: unknown, field: RegField) => void;
   readOnly?: boolean;
   allData: Record<string, unknown>;
   allFields: RegField[];
@@ -170,7 +174,7 @@ function useDynamicOptions(field: RegField, allData: Record<string, unknown>) {
   }, [field.dataSource, field.dependsOn, allData, sectors, allSubSectors, allCategories, countries, allStates]);
 }
 
-function InteractiveField({ field, value, error, onChange, readOnly, allData, allFields }: FieldProps) {
+function InteractiveField({ field, value, error, onChange, onBlur, readOnly, allData, allFields }: FieldProps) {
   const handleChange = (val: unknown) => {
     onChange(field.fieldName, val);
 
@@ -180,6 +184,12 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
         f.dependsOn === field.fieldName || f.masterDataParentField === field.fieldName
       );
       dependents.forEach(dep => onChange(dep.fieldName, ''));
+    }
+  };
+
+  const handleBlur = (val: unknown) => {
+    if (onBlur && isPrimaryEmailField(field)) {
+      onBlur(field.fieldName, val, field);
     }
   };
 
@@ -207,6 +217,7 @@ function InteractiveField({ field, value, error, onChange, readOnly, allData, al
           type={field.type === 'email' ? 'email' : (field.type === 'password' || field.type === 'confirm_password') ? 'password' : 'text'}
           value={strValue}
           onChange={e => handleChange(e.target.value)}
+          onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
           autoComplete={(field.type === 'password' || field.type === 'confirm_password') ? 'new-password' : undefined}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { RegistrationStepRenderer } from '@/components/registration/Registration
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
-import type { RegStep } from '@/types/registrationForm';
+import type { RegStep, RegField } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
@@ -24,9 +24,12 @@ import { useReviewValueResolver } from '@/components/registration/useReviewValue
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
 import { usePrimaryUserEmailUniqueness } from '@/components/registration/usePrimaryUserEmailUniqueness';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
 const DYNAMIC_DATA_KEY = 'preLicenseRegistrationDynamicData';
+const DUPLICATE_PRIMARY_EMAIL_ERROR = 'This email is already registered';
+const DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR = 'This email is already registered. Please use a different email.';
 
 function loadDynamicData(): Record<string, unknown> {
   try {
@@ -72,6 +75,8 @@ export default function PreLicenseeRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+  const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
+  const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
 
   const clearPersistedStep = useCallback(() => {
     try {
@@ -113,16 +118,66 @@ export default function PreLicenseeRegistration() {
 
   // Surface uniqueness errors inline on the resolved fields (applicant name + primary email)
   const emailUniquenessPreview = usePrimaryUserEmailUniqueness(effectiveEmail, config?.formSchema);
+  const primaryEmailFieldName = emailUniquenessPreview.fieldName;
   const dynamicErrorsWithUniqueness = useMemo(() => {
     const next = { ...dynamicErrors };
     if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
       next[applicantNameCheck.fieldName] = 'This applicant name is already registered';
     }
     if (emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
-      next[emailUniquenessPreview.fieldName] = 'This email is already registered';
+      next[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
     }
     return next;
   }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
+
+  const getPrimaryEmailFieldsForStep = useCallback((stepData: RegStep) => {
+    return stepData.rows.flatMap(row =>
+      row.columns
+        .map(col => col.field)
+        .filter((field): field is RegField => !!field && isPrimaryEmailField(field))
+    );
+  }, []);
+
+  const getPrimaryEmailBlockers = useCallback((stepData?: RegStep) => {
+    if (!stepData) return { hasPending: false, hasDuplicate: false, hasTakenStatus: false };
+    const fields = getPrimaryEmailFieldsForStep(stepData);
+    const fieldNames = fields.map(field => field.fieldName);
+    const hasPending = fieldNames.some(fieldName => pendingPrimaryEmailChecks[fieldName]);
+    const hasDuplicate = fieldNames.some(fieldName => dynamicErrors[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR);
+    const hasTakenStatus = fieldNames.some(fieldName => fieldName === primaryEmailFieldName) && emailUniquenessPreview.status === 'taken';
+    return { hasPending, hasDuplicate, hasTakenStatus };
+  }, [dynamicErrors, emailUniquenessPreview.status, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, primaryEmailFieldName]);
+
+  const handleDynamicFieldBlur = useCallback(async (fieldName: string, value: unknown, field: RegField) => {
+    if (!isPrimaryEmailField(field)) return;
+
+    const normalizedEmail = normalizeEmailValue(value);
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) return;
+
+    const requestId = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
+    latestPrimaryEmailCheckRef.current[fieldName] = requestId;
+    setPendingPrimaryEmailChecks(prev => ({ ...prev, [fieldName]: true }));
+
+    try {
+      const { data, error } = await supabase.rpc('check_primary_user_email_exists' as any, {
+        p_email: normalizedEmail,
+      });
+
+      if (latestPrimaryEmailCheckRef.current[fieldName] !== requestId) return;
+      if (error) return;
+
+      setDynamicErrors(prev => {
+        const next = { ...prev };
+        if (data === true) next[fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
+        else if (next[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) delete next[fieldName];
+        return next;
+      });
+    } finally {
+      if (latestPrimaryEmailCheckRef.current[fieldName] === requestId) {
+        setPendingPrimaryEmailChecks(prev => ({ ...prev, [fieldName]: false }));
+      }
+    }
+  }, []);
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
@@ -233,15 +288,30 @@ export default function PreLicenseeRegistration() {
       );
       if (stepHasField) {
         if (emailUniquenessPreview.status === 'taken') {
-          errs[emailUniquenessPreview.fieldName] = 'This email is already registered';
+          errs[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
         } else if (emailUniquenessPreview.status === 'checking') {
           errs[emailUniquenessPreview.fieldName] = 'Checking email availability…';
         }
       }
     }
+    const primaryEmailBlockers = getPrimaryEmailBlockers(stepData);
+    if (primaryEmailBlockers.hasPending) {
+      for (const field of getPrimaryEmailFieldsForStep(stepData)) {
+        if (pendingPrimaryEmailChecks[field.fieldName]) {
+          errs[field.fieldName] = 'Checking email availability…';
+        }
+      }
+    }
+    if (primaryEmailBlockers.hasDuplicate) {
+      for (const field of getPrimaryEmailFieldsForStep(stepData)) {
+        if (dynamicErrors[field.fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) {
+          errs[field.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -314,18 +384,20 @@ export default function PreLicenseeRegistration() {
   const emailUniqueness = emailUniquenessPreview;
 
   const handleNext = () => {
+    const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
+    const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
+    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (emailUniqueness.status === 'checking') {
-      toast.error('Please wait — verifying email availability…');
-      return;
-    }
-    if (emailUniqueness.status === 'taken') {
-      toast.error('This email is already registered. Please use a different email.');
+    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+      toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
     setCompletedSteps(prev => new Set([...prev, currentStep]));
@@ -345,17 +417,28 @@ export default function PreLicenseeRegistration() {
       delete next[fieldName];
       return next;
     });
+    setPendingPrimaryEmailChecks(prev => {
+      if (!(fieldName in prev)) return prev;
+      return { ...prev, [fieldName]: false };
+    });
+    latestPrimaryEmailCheckRef.current[fieldName] = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
   }, []);
 
   const handleSubmit = async () => {
+    const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
+    const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
+    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+      toast.error('Please wait — verifying email availability…');
+      return;
+    }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (emailUniqueness.status === 'taken') {
-      toast.error('This email is already registered. Please use a different email.');
+    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+      toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
 
@@ -461,6 +544,7 @@ export default function PreLicenseeRegistration() {
               data={dynamicFormData}
               errors={dynamicErrorsWithUniqueness}
               onChange={handleDynamicFieldChange}
+              onBlur={handleDynamicFieldBlur}
             />
           );
         }

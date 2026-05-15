@@ -24,10 +24,11 @@ Deno.serve(async (req) => {
       username, registration_number, entity_specific_data,
       documents_metadata, terms_accepted,
     } = body;
+    const normalizedEmail = String(email || '').trim().toLowerCase();
 
     // Validate required fields
     const missing: string[] = [];
-    if (!email) missing.push("email");
+    if (!normalizedEmail) missing.push("email");
     if (!password) missing.push("password");
     if (!first_name) missing.push("first_name");
     if (!last_name) missing.push("last_name");
@@ -50,11 +51,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Explicit duplicate guard for the primary user email across existing registrations,
+    // profiles, and auth users before attempting auth account creation.
+    {
+      const [{ data: existingRegistration }, { data: existingProfile }, { data: existingAuthEmail, error: existingAuthEmailError }] = await Promise.all([
+        supabaseAdmin
+          .from("registrations")
+          .select("id")
+          .ilike("email", normalizedEmail)
+          .limit(1),
+        supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .ilike("email", normalizedEmail)
+          .limit(1),
+        supabaseAdmin.rpc("check_primary_user_email_exists", { p_email: normalizedEmail }),
+      ]);
+
+      if ((existingRegistration && existingRegistration.length > 0) || (existingProfile && existingProfile.length > 0) || (!existingAuthEmailError && existingAuthEmail === true)) {
+        return new Response(JSON.stringify({
+          error: "This email is already registered. Please use a different email.",
+          code: "PRIMARY_USER_EMAIL_EXISTS",
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Verify email OTP was completed
     const { data: otpCheck } = await supabaseAdmin
       .from("otp_verifications")
       .select("id")
-      .eq("user_email", email)
+        .eq("user_email", normalizedEmail)
       .eq("channel", "email")
       .not("verified_at", "is", null)
       .order("created_at", { ascending: false })
@@ -121,7 +150,7 @@ Deno.serve(async (req) => {
 
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password,
       email_confirm: true,
       user_metadata: {
@@ -161,7 +190,7 @@ Deno.serve(async (req) => {
       first_name,
       last_name,
       telephone: telephone || "",
-      email,
+      email: normalizedEmail,
       username: username || null,
       registration_number: registration_number || null,
       entity_specific_data: entity_specific_data || {},
@@ -272,7 +301,7 @@ Deno.serve(async (req) => {
     const dispatchPayload = {
       applicant_id: authData.user.id,
       applicant_name,
-      applicant_email: email,
+      applicant_email: normalizedEmail,
       registration_reference: regData.registration_reference,
       sector_id,
       category_id,
