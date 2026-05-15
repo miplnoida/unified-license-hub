@@ -74,11 +74,42 @@ export default function LicensesList() {
       }
 
       let { data, error } = await query;
-      // Scope to active sector when set (licensee context).
-      if (!error && activeSectorId && data) {
-        data = (data as any[]).filter((l: any) => !l.sector_id || l.sector_id === activeSectorId) as any;
+      let rows = ((data || []) as any[]);
+
+      // Strict sector scoping for licensee context: resolve via licenses.sector_id,
+      // then linked applications.data->>'sector_id', then registrations.sector_id.
+      if (!error && activeSectorId && rows.length) {
+        const appIds = Array.from(new Set(rows.map((r: any) => r.application_id).filter(Boolean)));
+        const appById: Record<string, any> = {};
+        const regSectorByUser: Record<string, string> = {};
+        if (appIds.length) {
+          const { data: apps } = await supabase
+            .from('applications' as any)
+            .select('id, applicant_id, data')
+            .in('id', appIds);
+          ((apps || []) as any[]).forEach(a => { appById[a.id] = a; });
+          const applicantIds = Array.from(new Set(((apps || []) as any[]).map(a => a.applicant_id).filter(Boolean)));
+          if (applicantIds.length) {
+            const { data: regs } = await supabase
+              .from('registrations' as any)
+              .select('user_id, sector_id')
+              .in('user_id', applicantIds);
+            ((regs || []) as any[]).forEach(r => {
+              if (r.sector_id && !regSectorByUser[r.user_id]) regSectorByUser[r.user_id] = r.sector_id;
+            });
+          }
+        }
+        rows = rows.filter((r: any) => {
+          const app = r.application_id ? appById[r.application_id] : null;
+          const resolved =
+            r.sector_id ||
+            app?.data?.sector_id ||
+            (app?.applicant_id ? regSectorByUser[app.applicant_id] : null) ||
+            null;
+          return resolved === activeSectorId;
+        });
       }
-      if (!error) setLicenses((data || []) as any);
+      if (!error) setLicenses(rows as any);
       setLoading(false);
     }
     load();
