@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
-import { isPrimaryEmailField } from '@/lib/primaryEmailValidation';
 
 interface Props {
   step: RegStep;
