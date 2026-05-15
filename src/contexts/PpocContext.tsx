@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { loadApprovedLicenseeOptions } from '@/lib/licenseeOptions';
 
 const STORAGE_KEY = 'ppoc.activeLicenseeId';
 
