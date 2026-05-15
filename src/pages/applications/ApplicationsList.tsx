@@ -393,13 +393,21 @@ export default function ApplicationsList() {
           _version_id: versionFilter === 'all' ? null : versionFilter,
           _sort_by: 'created_at',
           _sort_dir: 'desc',
-          _licensee_id: isPpoc ? activeLicenseeId : null,
+          _licensee_id: resolvedLicenseeId,
         });
         if (error) throw error;
-        const rows = (data as any[]) || [];
+        let rows = (data as any[]) || [];
+        if (typeFilter === 'post') {
+          rows = rows.filter((r: any) => r.data?.type === 'post_license');
+        } else if (typeFilter === 'pre') {
+          rows = rows.filter((r: any) => r.data?.type !== 'post_license');
+        }
+        if (activeSectorId) {
+          rows = rows.filter((r: any) => r.resolved_sector_id === activeSectorId || r.sector_id === activeSectorId);
+        }
         all = all.concat(rows);
         offset += PAGE;
-        if (rows.length < PAGE) break;
+        if (((data as any[]) || []).length < PAGE) break;
       }
       if (all.length === 0) {
         toast.info('No applications match the current filter.');
