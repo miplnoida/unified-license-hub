@@ -458,7 +458,13 @@ export default function PpocManagement() {
                         : 'Select licensee...'
                   } />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={4}
+                  className="z-[9999] max-h-[300px] overflow-y-auto bg-popover"
+                >
                   {dialogLicenseeOptions.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                       {selectedSectorIds.length === 0
