@@ -70,8 +70,11 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       const mappingIds = mappingRows.map(m => m.id);
       const ids = mappingRows.map(m => m.licensee_id);
 
-      const [{ data: lics }, { data: mapSectors }] = await Promise.all([
-        supabase.from('licensees').select('id, name, sector_id').in('id', ids),
+      // Use the same enriched/resolved licensee pipeline as the admin mapping
+      // page so that mappings whose sector was resolved from registration or
+      // application data still appear here.
+      const [enrichedLics, { data: mapSectors }] = await Promise.all([
+        loadApprovedLicenseeOptions({ onlyActive: false }),
         supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds),
       ]);
 
@@ -82,20 +85,21 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         sectorsByMapping[r.mapping_id].add(r.sector_id);
       });
 
-      const licMap = Object.fromEntries(((lics || []) as any[]).map(l => [l.id, l]));
+      const licMap = Object.fromEntries(enrichedLics.filter(l => ids.includes(l.id)).map(l => [l.id, l]));
       const allowedLicenseeIds = new Set<string>();
       mappingRows.forEach(m => {
         const lic = licMap[m.licensee_id];
         if (!lic) return;
         const restriction = sectorsByMapping[m.id];
+        const licSector = lic.resolved_sector_id || lic.sector_id;
         if (!restriction || restriction.size === 0) {
           allowedLicenseeIds.add(m.licensee_id);
-        } else if (lic.sector_id && restriction.has(lic.sector_id)) {
+        } else if (licSector && restriction.has(licSector)) {
           allowedLicenseeIds.add(m.licensee_id);
         }
       });
 
-      const filteredLics = (lics || []).filter((l: any) => allowedLicenseeIds.has(l.id));
+      const filteredLics = enrichedLics.filter((l: any) => allowedLicenseeIds.has(l.id));
 
       if (cancelled) return;
       const list: MappedLicensee[] = filteredLics.map((l: any) => ({
