@@ -41,7 +41,8 @@ function fieldMetadataStrings(field: RegField): string[] {
 
 export function isPrimaryEmailField(field?: RegField | null): field is RegField {
   if (!field || field.type !== 'email') return false;
-  const fieldName = normalizeToken((field as RegField & Record<string, unknown>).fieldName ?? (field as Record<string, unknown>).name ?? field.id);
+  const maybeAny = field as unknown as Record<string, unknown>;
+  const fieldName = normalizeToken(field.fieldName ?? maybeAny.name ?? field.id);
   const label = normalizeToken(field.label || field.placeholder || field.helpText);
 
   if (PRIMARY_EMAIL_FIELD_NAMES.includes(fieldName as (typeof PRIMARY_EMAIL_FIELD_NAMES)[number])) {
