@@ -4,6 +4,13 @@ export interface ApprovedLicenseeOption {
   id: string;
   display_name: string;
   sector_id: string | null;
+  /**
+   * Sector resolved using the same priority as the backend
+   * `save_ppoc_mapping` RPC: licensees.sector_id → registrations.sector_id →
+   * applications.data->>'sector_id'. Use this for any frontend filter that
+   * must match server-side sector validation.
+   */
+  resolved_sector_id: string | null;
   sector_name?: string;
   status?: string;
   created_at?: string;
