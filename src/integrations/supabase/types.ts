@@ -4736,6 +4736,7 @@ export type Database = {
           _page_size: number
           _search: string
           _search_mode: string
+          _sector_id?: string
           _sort_by: string
           _sort_dir: string
           _status: string
@@ -4773,7 +4774,7 @@ export type Database = {
         }[]
       }
       get_application_list_stats: {
-        Args: { _licensee_id?: string }
+        Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
       }
       get_form_version_usage_counts: {
