@@ -239,9 +239,13 @@ export default function PpocManagement() {
       confirmButtonColor: 'hsl(var(--destructive))',
     });
     if (!result.isConfirmed) return;
-    await supabase.from('ppoc_entity_mappings' as any).delete().eq('id', id);
+    const { data, error } = await supabase.rpc('delete_ppoc_mapping' as any, { _mapping_id: id });
+    if (error || (data as any)?.error) {
+      toast.error(error?.message || (data as any)?.error || 'Failed to delete');
+      return;
+    }
     toast.success('Mapping removed');
-    load();
+    await Promise.all([load(), loadOptions()]);
   };
 
   const handleToggle = async (m: PpocMapping) => {
@@ -257,22 +261,25 @@ export default function PpocManagement() {
       cancelButtonText: 'Cancel',
     });
     if (!result.isConfirmed) return;
-    const { error } = await supabase
-      .from('ppoc_entity_mappings' as any)
-      .update({ is_active: next })
-      .eq('id', m.id);
-    if (error) {
-      toast.error(error.message);
+    const { data, error } = await supabase.rpc('toggle_ppoc_mapping_status' as any, {
+      _mapping_id: m.id,
+      _is_active: next,
+    });
+    if (error || (data as any)?.error) {
+      toast.error(error?.message || (data as any)?.error || 'Failed to update');
       return;
     }
     toast.success(next ? 'Mapping activated' : 'Mapping deactivated');
-    load();
+    await Promise.all([load(), loadOptions()]);
   };
 
   // When sectors are selected in the dialog, restrict the licensee dropdown to matching sectors.
   const dialogLicenseeOptions = selectedSectorIds.length === 0
     ? []
-    : licensees.filter(l => l.sector_id && selectedSectorIds.includes(l.sector_id));
+    : licensees.filter(l => {
+        const sec = l.resolved_sector_id || l.sector_id;
+        return sec && selectedSectorIds.includes(sec);
+      });
 
   const columns: Column<PpocMapping>[] = [
     {
