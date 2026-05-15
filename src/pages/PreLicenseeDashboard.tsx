@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePpoc } from '@/contexts/PpocContext';
 import {
   PlusCircle, Search, Eye, Trash2, FileText, Clock,
   CheckCircle, AlertTriangle, XCircle, RotateCcw,
@@ -36,22 +37,29 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
 
 export default function PreLicenseeDashboard() {
   const { user } = useAuth();
+  const { resolvedLicenseeId } = usePpoc();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { data: applications = [], isLoading } = useQuery({
-    queryKey: ['pre-licensee-applications', user?.id],
+    queryKey: ['pre-licensee-applications', user?.id, resolvedLicenseeId],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('applicant_id', user.id)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_application_list_page' as any, {
+        _page: 0,
+        _page_size: 500,
+        _search: null,
+        _search_mode: 'contains',
+        _status: null,
+        _version_id: null,
+        _sort_by: 'created_at',
+        _sort_dir: 'desc',
+        _licensee_id: resolvedLicenseeId,
+      });
       if (error) throw error;
-      return data || [];
+      return ((data as any[]) || []).filter((app: any) => app.data?.type !== 'post_license');
     },
     enabled: !!user?.id,
   });
@@ -90,9 +98,9 @@ export default function PreLicenseeDashboard() {
   const getAppData = (app: any) => {
     const d = (app.data || {}) as Record<string, any>;
     return {
-      sectorName: d.sector_name || '—',
-      subSectorName: d.sub_sector_name || '—',
-      categoryName: d.category_name || '—',
+      sectorName: app.sector_name || d.sector_name || '—',
+      subSectorName: app.sub_sector_name || d.sub_sector_name || '—',
+      categoryName: app.category_name || d.category_name || '—',
       entityName: d.entity_name || d.applicant_name || '—',
     };
   };

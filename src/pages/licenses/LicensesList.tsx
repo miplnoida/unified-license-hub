@@ -26,6 +26,9 @@ interface License {
   valid_until: string | null;
   conditions: string | null;
   created_at: string;
+  application_id?: string | null;
+  sector_id?: string | null;
+  resolved_sector_id?: string | null;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -34,7 +37,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function LicensesList() {
   const { user } = useAuth();
-  const { isPpoc, activeLicenseeId } = usePpoc();
+  const { resolvedLicenseeId } = usePpoc();
   const { activeSectorId } = useActiveSector();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
@@ -46,74 +49,86 @@ export default function LicensesList() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      let query = supabase.from('licenses' as any).select('*').order('created_at', { ascending: false });
+      let rows: any[] = [];
 
-      // PPOC scope: restrict to licenses tied to the actively selected licensee.
-      if (isPpoc) {
-        if (!activeLicenseeId) {
+      if (isInternal) {
+        const { data, error } = await supabase
+          .from('licenses' as any)
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) {
           setLicenses([]);
           setLoading(false);
           return;
         }
-        const { data: licRow } = await supabase
+        rows = (data || []) as any[];
+      } else {
+        if (!resolvedLicenseeId) {
+          setLicenses([]);
+          setLoading(false);
+          return;
+        }
+
+        const { data: licRow, error: licRowError } = await supabase
           .from('licensees' as any)
-          .select('license_id')
-          .eq('id', activeLicenseeId)
+          .select('license_id, sector_id')
+          .eq('id', resolvedLicenseeId)
           .maybeSingle();
+        if (licRowError) {
+          setLicenses([]);
+          setLoading(false);
+          return;
+        }
         const licenseId = (licRow as any)?.license_id;
         if (!licenseId) {
           setLicenses([]);
           setLoading(false);
           return;
         }
-        query = supabase
+
+        const { data, error } = await supabase
           .from('licenses' as any)
           .select('*')
           .eq('id', licenseId)
           .order('created_at', { ascending: false });
+        if (error) {
+          setLicenses([]);
+          setLoading(false);
+          return;
+        }
+        rows = (data || []) as any[];
       }
 
-      let { data, error } = await query;
-      let rows = ((data || []) as any[]);
-
-      // Strict sector scoping for licensee context: resolve via licenses.sector_id,
-      // then linked applications.data->>'sector_id', then registrations.sector_id.
-      if (!error && activeSectorId && rows.length) {
+      if (rows.length) {
         const appIds = Array.from(new Set(rows.map((r: any) => r.application_id).filter(Boolean)));
         const appById: Record<string, any> = {};
-        const regSectorByUser: Record<string, string> = {};
+        const licenseeSectorId = !isInternal && resolvedLicenseeId
+          ? ((await supabase.from('licensees' as any).select('sector_id').eq('id', resolvedLicenseeId).maybeSingle()).data as any)?.sector_id || null
+          : null;
         if (appIds.length) {
           const { data: apps } = await supabase
             .from('applications' as any)
             .select('id, applicant_id, data')
             .in('id', appIds);
           ((apps || []) as any[]).forEach(a => { appById[a.id] = a; });
-          const applicantIds = Array.from(new Set(((apps || []) as any[]).map(a => a.applicant_id).filter(Boolean)));
-          if (applicantIds.length) {
-            const { data: regs } = await supabase
-              .from('registrations' as any)
-              .select('user_id, sector_id')
-              .in('user_id', applicantIds);
-            ((regs || []) as any[]).forEach(r => {
-              if (r.sector_id && !regSectorByUser[r.user_id]) regSectorByUser[r.user_id] = r.sector_id;
-            });
-          }
         }
-        rows = rows.filter((r: any) => {
+
+        rows = rows.map((r: any) => {
           const app = r.application_id ? appById[r.application_id] : null;
-          const resolved =
-            r.sector_id ||
-            app?.data?.sector_id ||
-            (app?.applicant_id ? regSectorByUser[app.applicant_id] : null) ||
-            null;
-          return resolved === activeSectorId;
+          const resolved_sector_id = r.sector_id || licenseeSectorId || app?.data?.sector_id || null;
+          return { ...r, resolved_sector_id };
         });
+
+        if (activeSectorId) {
+          rows = rows.filter((r: any) => r.resolved_sector_id === activeSectorId);
+        }
       }
-      if (!error) setLicenses(rows as any);
+
+      setLicenses(rows as any);
       setLoading(false);
     }
     load();
-  }, [isPpoc, activeLicenseeId, activeSectorId]);
+  }, [isInternal, resolvedLicenseeId, activeSectorId]);
 
   const filtered = licenses.filter(l => {
     if (search && !l.license_number.toLowerCase().includes(search.toLowerCase()) &&

@@ -4736,6 +4736,7 @@ export type Database = {
           _page_size: number
           _search: string
           _search_mode: string
+          _sector_id?: string
           _sort_by: string
           _sort_dir: string
           _status: string
@@ -4747,6 +4748,7 @@ export type Database = {
           applicant_id: string
           applicant_name: string
           application_number: string
+          category_id: string
           category_name: string
           created_at: string
           data: Json
@@ -4759,16 +4761,20 @@ export type Database = {
           payment_method: string
           payment_paid_at: string
           payment_status: string
+          resolved_sector_id: string
+          sector_id: string
           sector_name: string
+          service_id: string
           service_name: string
           status: string
+          sub_sector_id: string
           sub_sector_name: string
           submitted_at: string
           total_count: number
         }[]
       }
       get_application_list_stats: {
-        Args: { _licensee_id?: string }
+        Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
       }
       get_form_version_usage_counts: {
