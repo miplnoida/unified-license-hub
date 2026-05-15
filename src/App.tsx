@@ -47,13 +47,15 @@ const App = () => (
       <AuthProvider>
         <RegulatorProvider>
           <PpocProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
-            </TooltipProvider>
+            <ActiveSectorProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                </BrowserRouter>
+              </TooltipProvider>
+            </ActiveSectorProvider>
           </PpocProvider>
         </RegulatorProvider>
       </AuthProvider>
