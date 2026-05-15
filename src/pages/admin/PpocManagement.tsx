@@ -53,7 +53,8 @@ export default function PpocManagement() {
         : [...prev, sectorId];
       if (licenseeId) {
         const lic = licensees.find(l => l.id === licenseeId);
-        if (!lic?.sector_id || !next.includes(lic.sector_id)) {
+        const licSector = lic?.resolved_sector_id || lic?.sector_id;
+        if (!licSector || !next.includes(licSector)) {
           setLicenseeId('');
         }
       }
@@ -199,7 +200,8 @@ export default function PpocManagement() {
       return;
     }
     const lic = licensees.find(l => l.id === licenseeId);
-    if (!lic?.sector_id || !selectedSectorIds.includes(lic.sector_id)) {
+    const licSector = lic?.resolved_sector_id || lic?.sector_id;
+    if (!licSector || !selectedSectorIds.includes(licSector)) {
       toast.error('Selected entity does not belong to the assigned PPOC sectors.');
       return;
     }
@@ -237,9 +239,13 @@ export default function PpocManagement() {
       confirmButtonColor: 'hsl(var(--destructive))',
     });
     if (!result.isConfirmed) return;
-    await supabase.from('ppoc_entity_mappings' as any).delete().eq('id', id);
+    const { data, error } = await supabase.rpc('delete_ppoc_mapping' as any, { _mapping_id: id });
+    if (error || (data as any)?.error) {
+      toast.error(error?.message || (data as any)?.error || 'Failed to delete');
+      return;
+    }
     toast.success('Mapping removed');
-    load();
+    await Promise.all([load(), loadOptions()]);
   };
 
   const handleToggle = async (m: PpocMapping) => {
@@ -255,22 +261,25 @@ export default function PpocManagement() {
       cancelButtonText: 'Cancel',
     });
     if (!result.isConfirmed) return;
-    const { error } = await supabase
-      .from('ppoc_entity_mappings' as any)
-      .update({ is_active: next })
-      .eq('id', m.id);
-    if (error) {
-      toast.error(error.message);
+    const { data, error } = await supabase.rpc('toggle_ppoc_mapping_status' as any, {
+      _mapping_id: m.id,
+      _is_active: next,
+    });
+    if (error || (data as any)?.error) {
+      toast.error(error?.message || (data as any)?.error || 'Failed to update');
       return;
     }
     toast.success(next ? 'Mapping activated' : 'Mapping deactivated');
-    load();
+    await Promise.all([load(), loadOptions()]);
   };
 
   // When sectors are selected in the dialog, restrict the licensee dropdown to matching sectors.
   const dialogLicenseeOptions = selectedSectorIds.length === 0
     ? []
-    : licensees.filter(l => l.sector_id && selectedSectorIds.includes(l.sector_id));
+    : licensees.filter(l => {
+        const sec = l.resolved_sector_id || l.sector_id;
+        return sec && selectedSectorIds.includes(sec);
+      });
 
   const columns: Column<PpocMapping>[] = [
     {
@@ -344,7 +353,13 @@ export default function PpocManagement() {
               <Label>PPOC User *</Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
                 <SelectTrigger><SelectValue placeholder="Select contact user..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={4}
+                  className="z-[9999] max-h-[300px] overflow-y-auto bg-popover"
+                >
                   {users.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                       No eligible PPOC users found. Check that the user is active and has a licensee/contact role.
@@ -443,7 +458,13 @@ export default function PpocManagement() {
                         : 'Select licensee...'
                   } />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={4}
+                  className="z-[9999] max-h-[300px] overflow-y-auto bg-popover"
+                >
                   {dialogLicenseeOptions.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                       {selectedSectorIds.length === 0

@@ -4,6 +4,13 @@ export interface ApprovedLicenseeOption {
   id: string;
   display_name: string;
   sector_id: string | null;
+  /**
+   * Sector resolved using the same priority as the backend
+   * `save_ppoc_mapping` RPC: licensees.sector_id → registrations.sector_id →
+   * applications.data->>'sector_id'. Use this for any frontend filter that
+   * must match server-side sector validation.
+   */
+  resolved_sector_id: string | null;
   sector_name?: string;
   status?: string;
   created_at?: string;
@@ -95,11 +102,15 @@ export async function loadApprovedLicenseeOptions(opts?: {
       '—';
 
     const sector_id = reg?.sector_id || data?.sector_id || l.sector_id || null;
+    // Backend RPC priority: licensees.sector_id first, then registration/app fallback.
+    const resolved_sector_id =
+      l.sector_id || reg?.sector_id || (data?.sector_id ?? null) || null;
 
     return {
       id: l.id,
       display_name,
       sector_id,
+      resolved_sector_id,
       sector_name: (sector_id && sMap[sector_id]) || data?.sector_name || undefined,
       status: l.status,
       created_at: l.created_at,
