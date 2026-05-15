@@ -261,6 +261,7 @@ export default function ApplicationsList() {
         _version_id: versionFilter === 'all' ? null : versionFilter,
         _sort_by: 'created_at',
         _sort_dir: 'desc',
+        _licensee_id: isPpoc ? activeLicenseeId : null,
       });
 
       if (cancelled) return;
