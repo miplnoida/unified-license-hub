@@ -163,6 +163,7 @@ const PAGE_SIZE = 10;
 
 export default function ApplicationsList() {
   const { user } = useAuth();
+  const { isPpoc, activeLicenseeId } = usePpoc();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
