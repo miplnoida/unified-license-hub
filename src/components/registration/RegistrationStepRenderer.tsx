@@ -188,9 +188,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
   };
 
   const handleBlur = (val: unknown) => {
-    if (onBlur && isPrimaryEmailField(field)) {
-      onBlur(field.fieldName, val, field);
-    }
+    onBlur?.(field.fieldName, val, field);
   };
 
   const dynamicOptions = useDynamicOptions(field, allData);
@@ -231,6 +229,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           type="tel"
           value={strValue}
           onChange={e => handleChange(e.target.value)}
+          onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder || '+1 (555) 123-4567'}
           disabled={readOnly}
           className={error ? 'border-destructive' : ''}
@@ -250,6 +249,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
               handleChange(isNaN(num) ? raw : num);
             }
           }}
+          onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
           className={error ? 'border-destructive' : ''}
@@ -262,6 +262,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           type="date"
           value={strValue}
           onChange={e => handleChange(e.target.value)}
+          onBlur={e => handleBlur(e.target.value)}
           disabled={readOnly}
           className={error ? 'border-destructive' : ''}
         />
@@ -272,6 +273,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
         <Textarea
           value={strValue}
           onChange={e => handleChange(e.target.value)}
+          onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder}
           rows={3}
           disabled={readOnly}
@@ -296,7 +298,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
         input = (
           <div>
             <Select value={strValue} onValueChange={handleChange} disabled={isDisabled}>
-              <SelectTrigger className={error ? 'border-destructive' : ''}>
+              <SelectTrigger onBlur={() => handleBlur(strValue)} className={error ? 'border-destructive' : ''}>
                 <SelectValue placeholder={parentMissing ? 'Select parent field first' : (field.placeholder || 'Select...')} />
               </SelectTrigger>
               <SelectContent>
@@ -322,7 +324,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
       } else {
         input = (
           <Select value={strValue} onValueChange={handleChange} disabled={readOnly}>
-            <SelectTrigger className={error ? 'border-destructive' : ''}>
+            <SelectTrigger onBlur={() => handleBlur(strValue)} className={error ? 'border-destructive' : ''}>
               <SelectValue placeholder={field.placeholder || 'Select...'} />
             </SelectTrigger>
             <SelectContent>
@@ -408,6 +410,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
                   value={opt}
                   checked={strValue === opt}
                   onChange={() => handleChange(opt)}
+                  onBlur={() => handleBlur(opt)}
                   disabled={readOnly}
                   className="accent-primary"
                 />
@@ -463,6 +466,7 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
           type="text"
           value={strValue}
           onChange={e => handleChange(e.target.value)}
+          onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
           className={error ? 'border-destructive' : ''}
