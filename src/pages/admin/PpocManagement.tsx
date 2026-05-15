@@ -200,7 +200,8 @@ export default function PpocManagement() {
       return;
     }
     const lic = licensees.find(l => l.id === licenseeId);
-    if (!lic?.sector_id || !selectedSectorIds.includes(lic.sector_id)) {
+    const licSector = lic?.resolved_sector_id || lic?.sector_id;
+    if (!licSector || !selectedSectorIds.includes(licSector)) {
       toast.error('Selected entity does not belong to the assigned PPOC sectors.');
       return;
     }
