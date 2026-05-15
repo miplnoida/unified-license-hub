@@ -1,11 +1,12 @@
 import type { RegField, RegFormSchema } from '@/types/registrationForm';
 
-export const COMMON_PRIMARY_EMAIL_KEYS = [
+export const PRIMARY_EMAIL_FIELD_NAMES = [
   'email',
-  'contact_email',
-  'applicant_email',
-  'user_email',
   'primary_email',
+  'primary_user_email',
+  'user_email',
+  'applicant_email',
+  'contact_email',
   'email_address',
 ] as const;
 
@@ -40,7 +41,19 @@ function fieldMetadataStrings(field: RegField): string[] {
 
 export function isPrimaryEmailField(field?: RegField | null): field is RegField {
   if (!field || field.type !== 'email') return false;
-  if (COMMON_PRIMARY_EMAIL_KEYS.includes(field.fieldName as (typeof COMMON_PRIMARY_EMAIL_KEYS)[number])) {
+  const fieldName = normalizeToken((field as RegField & Record<string, unknown>).fieldName ?? (field as Record<string, unknown>).name ?? field.id);
+  const label = normalizeToken(field.label || field.placeholder || field.helpText);
+
+  if (PRIMARY_EMAIL_FIELD_NAMES.includes(fieldName as (typeof PRIMARY_EMAIL_FIELD_NAMES)[number])) {
+    return true;
+  }
+
+  if (
+    label.includes('primary user email') ||
+    label.includes('primary email') ||
+    label === 'email' ||
+    label.includes('email address')
+  ) {
     return true;
   }
 
