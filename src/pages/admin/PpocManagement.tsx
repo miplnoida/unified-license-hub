@@ -53,7 +53,8 @@ export default function PpocManagement() {
         : [...prev, sectorId];
       if (licenseeId) {
         const lic = licensees.find(l => l.id === licenseeId);
-        if (!lic?.sector_id || !next.includes(lic.sector_id)) {
+        const licSector = lic?.resolved_sector_id || lic?.sector_id;
+        if (!licSector || !next.includes(licSector)) {
           setLicenseeId('');
         }
       }
