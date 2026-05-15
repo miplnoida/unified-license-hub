@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RegulatorProvider } from "@/contexts/RegulatorContext";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 import { PpocProvider } from "@/contexts/PpocContext";
+import { ActiveSectorProvider } from "@/contexts/ActiveSectorContext";
 import { Suspense } from "react";
 import { AuthLoadingScreen } from "@/components/shared/AuthLoadingScreen";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
