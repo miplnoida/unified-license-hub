@@ -28,6 +28,7 @@ interface RowActionsMenuProps {
   align?: 'start' | 'center' | 'end';
   triggerClassName?: string;
   disabled?: boolean;
+  dropdownModal?: boolean;
 }
 
 export function RowActionsMenu({
@@ -36,12 +37,13 @@ export function RowActionsMenu({
   align = 'end',
   triggerClassName,
   disabled,
+  dropdownModal = true,
 }: RowActionsMenuProps) {
   const visible = actions.filter((a) => !a.hidden);
   if (visible.length === 0) return null;
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={dropdownModal}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
