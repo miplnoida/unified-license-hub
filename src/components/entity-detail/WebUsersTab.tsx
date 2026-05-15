@@ -235,7 +235,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
           <div className="text-center py-8 text-muted-foreground"><Users2 className="h-10 w-10 mx-auto mb-3 opacity-30" /><p>No web users linked to this entity.</p></div>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filtered.map(u => {
                 const isActive = u.status === 'active';
@@ -250,7 +250,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name}</TableCell>
                     <TableCell>{u.email}</TableCell>
-                    <TableCell><Badge variant="outline" className="capitalize">{u.role?.replace(/_/g, ' ')}</Badge></TableCell>
                     <TableCell className="capitalize">{u.user_type}</TableCell>
                     <TableCell><Badge variant="outline" className={isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}>{u.status}</Badge></TableCell>
                     <TableCell className="text-right">
@@ -333,8 +332,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
               <div className="font-medium">{viewUser.username || '—'}</div>
               <div className="text-muted-foreground">Position</div>
               <div className="font-medium">{viewUser.position || '—'}</div>
-              <div className="text-muted-foreground">Role</div>
-              <div className="font-medium capitalize">{viewUser.role?.replace(/_/g, ' ') || '—'}</div>
               <div className="text-muted-foreground">User Type</div>
               <div className="font-medium capitalize">{viewUser.user_type || '—'}</div>
               <div className="text-muted-foreground">Status</div>
