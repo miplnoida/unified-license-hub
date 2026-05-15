@@ -503,10 +503,6 @@ export default function RegistrationFormBuilder() {
                 </div>
                 <div className="flex items-end gap-4">
                   <div className="flex items-center gap-2">
-                    <Switch checked={form.is_default} onCheckedChange={v => setForm(p => ({ ...p, is_default: v }))} />
-                    <Label>Default config</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <Switch checked={form.is_active} onCheckedChange={v => setForm(p => ({ ...p, is_active: v }))} />
                     <Label>Active</Label>
                   </div>
