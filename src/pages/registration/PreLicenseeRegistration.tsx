@@ -75,6 +75,8 @@ export default function PreLicenseeRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+  const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
+  const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
 
   const clearPersistedStep = useCallback(() => {
     try {
@@ -116,16 +118,66 @@ export default function PreLicenseeRegistration() {
 
   // Surface uniqueness errors inline on the resolved fields (applicant name + primary email)
   const emailUniquenessPreview = usePrimaryUserEmailUniqueness(effectiveEmail, config?.formSchema);
+  const primaryEmailFieldName = emailUniquenessPreview.fieldName;
   const dynamicErrorsWithUniqueness = useMemo(() => {
     const next = { ...dynamicErrors };
     if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
       next[applicantNameCheck.fieldName] = 'This applicant name is already registered';
     }
     if (emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
-      next[emailUniquenessPreview.fieldName] = 'This email is already registered';
+      next[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
     }
     return next;
   }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
+
+  const getPrimaryEmailFieldsForStep = useCallback((stepData: RegStep) => {
+    return stepData.rows.flatMap(row =>
+      row.columns
+        .map(col => col.field)
+        .filter((field): field is RegField => !!field && isPrimaryEmailField(field))
+    );
+  }, []);
+
+  const getPrimaryEmailBlockers = useCallback((stepData?: RegStep) => {
+    if (!stepData) return { hasPending: false, hasDuplicate: false, hasTakenStatus: false };
+    const fields = getPrimaryEmailFieldsForStep(stepData);
+    const fieldNames = fields.map(field => field.fieldName);
+    const hasPending = fieldNames.some(fieldName => pendingPrimaryEmailChecks[fieldName]);
+    const hasDuplicate = fieldNames.some(fieldName => dynamicErrors[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR);
+    const hasTakenStatus = fieldNames.some(fieldName => fieldName === primaryEmailFieldName) && emailUniquenessPreview.status === 'taken';
+    return { hasPending, hasDuplicate, hasTakenStatus };
+  }, [dynamicErrors, emailUniquenessPreview.status, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, primaryEmailFieldName]);
+
+  const handleDynamicFieldBlur = useCallback(async (fieldName: string, value: unknown, field: RegField) => {
+    if (!isPrimaryEmailField(field)) return;
+
+    const normalizedEmail = normalizeEmailValue(value);
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) return;
+
+    const requestId = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
+    latestPrimaryEmailCheckRef.current[fieldName] = requestId;
+    setPendingPrimaryEmailChecks(prev => ({ ...prev, [fieldName]: true }));
+
+    try {
+      const { data, error } = await supabase.rpc('check_primary_user_email_exists' as any, {
+        p_email: normalizedEmail,
+      });
+
+      if (latestPrimaryEmailCheckRef.current[fieldName] !== requestId) return;
+      if (error) return;
+
+      setDynamicErrors(prev => {
+        const next = { ...prev };
+        if (data === true) next[fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
+        else if (next[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) delete next[fieldName];
+        return next;
+      });
+    } finally {
+      if (latestPrimaryEmailCheckRef.current[fieldName] === requestId) {
+        setPendingPrimaryEmailChecks(prev => ({ ...prev, [fieldName]: false }));
+      }
+    }
+  }, []);
 
   // Build steps list dynamically based on config
   const steps = useMemo(() => {
