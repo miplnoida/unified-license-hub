@@ -332,8 +332,6 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
               <div className="font-medium">{viewUser.username || '—'}</div>
               <div className="text-muted-foreground">Position</div>
               <div className="font-medium">{viewUser.position || '—'}</div>
-              <div className="text-muted-foreground">Role</div>
-              <div className="font-medium capitalize">{viewUser.role?.replace(/_/g, ' ') || '—'}</div>
               <div className="text-muted-foreground">User Type</div>
               <div className="font-medium capitalize">{viewUser.user_type || '—'}</div>
               <div className="text-muted-foreground">Status</div>
