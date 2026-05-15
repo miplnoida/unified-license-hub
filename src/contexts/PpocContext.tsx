@@ -104,7 +104,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       const list: MappedLicensee[] = filteredLics.map((l: any) => ({
         licensee_id: l.id,
-        licensee_name: l.name,
+        licensee_name: l.display_name || l.name,
       }));
       setMappedLicensees(list);
 
