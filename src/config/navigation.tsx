@@ -57,12 +57,6 @@ export const mainNavSections: NavSection[] = [
     label: 'Licenses',
     items: [
       { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
-    ],
-  },
-  {
-    label: 'Licenses',
-    items: [
-      { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
       { label: 'Active Sector', href: '/change-sector', icon: <Layers className="h-5 w-5" />, roles: LICENSEE_ALL },
     ],
   },
