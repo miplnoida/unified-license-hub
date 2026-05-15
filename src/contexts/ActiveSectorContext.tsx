@@ -42,7 +42,7 @@ function writeStored(id: string | null, name: string | null) {
 
 export function ActiveSectorProvider({ children }: { children: ReactNode }) {
   const { user, isFullyAuthenticated } = useAuth();
-  const { isPpoc, activeLicenseeId } = usePpoc();
+  const { isPpoc, activeLicenseeId, resolvedLicenseeId } = usePpoc();
 
   const initial = readStored();
   const [activeSectorId, setActiveSectorId] = useState<string | null>(initial.id);
@@ -85,26 +85,27 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
       };
 
       try {
-        if (isPpoc && activeLicenseeId) {
-          // Resolve sector via the selected PPOC licensee chain.
+        if (resolvedLicenseeId) {
+          // Resolve sectors strictly from the active/resolved licensee entity chain.
           const { data: lic } = await supabase
             .from('licensees' as any)
             .select('sector_id, license_id, created_at')
-            .eq('id', activeLicenseeId)
+            .eq('id', resolvedLicenseeId)
             .maybeSingle();
           add((lic as any)?.sector_id);
           const licenseId = (lic as any)?.license_id;
           if (licenseId) {
             const { data: license } = await supabase
               .from('licenses' as any)
-              .select('application_id')
+              .select('application_id, sector_id, created_at')
               .eq('id', licenseId)
               .maybeSingle();
+            add((license as any)?.sector_id);
             const appId = (license as any)?.application_id;
             if (appId) {
               const { data: app } = await supabase
                 .from('applications' as any)
-                .select('applicant_id, data')
+                .select('applicant_id, data, created_at')
                 .eq('id', appId)
                 .maybeSingle();
               const applicantId = (app as any)?.applicant_id;
@@ -119,9 +120,37 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
               add((app as any)?.data?.sector_id);
             }
           }
+
+          const { data: linkedProfiles } = await supabase
+            .from('profiles' as any)
+            .select('id')
+            .eq('licensee_id', resolvedLicenseeId);
+          const linkedProfileIds = ((linkedProfiles || []) as any[]).map((p) => p.id).filter(Boolean);
+
+          if (linkedProfileIds.length > 0) {
+            const [linkedRegs, linkedApps, linkedLicenses] = await Promise.all([
+              supabase
+                .from('registrations' as any)
+                .select('sector_id, created_at')
+                .in('user_id', linkedProfileIds)
+                .order('created_at', { ascending: true }),
+              supabase
+                .from('applications' as any)
+                .select('data, created_at')
+                .in('applicant_id', linkedProfileIds)
+                .order('created_at', { ascending: true }),
+              supabase
+                .from('licenses' as any)
+                .select('sector_id, created_at, holder_id')
+                .or(`holder_id.eq.${resolvedLicenseeId},holder_id.in.(${linkedProfileIds.join(',')})`)
+                .order('created_at', { ascending: true }),
+            ]);
+            ((linkedRegs.data || []) as any[]).forEach((r) => add(r.sector_id));
+            ((linkedApps.data || []) as any[]).forEach((a) => add(a?.data?.sector_id));
+            ((linkedLicenses.data || []) as any[]).forEach((l) => add(l?.sector_id));
+          }
         } else {
-          // Primary / Secondary licensee: source sectors from their own
-          // registrations, applications, profile licensee, in chronological order.
+          // Fallback for users not yet linked to a licensee entity.
           const userId = user.id;
           const [regsRes, appsRes, profRes] = await Promise.all([
             supabase
@@ -199,7 +228,7 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
     })();
 
     return () => { cancelled = true; };
-  }, [isFullyAuthenticated, user?.id, user?.role, isPpoc, activeLicenseeId]);
+  }, [isFullyAuthenticated, user?.id, user?.role, isPpoc, activeLicenseeId, resolvedLicenseeId]);
 
   return (
     <ActiveSectorContext.Provider
