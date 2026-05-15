@@ -346,7 +346,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId]);
+  }, [refreshKey, resolvedLicenseeId, activeSectorId]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
