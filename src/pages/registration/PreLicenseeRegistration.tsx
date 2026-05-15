@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { RegistrationStepRenderer } from '@/components/registration/Registration
 import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
-import type { RegStep } from '@/types/registrationForm';
+import type { RegStep, RegField } from '@/types/registrationForm';
 import { resolveRegistrationEmail } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
@@ -24,9 +24,12 @@ import { useReviewValueResolver } from '@/components/registration/useReviewValue
 import { useApplicantNameUniqueness } from '@/components/registration/useApplicantNameUniqueness';
 import { usePrimaryUserEmailUniqueness } from '@/components/registration/usePrimaryUserEmailUniqueness';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
 const DYNAMIC_DATA_KEY = 'preLicenseRegistrationDynamicData';
+const DUPLICATE_PRIMARY_EMAIL_ERROR = 'This email is already registered';
+const DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR = 'This email is already registered. Please use a different email.';
 
 function loadDynamicData(): Record<string, unknown> {
   try {
