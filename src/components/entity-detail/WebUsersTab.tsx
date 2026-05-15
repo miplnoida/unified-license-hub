@@ -42,6 +42,19 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
   const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const clearStuckPointerEvents = () => {
+    const clear = () => {
+      if (document.body.style.pointerEvents === 'none') {
+        document.body.style.pointerEvents = '';
+      }
+    };
+
+    requestAnimationFrame(clear);
+    setTimeout(clear, 50);
+    setTimeout(clear, 150);
+    setTimeout(clear, 300);
+  };
+
   const loadUsers = async () => {
     const { data } = await supabase.from('profiles').select('*').eq('licensee_id', entityId).order('full_name');
     setUsers(data || []);
@@ -253,7 +266,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
                     <TableCell className="capitalize">{u.user_type}</TableCell>
                     <TableCell><Badge variant="outline" className={isActive ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}>{u.status}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <RowActionsMenu actions={actions} label="Manage user" />
+                      <RowActionsMenu actions={actions} label="Manage user" dropdownModal={false} />
                     </TableCell>
                   </TableRow>
                 );
@@ -263,7 +276,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
         )}
       </CardContent>
 
-      <Dialog open={open} onOpenChange={v => { if (!submitting) { setOpen(v); if (!v) resetForm(); } }}>
+      <Dialog open={open} onOpenChange={v => { if (!submitting) { setOpen(v); if (!v) { resetForm(); clearStuckPointerEvents(); } } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{buttonLabel}</DialogTitle>
@@ -306,7 +319,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }} disabled={submitting}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setOpen(false); resetForm(); clearStuckPointerEvents(); }} disabled={submitting}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               {buttonLabel}
@@ -316,7 +329,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
       </Dialog>
 
       {/* View dialog */}
-      <Dialog open={!!viewUser} onOpenChange={v => { if (!v) { setViewUser(null); setTimeout(() => { document.body.style.pointerEvents = ''; }, 0); } }}>
+      <Dialog open={!!viewUser} onOpenChange={v => { if (!v) { setViewUser(null); clearStuckPointerEvents(); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
@@ -341,13 +354,13 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewUser(null)}>Close</Button>
+            <Button variant="outline" onClick={() => { setViewUser(null); clearStuckPointerEvents(); }}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit dialog */}
-      <Dialog open={!!editUser} onOpenChange={v => { if (!savingEdit && !v) { setEditUser(null); setTimeout(() => { document.body.style.pointerEvents = ''; }, 0); } }}>
+      <Dialog open={!!editUser} onOpenChange={v => { if (!savingEdit && !v) { setEditUser(null); clearStuckPointerEvents(); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
@@ -382,7 +395,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUser(null)} disabled={savingEdit}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setEditUser(null); clearStuckPointerEvents(); }} disabled={savingEdit}>Cancel</Button>
             <Button onClick={saveEdit} disabled={savingEdit}>
               {savingEdit && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Save Changes
