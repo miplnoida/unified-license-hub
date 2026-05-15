@@ -298,7 +298,7 @@ export default function PreLicenseeRegistration() {
     return true;
   }, [form.sectorId, form.subSectorId, form.categoryId]);
 
-  const emailUniqueness = usePrimaryUserEmailUniqueness(effectiveEmail, config?.formSchema);
+  const emailUniqueness = emailUniquenessPreview;
 
   const handleNext = () => {
     if (!validateScope()) return;
