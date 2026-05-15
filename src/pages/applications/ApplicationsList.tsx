@@ -14,6 +14,7 @@ import { PaymentVerificationDialog } from '@/components/applications/PaymentVeri
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
