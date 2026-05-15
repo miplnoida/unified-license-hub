@@ -235,7 +235,7 @@ export default function WebUsersTab({ entityId, entityName }: WebUsersTabProps) 
           <div className="text-center py-8 text-muted-foreground"><Users2 className="h-10 w-10 mx-auto mb-3 opacity-30" /><p>No web users linked to this entity.</p></div>
         ) : (
           <Table>
-            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Full Name</TableHead><TableHead>Email</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px] text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {filtered.map(u => {
                 const isActive = u.status === 'active';
