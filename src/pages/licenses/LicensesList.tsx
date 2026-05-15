@@ -102,6 +102,9 @@ export default function LicensesList() {
       if (rows.length) {
         const appIds = Array.from(new Set(rows.map((r: any) => r.application_id).filter(Boolean)));
         const appById: Record<string, any> = {};
+        const licenseeSectorId = !isInternal && resolvedLicenseeId
+          ? ((await supabase.from('licensees' as any).select('sector_id').eq('id', resolvedLicenseeId).maybeSingle()).data as any)?.sector_id || null
+          : null;
         if (appIds.length) {
           const { data: apps } = await supabase
             .from('applications' as any)
@@ -112,7 +115,7 @@ export default function LicensesList() {
 
         rows = rows.map((r: any) => {
           const app = r.application_id ? appById[r.application_id] : null;
-          const resolved_sector_id = r.sector_id || app?.data?.sector_id || null;
+          const resolved_sector_id = r.sector_id || licenseeSectorId || app?.data?.sector_id || null;
           return { ...r, resolved_sector_id };
         });
 
