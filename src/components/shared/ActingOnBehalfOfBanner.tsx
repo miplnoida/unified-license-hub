@@ -24,7 +24,7 @@ interface ActiveDelegation {
  */
 export function ActingOnBehalfOfBanner() {
   const { user } = useAuth();
-  const { isPpoc, mappedLicensees, activeLicensee } = usePpoc();
+  
   const [delegations, setDelegations] = useState<ActiveDelegation[]>([]);
   const [loading, setLoading] = useState(true);
 
