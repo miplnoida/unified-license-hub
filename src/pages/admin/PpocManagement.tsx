@@ -353,7 +353,13 @@ export default function PpocManagement() {
               <Label>PPOC User *</Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
                 <SelectTrigger><SelectValue placeholder="Select contact user..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="popper"
+                  side="bottom"
+                  align="start"
+                  sideOffset={4}
+                  className="z-[9999] max-h-[300px] overflow-y-auto bg-popover"
+                >
                   {users.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
                       No eligible PPOC users found. Check that the user is active and has a licensee/contact role.
