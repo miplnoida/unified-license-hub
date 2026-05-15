@@ -165,6 +165,9 @@ const PAGE_SIZE = 10;
 export default function ApplicationsList() {
   const { user } = useAuth();
   const { isPpoc, activeLicenseeId } = usePpoc();
+  const { activeSectorName } = useActiveSector();
+  const [searchParamsRaw] = useSearchParams();
+  const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
