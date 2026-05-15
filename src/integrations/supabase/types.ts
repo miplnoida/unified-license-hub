@@ -4785,6 +4785,34 @@ export type Database = {
           version_id: string
         }[]
       }
+      get_my_licenses_page: {
+        Args: {
+          _licensee_id?: string
+          _page: number
+          _page_size: number
+          _search?: string
+          _sector_id?: string
+          _sort_by?: string
+          _sort_dir?: string
+          _status?: string
+        }
+        Returns: {
+          application_id: string
+          conditions: string
+          created_at: string
+          holder_id: string
+          id: string
+          issued_at: string
+          license_number: string
+          license_type: string
+          resolved_sector_id: string
+          sector_id: string
+          status: string
+          total_count: number
+          valid_from: string
+          valid_until: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
