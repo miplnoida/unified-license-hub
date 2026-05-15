@@ -39,18 +39,21 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function LicensesList() {
   const { user } = useAuth();
   const { resolvedLicenseeId } = usePpoc();
-  const { activeSectorId } = useActiveSector();
+  const { activeSectorId, availableSectors } = useActiveSector();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
+    ? activeSectorId
+    : null;
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_my_licenses_page' as any, {
+      const rpcParams = {
         _page: 0,
         _page_size: 500,
         _search: search || null,
@@ -58,8 +61,21 @@ export default function LicensesList() {
         _sort_by: 'created_at',
         _sort_dir: 'desc',
         _licensee_id: isInternal ? null : resolvedLicenseeId,
-        _sector_id: activeSectorId,
+        _sector_id: validActiveSectorId,
+      };
+      const { data, error } = await supabase.rpc('get_my_licenses_page' as any, {
+        ...rpcParams,
       });
+
+      if (import.meta.env.DEV) {
+        console.log('licensee context', {
+          userId: user?.id,
+          role: user?.role,
+          profileLicenseeId: user?.licenseeId ?? null,
+          resolvedLicenseeId,
+          activeSectorId: validActiveSectorId,
+        });
+      }
 
       if (error) {
         setLicenses([]);
@@ -71,10 +87,21 @@ export default function LicensesList() {
         ...row,
         total_count: row.total_count ? Number(row.total_count) : 0,
       })));
+      if (import.meta.env.DEV && ((data || []) as any[]).length === 0) {
+        console.log('licenses empty state debug', {
+          userId: user?.id,
+          role: user?.role,
+          profileLicenseeId: user?.licenseeId ?? null,
+          resolvedLicenseeId,
+          activeSectorId: validActiveSectorId,
+          rpcParams,
+          returnedCount: 0,
+        });
+      }
       setLoading(false);
     }
     load();
-  }, [isInternal, resolvedLicenseeId, activeSectorId, search, statusFilter]);
+  }, [isInternal, resolvedLicenseeId, validActiveSectorId, search, statusFilter, user?.id, user?.role, user?.licenseeId]);
 
   const filtered = licenses;
 
