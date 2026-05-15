@@ -154,6 +154,12 @@ export default function PreLicenseeRegistration() {
     const normalizedEmail = normalizeEmailValue(value);
     if (!normalizedEmail || !isValidEmail(normalizedEmail)) return;
 
+    setDynamicErrors(prev => {
+      const next = { ...prev };
+      delete next[fieldName];
+      return next;
+    });
+
     const requestId = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
     latestPrimaryEmailCheckRef.current[fieldName] = requestId;
     setPendingPrimaryEmailChecks(prev => ({ ...prev, [fieldName]: true }));
@@ -164,12 +170,18 @@ export default function PreLicenseeRegistration() {
       });
 
       if (latestPrimaryEmailCheckRef.current[fieldName] !== requestId) return;
-      if (error) return;
+      if (error) {
+        setDynamicErrors(prev => ({
+          ...prev,
+          [fieldName]: 'Unable to validate email right now. Please try again.',
+        }));
+        return;
+      }
 
       setDynamicErrors(prev => {
         const next = { ...prev };
         if (data === true) next[fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
-        else if (next[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) delete next[fieldName];
+        else delete next[fieldName];
         return next;
       });
     } finally {
