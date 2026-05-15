@@ -226,9 +226,22 @@ export default function PreLicenseeRegistration() {
         }
       }
     }
+    // Primary email uniqueness — block step until check resolves to 'available'
+    if (emailUniquenessPreview.fieldName) {
+      const stepHasField = stepData.rows.some(r =>
+        r.columns.some(c => c.field?.fieldName === emailUniquenessPreview.fieldName)
+      );
+      if (stepHasField) {
+        if (emailUniquenessPreview.status === 'taken') {
+          errs[emailUniquenessPreview.fieldName] = 'This email is already registered';
+        } else if (emailUniquenessPreview.status === 'checking') {
+          errs[emailUniquenessPreview.fieldName] = 'Checking email availability…';
+        }
+      }
+    }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
