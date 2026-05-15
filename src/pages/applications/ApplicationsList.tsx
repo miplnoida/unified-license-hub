@@ -14,6 +14,7 @@ import { PaymentVerificationDialog } from '@/components/applications/PaymentVeri
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
@@ -164,6 +165,9 @@ const PAGE_SIZE = 10;
 export default function ApplicationsList() {
   const { user } = useAuth();
   const { isPpoc, activeLicenseeId } = usePpoc();
+  const { activeSectorName } = useActiveSector();
+  const [searchParamsRaw] = useSearchParams();
+  const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
@@ -177,8 +181,7 @@ export default function ApplicationsList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
-  const [searchParams] = useSearchParams();
-  const initialStatus = searchParams.get('status') || 'all';
+  const initialStatus = searchParamsRaw.get('status') || 'all';
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -273,7 +276,18 @@ export default function ApplicationsList() {
         return;
       }
 
-      const rows = (data as any[]) || [];
+      let rows = (data as any[]) || [];
+      // Client-side filter for pre/post licensing applications.
+      // Post-license apps are tagged with data.type === 'post_license' (set by NewPostLicenseApplication).
+      if (typeFilter === 'post') {
+        rows = rows.filter((r: any) => (r.data?.type === 'post_license'));
+      } else if (typeFilter === 'pre') {
+        rows = rows.filter((r: any) => (r.data?.type !== 'post_license'));
+      }
+      // Scope to the active sector when one is set (licensee context).
+      if (activeSectorName) {
+        rows = rows.filter((r: any) => !r.sector_name || r.sector_name === activeSectorName);
+      }
       setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
       setApplications(rows.map((r: any): Application => ({
         id: r.id,
@@ -305,7 +319,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId]);
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId, typeFilter, activeSectorName]);
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {

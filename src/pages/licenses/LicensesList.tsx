@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Eye, Loader2, Shield } from 'lucide-react';
 
@@ -34,6 +35,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function LicensesList() {
   const { user } = useAuth();
   const { isPpoc, activeLicenseeId } = usePpoc();
+  const { activeSectorId } = useActiveSector();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,12 +73,16 @@ export default function LicensesList() {
           .order('created_at', { ascending: false });
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
+      // Scope to active sector when set (licensee context).
+      if (!error && activeSectorId && data) {
+        data = (data as any[]).filter((l: any) => !l.sector_id || l.sector_id === activeSectorId) as any;
+      }
       if (!error) setLicenses((data || []) as any);
       setLoading(false);
     }
     load();
-  }, [isPpoc, activeLicenseeId]);
+  }, [isPpoc, activeLicenseeId, activeSectorId]);
 
   const filtered = licenses.filter(l => {
     if (search && !l.license_number.toLowerCase().includes(search.toLowerCase()) &&
