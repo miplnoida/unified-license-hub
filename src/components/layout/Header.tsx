@@ -22,6 +22,8 @@ export function Header() {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { branding } = useSiteSettings();
+  const { activeSectorName } = useActiveSector();
+  const isLicensee = !!user && LICENSEE_ROLES.includes(user.role);
 
   const handleLogout = async () => {
     await logout();
