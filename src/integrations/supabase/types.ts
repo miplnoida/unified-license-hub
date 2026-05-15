@@ -4747,6 +4747,7 @@ export type Database = {
           applicant_id: string
           applicant_name: string
           application_number: string
+          category_id: string
           category_name: string
           created_at: string
           data: Json
@@ -4759,9 +4760,13 @@ export type Database = {
           payment_method: string
           payment_paid_at: string
           payment_status: string
+          resolved_sector_id: string
+          sector_id: string
           sector_name: string
+          service_id: string
           service_name: string
           status: string
+          sub_sector_id: string
           sub_sector_name: string
           submitted_at: string
           total_count: number
