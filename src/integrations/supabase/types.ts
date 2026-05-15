@@ -4731,6 +4731,7 @@ export type Database = {
       }
       get_application_list_page: {
         Args: {
+          _licensee_id?: string
           _page: number
           _page_size: number
           _search: string
@@ -4766,7 +4767,10 @@ export type Database = {
           total_count: number
         }[]
       }
-      get_application_list_stats: { Args: never; Returns: Json }
+      get_application_list_stats: {
+        Args: { _licensee_id?: string }
+        Returns: Json
+      }
       get_form_version_usage_counts: {
         Args: { _template_id: string }
         Returns: {
