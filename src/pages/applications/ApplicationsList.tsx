@@ -13,6 +13,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
@@ -162,6 +163,7 @@ const PAGE_SIZE = 10;
 
 export default function ApplicationsList() {
   const { user } = useAuth();
+  const { isPpoc, activeLicenseeId } = usePpoc();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<Application[]>([]);
@@ -259,6 +261,7 @@ export default function ApplicationsList() {
         _version_id: versionFilter === 'all' ? null : versionFilter,
         _sort_by: 'created_at',
         _sort_dir: 'desc',
+        _licensee_id: isPpoc ? activeLicenseeId : null,
       });
 
       if (cancelled) return;
@@ -302,12 +305,14 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled]);
+  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, isPpoc, activeLicenseeId]);
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
     async function loadStats() {
-      const { data, error } = await supabase.rpc('get_application_list_stats' as any);
+      const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
+        _licensee_id: isPpoc ? activeLicenseeId : null,
+      });
       if (error) return;
       const s = (data as any) || {};
       setStatCounts({
@@ -318,7 +323,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey]);
+  }, [refreshKey, isPpoc, activeLicenseeId]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
@@ -364,6 +369,7 @@ export default function ApplicationsList() {
           _version_id: versionFilter === 'all' ? null : versionFilter,
           _sort_by: 'created_at',
           _sort_dir: 'desc',
+          _licensee_id: isPpoc ? activeLicenseeId : null,
         });
         if (error) throw error;
         const rows = (data as any[]) || [];

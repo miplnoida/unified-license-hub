@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Eye, Loader2, Shield } from 'lucide-react';
 
@@ -32,6 +33,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function LicensesList() {
   const { user } = useAuth();
+  const { isPpoc, activeLicenseeId } = usePpoc();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,12 +44,39 @@ export default function LicensesList() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const { data, error } = await supabase.from('licenses' as any).select('*').order('created_at', { ascending: false });
+      let query = supabase.from('licenses' as any).select('*').order('created_at', { ascending: false });
+
+      // PPOC scope: restrict to licenses tied to the actively selected licensee.
+      if (isPpoc) {
+        if (!activeLicenseeId) {
+          setLicenses([]);
+          setLoading(false);
+          return;
+        }
+        const { data: licRow } = await supabase
+          .from('licensees' as any)
+          .select('license_id')
+          .eq('id', activeLicenseeId)
+          .maybeSingle();
+        const licenseId = (licRow as any)?.license_id;
+        if (!licenseId) {
+          setLicenses([]);
+          setLoading(false);
+          return;
+        }
+        query = supabase
+          .from('licenses' as any)
+          .select('*')
+          .eq('id', licenseId)
+          .order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await query;
       if (!error) setLicenses((data || []) as any);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [isPpoc, activeLicenseeId]);
 
   const filtered = licenses.filter(l => {
     if (search && !l.license_number.toLowerCase().includes(search.toLowerCase()) &&
