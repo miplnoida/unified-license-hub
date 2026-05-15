@@ -102,11 +102,15 @@ export async function loadApprovedLicenseeOptions(opts?: {
       '—';
 
     const sector_id = reg?.sector_id || data?.sector_id || l.sector_id || null;
+    // Backend RPC priority: licensees.sector_id first, then registration/app fallback.
+    const resolved_sector_id =
+      l.sector_id || reg?.sector_id || (data?.sector_id ?? null) || null;
 
     return {
       id: l.id,
       display_name,
       sector_id,
+      resolved_sector_id,
       sector_name: (sector_id && sMap[sector_id]) || data?.sector_name || undefined,
       status: l.status,
       created_at: l.created_at,
