@@ -1,0 +1,64 @@
+import type { RegField, RegFormSchema } from '@/types/registrationForm';
+
+export const COMMON_PRIMARY_EMAIL_KEYS = [
+  'email',
+  'contact_email',
+  'applicant_email',
+  'user_email',
+  'primary_email',
+  'email_address',
+] as const;
+
+const PRIMARY_EMAIL_METADATA_TOKENS = [
+  'primary user email',
+  'primary email',
+  'primary user',
+  'contact email',
+  'email address',
+  'email',
+];
+
+function normalizeToken(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function fieldMetadataStrings(field: RegField): string[] {
+  const maybeAny = field as RegField & Record<string, unknown>;
+  return [
+    field.fieldName,
+    field.label,
+    field.placeholder,
+    field.helpText,
+    field.content,
+    maybeAny.key,
+    maybeAny.metadata,
+    maybeAny.name,
+  ]
+    .map(normalizeToken)
+    .filter(Boolean);
+}
+
+export function isPrimaryEmailField(field?: RegField | null): field is RegField {
+  if (!field || field.type !== 'email') return false;
+  if (COMMON_PRIMARY_EMAIL_KEYS.includes(field.fieldName as (typeof COMMON_PRIMARY_EMAIL_KEYS)[number])) {
+    return true;
+  }
+
+  const haystack = fieldMetadataStrings(field).join(' ');
+  return PRIMARY_EMAIL_METADATA_TOKENS.some(token => haystack.includes(token));
+}
+
+/** Resolve the dynamic field that represents the primary email in a schema. */
+export function resolvePrimaryEmailField(schema?: RegFormSchema | null): RegField | null {
+  if (!schema) return null;
+  const all = schema.flatMap(s => s.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean) as RegField[]));
+  return all.find(isPrimaryEmailField) || null;
+}
+
+export function normalizeEmailValue(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+export function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
