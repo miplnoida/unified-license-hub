@@ -308,7 +308,7 @@ export function VersionHistory({ templateId, formName, formType, trigger }: Vers
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Effective {v.effective_from ? new Date(v.effective_from).toLocaleDateString() : '—'} → {v.effective_until ? new Date(v.effective_until).toLocaleDateString() : 'Open'}
+                        Effective {v.effective_from ? formatEffectiveDate(v.effective_from) : '—'} → {v.effective_until ? formatEffectiveDate(v.effective_until) : 'Open'}
                         {v.published_at && (
                           <span className="ml-2">· Published {new Date(v.published_at).toLocaleDateString()}</span>
                         )}
