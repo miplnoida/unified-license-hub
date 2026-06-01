@@ -54,7 +54,9 @@ export function PaymentVerificationDialog({
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingRemarks, setSavingRemarks] = useState(false);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
+  const [existingRemarks, setExistingRemarks] = useState<string>('');
 
   useEffect(() => {
     if (open && payment?.application_id) {
@@ -63,6 +65,24 @@ export function PaymentVerificationDialog({
       setFeeComponents([]);
     }
   }, [open, payment?.application_id]);
+
+  useEffect(() => {
+    if (open && payment?.id) {
+      (async () => {
+        const { data } = await supabase
+          .from('payments')
+          .select('admin_remarks' as any)
+          .eq('id', payment.id)
+          .maybeSingle();
+        const remarks = ((data as any)?.admin_remarks as string) || '';
+        setExistingRemarks(remarks);
+        setMessage(remarks);
+      })();
+    } else if (!open) {
+      setMessage('');
+      setExistingRemarks('');
+    }
+  }, [open, payment?.id]);
 
   if (!payment) return null;
 
