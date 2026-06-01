@@ -985,6 +985,8 @@ export default function ApplicationDetail() {
 }
 
 function ViewPaymentButton({ applicationId }: { applicationId: string }) {
+  const { user } = useAuth();
+  const isInternal = !!user && ['super_admin', 'admin', 'regulator_staff', 'reviewer', 'approver'].includes(user.role);
   const [payment, setPayment] = useState<any>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -1010,7 +1012,7 @@ function ViewPaymentButton({ applicationId }: { applicationId: string }) {
         onOpenChange={setOpen}
         payment={payment}
         applicationNumber={payment.application_id}
-        isAdminView={payment.status !== 'success'}
+        isAdminView={isInternal}
         onVerified={() => setOpen(false)}
       />
     </div>
