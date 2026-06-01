@@ -2474,6 +2474,47 @@ export type Database = {
           },
         ]
       }
+      payment_remarks: {
+        Row: {
+          author_id: string
+          author_name: string | null
+          author_role: string | null
+          created_at: string
+          id: string
+          payment_id: string
+          remark: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          author_name?: string | null
+          author_role?: string | null
+          created_at?: string
+          id?: string
+          payment_id: string
+          remark: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          author_name?: string | null
+          author_role?: string | null
+          created_at?: string
+          id?: string
+          payment_id?: string
+          remark?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_remarks_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           admin_remarks: string | null
