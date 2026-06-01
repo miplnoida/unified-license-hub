@@ -185,7 +185,25 @@ export function PpocProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        const list = resolvedList.filter((licensee) => allowedLicenseeIds.has(licensee.licensee_id));
+        const list: MappedLicensee[] = Array.from(allowedLicenseeIds)
+          .map((licenseeId): MappedLicensee | null => {
+            const licensee: any = approvedById.get(licenseeId);
+            if (!licensee) return null;
+            return {
+              licensee_id: licensee.id,
+              licensee_name: licensee.display_name || licensee.name || '—',
+              sector_id: licensee.sector_id ?? null,
+              resolved_sector_id: licensee.resolved_sector_id ?? licensee.sector_id ?? null,
+              created_at: licensee.created_at ?? null,
+              application_id: licensee.application_id ?? null,
+            };
+          })
+          .filter((x): x is MappedLicensee => x !== null)
+          .sort((a, b) => {
+            const at = new Date(a.created_at || 0).getTime();
+            const bt = new Date(b.created_at || 0).getTime();
+            return at - bt || a.licensee_name.localeCompare(b.licensee_name);
+          });
         setMappedLicensees(list);
 
         let initial: string | null = null;
