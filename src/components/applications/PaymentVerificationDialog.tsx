@@ -54,7 +54,9 @@ export function PaymentVerificationDialog({
 }: Props) {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingRemarks, setSavingRemarks] = useState(false);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
+  const [existingRemarks, setExistingRemarks] = useState<string>('');
 
   useEffect(() => {
     if (open && payment?.application_id) {
@@ -63,6 +65,24 @@ export function PaymentVerificationDialog({
       setFeeComponents([]);
     }
   }, [open, payment?.application_id]);
+
+  useEffect(() => {
+    if (open && payment?.id) {
+      (async () => {
+        const { data } = await supabase
+          .from('payments')
+          .select('admin_remarks' as any)
+          .eq('id', payment.id)
+          .maybeSingle();
+        const remarks = ((data as any)?.admin_remarks as string) || '';
+        setExistingRemarks(remarks);
+        setMessage(remarks);
+      })();
+    } else if (!open) {
+      setMessage('');
+      setExistingRemarks('');
+    }
+  }, [open, payment?.id]);
 
   if (!payment) return null;
 
@@ -79,8 +99,8 @@ export function PaymentVerificationDialog({
     try {
       // Update payment status
       const updateFilter = payment.application_id
-        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)
-        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);
+        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('application_id', payment.application_id)
+        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('id', payment.id);
 
       const { error: payErr } = await updateFilter;
       if (payErr) throw payErr;
@@ -129,6 +149,24 @@ export function PaymentVerificationDialog({
       toast.error(err.message || 'Failed to verify payment.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveRemarks = async () => {
+    if (!payment.id) return;
+    setSavingRemarks(true);
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .update({ admin_remarks: message.trim() } as any)
+        .eq('id', payment.id);
+      if (error) throw error;
+      setExistingRemarks(message.trim());
+      toast.success('Remarks saved.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save remarks.');
+    } finally {
+      setSavingRemarks(false);
     }
   };
 
@@ -231,26 +269,38 @@ export function PaymentVerificationDialog({
             )}
           </div>
 
-          {/* Admin Message - only shown for admin users */}
-          {isAdminView && normalizedPaymentStatus !== 'paid' && (
+          {/* Admin Remarks */}
+          {isAdminView ? (
             <>
               <Separator />
               <div className="space-y-2">
                 <Label htmlFor="admin-message">Admin Remarks / Message</Label>
                 <Textarea
                   id="admin-message"
-                  placeholder="Enter verification remarks or message to send to the licensee..."
+                  placeholder="Enter remarks for this payment..."
                   value={message}
                   onChange={e => setMessage(e.target.value)}
-                  rows={6}
-                  className="min-h-[120px]"
+                  rows={10}
+                  className="min-h-[220px]"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This message will be sent as a notification to the licensee.
-                 </p>
-               </div>
-             </>
-           )}
+                  Remarks are visible to the licensee on their payment view.
+                </p>
+              </div>
+            </>
+          ) : (
+            existingRemarks.trim().length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <Label>Admin Remarks</Label>
+                  <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap min-h-[220px]">
+                    {existingRemarks}
+                  </div>
+                </div>
+              </>
+            )
+          )}
 
            {/* Attachments from licensee/user */}
            {payment.id && (
@@ -264,14 +314,21 @@ export function PaymentVerificationDialog({
         <DialogFooter className="gap-2 sm:gap-0">
           {isAdminView ? (
             <>
-              <Button variant="outline" onClick={handleClose} disabled={loading}>
+              <Button variant="outline" onClick={handleClose} disabled={loading || savingRemarks}>
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Cancel
               </Button>
-              <Button onClick={handleVerify} disabled={loading || payment.status === 'success'}>
-                {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-                {payment.status === 'success' ? 'Already Verified' : 'Received & Verify'}
-              </Button>
+              {normalizedPaymentStatus === 'paid' ? (
+                <Button onClick={handleSaveRemarks} disabled={savingRemarks || message.trim() === existingRemarks.trim()}>
+                  {savingRemarks ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                  Save Remarks
+                </Button>
+              ) : (
+                <Button onClick={handleVerify} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                  Received & Verify
+                </Button>
+              )}
             </>
           ) : (
             <Button variant="outline" onClick={handleClose}>
