@@ -41,6 +41,22 @@ function fromDateInput(value: string): string | null {
   return new Date(`${value}T00:00:00Z`).toISOString();
 }
 
+// Format an ISO timestamp as a calendar date using its UTC components so the
+// displayed value matches the date the admin selected (independent of the
+// viewer's local timezone). effective_until is stored at end-of-day UTC, so
+// using UTC parts also avoids it rolling into the next day for +TZ viewers.
+function formatEffectiveDate(iso?: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+}
+
 export function VersionHistory({ templateId, formName, formType, trigger }: VersionHistoryProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
