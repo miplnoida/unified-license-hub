@@ -59,7 +59,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
     const load = async () => {
       setLoading(true);
 
-      const [mappingsRes, profileRes, approvedLicensees] = await Promise.all([
+      const [mappingsRes, profileRes, approvedLicensees, mappedEntitiesRes] = await Promise.all([
         supabase
           .from('ppoc_entity_mappings' as any)
           .select('id, licensee_id')
@@ -71,6 +71,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
           .eq('id', user.id)
           .maybeSingle(),
         loadApprovedLicenseeOptions({ onlyActive: false }),
+        (supabase as any).rpc('get_my_ppoc_mapped_entities'),
       ]);
 
       if (cancelled) return;
@@ -155,8 +156,57 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         return at - bt || a.licensee_name.localeCompare(b.licensee_name);
       });
 
+      const mappedEntities = (mappedEntitiesRes.data || []) as any[];
       const mappings = (mappingsRes.data || []) as any[];
-      if (!mappingsRes.error && mappings.length > 0) {
+      if (!mappedEntitiesRes.error && mappedEntities.length > 0) {
+        const nameCounts = new Map<string, number>();
+        mappedEntities.forEach((row: any) => {
+          const baseName = row?.entity_name || '—';
+          nameCounts.set(baseName, (nameCounts.get(baseName) || 0) + 1);
+        });
+
+        const list: MappedLicensee[] = mappedEntities
+          .map((row: any) => {
+            const baseName = row?.entity_name || '—';
+            const suffix = (nameCounts.get(baseName) || 0) > 1
+              ? ` · ${row?.license_number || `#${String(row?.licensee_id || '').slice(0, 8)}`}`
+              : '';
+
+            return {
+              licensee_id: row.licensee_id,
+              licensee_name: `${baseName}${suffix}`,
+              sector_id: row.sector_id ?? null,
+              resolved_sector_id: row.resolved_sector_id ?? row.sector_id ?? null,
+              created_at: row.created_at ?? null,
+              application_id: row.application_id ?? null,
+            };
+          })
+          .filter((x: MappedLicensee) => Boolean(x.licensee_id))
+          .sort((a, b) => {
+            const at = new Date(a.created_at || 0).getTime();
+            const bt = new Date(b.created_at || 0).getTime();
+            return at - bt || a.licensee_name.localeCompare(b.licensee_name);
+          });
+
+        setMappedLicensees(list);
+
+        let initial: string | null = null;
+        try {
+          initial = sessionStorage.getItem(STORAGE_KEY);
+        } catch {
+          initial = null;
+        }
+        if (!initial || !list.some((licensee) => licensee.licensee_id === initial)) {
+          initial = list[0]?.licensee_id || null;
+        }
+        setActiveLicenseeIdState(initial);
+        try {
+          if (initial) sessionStorage.setItem(STORAGE_KEY, initial);
+          else sessionStorage.removeItem(STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+      } else if (!mappingsRes.error && mappings.length > 0) {
         const mappingIds = mappings.map((m) => m.id);
         const mappingLicenseeIds = Array.from(new Set(mappings.map((m) => m.licensee_id).filter(Boolean)));
 

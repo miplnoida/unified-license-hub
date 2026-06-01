@@ -4817,6 +4817,19 @@ export type Database = {
           valid_until: string
         }[]
       }
+      get_my_ppoc_mapped_entities: {
+        Args: never
+        Returns: {
+          application_id: string
+          created_at: string
+          entity_name: string
+          license_number: string
+          licensee_id: string
+          mapping_id: string
+          resolved_sector_id: string
+          sector_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
