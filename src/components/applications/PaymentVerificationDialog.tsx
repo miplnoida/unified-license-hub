@@ -99,8 +99,8 @@ export function PaymentVerificationDialog({
     try {
       // Update payment status
       const updateFilter = payment.application_id
-        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)
-        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);
+        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('application_id', payment.application_id)
+        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('id', payment.id);
 
       const { error: payErr } = await updateFilter;
       if (payErr) throw payErr;
