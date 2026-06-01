@@ -4652,6 +4652,10 @@ export type Database = {
         }
         Returns: Json
       }
+      application_ids_for_licensee: {
+        Args: { _licensee_id: string }
+        Returns: string[]
+      }
       apply_application_guard: {
         Args: {
           _category_id: string
@@ -4833,6 +4837,14 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
       }
+      license_ids_for_licensee: {
+        Args: { _licensee_id: string }
+        Returns: string[]
+      }
+      licensee_ids_for_license: {
+        Args: { _license_id: string }
+        Returns: string[]
+      }
       log_self_audit: {
         Args: {
           _action: string
@@ -4934,6 +4946,7 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
+      user_licensee_id: { Args: { _user_id: string }; Returns: string }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
         Returns: Json
