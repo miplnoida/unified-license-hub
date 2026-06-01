@@ -2476,6 +2476,7 @@ export type Database = {
       }
       payments: {
         Row: {
+          admin_remarks: string | null
           amount: number
           application_id: string | null
           created_at: string
@@ -2490,6 +2491,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          admin_remarks?: string | null
           amount: number
           application_id?: string | null
           created_at?: string
@@ -2504,6 +2506,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          admin_remarks?: string | null
           amount?: number
           application_id?: string | null
           created_at?: string
