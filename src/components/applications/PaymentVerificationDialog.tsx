@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
+import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 export interface PaymentInfo {
@@ -28,12 +28,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payment: PaymentInfo | null;
-  /** If provided, shows admin verification form */
   applicantName?: string;
   applicationNumber?: string;
   applicantId?: string;
   onVerified?: () => void;
-  /** When false, hides admin-only controls (remarks, verify button) */
+  /** When false, hides admin-only controls (add/edit remarks, verify button) */
   isAdminView?: boolean;
 }
 
@@ -52,61 +51,53 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export function PaymentVerificationDialog({
   open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true,
 }: Props) {
-  const [message, setMessage] = useState('');
+  const { user } = useAuth();
+  const [draftRemark, setDraftRemark] = useState('');
   const [loading, setLoading] = useState(false);
-  const [savingRemarks, setSavingRemarks] = useState(false);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
-  const [existingRemarks, setExistingRemarks] = useState<string>('');
 
   useEffect(() => {
     if (open && payment?.application_id) {
       resolveApplicationFeeBreakdown(payment.application_id).then(setFeeComponents).catch(() => setFeeComponents([]));
     } else if (!open) {
       setFeeComponents([]);
+      setDraftRemark('');
     }
   }, [open, payment?.application_id]);
 
-  useEffect(() => {
-    if (open && payment?.id) {
-      (async () => {
-        const { data } = await supabase
-          .from('payments')
-          .select('admin_remarks' as any)
-          .eq('id', payment.id)
-          .maybeSingle();
-        const remarks = ((data as any)?.admin_remarks as string) || '';
-        setExistingRemarks(remarks);
-        setMessage(remarks);
-      })();
-    } else if (!open) {
-      setMessage('');
-      setExistingRemarks('');
-    }
-  }, [open, payment?.id]);
-
   if (!payment) return null;
-
 
   const normalizedPaymentStatus = normalizePaymentStatus(payment.status);
   const formattedAmount = `${payment.currency} ${Number(payment.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const handleVerify = async () => {
-    if (!message.trim()) {
-      toast.error('Please enter a message/remarks before verifying.');
+    if (!draftRemark.trim()) {
+      toast.error('Please enter a remark before verifying.');
       return;
     }
     setLoading(true);
     try {
-      // Update payment status
+      // 1. Insert the remark as a new entry in the thread
+      if (payment.id && user) {
+        const { error: remarkErr } = await supabase.from('payment_remarks' as any).insert({
+          payment_id: payment.id,
+          author_id: user.id,
+          author_name: user.fullName || user.email || 'Admin',
+          author_role: user.role || null,
+          remark: draftRemark.trim(),
+        } as any);
+        if (remarkErr) throw remarkErr;
+      }
+
+      // 2. Update payment status
       const updateFilter = payment.application_id
-        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('application_id', payment.application_id)
-        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString(), admin_remarks: message.trim() } as any).eq('id', payment.id);
+        ? supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('application_id', payment.application_id)
+        : supabase.from('payments').update({ status: 'success', paid_at: new Date().toISOString() } as any).eq('id', payment.id);
 
       const { error: payErr } = await updateFilter;
       if (payErr) throw payErr;
 
-      // If the application is already approved, this payment verification is the
-      // "second" event — provision the licensee/entity now. Safe no-op otherwise.
+      // Entity provisioning (if applicable)
       if (payment.application_id) {
         try {
           const { data: prov } = await supabase.rpc(
@@ -123,7 +114,7 @@ export function PaymentVerificationDialog({
         }
       }
 
-      // Dynamic notification dispatch (fire-and-forget; failures must not block)
+      // Notification dispatch
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
           event_key: 'payment.received',
@@ -134,7 +125,7 @@ export function PaymentVerificationDialog({
             amount: String(payment.amount),
             currency: payment.currency,
             application_number: applicationNumber || '',
-            comments: message.trim(),
+            comments: draftRemark.trim(),
             applicant_id: applicantId,
             application_id: payment.application_id,
           },
@@ -142,7 +133,7 @@ export function PaymentVerificationDialog({
       }).catch(() => {});
 
       toast.success('Payment verified and notification sent to licensee.');
-      setMessage('');
+      setDraftRemark('');
       onOpenChange(false);
       onVerified?.();
     } catch (err: any) {
@@ -152,26 +143,8 @@ export function PaymentVerificationDialog({
     }
   };
 
-  const handleSaveRemarks = async () => {
-    if (!payment.id) return;
-    setSavingRemarks(true);
-    try {
-      const { error } = await supabase
-        .from('payments')
-        .update({ admin_remarks: message.trim() } as any)
-        .eq('id', payment.id);
-      if (error) throw error;
-      setExistingRemarks(message.trim());
-      toast.success('Remarks saved.');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to save remarks.');
-    } finally {
-      setSavingRemarks(false);
-    }
-  };
-
   const handleClose = () => {
-    setMessage('');
+    setDraftRemark('');
     onOpenChange(false);
   };
 
@@ -269,37 +242,17 @@ export function PaymentVerificationDialog({
             )}
           </div>
 
-          {/* Admin Remarks */}
-          {isAdminView ? (
+          {/* Admin Remarks Thread */}
+          {payment.id && (
             <>
               <Separator />
-              <div className="space-y-2">
-                <Label htmlFor="admin-message">Admin Remarks / Message</Label>
-                <Textarea
-                  id="admin-message"
-                  placeholder="Enter remarks for this payment..."
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  rows={10}
-                  className="min-h-[220px]"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Remarks are visible to the licensee on their payment view.
-                </p>
-              </div>
+              <PaymentRemarksThread
+                paymentId={payment.id}
+                isAdminView={isAdminView}
+                draft={isAdminView && normalizedPaymentStatus !== 'paid' ? draftRemark : undefined}
+                onDraftChange={isAdminView && normalizedPaymentStatus !== 'paid' ? setDraftRemark : undefined}
+              />
             </>
-          ) : (
-            existingRemarks.trim().length > 0 && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Admin Remarks</Label>
-                  <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap min-h-[220px]">
-                    {existingRemarks}
-                  </div>
-                </div>
-              </>
-            )
           )}
 
            {/* Attachments from licensee/user */}
@@ -312,23 +265,16 @@ export function PaymentVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          {isAdminView ? (
+          {isAdminView && normalizedPaymentStatus !== 'paid' ? (
             <>
-              <Button variant="outline" onClick={handleClose} disabled={loading || savingRemarks}>
+              <Button variant="outline" onClick={handleClose} disabled={loading}>
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Cancel
               </Button>
-              {normalizedPaymentStatus === 'paid' ? (
-                <Button onClick={handleSaveRemarks} disabled={savingRemarks || message.trim() === existingRemarks.trim()}>
-                  {savingRemarks ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-                  Save Remarks
-                </Button>
-              ) : (
-                <Button onClick={handleVerify} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
-                  Received & Verify
-                </Button>
-              )}
+              <Button onClick={handleVerify} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-1.5" />}
+                Received & Verify
+              </Button>
             </>
           ) : (
             <Button variant="outline" onClick={handleClose}>
