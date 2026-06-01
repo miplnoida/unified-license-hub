@@ -1012,7 +1012,7 @@ function ViewPaymentButton({ applicationId }: { applicationId: string }) {
         onOpenChange={setOpen}
         payment={payment}
         applicationNumber={payment.application_id}
-        isAdminView={payment.status !== 'success'}
+        isAdminView={isInternal}
         onVerified={() => setOpen(false)}
       />
     </div>
