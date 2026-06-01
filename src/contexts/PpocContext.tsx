@@ -158,13 +158,43 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       const mappings = (mappingsRes.data || []) as any[];
       if (!mappingsRes.error && mappings.length > 0) {
         const mappingIds = mappings.map((m) => m.id);
-        const ids = mappings.map((m) => m.licensee_id);
-        const { data: mapSectors } = await supabase
-          .from('ppoc_mapping_sectors' as any)
-          .select('mapping_id, sector_id')
-          .in('mapping_id', mappingIds);
+        const mappingLicenseeIds = Array.from(new Set(mappings.map((m) => m.licensee_id).filter(Boolean)));
+
+        // Fetch real licensee rows for the mapped IDs directly — do NOT rely
+        // solely on approvedLicensees, which dedupes licensees sharing the
+        // same display_name + sector and would hide additional PPOC mappings.
+        const [{ data: mapSectors }, { data: rawLicensees }] = await Promise.all([
+          supabase
+            .from('ppoc_mapping_sectors' as any)
+            .select('mapping_id, sector_id')
+            .in('mapping_id', mappingIds),
+          supabase
+            .from('licensees' as any)
+            .select('id, name, sector_id, status, created_at, license_id')
+            .in('id', mappingLicenseeIds),
+        ]);
 
         if (cancelled) return;
+
+        const rawLicMap = new Map<string, any>(
+          ((rawLicensees || []) as any[]).map((row: any) => [row.id, row])
+        );
+
+        // Disambiguate licensees that share the same display name by appending
+        // the license number (or a short id fallback).
+        const licenseIdsForNumbers = Array.from(
+          new Set(((rawLicensees || []) as any[]).map((r: any) => r.license_id).filter(Boolean))
+        );
+        const licenseNumberMap = new Map<string, string>();
+        if (licenseIdsForNumbers.length > 0) {
+          const { data: licRows } = await supabase
+            .from('licenses' as any)
+            .select('id, license_number')
+            .in('id', licenseIdsForNumbers);
+          ((licRows || []) as any[]).forEach((row: any) => {
+            if (row?.id && row?.license_number) licenseNumberMap.set(row.id, row.license_number);
+          });
+        }
 
         const sectorsByMapping: Record<string, Set<string>> = {};
         ((mapSectors || []) as any[]).forEach((row) => {
@@ -174,10 +204,11 @@ export function PpocProvider({ children }: { children: ReactNode }) {
 
         const allowedLicenseeIds = new Set<string>();
         mappings.forEach((mapping) => {
-          const lic = approvedById.get(mapping.licensee_id);
-          if (!lic || !ids.includes(mapping.licensee_id)) return;
+          const enriched: any = approvedById.get(mapping.licensee_id);
+          const raw = rawLicMap.get(mapping.licensee_id);
+          if (!enriched && !raw) return;
+          const licSector = enriched?.resolved_sector_id || enriched?.sector_id || raw?.sector_id;
           const restriction = sectorsByMapping[mapping.id];
-          const licSector = lic.resolved_sector_id || lic.sector_id;
           if (!restriction || restriction.size === 0) {
             allowedLicenseeIds.add(mapping.licensee_id);
           } else if (licSector && restriction.has(licSector)) {
@@ -185,17 +216,37 @@ export function PpocProvider({ children }: { children: ReactNode }) {
           }
         });
 
+        const baseNameById = new Map<string, string>();
+        Array.from(allowedLicenseeIds).forEach((licenseeId) => {
+          const enriched: any = approvedById.get(licenseeId);
+          const raw = rawLicMap.get(licenseeId);
+          baseNameById.set(
+            licenseeId,
+            enriched?.display_name || enriched?.name || raw?.name || '—'
+          );
+        });
+        const nameCounts = new Map<string, number>();
+        baseNameById.forEach((n) => nameCounts.set(n, (nameCounts.get(n) || 0) + 1));
+
         const list: MappedLicensee[] = Array.from(allowedLicenseeIds)
           .map((licenseeId): MappedLicensee | null => {
-            const licensee: any = approvedById.get(licenseeId);
-            if (!licensee) return null;
+            const enriched: any = approvedById.get(licenseeId);
+            const raw = rawLicMap.get(licenseeId);
+            if (!enriched && !raw) return null;
+            const baseName = baseNameById.get(licenseeId) || '—';
+            const licenseNumber = raw?.license_id
+              ? licenseNumberMap.get(raw.license_id)
+              : enriched?.license_number;
+            const suffix = (nameCounts.get(baseName) || 0) > 1
+              ? ` · ${licenseNumber || `#${licenseeId.slice(0, 8)}`}`
+              : '';
             return {
-              licensee_id: licensee.id,
-              licensee_name: licensee.display_name || licensee.name || '—',
-              sector_id: licensee.sector_id ?? null,
-              resolved_sector_id: licensee.resolved_sector_id ?? licensee.sector_id ?? null,
-              created_at: licensee.created_at ?? null,
-              application_id: licensee.application_id ?? null,
+              licensee_id: licenseeId,
+              licensee_name: `${baseName}${suffix}`,
+              sector_id: enriched?.sector_id ?? raw?.sector_id ?? null,
+              resolved_sector_id: enriched?.resolved_sector_id ?? raw?.sector_id ?? null,
+              created_at: enriched?.created_at ?? raw?.created_at ?? null,
+              application_id: enriched?.application_id ?? null,
             };
           })
           .filter((x): x is MappedLicensee => x !== null)
