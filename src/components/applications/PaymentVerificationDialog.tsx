@@ -152,6 +152,24 @@ export function PaymentVerificationDialog({
     }
   };
 
+  const handleSaveRemarks = async () => {
+    if (!payment.id) return;
+    setSavingRemarks(true);
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .update({ admin_remarks: message.trim() } as any)
+        .eq('id', payment.id);
+      if (error) throw error;
+      setExistingRemarks(message.trim());
+      toast.success('Remarks saved.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save remarks.');
+    } finally {
+      setSavingRemarks(false);
+    }
+  };
+
   const handleClose = () => {
     setMessage('');
     onOpenChange(false);
