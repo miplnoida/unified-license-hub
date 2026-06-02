@@ -19,30 +19,42 @@ import { toast } from 'sonner';
 import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
- * Resolve the effective system roles + dynamic role IDs a user has access to.
+ * Backend-authoritative check: ask Postgres whether THIS user can act on
+ * THIS workflow step right now, and what actions the step allows. The
+ * frontend must never independently infer action permissions — that was
+ * the source of the "Forward to Next Level" regression for super_admin /
+ * application_management users.
  */
-function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
+interface CanActResult {
+  can_act: boolean;
+  reason: string;
+  step_id: string | null;
+  step_name: string | null;
+  required_role_id: string | null;
+  required_role_name: string | null;
+  required_system_role: string | null;
+  legacy_approver_role: string | null;
+  actor_system_roles: string[];
+  actor_dynamic_role_ids: string[];
+  allowed_actions: WorkflowActionType[];
+}
+
+function useCanActOnStep(userId: string | undefined, stepId: string | undefined) {
   return useQuery({
-    queryKey: ['effective-system-roles', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const sysRoles = new Set<string>();
-      if (primaryRole) sysRoles.add(primaryRole);
-      const { data: udr } = await supabase
-        .from('user_dynamic_roles' as any)
-        .select('role_id')
-        .eq('user_id', userId!);
-      const dynamicRoleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
-      if (dynamicRoleIds.length > 0) {
-        const { data: roles } = await supabase
-          .from('roles' as any)
-          .select('system_role')
-          .in('id', dynamicRoleIds);
-        ((roles as any[]) || []).forEach(r => { if (r.system_role) sysRoles.add(r.system_role); });
+    queryKey: ['user_can_act_on_workflow_step', userId, stepId],
+    enabled: !!userId && !!stepId,
+    queryFn: async (): Promise<CanActResult | null> => {
+      const { data, error } = await supabase.rpc('user_can_act_on_workflow_step' as any, {
+        _user_id: userId!,
+        _step_id: stepId!,
+      });
+      if (error) {
+        console.warn('user_can_act_on_workflow_step RPC failed:', error);
+        return null;
       }
-      return { systemRoles: Array.from(sysRoles), dynamicRoleIds };
+      return data as unknown as CanActResult;
     },
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
