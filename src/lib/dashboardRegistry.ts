@@ -234,7 +234,7 @@ export function deriveUserContext(user: PlatformUser | null): DashboardUserConte
   const licenseeRoles = new Set(['licensee_primary', 'licensee_secondary']);
   const preLicenseeRoles = new Set(['pre_licensee']);
 
-  const isPreLicensee = !!user.isPreLicensee || preLicenseeRoles.has(user.role);
+  const isPreLicensee = (!!user.isPreLicensee || preLicenseeRoles.has(user.role)) && !user.licenseeId;
   const isInternal = internalRoles.has(user.role) && !isPreLicensee;
   const isLicensee = (licenseeRoles.has(user.role) || !!user.licenseeId) && !isInternal;
   const isApplicant = !isInternal && !isLicensee && !isPreLicensee;
