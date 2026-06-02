@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMyReturns, useMutateReturn, useReturnsVersionMap } from '@/hooks/useReturnsManagement';
-import { VersionInfoBadge } from '@/components/form-builder/VersionInfoBadge';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
@@ -108,12 +107,12 @@ export default function MyReturnsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Unique ID</TableHead><TableHead>Return Type</TableHead><TableHead>Period</TableHead><TableHead>Year</TableHead>
-                          <TableHead>Status</TableHead><TableHead>Form Version</TableHead><TableHead>Due Date</TableHead><TableHead>Submitted</TableHead><TableHead>On-Time</TableHead><TableHead className="text-right">Actions</TableHead>
+                          <TableHead>Status</TableHead><TableHead>Due Date</TableHead><TableHead>Submitted</TableHead><TableHead>On-Time</TableHead><TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filtered.length === 0 ? (
-                          <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
                         ) : filtered.map(r => {
                           const vid = repVersionIdByReturn[r.id];
                           return (
@@ -123,9 +122,6 @@ export default function MyReturnsPage() {
                               <TableCell>{r.return_period}</TableCell>
                               <TableCell>{r.return_year}</TableCell>
                               <TableCell><StatusBadge status={r.workflow_status} /></TableCell>
-                              <TableCell>
-                                {vid ? <VersionInfoBadge versionId={vid} /> : <span className="text-xs text-muted-foreground">—</span>}
-                              </TableCell>
                               <TableCell>{r.due_date || '—'}</TableCell>
                               <TableCell>{r.submit_date ? format(new Date(r.submit_date), 'MMM dd, yyyy') : '—'}</TableCell>
                               <TableCell>{r.ontime_status ? <StatusBadge status={r.ontime_status === 'ON_TIME' ? 'VAL' : 'TBR'} /> : '—'}</TableCell>
