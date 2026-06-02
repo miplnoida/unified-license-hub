@@ -200,35 +200,28 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     </div>
   );
 
-  // Read-only view for users not assigned to the current step
+  // Internal staff who are NOT the configured approver for the current step
+  // still get a "regulator remark" capability: they can record an observation
+  // on the application's audit trail without touching workflow state.
+  // Non-internal viewers (and external observers) see read-only status.
   if (!userRoleMatchesStep) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            Workflow Review — Level {currentStepIdx + 1} of {steps.length}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{currentStep.name}</span>
-            <Badge variant="outline" className="text-xs">
-              Pending: {stepRoleLabel(currentStep)}
-            </Badge>
-          </div>
-          {currentStep.sla_hours && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              SLA: {currentStep.sla_hours}h
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can view details and history but cannot take action on this step.
-          </p>
-          <ProgressTimeline />
-        </CardContent>
-      </Card>
+      <RegulatorRemarkCard
+        applicationId={applicationId}
+        instanceId={activeInstance.id}
+        stepId={currentStep.id}
+        stepName={currentStep.name}
+        stepRoleLabel={stepRoleLabel(currentStep)}
+        slaHours={currentStep.sla_hours}
+        currentStepIdx={currentStepIdx}
+        totalSteps={steps.length}
+        progress={<ProgressTimeline />}
+        canRemark={isInternal}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
+          onStatusChange?.();
+        }}
+      />
     );
   }
 
