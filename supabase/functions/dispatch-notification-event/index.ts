@@ -385,6 +385,7 @@ Deno.serve(async (req) => {
                   to: email,
                   subject: emailSubject,
                   body: emailBody,
+                  html: emailHtml,
                   dispatch_log_id: logId,
                 },
               });
