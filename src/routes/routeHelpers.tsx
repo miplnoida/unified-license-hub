@@ -15,6 +15,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
   const location = useLocation();
+  const isRestrictedPreLicensee = !!user && user.role === 'pre_licensee' && !user.licenseeId;
 
   if (loading) return <AuthLoadingScreen />;
 
@@ -33,7 +34,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/change-password" replace />;
   }
 
-  if (user.isPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
+  if (isRestrictedPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
     return <Navigate to="/dashboard" replace />;
   }
 

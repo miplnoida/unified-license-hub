@@ -23,7 +23,7 @@ export function useCanFinalSubmit(): boolean {
  */
 export function useIsPreLicensee(): boolean {
   const { user } = useAuth();
-  return user?.role === 'pre_licensee';
+  return !!user && user.role === 'pre_licensee' && !user.licenseeId;
 }
 
 /**
