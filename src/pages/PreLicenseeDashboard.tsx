@@ -219,7 +219,7 @@ export default function PreLicenseeDashboard() {
                                       variant="ghost"
                                       size="icon"
                                       className="h-8 w-8"
-                                      onClick={() => navigate(`/pre-license/new?draft=${app.id}&mode=continue`)}
+                                      onClick={() => navigate(`/applications/${app.id}/continue?draft=${app.id}&mode=continue`)}
                                     >
                                       <RotateCcw className="h-4 w-4" />
                                     </Button>
