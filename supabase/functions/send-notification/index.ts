@@ -62,7 +62,64 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, event_type, user_id, title, message, entity_type, entity_id } = await req.json();
+    const body = await req.json();
+    const { action, event_type, user_id, title, message, entity_type, entity_id } = body;
+
+    // ─── Direct email send path (used by dispatch-notification-event and admin Retry) ───
+    if (body?.type === "email" && body?.to && body?.subject) {
+      const smtpConfig = await loadSmtpConfig(supabase);
+      const logId: string | undefined = body.dispatch_log_id;
+      if (!smtpConfig) {
+        if (logId) {
+          await supabase
+            .from("notification_dispatch_log")
+            .update({ status: "failed", error: "smtp_not_configured", last_attempt_at: new Date().toISOString() })
+            .eq("id", logId);
+        }
+        console.warn("send-notification: SMTP not configured; email skipped", body.to);
+        return new Response(JSON.stringify({ success: false, error: "smtp_not_configured" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "");
+        if (logId) {
+          await supabase
+            .from("notification_dispatch_log")
+            .update({ status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString(), error: null })
+            .eq("id", logId);
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e: any) {
+        const errMsg = String(e?.message || e).slice(0, 500);
+        console.error("send-notification SMTP send failed:", errMsg);
+        if (logId) {
+          // increment retry_count atomically via RPC-less read-modify-write
+          const { data: row } = await supabase
+            .from("notification_dispatch_log")
+            .select("retry_count")
+            .eq("id", logId)
+            .maybeSingle();
+          await supabase
+            .from("notification_dispatch_log")
+            .update({
+              status: "failed",
+              error: errMsg,
+              last_attempt_at: new Date().toISOString(),
+              retry_count: (row?.retry_count ?? 0) + 1,
+            })
+            .eq("id", logId);
+        }
+        return new Response(JSON.stringify({ success: false, error: errMsg }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     if (action === "dispatch") {
       // Manual dispatch from admin

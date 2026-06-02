@@ -2171,8 +2171,16 @@ export type Database = {
           error: string | null
           event_key: string
           id: string
+          last_attempt_at: string | null
+          payload: Json | null
+          provider_message_id: string | null
+          recipient_email: string | null
           recipient_user_id: string | null
+          reminder_window: string | null
+          retry_count: number
+          sent_at: string | null
           status: string
+          subject: string | null
         }
         Insert: {
           channel?: string
@@ -2183,8 +2191,16 @@ export type Database = {
           error?: string | null
           event_key: string
           id?: string
+          last_attempt_at?: string | null
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
           recipient_user_id?: string | null
+          reminder_window?: string | null
+          retry_count?: number
+          sent_at?: string | null
           status?: string
+          subject?: string | null
         }
         Update: {
           channel?: string
@@ -2195,8 +2211,16 @@ export type Database = {
           error?: string | null
           event_key?: string
           id?: string
+          last_attempt_at?: string | null
+          payload?: Json | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
           recipient_user_id?: string | null
+          reminder_window?: string | null
+          retry_count?: number
+          sent_at?: string | null
           status?: string
+          subject?: string | null
         }
         Relationships: []
       }
@@ -4897,6 +4921,13 @@ export type Database = {
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
         Returns: string[]
+      }
+      license_recipients_for_holder: {
+        Args: { _license_id: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
       }
       licensee_ids_for_license: {
         Args: { _license_id: string }
