@@ -131,8 +131,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
-  const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
+
 
   // Backend-authoritative authorization. Decides BOTH whether the user may act
   // and which actions the current step allows. Frontend never infers either.
