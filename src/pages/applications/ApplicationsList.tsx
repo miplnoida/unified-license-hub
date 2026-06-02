@@ -824,20 +824,22 @@ export default function ApplicationsList() {
             )}
           </TableCell>
           <TableCell>
-            <div className="flex flex-col gap-1">
-              <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
-                {APPLICATION_STATUS_LABELS[app.status] || app.status}
-              </Badge>
-              {app.status === 'approved' && licensesByApp[app.id] && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 font-mono text-[11px] text-foreground">
-                    <Shield className="h-3 w-3 text-primary" />
-                    {licensesByApp[app.id].license_number}
-                  </span>
-                  <LicenseStatusBadge status={licensesByApp[app.id].status} />
-                </div>
-              )}
-            </div>
+            <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
+              {APPLICATION_STATUS_LABELS[app.status] || app.status}
+            </Badge>
+          </TableCell>
+          <TableCell>
+            {app.status === 'approved' && licensesByApp[app.id] ? (
+              <div className="flex flex-col gap-1">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-foreground">
+                  <Shield className="h-3 w-3 text-primary" />
+                  {licensesByApp[app.id].license_number}
+                </span>
+                <LicenseStatusBadge status={licensesByApp[app.id].status} />
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
