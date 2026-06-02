@@ -156,12 +156,14 @@ export default function LicenseeDetail() {
                 <div>
                   <h1 className="text-xl font-bold text-foreground">{licensee.name}</h1>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {licensee.license_id && (
+                    {license?.license_number ? (
+                      <span className="flex items-center gap-1 font-mono">
+                        <Hash className="h-3 w-3" />{license.license_number}
+                      </span>
+                    ) : licensee.license_id && (
                       <span className="flex items-center gap-1 font-mono"><Hash className="h-3 w-3" />{licensee.license_id.slice(0, 8)}</span>
                     )}
-                    <Badge variant="outline" className={`capitalize ${licensee.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
-                      {licensee.status}
-                    </Badge>
+                    <LicenseStatusBadge status={license?.status || licensee.status} />
                   </div>
                 </div>
               </div>
