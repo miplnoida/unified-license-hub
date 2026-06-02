@@ -113,7 +113,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
+  const processing = processingAction !== null;
   const [approvalResult, setApprovalResult] = useState<{
     license_number?: string;
     web_user_email?: string;
@@ -237,7 +238,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       return;
     }
 
-    setProcessing(true);
+    setProcessingAction(actionType);
     try {
       const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
         body: {
@@ -291,7 +292,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } catch (err: any) {
       toast.error(err?.message || 'Action failed');
     } finally {
-      setProcessing(false);
+      setProcessingAction(null);
     }
   };
 
@@ -302,7 +303,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       toast.error('Please enter a remark.');
       return;
     }
-    setProcessing(true);
+    setProcessingAction('__remark__');
     try {
       const { data, error } = await supabase.functions.invoke('add-application-remark', {
         body: {
@@ -335,7 +336,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } catch (e: any) {
       toast.error(e?.message || 'Failed to add remark');
     } finally {
-      setProcessing(false);
+      setProcessingAction(null);
     }
   };
 
@@ -441,26 +442,29 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         )}
 
         <div className="flex gap-2 flex-wrap">
-          {actions.map(a => (
-            <Button
-              key={a.label}
-              variant={a.variant}
-              size="sm"
-              onClick={() => handleAction(a.type)}
-              disabled={processing}
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-              {a.label}
-            </Button>
-          ))}
-          {canAddRemark && (
+          {actions.map(a => {
+            const isThisProcessing = processingAction === a.type;
+            return (
+              <Button
+                key={a.label}
+                variant={a.variant}
+                size="sm"
+                onClick={() => handleAction(a.type)}
+                disabled={processing}
+              >
+                {isThisProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+                {a.label}
+              </Button>
+            );
+          })}
+          {canAddRemark && noWorkflowActions && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleAddRemark}
               disabled={processing || !comment.trim()}
             >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              {processingAction === '__remark__' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               Add Remark
             </Button>
           )}
