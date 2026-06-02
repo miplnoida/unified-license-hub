@@ -206,9 +206,7 @@ export default function ApprovedLicensees() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={lic?.status === 'active' ? 'default' : 'outline'} className="text-xs capitalize">
-                            {lic?.status || 'pending'}
-                          </Badge>
+                          <LicenseStatusBadge status={lic?.status} />
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {app.approved_at ? new Date(app.approved_at).toLocaleDateString() : '—'}
