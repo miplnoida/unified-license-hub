@@ -16,7 +16,7 @@ import {
   CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
  * Backend-authoritative check: ask Postgres whether THIS user can act on
@@ -37,7 +37,18 @@ interface CanActResult {
   actor_system_roles: string[];
   actor_dynamic_role_ids: string[];
   allowed_actions: WorkflowActionType[];
+  is_internal?: boolean;
+  is_first_step?: boolean;
+  is_last_step?: boolean;
+  can_add_remark?: boolean;
+  can_reject?: boolean;
+  can_forward?: boolean;
+  can_approve?: boolean;
+  can_send_back?: boolean;
+  can_escalate?: boolean;
+  can_request_resubmission?: boolean;
 }
+
 
 function useCanActOnStep(userId: string | undefined, stepId: string | undefined) {
   return useQuery({
@@ -120,8 +131,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const currentStep = activeInstance ? steps.find(s => s.id === activeInstance.current_step_id) : null;
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
-  const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
+
 
   // Backend-authoritative authorization. Decides BOTH whether the user may act
   // and which actions the current step allows. Frontend never infers either.
@@ -135,7 +146,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return `Legacy role: ${ROLE_LABELS[step.approver_role as AppRole] || step.approver_role}`;
   };
 
-  const userRoleMatchesStep = !!canActResult?.can_act;
+  
 
   // Paused workflow → show info only. The backend (verify-and-submit) resumes it on resubmission.
   if (!activeInstance && pausedInstance && isInternal) {
@@ -200,37 +211,29 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     </div>
   );
 
-  // Internal staff who are NOT the configured approver for the current step
-  // still get a "regulator remark" capability: they can record an observation
-  // on the application's audit trail without touching workflow state.
-  // Non-internal viewers (and external observers) see read-only status.
-  if (!userRoleMatchesStep) {
-    return (
-      <RegulatorRemarkCard
-        applicationId={applicationId}
-        instanceId={activeInstance.id}
-        stepId={currentStep.id}
-        stepName={currentStep.name}
-        stepRoleLabel={stepRoleLabel(currentStep)}
-        slaHours={currentStep.sla_hours}
-        currentStepIdx={currentStepIdx}
-        totalSteps={steps.length}
-        progress={<ProgressTimeline />}
-        canRemark={isInternal}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
-          onStatusChange?.();
-        }}
-      />
-    );
-  }
+  // Per-action permissions resolved server-side by user_can_act_on_workflow_step.
+  // The frontend never independently infers who can do what — it only renders
+  // what the backend authorizes.
+  const canAddRemark = !!canActResult?.can_add_remark || (isInternal && !canActResult);
+  const canReject = !!canActResult?.can_reject;
+  const canForward = !!canActResult?.can_forward;
+  const canApprove = !!canActResult?.can_approve;
+  const canSendBack = !!canActResult?.can_send_back;
+  const canEscalate = !!canActResult?.can_escalate;
+  const canRequestResubmission = !!canActResult?.can_request_resubmission;
 
-  // Comments-required actions must match backend rules — shared helper.
+  // External viewers (not internal staff) see nothing here.
+  if (!isInternal) return null;
+
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
 
     if (isRemarksRequired(actionType) && !comment.trim()) {
-      toast.error('Remarks are mandatory for this action');
+      toast.error(
+        actionType === 'reject'
+          ? 'Remarks are required to reject this application.'
+          : 'Remarks are mandatory for this action',
+      );
       return;
     }
 
@@ -246,9 +249,6 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         },
       });
 
-      // Edge function now returns proper non-2xx codes. supabase-js surfaces
-      // these as `error` (FunctionsHttpError) with the response body in
-      // error.context. Try to extract the structured { error, code } payload.
       if (error) {
         let serverMsg = error.message || 'Action failed';
         try {
@@ -266,7 +266,6 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         return;
       }
 
-      // Final approval response carries license info
       if (actionType === 'approve' && isLastLevel) {
         setApprovalResult({
           license_number: data.license_number,
@@ -278,6 +277,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         if (data.provisioning_warning) {
           toast.warning(`Approval committed, but licensee account provisioning needs attention: ${data.provisioning_warning}`);
         }
+      } else if (actionType === 'approve') {
+        toast.success('Application forwarded to the next review level. Applicant will be notified.');
+      } else if (actionType === 'reject') {
+        toast.success('Application rejected. Applicant will be notified.');
       } else {
         toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
       }
@@ -292,59 +295,84 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build available actions strictly from the backend's allowed_actions list.
-  // The backend RPC is the single source of truth: it intersects the step's
-  // configured allowed_actions with this user's authorization. If the backend
-  // returns nothing usable, NO action buttons render — including
-  // "Forward to Next Level".
-  const backendAllowed = canActResult?.allowed_actions;
-  const stepAllowed = (currentStep as any).allowed_actions as WorkflowActionType[] | undefined;
-  const effectiveAllowed = Array.isArray(backendAllowed) ? backendAllowed : stepAllowed;
-  const noAllowedActions = hasNoAllowedActions(effectiveAllowed);
-  const allowedTypes = resolveAvailableActions({
-    isFirstLevel,
-    isLastLevel,
-    allowedActions: effectiveAllowed,
-  });
+  const handleAddRemark = async () => {
+    if (!user || !activeInstance || !currentStep) return;
+    const trimmed = comment.trim();
+    if (!trimmed) {
+      toast.error('Please enter a remark.');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('add-application-remark', {
+        body: {
+          application_id: applicationId,
+          instance_id: activeInstance.id,
+          step_id: currentStep.id,
+          comments: trimmed,
+        },
+      });
+      if (error) {
+        let msg = error.message || 'Failed to add remark';
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore */ }
+        toast.error(msg);
+        return;
+      }
+      if ((data as any)?.error) {
+        toast.error((data as any).error);
+        return;
+      }
+      toast.success('Remark added');
+      setComment('');
+      queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
+      onStatusChange?.();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to add remark');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Build the action buttons strictly from backend per-action flags. The
+  // backend RPC is the single source of truth — the frontend never decides
+  // who can forward, approve, or reject.
+  type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
+  const actions: ActionDef[] = [];
+  if (canForward)            actions.push({ type: 'approve',              label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />,  variant: 'default' });
+  if (canApprove)            actions.push({ type: 'approve',              label: 'Approve',               icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' });
+  if (canReject)             actions.push({ type: 'reject',               label: 'Reject',                icon: <XCircle className="h-4 w-4 mr-1" />,     variant: 'destructive' });
+  if (canSendBack)           actions.push({ type: 'send_back',            label: 'Send Back to Junior',   icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
+  if (canEscalate)           actions.push({ type: 'escalate',             label: 'Escalate to Senior',    icon: <ArrowUp className="h-4 w-4 mr-1" />,     variant: 'outline' });
+  if (canRequestResubmission) actions.push({ type: 'request_resubmission', label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
+
+  const noWorkflowActions = actions.length === 0;
+  const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
+  const anyRemarksRequired = actions.some(a => REMARKS_REQUIRED_ACTIONS.includes(a.type));
+  const remarksRequiredLabels = actions.filter(a => REMARKS_REQUIRED_ACTIONS.includes(a.type)).map(a => a.label);
 
   if (import.meta.env.DEV) {
-    // Safe dev-only diagnostics — IDs and role names only, no secrets.
     // eslint-disable-next-line no-console
     console.debug('[WorkflowPanel] gating', {
       application_id: applicationId,
-      workflow_id: workflowId,
       workflow_instance_id: activeInstance?.id,
       current_step_id: currentStep?.id,
-      current_step_order: currentStep?.step_order,
-      step_approver_role: currentStep?.approver_role,
-      step_approver_role_id: currentStep?.approver_role_id,
       user_id: user?.id,
-      user_role: user?.role,
-      can_act: canActResult?.can_act,
       reason: canActResult?.reason,
-      actor_dynamic_role_ids: canActResult?.actor_dynamic_role_ids,
-      backend_allowed_actions: backendAllowed,
-      step_allowed_actions: stepAllowed,
-      rendered_actions: allowedTypes,
+      is_internal: canActResult?.is_internal,
+      can_add_remark: canAddRemark,
+      can_reject: canReject,
+      can_forward: canForward,
+      can_approve: canApprove,
+      backend_allowed_actions: canActResult?.allowed_actions,
+      rendered_actions: actions.map(a => a.label),
     });
   }
-
-  const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
-    approve: isLastLevel
-      ? { label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' }
-      : { label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' },
-    reject: { label: 'Reject', icon: <XCircle className="h-4 w-4 mr-1" />, variant: 'destructive' },
-    send_back: { label: 'Send Back to Junior', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
-    escalate: { label: 'Escalate to Senior', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' },
-    request_resubmission: { label: 'Request Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' },
-  };
-  const actions = allowedTypes.map(t => ({ type: t, ...VISUALS[t] }));
-
-  // Remarks are required only when at least one visible action requires them.
-  const anyRemarksRequired = allowedTypes.some(t => REMARKS_REQUIRED_ACTIONS.includes(t));
-  const remarksRequiredLabels = allowedTypes
-    .filter(t => REMARKS_REQUIRED_ACTIONS.includes(t))
-    .map(t => VISUALS[t].label);
 
   return (
     <Card>
@@ -358,7 +386,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">{currentStep.name}</span>
           <Badge variant="outline" className="text-xs">
-            {stepRoleLabel(currentStep)}
+            Pending: {stepRoleLabel(currentStep)}
           </Badge>
         </div>
 
@@ -373,54 +401,70 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
         <Separator />
 
-        {noAllowedActions ? (
+        {stepHasNoAllowedActions && (
           <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
             <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
             <div className="space-y-1">
               <p className="font-medium text-destructive">No actions configured for this step</p>
               <p className="text-xs text-muted-foreground">
-                This workflow step has no <code className="font-mono">allowed_actions</code> defined, so no
-                approval, rejection, or routing actions can be taken here. Ask an administrator to update the
-                workflow step configuration.
+                This workflow step has no <code className="font-mono">allowed_actions</code> defined. Ask an
+                administrator to update the workflow step configuration.
               </p>
             </div>
           </div>
-        ) : (
-          <>
-            <div className="space-y-2">
-              <Label className="text-sm">
-                Remarks / Description
-                {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
-              </Label>
-              <Textarea
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                placeholder={
-                  anyRemarksRequired
-                    ? `Required for: ${remarksRequiredLabels.join(', ')}. Optional for other actions.`
-                    : 'Optional remarks for this action.'
-                }
-                rows={3}
-                disabled={processing}
-              />
-            </div>
-
-            <div className="flex gap-2 flex-wrap">
-              {actions.map(a => (
-                <Button
-                  key={a.type + a.label}
-                  variant={a.variant}
-                  size="sm"
-                  onClick={() => handleAction(a.type)}
-                  disabled={processing}
-                >
-                  {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-                  {a.label}
-                </Button>
-              ))}
-            </div>
-          </>
         )}
+
+        {(canAddRemark || !noWorkflowActions) && (
+          <div className="space-y-2">
+            <Label className="text-sm">
+              Remarks / Comments
+              {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder={
+                anyRemarksRequired
+                  ? `Required for: ${remarksRequiredLabels.join(', ')}.`
+                  : 'Record an observation, query, or note for the assigned approver…'
+              }
+              rows={3}
+              disabled={processing}
+            />
+            {noWorkflowActions && canAddRemark && (
+              <p className="text-xs text-muted-foreground">
+                This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can add a remark for the
+                audit trail; you are not authorized to advance this workflow.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="flex gap-2 flex-wrap">
+          {actions.map(a => (
+            <Button
+              key={a.label}
+              variant={a.variant}
+              size="sm"
+              onClick={() => handleAction(a.type)}
+              disabled={processing}
+            >
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+              {a.label}
+            </Button>
+          ))}
+          {canAddRemark && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddRemark}
+              disabled={processing || !comment.trim()}
+            >
+              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              Add Remark
+            </Button>
+          )}
+        </div>
       </CardContent>
 
       {/* Approval Result Dialog — never shows plaintext password */}
@@ -503,119 +547,3 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   );
 }
 
-// ─── Regulator Remark Card ───────────────────────────────────────────────
-// Shown to internal staff who are NOT the configured approver for the
-// current workflow step. Lets them add an audit-trail remark without
-// approving, rejecting, forwarding, escalating, or otherwise mutating
-// workflow state. The backend (add-application-remark edge function)
-// enforces this — UI hiding is defense-in-depth only.
-
-interface RegulatorRemarkCardProps {
-  applicationId: string;
-  instanceId: string;
-  stepId: string;
-  stepName: string;
-  stepRoleLabel: string;
-  slaHours: number | null;
-  currentStepIdx: number;
-  totalSteps: number;
-  progress: React.ReactNode;
-  canRemark: boolean;
-  onSuccess: () => void;
-}
-
-function RegulatorRemarkCard({
-  applicationId, instanceId, stepId, stepName, stepRoleLabel,
-  slaHours, currentStepIdx, totalSteps, progress, canRemark, onSuccess,
-}: RegulatorRemarkCardProps) {
-  const [remark, setRemark] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const submitRemark = async () => {
-    const trimmed = remark.trim();
-    if (!trimmed) return;
-    setSubmitting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('add-application-remark', {
-        body: { application_id: applicationId, instance_id: instanceId, step_id: stepId, comments: trimmed },
-      });
-      if (error) {
-        let msg = error.message || 'Failed to add remark';
-        try {
-          const ctx = (error as any).context;
-          if (ctx && typeof ctx.json === 'function') {
-            const body = await ctx.json();
-            if (body?.error) msg = body.error;
-          }
-        } catch { /* ignore */ }
-        toast.error(msg);
-        return;
-      }
-      if ((data as any)?.error) {
-        toast.error((data as any).error);
-        return;
-      }
-      toast.success('Remark added');
-      setRemark('');
-      onSuccess();
-    } catch (e: any) {
-      toast.error(e?.message || 'Failed to add remark');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Shield className="h-4 w-4 text-primary" />
-          Workflow Review — Level {currentStepIdx + 1} of {totalSteps}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{stepName}</span>
-          <Badge variant="outline" className="text-xs">
-            Pending: {stepRoleLabel}
-          </Badge>
-        </div>
-        {slaHours != null && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            SLA: {slaHours}h
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          This step is assigned to <strong>{stepRoleLabel}</strong>. You cannot approve,
-          reject, or forward — but you may record a remark on the application's audit trail.
-        </p>
-        {progress}
-        <Separator />
-        {canRemark ? (
-          <div className="space-y-2">
-            <Label className="text-sm" htmlFor="regulator-remark">Add Remark</Label>
-            <Textarea
-              id="regulator-remark"
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-              placeholder="Record an observation, query, or note for the assigned approver…"
-              rows={3}
-              disabled={submitting}
-            />
-            <div className="flex justify-end">
-              <Button size="sm" onClick={submitRemark} disabled={submitting || !remark.trim()}>
-                {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-                Add Remark
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            You can view details and history but cannot take action on this step.
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
