@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2, RefreshCw } from 'lucide-react';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 interface ApprovedApp {
   id: string;
@@ -205,9 +206,7 @@ export default function ApprovedLicensees() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={lic?.status === 'active' ? 'default' : 'outline'} className="text-xs capitalize">
-                            {lic?.status || 'pending'}
-                          </Badge>
+                          <LicenseStatusBadge status={lic?.status} />
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {app.approved_at ? new Date(app.approved_at).toLocaleDateString() : '—'}

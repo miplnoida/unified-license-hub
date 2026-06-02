@@ -10,6 +10,7 @@ import {
   ArrowLeft, Loader2, Building2, Users, GitBranch, Shield, Gavel,
   ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash
 } from 'lucide-react';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 // Lazy-load tab components
 const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
@@ -35,6 +36,7 @@ export default function LicenseeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [licensee, setLicensee] = useState<any>(null);
+  const [license, setLicense] = useState<any>(null);
   const [sectors, setSectors] = useState<LookupMap>({});
   const [subSectors, setSubSectors] = useState<LookupMap>({});
   const [categories, setCategories] = useState<LookupMap>({});
@@ -68,6 +70,17 @@ export default function LicenseeDetail() {
 
     setLicensee(licRes.data);
     setHasReinsurance(((reinsRes.data as any[]) || []).length > 0);
+
+    if (licRes.data?.license_id) {
+      const { data: licenseData } = await supabase
+        .from('licenses')
+        .select('id, license_number, status')
+        .eq('id', licRes.data.license_id)
+        .maybeSingle();
+      setLicense(licenseData);
+    } else {
+      setLicense(null);
+    }
     setLoading(false);
   }, [id]);
 
@@ -143,12 +156,14 @@ export default function LicenseeDetail() {
                 <div>
                   <h1 className="text-xl font-bold text-foreground">{licensee.name}</h1>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {licensee.license_id && (
+                    {license?.license_number ? (
+                      <span className="flex items-center gap-1 font-mono">
+                        <Hash className="h-3 w-3" />{license.license_number}
+                      </span>
+                    ) : licensee.license_id && (
                       <span className="flex items-center gap-1 font-mono"><Hash className="h-3 w-3" />{licensee.license_id.slice(0, 8)}</span>
                     )}
-                    <Badge variant="outline" className={`capitalize ${licensee.status === 'active' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-200' : 'bg-muted text-muted-foreground'}`}>
-                      {licensee.status}
-                    </Badge>
+                    <LicenseStatusBadge status={license?.status || licensee.status} />
                   </div>
                 </div>
               </div>

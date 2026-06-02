@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Briefcase, Layers, Eye } from 'lucide-react';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 interface LicenseeRow {
   id: string;
@@ -200,15 +201,7 @@ export default function ManageLicensees() {
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const activeCount = rows.filter(r => r.status === 'active').length;
 
-  const statusBadge = (status: string) => {
-    const map: Record<string, string> = {
-      active: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
-      inactive: 'bg-muted text-muted-foreground border-border',
-    };
-    return (
-      <Badge variant="outline" className={`capitalize ${map[status] || ''}`}>{status}</Badge>
-    );
-  };
+  const statusBadge = (status: string) => <LicenseStatusBadge status={status} />;
 
   return (
     <DashboardLayout>
