@@ -130,6 +130,31 @@ export default function LicenseDetail() {
           actions={<Badge variant={statusVariant[license.status] || 'outline'} className="text-sm px-3 py-1 capitalize">{LICENSE_STATUS_LABELS[license.status]}</Badge>}
         />
 
+        {(() => {
+          const alertMap: Record<string, { title: string; variant: 'destructive' | 'default'; icon: any; actionTypes: string[] }> = {
+            suspended: { title: 'This license is currently suspended.', variant: 'default', icon: AlertTriangle, actionTypes: ['suspension'] },
+            revoked: { title: 'This license has been revoked.', variant: 'destructive', icon: Ban, actionTypes: ['revocation'] },
+            cancelled: { title: 'This license has been cancelled.', variant: 'destructive', icon: Ban, actionTypes: ['cancellation'] },
+            expired: { title: 'This license has expired.', variant: 'default', icon: AlertTriangle, actionTypes: [] },
+          };
+          const meta = alertMap[license.status];
+          if (!meta) return null;
+          const latest = actions.find(a => meta.actionTypes.includes(a.action_type)) || actions.find(a => a.new_status === license.status);
+          const Icon = meta.icon;
+          return (
+            <Alert variant={meta.variant} className={meta.variant === 'default' ? 'border-warning/40 bg-warning/5' : ''}>
+              <Icon className="h-4 w-4" />
+              <AlertTitle>{meta.title}</AlertTitle>
+              {latest && (
+                <AlertDescription className="mt-1 space-y-1 text-sm">
+                  <div>Effective: {new Date(latest.created_at).toLocaleString()}</div>
+                  {latest.reason && <div>Reason: {latest.reason}</div>}
+                </AlertDescription>
+              )}
+            </Alert>
+          );
+        })()}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
