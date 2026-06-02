@@ -1038,7 +1038,8 @@ export default function ApplicationsList() {
                   )}
                   <TableHead>Category / Service</TableHead>
                   <TableHead>Payment</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Application Status</TableHead>
+                  <TableHead>Licensee Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
