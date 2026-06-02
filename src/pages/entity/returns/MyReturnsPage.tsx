@@ -122,9 +122,6 @@ export default function MyReturnsPage() {
                               <TableCell>{r.return_period}</TableCell>
                               <TableCell>{r.return_year}</TableCell>
                               <TableCell><StatusBadge status={r.workflow_status} /></TableCell>
-                              <TableCell>
-                                {vid ? <VersionInfoBadge versionId={vid} /> : <span className="text-xs text-muted-foreground">—</span>}
-                              </TableCell>
                               <TableCell>{r.due_date || '—'}</TableCell>
                               <TableCell>{r.submit_date ? format(new Date(r.submit_date), 'MMM dd, yyyy') : '—'}</TableCell>
                               <TableCell>{r.ontime_status ? <StatusBadge status={r.ontime_status === 'ON_TIME' ? 'VAL' : 'TBR'} /> : '—'}</TableCell>
