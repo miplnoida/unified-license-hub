@@ -17,8 +17,9 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -201,6 +202,8 @@ export default function ApplicationsList() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [versions, setVersions] = useState<Record<string, FormVersionRow>>({});
   const [templates, setTemplates] = useState<Record<string, FormTemplateRow>>({});
+  /** application_id → { license_number, status } for approved apps */
+  const [licensesByApp, setLicensesByApp] = useState<Record<string, { license_number: string; status: string }>>({});
   const [versionFilter, setVersionFilter] = useState<string>('all');
   const [versionSort, setVersionSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [compareMode, setCompareMode] = useState(false);
@@ -353,6 +356,29 @@ export default function ApplicationsList() {
     loadPage();
     return () => { cancelled = true; };
   }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+
+  // Fetch license number + status for approved applications so we can render
+  // them in the Status column (licensee view especially needs this).
+  useEffect(() => {
+    const approvedIds = applications.filter(a => a.status === 'approved').map(a => a.id);
+    if (approvedIds.length === 0) { setLicensesByApp({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('licenses')
+        .select('application_id, license_number, status')
+        .in('application_id', approvedIds);
+      if (cancelled || !data) return;
+      const map: Record<string, { license_number: string; status: string }> = {};
+      (data as any[]).forEach(l => {
+        if (l.application_id) map[l.application_id] = { license_number: l.license_number, status: l.status };
+      });
+      setLicensesByApp(map);
+    })();
+    return () => { cancelled = true; };
+  }, [applications]);
+
+
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
@@ -694,82 +720,84 @@ export default function ApplicationsList() {
           </TableCell>
           <TableCell className="text-sm">{sectorName}</TableCell>
           <TableCell className="text-sm">{subSectorName}</TableCell>
-          <TableCell className="text-sm">
-            {versionEntries.length === 0 ? (
-              <span className="text-xs text-muted-foreground">—</span>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 gap-1.5 text-[11px] font-normal"
-                    title="View form/version details"
+          {isInternal && (
+            <TableCell className="text-sm">
+              {versionEntries.length === 0 ? (
+                <span className="text-xs text-muted-foreground">—</span>
+              ) : (
+                <Popover>
+                  <PopoverTrigger asChild onClick={e => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 gap-1.5 text-[11px] font-normal"
+                      title="View form/version details"
+                    >
+                      <FileText className="h-3 w-3" />
+                      <span>{versionEntries.length} {versionEntries.length === 1 ? 'Form' : 'Forms'}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <GitBranch className="h-3 w-3" />
+                      <span>{versionEntries.filter(e => e.versionId).length} {versionEntries.filter(e => e.versionId).length === 1 ? 'Ver' : 'Vers'}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[360px] p-0"
+                    align="start"
+                    onClick={e => e.stopPropagation()}
                   >
-                    <FileText className="h-3 w-3" />
-                    <span>{versionEntries.length} {versionEntries.length === 1 ? 'Form' : 'Forms'}</span>
-                    <span className="text-muted-foreground">·</span>
-                    <GitBranch className="h-3 w-3" />
-                    <span>{versionEntries.filter(e => e.versionId).length} {versionEntries.filter(e => e.versionId).length === 1 ? 'Ver' : 'Vers'}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[360px] p-0"
-                  align="start"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div className="px-3 py-2 border-b bg-muted/30">
-                    <p className="text-xs font-semibold">Submitted Forms & Versions</p>
-                    <p className="text-[10px] text-muted-foreground">{app.application_number}</p>
-                  </div>
-                  <div className="max-h-72 overflow-y-auto divide-y">
-                    {versionEntries.map(({ templateId, versionId }) => {
-                      const tmplName = templates[templateId]?.name || 'Form';
-                      return (
-                        <div key={templateId} className="px-3 py-2 space-y-1">
-                          <p className="text-xs font-medium truncate" title={tmplName}>{tmplName}</p>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <Badge variant="outline" className="text-[10px]">
-                              <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {isInternal && versionEntries.length > 0 && (
-                    <div className="px-3 py-2 border-t bg-muted/20">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-full justify-start text-xs"
-                        onClick={() => {
-                          if (!compareMode) setCompareMode(true);
-                          setSelectedForCompare(prev => {
-                            if (prev.includes(app.id)) return prev;
-                            if (prev.length >= 2) {
-                              toast.info('Two submissions already selected. Open Compare to proceed.');
-                              return prev;
-                            }
-                            const next = [...prev, app.id];
-                            if (next.length === 2) setComparePickerOpen(true);
-                            return next;
-                          });
-                        }}
-                      >
-                        <GitCompareArrows className="h-3.5 w-3.5 mr-2" />
-                        {selectedForCompare.includes(app.id)
-                          ? 'Selected for compare'
-                          : selectedForCompare.length === 1
-                            ? 'Compare with selected submission'
-                            : 'Select for comparison'}
-                      </Button>
+                    <div className="px-3 py-2 border-b bg-muted/30">
+                      <p className="text-xs font-semibold">Submitted Forms & Versions</p>
+                      <p className="text-[10px] text-muted-foreground">{app.application_number}</p>
                     </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-            )}
-          </TableCell>
+                    <div className="max-h-72 overflow-y-auto divide-y">
+                      {versionEntries.map(({ templateId, versionId }) => {
+                        const tmplName = templates[templateId]?.name || 'Form';
+                        return (
+                          <div key={templateId} className="px-3 py-2 space-y-1">
+                            <p className="text-xs font-medium truncate" title={tmplName}>{tmplName}</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <Badge variant="outline" className="text-[10px]">
+                                <GitBranch className="h-3 w-3 mr-1" />{formatVersionLabel(versionId)}
+                              </Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {isInternal && versionEntries.length > 0 && (
+                      <div className="px-3 py-2 border-t bg-muted/20">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-full justify-start text-xs"
+                          onClick={() => {
+                            if (!compareMode) setCompareMode(true);
+                            setSelectedForCompare(prev => {
+                              if (prev.includes(app.id)) return prev;
+                              if (prev.length >= 2) {
+                                toast.info('Two submissions already selected. Open Compare to proceed.');
+                                return prev;
+                              }
+                              const next = [...prev, app.id];
+                              if (next.length === 2) setComparePickerOpen(true);
+                              return next;
+                            });
+                          }}
+                        >
+                          <GitCompareArrows className="h-3.5 w-3.5 mr-2" />
+                          {selectedForCompare.includes(app.id)
+                            ? 'Selected for compare'
+                            : selectedForCompare.length === 1
+                              ? 'Compare with selected submission'
+                              : 'Select for comparison'}
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              )}
+            </TableCell>
+          )}
           <TableCell className="text-sm max-w-[180px] truncate">{catSvc}</TableCell>
           <TableCell>
             {payment ? (
@@ -796,9 +824,20 @@ export default function ApplicationsList() {
             )}
           </TableCell>
           <TableCell>
-            <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs">
-              {APPLICATION_STATUS_LABELS[app.status] || app.status}
-            </Badge>
+            <div className="flex flex-col gap-1">
+              <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
+                {APPLICATION_STATUS_LABELS[app.status] || app.status}
+              </Badge>
+              {app.status === 'approved' && licensesByApp[app.id] && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px] text-foreground">
+                    <Shield className="h-3 w-3 text-primary" />
+                    {licensesByApp[app.id].license_number}
+                  </span>
+                  <LicenseStatusBadge status={licensesByApp[app.id].status} />
+                </div>
+              )}
+            </div>
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
@@ -855,7 +894,7 @@ export default function ApplicationsList() {
         </TableRow>
         {isExpanded && (
           <TableRow key={`${app.id}-history`}>
-            <TableCell colSpan={compareMode ? 13 : 12} className="bg-muted/30 p-4">
+            <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                 {actionsLoadingId === app.id && actions.length === 0 ? (
@@ -940,7 +979,7 @@ export default function ApplicationsList() {
                           <TableHead>License Type</TableHead>
                           <TableHead>Sector</TableHead>
                           <TableHead>Sub Sector</TableHead>
-                          <TableHead>Form Version</TableHead>
+                          {isInternal && <TableHead>Form Version</TableHead>}
                           <TableHead>Category / Service</TableHead>
                           <TableHead>Payment</TableHead>
                           <TableHead>Status</TableHead>
@@ -985,13 +1024,15 @@ export default function ApplicationsList() {
                   <TableHead>License Type</TableHead>
                   <TableHead>Sector</TableHead>
                   <TableHead>Sub Sector</TableHead>
-                  <TableHead
-                    className={versionSort !== 'none' ? 'cursor-pointer select-none' : 'cursor-pointer select-none'}
-                    onClick={() => setVersionSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
-                    title="Click to sort by version"
-                  >
-                    Form Version {versionSort === 'asc' ? '▲' : versionSort === 'desc' ? '▼' : ''}
-                  </TableHead>
+                  {isInternal && (
+                    <TableHead
+                      className={versionSort !== 'none' ? 'cursor-pointer select-none' : 'cursor-pointer select-none'}
+                      onClick={() => setVersionSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
+                      title="Click to sort by version"
+                    >
+                      Form Version {versionSort === 'asc' ? '▲' : versionSort === 'desc' ? '▼' : ''}
+                    </TableHead>
+                  )}
                   <TableHead>Category / Service</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Status</TableHead>
@@ -1003,7 +1044,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={compareMode ? 13 : 12} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
