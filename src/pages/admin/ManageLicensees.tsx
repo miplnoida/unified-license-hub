@@ -62,7 +62,7 @@ export default function ManageLicensees() {
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
-        supabase.from('licenses').select('id, application_id, license_number'),
+        supabase.from('licenses').select('id, application_id, license_number, status'),
       ]);
 
       const sMap: LookupMap = {};
@@ -77,9 +77,11 @@ export default function ManageLicensees() {
 
       const licenseToApp: Record<string, string> = {};
       const licenseToNumber: Record<string, string> = {};
+      const licenseToStatus: Record<string, string> = {};
       (licensesRes.data || []).forEach((l: any) => {
         if (l.application_id) licenseToApp[l.id] = l.application_id;
         if (l.license_number) licenseToNumber[l.id] = l.license_number;
+        if (l.status) licenseToStatus[l.id] = l.status;
       });
 
       const licensees = (licRes.data || []) as any[];
@@ -145,9 +147,13 @@ export default function ManageLicensees() {
         const subSectorId = reg?.sub_sector_id || data?.sub_sector_id || l.sub_sector_id;
         const categoryId = reg?.category_id || data?.category_id || l.category_id;
 
+        // License status (suspended/revoked/expired/active) is the source of truth
+        // for the licensee badge — the licensees.status row stays 'active' even
+        // after admins suspend/revoke the underlying license.
+        const effectiveStatus = (l.license_id && licenseToStatus[l.license_id]) || l.status;
         return {
           id: l.id,
-          status: l.status,
+          status: effectiveStatus,
           sector_id: l.sector_id,
           sub_sector_id: l.sub_sector_id,
           category_id: l.category_id,
