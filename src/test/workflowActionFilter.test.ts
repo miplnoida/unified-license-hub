@@ -79,6 +79,42 @@ describe('resolveAvailableActions', () => {
     expect(actions).not.toContain('request_info' as any);
     expect(actions).not.toContain('delegate' as any);
   });
+
+  // Regression: super_admin or admin viewing an application they are not
+  // assigned to must NOT see "Forward to Next Level". Backend returns
+  // can_act=false → frontend passes an empty allowedActions list → no buttons.
+  it('admin/regulator not assigned to current step: zero buttons (incl. no Forward to Next Level)', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: false,
+      allowedActions: [], // backend says: this user has no allowed actions here
+    });
+    expect(actions).toEqual([]);
+    expect(actions).not.toContain('approve');
+  });
+
+  // Correct approver on a non-final step where approve is allowed:
+  // sees Forward to Next Level (approve), no Reject.
+  it('current-step approver on non-final step with approve allowed → forward only, no reject', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: false,
+      allowedActions: ['approve', 'send_back'],
+    });
+    expect(actions).toContain('approve'); // rendered as "Forward to Next Level"
+    expect(actions).not.toContain('reject');
+  });
+
+  // Final-level approver with approve allowed sees Approve (not Forward),
+  // plus reject if configured.
+  it('final-level approver sees approve + reject, no forward semantics', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: true,
+      allowedActions: ['approve', 'reject'],
+    });
+    expect(actions).toEqual(['approve', 'reject']);
+  });
 });
 
 describe('hasNoAllowedActions', () => {

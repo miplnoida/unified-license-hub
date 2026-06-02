@@ -261,9 +261,10 @@ export function useCreateStep() {
           approver_role_id: params.approver_role_id ?? null,
           step_type: params.step_type || 'sequential',
           sla_hours: params.sla_hours || 48,
-          allowed_actions: params.allowed_actions && params.allowed_actions.length > 0
-            ? params.allowed_actions
-            : ['approve', 'reject', 'send_back'],
+          // No silent default: callers MUST pass an explicit allowed_actions list.
+          // A step with empty/missing allowed_actions surfaces a config warning in
+          // WorkflowPanel and the backend rejects every action on it.
+          allowed_actions: Array.isArray(params.allowed_actions) ? params.allowed_actions : [],
           escalation_role: params.escalation_role || null,
           escalation_after_hours: params.escalation_after_hours || null,
         } as any)

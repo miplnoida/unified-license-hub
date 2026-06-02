@@ -19,30 +19,42 @@ import { toast } from 'sonner';
 import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
- * Resolve the effective system roles + dynamic role IDs a user has access to.
+ * Backend-authoritative check: ask Postgres whether THIS user can act on
+ * THIS workflow step right now, and what actions the step allows. The
+ * frontend must never independently infer action permissions — that was
+ * the source of the "Forward to Next Level" regression for super_admin /
+ * application_management users.
  */
-function useEffectiveSystemRoles(userId: string | undefined, primaryRole: AppRole | undefined) {
+interface CanActResult {
+  can_act: boolean;
+  reason: string;
+  step_id: string | null;
+  step_name: string | null;
+  required_role_id: string | null;
+  required_role_name: string | null;
+  required_system_role: string | null;
+  legacy_approver_role: string | null;
+  actor_system_roles: string[];
+  actor_dynamic_role_ids: string[];
+  allowed_actions: WorkflowActionType[];
+}
+
+function useCanActOnStep(userId: string | undefined, stepId: string | undefined) {
   return useQuery({
-    queryKey: ['effective-system-roles', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const sysRoles = new Set<string>();
-      if (primaryRole) sysRoles.add(primaryRole);
-      const { data: udr } = await supabase
-        .from('user_dynamic_roles' as any)
-        .select('role_id')
-        .eq('user_id', userId!);
-      const dynamicRoleIds = Array.from(new Set(((udr as any[]) || []).map(r => r.role_id).filter(Boolean)));
-      if (dynamicRoleIds.length > 0) {
-        const { data: roles } = await supabase
-          .from('roles' as any)
-          .select('system_role')
-          .in('id', dynamicRoleIds);
-        ((roles as any[]) || []).forEach(r => { if (r.system_role) sysRoles.add(r.system_role); });
+    queryKey: ['user_can_act_on_workflow_step', userId, stepId],
+    enabled: !!userId && !!stepId,
+    queryFn: async (): Promise<CanActResult | null> => {
+      const { data, error } = await supabase.rpc('user_can_act_on_workflow_step' as any, {
+        _user_id: userId!,
+        _step_id: stepId!,
+      });
+      if (error) {
+        console.warn('user_can_act_on_workflow_step RPC failed:', error);
+        return null;
       }
-      return { systemRoles: Array.from(sysRoles), dynamicRoleIds };
+      return data as unknown as CanActResult;
     },
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 }
 
@@ -111,25 +123,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const isFirstLevel = currentStepIdx === 0;
   const isLastLevel = currentStepIdx === steps.length - 1;
 
-  const { data: effectiveRoles } = useEffectiveSystemRoles(user?.id, user?.role as AppRole | undefined);
+  // Backend-authoritative authorization. Decides BOTH whether the user may act
+  // and which actions the current step allows. Frontend never infers either.
+  const { data: canActResult } = useCanActOnStep(user?.id, currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
-  const systemRoles = effectiveRoles?.systemRoles || [];
-  const dynamicRoleIds = effectiveRoles?.dynamicRoleIds || [];
 
   const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
     if (step.approver_role_id) {
       return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
     }
-    // Legacy step with no dynamic role configured — flag explicitly.
     return `Legacy role: ${ROLE_LABELS[step.approver_role as AppRole] || step.approver_role}`;
   };
 
-  const userRoleMatchesStep = !!user && !!currentStep && (
-    user.role === 'super_admin' ||
-    (currentStep.approver_role_id
-      ? dynamicRoleIds.includes(currentStep.approver_role_id)
-      : systemRoles.includes(currentStep.approver_role))
-  );
+  const userRoleMatchesStep = !!canActResult?.can_act;
 
   // Paused workflow → show info only. The backend (verify-and-submit) resumes it on resubmission.
   if (!activeInstance && pausedInstance && isInternal) {
@@ -293,15 +299,42 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build available actions strictly from the step's allowed_actions list.
-  // No synthetic bypass: if the step doesn't allow it, it does not appear.
+  // Build available actions strictly from the backend's allowed_actions list.
+  // The backend RPC is the single source of truth: it intersects the step's
+  // configured allowed_actions with this user's authorization. If the backend
+  // returns nothing usable, NO action buttons render — including
+  // "Forward to Next Level".
+  const backendAllowed = canActResult?.allowed_actions;
   const stepAllowed = (currentStep as any).allowed_actions as WorkflowActionType[] | undefined;
-  const noAllowedActions = hasNoAllowedActions(stepAllowed);
+  const effectiveAllowed = Array.isArray(backendAllowed) ? backendAllowed : stepAllowed;
+  const noAllowedActions = hasNoAllowedActions(effectiveAllowed);
   const allowedTypes = resolveAvailableActions({
     isFirstLevel,
     isLastLevel,
-    allowedActions: stepAllowed,
+    allowedActions: effectiveAllowed,
   });
+
+  if (import.meta.env.DEV) {
+    // Safe dev-only diagnostics — IDs and role names only, no secrets.
+    // eslint-disable-next-line no-console
+    console.debug('[WorkflowPanel] gating', {
+      application_id: applicationId,
+      workflow_id: workflowId,
+      workflow_instance_id: activeInstance?.id,
+      current_step_id: currentStep?.id,
+      current_step_order: currentStep?.step_order,
+      step_approver_role: currentStep?.approver_role,
+      step_approver_role_id: currentStep?.approver_role_id,
+      user_id: user?.id,
+      user_role: user?.role,
+      can_act: canActResult?.can_act,
+      reason: canActResult?.reason,
+      actor_dynamic_role_ids: canActResult?.actor_dynamic_role_ids,
+      backend_allowed_actions: backendAllowed,
+      step_allowed_actions: stepAllowed,
+      rendered_actions: allowedTypes,
+    });
+  }
 
   const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
     approve: isLastLevel
