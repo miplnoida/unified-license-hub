@@ -299,15 +299,42 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build available actions strictly from the step's allowed_actions list.
-  // No synthetic bypass: if the step doesn't allow it, it does not appear.
+  // Build available actions strictly from the backend's allowed_actions list.
+  // The backend RPC is the single source of truth: it intersects the step's
+  // configured allowed_actions with this user's authorization. If the backend
+  // returns nothing usable, NO action buttons render — including
+  // "Forward to Next Level".
+  const backendAllowed = canActResult?.allowed_actions;
   const stepAllowed = (currentStep as any).allowed_actions as WorkflowActionType[] | undefined;
-  const noAllowedActions = hasNoAllowedActions(stepAllowed);
+  const effectiveAllowed = Array.isArray(backendAllowed) ? backendAllowed : stepAllowed;
+  const noAllowedActions = hasNoAllowedActions(effectiveAllowed);
   const allowedTypes = resolveAvailableActions({
     isFirstLevel,
     isLastLevel,
-    allowedActions: stepAllowed,
+    allowedActions: effectiveAllowed,
   });
+
+  if (import.meta.env.DEV) {
+    // Safe dev-only diagnostics — IDs and role names only, no secrets.
+    // eslint-disable-next-line no-console
+    console.debug('[WorkflowPanel] gating', {
+      application_id: applicationId,
+      workflow_id: workflowId,
+      workflow_instance_id: activeInstance?.id,
+      current_step_id: currentStep?.id,
+      current_step_order: currentStep?.step_order,
+      step_approver_role: currentStep?.approver_role,
+      step_approver_role_id: currentStep?.approver_role_id,
+      user_id: user?.id,
+      user_role: user?.role,
+      can_act: canActResult?.can_act,
+      reason: canActResult?.reason,
+      actor_dynamic_role_ids: canActResult?.actor_dynamic_role_ids,
+      backend_allowed_actions: backendAllowed,
+      step_allowed_actions: stepAllowed,
+      rendered_actions: allowedTypes,
+    });
+  }
 
   const VISUALS: Record<WorkflowActionType, { label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' }> = {
     approve: isLastLevel
