@@ -79,6 +79,31 @@ export default function LicenseDetail() {
     await supabase.from('licenses' as any).update({ status: newStatus, updated_at: new Date().toISOString() } as any).eq('id', license.id);
     await logAudit({ action: `license_${actionType}`, entityType: 'license', entityId: license.id, oldValue: { status: oldStatus }, newValue: { status: newStatus, reason } });
 
+    // Fire-and-forget notification dispatch (never blocks UX). Maps action → event key.
+    const eventKeyMap: Record<string, string> = {
+      suspension: 'license.suspended',
+      revocation: 'license.revoked',
+      renewal: 'license.renewed',
+      reinstatement: 'license.reinstated',
+      cancellation: 'license.cancelled',
+    };
+    const eventKey = eventKeyMap[actionType] || 'license.status_changed';
+    dispatchNotificationEvent({
+      event_key: eventKey,
+      entity_type: 'license',
+      entity_id: license.id,
+      payload: {
+        license_id: license.id,
+        license_number: license.license_number,
+        license_type: license.license_type,
+        old_status: oldStatus,
+        new_status: newStatus,
+        reason: reason || '',
+        valid_until: license.valid_until ? new Date(license.valid_until).toISOString().slice(0, 10) : '',
+        holder_user_id: license.holder_id,
+      },
+    });
+
     toast.success(`License ${actionType} successful`);
     setLicense(prev => prev ? { ...prev, status: newStatus } : prev);
     setReason('');
@@ -87,6 +112,7 @@ export default function LicenseDetail() {
     const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
     if (acts) setActions(acts as any);
   };
+
 
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!license) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">License not found</div></DashboardLayout>;
