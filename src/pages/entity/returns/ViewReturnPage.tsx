@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
 import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { VersionInfoBadge } from '@/components/form-builder/VersionInfoBadge';
+
 import { MigrationCheckDialog } from '@/components/form-builder/MigrationCheckDialog';
 import { CompareReturnsPicker } from '@/components/form-builder/CompareReturnsPicker';
 import { StatusBadge } from './EntityReturnsDashboard';
