@@ -102,7 +102,7 @@ serve(async (req) => {
         });
       }
       try {
-        await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "");
+        await sendSmtpEmail(smtpConfig, body.to, body.subject, body.body || "", body.html);
         if (logId) {
           await supabase
             .from("notification_dispatch_log")
