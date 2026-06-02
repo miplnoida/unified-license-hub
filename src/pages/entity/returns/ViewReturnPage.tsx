@@ -18,7 +18,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, returnLabel }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null; returnId: string; returnLabel: string }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
-  const { data: pinnedVersion } = useFormVersion(pinnedVersionId || null);
   // Prefer the version this submission was filed on; fall back to latest published.
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
