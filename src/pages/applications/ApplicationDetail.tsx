@@ -117,8 +117,12 @@ export default function ApplicationDetail() {
     const userIds = [...new Set([...actionList.map(a => a.actor_id).filter(Boolean), applicantId].filter(Boolean))] as string[];
     let nameMap: Record<string, string> = {};
     if (userIds.length > 0) {
-      const { data: profiles } = await supabase.from('profiles').select('id, email, full_name').in('id', userIds);
+      const [{ data: profiles }, { data: preUsers }] = await Promise.all([
+        supabase.from('profiles').select('id, email, full_name').in('id', userIds),
+        supabase.from('pre_license_users').select('id, email, full_name').in('id', userIds),
+      ]);
       profiles?.forEach((p: any) => { nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
+      preUsers?.forEach((p: any) => { if (!nameMap[p.id]) nameMap[p.id] = p.full_name || p.email || 'Unknown User'; });
     }
     const resolveActor = (uid?: string | null) => {
       if (!uid) return 'Unknown User';
