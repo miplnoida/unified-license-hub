@@ -325,7 +325,7 @@ function DraftApplications({ widget, context }: RendererProps) {
             {drafts.map(d => {
               const continueHref = context.isLicensee
                 ? `/post-licensee/applications/${d.id}/forms`
-                : `/pre-license/new?draft=${d.id}&mode=continue`;
+                : `/applications/${d.id}/continue?draft=${d.id}&mode=continue`;
               return (
                 <Link
                   key={d.id}
