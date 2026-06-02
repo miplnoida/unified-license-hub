@@ -26,15 +26,12 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
   const [migrationOpen, setMigrationOpen] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
 
-  const showOutdatedBanner = !!pinnedVersionId && !!latestVersion && latestVersion.id !== pinnedVersionId;
-
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2 flex-wrap">
           <FileText className="h-4 w-4 text-primary" />
           <span>{name}</span>
-          {pinnedVersionId && <VersionInfoBadge versionId={pinnedVersionId} templateId={formId} showLatestComparison />}
           <div className="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
               <GitCompareArrows className="h-3 w-3 mr-1" /> Compare
@@ -48,11 +45,6 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {showOutdatedBanner && (
-          <Alert className="mb-3 border-amber-500 bg-amber-50 dark:bg-amber-950/30">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-xs text-amber-800 dark:text-amber-300">
-              This submission was filed on v{(pinnedVersion as any)?.semantic_version || (pinnedVersion as any)?.version || '?'}.
               A newer version is now available — click <strong>Migration check</strong> to preview field-level differences.
             </AlertDescription>
           </Alert>
