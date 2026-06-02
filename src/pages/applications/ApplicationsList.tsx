@@ -357,6 +357,29 @@ export default function ApplicationsList() {
     return () => { cancelled = true; };
   }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
 
+  // Fetch license number + status for approved applications so we can render
+  // them in the Status column (licensee view especially needs this).
+  useEffect(() => {
+    const approvedIds = applications.filter(a => a.status === 'approved').map(a => a.id);
+    if (approvedIds.length === 0) { setLicensesByApp({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('licenses')
+        .select('application_id, license_number, status')
+        .in('application_id', approvedIds);
+      if (cancelled || !data) return;
+      const map: Record<string, { license_number: string; status: string }> = {};
+      (data as any[]).forEach(l => {
+        if (l.application_id) map[l.application_id] = { license_number: l.license_number, status: l.status };
+      });
+      setLicensesByApp(map);
+    })();
+    return () => { cancelled = true; };
+  }, [applications]);
+
+
+
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
   useEffect(() => {
     async function loadStats() {
