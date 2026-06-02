@@ -894,7 +894,7 @@ export default function ApplicationsList() {
         </TableRow>
         {isExpanded && (
           <TableRow key={`${app.id}-history`}>
-            <TableCell colSpan={compareMode ? 13 : 12} className="bg-muted/30 p-4">
+            <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                 {actionsLoadingId === app.id && actions.length === 0 ? (
@@ -979,7 +979,7 @@ export default function ApplicationsList() {
                           <TableHead>License Type</TableHead>
                           <TableHead>Sector</TableHead>
                           <TableHead>Sub Sector</TableHead>
-                          <TableHead>Form Version</TableHead>
+                          {isInternal && <TableHead>Form Version</TableHead>}
                           <TableHead>Category / Service</TableHead>
                           <TableHead>Payment</TableHead>
                           <TableHead>Status</TableHead>
@@ -1042,7 +1042,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={compareMode ? 13 : 12} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
