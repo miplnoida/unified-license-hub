@@ -107,12 +107,12 @@ export default function MyReturnsPage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Unique ID</TableHead><TableHead>Return Type</TableHead><TableHead>Period</TableHead><TableHead>Year</TableHead>
-                          <TableHead>Status</TableHead><TableHead>Form Version</TableHead><TableHead>Due Date</TableHead><TableHead>Submitted</TableHead><TableHead>On-Time</TableHead><TableHead className="text-right">Actions</TableHead>
+                          <TableHead>Status</TableHead><TableHead>Due Date</TableHead><TableHead>Submitted</TableHead><TableHead>On-Time</TableHead><TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filtered.length === 0 ? (
-                          <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
                         ) : filtered.map(r => {
                           const vid = repVersionIdByReturn[r.id];
                           return (
