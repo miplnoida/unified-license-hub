@@ -70,6 +70,17 @@ export default function LicenseeDetail() {
 
     setLicensee(licRes.data);
     setHasReinsurance(((reinsRes.data as any[]) || []).length > 0);
+
+    if (licRes.data?.license_id) {
+      const { data: licenseData } = await supabase
+        .from('licenses')
+        .select('id, license_number, status')
+        .eq('id', licRes.data.license_id)
+        .maybeSingle();
+      setLicense(licenseData);
+    } else {
+      setLicense(null);
+    }
     setLoading(false);
   }, [id]);
 
