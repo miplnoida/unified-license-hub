@@ -110,7 +110,7 @@ export default function LicensesList() {
       <div className="space-y-6">
         <PageHeader
           title={isInternal ? 'License Management' : 'My Licenses'}
-          description={isInternal ? 'Manage all issued licenses' : 'View your active licenses and compliance'}
+          description={isInternal ? 'Manage all issued licenses' : 'View all your licenses and their current status'}
         />
 
         <Card>
