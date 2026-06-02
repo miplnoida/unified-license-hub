@@ -200,35 +200,28 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     </div>
   );
 
-  // Read-only view for users not assigned to the current step
+  // Internal staff who are NOT the configured approver for the current step
+  // still get a "regulator remark" capability: they can record an observation
+  // on the application's audit trail without touching workflow state.
+  // Non-internal viewers (and external observers) see read-only status.
   if (!userRoleMatchesStep) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
-            Workflow Review — Level {currentStepIdx + 1} of {steps.length}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">{currentStep.name}</span>
-            <Badge variant="outline" className="text-xs">
-              Pending: {stepRoleLabel(currentStep)}
-            </Badge>
-          </div>
-          {currentStep.sla_hours && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              SLA: {currentStep.sla_hours}h
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can view details and history but cannot take action on this step.
-          </p>
-          <ProgressTimeline />
-        </CardContent>
-      </Card>
+      <RegulatorRemarkCard
+        applicationId={applicationId}
+        instanceId={activeInstance.id}
+        stepId={currentStep.id}
+        stepName={currentStep.name}
+        stepRoleLabel={stepRoleLabel(currentStep)}
+        slaHours={currentStep.sla_hours}
+        currentStepIdx={currentStepIdx}
+        totalSteps={steps.length}
+        progress={<ProgressTimeline />}
+        canRemark={isInternal}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
+          onStatusChange?.();
+        }}
+      />
     );
   }
 
@@ -506,6 +499,123 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           </div>
         </DialogContent>
       </Dialog>
+    </Card>
+  );
+}
+
+// ─── Regulator Remark Card ───────────────────────────────────────────────
+// Shown to internal staff who are NOT the configured approver for the
+// current workflow step. Lets them add an audit-trail remark without
+// approving, rejecting, forwarding, escalating, or otherwise mutating
+// workflow state. The backend (add-application-remark edge function)
+// enforces this — UI hiding is defense-in-depth only.
+
+interface RegulatorRemarkCardProps {
+  applicationId: string;
+  instanceId: string;
+  stepId: string;
+  stepName: string;
+  stepRoleLabel: string;
+  slaHours: number | null;
+  currentStepIdx: number;
+  totalSteps: number;
+  progress: React.ReactNode;
+  canRemark: boolean;
+  onSuccess: () => void;
+}
+
+function RegulatorRemarkCard({
+  applicationId, instanceId, stepId, stepName, stepRoleLabel,
+  slaHours, currentStepIdx, totalSteps, progress, canRemark, onSuccess,
+}: RegulatorRemarkCardProps) {
+  const [remark, setRemark] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const submitRemark = async () => {
+    const trimmed = remark.trim();
+    if (!trimmed) return;
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('add-application-remark', {
+        body: { application_id: applicationId, instance_id: instanceId, step_id: stepId, comments: trimmed },
+      });
+      if (error) {
+        let msg = error.message || 'Failed to add remark';
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          }
+        } catch { /* ignore */ }
+        toast.error(msg);
+        return;
+      }
+      if ((data as any)?.error) {
+        toast.error((data as any).error);
+        return;
+      }
+      toast.success('Remark added');
+      setRemark('');
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to add remark');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Shield className="h-4 w-4 text-primary" />
+          Workflow Review — Level {currentStepIdx + 1} of {totalSteps}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">{stepName}</span>
+          <Badge variant="outline" className="text-xs">
+            Pending: {stepRoleLabel}
+          </Badge>
+        </div>
+        {slaHours != null && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            SLA: {slaHours}h
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          This step is assigned to <strong>{stepRoleLabel}</strong>. You cannot approve,
+          reject, or forward — but you may record a remark on the application's audit trail.
+        </p>
+        {progress}
+        <Separator />
+        {canRemark ? (
+          <div className="space-y-2">
+            <Label className="text-sm" htmlFor="regulator-remark">Add Remark</Label>
+            <Textarea
+              id="regulator-remark"
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              placeholder="Record an observation, query, or note for the assigned approver…"
+              rows={3}
+              disabled={submitting}
+            />
+            <div className="flex justify-end">
+              <Button size="sm" onClick={submitRemark} disabled={submitting || !remark.trim()}>
+                {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                Add Remark
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            You can view details and history but cannot take action on this step.
+          </p>
+        )}
+      </CardContent>
     </Card>
   );
 }
