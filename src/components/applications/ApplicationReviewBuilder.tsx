@@ -103,14 +103,7 @@ function ReviewBuilderInner({
           });
       }
 
-      const titleNode = versionLabel ? (
-        <span className="flex items-center gap-2">
-          {t.name}
-          <Badge variant="outline" className="text-[10px]">v{versionLabel}</Badge>
-        </span>
-      ) : t.name;
-
-      return { title: titleNode as any, fields };
+      return { title: t.name, fields };
     });
   }, [templates, templateSections, formProgressMap]);
 
