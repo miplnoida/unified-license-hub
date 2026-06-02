@@ -113,7 +113,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
+  const processing = processingAction !== null;
   const [approvalResult, setApprovalResult] = useState<{
     license_number?: string;
     web_user_email?: string;
