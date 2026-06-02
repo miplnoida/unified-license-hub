@@ -286,12 +286,12 @@ function MyApplications({ widget, context }: RendererProps) {
 }
 
 function DraftApplications({ widget, context }: RendererProps) {
-  const [drafts, setDrafts] = useState<Array<{ id: string; application_number: string; updated_at: string; status: string }>>([]);
+  const [drafts, setDrafts] = useState<Array<{ id: string; application_number: string; updated_at: string; status: string; data?: Record<string, any> | null }>>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
     supabase.from('applications')
-      .select('id, application_number, updated_at, status')
+      .select('id, application_number, updated_at, status, data')
       .eq('applicant_id', context.userId).in('status', ['draft', 'in_progress'])
       .order('updated_at', { ascending: false }).limit(5)
       .then(({ data }) => { if (alive) setDrafts((data || []) as any); })
@@ -323,7 +323,8 @@ function DraftApplications({ widget, context }: RendererProps) {
         ) : (
           <div className="space-y-2">
             {drafts.map(d => {
-              const continueHref = context.isLicensee
+              const isPostLicenseDraft = d.data?.type === 'post_license' || !!d.data?.service_id;
+              const continueHref = isPostLicenseDraft
                 ? `/post-licensee/applications/${d.id}/forms`
                 : `/applications/${d.id}/continue?draft=${d.id}&mode=continue`;
               return (
