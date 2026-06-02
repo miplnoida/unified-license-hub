@@ -31,10 +31,14 @@ async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text
     connection: {
       hostname: smtp.host,
       port: smtp.port,
-      tls: smtp.encryption === "ssl" || smtp.encryption === "tls",
+      // Implicit TLS only for SSL (typically port 465).
+      // For STARTTLS ("tls" on port 587), keep tls=false — denomailer will
+      // upgrade the plaintext connection via STARTTLS automatically.
+      tls: smtp.encryption === "ssl",
       auth: { username: smtp.username, password: smtp.password! },
     },
   });
+
   try {
     await client.send({
       from: `${smtp.fromName || "Notifications"} <${smtp.fromEmail}>`,
