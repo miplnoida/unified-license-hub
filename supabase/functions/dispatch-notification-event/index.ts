@@ -240,7 +240,8 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { event_key, entity_type, entity_id, payload } = await req.json();
+    // `reminder_window` (e.g. "30d", "15d", "1d", "0d") makes dedupe per-window for cron-driven reminders.
+    const { event_key, entity_type, entity_id, payload, reminder_window } = await req.json();
     if (!event_key) {
       return new Response(JSON.stringify({ error: "event_key required" }), {
         status: 200,
@@ -248,6 +249,9 @@ Deno.serve(async (req) => {
       });
     }
     const vars: Record<string, any> = { ...(payload || {}) };
+    // Always inject app_url + app_name into template vars for action links
+    vars.app_url = vars.app_url || Deno.env.get("APP_BASE_URL") || "";
+    vars.app_name = vars.app_name || Deno.env.get("APP_NAME") || "Regulator Portal";
 
     const { data: cfg } = await admin
       .from("notification_event_configs")
@@ -285,7 +289,9 @@ Deno.serve(async (req) => {
 
     const channels: string[] = Array.isArray(cfg.channels) && cfg.channels.length ? cfg.channels : ["in_app"];
     const dedupeWindow = Math.max(0, Number(cfg.dedupe_window_seconds) || 60);
-    const dedupeBucket = Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1));
+    const dedupeBucket = reminder_window
+      ? `rw:${reminder_window}`
+      : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
 
     const title = render(cfg.title_template, vars) || event_key;
     const message = render(cfg.message_template, vars) || "";
@@ -295,8 +301,7 @@ Deno.serve(async (req) => {
     for (const userId of recipients) {
       for (const channel of channels) {
         const dedupeKey = [event_key, entity_type || "-", entity_id || "-", userId, channel, dedupeBucket].join("|");
-        // Try to insert a dedupe row first; if it conflicts, skip.
-        const { error: dedupeErr } = await admin
+        const { data: insertedRow, error: dedupeErr } = await admin
           .from("notification_dispatch_log")
           .insert({
             event_key,
@@ -306,11 +311,17 @@ Deno.serve(async (req) => {
             channel,
             dedupe_key: dedupeKey,
             status: "pending",
-          });
+            reminder_window: reminder_window || null,
+            subject: channel === "email" ? emailSubject : title,
+            payload: { vars, event_key, entity_type, entity_id },
+          })
+          .select("id")
+          .maybeSingle();
         if (dedupeErr) {
           summary.skipped++;
           continue;
         }
+        const logId = insertedRow?.id;
         try {
           if (channel === "in_app") {
             const { error } = await admin.from("notifications").insert({
@@ -324,17 +335,26 @@ Deno.serve(async (req) => {
               delivery_status: "delivered",
             });
             if (error) throw error;
+            await admin
+              .from("notification_dispatch_log")
+              .update({ status: "sent", sent_at: new Date().toISOString(), last_attempt_at: new Date().toISOString() })
+              .eq("id", logId);
+            summary.sent++;
           } else if (channel === "email") {
-            // Look up the email address across supported user sources; queue if SMTP is configured, else best-effort.
             const email = await resolveRecipientEmail(admin, userId);
             if (!email) {
-              summary.failed++;
+              summary.skipped++;
               await admin
                 .from("notification_dispatch_log")
-                .update({ status: "failed", error: "no_email" })
-                .eq("dedupe_key", dedupeKey);
+                .update({ status: "skipped", error: "no_email", last_attempt_at: new Date().toISOString() })
+                .eq("id", logId);
               continue;
             }
+            await admin
+              .from("notification_dispatch_log")
+              .update({ recipient_email: email })
+              .eq("id", logId);
+            // send-notification updates the log row (sent_at / error / retry_count) when dispatch_log_id is supplied.
             try {
               await admin.functions.invoke("send-notification", {
                 body: {
@@ -342,12 +362,19 @@ Deno.serve(async (req) => {
                   to: email,
                   subject: emailSubject,
                   body: emailBody,
+                  dispatch_log_id: logId,
                 },
               });
             } catch (e: any) {
               console.error("send-notification email failed", e?.message || e);
+              await admin
+                .from("notification_dispatch_log")
+                .update({ status: "failed", error: String(e?.message || e).slice(0, 500), last_attempt_at: new Date().toISOString() })
+                .eq("id", logId);
+              summary.failed++;
+              continue;
             }
-            // Always also create an in-app row for visibility (dedupe row guards repeats)
+            // Mirror to in-app inbox so users see the email even if SMTP fails silently
             await admin.from("notifications").insert({
               user_id: userId,
               title: emailSubject,
@@ -358,18 +385,14 @@ Deno.serve(async (req) => {
               channel: "email",
               delivery_status: "queued",
             });
+            summary.sent++;
           }
-          await admin
-            .from("notification_dispatch_log")
-            .update({ status: "sent" })
-            .eq("dedupe_key", dedupeKey);
-          summary.sent++;
         } catch (e: any) {
           console.error("dispatch failure", event_key, userId, channel, e?.message || e);
           await admin
             .from("notification_dispatch_log")
-            .update({ status: "failed", error: String(e?.message || e).slice(0, 500) })
-            .eq("dedupe_key", dedupeKey);
+            .update({ status: "failed", error: String(e?.message || e).slice(0, 500), last_attempt_at: new Date().toISOString() })
+            .eq("id", logId);
           summary.failed++;
         }
       }
