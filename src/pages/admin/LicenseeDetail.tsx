@@ -10,6 +10,7 @@ import {
   ArrowLeft, Loader2, Building2, Users, GitBranch, Shield, Gavel,
   ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash
 } from 'lucide-react';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 // Lazy-load tab components
 const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
