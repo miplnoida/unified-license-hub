@@ -238,7 +238,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       return;
     }
 
-    setProcessing(true);
+    setProcessingAction(actionType);
     try {
       const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
         body: {
@@ -292,7 +292,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } catch (err: any) {
       toast.error(err?.message || 'Action failed');
     } finally {
-      setProcessing(false);
+      setProcessingAction(null);
     }
   };
 
@@ -303,7 +303,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       toast.error('Please enter a remark.');
       return;
     }
-    setProcessing(true);
+    setProcessingAction('__remark__');
     try {
       const { data, error } = await supabase.functions.invoke('add-application-remark', {
         body: {
@@ -336,7 +336,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } catch (e: any) {
       toast.error(e?.message || 'Failed to add remark');
     } finally {
-      setProcessing(false);
+      setProcessingAction(null);
     }
   };
 
