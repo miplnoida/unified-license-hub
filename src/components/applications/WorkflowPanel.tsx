@@ -146,7 +146,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return `Legacy role: ${ROLE_LABELS[step.approver_role as AppRole] || step.approver_role}`;
   };
 
-  const userRoleMatchesStep = !!canActResult?.can_act;
+  
 
   // Paused workflow → show info only. The backend (verify-and-submit) resumes it on resubmission.
   if (!activeInstance && pausedInstance && isInternal) {
