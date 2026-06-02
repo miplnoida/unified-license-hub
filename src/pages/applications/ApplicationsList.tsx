@@ -643,6 +643,10 @@ export default function ApplicationsList() {
     const payment = app.payment || null;
     const versionEntries = getAppVersionEntries(app);
     const isSelectedForCompare = selectedForCompare.includes(app.id);
+    const isPostLicenseApplication = (app.data as any)?.type === 'post_license' || !!(app.data as any)?.service_id;
+    const editHref = isPostLicenseApplication
+      ? `/post-licensee/applications/${app.id}/forms`
+      : `/applications/${app.id}/continue?draft=${app.id}&mode=continue`;
     return (
       <Fragment key={app.id}>
         <TableRow
@@ -828,7 +832,7 @@ export default function ApplicationsList() {
               { label: 'View', icon: Eye, onClick: () => navigate(`/applications/${app.id}`) },
               {
                 label: 'Edit', icon: Pencil,
-                onClick: () => navigate(`/applications/${app.id}?mode=edit`),
+                onClick: () => navigate(editHref),
                 hidden: !(!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status)),
               },
               {
