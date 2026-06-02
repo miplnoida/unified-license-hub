@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 interface SmtpConfig {
   host: string;
@@ -14,6 +13,7 @@ interface SmtpConfig {
 }
 
 async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
+  // Always read latest dynamic settings from site_settings (no caching).
   const { data } = await supabase
     .from("site_settings")
     .select("value")
@@ -26,28 +26,43 @@ async function loadSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
   return smtp;
 }
 
-async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text: string): Promise<void> {
-  const client = new SMTPClient({
-    connection: {
-      hostname: smtp.host,
-      port: smtp.port,
-      // Implicit TLS only for SSL (typically port 465).
-      // For STARTTLS ("tls" on port 587), keep tls=false — denomailer will
-      // upgrade the plaintext connection via STARTTLS automatically.
-      tls: smtp.encryption === "ssl",
-      auth: { username: smtp.username, password: smtp.password! },
-    },
+async function sendSmtpEmail(smtp: SmtpConfig, to: string, subject: string, text: string, html?: string): Promise<void> {
+  // Use nodemailer for proper STARTTLS handling (denomailer fails the TLS
+  // handshake on common providers like Gmail/Office365 on port 587).
+  const nodemailer = (await import("npm:nodemailer@6.9.16")).default;
+  const secure = smtp.encryption === "ssl";       // implicit TLS (e.g. 465)
+  const requireTLS = smtp.encryption === "tls";   // STARTTLS upgrade (e.g. 587)
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: Number(smtp.port),
+    secure,
+    requireTLS,
+    auth: { user: smtp.username, pass: smtp.password! },
+    tls: { rejectUnauthorized: false },
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
-
   try {
-    await client.send({
-      from: `${smtp.fromName || "Notifications"} <${smtp.fromEmail}>`,
+    await transporter.sendMail({
+      from: `"${smtp.fromName || "Notifications"}" <${smtp.fromEmail}>`,
       to,
       subject,
-      content: text,
+      text,
+      html: html || undefined,
     });
-  } finally {
-    try { await client.close(); } catch { /* noop */ }
+  } catch (e: any) {
+    const raw = e?.message || String(e);
+    const code = e?.code || "";
+    let friendly = raw;
+    if (/ETIMEDOUT|ESOCKET|ECONNRESET|wrong version number|SSL|TLS/i.test(raw)) {
+      friendly = `TLS/connection issue: ${raw}. Check encryption (SSL=465, TLS=587, None=25).`;
+    } else if (code === "EAUTH" || /535|534|invalid login|authentication/i.test(raw)) {
+      friendly = "SMTP authentication failed. Check username and password.";
+    } else if (code === "ECONNECTION" || /ECONNREFUSED|ENOTFOUND|getaddrinfo|dns/i.test(raw)) {
+      friendly = `Cannot reach SMTP server ${smtp.host}:${smtp.port}. ${raw}`;
+    }
+    throw new Error(friendly);
   }
 }
 
