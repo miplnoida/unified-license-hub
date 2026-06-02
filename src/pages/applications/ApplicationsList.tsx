@@ -17,8 +17,9 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
-import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X } from 'lucide-react';
+import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -201,6 +202,8 @@ export default function ApplicationsList() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [versions, setVersions] = useState<Record<string, FormVersionRow>>({});
   const [templates, setTemplates] = useState<Record<string, FormTemplateRow>>({});
+  /** application_id → { license_number, status } for approved apps */
+  const [licensesByApp, setLicensesByApp] = useState<Record<string, { license_number: string; status: string }>>({});
   const [versionFilter, setVersionFilter] = useState<string>('all');
   const [versionSort, setVersionSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [compareMode, setCompareMode] = useState(false);
