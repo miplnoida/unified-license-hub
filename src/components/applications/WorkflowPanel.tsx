@@ -37,7 +37,18 @@ interface CanActResult {
   actor_system_roles: string[];
   actor_dynamic_role_ids: string[];
   allowed_actions: WorkflowActionType[];
+  is_internal?: boolean;
+  is_first_step?: boolean;
+  is_last_step?: boolean;
+  can_add_remark?: boolean;
+  can_reject?: boolean;
+  can_forward?: boolean;
+  can_approve?: boolean;
+  can_send_back?: boolean;
+  can_escalate?: boolean;
+  can_request_resubmission?: boolean;
 }
+
 
 function useCanActOnStep(userId: string | undefined, stepId: string | undefined) {
   return useQuery({
