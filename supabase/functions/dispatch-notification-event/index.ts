@@ -298,6 +298,29 @@ Deno.serve(async (req) => {
     const emailSubject = render(cfg.email_subject_template, vars) || title;
     const emailBody = render(cfg.email_body_template, vars) || message;
 
+    const escapeHtml = (s: string) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    const buildEmailHtml = (heading: string, bodyText: string) => {
+      const safeHeading = escapeHtml(heading);
+      // Preserve paragraph/line breaks from the template body
+      const paragraphs = String(bodyText || "")
+        .split(/\n{2,}/)
+        .map((p) => `<p style="color:#475569;margin:0 0 12px;line-height:1.55;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
+        .join("");
+      const appName = escapeHtml(vars.app_name || "Regulator Portal");
+      return `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+        <h2 style="margin:0 0 12px;">${safeHeading}</h2>
+        ${paragraphs}
+        <p style="color:#94a3b8;font-size:12px;margin-top:16px;">This is an automated message from ${appName}. Please do not reply.</p>
+      </div>`;
+    };
+    const emailHtml = buildEmailHtml(emailSubject, emailBody);
+
     for (const userId of recipients) {
       for (const channel of channels) {
         const dedupeKey = [event_key, entity_type || "-", entity_id || "-", userId, channel, dedupeBucket].join("|");
@@ -362,6 +385,7 @@ Deno.serve(async (req) => {
                   to: email,
                   subject: emailSubject,
                   body: emailBody,
+                  html: emailHtml,
                   dispatch_log_id: logId,
                 },
               });
