@@ -322,23 +322,28 @@ function DraftApplications({ widget, context }: RendererProps) {
           </p>
         ) : (
           <div className="space-y-2">
-            {drafts.map(d => (
-              <Link
-                key={d.id}
-                to={`/pre-license/new?draft=${d.id}&mode=continue`}
-                className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 transition-colors"
-              >
-                <div>
-                  <p className="font-mono text-sm font-medium">{d.application_number}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {d.status === 'in_progress' ? 'In Progress' : 'Draft'} · Last modified: {new Date(d.updated_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="gap-1 pointer-events-none">
-                  <Edit className="h-3 w-3" /> Continue
-                </Button>
-              </Link>
-            ))}
+            {drafts.map(d => {
+              const continueHref = context.isLicensee
+                ? `/post-licensee/applications/${d.id}/forms`
+                : `/pre-license/new?draft=${d.id}&mode=continue`;
+              return (
+                <Link
+                  key={d.id}
+                  to={continueHref}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent/40 transition-colors"
+                >
+                  <div>
+                    <p className="font-mono text-sm font-medium">{d.application_number}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {d.status === 'in_progress' ? 'In Progress' : 'Draft'} · Last modified: {new Date(d.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-1 pointer-events-none">
+                    <Edit className="h-3 w-3" /> Continue
+                  </Button>
+                </Link>
+              );
+            })}
           </div>
         )}
       </CardContent>
