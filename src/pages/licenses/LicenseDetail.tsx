@@ -13,7 +13,8 @@ import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw } from 'lucide-react';
+import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface License {
   id: string;
