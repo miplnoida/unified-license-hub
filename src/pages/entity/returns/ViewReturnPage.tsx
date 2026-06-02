@@ -44,10 +44,6 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
         </CardTitle>
       </CardHeader>
       <CardContent>
-              A newer version is now available — click <strong>Migration check</strong> to preview field-level differences.
-            </AlertDescription>
-          </Alert>
-        )}
         {loading ? (
           <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading form...</div>
         ) : sections.length === 0 ? (
