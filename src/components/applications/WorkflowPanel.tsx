@@ -442,26 +442,29 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         )}
 
         <div className="flex gap-2 flex-wrap">
-          {actions.map(a => (
-            <Button
-              key={a.label}
-              variant={a.variant}
-              size="sm"
-              onClick={() => handleAction(a.type)}
-              disabled={processing}
-            >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-              {a.label}
-            </Button>
-          ))}
-          {canAddRemark && (
+          {actions.map(a => {
+            const isThisProcessing = processingAction === a.type;
+            return (
+              <Button
+                key={a.label}
+                variant={a.variant}
+                size="sm"
+                onClick={() => handleAction(a.type)}
+                disabled={processing}
+              >
+                {isThisProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+                {a.label}
+              </Button>
+            );
+          })}
+          {canAddRemark && noWorkflowActions && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleAddRemark}
               disabled={processing || !comment.trim()}
             >
-              {processing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+              {processingAction === '__remark__' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
               Add Remark
             </Button>
           )}
