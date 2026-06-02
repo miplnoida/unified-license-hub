@@ -824,20 +824,22 @@ export default function ApplicationsList() {
             )}
           </TableCell>
           <TableCell>
-            <div className="flex flex-col gap-1">
-              <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
-                {APPLICATION_STATUS_LABELS[app.status] || app.status}
-              </Badge>
-              {app.status === 'approved' && licensesByApp[app.id] && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 font-mono text-[11px] text-foreground">
-                    <Shield className="h-3 w-3 text-primary" />
-                    {licensesByApp[app.id].license_number}
-                  </span>
-                  <LicenseStatusBadge status={licensesByApp[app.id].status} />
-                </div>
-              )}
-            </div>
+            <Badge variant={statusBadgeVariant(app.status) as any} className="text-xs w-fit">
+              {APPLICATION_STATUS_LABELS[app.status] || app.status}
+            </Badge>
+          </TableCell>
+          <TableCell>
+            {app.status === 'approved' && licensesByApp[app.id] ? (
+              <div className="flex flex-col gap-1">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-foreground">
+                  <Shield className="h-3 w-3 text-primary" />
+                  {licensesByApp[app.id].license_number}
+                </span>
+                <LicenseStatusBadge status={licensesByApp[app.id].status} />
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
@@ -894,7 +896,7 @@ export default function ApplicationsList() {
         </TableRow>
         {isExpanded && (
           <TableRow key={`${app.id}-history`}>
-            <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="bg-muted/30 p-4">
+            <TableCell colSpan={(isInternal ? 13 : 12) + (compareMode ? 1 : 0)} className="bg-muted/30 p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Application History</p>
                 {actionsLoadingId === app.id && actions.length === 0 ? (
@@ -982,7 +984,8 @@ export default function ApplicationsList() {
                           {isInternal && <TableHead>Form Version</TableHead>}
                           <TableHead>Category / Service</TableHead>
                           <TableHead>Payment</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Application Status</TableHead>
+                          <TableHead>Licensee Status</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>History</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
@@ -1035,7 +1038,8 @@ export default function ApplicationsList() {
                   )}
                   <TableHead>Category / Service</TableHead>
                   <TableHead>Payment</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Application Status</TableHead>
+                  <TableHead>Licensee Status</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -1044,7 +1048,7 @@ export default function ApplicationsList() {
               <TableBody>
                 {paged.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={(isInternal ? 12 : 11) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={(isInternal ? 13 : 12) + (compareMode ? 1 : 0)} className="text-center text-muted-foreground py-12">
                       No applications found.
                     </TableCell>
                   </TableRow>
