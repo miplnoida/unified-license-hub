@@ -16,7 +16,7 @@ import {
   CheckCircle, XCircle, ArrowUp, ArrowDown, ArrowRight, Shield, Loader2, Clock, Copy, Mail, CircleDot, Circle, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolveAvailableActions, isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 
 /**
  * Backend-authoritative check: ask Postgres whether THIS user can act on
