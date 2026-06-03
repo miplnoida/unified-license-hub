@@ -1987,53 +1987,78 @@ export default function NewApplication() {
         )}
 
         {/* Filling a specific form */}
-        {!hydratingDraft && currentStep === 'filling' && activeTemplate && (
-          <div className="space-y-3">
-            {/* Version badge hidden from applicants */}
-            {!resolverMessage && sections.length > 0 ? (
-              <FormRenderer
-                formName={activeTemplate.name}
-                sections={sections}
-                initialData={formProgressMap[activeTemplate.id]?.data || {}}
-                onSaveDraft={handleFormSaveDraft}
-                onSubmit={handleFormSubmit}
-                saving={saving}
-                applicationId={applicationId || undefined}
-              />
-            ) : resolverMessage ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{activeTemplate.name}</CardTitle>
-                  <CardDescription>{resolverMessage}</CardDescription>
-                </CardHeader>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{activeTemplate.name}</CardTitle>
-                  <CardDescription>
-                    No fields configured for this form. Contact admin to set up the form.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-end">
-                    <Button onClick={() => {
-                      setFormProgressMap(prev => ({
-                        ...prev,
-                        [activeTemplate.id]: { ...prev[activeTemplate.id], status: 'completed' },
-                      }));
-                      setActiveFormTemplateId(null);
-                      void goToStep('forms', { last_active_form_template_id: null });
-                    }}>
-                      Mark Complete & Return
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
+        {!hydratingDraft && currentStep === 'filling' && activeTemplate && (() => {
+          const stillLoadingVersion =
+            resolvingFormVersion ||
+            (!resolverMessage && !resolvedVersionId) ||
+            (!!resolvedVersionId && sections.length === 0 && !resolverMessage);
+          const showRenderer = !resolverMessage && !!resolvedVersionId && sections.length > 0;
+          const showEmptyConfig =
+            !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0;
+          return (
+            <div className="space-y-3">
+              {showRenderer && (
+                <FormRenderer
+                  formName={activeTemplate.name}
+                  sections={sections}
+                  initialData={formProgressMap[activeTemplate.id]?.data || {}}
+                  onSaveDraft={handleFormSaveDraft}
+                  onSubmit={handleFormSubmit}
+                  saving={saving}
+                  applicationId={applicationId || undefined}
+                />
+              )}
+              {!showRenderer && !resolverMessage && stillLoadingVersion && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{activeTemplate.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading form…
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+              {!showRenderer && resolverMessage && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{activeTemplate.name}</CardTitle>
+                    <CardDescription>{resolverMessage}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-end">
+                      <Button variant="outline" onClick={() => {
+                        setActiveFormTemplateId(null);
+                        void goToStep('forms', { last_active_form_template_id: null });
+                      }}>
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Forms
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {!showRenderer && !resolverMessage && showEmptyConfig && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{activeTemplate.name}</CardTitle>
+                    <CardDescription>
+                      No fields are configured for this form yet. Please contact the administrator to set up this form before continuing.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-end">
+                      <Button variant="outline" onClick={() => {
+                        setActiveFormTemplateId(null);
+                        void goToStep('forms', { last_active_form_template_id: null });
+                      }}>
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Forms
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Step 3: Documents */}
         {!hydratingDraft && currentStep === 'documents' && applicationId && (
