@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Search, Loader2, Download, ShieldCheck, Trash2, Eye, RefreshCcw, CheckCircle2, XCircle } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
@@ -169,7 +168,7 @@ export default function DocumentStore() {
     replaceInputRef.current?.click();
   };
 
-  const handleReplaceSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReplaceSelected = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !replaceTarget || !user) return;
 
