@@ -1464,17 +1464,28 @@ export default function NewApplication() {
         setPaymentReceiptNumber((existingReceipt as any).receipt_number || null);
       }
 
+      // Server-side trigger on `payments` writes the canonical
+      // `payment.completed` audit row; we only emit a frontend-tagged row
+      // for receipt-generated tracking from the UI context.
       await logAudit({
-        action: 'payment_completed',
+        action: 'payment.receipt_generated',
         entityType: 'payment',
         entityId: paymentRowId,
         newValue: { amount: paidAmount, application_id: applicationId, payment_action: paymentAction },
+        metadata: { source: 'frontend', application_id: applicationId, payment_id: paymentRowId, amount: paidAmount, payment_action: paymentAction },
       });
 
       await hydratePaymentState(applicationId);
       toast.success(paymentAction === 'paid' ? 'Payment already completed for this application.' : 'Payment successful!');
     } catch (err: any) {
       setPaymentStatus('failed');
+      await logAudit({
+        action: 'payment.failed',
+        entityType: 'payment',
+        entityId: applicationId || 'unknown',
+        newValue: { error: err?.message || 'Unknown error' },
+        metadata: { source: 'frontend', application_id: applicationId, error: err?.message || 'Unknown error' },
+      }).catch(() => {});
       toast.error('Payment failed: ' + (err.message || 'Unknown error'));
     } finally {
       setProcessingPayment(false);
