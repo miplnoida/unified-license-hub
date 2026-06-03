@@ -983,10 +983,11 @@ export default function NewApplication() {
       const newId = (data as any).id as string;
       setApplicationId(newId);
       await logAudit({
-        action: 'application_created',
+        action: 'application.created',
         entityType: 'application',
         entityId: newId,
         newValue: { license_type: payload.license_type, sector: sectorObj?.name, category: categoryObj?.name },
+        metadata: { source: 'frontend', application_id: newId, license_type: payload.license_type, sector_name: sectorObj?.name, category_name: categoryObj?.name },
       });
       return newId;
     }
