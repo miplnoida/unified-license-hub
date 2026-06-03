@@ -504,7 +504,7 @@ export default function ApplicationDetail() {
       await supabase.from('approval_actions').insert({
         application_id: app.id, action: 'edit_denied', actor_id: user.id, comments: actionComment,
       } as any);
-      await logAudit({ action: 'edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+      await logAudit({ action: 'application.edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
       toast.success('Edit request denied');
       setActionComment('');
       await loadData();
