@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ActivityTab } from '@/components/applications/ActivityTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
@@ -304,8 +305,9 @@ export default function ApplicationDetail() {
       application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
     } as any);
     await logAudit({
-      action: `application_${actionType}`, entityType: 'application', entityId: app.id,
+      action: `application.${actionType}`, entityType: 'application', entityId: app.id,
       newValue: { status: newStatus, comments: comment },
+      metadata: { source: 'frontend', application_id: app.id, to_status: newStatus, comments: comment },
     });
 
     toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
@@ -350,7 +352,7 @@ export default function ApplicationDetail() {
       application_id: app.id, action: 'edit_requested', actor_id: user.id,
       comments: actionComment,
     } as any);
-    await logAudit({ action: 'edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    await logAudit({ action: 'application.edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
     toast.success('Edit request submitted. Admin will review your request.');
     setActionComment('');
     loadData();
@@ -381,10 +383,11 @@ export default function ApplicationDetail() {
       } as any);
 
       await logAudit({
-        action: 'application_resubmitted',
+        action: 'application.resubmitted',
         entityType: 'application',
         entityId: app.id,
         newValue: { status: 'submitted' },
+        metadata: { source: 'frontend', application_id: app.id, application_number: app.application_number, comments: actionComment },
       });
 
       toast.success(data?.message || 'Application resubmitted successfully');
@@ -418,7 +421,7 @@ export default function ApplicationDetail() {
       return;
     }
 
-    await logAudit({ action: 'resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    await logAudit({ action: 'application.resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
     toast.success('Resubmission requested. Applicant has been notified.');
     setActionComment('');
     loadData();
@@ -480,7 +483,7 @@ export default function ApplicationDetail() {
       await supabase.from('approval_actions').insert({
         application_id: app.id, action: 'edit_approved', actor_id: user.id, comments: reason,
       } as any);
-      await logAudit({ action: 'edit_approved', entityType: 'application', entityId: app.id, newValue: { comments: reason } });
+      await logAudit({ action: 'application.edit_approved', entityType: 'application', entityId: app.id, newValue: { comments: reason }, metadata: { source: 'frontend', application_id: app.id, comments: reason } });
       toast.success('Edit request approved. Applicant can now edit the application.');
       setActionComment('');
       await loadData();
@@ -501,7 +504,7 @@ export default function ApplicationDetail() {
       await supabase.from('approval_actions').insert({
         application_id: app.id, action: 'edit_denied', actor_id: user.id, comments: actionComment,
       } as any);
-      await logAudit({ action: 'edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+      await logAudit({ action: 'application.edit_denied', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
       toast.success('Edit request denied');
       setActionComment('');
       await loadData();
@@ -544,7 +547,9 @@ export default function ApplicationDetail() {
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
               </TabsList>
+
 
               <TabsContent value="details" className="space-y-4 mt-4">
                 {activeTab === 'details' && (
@@ -719,7 +724,12 @@ export default function ApplicationDetail() {
                   />
                 ))}
               </TabsContent>
+
+              <TabsContent value="activity" className="mt-4">
+                {activeTab === 'activity' && <ActivityTab applicationId={app.id} />}
+              </TabsContent>
             </Tabs>
+
 
             {/* Admin: Edit Request Pending — bypasses workflow */}
             {showEditRequestAdminPanel && (

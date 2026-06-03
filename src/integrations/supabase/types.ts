@@ -5039,6 +5039,19 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      write_audit: {
+        Args: {
+          _action: string
+          _dedupe_seconds?: number
+          _entity_id: string
+          _entity_type: string
+          _metadata?: Json
+          _new_value?: Json
+          _old_value?: Json
+          _user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role:
