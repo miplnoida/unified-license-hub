@@ -421,7 +421,7 @@ export default function ApplicationDetail() {
       return;
     }
 
-    await logAudit({ action: 'resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    await logAudit({ action: 'application.resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
     toast.success('Resubmission requested. Applicant has been notified.');
     setActionComment('');
     loadData();
