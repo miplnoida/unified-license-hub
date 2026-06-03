@@ -383,10 +383,11 @@ export default function ApplicationDetail() {
       } as any);
 
       await logAudit({
-        action: 'application_resubmitted',
+        action: 'application.resubmitted',
         entityType: 'application',
         entityId: app.id,
         newValue: { status: 'submitted' },
+        metadata: { source: 'frontend', application_id: app.id, application_number: app.application_number, comments: actionComment },
       });
 
       toast.success(data?.message || 'Application resubmitted successfully');
