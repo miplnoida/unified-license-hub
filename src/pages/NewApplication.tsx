@@ -1984,19 +1984,40 @@ export default function NewApplication() {
 
         {/* Filling a specific form */}
         {!hydratingDraft && currentStep === 'filling' && activeTemplate && (() => {
+          // Sticky-loaded sections + version. Once the renderer has mounted
+          // successfully for the current active template, keep showing it
+          // during background refetches so the form (and its Save / Update /
+          // Continue button) does not blink back to the "Loading form…" card.
+          const loadedRef = loadedFormRendererRef.current;
+          const liveCanShow = !resolverMessage && !!resolvedVersionId && sections.length > 0;
+          if (liveCanShow && activeTemplate) {
+            loadedFormRendererRef.current = {
+              templateId: activeTemplate.id,
+              versionId: resolvedVersionId,
+              sections,
+            };
+          }
+          const stickyLoaded =
+            loadedRef && loadedRef.templateId === activeTemplate.id
+              ? loadedRef
+              : null;
+          const effectiveVersionId = resolvedVersionId || stickyLoaded?.versionId || null;
+          const effectiveSections = sections.length > 0 ? sections : (stickyLoaded?.sections || []);
           const stillLoadingVersion =
-            resolvingFormVersion ||
-            (!resolverMessage && !resolvedVersionId) ||
-            (!!resolvedVersionId && sections.length === 0 && !resolverMessage);
-          const showRenderer = !resolverMessage && !!resolvedVersionId && sections.length > 0;
+            !stickyLoaded && (
+              resolvingFormVersion ||
+              (!resolverMessage && !resolvedVersionId) ||
+              (!!resolvedVersionId && sections.length === 0 && !resolverMessage)
+            );
+          const showRenderer = (!resolverMessage && !!effectiveVersionId && effectiveSections.length > 0) || !!stickyLoaded;
           const showEmptyConfig =
-            !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0;
+            !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0 && !stickyLoaded;
           return (
             <div className="space-y-3">
               {showRenderer && (
                 <FormRenderer
                   formName={activeTemplate.name}
-                  sections={sections}
+                  sections={effectiveSections}
                   initialData={formProgressMap[activeTemplate.id]?.data || {}}
                   onSaveDraft={handleFormSaveDraft}
                   onSubmit={handleFormSubmit}
