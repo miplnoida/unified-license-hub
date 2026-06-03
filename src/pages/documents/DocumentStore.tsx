@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Search, Loader2, Download, ShieldCheck, Trash2, Eye } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
-import { secureDownload, secureDelete, getSignedUrl } from '@/lib/secureFileUpload';
+import Swal from 'sweetalert2';
+import { secureDownload, secureDelete, getSignedUrl, replaceSecureUpload, validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FileUpload {
@@ -28,6 +29,7 @@ interface FileUpload {
   access_count: number;
   created_at: string;
   uploader_email?: string;
+  metadata?: Record<string, any> | null;
 }
 
 function formatFileSize(bytes: number): string {
@@ -41,6 +43,8 @@ export default function DocumentStore() {
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [replaceTarget, setReplaceTarget] = useState<FileUpload | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = async () => {
     setLoading(true);
