@@ -1174,14 +1174,13 @@ export default function NewApplication() {
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);
 
-        await hydrateFormProgress(applicationId, matchedTemplates, {
-          ...assignedVersionByTemplate,
-          ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
-        });
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
-          queryClient.invalidateQueries({ queryKey: ['applications'] }),
-        ]);
+        // NOTE: Do NOT call hydrateFormProgress() or queryClient.invalidateQueries()
+        // here while the user is still editing the active form. The local
+        // setFormProgressMap above already reflects the saved state. Rehydrating
+        // would refetch resolver/sections/responses and briefly unmount the
+        // FormRenderer (showing the "Loading form…" card and causing the
+        // Save/Update/Continue button to blink). Invalidation is deferred to
+        // goToStep() when the user leaves the 'filling' step.
         toast.success('Draft saved');
         await logAudit({
           action: 'application.form_saved',
