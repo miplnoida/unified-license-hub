@@ -483,7 +483,7 @@ export default function ApplicationDetail() {
       await supabase.from('approval_actions').insert({
         application_id: app.id, action: 'edit_approved', actor_id: user.id, comments: reason,
       } as any);
-      await logAudit({ action: 'edit_approved', entityType: 'application', entityId: app.id, newValue: { comments: reason } });
+      await logAudit({ action: 'application.edit_approved', entityType: 'application', entityId: app.id, newValue: { comments: reason }, metadata: { source: 'frontend', application_id: app.id, comments: reason } });
       toast.success('Edit request approved. Applicant can now edit the application.');
       setActionComment('');
       await loadData();
