@@ -313,7 +313,7 @@ export default function NewApplication() {
   const loadedFormRendererRef = useRef<{
     templateId: string;
     versionId: string;
-    sections: typeof sections;
+    sections: any[];
   } | null>(null);
   useEffect(() => {
     // Drop the sticky cache whenever the user switches to a different form.
