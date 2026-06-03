@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Search, Loader2, Download, ShieldCheck, Trash2, Eye } from 'lucide-react';
+import { Search, Loader2, Download, ShieldCheck, Trash2, Eye, RefreshCcw, CheckCircle2, XCircle } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
-import { secureDownload, secureDelete, getSignedUrl } from '@/lib/secureFileUpload';
+import Swal from 'sweetalert2';
+import { secureDownload, secureDelete, getSignedUrl, replaceSecureUpload, validateFile, ACCEPT_STRING } from '@/lib/secureFileUpload';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FileUpload {
@@ -28,6 +28,7 @@ interface FileUpload {
   access_count: number;
   created_at: string;
   uploader_email?: string;
+  metadata?: Record<string, any> | null;
 }
 
 function formatFileSize(bytes: number): string {
@@ -41,6 +42,8 @@ export default function DocumentStore() {
   const [files, setFiles] = useState<FileUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [replaceTarget, setReplaceTarget] = useState<FileUpload | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = async () => {
     setLoading(true);
@@ -89,6 +92,7 @@ export default function DocumentStore() {
         scan_status: u.scan_status,
         access_count: u.access_count,
         created_at: u.created_at,
+        metadata: u.metadata || null,
       });
     });
 
@@ -155,6 +159,94 @@ export default function DocumentStore() {
     }
   };
 
+  const handleReplaceClick = (file: FileUpload) => {
+    if (file.bucket_name !== 'secure-documents') {
+      toast.error('Replace is only available for secure uploaded documents.');
+      return;
+    }
+    setReplaceTarget(file);
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !replaceTarget || !user) return;
+
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error || 'Invalid file');
+      e.target.value = '';
+      return;
+    }
+
+    const result = await replaceSecureUpload(file, {
+      fileUploadId: replaceTarget.id,
+      existingFilePath: replaceTarget.file_path,
+      userId: user.id,
+      entityType: replaceTarget.entity_type,
+      entityId: replaceTarget.entity_id,
+      existingMetadata: replaceTarget.metadata,
+    });
+
+    if (result.success) {
+      toast.success('Document replaced');
+      await loadFiles();
+    } else {
+      toast.error(result.error || 'Replace failed');
+    }
+
+    setReplaceTarget(null);
+    e.target.value = '';
+  };
+
+  const handleReviewAction = async (file: FileUpload, reviewStatus: 'verified' | 'rejected') => {
+    if (file.bucket_name !== 'secure-documents') {
+      toast.error('Review actions are only available for secure uploaded documents.');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: reviewStatus === 'verified' ? 'Verify document?' : 'Reject document?',
+      input: 'textarea',
+      inputLabel: reviewStatus === 'verified' ? 'Comments (optional)' : 'Reason',
+      inputPlaceholder: reviewStatus === 'verified' ? 'Add verification notes...' : 'Explain why this document is being rejected...',
+      inputValue: String(file.metadata?.review_comments || ''),
+      inputAttributes: { 'aria-label': 'Document review comments' },
+      icon: reviewStatus === 'verified' ? 'question' : 'warning',
+      showCancelButton: true,
+      confirmButtonText: reviewStatus === 'verified' ? 'Verify' : 'Reject',
+      preConfirm: (value) => {
+        if (reviewStatus === 'rejected' && !String(value || '').trim()) {
+          Swal.showValidationMessage('A rejection reason is required.');
+        }
+        return value;
+      },
+    });
+
+    if (!result.isConfirmed || !user) return;
+
+    const nextMetadata = {
+      ...(file.metadata || {}),
+      review_status: reviewStatus,
+      review_comments: String(result.value || '').trim() || null,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.id,
+    };
+
+    const { error } = await supabase
+      .from('file_uploads' as any)
+      .update({ metadata: nextMetadata, updated_at: new Date().toISOString() } as any)
+      .eq('id', file.id);
+
+    if (error) {
+      toast.error(error.message || 'Review update failed');
+      return;
+    }
+
+    toast.success(reviewStatus === 'verified' ? 'Document verified' : 'Document rejected');
+    await loadFiles();
+  };
+
   const filtered = files.filter(f =>
     f.file_name.toLowerCase().includes(search.toLowerCase()) ||
     f.entity_type.toLowerCase().includes(search.toLowerCase()) ||
@@ -166,6 +258,13 @@ export default function DocumentStore() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        <input
+          ref={replaceInputRef}
+          type="file"
+          className="hidden"
+          accept={ACCEPT_STRING}
+          onChange={handleReplaceSelected}
+        />
         <PageHeader
           title="Document Store"
           description="Browse and manage all uploaded documents. Files are stored in private storage with signed URL access."
@@ -227,6 +326,9 @@ export default function DocumentStore() {
                         <RowActionsMenu actions={[
                           { label: 'Preview', icon: Eye, onClick: () => handlePreview(file) },
                           { label: 'Download', icon: Download, onClick: () => handleDownload(file) },
+                          { label: 'Replace', icon: RefreshCcw, onClick: () => handleReplaceClick(file), hidden: !(file.bucket_name === 'secure-documents' && (isAdmin || file.uploaded_by === user?.id)) },
+                          { label: 'Verify', icon: CheckCircle2, onClick: () => handleReviewAction(file, 'verified'), hidden: !(file.bucket_name === 'secure-documents' && isAdmin) },
+                          { label: 'Reject', icon: XCircle, onClick: () => handleReviewAction(file, 'rejected'), destructive: true, hidden: !(file.bucket_name === 'secure-documents' && isAdmin) },
                           { label: 'Delete', icon: Trash2, onClick: () => handleDelete(file), destructive: true, hidden: !(isAdmin || file.uploaded_by === user?.id), separator: true },
                         ]} />
                       </TableCell>

@@ -4737,6 +4737,12 @@ export type Database = {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
       }
+      audit_document_reason: { Args: { _metadata: Json }; Returns: string }
+      audit_document_review_status: {
+        Args: { _metadata: Json }
+        Returns: string
+      }
+      audit_step_assignee_label: { Args: { _step_id: string }; Returns: string }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
