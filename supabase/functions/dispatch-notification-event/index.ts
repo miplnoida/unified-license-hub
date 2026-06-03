@@ -305,18 +305,37 @@ Deno.serve(async (req) => {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    // OTP-style branded card: header, body paragraphs, optional CTA button, footer.
+    // Vars consulted (all optional): cta_url, cta_label, app_name, support_email.
     const buildEmailHtml = (heading: string, bodyText: string) => {
       const safeHeading = escapeHtml(heading);
-      // Preserve paragraph/line breaks from the template body
       const paragraphs = String(bodyText || "")
         .split(/\n{2,}/)
-        .map((p) => `<p style="color:#475569;margin:0 0 12px;line-height:1.55;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
+        .map((p) => `<p style="color:#475569;margin:0 0 14px;line-height:1.6;font-size:14px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
         .join("");
-      const appName = escapeHtml(vars.app_name || "Regulator Portal");
-      return `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-        <h2 style="margin:0 0 12px;">${safeHeading}</h2>
-        ${paragraphs}
-        <p style="color:#94a3b8;font-size:12px;margin-top:16px;">This is an automated message from ${appName}. Please do not reply.</p>
+      const appName = escapeHtml(vars.app_name || "Unified License Hub");
+      const ctaUrl = typeof vars.cta_url === "string" && vars.cta_url ? String(vars.cta_url) : "";
+      const ctaLabel = escapeHtml(vars.cta_label || "Open Portal");
+      const supportEmail = vars.support_email ? escapeHtml(String(vars.support_email)) : "";
+      const ctaBlock = ctaUrl
+        ? `<div style="text-align:center;margin:20px 0 8px;"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#1E3A8A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:8px;font-family:Arial,sans-serif;">${ctaLabel}</a></div>`
+        : "";
+      const supportLine = supportEmail
+        ? `Need help? Contact <a href="mailto:${supportEmail}" style="color:#1E3A8A;">${supportEmail}</a>.`
+        : "";
+      return `<div style="background:#f1f5f9;padding:24px 0;font-family:Arial,sans-serif;">
+        <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
+          <div style="background:#1E3A8A;padding:18px 24px;color:#ffffff;font-weight:700;font-size:16px;letter-spacing:.3px;">${appName}</div>
+          <div style="padding:24px;">
+            <h2 style="margin:0 0 14px;font-size:18px;color:#0f172a;">${safeHeading}</h2>
+            ${paragraphs}
+            ${ctaBlock}
+          </div>
+          <div style="background:#f8fafc;padding:14px 24px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;line-height:1.5;">
+            <div>${supportLine}</div>
+            <div style="margin-top:6px;">This is an automated message from ${appName}. Please do not reply to this email.</div>
+          </div>
+        </div>
       </div>`;
     };
     const emailHtml = buildEmailHtml(emailSubject, emailBody);
