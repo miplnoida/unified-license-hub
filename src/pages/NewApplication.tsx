@@ -1278,14 +1278,9 @@ export default function NewApplication() {
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);
 
-        await hydrateFormProgress(applicationId, matchedTemplates, {
-          ...assignedVersionByTemplate,
-          [activeFormTemplateId]: resolvedVersionId,
-        });
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
-          queryClient.invalidateQueries({ queryKey: ['applications'] }),
-        ]);
+        // Deferred: do not hydrate or invalidate while the user is still on
+        // the filling step — see handleFormSaveDraft above. goToStep() will
+        // invalidate when the user navigates away.
       } catch (error: any) {
         console.error('[NewApplication] handleFormSubmit failed:', error);
         toast.error(error?.message || 'Failed to save form');
