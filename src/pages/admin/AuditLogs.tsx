@@ -173,9 +173,9 @@ export default function AuditLogs() {
               <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} placeholder="From" />
               <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} placeholder="To" />
               <Select value={user} onValueChange={setUser}>
-                <SelectTrigger className="lg:col-span-2"><SelectValue placeholder="User" /></SelectTrigger>
+                <SelectTrigger className="lg:col-span-2"><SelectValue placeholder="Users in loaded results" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All users</SelectItem>
+                  <SelectItem value="all">All users (in loaded results)</SelectItem>
                   {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>)}
                 </SelectContent>
               </Select>

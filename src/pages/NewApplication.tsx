@@ -1175,6 +1175,19 @@ export default function NewApplication() {
           queryClient.invalidateQueries({ queryKey: ['applications'] }),
         ]);
         toast.success('Draft saved');
+        await logAudit({
+          action: 'application.form_saved',
+          entityType: 'application',
+          entityId: applicationId,
+          metadata: {
+            source: 'frontend',
+            application_id: applicationId,
+            template_id: activeFormTemplateId,
+            template_name: activeTemplate?.name,
+            version_id: resolvedVersionId,
+            status: 'in_progress',
+          },
+        });
       } catch (error: any) {
         console.error('[NewApplication] handleFormSaveDraft failed:', error);
         toast.error(error?.message || 'Failed to save draft');
@@ -1277,6 +1290,21 @@ export default function NewApplication() {
     }
 
     toast.success('Form completed!');
+    if (applicationId && activeTemplate) {
+      await logAudit({
+        action: 'application.form_submitted',
+        entityType: 'application',
+        entityId: applicationId,
+        metadata: {
+          source: 'frontend',
+          application_id: applicationId,
+          template_id: activeTemplate.id,
+          template_name: activeTemplate.name,
+          version_id: resolvedVersionId,
+          status: 'completed',
+        },
+      });
+    }
     setActiveFormTemplateId(null);
     await goToStep('forms', { last_active_form_template_id: null });
   };
@@ -1363,6 +1391,24 @@ export default function NewApplication() {
       }
     }
     await goToStep('payment', { wizard_step: 'payment' });
+    // Once per browser session per application to avoid spam on back/forward.
+    if (applicationId) {
+      const flagKey = `audit:payment_step_started:${applicationId}`;
+      if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(flagKey)) {
+        sessionStorage.setItem(flagKey, '1');
+        await logAudit({
+          action: 'application.payment_step_started',
+          entityType: 'application',
+          entityId: applicationId,
+          metadata: {
+            source: 'frontend',
+            application_id: applicationId,
+            amount: feeAmount,
+            fee_breakdown: feeBreakdown,
+          },
+        });
+      }
+    }
   };
 
   const handleProcessPayment = async () => {
@@ -1557,6 +1603,18 @@ export default function NewApplication() {
       toast.error('Please complete all required forms before continuing.');
       return;
     }
+
+    await logAudit({
+      action: 'application.documents_step_completed',
+      entityType: 'application',
+      entityId: applicationId,
+      metadata: {
+        source: 'frontend',
+        application_id: applicationId,
+        completed_form_count: matchedTemplates.length,
+        required_form_count: matchedTemplates.length,
+      },
+    });
 
     await goToStep('documents', { wizard_step: 'documents' });
   };
