@@ -118,17 +118,20 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         throw new Error('Payment could not be completed for this application.');
       }
 
-      await logAudit({
-        action: 'payment_completed',
-        entityType: 'payment',
-        entityId: paymentRowId,
-        metadata: { application_id: applicationId, amount: Number(paymentResult?.amount ?? totalDue), payment_action: paymentAction },
-      });
+      // Server-side trigger on `payments` writes the `payment.completed`
+      // audit row. We don't duplicate it here.
 
       toast.success(paymentAction === 'paid' ? 'Payment already completed for this application.' : 'Payment completed successfully');
       onPaid?.();
       await loadData();
     } catch (e: any) {
+      await logAudit({
+        action: 'payment.failed',
+        entityType: 'payment',
+        entityId: applicationId,
+        newValue: { error: e?.message || 'Unknown' },
+        metadata: { source: 'frontend', application_id: applicationId, error: e?.message || 'Unknown' },
+      }).catch(() => {});
       toast.error(e?.message || 'Payment failed. Please try again.');
     } finally {
       setProcessing(false);
