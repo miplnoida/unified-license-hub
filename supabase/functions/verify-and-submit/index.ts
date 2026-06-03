@@ -356,16 +356,48 @@ Deno.serve(async (req) => {
         basePayload.current_workflow_step = stepRow?.name || (stepRow?.step_order ? `Step ${stepRow.step_order}` : "");
       }
 
+      // Choose event keys + labels based on whether this was a resubmission
+      const applicantEventKey = isResubmission
+        ? "application.resubmitted.applicant"
+        : "application.submitted.applicant";
+      const reviewerEventKey = isResubmission
+        ? "application.resubmitted.reviewer"
+        : "application.submitted.reviewer";
+      const applicantCtaLabel = isResubmission ? "View Resubmitted Application" : "View Application";
+      const reviewerCtaLabel = isResubmission ? "Review Resubmitted Application" : "Review Application";
+
+      // Resubmission-specific payload extras
+      const appDataAny = (app.data as Record<string, unknown> | null) || {};
+      const resubmissionComments =
+        (appDataAny.resubmission_comments as string) ||
+        (appDataAny.resubmission_remarks as string) ||
+        (appDataAny.applicant_remarks as string) ||
+        "";
+      const resubmittedAt = appRow.data?.submitted_at
+        ? new Date(appRow.data.submitted_at as string).toISOString()
+        : new Date().toISOString();
+      const extendedPayload = {
+        ...basePayload,
+        previous_status: app.status,
+        current_status: "submitted",
+        resubmitted_at: appRow.data?.submitted_at
+          ? new Date(appRow.data.submitted_at as string).toLocaleString()
+          : new Date().toLocaleString(),
+        resubmission_comments: resubmissionComments,
+        resubmission_version: resubmittedAt,
+      };
+
       // Applicant confirmation
       adminClient.functions.invoke("dispatch-notification-event", {
         body: {
-          event_key: "application.submitted.applicant",
+          event_key: applicantEventKey,
           entity_type: "application",
           entity_id: application_id,
+          ...(isResubmission ? { reminder_window: `resubmit:${resubmittedAt}` } : {}),
           payload: {
-            ...basePayload,
+            ...extendedPayload,
             cta_url: appDetailUrl || portalUrl,
-            cta_label: "View Application",
+            cta_label: applicantCtaLabel,
           },
         },
       }).catch((e) => console.error("[notify] applicant dispatch failed", e?.message || e));
@@ -373,14 +405,15 @@ Deno.serve(async (req) => {
       // Reviewer/workflow notification
       adminClient.functions.invoke("dispatch-notification-event", {
         body: {
-          event_key: "application.submitted.reviewer",
+          event_key: reviewerEventKey,
           entity_type: "application",
           entity_id: application_id,
+          ...(isResubmission ? { reminder_window: `resubmit:${resubmittedAt}` } : {}),
           payload: {
-            ...basePayload,
+            ...extendedPayload,
             reviewer_name: "Reviewer",
             cta_url: appDetailUrl || portalUrl,
-            cta_label: "Review Application",
+            cta_label: reviewerCtaLabel,
           },
         },
       }).catch((e) => console.error("[notify] reviewer dispatch failed", e?.message || e));
