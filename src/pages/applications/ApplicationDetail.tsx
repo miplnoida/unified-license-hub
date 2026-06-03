@@ -305,8 +305,9 @@ export default function ApplicationDetail() {
       application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
     } as any);
     await logAudit({
-      action: `application_${actionType}`, entityType: 'application', entityId: app.id,
+      action: `application.${actionType}`, entityType: 'application', entityId: app.id,
       newValue: { status: newStatus, comments: comment },
+      metadata: { source: 'frontend', application_id: app.id, to_status: newStatus, comments: comment },
     });
 
     toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
