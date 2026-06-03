@@ -14,9 +14,9 @@ window so concurrent server + frontend writes do not produce duplicates.
 | Flow                          | Action name                             | Source                                                            | Metadata highlights                                  |
 | ----------------------------- | --------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
 | Create draft application      | `application.created`                   | Trigger `tg_applications_audit` (INSERT)                          | application_number, applicant_id/email, license_type |
-| Update draft                  | `application.draft_updated`             | (covered by next status change; per-field updates not audited)    | from_status, to_status                               |
-| Save form draft               | `application.form_saved`                | Frontend (`NewApplication.handleFormSaveDraft`) — UI only         | template_id, form_name                               |
-| Complete form                 | `application.form_submitted`            | Frontend                                                          | template_id, status=completed                        |
+| Update draft                  | `application.draft_updated`             | Trigger `tg_applications_audit` (UPDATE, status unchanged, draft) | changed_fields, from_status, to_status               |
+| Save form draft               | `application.form_saved`                | Frontend `NewApplication.handleFormSaveDraft`                     | template_id, template_name, version_id               |
+| Complete form                 | `application.form_submitted`            | Frontend `NewApplication.handleFormSubmit`                        | template_id, status=completed                        |
 | Documents step completed      | `application.documents_step_completed`  | Frontend                                                          | completed_form_count                                 |
 | Payment step started          | `application.payment_step_started`      | Frontend                                                          | amount, fee_breakdown                                |
 | Submit application            | `application.submitted`                 | Trigger on `applications` (status → submitted)                    | from_status, to_status                               |
@@ -33,8 +33,9 @@ window so concurrent server + frontend writes do not produce duplicates.
 | Payment failed                | `payment.failed`                        | Trigger (status=failed) **or** frontend fallback when no DB row   | error, application_id                                |
 | Payment receipt generated     | `payment.receipt_generated`             | Trigger `tg_payment_receipts_audit` (INSERT)                      | receipt_number, issued_to_email                      |
 | Document uploaded             | `document.uploaded`                     | Trigger `tg_documents_audit` (INSERT)                             | file_name, mime_type, file_size                      |
+| Document replaced             | `document.replaced`                     | Trigger `tg_documents_audit` (UPDATE on file_path/file_name)      | previous_file_name, file_name                        |
 | Document deleted              | `document.deleted`                      | Trigger `tg_documents_audit` (DELETE)                             | file_name                                            |
-| Document replaced/verified/rejected | n/a today                         | Schema does not yet model verification status; add when relevant. |                                                      |
+| Document verified / rejected  | `document.verified` / `document.rejected` | Not emitted — schema has no verification status column yet. Labels exist in UI registry for forward compatibility. |  |
 | Workflow action taken         | `workflow.action_taken`                 | Trigger `tg_approval_actions_audit` (forward/return/review/etc.)  | action, step_id, workflow_instance_id, comments      |
 | Workflow step completed       | `workflow.step_completed`               | Trigger `tg_approval_actions_audit` (approve_final)               | step_id, application_number                          |
 | Workflow assigned             | `workflow.assigned` / `workflow.reassigned` | Trigger `tg_approval_actions_audit`                           | delegated_to, delegated_from                         |
