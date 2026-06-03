@@ -1925,12 +1925,6 @@ export default function NewApplication() {
                         )}
                       </Button>
                     </div>
-                    {assignedVersionByTemplate[tmpl.id] && (
-                      <div className="ml-9 mt-2 flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
-                        <Layers className="h-3.5 w-3.5" />
-                        <span>Form version assigned for this draft.</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
