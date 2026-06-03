@@ -100,10 +100,10 @@ export default function AuditLogs() {
     });
   }, [logs, category, search]);
 
-  const entityTypes = useMemo(
-    () => Array.from(new Set(logs.map((l) => l.entity_type))).sort(),
-    [logs]
-  );
+  const ENTITY_TYPES = [
+    'application', 'payment', 'document', 'workflow',
+    'approval_workflow', 'license', 'user', 'profile', 'other',
+  ];
   const users = useMemo(() => {
     const m = new Map<string, string>();
     logs.forEach((l) => { if (l.user_id) m.set(l.user_id, l.user_email || l.user_id); });
@@ -120,7 +120,11 @@ export default function AuditLogs() {
     const appNumber = l.metadata?.application_number;
     if (appId) {
       return (
-        <Link to={`/applications/${appId}`} className="text-primary hover:underline inline-flex items-center gap-1">
+        <Link
+          to={`/applications/${appId}`}
+          onClick={(e) => e.stopPropagation()}
+          className="text-primary hover:underline inline-flex items-center gap-1"
+        >
           {appNumber || l.entity_type}
           <ExternalLink className="h-3 w-3" />
         </Link>
@@ -150,7 +154,7 @@ export default function AuditLogs() {
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2 mt-4">
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search action, user, app #..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input placeholder="Search loaded results (action, user, app #)…" className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Select value={category} onValueChange={(v) => setCategory(v as AuditCategory | 'all')}>
                 <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
@@ -163,7 +167,7 @@ export default function AuditLogs() {
                 <SelectTrigger><SelectValue placeholder="Entity" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All entities</SelectItem>
-                  {entityTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {ENTITY_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} placeholder="From" />
@@ -285,24 +289,40 @@ export default function AuditLogs() {
                     )}
                   </div>
 
-                  {selected.metadata && (
+                  {(selected.metadata?.comments || selected.metadata?.reason || selected.new_value?.comments) && (
                     <div>
-                      <div className="text-xs font-semibold text-muted-foreground mb-1">Metadata</div>
-                      <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.metadata, null, 2)}</pre>
+                      <div className="text-xs font-semibold text-muted-foreground mb-1">Comments / Reason</div>
+                      <p className="text-sm bg-muted/40 border border-border rounded p-2">
+                        {String(selected.metadata?.comments || selected.metadata?.reason || selected.new_value?.comments)}
+                      </p>
                     </div>
                   )}
-                  {selected.old_value && (
-                    <div>
-                      <div className="text-xs font-semibold text-muted-foreground mb-1">Old value</div>
-                      <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.old_value, null, 2)}</pre>
+
+                  <details className="group">
+                    <summary className="cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground">
+                      Advanced details (raw JSON)
+                    </summary>
+                    <div className="space-y-3 mt-2">
+                      {selected.metadata && (
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground mb-1">Metadata</div>
+                          <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.metadata, null, 2)}</pre>
+                        </div>
+                      )}
+                      {selected.old_value && (
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground mb-1">Old value</div>
+                          <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.old_value, null, 2)}</pre>
+                        </div>
+                      )}
+                      {selected.new_value && (
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground mb-1">New value</div>
+                          <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.new_value, null, 2)}</pre>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {selected.new_value && (
-                    <div>
-                      <div className="text-xs font-semibold text-muted-foreground mb-1">New value</div>
-                      <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{JSON.stringify(selected.new_value, null, 2)}</pre>
-                    </div>
-                  )}
+                  </details>
                 </div>
               </>
             );
