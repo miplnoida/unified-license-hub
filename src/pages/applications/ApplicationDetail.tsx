@@ -722,7 +722,12 @@ export default function ApplicationDetail() {
                   />
                 ))}
               </TabsContent>
+
+              <TabsContent value="activity" className="mt-4">
+                {activeTab === 'activity' && <ActivityTab applicationId={app.id} />}
+              </TabsContent>
             </Tabs>
+
 
             {/* Admin: Edit Request Pending — bypasses workflow */}
             {showEditRequestAdminPanel && (
