@@ -894,12 +894,20 @@ export default function NewApplication() {
     step: WizardStep,
     extra?: Record<string, any>,
   ) => {
-    setCurrentStep(step);
+    setCurrentStep((prev) => {
+      // When leaving the 'filling' step, flush deferred query invalidations
+      // that were skipped during in-form saves to avoid flicker.
+      if (prev === 'filling' && step !== 'filling') {
+        queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+        queryClient.invalidateQueries({ queryKey: ['applications'] });
+      }
+      return step;
+    });
     if (applicationId) {
       updateWizardUrl(applicationId, step);
       await persistWizardStep(step, extra);
     }
-  }, [applicationId, persistWizardStep, updateWizardUrl]);
+  }, [applicationId, persistWizardStep, updateWizardUrl, queryClient]);
 
   // Auto-sync URL + draft data whenever step changes for an existing draft.
   useEffect(() => {
