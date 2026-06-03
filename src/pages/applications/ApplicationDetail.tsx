@@ -545,7 +545,9 @@ export default function ApplicationDetail() {
                 {hasSubmittedForms && <TabsTrigger value="form">Submitted Forms</TabsTrigger>}
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
               </TabsList>
+
 
               <TabsContent value="details" className="space-y-4 mt-4">
                 {activeTab === 'details' && (
