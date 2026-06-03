@@ -982,13 +982,8 @@ export default function NewApplication() {
       }
       const newId = (data as any).id as string;
       setApplicationId(newId);
-      await logAudit({
-        action: 'application.created',
-        entityType: 'application',
-        entityId: newId,
-        newValue: { license_type: payload.license_type, sector: sectorObj?.name, category: categoryObj?.name },
-        metadata: { source: 'frontend', application_id: newId, license_type: payload.license_type, sector_name: sectorObj?.name, category_name: categoryObj?.name },
-      });
+      // `application.created` is written canonically by the DB trigger on
+      // public.applications (tg_applications_audit). No frontend log needed.
       return newId;
     }
   };
@@ -1464,16 +1459,9 @@ export default function NewApplication() {
         setPaymentReceiptNumber((existingReceipt as any).receipt_number || null);
       }
 
-      // Server-side trigger on `payments` writes the canonical
-      // `payment.completed` audit row; we only emit a frontend-tagged row
-      // for receipt-generated tracking from the UI context.
-      await logAudit({
-        action: 'payment.receipt_generated',
-        entityType: 'payment',
-        entityId: paymentRowId,
-        newValue: { amount: paidAmount, application_id: applicationId, payment_action: paymentAction },
-        metadata: { source: 'frontend', application_id: applicationId, payment_id: paymentRowId, amount: paidAmount, payment_action: paymentAction },
-      });
+      // Server-side triggers on `payments` and `payment_receipts` write the
+      // canonical `payment.completed` and `payment.receipt_generated` audit
+      // rows. No frontend log needed here.
 
       await hydratePaymentState(applicationId);
       toast.success(paymentAction === 'paid' ? 'Payment already completed for this application.' : 'Payment successful!');

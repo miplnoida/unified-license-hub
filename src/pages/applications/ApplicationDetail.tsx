@@ -382,13 +382,8 @@ export default function ApplicationDetail() {
         comments: actionComment || 'Application resubmitted after revision',
       } as any);
 
-      await logAudit({
-        action: 'application.resubmitted',
-        entityType: 'application',
-        entityId: app.id,
-        newValue: { status: 'submitted' },
-        metadata: { source: 'frontend', application_id: app.id, application_number: app.application_number, comments: actionComment },
-      });
+      // `application.resubmitted` is written canonically by the status-change
+      // trigger on public.applications and the approval_actions trigger.
 
       toast.success(data?.message || 'Application resubmitted successfully');
       setActionComment('');
@@ -421,7 +416,8 @@ export default function ApplicationDetail() {
       return;
     }
 
-    await logAudit({ action: 'application.resubmission_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
+    // `application.resubmission_requested` is written canonically by the
+    // status-change trigger on public.applications.
     toast.success('Resubmission requested. Applicant has been notified.');
     setActionComment('');
     loadData();
