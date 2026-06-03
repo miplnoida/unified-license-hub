@@ -307,7 +307,19 @@ export default function NewApplication() {
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
   const latestDraftDataRef = useRef<Record<string, any>>({});
+  // Sticky cache of the last successfully-loaded form renderer inputs so we
+  // don't briefly unmount the renderer (and blink the action buttons) when
+  // background refetches transiently empty `sections` / `resolvedVersionId`.
+  const loadedFormRendererRef = useRef<{
+    templateId: string;
+    versionId: string;
+    sections: any[];
+  } | null>(null);
   useEffect(() => {
+    // Drop the sticky cache whenever the user switches to a different form.
+    if (loadedFormRendererRef.current && loadedFormRendererRef.current.templateId !== activeFormTemplateId) {
+      loadedFormRendererRef.current = null;
+    }
     activeFormTemplateIdRef.current = activeFormTemplateId;
   }, [activeFormTemplateId]);
 
@@ -894,12 +906,20 @@ export default function NewApplication() {
     step: WizardStep,
     extra?: Record<string, any>,
   ) => {
-    setCurrentStep(step);
+    setCurrentStep((prev) => {
+      // When leaving the 'filling' step, flush deferred query invalidations
+      // that were skipped during in-form saves to avoid flicker.
+      if (prev === 'filling' && step !== 'filling') {
+        queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] });
+        queryClient.invalidateQueries({ queryKey: ['applications'] });
+      }
+      return step;
+    });
     if (applicationId) {
       updateWizardUrl(applicationId, step);
       await persistWizardStep(step, extra);
     }
-  }, [applicationId, persistWizardStep, updateWizardUrl]);
+  }, [applicationId, persistWizardStep, updateWizardUrl, queryClient]);
 
   // Auto-sync URL + draft data whenever step changes for an existing draft.
   useEffect(() => {
@@ -1166,14 +1186,13 @@ export default function NewApplication() {
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);
 
-        await hydrateFormProgress(applicationId, matchedTemplates, {
-          ...assignedVersionByTemplate,
-          ...(resolvedVersionId ? { [activeFormTemplateId]: resolvedVersionId } : {}),
-        });
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
-          queryClient.invalidateQueries({ queryKey: ['applications'] }),
-        ]);
+        // NOTE: Do NOT call hydrateFormProgress() or queryClient.invalidateQueries()
+        // here while the user is still editing the active form. The local
+        // setFormProgressMap above already reflects the saved state. Rehydrating
+        // would refetch resolver/sections/responses and briefly unmount the
+        // FormRenderer (showing the "Loading form…" card and causing the
+        // Save/Update/Continue button to blink). Invalidation is deferred to
+        // goToStep() when the user leaves the 'filling' step.
         toast.success('Draft saved');
         await logAudit({
           action: 'application.form_saved',
@@ -1271,14 +1290,9 @@ export default function NewApplication() {
         const updatedStatus = await markApplicationInProgressIfDraft(applicationId);
         if (updatedStatus) setAppStatus(updatedStatus);
 
-        await hydrateFormProgress(applicationId, matchedTemplates, {
-          ...assignedVersionByTemplate,
-          [activeFormTemplateId]: resolvedVersionId,
-        });
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['pre-licensee-applications'] }),
-          queryClient.invalidateQueries({ queryKey: ['applications'] }),
-        ]);
+        // Deferred: do not hydrate or invalidate while the user is still on
+        // the filling step — see handleFormSaveDraft above. goToStep() will
+        // invalidate when the user navigates away.
       } catch (error: any) {
         console.error('[NewApplication] handleFormSubmit failed:', error);
         toast.error(error?.message || 'Failed to save form');
@@ -1982,19 +1996,40 @@ export default function NewApplication() {
 
         {/* Filling a specific form */}
         {!hydratingDraft && currentStep === 'filling' && activeTemplate && (() => {
+          // Sticky-loaded sections + version. Once the renderer has mounted
+          // successfully for the current active template, keep showing it
+          // during background refetches so the form (and its Save / Update /
+          // Continue button) does not blink back to the "Loading form…" card.
+          const loadedRef = loadedFormRendererRef.current;
+          const liveCanShow = !resolverMessage && !!resolvedVersionId && sections.length > 0;
+          if (liveCanShow && activeTemplate) {
+            loadedFormRendererRef.current = {
+              templateId: activeTemplate.id,
+              versionId: resolvedVersionId,
+              sections,
+            };
+          }
+          const stickyLoaded =
+            loadedRef && loadedRef.templateId === activeTemplate.id
+              ? loadedRef
+              : null;
+          const effectiveVersionId = resolvedVersionId || stickyLoaded?.versionId || null;
+          const effectiveSections = sections.length > 0 ? sections : (stickyLoaded?.sections || []);
           const stillLoadingVersion =
-            resolvingFormVersion ||
-            (!resolverMessage && !resolvedVersionId) ||
-            (!!resolvedVersionId && sections.length === 0 && !resolverMessage);
-          const showRenderer = !resolverMessage && !!resolvedVersionId && sections.length > 0;
+            !stickyLoaded && (
+              resolvingFormVersion ||
+              (!resolverMessage && !resolvedVersionId) ||
+              (!!resolvedVersionId && sections.length === 0 && !resolverMessage)
+            );
+          const showRenderer = (!resolverMessage && !!effectiveVersionId && effectiveSections.length > 0) || !!stickyLoaded;
           const showEmptyConfig =
-            !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0;
+            !resolverMessage && !resolvingFormVersion && !!resolvedVersionId && sections.length === 0 && !stickyLoaded;
           return (
             <div className="space-y-3">
               {showRenderer && (
                 <FormRenderer
                   formName={activeTemplate.name}
-                  sections={sections}
+                  sections={effectiveSections}
                   initialData={formProgressMap[activeTemplate.id]?.data || {}}
                   onSaveDraft={handleFormSaveDraft}
                   onSubmit={handleFormSubmit}
