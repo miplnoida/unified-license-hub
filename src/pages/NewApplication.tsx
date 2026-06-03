@@ -307,7 +307,19 @@ export default function NewApplication() {
   const existingFormResponsesRef = useRef<Record<string, ExistingFormResponseRecord>>({});
   const activeFormTemplateIdRef = useRef<string | null>(null);
   const latestDraftDataRef = useRef<Record<string, any>>({});
+  // Sticky cache of the last successfully-loaded form renderer inputs so we
+  // don't briefly unmount the renderer (and blink the action buttons) when
+  // background refetches transiently empty `sections` / `resolvedVersionId`.
+  const loadedFormRendererRef = useRef<{
+    templateId: string;
+    versionId: string;
+    sections: typeof sections;
+  } | null>(null);
   useEffect(() => {
+    // Drop the sticky cache whenever the user switches to a different form.
+    if (loadedFormRendererRef.current && loadedFormRendererRef.current.templateId !== activeFormTemplateId) {
+      loadedFormRendererRef.current = null;
+    }
     activeFormTemplateIdRef.current = activeFormTemplateId;
   }, [activeFormTemplateId]);
 
