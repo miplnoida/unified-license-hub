@@ -303,11 +303,6 @@ export default function ApplicationDetail() {
     await supabase.from('approval_actions').insert({
       application_id: app.id, action: actionType, actor_id: user.id, comments: comment || null,
     } as any);
-    await logAudit({
-      action: `application.${actionType}`, entityType: 'application', entityId: app.id,
-      newValue: { status: newStatus, comments: comment },
-      metadata: { source: 'frontend', application_id: app.id, to_status: newStatus, comments: comment },
-    });
 
     toast.success(`Application ${APPLICATION_STATUS_LABELS[newStatus]}`);
     setActionComment('');
