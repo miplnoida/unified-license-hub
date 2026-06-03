@@ -352,7 +352,7 @@ export default function ApplicationDetail() {
       application_id: app.id, action: 'edit_requested', actor_id: user.id,
       comments: actionComment,
     } as any);
-    await logAudit({ action: 'edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment } });
+    await logAudit({ action: 'application.edit_requested', entityType: 'application', entityId: app.id, newValue: { comments: actionComment }, metadata: { source: 'frontend', application_id: app.id, comments: actionComment } });
     toast.success('Edit request submitted. Admin will review your request.');
     setActionComment('');
     loadData();
