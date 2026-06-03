@@ -291,6 +291,104 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 5. Fire-and-forget notification dispatch.
+    //    Two distinct event keys are used so applicant and reviewers get
+    //    purpose-specific subjects, bodies, and CTA buttons. Template content
+    //    lives entirely in notification_event_configs — nothing is hardcoded
+    //    here beyond resolving display-friendly variables. Duplicate sends
+    //    are blocked by notification_dispatch_log.dedupe_key (unique).
+    try {
+      const appData = (app.data as Record<string, unknown> | null) || {};
+      const sectorId = appData.sector_id as string | undefined;
+      const subSectorId = appData.sub_sector_id as string | undefined;
+      const categoryId = appData.category_id as string | undefined;
+
+      const [appRow, applicantProfile, applicantPre, sectorRow, subSectorRow, categoryRow, siteRow] = await Promise.all([
+        adminClient.from("applications").select("application_number, submitted_at, current_step_id").eq("id", application_id).maybeSingle(),
+        adminClient.from("profiles").select("email, full_name").eq("id", user.id).maybeSingle(),
+        adminClient.from("pre_license_users").select("email, full_name").eq("id", user.id).maybeSingle(),
+        sectorId ? adminClient.from("sectors").select("name").eq("id", sectorId).maybeSingle() : Promise.resolve({ data: null }),
+        subSectorId ? adminClient.from("sub_sectors").select("name").eq("id", subSectorId).maybeSingle() : Promise.resolve({ data: null }),
+        categoryId ? adminClient.from("categories").select("name").eq("id", categoryId).maybeSingle() : Promise.resolve({ data: null }),
+        adminClient.from("site_settings").select("value").eq("key", "site_config").maybeSingle(),
+      ]);
+
+      const applicantEmail = applicantProfile.data?.email || applicantPre.data?.email || null;
+      const applicantName = applicantProfile.data?.full_name || applicantPre.data?.full_name || "Applicant";
+      const siteValue = (siteRow.data?.value || {}) as Record<string, unknown>;
+      const portalUrl = (siteValue.app_base_url as string) || Deno.env.get("APP_BASE_URL") || "";
+      const supportEmail = (siteValue.support_email as string) || "";
+      const companyName = (siteValue.app_name as string) || Deno.env.get("APP_NAME") || "Unified License Hub";
+      const appDetailUrl = portalUrl ? `${portalUrl.replace(/\/$/, "")}/applications/${application_id}` : "";
+
+      const basePayload = {
+        applicant_id: user.id,
+        applicant_name: applicantName,
+        applicant_email: applicantEmail,
+        application_id,
+        application_number: appRow.data?.application_number ?? "",
+        license_type: app.license_type ?? "",
+        sector_id: sectorId ?? null,
+        sub_sector_id: subSectorId ?? null,
+        category_id: categoryId ?? null,
+        sector_name: sectorRow.data?.name ?? "",
+        sub_sector_name: subSectorRow.data?.name ?? "",
+        category_name: categoryRow.data?.name ?? "",
+        submitted_at: appRow.data?.submitted_at
+          ? new Date(appRow.data.submitted_at as string).toLocaleString()
+          : new Date().toLocaleString(),
+        current_workflow_step: "",
+        portal_url: portalUrl,
+        application_detail_url: appDetailUrl,
+        support_email: supportEmail,
+        company_name: companyName,
+        app_name: companyName,
+        regulator_id: app.regulator_id ?? null,
+      };
+
+      // Resolve current step name (best-effort)
+      if (appRow.data?.current_step_id) {
+        const { data: stepRow } = await adminClient
+          .from("approval_steps")
+          .select("name, step_order")
+          .eq("id", appRow.data.current_step_id)
+          .maybeSingle();
+        basePayload.current_workflow_step = stepRow?.name || (stepRow?.step_order ? `Step ${stepRow.step_order}` : "");
+      }
+
+      // Applicant confirmation
+      adminClient.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "application.submitted.applicant",
+          entity_type: "application",
+          entity_id: application_id,
+          payload: {
+            ...basePayload,
+            cta_url: appDetailUrl || portalUrl,
+            cta_label: "View Application",
+          },
+        },
+      }).catch((e) => console.error("[notify] applicant dispatch failed", e?.message || e));
+
+      // Reviewer/workflow notification
+      adminClient.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "application.submitted.reviewer",
+          entity_type: "application",
+          entity_id: application_id,
+          payload: {
+            ...basePayload,
+            reviewer_name: "Reviewer",
+            cta_url: appDetailUrl || portalUrl,
+            cta_label: "Review Application",
+          },
+        },
+      }).catch((e) => console.error("[notify] reviewer dispatch failed", e?.message || e));
+    } catch (notifyErr) {
+      // Never fail the submission because of email/notification problems.
+      console.error("[notify] submission dispatch error (non-fatal):", notifyErr instanceof Error ? notifyErr.message : notifyErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
