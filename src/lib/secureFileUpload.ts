@@ -29,6 +29,15 @@ export interface SecureUploadResult {
   error?: string;
 }
 
+interface ReplaceSecureUploadParams {
+  fileUploadId: string;
+  existingFilePath: string;
+  userId: string;
+  entityType: string;
+  entityId?: string | null;
+  existingMetadata?: Record<string, any> | null;
+}
+
 /**
  * Validate a file before uploading.
  * Checks MIME type, extension, and size.
@@ -188,6 +197,78 @@ export async function secureDelete(fileUploadId: string, filePath: string): Prom
 
   await supabase.from('file_uploads' as any).delete().eq('id', fileUploadId);
   return true;
+}
+
+/**
+ * Replace an existing secure upload while keeping the same file_uploads row.
+ * This preserves the document id so audit/history stays attached to one record.
+ */
+export async function replaceSecureUpload(
+  file: File,
+  params: ReplaceSecureUploadParams,
+): Promise<SecureUploadResult> {
+  const validation = validateFile(file);
+  if (!validation.valid) {
+    return { success: false, error: validation.error };
+  }
+
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+  const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const nextPath = `${params.userId}/${params.entityType}/${params.entityId || 'general'}/${Date.now()}-${sanitizedName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('secure-documents')
+    .upload(nextPath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    return { success: false, error: `Upload failed: ${uploadError.message}` };
+  }
+
+  const nextMetadata = {
+    ...(params.existingMetadata || {}),
+    original_name: file.name,
+    upload_timestamp: new Date().toISOString(),
+    replaced_at: new Date().toISOString(),
+    replaced_by: params.userId,
+    previous_file_path: params.existingFilePath,
+  };
+
+  const { error: updateError } = await supabase
+    .from('file_uploads' as any)
+    .update({
+      file_name: file.name,
+      file_path: nextPath,
+      file_size: file.size,
+      mime_type: file.type,
+      file_extension: ext,
+      metadata: nextMetadata,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq('id', params.fileUploadId);
+
+  if (updateError) {
+    await supabase.storage.from('secure-documents').remove([nextPath]);
+    return { success: false, error: `Failed to replace file: ${updateError.message}` };
+  }
+
+  if (params.existingFilePath) {
+    const { error: cleanupError } = await supabase.storage
+      .from('secure-documents')
+      .remove([params.existingFilePath]);
+
+    if (cleanupError) {
+      console.warn('[replaceSecureUpload] old file cleanup failed:', cleanupError.message);
+    }
+  }
+
+  return {
+    success: true,
+    fileUploadId: params.fileUploadId,
+    filePath: nextPath,
+  };
 }
 
 export const ACCEPT_STRING = Object.values(ALLOWED_MIME_TYPES).flat().join(',');
