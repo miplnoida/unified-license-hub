@@ -110,18 +110,16 @@ export default function FillReturnPage() {
       const config = returnData?.return_configs;
       if (!config) return [];
 
-      // Primary match: by return_type_id (the explicit tagging on form_templates).
-      // Sector / sub-sector on a form template act as scope filters: NULL means
-      // "applies to all sectors / sub-sectors".
-      let query = supabase
+      // Sector / sub-sector / return_type on a form template act as scope filters:
+      // NULL means "applies to all" so the template is still eligible. Newly
+      // configured forms may have NULL return_type_id but still belong to a
+      // sector / sub-sector that matches the return configuration — those must
+      // remain visible to the licensee.
+      const query = supabase
         .from('form_templates')
         .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, return_type_id, created_at')
         .eq('status', 'published')
         .eq('form_type', 'returns');
-
-      if (config.return_type_id) {
-        query = query.eq('return_type_id', config.return_type_id);
-      }
 
       const { data, error } = await query
         .order('form_order', { ascending: true })
@@ -131,12 +129,13 @@ export default function FillReturnPage() {
       const all = data || [];
       if (all.length === 0) return [];
 
-      // Filter: keep templates whose sector / sub-sector is either NULL ("all")
-      // or matches the configuration's sector / sub-sector.
+      // Filter: keep templates whose sector / sub-sector / return_type is either
+      // NULL ("all") or matches the configuration's value.
       const matches = all.filter(t => {
         const sectorOk = !t.sector_id || (config.sector_id && t.sector_id === config.sector_id);
         const subOk = !t.sub_sector_id || (config.subsector_id && t.sub_sector_id === config.subsector_id);
-        return sectorOk && subOk;
+        const typeOk = !t.return_type_id || (config.return_type_id && t.return_type_id === config.return_type_id);
+        return sectorOk && subOk && typeOk;
       });
 
       if (matches.length === 0) return [];
