@@ -4,11 +4,13 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
+import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import {
   deriveUserContext,
   getDashboardWidgetsForUser,
 } from '@/lib/dashboardRegistry';
 import { WIDGET_RENDERERS } from '@/components/dashboard/widgets';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 /**
  * Permission-driven dashboard.
@@ -24,8 +26,12 @@ import { WIDGET_RENDERERS } from '@/components/dashboard/widgets';
 export default function Dashboard() {
   const { user } = useAuth();
   const { hasModuleAccess, hasPermission, isLoading: permsLoading } = useUserDynamicPermissions();
+  const portalContext = useEffectivePortalContext();
 
-  const context = useMemo(() => deriveUserContext(user), [user]);
+  const context = useMemo(
+    () => deriveUserContext(user, portalContext.loading ? null : portalContext),
+    [portalContext, user],
+  );
 
   const widgets = useMemo(() => {
     if (!context) return [];
@@ -36,6 +42,7 @@ export default function Dashboard() {
     });
   }, [context, hasModuleAccess, hasPermission, permsLoading]);
 
+  if (portalContext.loading) return <AuthLoadingScreen />;
   if (!user || !context) return null;
 
   const title = context.isInternal

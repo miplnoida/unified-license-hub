@@ -10,6 +10,8 @@ import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { getModuleForPath } from '@/lib/permissionModules';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { LICENSEE_ROLES, PRE_LICENSEE_ROLES } from '@/types/platform';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -84,6 +86,7 @@ export function Sidebar() {
   const { user } = useAuth();
   const { branding } = useSiteSettings();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
+  const portalContext = useEffectivePortalContext();
   const navRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((label: string) => {
@@ -118,6 +121,15 @@ export function Sidebar() {
 
   const isItemVisible = (item: NavItem) => {
     if (!user) return false;
+    if (portalContext.loading) return false;
+
+    const roleVisible = item.roles.includes(user.role);
+    const hasLicenseeAudience = item.roles.some((role) => LICENSEE_ROLES.includes(role));
+    const hasPreLicenseeAudience = item.roles.some((role) => PRE_LICENSEE_ROLES.includes(role));
+    const effectiveVisible = roleVisible
+      || (portalContext.isLicensee && hasLicenseeAudience)
+      || (portalContext.isPreLicensee && hasPreLicenseeAudience);
+
     if (enforceDynamic) {
       if (item.module) return hasModuleAccess(item.module);
       if (item.href) {
@@ -125,9 +137,9 @@ export function Sidebar() {
         if (mappedModule) return hasModuleAccess(mappedModule);
       }
       if (item.children?.length) return item.children.some(isItemVisible);
-      return item.roles.includes(user.role);
+      return effectiveVisible;
     }
-    if (!item.roles.includes(user.role)) return false;
+    if (!effectiveVisible) return false;
     return true;
   };
 

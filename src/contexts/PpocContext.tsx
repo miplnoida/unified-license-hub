@@ -46,7 +46,8 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   const [mappedLicensees, setMappedLicensees] = useState<MappedLicensee[]>([]);
   const [resolvedLicensees, setResolvedLicensees] = useState<MappedLicensee[]>([]);
   const [activeLicenseeId, setActiveLicenseeIdState] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   const setActiveLicenseeId = useCallback((id: string | null) => {
     setActiveLicenseeIdState(id);
@@ -63,12 +64,15 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       setMappedLicensees([]);
       setResolvedLicensees([]);
       setActiveLicenseeIdState(null);
+      setLoadedUserId(null);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setLoadedUserId(null);
 
       const [mappingsRes, profileRes, approvedLicensees, mappedEntitiesRes] = await Promise.all([
         supabase
@@ -354,6 +358,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
           resolvedLicenseeId: profileLicenseeId || resolvedList[0]?.licensee_id || null,
         });
       }
+      setLoadedUserId(user.id);
       setLoading(false);
     };
 
@@ -388,6 +393,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
     if (activeLicenseeId) return activeLicenseeId;
     return ownLicenseeId;
   }, [activeLicenseeId, ownLicenseeId]);
+  const contextLoading = isFullyAuthenticated && !!user && (loading || loadedUserId !== user.id);
 
   return (
     <PpocContext.Provider
@@ -397,7 +403,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         activeLicenseeId,
         activeLicensee,
         setActiveLicenseeId,
-        loading,
+        loading: contextLoading,
         ownLicenseeId,
         actingAs,
         resolvedLicenseeId,
