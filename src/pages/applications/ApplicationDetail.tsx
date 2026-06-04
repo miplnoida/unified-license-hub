@@ -34,6 +34,8 @@ import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { usePpoc } from '@/contexts/PpocContext';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -82,6 +84,8 @@ export default function ApplicationDetail() {
   const isPreLicensee = useIsPreLicensee();
   const isOwner = user && app?.applicant_id === user.id;
   const licenseGate = useLicenseStatusGate();
+  const accessGuard = useLicenseeAccessGuard();
+  const { resolvedLicenseeId } = usePpoc();
 
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
@@ -228,6 +232,14 @@ export default function ApplicationDetail() {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
     }
+    if (resolvedLicenseeId) {
+      const sectorId = (app.data as any)?.sector_id || null;
+      const authorized = await accessGuard.verify(resolvedLicenseeId, sectorId);
+      if (!authorized) {
+        toast.error('You are not authorized to submit this application for this licensee.');
+        return;
+      }
+    }
     if (!paymentComplete) {
       toast.error('Please complete the payment before submitting the application.');
       return;
@@ -365,6 +377,14 @@ export default function ApplicationDetail() {
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
+    }
+    if (resolvedLicenseeId) {
+      const sectorId = (app.data as any)?.sector_id || null;
+      const authorized = await accessGuard.verify(resolvedLicenseeId, sectorId);
+      if (!authorized) {
+        toast.error('You are not authorized to resubmit this application for this licensee.');
+        return;
+      }
     }
     setProcessing(true);
 

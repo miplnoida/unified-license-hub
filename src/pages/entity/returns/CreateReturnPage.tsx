@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const QUARTERS = ['Q1','Q2','Q3','Q4'];
@@ -96,6 +97,7 @@ export default function CreateReturnPage() {
   };
 
   const licenseGate = useLicenseStatusGate();
+  const accessGuard = useLicenseeAccessGuard();
 
   const handleCreate = async () => {
     if (licenseGate.isBlocked) {
@@ -109,6 +111,16 @@ export default function CreateReturnPage() {
     }
     if (!effectiveLicenseeId) {
       toast.error('No licensee context found. Please select a licensee or contact your administrator.');
+      return;
+    }
+    // Server-verified authorization: confirm the current user is Primary or
+    // an active PPOC for this licensee/sector before any write attempt.
+    const authorized = await accessGuard.verify(
+      effectiveLicenseeId,
+      selectedConfig?.sector_id || null,
+    );
+    if (!authorized) {
+      toast.error('You are not authorized to file returns for this licensee.');
       return;
     }
     const dates = getPeriodDates();

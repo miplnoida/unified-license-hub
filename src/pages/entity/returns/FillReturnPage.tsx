@@ -25,6 +25,7 @@ import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
@@ -95,6 +96,7 @@ export default function FillReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const licenseGate = useLicenseStatusGate();
+  const accessGuard = useLicenseeAccessGuard();
   const { data: returnData, isLoading: loadingReturn } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
   const { data: fallbackConfigForms = [], isLoading: loadingFallbackForms } = useQuery({
@@ -289,6 +291,14 @@ export default function FillReturnPage() {
   const handleSubmit = async (ackText?: string) => {
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
+    // Server-verified authorization for the licensee/sector on this return.
+    const targetLicenseeId = (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null;
+    const targetSectorId = (returnData as any)?.sector_id || null;
+    const authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+    if (!authorized) {
+      toast.error('You are not authorized to submit this return.');
       return;
     }
     const result = await Swal.fire({
