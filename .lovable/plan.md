@@ -1,62 +1,126 @@
-# Audit Logging Overhaul
+# Supervisory Intelligence Dashboard
 
-## Goal
-Make `audit_logs` the single, trustworthy source of truth for major platform actions, with standardized dot-style action names, server-side writes for critical events, useful metadata, and a usable Admin UI + per-application Activity tab.
+Turn the current dashboard into a role-aware supervisory cockpit that pulls live metrics from the existing database (no mocks), generates rule-based insights, and respects RLS / dynamic permissions / PPOC scoping.
 
-## Approach
+## Scope
 
-### 1. Server-side audit writes (trusted source)
-Add a SQL helper `public.write_audit(_action, _entity_type, _entity_id, _user_id, _old, _new, _metadata)` (SECURITY DEFINER) that inserts into `audit_logs` bypassing RLS, used by every RPC/trigger/edge function below. Source tag goes in `metadata.source`.
+Modules covered: Licensing, Applications, Licensees, Returns, Payments, Inspections, Enforcement, Complaints, Risk Ratings, Workflows/SLA, Notifications.
 
-Update / add audit writes inside these trusted units (only if function exists — verify first):
-- RPC `submit_application` → `application.submitted`
-- RPC `cancel_application` → `application.cancelled`
-- RPC `reject_application_action` → `application.rejected`
-- RPC `request_resubmission_for_application` → `application.resubmission_requested`
-- RPC `approve_application*` / approval workflow RPCs → `application.approved`, `workflow.action_taken`, `workflow.step_completed`
-- Payment RPCs (`create_or_get_application_payment`, `complete_or_get_application_payment`) → `payment.initiated`, `payment.completed`, `payment.receipt_generated`
-- Edge functions: `verify-and-submit` (only logs if RPC did not), `approve-pre-licensee`, `perform-workflow-action` → workflow + status events
-- Trigger on `applications` for status changes → `application.status_changed` (skip when `workflow_mutation_context='trusted'` already emitted a more specific row; dedupe by checking last 5s audit rows for same entity+to_status)
-- Trigger on `payments` insert/update → `payment.initiated` / `payment.completed` / `payment.failed`
-- Trigger on `documents` insert/update/delete → `document.uploaded` / `document.replaced` / `document.deleted` / `document.verified` / `document.rejected`
+Audiences (already modelled in `EffectivePortalContext`):
+- Internal supervisory (super_admin, admin, supervisor, officer, analyst…)
+- Licensee (primary / secondary / PPOC w/ `activeLicenseeId`)
+- Pre-licensee / applicant
 
-All trigger writes include rich metadata (application_number, applicant_id, applicant_email, license_type, sector/sub_sector/category names via lookup CTE, from_status, to_status, payment fields, file_name, etc.).
+## Architecture
 
-### 2. Frontend audit writes (non-critical UI events only)
-Standardize names via existing `logAudit`:
-- `src/pages/NewApplication.tsx`: keep `application.created` (rename from any underscore), add `application.draft_updated`, `application.form_saved`, `application.documents_step_completed`, `application.payment_step_started`, `payment.failed`. Drop frontend `application.submitted` and `payment.completed` (server-side covers them).
-- `src/pages/applications/ApplicationDetail.tsx`: rename existing logs to dot-style for edit_requested/edit_approved/edit_denied/resubmitted. Remove duplicates already covered server-side (submit/cancel/approve/reject) — keep only the UI-context ones with `metadata.source='frontend'`.
-- `src/components/applications/LicenseePaymentPanel.tsx`: add `payment.failed` on error; remove client-side `payment.completed` (server triggers it).
+```text
+Dashboard.tsx
+  ├─ DashboardFilters (date range, sector, regulator, status, risk)         [internal only]
+  ├─ SummaryStrip      → MetricCard[] (top KPIs by audience)
+  ├─ InsightsPanel     → InsightCard[] (severity sorted)
+  ├─ ModuleSections    → grid of:
+  │     • StatusBreakdownCard   (donut/bars by status)
+  │     • SlaBreachCard
+  │     • PriorityListCard      (oldest pending, expiring, overdue…)
+  │     • TrendChartCard        (recharts, only if data available)
+  └─ Existing legacy widgets remain available via registry fallback
+```
 
-### 3. Dedupe strategy
-- Each server write uses a deterministic suppression: helper checks for an existing row with same `(entity_id, action)` in the past 10 seconds and skips if found.
-- Frontend writes always tag `metadata.source='frontend'`; server writes tag their source. UI mapper treats them equivalently.
+New files:
+- `src/components/dashboard/cards/MetricCard.tsx`
+- `src/components/dashboard/cards/InsightCard.tsx`
+- `src/components/dashboard/cards/StatusBreakdownCard.tsx`
+- `src/components/dashboard/cards/SlaBreachCard.tsx`
+- `src/components/dashboard/cards/PriorityListCard.tsx`
+- `src/components/dashboard/cards/TrendChartCard.tsx`
+- `src/components/dashboard/DashboardFilters.tsx`
+- `src/components/dashboard/SupervisoryDashboard.tsx`
+- `src/components/dashboard/LicenseeDashboard.tsx`
+- `src/components/dashboard/ApplicantDashboard.tsx`
+- `src/hooks/useSupervisoryMetrics.ts`
+- `src/hooks/useLicenseeMetrics.ts`
+- `src/hooks/useApplicantMetrics.ts`
+- `src/lib/dashboardInsights.ts`  (pure rules → insights from metrics)
 
-### 4. Admin Audit Logs UI (`src/pages/admin/AuditLogs.tsx`)
-Rewrite with:
-- Label mapper (`src/lib/auditLabels.ts`) for both dot-style and legacy underscore names, plus action category grouping (Application / Payment / Document / Workflow / Auth / Other) and color/icon per category.
-- Filters: search, action category (select), entity type (select), date range (from/to), user (select populated from visible rows).
-- Pagination: 50/page with "Load more" pulling next page via `range()`; show total count from `head:true` query.
-- Detail drawer (`Sheet`): readable action, timestamp, actor (name+email), entity link, old/new JSON, metadata pretty-print. Application rows link to `/applications/:id` with application_number; payment rows show amount/currency/receipt + link.
-- Updated subtitle copy.
+`src/pages/Dashboard.tsx` becomes a thin router that, based on `useEffectivePortalContext`, mounts one of the three audience dashboards.
 
-### 5. Application Activity tab
-- New component `src/components/applications/ActivityTab.tsx` querying `audit_logs` where `entity_type='application' AND entity_id=app.id` OR `metadata->>application_id = app.id`, ordered desc, rendered as timeline with the same label mapper.
-- Wire into `src/pages/applications/ApplicationDetail.tsx` as a new "Activity" tab (visible to admins + applicant).
+`src/lib/dashboardRegistry.ts` is extended with a new `module → metric` map used to gate sections by `hasModuleAccess` (licensing, application_management, returns_management, fee_management, inspection_management, enforcement_management, complaint_management, risk_management). Sections whose module is not accessible are hidden.
 
-## Technical Notes
-- Migration adds: `write_audit` function, triggers on `applications` (status change), `payments` (insert/update), `documents` (insert/update/delete), and updates to existing RPCs (`cancel_application`, `submit_application`, `reject_application_action`, `request_resubmission_for_application` if present) to emit standardized rows.
-- Before editing any RPC, the migration uses `CREATE OR REPLACE FUNCTION` only where the function signature is known; otherwise relies on triggers.
-- All new/updated functions: `SET search_path = public`, `SECURITY DEFINER` where they need to bypass RLS.
-- No changes to `audit_logs` table schema, only inserts.
-- Backward compatibility: UI mapper accepts both `application_created` and `application.created`; old rows render correctly.
+## Data layer
 
-## Files
-- New: `supabase/migrations/<ts>_audit_overhaul.sql`, `src/lib/auditLabels.ts`, `src/components/applications/ActivityTab.tsx`
-- Edited: `src/pages/admin/AuditLogs.tsx`, `src/pages/NewApplication.tsx`, `src/pages/applications/ApplicationDetail.tsx`, `src/components/applications/LicenseePaymentPanel.tsx`, `supabase/functions/verify-and-submit/index.ts` (only to drop duplicate writes if any), `supabase/functions/approve-pre-licensee/index.ts`, `supabase/functions/perform-workflow-action/index.ts`
-- Verify-then-edit: relevant SQL RPCs via migration
+Add Supabase RPCs (SECURITY DEFINER, enforce role/PPOC/licensee + sector scoping internally):
 
-## Out of scope
-- Backfilling historical events
-- Renaming old audit rows in place (handled by UI mapper)
-- New retention/archival policies
+- `get_supervisory_dashboard_metrics(p_filters jsonb)` → jsonb with grouped counts for all modules, scoped by caller role:
+  - internal: aggregates across regulator/sector(s) the caller can see
+  - returns counts by status, SLA buckets (due_today, due_week, breached), totals, sums (outstanding amount, revenue this month), top-N priority lists (oldest pending apps, upcoming expiries, overdue returns, high-risk entities, open enforcement)
+- `get_licensee_dashboard_metrics(p_licensee_id uuid)` → entity-scoped metrics (license status, apps, returns due/overdue, payments due, notifications, breaches). RPC verifies caller is owner / secondary / active PPOC mapping for that licensee.
+- `get_applicant_dashboard_metrics()` → caller-scoped applications, payments, notifications.
+
+All RPCs read aggregates server-side using existing tables (`licenses`, `applications`, `compliance_returns`/`returns_filed`, `payments`, `inspections`, `enforcement_actions`, `complaints`, `risk_ratings`, `workflow_instances`, `approval_steps`, `notifications`). No raw row dumps to client.
+
+Hooks wrap RPCs with TanStack Query, keyed by audience + filters + active sector + `activeLicenseeId`, so PPOC switch refetches automatically.
+
+## Insights engine
+
+`dashboardInsights.ts` exports `buildInsights(metrics, ctx)` → `Insight[]` with:
+`{ id, severity: 'critical'|'high'|'medium'|'low', module, title, explanation, action: { label, to } }`.
+
+Rules (examples — all derived from real metric fields):
+- apps SLA breached > 0 → critical, link `/applications/queue?sla=breached`
+- licenses expiring ≤30d > 0 → high, link `/admin/approved-licensees?expiring=30d`
+- high-risk entities with overdue returns → critical
+- payments backlog blocking N submitted apps → high
+- inspection coverage % per sector below threshold → medium
+- workflow stage with avg dwell > SLA → medium (bottleneck)
+- complaint SLA breach rate trending up vs last period → high
+- repeat late filers count > 0 → medium
+
+Sorted by severity then recency. Empty state when no insights.
+
+## Role behavior
+
+- `Dashboard.tsx` selects audience via `useEffectivePortalContext`:
+  - `isInternal` → `SupervisoryDashboard`
+  - `isLicensee` → `LicenseeDashboard` (uses `activeLicenseeId`)
+  - `isPreLicensee || isApplicant` → `ApplicantDashboard`
+- Within `SupervisoryDashboard`, each module section is wrapped in a `hasModuleAccess(...)` gate so officers/analysts only see permitted modules.
+- Filters (sector, regulator) default to the user's active sector/regulator context; respect `RegulatorContext` + `ActiveSectorContext`.
+
+## Security
+
+- Server-side enforcement in every RPC (role check via `has_role`, PPOC mapping check via `ppoc_entity_mappings`, licensee ownership via `profiles.licensee_id` / `entity_user_access`).
+- RLS on underlying tables remains the second line of defence.
+- No client-side filtering of sensitive rows: RPCs return only aggregates + ids the caller is allowed to see.
+
+## UX
+
+- Skeletons (`<Skeleton />`) per card during load.
+- Empty states with helpful copy and CTA.
+- Charts via existing `recharts` (already in deps if used elsewhere — verify; otherwise render compact bar/donut with CSS only).
+- Semantic tokens only (no raw colors); severities mapped to `destructive`, `warning` (added if missing), `primary`, `muted`.
+- Responsive grid, mobile friendly.
+
+## Out of scope / preserved
+
+- Existing `dashboardRegistry` widgets stay; new audience dashboards render alongside (the registry-driven grid becomes a "Quick access" row beneath the supervisory content) so no existing routes/widgets break.
+- No changes to auth, role resolution, or PPOC context logic.
+
+## Acceptance
+
+- Admin sees all modules + insights.
+- Officer/analyst sees only permitted modules.
+- Licensee primary/secondary sees entity-scoped metrics; PPOC dashboard refreshes when active mapping changes (driven by `activeLicenseeId` query key).
+- Applicant sees only their applications/payments/notifications.
+- No mock data; all numbers come from RPCs.
+- Permission gates hide inaccessible modules.
+- Loading + empty states present.
+
+## Implementation order
+
+1. Migration: create the three RPCs with security checks + grants to `authenticated`.
+2. Hooks (`useSupervisoryMetrics`, `useLicenseeMetrics`, `useApplicantMetrics`).
+3. Reusable cards + filters.
+4. Insights engine + tests.
+5. Three audience dashboards.
+6. Rewire `Dashboard.tsx` to route by audience; keep registry widgets as secondary section.
+7. Smoke test per audience in preview.
