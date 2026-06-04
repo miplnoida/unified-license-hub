@@ -141,7 +141,7 @@ export default function CreateReturnPage() {
 
     createReturn.mutate({
       entity_id: effectiveLicenseeId,
-      ...(isPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
+      ...(isActingAsPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
       return_configuration_id: configId,
       sector_id: selectedConfig?.sector_id || null,
       subsector_id: selectedConfig?.subsector_id || null,
