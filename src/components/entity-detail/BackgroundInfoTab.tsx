@@ -37,8 +37,55 @@ const isEmptyValue = (value: any): boolean => {
   if (value === null || value === undefined) return true;
   if (typeof value === 'string') return value.trim() === '';
   if (Array.isArray(value)) return value.length === 0 || value.every(isEmptyValue);
-  if (typeof value === 'object') return Object.keys(value).length === 0;
+  if (typeof value === 'object') {
+    const objectValues = Object.values(value);
+    return objectValues.length === 0 || objectValues.every(isEmptyValue);
+  }
   return false;
+};
+
+const pickFirstValue = (...values: any[]) => {
+  for (const value of values) {
+    if (!isEmptyValue(value)) return value;
+  }
+  return null;
+};
+
+const getRecordValue = (record: Record<string, unknown> | null | undefined, keys: string[]) => {
+  if (!record) return null;
+  const normalizedEntries = new Map(
+    Object.entries(record).map(([key, value]) => [normalizeKey(key), value])
+  );
+
+  for (const key of keys) {
+    const value = normalizedEntries.get(normalizeKey(key));
+    if (!isEmptyValue(value)) return value;
+  }
+
+  return null;
+};
+
+const buildAddressFromDynamicFields = (record: Record<string, unknown> | null | undefined, prefix: 'mailing' | 'physical') => {
+  if (!record) return null;
+
+  const directAddress = getRecordValue(record, [
+    `${prefix}_address`,
+    `${prefix}Address`,
+    `${prefix}_location`,
+  ]);
+
+  if (!isEmptyValue(directAddress)) return directAddress;
+
+  const address = {
+    street: getRecordValue(record, [`${prefix}_street`, `${prefix}_address_line_1`, `${prefix}_line_1`, `${prefix}_line1`, `${prefix}_address1`]),
+    address_line_2: getRecordValue(record, [`${prefix}_address_line_2`, `${prefix}_line_2`, `${prefix}_line2`, `${prefix}_address2`]),
+    city: getRecordValue(record, [`${prefix}_city`, `${prefix}_town`, `${prefix}_district`]),
+    state: getRecordValue(record, [`${prefix}_state`, `${prefix}_province`, `${prefix}_county`]),
+    postal_code: getRecordValue(record, [`${prefix}_postal_code`, `${prefix}_postcode`, `${prefix}_zip`, `${prefix}_zip_code`]),
+    country: getRecordValue(record, [`${prefix}_country`]),
+  };
+
+  return Object.values(address).some((value) => !isEmptyValue(value)) ? address : null;
 };
 
 const ADDRESS_KEY_ORDER = [
@@ -193,21 +240,6 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   useEffect(() => {
     let cancelled = false;
 
-    const fetchLatestRegistration = async (column: 'registration_reference' | 'user_id' | 'email' | 'applicant_name', value: string) => {
-      const trimmedValue = value.trim();
-      if (!trimmedValue) return null;
-
-      let query = supabase.from('registrations').select('*').order('created_at', { ascending: false }).limit(1);
-      if (column === 'user_id' || column === 'registration_reference') {
-        query = query.eq(column, trimmedValue);
-      } else {
-        query = query.ilike(column, trimmedValue);
-      }
-
-      const { data } = await query.maybeSingle();
-      return data || null;
-    };
-
     const load = async () => {
       setRegLoading(true);
       setRegistration(null);
@@ -215,135 +247,26 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       setAppData(null);
 
       try {
-        let applicantId: string | null = null;
-        let applicationRecord: any = null;
+        const { data, error } = await supabase.functions.invoke('get-licensee-registration', {
+          body: {
+            entity_id: entity?.id || null,
+            license_id: entity?.license_id || null,
+            name: entity?.name || '',
+            sector_id: entity?.sector_id || null,
+            sub_sector_id: entity?.sub_sector_id || null,
+            category_id: entity?.category_id || null,
+          },
+        });
 
-        if (entity?.license_id) {
-          const { data: license } = await supabase
-            .from('licenses')
-            .select('application_id')
-            .eq('id', entity.license_id)
-            .maybeSingle();
-
-          if (license?.application_id) {
-            const { data: application } = await supabase
-              .from('applications')
-              .select('id, applicant_id, data, created_at')
-              .eq('id', license.application_id)
-              .maybeSingle();
-
-            applicationRecord = application || null;
-            applicantId = application?.applicant_id || null;
-          }
-        }
-
-        let profileRecord: any = null;
-        let preLicenseUserRecord: any = null;
-
-        if (applicantId) {
-          const [profileRes, preLicenseRes] = await Promise.all([
-            supabase.from('profiles').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-            supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-          ]);
-
-          profileRecord = profileRes.data || null;
-          preLicenseUserRecord = preLicenseRes.data || null;
-        }
-
-        if (!applicantId && entity?.name) {
-          const [profileByEntityRes, preLicenseByEntityRes] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('id, full_name, email, phone, entity_name, department, created_at')
-              .ilike('entity_name', entity.name)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            supabase
-              .from('pre_license_users')
-              .select('id, full_name, email, phone, entity_name, department, created_at')
-              .ilike('entity_name', entity.name)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ]);
-
-          profileRecord = profileByEntityRes.data || profileRecord;
-          preLicenseUserRecord = preLicenseByEntityRes.data || preLicenseUserRecord;
-          applicantId = profileRecord?.id || preLicenseUserRecord?.id || null;
-        }
-
-        if (!applicationRecord && applicantId) {
-          const { data: applications } = await supabase
-            .from('applications')
-            .select('id, applicant_id, data, created_at')
-            .eq('applicant_id', applicantId)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          const rankedApplications = (applications || []).map((application: any, index: number) => ({
-            application,
-            score: scoreApplicationMatch(application?.data, entity),
-            index,
-          }));
-
-          rankedApplications.sort((left, right) => {
-            if (right.score !== left.score) return right.score - left.score;
-            return left.index - right.index;
-          });
-
-          applicationRecord = rankedApplications[0]?.application || null;
-        }
-
-        const applicantRecord = profileRecord || preLicenseUserRecord || null;
-        const applicationData = applicationRecord?.data && typeof applicationRecord.data === 'object'
-          ? applicationRecord.data
-          : null;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
         if (cancelled) return;
-        setApplicant(applicantRecord);
-        setAppData(applicationData);
-
-        const registrationReference = typeof applicationData?.registration_reference === 'string'
-          ? applicationData.registration_reference.trim()
-          : '';
-
-        const candidateEmail = [
-          applicantRecord?.email,
-          applicationData?.email,
-        ].map((value) => String(value || '').trim()).find(Boolean) || '';
-
-        const candidateNames = Array.from(new Set([
-          applicationData?.applicant_name,
-          applicationData?.entity_name,
-          applicantRecord?.entity_name,
-          entity?.name,
-        ].map((value) => String(value || '').trim()).filter(Boolean)));
-
-        let regRow = null;
-
-        if (registrationReference) {
-          regRow = await fetchLatestRegistration('registration_reference', registrationReference);
-        }
-
-        if (!regRow && applicantId) {
-          regRow = await fetchLatestRegistration('user_id', applicantId);
-        }
-
-        if (!regRow && candidateEmail) {
-          regRow = await fetchLatestRegistration('email', candidateEmail);
-        }
-
-        if (!regRow) {
-          for (const candidateName of candidateNames) {
-            regRow = await fetchLatestRegistration('applicant_name', candidateName);
-            if (regRow) break;
-          }
-        }
-
-        if (!cancelled) {
-          setRegistration(regRow || null);
-        }
+        setApplicant(data?.applicant || null);
+        setAppData(data?.application?.data && typeof data.application.data === 'object' ? data.application.data : null);
+        setRegistration(data?.registration || null);
+      } catch (error: any) {
+        console.error('[BackgroundInfoTab] Failed to load registration details:', error);
       } finally {
         if (!cancelled) setRegLoading(false);
       }
@@ -412,6 +335,9 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const reg = registration || null;
   const ap = applicant || {};
   const ad = appData || {};
+  const entitySpecificData = reg?.entity_specific_data && typeof reg.entity_specific_data === 'object'
+    ? reg.entity_specific_data as Record<string, unknown>
+    : null;
   const hasRegistration = Boolean(reg?.id);
 
   const showVal = (value: any) => {
@@ -422,22 +348,31 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const resolvedSectorId = reg?.sector_id || ad?.sector_id || entity?.sector_id;
   const resolvedSubSectorId = reg?.sub_sector_id || ad?.sub_sector_id || entity?.sub_sector_id;
   const resolvedCategoryId = reg?.category_id || ad?.category_id || entity?.category_id;
+  const mailingAddressValue = pickFirstValue(
+    reg?.mailing_address,
+    buildAddressFromDynamicFields(entitySpecificData, 'mailing')
+  );
+  const physicalAddressValue = pickFirstValue(
+    reg?.physical_address,
+    buildAddressFromDynamicFields(entitySpecificData, 'physical'),
+    reg?.same_as_mailing ? mailingAddressValue : null
+  );
 
   const detailRows: Array<{ label: string; value: string }> = hasRegistration
     ? [
         { label: 'Registration Reference', value: showVal(reg.registration_reference) },
-        { label: 'Registration Number', value: showVal(reg.registration_number) },
-        { label: 'Email', value: showVal(reg.email || ap.email) },
-        { label: 'Username', value: showVal(reg.username) },
-        { label: 'First Name', value: showVal(reg.first_name) },
-        { label: 'Last Name', value: showVal(reg.last_name) },
-        { label: 'Applicant / Entity Name', value: showVal(reg.applicant_name || ad.applicant_name || ad.entity_name || ap.entity_name) },
-        { label: 'Alternate Name', value: showVal(reg.applicant_name_alt) },
-        { label: 'Telephone', value: showVal(reg.telephone || ap.phone) },
-        { label: 'Mailing Address', value: showVal(reg.mailing_address) },
+        { label: 'Registration Number', value: showVal(pickFirstValue(reg.registration_number, getRecordValue(entitySpecificData, ['registration_number']))) },
+        { label: 'Email', value: showVal(pickFirstValue(reg.email, getRecordValue(entitySpecificData, ['email']), ap.email, ad.email)) },
+        { label: 'Username', value: showVal(pickFirstValue(reg.username, getRecordValue(entitySpecificData, ['username']))) },
+        { label: 'First Name', value: showVal(pickFirstValue(reg.first_name, getRecordValue(entitySpecificData, ['first_name']))) },
+        { label: 'Last Name', value: showVal(pickFirstValue(reg.last_name, getRecordValue(entitySpecificData, ['last_name']))) },
+        { label: 'Applicant / Entity Name', value: showVal(pickFirstValue(reg.applicant_name, getRecordValue(entitySpecificData, ['applicant_name']), ad.applicant_name, ad.entity_name, ap.entity_name)) },
+        { label: 'Alternate Name', value: showVal(pickFirstValue(reg.applicant_name_alt, getRecordValue(entitySpecificData, ['applicant_name_alt']))) },
+        { label: 'Telephone', value: showVal(pickFirstValue(reg.telephone, getRecordValue(entitySpecificData, ['telephone', 'phone']), ap.phone)) },
+        { label: 'Mailing Address', value: showVal(mailingAddressValue) },
         {
           label: 'Physical Address',
-          value: showVal(reg.physical_address || (reg.same_as_mailing ? reg.mailing_address : null)),
+          value: showVal(physicalAddressValue),
         },
         {
           label: 'Same As Mailing',
