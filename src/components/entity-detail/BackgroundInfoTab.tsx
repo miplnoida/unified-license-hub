@@ -88,8 +88,32 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
             supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, gender, department').eq('id', applicantId).maybeSingle(),
           ]);
           if (cancelled) return;
-          setRegistration(regRes.data || null);
-          setApplicant(profRes.data || plRes.data || null);
+          const ap = profRes.data || plRes.data || null;
+          setApplicant(ap);
+
+          let regRow = regRes.data || null;
+          if (!regRow && ap?.email) {
+            const { data: regByEmail } = await supabase
+              .from('registrations')
+              .select('*')
+              .ilike('email', ap.email)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (regByEmail) regRow = regByEmail;
+          }
+          if (!regRow && (entity?.name || applicationData?.entity_name)) {
+            const candidateName = entity?.name || applicationData?.entity_name;
+            const { data: regByName } = await supabase
+              .from('registrations')
+              .select('*')
+              .ilike('applicant_name', candidateName)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (regByName) regRow = regByName;
+          }
+          setRegistration(regRow);
         }
       } finally {
         if (!cancelled) setRegLoading(false);
@@ -97,7 +121,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     };
     load();
     return () => { cancelled = true; };
-  }, [entity?.id, entity?.license_id]);
+  }, [entity?.id, entity?.license_id, entity?.name]);
 
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
