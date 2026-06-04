@@ -24,6 +24,19 @@ export default function Dashboard() {
   if (ctx.loading) return <AuthLoadingScreen />;
   if (!user) return null;
 
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.log('[Dashboard] audience routing', {
+      audience: ctx.audience,
+      effectiveRole: ctx.effectiveRole,
+      isInternal: ctx.isInternal,
+      isLicensee: ctx.isLicensee,
+      isPreLicensee: ctx.isPreLicensee,
+      isApplicant: ctx.isApplicant,
+      activeLicenseeId: ctx.activeLicenseeId,
+    });
+  }
+
   const { title, subtitle, content } = (() => {
     if (ctx.isInternal) {
       return {
