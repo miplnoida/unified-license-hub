@@ -8,6 +8,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
+import { usePpoc } from '@/contexts/PpocContext';
+import { getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -23,7 +25,16 @@ export function Header() {
   const { unreadCount } = useNotifications();
   const { branding } = useSiteSettings();
   const { activeSectorName } = useActiveSector();
+  const { isPpoc, actingAs, ownLicenseeId } = usePpoc();
   const isLicensee = !!user && LICENSEE_ROLES.includes(user.role);
+  const effectiveRoleLabel = user
+    ? getEffectiveUserRoleLabel({
+        baseRole: user.role,
+        isPpoc,
+        actingAs,
+        hasPrimaryUserAccess: !!(user.licenseeId || ownLicenseeId),
+      })
+    : '';
 
   const handleLogout = async () => {
     await logout();
@@ -86,7 +97,9 @@ export function Header() {
                   <p className="text-xs text-muted-foreground">
                     {user.delegatedRole
                       ? `${ROLE_LABELS[user.delegatedRole]} (delegated)`
-                      : (user.dynamicRoleName || ROLE_LABELS[user.role])}
+                      : isPpoc
+                        ? effectiveRoleLabel
+                        : (user.dynamicRoleName || effectiveRoleLabel)}
                   </p>
                 </div>
               </button>
