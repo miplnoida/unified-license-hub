@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
+import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 
 export default function NewPostLicenseApplication() {
   const navigate = useNavigate();
@@ -75,7 +77,13 @@ export default function NewPostLicenseApplication() {
     setSelectedService('');
   };
 
+  const licenseGate = useLicenseStatusGate();
+
   const handleProceed = async () => {
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     if (!selectedSector || !selectedSubSector || !selectedService) {
       toast.error('Please select a Sector, Sub-Sector, and Service to proceed.');
       return;
@@ -143,6 +151,8 @@ export default function NewPostLicenseApplication() {
             <p className="text-muted-foreground">Select your sector, sub-sector, and service</p>
           </div>
         </div>
+
+        <LicenseStatusBanner />
 
         <Card>
           <CardHeader>
@@ -228,7 +238,7 @@ export default function NewPostLicenseApplication() {
             )}
 
             <div className="flex justify-end pt-4 border-t">
-              <Button onClick={handleProceed} disabled={!selectedService || matchedTemplates.length === 0 || creating}>
+              <Button onClick={handleProceed} disabled={!selectedService || matchedTemplates.length === 0 || creating || licenseGate.isBlocked}>
                 {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Proceed to Application
                 <ArrowRight className="h-4 w-4 ml-2" />
