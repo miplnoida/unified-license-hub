@@ -5,8 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
-import { RegulatorSwitcher } from './RegulatorSwitcher';
-import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
