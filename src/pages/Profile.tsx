@@ -18,6 +18,7 @@ import { usePpoc } from '@/contexts/PpocContext';
 
 export default function Profile() {
   const { user, refreshUser, clear2FAState, mark2FAVerified } = useAuth();
+  const { isPpoc, mappedLicensees } = usePpoc();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Personal info ----
