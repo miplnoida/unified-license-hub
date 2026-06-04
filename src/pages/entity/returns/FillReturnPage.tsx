@@ -12,7 +12,6 @@ import {
   useReturnRequests, useReturnComments,
 } from '@/hooks/useReturnsManagement';
 import { useResolveReturnFormVersion, useVersionSections } from '@/hooks/useFormTemplates';
-import { GitBranch } from 'lucide-react';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,7 +42,6 @@ function SingleReturnForm({ returnId, formTemplateId, initialData, readOnly, onD
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveReturnFormVersion(returnId, formTemplateId);
   const resolvedAny: any = resolved;
   const resolvedVersionId: string | null = resolvedAny?.version_id || null;
-  const versionLabel = resolvedAny?.semantic_version || resolvedAny?.version_number || null;
   const resolverError = rError
     ? 'The assigned form version could not be loaded. Please try again or contact support.'
     : resolvedAny?.error || null;

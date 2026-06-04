@@ -5,25 +5,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReturnById, useReturnConfigForms, useReturnFormData, useReturnRequests, useReturnComments } from '@/hooks/useReturnsManagement';
-import { useLatestPublishedVersion, useVersionSections, useFormVersion } from '@/hooks/useFormTemplates';
+import { useLatestPublishedVersion, useVersionSections } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
-import { MigrationCheckDialog } from '@/components/form-builder/MigrationCheckDialog';
-import { CompareReturnsPicker } from '@/components/form-builder/CompareReturnsPicker';
 import { StatusBadge } from './EntityReturnsDashboard';
-import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText, GitMerge, GitCompareArrows } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, returnLabel }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null; returnId: string; returnLabel: string }) {
+function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
   // Prefer the version this submission was filed on; fall back to latest published.
   const effectiveVersionId = pinnedVersionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(effectiveVersionId);
   const loading = vLoading || sLoading;
-  const [migrationOpen, setMigrationOpen] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
 
   return (
     <Card>
@@ -31,16 +27,6 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
         <CardTitle className="text-base flex items-center gap-2 flex-wrap">
           <FileText className="h-4 w-4 text-primary" />
           <span>{name}</span>
-          <div className="ml-auto flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
-              <GitCompareArrows className="h-3 w-3 mr-1" /> Compare
-            </Button>
-            {pinnedVersionId && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setMigrationOpen(true)}>
-                <GitMerge className="h-3 w-3 mr-1" /> Migration check
-              </Button>
-            )}
-          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -60,23 +46,6 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId, returnId, retu
           />
         )}
       </CardContent>
-      <MigrationCheckDialog
-        open={migrationOpen}
-        onOpenChange={setMigrationOpen}
-        templateId={formId}
-        submittedVersionId={pinnedVersionId || null}
-        submittedData={data}
-        formName={name}
-      />
-      <CompareReturnsPicker
-        open={compareOpen}
-        onOpenChange={setCompareOpen}
-        leftReturnId={returnId}
-        leftReturnLabel={returnLabel}
-        templateId={formId}
-        formId={formId}
-        formName={name}
-      />
     </Card>
   );
 }
@@ -212,8 +181,6 @@ export default function ViewReturnPage() {
                         name={cf.form_templates?.name || 'Form'}
                         data={valuesByForm[cf.form_id] || {}}
                         pinnedVersionId={versionByForm[cf.form_id] || null}
-                        returnId={returnData.id}
-                        returnLabel={returnData.unique_id || returnData.id.slice(0, 8)}
                       />
                       {formComments.length > 0 && (
                         <div className="border rounded-md p-3 space-y-2 bg-yellow-50/50">

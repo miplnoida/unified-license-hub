@@ -243,7 +243,7 @@ export default function CreateReturnPage() {
                         <SelectContent>
                           {activeConfigs.map(c => (
                             <SelectItem key={c.id} value={c.id}>
-                              {c.name} ({c.return_types?.name || 'Untyped'} • v{c.version})
+                              {c.name} ({c.return_types?.name || 'Untyped'})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -254,7 +254,6 @@ export default function CreateReturnPage() {
                         <p><strong>Return Type:</strong> {selectedConfig.return_types?.name || '—'}</p>
                         <p><strong>Sector:</strong> {selectedConfig.sectors?.name || 'All'}</p>
                         <p><strong>Sub-Sector:</strong> {(selectedConfig as any).sub_sectors?.name || 'All'}</p>
-                        <p><strong>Version:</strong> {selectedConfig.version}</p>
                       </div>
                     )}
                   </>
