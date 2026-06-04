@@ -23,7 +23,7 @@ const QUARTERS = ['Q1','Q2','Q3','Q4'];
 export default function CreateReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isPpoc, mappedLicensees, activeLicenseeId } = usePpoc();
+  const { isPpoc, mappedLicensees, activeLicenseeId, actingAs, ownLicenseeId } = usePpoc();
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
@@ -39,9 +39,11 @@ export default function CreateReturnPage() {
     },
   });
 
-  // PPOC users select the active licensee from the header switcher; this page
-  // simply uses that selection instead of asking again.
-  const selectedLicenseeId = isPpoc ? (activeLicenseeId || '') : '';
+  // The header LicenseeSwitcher decides the operating context. When the
+  // selection is the user's own entity, we file as Primary User (no
+  // "on_behalf_of"); when it's a mapped entity, we file as PPOC.
+  const isActingAsPpoc = actingAs === 'ppoc';
+  const selectedLicenseeId = activeLicenseeId || '';
 
   const [step, setStep] = useState(1);
   const [configId, setConfigId] = useState('');
@@ -53,8 +55,12 @@ export default function CreateReturnPage() {
 
   const activeConfigs = configs.filter(c => c.status === 'active');
   const selectedLicenseeName = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId)?.licensee_name;
-  // Resolve the entity to file the return for: PPOC-picked, else profile's licensee
-  const effectiveLicenseeId = isPpoc ? selectedLicenseeId : (profile?.licensee_id || null);
+  // Resolve the entity to file the return for:
+  //   - acting as PPOC → the mapped licensee
+  //   - acting as Primary User → own licensee (selection or profile fallback)
+  const effectiveLicenseeId = isActingAsPpoc
+    ? selectedLicenseeId
+    : (selectedLicenseeId || ownLicenseeId || profile?.licensee_id || null);
 
   const periodOptions = useMemo(() => {
     if (typeName === 'Annual') return ['Annual'];
@@ -135,7 +141,7 @@ export default function CreateReturnPage() {
 
     createReturn.mutate({
       entity_id: effectiveLicenseeId,
-      ...(isPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
+      ...(isActingAsPpoc ? { on_behalf_of_licensee_id: selectedLicenseeId } : {}),
       return_configuration_id: configId,
       sector_id: selectedConfig?.sector_id || null,
       subsector_id: selectedConfig?.subsector_id || null,

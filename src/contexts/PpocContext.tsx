@@ -15,16 +15,27 @@ export interface MappedLicensee {
 }
 
 interface PpocContextValue {
-  /** True when the current user is mapped as PPOC for one or more licensees */
+  /**
+   * True when the current user has at least one active PPOC mapping. This is
+   * a CAPABILITY flag — it does NOT mean every action runs in PPOC context.
+   * Use `actingAs === 'ppoc'` to check the currently selected operating mode.
+   */
   isPpoc: boolean;
-  /** All licensees the current user is mapped to (active mappings only) */
+  /** All licensees the current user is mapped to as PPOC (active mappings only). */
   mappedLicensees: MappedLicensee[];
-  /** The licensee the PPOC is currently acting on behalf of (null if none selected or non-PPOC) */
+  /** Currently selected licensee id (own or mapped). */
   activeLicenseeId: string | null;
   activeLicensee: MappedLicensee | null;
   setActiveLicenseeId: (id: string | null) => void;
   loading: boolean;
-  /** Resolve the licensee context for any user: PPOC selection, or own profile.licensee_id */
+  /** The user's own Primary User licensee, from profiles.licensee_id. */
+  ownLicenseeId: string | null;
+  /**
+   * 'primary' when the active selection is the user's own licensee (or no
+   * PPOC mapping exists), 'ppoc' when acting on behalf of a mapped licensee.
+   */
+  actingAs: 'primary' | 'ppoc';
+  /** Resolved licensee context: active selection, else own. */
   resolvedLicenseeId: string | null;
 }
 
@@ -196,8 +207,12 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         } catch {
           initial = null;
         }
-        if (!initial || !list.some((licensee) => licensee.licensee_id === initial)) {
-          initial = list[0]?.licensee_id || null;
+        const validIds = new Set<string>(list.map(l => l.licensee_id));
+        if (profileLicenseeId) validIds.add(profileLicenseeId);
+        if (!initial || !validIds.has(initial)) {
+          // Default to the user's own entity (Primary User context) when they
+          // also own a licensee — don't force Primary+PPOC users into PPOC mode.
+          initial = profileLicenseeId || list[0]?.licensee_id || null;
         }
         setActiveLicenseeIdState(initial);
         try {
@@ -313,8 +328,10 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         } catch {
           initial = null;
         }
-        if (!initial || !list.some((licensee) => licensee.licensee_id === initial)) {
-          initial = list[0]?.licensee_id || null;
+        const validIds = new Set<string>(list.map(l => l.licensee_id));
+        if (profileLicenseeId) validIds.add(profileLicenseeId);
+        if (!initial || !validIds.has(initial)) {
+          initial = profileLicenseeId || list[0]?.licensee_id || null;
         }
         setActiveLicenseeIdState(initial);
         try {
@@ -352,14 +369,25 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   // `licensee_primary` role — those grant Primary User access to their own
   // entity via profiles.licensee_id, not PPOC rights.
   const isPpoc = mappedLicensees.length > 0;
+  const ownLicenseeId = user?.licenseeId
+    || (resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id)
+    || null;
+
+  // Acting mode: 'primary' when the selection points at the user's own entity
+  // (or no PPOC mappings exist), 'ppoc' when the selection points at a mapped
+  // licensee that the user does NOT own as Primary User.
+  const actingAs: 'primary' | 'ppoc' = (() => {
+    if (!isPpoc) return 'primary';
+    if (activeLicenseeId && ownLicenseeId && activeLicenseeId === ownLicenseeId) return 'primary';
+    if (activeLicenseeId && mappedLicensees.some(l => l.licensee_id === activeLicenseeId)) return 'ppoc';
+    return 'ppoc';
+  })();
+
   const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;
   const resolvedLicenseeId = useMemo(() => {
-    // Acting as PPOC → use the currently selected mapped licensee.
-    // Otherwise → fall back to the user's own profiles.licensee_id (Primary User access).
-    if (isPpoc) return activeLicenseeId;
-    if (user?.licenseeId) return user.licenseeId;
-    return resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id || null;
-  }, [isPpoc, activeLicenseeId, user?.licenseeId, resolvedLicensees]);
+    if (activeLicenseeId) return activeLicenseeId;
+    return ownLicenseeId;
+  }, [activeLicenseeId, ownLicenseeId]);
 
   return (
     <PpocContext.Provider
@@ -370,6 +398,8 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         activeLicensee,
         setActiveLicenseeId,
         loading,
+        ownLicenseeId,
+        actingAs,
         resolvedLicenseeId,
       }}
     >
@@ -389,6 +419,8 @@ export function usePpoc() {
       activeLicensee: null,
       setActiveLicenseeId: () => {},
       loading: false,
+      ownLicenseeId: null,
+      actingAs: 'primary',
       resolvedLicenseeId: null,
     } as PpocContextValue;
   }
