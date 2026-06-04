@@ -340,6 +340,25 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
         setApplicant(data?.applicant || null);
         setAppData(data?.application?.data && typeof data.application.data === 'object' ? data.application.data : null);
         setRegistration(data?.registration || null);
+
+        // Replace the stored licensees.name (which may contain a
+        // sector-subsector-category slug) with the resolved applicant/entity
+        // name from the registration so the editable field shows the right value.
+        const regRow = data?.registration || {};
+        const adRow = (data?.application?.data && typeof data.application.data === 'object') ? data.application.data : {};
+        const apRow = data?.applicant || {};
+        const resolvedName = String(
+          regRow.applicant_name ||
+          adRow.applicant_name ||
+          adRow.entity_name ||
+          apRow.entity_name ||
+          apRow.full_name ||
+          ''
+        ).trim();
+        if (resolvedName) {
+          setForm(prev => (prev.name === resolvedName ? prev : { ...prev, name: resolvedName }));
+        }
+
       } catch (error: any) {
         console.error('[BackgroundInfoTab] Failed to load registration details:', error);
       } finally {
