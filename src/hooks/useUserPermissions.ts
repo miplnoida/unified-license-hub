@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 /**
  * Check if current user can perform final submission (applications, returns).
@@ -23,7 +24,8 @@ export function useCanFinalSubmit(): boolean {
  */
 export function useIsPreLicensee(): boolean {
   const { user } = useAuth();
-  return !!user && user.role === 'pre_licensee' && !user.licenseeId;
+  const portalContext = useEffectivePortalContext();
+  return !!user && !portalContext.loading && portalContext.isPreLicensee;
 }
 
 /**
@@ -31,8 +33,9 @@ export function useIsPreLicensee(): boolean {
  */
 export function useIsLicensee(): boolean {
   const { user } = useAuth();
-  if (!user) return false;
-  return LICENSEE_ROLES.includes(user.role);
+  const portalContext = useEffectivePortalContext();
+  if (!user || portalContext.loading) return false;
+  return portalContext.isLicensee;
 }
 
 /**
@@ -40,8 +43,9 @@ export function useIsLicensee(): boolean {
  */
 export function useIsInternal(): boolean {
   const { user } = useAuth();
-  if (!user) return false;
-  return INTERNAL_ROLES.includes(user.role);
+  const portalContext = useEffectivePortalContext();
+  if (!user || portalContext.loading) return false;
+  return portalContext.isInternal;
 }
 
 /**

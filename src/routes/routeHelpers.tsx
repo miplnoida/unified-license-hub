@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 /**
  * Protected route wrapper that:
@@ -14,8 +15,9 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
  */
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
+  const portalContext = useEffectivePortalContext();
   const location = useLocation();
-  const isRestrictedPreLicensee = !!user && user.role === 'pre_licensee' && !user.licenseeId;
+  const isRestrictedPreLicensee = !!user && portalContext.isPreLicensee;
 
   if (loading) return <AuthLoadingScreen />;
 
@@ -29,6 +31,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (mfaStatus === 'pending') return <Navigate to="/login?mfa=required" replace />;
     return <AuthLoadingScreen />;
   }
+
+  if (portalContext.loading) return <AuthLoadingScreen />;
 
   if (user.forcePasswordChange && location.pathname !== '/change-password') {
     return <Navigate to="/change-password" replace />;
