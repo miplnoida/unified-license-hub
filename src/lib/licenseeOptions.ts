@@ -29,8 +29,11 @@ export interface ApprovedLicenseeOption {
 export async function loadApprovedLicenseeOptions(opts?: {
   keepLicenseeId?: string | null;
   onlyActive?: boolean;
+  dedupe?: boolean;
 }): Promise<ApprovedLicenseeOption[]> {
   const onlyActive = opts?.onlyActive !== false;
+  const dedupe = opts?.dedupe !== false;
+
   const keepId = opts?.keepLicenseeId || null;
 
   const [licRes, secRes, licensesRes] = await Promise.all([
