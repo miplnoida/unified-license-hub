@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from 'date-fns';
+import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const QUARTERS = ['Q1','Q2','Q3','Q4'];
@@ -87,7 +89,13 @@ export default function CreateReturnPage() {
     return { start: format(new Date(y, mi, 1), 'yyyy-MM-dd'), end: format(lastDayOfMonth(new Date(y, mi)), 'yyyy-MM-dd') };
   };
 
+  const licenseGate = useLicenseStatusGate();
+
   const handleCreate = async () => {
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     if (!configId || !period || !year) return;
     if (isPpoc && !selectedLicenseeId) {
       toast.error('Please select a licensee to file the return for.');
