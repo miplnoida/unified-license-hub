@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getEffectivePortalContext, getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
 
 /**
  * Encodes the business rule that PPOC status is granted ONLY through an
@@ -117,5 +118,56 @@ describe('Primary User vs PPOC', () => {
     expect(computeActingAs({
       ownLicenseeId: null, mappedLicenseeIds: ['lic-2'], activeLicenseeId: 'lic-2',
     })).toBe('ppoc');
+  });
+
+  it('waits for PPOC loading before classifying a mapped applicant as Applicant', () => {
+    expect(
+      getEffectivePortalContext({
+        baseRole: 'applicant',
+        isPpoc: false,
+        actingAs: 'primary',
+        resolvedLicenseeId: null,
+        hasPrimaryUserAccess: false,
+        ppocLoading: true,
+      }),
+    ).toEqual({
+      loading: true,
+      audience: null,
+      effectiveRole: null,
+      isInternal: false,
+      isLicensee: false,
+      isPreLicensee: false,
+      isApplicant: false,
+    });
+  });
+
+  it('treats an applicant with active PPOC mapping as licensee audience', () => {
+    const context = getEffectivePortalContext({
+      baseRole: 'applicant',
+      isPpoc: true,
+      actingAs: 'ppoc',
+      resolvedLicenseeId: 'lic-9',
+      hasPrimaryUserAccess: false,
+      ppocLoading: false,
+    });
+
+    expect(context.loading).toBe(false);
+    expect(context.audience).toBe('licensee');
+    expect(context.isLicensee).toBe(true);
+    expect(context.isApplicant).toBe(false);
+    expect(context.effectiveRole).toBe('PPOC');
+  });
+
+  it('keeps a primary-plus-ppoc user on primary label when acting on own entity', () => {
+    expect(
+      getEffectiveUserRoleLabel({
+        baseRole: 'applicant',
+        isPpoc: true,
+        actingAs: 'primary',
+        resolvedLicenseeId: 'lic-1',
+        hasPrimaryUserAccess: true,
+        ppocLoading: false,
+      }),
+    ).toBe('Primary User');
   });
 });
