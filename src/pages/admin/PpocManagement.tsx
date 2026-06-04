@@ -77,17 +77,24 @@ export default function PpocManagement() {
     const userIds = [...new Set(rows.map(r => r.ppoc_user_id))];
     const mappingIds = rows.map(r => r.id);
 
-    const [{ data: profiles }, enrichedLicensees, { data: mapSectors }, { data: secList }] = await Promise.all([
+    const licenseeIds = [...new Set(rows.map(r => r.licensee_id).filter(Boolean))];
+
+    const [{ data: profiles }, enrichedLicensees, { data: mapSectors }, { data: secList }, { data: rawLicRows }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').in('id', userIds.length ? userIds : ['__none__']),
       // Use enriched helper so mapping table shows the same display name as the Licensee Entities page.
       // Pass onlyActive:false because mappings may reference any licensee row regardless of status.
       loadApprovedLicenseeOptions({ onlyActive: false }),
       supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds.length ? mappingIds : ['__none__']),
       supabase.from('sectors').select('id, name'),
+      // Fallback: dedupe in loadApprovedLicenseeOptions may drop licensees that share
+      // (display_name + sector) with a "winning" duplicate. Fetch raw rows by mapped IDs
+      // so we always have a name to render, even for dropped duplicates.
+      supabase.from('licensees').select('id, name').in('id', licenseeIds.length ? licenseeIds : ['__none__']),
     ]);
 
     const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
     const licMap = Object.fromEntries(enrichedLicensees.map(l => [l.id, l]));
+    const rawLicMap = Object.fromEntries(((rawLicRows || []) as any[]).map((l: any) => [l.id, l]));
     const sectorMap = Object.fromEntries((secList || []).map((s: any) => [s.id, s]));
     const sectorsByMapping: Record<string, string[]> = {};
     ((mapSectors || []) as any[]).forEach(r => {
@@ -101,7 +108,7 @@ export default function PpocManagement() {
         ...r,
         ppoc_name: profileMap[r.ppoc_user_id]?.full_name || '—',
         ppoc_email: profileMap[r.ppoc_user_id]?.email || '',
-        licensee_name: licMap[r.licensee_id]?.display_name || '—',
+        licensee_name: licMap[r.licensee_id]?.display_name || rawLicMap[r.licensee_id]?.name || '—',
         sector_ids: sectorIds,
         sector_names: sectorIds.map(id => sectorMap[id]?.name).filter(Boolean),
         needs_sector_assignment: sectorIds.length === 0,
