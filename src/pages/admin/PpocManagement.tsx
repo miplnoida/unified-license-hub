@@ -81,16 +81,14 @@ export default function PpocManagement() {
 
     const [{ data: profiles }, enrichedLicensees, { data: mapSectors }, { data: secList }, { data: rawLicRows }] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email').in('id', userIds.length ? userIds : ['__none__']),
-      // Use enriched helper so mapping table shows the same display name as the Licensee Entities page.
-      // Pass onlyActive:false because mappings may reference any licensee row regardless of status.
-      loadApprovedLicenseeOptions({ onlyActive: false }),
+      // Use enriched helper without dedupe so every licensee id (including
+      // "losing" duplicates) has a resolved entity display name available.
+      loadApprovedLicenseeOptions({ onlyActive: false, dedupe: false }),
       supabase.from('ppoc_mapping_sectors' as any).select('mapping_id, sector_id').in('mapping_id', mappingIds.length ? mappingIds : ['__none__']),
       supabase.from('sectors').select('id, name'),
-      // Fallback: dedupe in loadApprovedLicenseeOptions may drop licensees that share
-      // (display_name + sector) with a "winning" duplicate. Fetch raw rows by mapped IDs
-      // so we always have a name to render, even for dropped duplicates.
       supabase.from('licensees').select('id, name').in('id', licenseeIds.length ? licenseeIds : ['__none__']),
     ]);
+
 
     const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
     const licMap = Object.fromEntries(enrichedLicensees.map(l => [l.id, l]));
