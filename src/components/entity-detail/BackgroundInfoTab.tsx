@@ -416,7 +416,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const hasRegistration = Boolean(reg?.id);
 
   const showVal = (value: any) => {
-    const rendered = renderValue(value);
+    const rendered = renderValue(value, idLookup);
     return rendered && rendered !== '—' ? rendered : 'Not provided';
   };
 
