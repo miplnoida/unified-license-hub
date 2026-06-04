@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
@@ -49,12 +50,13 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function LicenseDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const portalContext = useEffectivePortalContext();
   const [license, setLicense] = useState<License | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
   const [processing, setProcessing] = useState(false);
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
     async function load() {
