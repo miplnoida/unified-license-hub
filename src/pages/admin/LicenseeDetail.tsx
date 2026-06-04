@@ -263,7 +263,7 @@ export default function LicenseeDetail() {
             </TabsContent>
 
             <TabsContent value="web-users" className="mt-6">
-              {loadedTabs.has('web-users') && <WebUsersTab entityId={id!} entityName={licensee.name} />}
+              {loadedTabs.has('web-users') && <WebUsersTab entityId={id!} entityName={displayName || licensee.name} />}
             </TabsContent>
 
             <TabsContent value="returns" className="mt-6">
