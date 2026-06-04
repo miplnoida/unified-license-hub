@@ -4,6 +4,7 @@ import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldAlert } from 'lucide-react';
+import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import {
   deriveUserContext,
   getDashboardWidgetsForUser,
