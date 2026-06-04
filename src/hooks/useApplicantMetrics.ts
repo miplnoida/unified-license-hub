@@ -8,7 +8,15 @@ const head = async (q: any): Promise<number> => {
 };
 
 export interface ApplicantMetrics {
-  applications: { draft: number; submitted: number; under_review: number; approved: number; rejected: number; returned: number };
+  applications: {
+    draft: number;
+    submitted: number;
+    under_review: number;
+    approved: number;
+    rejected: number;
+    clarification_requested: number;
+    resubmission_requested: number;
+  };
   payments: { pending: number; paid: number; outstanding_amount: number };
   notifications: { unread: number };
   priority_lists: {
@@ -23,13 +31,14 @@ export function useApplicantMetrics(userId: string | undefined) {
     enabled: !!userId,
     staleTime: 60_000,
     queryFn: async () => {
-      const [draft, submitted, under_review, approved, rejected, returned, payPending, payPaid, notif] = await Promise.all([
+      const [draft, submitted, under_review, approved, rejected, clarification, resubmission, payPending, payPaid, notif] = await Promise.all([
         head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'draft')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'submitted')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['under_review', 'in_review'])),
+        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['submitted', 'in_progress'])),
+        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['under_review', 'in_review', 'review', 'pending_review'])),
         head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'approved')),
         head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'rejected')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['returned', 'returned_for_clarification', 'resubmission_required'])),
+        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'query_raised')),
+        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['resubmission_requested', 'resubmission_required'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId!).in('status', ['pending', 'awaiting_verification'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId!).in('status', ['paid', 'completed', 'verified'])),
         head(supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId!).eq('read', false)),
@@ -43,7 +52,15 @@ export function useApplicantMetrics(userId: string | undefined) {
       const outstanding_amount = ((pendingPaymentsRes.data || []) as any[]).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
       return {
-        applications: { draft, submitted, under_review, approved, rejected, returned },
+        applications: {
+          draft,
+          submitted,
+          under_review,
+          approved,
+          rejected,
+          clarification_requested: clarification,
+          resubmission_requested: resubmission,
+        },
         payments: { pending: payPending, paid: payPaid, outstanding_amount },
         notifications: { unread: notif },
         priority_lists: {
@@ -54,3 +71,4 @@ export function useApplicantMetrics(userId: string | undefined) {
     },
   });
 }
+
