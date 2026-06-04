@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { usePpoc } from '@/contexts/PpocContext';
 
 export default function NewPostLicenseApplication() {
   const navigate = useNavigate();
@@ -78,6 +80,8 @@ export default function NewPostLicenseApplication() {
   };
 
   const licenseGate = useLicenseStatusGate();
+  const accessGuard = useLicenseeAccessGuard();
+  const { resolvedLicenseeId } = usePpoc();
 
   const handleProceed = async () => {
     if (licenseGate.isBlocked) {
@@ -93,6 +97,14 @@ export default function NewPostLicenseApplication() {
       return;
     }
     if (!user) return;
+    // Server-verified authorization when a licensee context exists.
+    if (resolvedLicenseeId) {
+      const authorized = await accessGuard.verify(resolvedLicenseeId, selectedSector);
+      if (!authorized) {
+        toast.error('You are not authorized to file post-license applications for this licensee.');
+        return;
+      }
+    }
 
     setCreating(true);
     const sectorObj = sectors.find(s => s.id === selectedSector);
