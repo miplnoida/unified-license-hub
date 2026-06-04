@@ -19,25 +19,160 @@ interface BackgroundInfoTabProps {
   onDirtyChange: (dirty: boolean) => void;
 }
 
-const formatAddress = (a: any): string => {
-  if (!a || typeof a !== 'object') return '';
-  const parts = [a.street, a.city, a.state, a.zip || a.postal_code, a.country].filter(Boolean);
-  return parts.join(', ');
+const normalizeKey = (value: string) =>
+  value
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toLowerCase();
+
+const normalizeText = (value: unknown) => String(value ?? '').trim().toLowerCase();
+
+const humanizeKey = (value: string) =>
+  value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+
+const isEmptyValue = (value: any): boolean => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0 || value.every(isEmptyValue);
+  if (typeof value === 'object') return Object.keys(value).length === 0;
+  return false;
 };
 
-const humanizeKey = (k: string) =>
-  k.replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+const ADDRESS_KEY_ORDER = [
+  'street',
+  'address_line_1',
+  'address_line1',
+  'line1',
+  'address1',
+  'address',
+  'street_address',
+  'address_line_2',
+  'address_line2',
+  'line2',
+  'address2',
+  'city',
+  'town',
+  'district',
+  'state',
+  'parish',
+  'province',
+  'county',
+  'postal_code',
+  'postcode',
+  'zip',
+  'zip_code',
+  'country',
+];
 
-const renderValue = (v: any): string => {
-  if (v === null || v === undefined || v === '') return '—';
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (Array.isArray(v)) return v.length ? v.map(renderValue).join(', ') : '—';
-  if (typeof v === 'object') {
-    const addr = formatAddress(v);
-    if (addr) return addr;
-    return JSON.stringify(v);
+const FIXED_DYNAMIC_KEYS = new Set([
+  'registration_reference',
+  'registration_number',
+  'email',
+  'username',
+  'first_name',
+  'last_name',
+  'applicant_name',
+  'applicant_name_alt',
+  'telephone',
+  'mailing_address',
+  'physical_address',
+  'same_as_mailing',
+  'email_verified',
+  'terms_accepted',
+  'status',
+  'created_at',
+  'updated_at',
+  'sector',
+  'sub_sector',
+  'category',
+  'sector_id',
+  'sub_sector_id',
+  'category_id',
+  'documents_metadata',
+]);
+
+const SENSITIVE_DYNAMIC_KEYS = new Set([
+  'password',
+  'confirm_password',
+  'password_confirmation',
+  'confirm_password_value',
+  'otp',
+  'pin',
+  'secret',
+]);
+
+const formatDateTime = (value: unknown): string => {
+  if (!value) return 'Not provided';
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString();
+};
+
+const formatAddress = (value: any): string => {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) {
+    return value.map(formatAddress).filter(Boolean).join(', ');
   }
-  return String(v);
+  if (typeof value !== 'object') return String(value);
+
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) return '';
+
+  const normalizedEntries = new Map(entries.map(([key, entryValue]) => [normalizeKey(key), entryValue]));
+  const usedKeys = new Set<string>();
+  const orderedParts = ADDRESS_KEY_ORDER
+    .map((key) => {
+      const entryValue = normalizedEntries.get(key);
+      if (isEmptyValue(entryValue)) return null;
+      usedKeys.add(key);
+      return typeof entryValue === 'string' ? entryValue.trim() : String(entryValue);
+    })
+    .filter(Boolean) as string[];
+
+  const extraParts = entries
+    .filter(([key, entryValue]) => !usedKeys.has(normalizeKey(key)) && !isEmptyValue(entryValue))
+    .map(([key, entryValue]) => `${humanizeKey(key)}: ${renderValue(entryValue)}`);
+
+  return [...orderedParts, ...extraParts].join(', ');
+};
+
+const renderValue = (value: any): string => {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (Array.isArray(value)) return value.length ? value.map(renderValue).join(', ') : '—';
+  if (typeof value === 'object') {
+    const address = formatAddress(value);
+    if (address) return address;
+    const objectEntries = Object.entries(value as Record<string, unknown>)
+      .filter(([, entryValue]) => !isEmptyValue(entryValue))
+      .map(([key, entryValue]) => `${humanizeKey(key)}: ${renderValue(entryValue)}`);
+    return objectEntries.length ? objectEntries.join(', ') : '—';
+  }
+  return String(value);
+};
+
+const scoreApplicationMatch = (applicationData: any, entity: any) => {
+  if (!applicationData || typeof applicationData !== 'object') return 0;
+
+  const entityName = normalizeText(entity?.name);
+  const candidateNames = [applicationData?.entity_name, applicationData?.applicant_name].map(normalizeText);
+
+  let score = 0;
+  if (entityName && candidateNames.some(name => name && name === entityName)) score += 8;
+  if (entity?.sector_id && applicationData?.sector_id === entity.sector_id) score += 2;
+  if (entity?.sub_sector_id && applicationData?.sub_sector_id === entity.sub_sector_id) score += 3;
+  if (entity?.category_id && applicationData?.category_id === entity.category_id) score += 4;
+
+  return score;
+};
+
+const resolveMappedValue = (id: string | null | undefined, options: Record<string, string>) => {
+  if (!id) return 'Not provided';
+  return options[id] || id;
 };
 
 export default function BackgroundInfoTab({ entity, sectors, subSectors, categories, onUpdate, onDirtyChange }: BackgroundInfoTabProps) {
@@ -57,71 +192,168 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
 
   useEffect(() => {
     let cancelled = false;
+
+    const fetchLatestRegistration = async (column: 'registration_reference' | 'user_id' | 'email' | 'applicant_name', value: string) => {
+      const trimmedValue = value.trim();
+      if (!trimmedValue) return null;
+
+      let query = supabase.from('registrations').select('*').order('created_at', { ascending: false }).limit(1);
+      if (column === 'user_id' || column === 'registration_reference') {
+        query = query.eq(column, trimmedValue);
+      } else {
+        query = query.ilike(column, trimmedValue);
+      }
+
+      const { data } = await query.maybeSingle();
+      return data || null;
+    };
+
     const load = async () => {
       setRegLoading(true);
+      setRegistration(null);
+      setApplicant(null);
+      setAppData(null);
+
       try {
         let applicantId: string | null = null;
-        let applicationData: any = null;
+        let applicationRecord: any = null;
+
         if (entity?.license_id) {
-          const { data: lic } = await supabase
+          const { data: license } = await supabase
             .from('licenses')
             .select('application_id')
             .eq('id', entity.license_id)
             .maybeSingle();
-          if (lic?.application_id) {
-            const { data: app } = await supabase
+
+          if (license?.application_id) {
+            const { data: application } = await supabase
               .from('applications')
-              .select('applicant_id, data')
-              .eq('id', lic.application_id)
+              .select('id, applicant_id, data, created_at')
+              .eq('id', license.application_id)
               .maybeSingle();
-            applicantId = app?.applicant_id || null;
-            applicationData = app?.data || null;
+
+            applicationRecord = application || null;
+            applicantId = application?.applicant_id || null;
           }
         }
-        if (cancelled) return;
-        setAppData(applicationData);
+
+        let profileRecord: any = null;
+        let preLicenseUserRecord: any = null;
 
         if (applicantId) {
-          const [regRes, profRes, plRes] = await Promise.all([
-            supabase.from('registrations').select('*').eq('user_id', applicantId).maybeSingle(),
+          const [profileRes, preLicenseRes] = await Promise.all([
             supabase.from('profiles').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
             supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
           ]);
-          if (cancelled) return;
-          const ap = profRes.data || plRes.data || null;
-          setApplicant(ap);
 
-          let regRow = regRes.data || null;
-          if (!regRow && ap?.email) {
-            const { data: regByEmail } = await supabase
-              .from('registrations')
-              .select('*')
-              .ilike('email', ap.email)
+          profileRecord = profileRes.data || null;
+          preLicenseUserRecord = preLicenseRes.data || null;
+        }
+
+        if (!applicantId && entity?.name) {
+          const [profileByEntityRes, preLicenseByEntityRes] = await Promise.all([
+            supabase
+              .from('profiles')
+              .select('id, full_name, email, phone, entity_name, department, created_at')
+              .ilike('entity_name', entity.name)
               .order('created_at', { ascending: false })
               .limit(1)
-              .maybeSingle();
-            if (regByEmail) regRow = regByEmail;
-          }
-          if (!regRow && (entity?.name || applicationData?.entity_name)) {
-            const candidateName = entity?.name || applicationData?.entity_name;
-            const { data: regByName } = await supabase
-              .from('registrations')
-              .select('*')
-              .ilike('applicant_name', candidateName)
+              .maybeSingle(),
+            supabase
+              .from('pre_license_users')
+              .select('id, full_name, email, phone, entity_name, department, created_at')
+              .ilike('entity_name', entity.name)
               .order('created_at', { ascending: false })
               .limit(1)
-              .maybeSingle();
-            if (regByName) regRow = regByName;
+              .maybeSingle(),
+          ]);
+
+          profileRecord = profileByEntityRes.data || profileRecord;
+          preLicenseUserRecord = preLicenseByEntityRes.data || preLicenseUserRecord;
+          applicantId = profileRecord?.id || preLicenseUserRecord?.id || null;
+        }
+
+        if (!applicationRecord && applicantId) {
+          const { data: applications } = await supabase
+            .from('applications')
+            .select('id, applicant_id, data, created_at')
+            .eq('applicant_id', applicantId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          const rankedApplications = (applications || []).map((application: any, index: number) => ({
+            application,
+            score: scoreApplicationMatch(application?.data, entity),
+            index,
+          }));
+
+          rankedApplications.sort((left, right) => {
+            if (right.score !== left.score) return right.score - left.score;
+            return left.index - right.index;
+          });
+
+          applicationRecord = rankedApplications[0]?.application || null;
+        }
+
+        const applicantRecord = profileRecord || preLicenseUserRecord || null;
+        const applicationData = applicationRecord?.data && typeof applicationRecord.data === 'object'
+          ? applicationRecord.data
+          : null;
+
+        if (cancelled) return;
+        setApplicant(applicantRecord);
+        setAppData(applicationData);
+
+        const registrationReference = typeof applicationData?.registration_reference === 'string'
+          ? applicationData.registration_reference.trim()
+          : '';
+
+        const candidateEmail = [
+          applicantRecord?.email,
+          applicationData?.email,
+        ].map((value) => String(value || '').trim()).find(Boolean) || '';
+
+        const candidateNames = Array.from(new Set([
+          applicationData?.applicant_name,
+          applicationData?.entity_name,
+          applicantRecord?.entity_name,
+          entity?.name,
+        ].map((value) => String(value || '').trim()).filter(Boolean)));
+
+        let regRow = null;
+
+        if (registrationReference) {
+          regRow = await fetchLatestRegistration('registration_reference', registrationReference);
+        }
+
+        if (!regRow && applicantId) {
+          regRow = await fetchLatestRegistration('user_id', applicantId);
+        }
+
+        if (!regRow && candidateEmail) {
+          regRow = await fetchLatestRegistration('email', candidateEmail);
+        }
+
+        if (!regRow) {
+          for (const candidateName of candidateNames) {
+            regRow = await fetchLatestRegistration('applicant_name', candidateName);
+            if (regRow) break;
           }
-          setRegistration(regRow);
+        }
+
+        if (!cancelled) {
+          setRegistration(regRow || null);
         }
       } finally {
         if (!cancelled) setRegLoading(false);
       }
     };
+
     load();
-    return () => { cancelled = true; };
-  }, [entity?.id, entity?.license_id, entity?.name]);
+    return () => {
+      cancelled = true;
+    };
+  }, [entity?.id, entity?.license_id, entity?.name, entity?.sector_id, entity?.sub_sector_id, entity?.category_id]);
 
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -142,7 +374,10 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       .ilike('name', trimmed)
       .neq('id', entity.id)
       .limit(1);
-    if (error) { setNameStatus('idle'); return; }
+    if (error) {
+      setNameStatus('idle');
+      return;
+    }
     setNameStatus(data && data.length > 0 ? 'taken' : 'available');
   };
 
@@ -174,44 +409,73 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const subSectorList = Object.entries(subSectors).sort((a, b) => a[1].localeCompare(b[1]));
   const categoryList = Object.entries(categories).sort((a, b) => a[1].localeCompare(b[1]));
 
-  // Build a unified "registration details" view from registration / applicant / app data
-  const reg = registration || {};
+  const reg = registration || null;
   const ap = applicant || {};
   const ad = appData || {};
+  const hasRegistration = Boolean(reg?.id);
 
-  const showVal = (v: any) => {
-    const r = renderValue(v);
-    return r && r !== '—' ? r : 'Not provided';
+  const showVal = (value: any) => {
+    const rendered = renderValue(value);
+    return rendered && rendered !== '—' ? rendered : 'Not provided';
   };
 
-  const detailRows: Array<{ label: string; value: string }> = [
-    { label: 'Applicant / Entity Name', value: showVal(reg.applicant_name || ad.applicant_name || ad.entity_name || ap.entity_name || ap.full_name) },
-    { label: 'Alternate Name', value: showVal(reg.applicant_name_alt) },
-    { label: 'First Name', value: showVal(reg.first_name) },
-    { label: 'Last Name', value: showVal(reg.last_name) },
-    { label: 'Contact Person', value: showVal(ap.full_name) },
-    { label: 'Email', value: showVal(reg.email || ap.email) },
-    { label: 'Telephone', value: showVal(reg.telephone || ap.phone) },
-    { label: 'Username', value: showVal(reg.username) },
-    { label: 'Department', value: showVal(ap.department) },
-    { label: 'Registration Reference', value: showVal(reg.registration_reference) },
-    { label: 'Registration Number', value: showVal(reg.registration_number) },
-    { label: 'Email Verified', value: reg.email_verified === undefined ? 'Not provided' : (reg.email_verified ? 'Yes' : 'No') },
-    { label: 'Terms Accepted', value: reg.terms_accepted === undefined ? 'Not provided' : (reg.terms_accepted ? 'Yes' : 'No') },
-    { label: 'Mailing Address', value: showVal(reg.mailing_address) },
-    { label: 'Physical Address', value: reg.same_as_mailing ? 'Same as mailing' : showVal(reg.physical_address) },
-  ];
+  const resolvedSectorId = reg?.sector_id || ad?.sector_id || entity?.sector_id;
+  const resolvedSubSectorId = reg?.sub_sector_id || ad?.sub_sector_id || entity?.sub_sector_id;
+  const resolvedCategoryId = reg?.category_id || ad?.category_id || entity?.category_id;
 
-  const entitySpecific: Array<[string, any]> = reg.entity_specific_data && typeof reg.entity_specific_data === 'object'
-    ? Object.entries(reg.entity_specific_data)
+  const detailRows: Array<{ label: string; value: string }> = hasRegistration
+    ? [
+        { label: 'Registration Reference', value: showVal(reg.registration_reference) },
+        { label: 'Registration Number', value: showVal(reg.registration_number) },
+        { label: 'Email', value: showVal(reg.email || ap.email) },
+        { label: 'Username', value: showVal(reg.username) },
+        { label: 'First Name', value: showVal(reg.first_name) },
+        { label: 'Last Name', value: showVal(reg.last_name) },
+        { label: 'Applicant / Entity Name', value: showVal(reg.applicant_name || ad.applicant_name || ad.entity_name || ap.entity_name) },
+        { label: 'Alternate Name', value: showVal(reg.applicant_name_alt) },
+        { label: 'Telephone', value: showVal(reg.telephone || ap.phone) },
+        { label: 'Mailing Address', value: showVal(reg.mailing_address) },
+        {
+          label: 'Physical Address',
+          value: showVal(reg.physical_address || (reg.same_as_mailing ? reg.mailing_address : null)),
+        },
+        {
+          label: 'Same As Mailing',
+          value: reg.same_as_mailing === undefined || reg.same_as_mailing === null ? 'Not provided' : (reg.same_as_mailing ? 'Yes' : 'No'),
+        },
+        {
+          label: 'Email Verified',
+          value: reg.email_verified === undefined || reg.email_verified === null ? 'Not provided' : (reg.email_verified ? 'Yes' : 'No'),
+        },
+        {
+          label: 'Terms Accepted',
+          value: reg.terms_accepted === undefined || reg.terms_accepted === null ? 'Not provided' : (reg.terms_accepted ? 'Yes' : 'No'),
+        },
+        { label: 'Status', value: showVal(reg.status) },
+        { label: 'Created At', value: formatDateTime(reg.created_at) },
+        { label: 'Updated At', value: formatDateTime(reg.updated_at) },
+        { label: 'Sector', value: resolveMappedValue(resolvedSectorId, sectors) },
+        { label: 'Sub-Sector', value: resolveMappedValue(resolvedSubSectorId, subSectors) },
+        { label: 'Category', value: resolveMappedValue(resolvedCategoryId, categories) },
+      ]
     : [];
 
-  const documents: any[] = Array.isArray(reg.documents_metadata) ? reg.documents_metadata : [];
+  const entitySpecific: Array<[string, any]> = hasRegistration && reg?.entity_specific_data && typeof reg.entity_specific_data === 'object'
+    ? Object.entries(reg.entity_specific_data as Record<string, unknown>).filter(([key, value]) => {
+        const normalized = normalizeKey(key);
+        if (FIXED_DYNAMIC_KEYS.has(normalized)) return false;
+        if (SENSITIVE_DYNAMIC_KEYS.has(normalized) || normalized.includes('password')) return false;
+        return !isEmptyValue(value);
+      })
+    : [];
+
+  const documents: any[] = hasRegistration && Array.isArray(reg?.documents_metadata)
+    ? reg.documents_metadata
+    : [];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Entity Details */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -232,7 +496,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   {nameStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  {nameStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {nameStatus === 'available' && <CheckCircle2 className="h-4 w-4 text-primary" />}
                   {nameStatus === 'taken' && <XCircle className="h-4 w-4 text-destructive" />}
                 </div>
               </div>
@@ -282,7 +546,6 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           </CardContent>
         </Card>
 
-        {/* Registration Summary */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -331,7 +594,6 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
         </Card>
       </div>
 
-      {/* Registration Details */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -344,20 +606,18 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : detailRows.length === 0 && entitySpecific.length === 0 && documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">No registration details available for this entity.</p>
+          ) : !hasRegistration ? (
+            <p className="text-sm text-muted-foreground py-4">No linked registration record found for this entity.</p>
           ) : (
             <div className="space-y-6">
-              {detailRows.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                  {detailRows.map(row => (
-                    <div key={row.label} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
-                      <span className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</span>
-                      <span className="text-sm text-foreground break-words">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                {detailRows.map(row => (
+                  <div key={row.label} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</span>
+                    <span className="text-sm text-foreground break-words">{row.value}</span>
+                  </div>
+                ))}
+              </div>
 
               {entitySpecific.length > 0 && (
                 <div>
@@ -366,10 +626,10 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                     Entity-Specific Information
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                    {entitySpecific.map(([k, v]) => (
-                      <div key={k} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(k)}</span>
-                        <span className="text-sm text-foreground break-words">{renderValue(v)}</span>
+                    {entitySpecific.map(([key, value]) => (
+                      <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
+                        <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
+                        <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
                       </div>
                     ))}
                   </div>
@@ -382,20 +642,44 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                     <Paperclip className="h-4 w-4 text-primary" />
                     Uploaded Documents ({documents.length})
                   </h4>
-                  <div className="space-y-2">
-                    {documents.map((doc, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 rounded-md border border-border/50 bg-muted/30">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-sm truncate">
-                            {doc.name || doc.file_name || doc.label || doc.document_name || `Document ${idx + 1}`}
-                          </span>
+                  <div className="space-y-3">
+                    {documents.map((document, index) => {
+                      const documentEntries = document && typeof document === 'object'
+                        ? Object.entries(document as Record<string, unknown>).filter(([key, value]) => {
+                            const normalized = normalizeKey(key);
+                            return !['name', 'file_name', 'label', 'document_name', 'type', 'mime_type'].includes(normalized) && !isEmptyValue(value);
+                          })
+                        : [];
+
+                      return (
+                        <div key={index} className="rounded-md border border-border/50 bg-muted/30 p-3 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-sm font-medium break-words">
+                                {typeof document === 'object' && document
+                                  ? (document.name || document.file_name || document.label || document.document_name || `Document ${index + 1}`)
+                                  : `Document ${index + 1}`}
+                              </span>
+                            </div>
+                            {typeof document === 'object' && document && (document.type || document.mime_type) ? (
+                              <Badge variant="outline" className="text-xs shrink-0">{document.type || document.mime_type}</Badge>
+                            ) : null}
+                          </div>
+
+                          {documentEntries.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                              {documentEntries.map(([key, value]) => (
+                                <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
+                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
+                                  <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        {doc.type || doc.mime_type ? (
-                          <Badge variant="outline" className="text-xs ml-2 shrink-0">{doc.type || doc.mime_type}</Badge>
-                        ) : null}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
