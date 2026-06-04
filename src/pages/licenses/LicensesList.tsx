@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Eye, Loader2 } from 'lucide-react';
 
@@ -40,12 +41,13 @@ export default function LicensesList() {
   const { user } = useAuth();
   const { resolvedLicenseeId } = usePpoc();
   const { activeSectorId, availableSectors } = useActiveSector();
+  const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;

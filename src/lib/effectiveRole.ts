@@ -18,6 +18,7 @@ export interface EffectivePortalContext {
   isLicensee: boolean;
   isPreLicensee: boolean;
   isApplicant: boolean;
+  activeLicenseeId: string | null;
 }
 
 const INTERNAL_ROLE_SET = new Set<AppRole>(INTERNAL_ROLES);
@@ -66,6 +67,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isLicensee: false,
       isPreLicensee: false,
       isApplicant: false,
+      activeLicenseeId: null,
     };
   }
 
@@ -78,6 +80,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isLicensee: false,
       isPreLicensee: false,
       isApplicant: false,
+      activeLicenseeId: null,
     };
   }
 
@@ -95,6 +98,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isLicensee: true,
       isPreLicensee: false,
       isApplicant: false,
+      activeLicenseeId: resolvedLicenseeId,
     };
   }
 
@@ -113,6 +117,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isLicensee: true,
       isPreLicensee: false,
       isApplicant: false,
+      activeLicenseeId: resolvedLicenseeId || null,
     };
   }
 
@@ -125,6 +130,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isLicensee: false,
       isPreLicensee: true,
       isApplicant: false,
+      activeLicenseeId: null,
     };
   }
 
@@ -136,6 +142,7 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
     isLicensee: false,
     isPreLicensee: false,
     isApplicant: true,
+    activeLicenseeId: null,
   };
 }
 

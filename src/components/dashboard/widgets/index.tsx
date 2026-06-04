@@ -161,32 +161,57 @@ function SettingsAuditWidget({ widget }: RendererProps) {
 
 function MyLicenses({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('licenses')
-      .select('*', { count: 'exact', head: true })
-      .eq('holder_id', context.userId);
-    return count || 0;
-  }, [context.userId]);
+    if (!context.activeLicenseeId) return 0;
+    const { data, error } = await supabase.rpc('get_my_licenses_page' as any, {
+      _page: 0,
+      _page_size: 1,
+      _search: null,
+      _status: null,
+      _sort_by: 'created_at',
+      _sort_dir: 'desc',
+      _licensee_id: context.activeLicenseeId,
+      _sector_id: null,
+    });
+    if (error) return 0;
+    const firstRow = ((data || []) as any[])[0];
+    return Number(firstRow?.total_count || 0);
+  }, [context.activeLicenseeId]);
   return <MetricShell widget={widget} icon={<Shield className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
 function MyReturns({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('compliance_returns')
-      .select('*', { count: 'exact', head: true })
-      .eq('submitter_id', context.userId)
+    if (!context.activeLicenseeId) return 0;
+    const { data: licenseRows } = await supabase.from('licenses')
+      .select('id')
+      .eq('holder_id', context.userId);
+    const ownedLicenseIds = new Set(((licenseRows || []) as any[]).map((row: any) => row.id).filter(Boolean));
+
+    const { data: rows } = await supabase.from('compliance_returns')
+      .select('license_id, status, on_behalf_of_licensee_id')
       .in('status', ['pending', 'draft', 'overdue', 'resubmission_requested']);
-    return count || 0;
-  }, [context.userId]);
+
+    return ((rows || []) as any[]).filter((row: any) => {
+      if (row.on_behalf_of_licensee_id) return row.on_behalf_of_licensee_id === context.activeLicenseeId;
+      return row.license_id && ownedLicenseIds.has(row.license_id);
+    }).length;
+  }, [context.activeLicenseeId, context.userId]);
   return <MetricShell widget={widget} icon={<ClipboardList className="h-5 w-5" />} value={value} loading={loading} hint="Pending or overdue" />;
 }
 
 function MyPayments({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('payments')
+    if (!context.activeLicenseeId) return 0;
+    const { data: appRows } = await (supabase.from('applications' as any)
+      .select('id')
+      .eq('on_behalf_of_licensee_id', context.activeLicenseeId)) as any;
+    const appIds = ((appRows || []) as any[]).map((row: any) => row.id).filter(Boolean);
+    if (appIds.length === 0) return 0;
+    const { count } = await (supabase.from('payments' as any)
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', context.userId);
+      .in('application_id', appIds)) as any;
     return count || 0;
-  }, [context.userId]);
+  }, [context.activeLicenseeId]);
   return <MetricShell widget={widget} icon={<DollarSign className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
@@ -229,16 +254,26 @@ function MyApplications({ widget, context }: RendererProps) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
-    supabase.from('applications')
+    const query = (supabase.from('applications' as any)
       .select('id, application_number, license_type, status, created_at')
-      .eq('applicant_id', context.userId)
       .neq('status', 'draft')
       .order('created_at', { ascending: false })
-      .limit(3)
-      .then(({ data }) => { if (alive) setItems((data || []) as any); })
+      .limit(3)) as any;
+
+    if (context.isLicensee && context.activeLicenseeId) {
+      if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
+        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+      } else {
+        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+      }
+    } else {
+      query.eq('applicant_id', context.userId);
+    }
+
+    query.then(({ data }: any) => { if (alive) setItems((data || []) as any); })
       .then(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [context.userId]);
+  }, [context.activeLicenseeId, context.isLicensee, context.licenseeId, context.userId]);
 
   return (
     <Card className="md:col-span-2 lg:col-span-3">
@@ -290,14 +325,26 @@ function DraftApplications({ widget, context }: RendererProps) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
-    supabase.from('applications')
+    const query = (supabase.from('applications' as any)
       .select('id, application_number, updated_at, status, data')
-      .eq('applicant_id', context.userId).in('status', ['draft', 'in_progress'])
-      .order('updated_at', { ascending: false }).limit(5)
-      .then(({ data }) => { if (alive) setDrafts((data || []) as any); })
+      .in('status', ['draft', 'in_progress'])
+      .order('updated_at', { ascending: false })
+      .limit(5)) as any;
+
+    if (context.isLicensee && context.activeLicenseeId) {
+      if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
+        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+      } else {
+        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+      }
+    } else {
+      query.eq('applicant_id', context.userId);
+    }
+
+    query.then(({ data }: any) => { if (alive) setDrafts((data || []) as any); })
       .then(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [context.userId]);
+  }, [context.activeLicenseeId, context.isLicensee, context.licenseeId, context.userId]);
 
   return (
     <Card className="md:col-span-2 lg:col-span-3 border-amber-200 dark:border-amber-800">

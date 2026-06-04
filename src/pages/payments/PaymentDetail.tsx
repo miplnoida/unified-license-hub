@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
@@ -20,7 +21,8 @@ export default function PaymentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
+  const portalContext = useEffectivePortalContext();
+  const isAdmin = !!user && !portalContext.loading && portalContext.isInternal;
 
   const [payment, setPayment] = useState<any>(null);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);

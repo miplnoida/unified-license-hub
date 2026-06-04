@@ -34,6 +34,7 @@ export interface DashboardUserContext {
   isLicensee: boolean;
   isPreLicensee: boolean;
   isApplicant: boolean;
+  activeLicenseeId?: string | null;
   licenseeId?: string;
   userId: string;
 }
@@ -228,7 +229,7 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
 
 export function deriveUserContext(
   user: PlatformUser | null,
-  portalContext?: Pick<EffectivePortalContext, 'isInternal' | 'isLicensee' | 'isPreLicensee' | 'isApplicant'> | null,
+  portalContext?: Pick<EffectivePortalContext, 'isInternal' | 'isLicensee' | 'isPreLicensee' | 'isApplicant' | 'activeLicenseeId'> | null,
 ): DashboardUserContext | null {
   if (!user) return null;
 
@@ -237,6 +238,7 @@ export function deriveUserContext(
     isLicensee: portalContext?.isLicensee ?? false,
     isPreLicensee: portalContext?.isPreLicensee ?? false,
     isApplicant: portalContext?.isApplicant ?? false,
+    activeLicenseeId: portalContext?.activeLicenseeId ?? null,
     licenseeId: user.licenseeId,
     userId: user.id,
   };

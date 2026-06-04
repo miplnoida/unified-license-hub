@@ -138,6 +138,7 @@ describe('Primary User vs PPOC', () => {
       isLicensee: false,
       isPreLicensee: false,
       isApplicant: false,
+      activeLicenseeId: null,
     });
   });
 
@@ -156,6 +157,7 @@ describe('Primary User vs PPOC', () => {
     expect(context.isLicensee).toBe(true);
     expect(context.isApplicant).toBe(false);
     expect(context.effectiveRole).toBe('PPOC');
+    expect(context.activeLicenseeId).toBe('lic-9');
   });
 
   it('keeps a primary-plus-ppoc user on primary label when acting on own entity', () => {
@@ -169,5 +171,20 @@ describe('Primary User vs PPOC', () => {
         ppocLoading: false,
       }),
     ).toBe('Primary User');
+  });
+
+  it('does not infer primary ownership from resolved fallback licensee alone', () => {
+    const context = getEffectivePortalContext({
+      baseRole: 'applicant',
+      isPpoc: false,
+      actingAs: 'primary',
+      resolvedLicenseeId: 'lic-fallback',
+      hasPrimaryUserAccess: false,
+      ppocLoading: false,
+    });
+
+    expect(context.isLicensee).toBe(true);
+    expect(context.effectiveRole).toBe('Applicant');
+    expect(context.activeLicenseeId).toBe('lic-fallback');
   });
 });

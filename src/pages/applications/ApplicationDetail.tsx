@@ -36,6 +36,7 @@ import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -64,6 +65,7 @@ export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
+  const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [app, setApp] = useState<Application | null>(null);
@@ -80,7 +82,7 @@ export default function ApplicationDetail() {
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
 
-  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
   const isPreLicensee = useIsPreLicensee();
   const isOwner = user && app?.applicant_id === user.id;
   const licenseGate = useLicenseStatusGate();
@@ -1024,7 +1026,8 @@ export default function ApplicationDetail() {
 
 function ViewPaymentButton({ applicationId }: { applicationId: string }) {
   const { user } = useAuth();
-  const isInternal = !!user && ['super_admin', 'admin', 'regulator_staff', 'reviewer', 'approver'].includes(user.role);
+  const portalContext = useEffectivePortalContext();
+  const isInternal = !!user && !portalContext.loading && portalContext.isInternal;
   const [payment, setPayment] = useState<any>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => {

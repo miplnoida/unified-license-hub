@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { toast } from 'sonner';
 import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
@@ -83,9 +84,10 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function PaymentHistory() {
   const { user } = useAuth();
+  const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
-  const isAdmin = user && ['super_admin', 'admin'].includes(user.role);
-  const isPreLicensee = user?.role === 'pre_licensee';
+  const isAdmin = !!user && !portalContext.loading && portalContext.isInternal;
+  const isPreLicensee = !!user && !portalContext.loading && portalContext.isPreLicensee;
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);

@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,6 +58,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function ComplianceReturns() {
   const { user } = useAuth();
   const { isPpoc, activeLicensee, activeLicenseeId } = usePpoc();
+  const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
@@ -67,7 +69,7 @@ export default function ComplianceReturns() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [frequencyFilter, setFrequencyFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const isInternal = user && INTERNAL_ROLES.includes(user.role);
+  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
     loadAll();
