@@ -31,6 +31,37 @@ export default function Profile() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  // Primary User detection. Use the best available source:
+  //   - profiles.user_type = 'primary'
+  //   - profiles.licensee_id set
+  //   - user_roles.role includes 'licensee_primary'
+  const [primaryUserSignals, setPrimaryUserSignals] = useState<{
+    hasLicensee: boolean;
+    userTypePrimary: boolean;
+    hasPrimaryRole: boolean;
+  }>({ hasLicensee: !!(user as any)?.licenseeId, userTypePrimary: false, hasPrimaryRole: false });
+
+  useEffect(() => {
+    if (!user || (user as any).isPreLicensee) return;
+    (async () => {
+      const [{ data: prof }, { data: roles }] = await Promise.all([
+        supabase.from('profiles').select('licensee_id, user_type').eq('id', user.id).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', user.id),
+      ]);
+      setPrimaryUserSignals({
+        hasLicensee: !!(prof as any)?.licensee_id,
+        userTypePrimary: String((prof as any)?.user_type || '').toLowerCase() === 'primary',
+        hasPrimaryRole: ((roles || []) as any[]).some(r => String(r.role) === 'licensee_primary'),
+      });
+    })();
+  }, [user?.id]);
+
+  const isPrimaryUser =
+    primaryUserSignals.hasLicensee ||
+    primaryUserSignals.userTypePrimary ||
+    primaryUserSignals.hasPrimaryRole;
+
+
   const profileTable = (user as any)?.isPreLicensee ? 'pre_license_users' : 'profiles';
 
   useEffect(() => {
