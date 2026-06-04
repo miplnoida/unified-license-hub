@@ -29,6 +29,7 @@ export function Header() {
   const effectiveRoleLabel = user
     ? getEffectiveUserRoleLabel({
         baseRole: user.role,
+        userType: user.userType,
         isPpoc,
         actingAs,
         resolvedLicenseeId,
