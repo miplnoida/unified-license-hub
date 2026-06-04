@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { usePpoc } from '@/contexts/PpocContext';
 
 export default function Profile() {
   const { user, refreshUser, clear2FAState, mark2FAVerified } = useAuth();
