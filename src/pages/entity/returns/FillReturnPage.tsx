@@ -94,6 +94,7 @@ export default function FillReturnPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const licenseGate = useLicenseStatusGate();
   const { data: returnData, isLoading: loadingReturn } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
   const { data: fallbackConfigForms = [], isLoading: loadingFallbackForms } = useQuery({
