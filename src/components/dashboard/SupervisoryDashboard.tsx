@@ -7,9 +7,10 @@ import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import {
-  AlertTriangle, FileText, Shield, ClipboardList, DollarSign, AlertOctagon,
-  Building2, ShieldAlert, Gauge, MessagesSquare, ClipboardCheck,
+  AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
+  Building2, ShieldAlert, Gauge, MessagesSquare,
 } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
