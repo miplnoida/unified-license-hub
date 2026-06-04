@@ -1,7 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Eligible PPOC user record returned by getEligiblePpocUsers().
+ * A user record returned by getEligibleUsersForPpocMapping().
+ *
+ * IMPORTANT: Inclusion in this list does NOT mean the user is a PPOC.
+ * It only means the user is a valid CANDIDATE that an admin may assign as
+ * PPOC through `ppoc_entity_mappings`. PPOC rights take effect only once
+ * an active mapping (and sector scope) exists.
+ *
+ * Distinction:
+ *  - Primary User: licensee account owner (profiles.licensee_id /
+ *    profiles.user_type = 'primary' / role 'licensee_primary'). Has access to
+ *    own entity automatically — no PPOC mapping required.
+ *  - PPOC: any user with an active row in ppoc_entity_mappings for a licensee.
+ *    A Primary User is NOT automatically a PPOC.
  */
 export interface EligiblePpocUser {
   id: string;
