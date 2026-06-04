@@ -191,11 +191,15 @@ const formatDateTime = (value: unknown): string => {
   return date.toLocaleString();
 };
 
-const formatAddress = (value: any): string => {
+const formatAddress = (value: any, lookup?: Record<string, string>): string => {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (lookup && isUuid(trimmed) && lookup[trimmed]) return lookup[trimmed];
+    return trimmed;
+  }
   if (Array.isArray(value)) {
-    return value.map(formatAddress).filter(Boolean).join(', ');
+    return value.map(v => formatAddress(v, lookup)).filter(Boolean).join(', ');
   }
   if (typeof value !== 'object') return String(value);
 
@@ -204,32 +208,47 @@ const formatAddress = (value: any): string => {
 
   const normalizedEntries = new Map(entries.map(([key, entryValue]) => [normalizeKey(key), entryValue]));
   const usedKeys = new Set<string>();
+  const resolvePart = (entryValue: unknown): string => {
+    if (typeof entryValue === 'string') {
+      const trimmed = entryValue.trim();
+      if (lookup && isUuid(trimmed) && lookup[trimmed]) return lookup[trimmed];
+      return trimmed;
+    }
+    if (entryValue && typeof entryValue === 'object') return formatAddress(entryValue, lookup);
+    return String(entryValue);
+  };
+
   const orderedParts = ADDRESS_KEY_ORDER
     .map((key) => {
       const entryValue = normalizedEntries.get(key);
       if (isEmptyValue(entryValue)) return null;
       usedKeys.add(key);
-      return typeof entryValue === 'string' ? entryValue.trim() : String(entryValue);
+      return resolvePart(entryValue);
     })
     .filter(Boolean) as string[];
 
   const extraParts = entries
     .filter(([key, entryValue]) => !usedKeys.has(normalizeKey(key)) && !isEmptyValue(entryValue))
-    .map(([key, entryValue]) => `${humanizeKey(key)}: ${renderValue(entryValue)}`);
+    .map(([key, entryValue]) => `${humanizeKey(key)}: ${resolvePart(entryValue)}`);
 
   return [...orderedParts, ...extraParts].join(', ');
 };
 
-const renderValue = (value: any): string => {
+const renderValue = (value: any, lookup?: Record<string, string>): string => {
   if (value === null || value === undefined || value === '') return '—';
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (Array.isArray(value)) return value.length ? value.map(renderValue).join(', ') : '—';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (lookup && isUuid(trimmed) && lookup[trimmed]) return lookup[trimmed];
+    return value;
+  }
+  if (Array.isArray(value)) return value.length ? value.map(v => renderValue(v, lookup)).join(', ') : '—';
   if (typeof value === 'object') {
-    const address = formatAddress(value);
+    const address = formatAddress(value, lookup);
     if (address) return address;
     const objectEntries = Object.entries(value as Record<string, unknown>)
       .filter(([, entryValue]) => !isEmptyValue(entryValue))
-      .map(([key, entryValue]) => `${humanizeKey(key)}: ${renderValue(entryValue)}`);
+      .map(([key, entryValue]) => `${humanizeKey(key)}: ${renderValue(entryValue, lookup)}`);
     return objectEntries.length ? objectEntries.join(', ') : '—';
   }
   return String(value);
