@@ -85,7 +85,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           const [regRes, profRes, plRes] = await Promise.all([
             supabase.from('registrations').select('*').eq('user_id', applicantId).maybeSingle(),
             supabase.from('profiles').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-            supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, gender, department').eq('id', applicantId).maybeSingle(),
+            supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
           ]);
           if (cancelled) return;
           const ap = profRes.data || plRes.data || null;
