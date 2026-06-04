@@ -1600,6 +1600,57 @@ export function FileImportDialog({ onImport, onMultiSheetImport, autoOpen, butto
             </DialogDescription>
           </DialogHeader>
 
+          {/* Top action bar mirrors footer for convenience */}
+          {step !== 'upload' && (
+            <div className="flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (step === 'preview' && multiResult && !legacyPreview) setStep('select_sheets');
+                  else { resetState(); setStep('upload'); }
+                }}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setOpen(false); resetState(); }}>Cancel</Button>
+
+                {step === 'select_sheets' && multiResult && onMultiSheetImport && (
+                  <Button size="sm" onClick={() => setStep('preview')} disabled={selectedSheets.length === 0}>
+                    Preview {selectedSheets.length} Sheet(s) <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                )}
+
+                {step === 'select_sheets' && multiResult && !onMultiSheetImport && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const allSections = selectedSheets.flatMap(s => s.sections);
+                      onImport(allSections);
+                      toast.success(`Imported ${totalSelectedFields} fields from ${selectedSheets.length} sheet(s).`);
+                      setOpen(false);
+                      resetState();
+                    }}
+                    disabled={selectedSheets.length === 0}
+                  >
+                    Import {totalSelectedFields} Field(s)
+                  </Button>
+                )}
+
+                {step === 'preview' && multiResult && !legacyPreview && onMultiSheetImport && (
+                  <Button size="sm" onClick={handleMultiSheetConfirm} disabled={selectedSheets.length === 0}>
+                    <Layers className="h-4 w-4 mr-1" /> Create {selectedSheets.length} Form(s)
+                  </Button>
+                )}
+
+                {step === 'preview' && legacyPreview && (
+                  <Button size="sm" onClick={handleLegacyConfirm} disabled={legacyPreview.reduce((a, s) => a + s.fields.length, 0) === 0}>
+                    Import {legacyPreview.reduce((a, s) => a + s.fields.length, 0)} Field(s)
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             {/* Step 1: Upload */}
             {step === 'upload' && (
