@@ -85,11 +85,35 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
           const [regRes, profRes, plRes] = await Promise.all([
             supabase.from('registrations').select('*').eq('user_id', applicantId).maybeSingle(),
             supabase.from('profiles').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-            supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, gender, department').eq('id', applicantId).maybeSingle(),
+            supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
           ]);
           if (cancelled) return;
-          setRegistration(regRes.data || null);
-          setApplicant(profRes.data || plRes.data || null);
+          const ap = profRes.data || plRes.data || null;
+          setApplicant(ap);
+
+          let regRow = regRes.data || null;
+          if (!regRow && ap?.email) {
+            const { data: regByEmail } = await supabase
+              .from('registrations')
+              .select('*')
+              .ilike('email', ap.email)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (regByEmail) regRow = regByEmail;
+          }
+          if (!regRow && (entity?.name || applicationData?.entity_name)) {
+            const candidateName = entity?.name || applicationData?.entity_name;
+            const { data: regByName } = await supabase
+              .from('registrations')
+              .select('*')
+              .ilike('applicant_name', candidateName)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (regByName) regRow = regByName;
+          }
+          setRegistration(regRow);
         }
       } finally {
         if (!cancelled) setRegLoading(false);
@@ -97,7 +121,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
     };
     load();
     return () => { cancelled = true; };
-  }, [entity?.id, entity?.license_id]);
+  }, [entity?.id, entity?.license_id, entity?.name]);
 
   const handleChange = (key: string, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -155,24 +179,28 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const ap = applicant || {};
   const ad = appData || {};
 
+  const showVal = (v: any) => {
+    const r = renderValue(v);
+    return r && r !== '—' ? r : 'Not provided';
+  };
+
   const detailRows: Array<{ label: string; value: string }> = [
-    { label: 'Applicant / Entity Name', value: renderValue(reg.applicant_name || ad.applicant_name || ad.entity_name || ap.entity_name || ap.full_name) },
-    { label: 'Alternate Name', value: renderValue(reg.applicant_name_alt) },
-    { label: 'First Name', value: renderValue(reg.first_name) },
-    { label: 'Last Name', value: renderValue(reg.last_name) },
-    { label: 'Contact Person', value: renderValue(ap.full_name) },
-    { label: 'Email', value: renderValue(reg.email || ap.email) },
-    { label: 'Telephone', value: renderValue(reg.telephone || ap.phone) },
-    { label: 'Username', value: renderValue(reg.username) },
-    { label: 'Department', value: renderValue(ap.department) },
-    { label: 'Gender', value: renderValue(ap.gender) },
-    { label: 'Registration Reference', value: renderValue(reg.registration_reference) },
-    { label: 'Registration Number', value: renderValue(reg.registration_number) },
-    { label: 'Email Verified', value: renderValue(reg.email_verified) },
-    { label: 'Terms Accepted', value: renderValue(reg.terms_accepted) },
-    { label: 'Mailing Address', value: renderValue(reg.mailing_address) },
-    { label: 'Physical Address', value: reg.same_as_mailing ? 'Same as mailing' : renderValue(reg.physical_address) },
-  ].filter(r => r.value && r.value !== '—');
+    { label: 'Applicant / Entity Name', value: showVal(reg.applicant_name || ad.applicant_name || ad.entity_name || ap.entity_name || ap.full_name) },
+    { label: 'Alternate Name', value: showVal(reg.applicant_name_alt) },
+    { label: 'First Name', value: showVal(reg.first_name) },
+    { label: 'Last Name', value: showVal(reg.last_name) },
+    { label: 'Contact Person', value: showVal(ap.full_name) },
+    { label: 'Email', value: showVal(reg.email || ap.email) },
+    { label: 'Telephone', value: showVal(reg.telephone || ap.phone) },
+    { label: 'Username', value: showVal(reg.username) },
+    { label: 'Department', value: showVal(ap.department) },
+    { label: 'Registration Reference', value: showVal(reg.registration_reference) },
+    { label: 'Registration Number', value: showVal(reg.registration_number) },
+    { label: 'Email Verified', value: reg.email_verified === undefined ? 'Not provided' : (reg.email_verified ? 'Yes' : 'No') },
+    { label: 'Terms Accepted', value: reg.terms_accepted === undefined ? 'Not provided' : (reg.terms_accepted ? 'Yes' : 'No') },
+    { label: 'Mailing Address', value: showVal(reg.mailing_address) },
+    { label: 'Physical Address', value: reg.same_as_mailing ? 'Same as mailing' : showVal(reg.physical_address) },
+  ];
 
   const entitySpecific: Array<[string, any]> = reg.entity_specific_data && typeof reg.entity_specific_data === 'object'
     ? Object.entries(reg.entity_specific_data)
