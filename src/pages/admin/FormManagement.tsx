@@ -460,6 +460,17 @@ export default function FormManagement() {
                           Unpublish Selected
                         </Button>
                       )}
+                      {canEditForms && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={handleBulkDelete}
+                          disabled={bulkLoading}
+                        >
+                          {bulkLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                          Delete Selected
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())} disabled={bulkLoading}>
                         Clear Selection
                       </Button>
