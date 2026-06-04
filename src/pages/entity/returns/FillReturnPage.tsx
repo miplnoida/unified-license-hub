@@ -25,6 +25,7 @@ import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
