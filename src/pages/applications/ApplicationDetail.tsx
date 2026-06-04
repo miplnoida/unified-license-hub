@@ -32,6 +32,8 @@ import { toast } from 'sonner';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { markApplicationInProgressIfDraft, normalizeApplicationStatus } from '@/lib/applicationStatus';
 import { Send, Loader2, Building2, Layers, Tag, CheckCircle, XCircle, Ban, RotateCcw, Edit, Clock } from 'lucide-react';
+import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
@@ -79,6 +81,7 @@ export default function ApplicationDetail() {
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const isPreLicensee = useIsPreLicensee();
   const isOwner = user && app?.applicant_id === user.id;
+  const licenseGate = useLicenseStatusGate();
 
   const appData = app?.data as any || {};
   const formTemplateIds: string[] = appData?.form_template_ids || [];
@@ -221,6 +224,10 @@ export default function ApplicationDetail() {
 
   const handleSubmit = async () => {
     if (!app || !user) return;
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     if (!paymentComplete) {
       toast.error('Please complete the payment before submitting the application.');
       return;
@@ -355,6 +362,10 @@ export default function ApplicationDetail() {
   // Applicant resubmits application after resubmission was requested
   const handleResubmit = async () => {
     if (!app || !user) return;
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     setProcessing(true);
 
     try {
@@ -514,6 +525,10 @@ export default function ApplicationDetail() {
             </Badge>
           }
         />
+
+        {isOwner && <LicenseStatusBanner />}
+
+
 
         {/* Simple Progress Bar */}
         <Card>
@@ -831,7 +846,7 @@ export default function ApplicationDetail() {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
-              const canSubmit = allFormsCompleted && paymentComplete;
+              const canSubmit = allFormsCompleted && paymentComplete && !licenseGate.isBlocked;
               return (
                 <>
                   <div className="flex gap-2">
@@ -839,11 +854,13 @@ export default function ApplicationDetail() {
                       <Send className="h-4 w-4 mr-2" />
                       {processing
                         ? 'Submitting...'
-                        : !allFormsCompleted
-                          ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
-                          : !paymentComplete
-                            ? 'Complete payment to submit'
-                            : 'Review & Submit'}
+                        : licenseGate.isBlocked
+                          ? 'License Not Active'
+                          : !allFormsCompleted
+                            ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                            : !paymentComplete
+                              ? 'Complete payment to submit'
+                              : 'Review & Submit'}
                     </Button>
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel
@@ -889,8 +906,8 @@ export default function ApplicationDetail() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleResubmit} disabled={processing} className="flex-1">
-                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : 'Resubmit Application'}
+                    <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : licenseGate.isBlocked ? 'License Not Active' : 'Resubmit Application'}
                     </Button>
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel

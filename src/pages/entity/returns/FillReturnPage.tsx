@@ -23,6 +23,8 @@ import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { format, differenceInDays } from 'date-fns';
+import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 
 /* ------------------------------------------------------------------ */
 /*  Sub-component: renders a single form template using FormRenderer  */
@@ -92,6 +94,7 @@ export default function FillReturnPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const licenseGate = useLicenseStatusGate();
   const { data: returnData, isLoading: loadingReturn } = useReturnById(id);
   const { data: configForms = [] } = useReturnConfigForms(returnData?.return_configuration_id);
   const { data: fallbackConfigForms = [], isLoading: loadingFallbackForms } = useQuery({
@@ -284,6 +287,10 @@ export default function FillReturnPage() {
   }, [id, allData, returnData, saving]);
 
   const handleSubmit = async (ackText?: string) => {
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     const result = await Swal.fire({
       title: 'Submit Return?',
       html: `<p>You are about to submit <strong>${returnData?.unique_id}</strong> for review.</p><p>This action cannot be undone.</p>`,
@@ -373,6 +380,7 @@ export default function FillReturnPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+        <LicenseStatusBanner />
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
           <div>

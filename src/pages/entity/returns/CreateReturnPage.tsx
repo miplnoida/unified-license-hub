@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from 'date-fns';
+import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
+import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const QUARTERS = ['Q1','Q2','Q3','Q4'];
@@ -87,7 +89,13 @@ export default function CreateReturnPage() {
     return { start: format(new Date(y, mi, 1), 'yyyy-MM-dd'), end: format(lastDayOfMonth(new Date(y, mi)), 'yyyy-MM-dd') };
   };
 
+  const licenseGate = useLicenseStatusGate();
+
   const handleCreate = async () => {
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     if (!configId || !period || !year) return;
     if (isPpoc && !selectedLicenseeId) {
       toast.error('Please select a licensee to file the return for.');
@@ -155,6 +163,8 @@ export default function CreateReturnPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader title="Create New Return" description="Select return configuration and filing period" />
+
+        <div className="max-w-2xl mx-auto"><LicenseStatusBanner /></div>
 
         <Card className="max-w-2xl mx-auto">
           <CardContent className="p-6">
@@ -286,7 +296,7 @@ export default function CreateReturnPage() {
                 </div>
                 <div className="flex justify-between">
                   <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-                  <Button onClick={handleCreate} disabled={createReturn.isPending}>{createReturn.isPending ? 'Creating...' : 'Create & Start Filing'}</Button>
+                  <Button onClick={handleCreate} disabled={createReturn.isPending || licenseGate.isBlocked}>{createReturn.isPending ? 'Creating...' : licenseGate.isBlocked ? 'License Not Active' : 'Create & Start Filing'}</Button>
                 </div>
               </div>
             )}
