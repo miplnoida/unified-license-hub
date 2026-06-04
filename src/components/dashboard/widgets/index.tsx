@@ -161,32 +161,57 @@ function SettingsAuditWidget({ widget }: RendererProps) {
 
 function MyLicenses({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('licenses')
-      .select('*', { count: 'exact', head: true })
-      .eq('holder_id', context.userId);
-    return count || 0;
-  }, [context.userId]);
+    if (!context.activeLicenseeId) return 0;
+    const { data, error } = await supabase.rpc('get_my_licenses_page' as any, {
+      _page: 0,
+      _page_size: 1,
+      _search: null,
+      _status: null,
+      _sort_by: 'created_at',
+      _sort_dir: 'desc',
+      _licensee_id: context.activeLicenseeId,
+      _sector_id: null,
+    });
+    if (error) return 0;
+    const firstRow = ((data || []) as any[])[0];
+    return Number(firstRow?.total_count || 0);
+  }, [context.activeLicenseeId]);
   return <MetricShell widget={widget} icon={<Shield className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
 function MyReturns({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
-    const { count } = await supabase.from('compliance_returns')
-      .select('*', { count: 'exact', head: true })
-      .eq('submitter_id', context.userId)
+    if (!context.activeLicenseeId) return 0;
+    const { data: licenseRows } = await supabase.from('licenses')
+      .select('id')
+      .eq('holder_id', context.userId);
+    const ownedLicenseIds = new Set(((licenseRows || []) as any[]).map((row: any) => row.id).filter(Boolean));
+
+    const { data: rows } = await supabase.from('compliance_returns')
+      .select('license_id, status, on_behalf_of_licensee_id')
       .in('status', ['pending', 'draft', 'overdue', 'resubmission_requested']);
-    return count || 0;
-  }, [context.userId]);
+
+    return ((rows || []) as any[]).filter((row: any) => {
+      if (row.on_behalf_of_licensee_id) return row.on_behalf_of_licensee_id === context.activeLicenseeId;
+      return row.license_id && ownedLicenseIds.has(row.license_id);
+    }).length;
+  }, [context.activeLicenseeId, context.userId]);
   return <MetricShell widget={widget} icon={<ClipboardList className="h-5 w-5" />} value={value} loading={loading} hint="Pending or overdue" />;
 }
 
 function MyPayments({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
+    if (!context.activeLicenseeId) return 0;
+    const { data: appRows } = await supabase.from('applications')
+      .select('id')
+      .eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+    const appIds = ((appRows || []) as any[]).map((row: any) => row.id).filter(Boolean);
+    if (appIds.length === 0) return 0;
     const { count } = await supabase.from('payments')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', context.userId);
+      .in('application_id', appIds);
     return count || 0;
-  }, [context.userId]);
+  }, [context.activeLicenseeId]);
   return <MetricShell widget={widget} icon={<DollarSign className="h-5 w-5" />} value={value} loading={loading} />;
 }
 
