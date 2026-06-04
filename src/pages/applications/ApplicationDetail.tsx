@@ -224,6 +224,10 @@ export default function ApplicationDetail() {
 
   const handleSubmit = async () => {
     if (!app || !user) return;
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     if (!paymentComplete) {
       toast.error('Please complete the payment before submitting the application.');
       return;
