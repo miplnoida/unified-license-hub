@@ -846,7 +846,7 @@ export default function ApplicationDetail() {
                 const fd = formsData[tid];
                 return fd && Object.keys(fd).length > 0;
               });
-              const canSubmit = allFormsCompleted && paymentComplete;
+              const canSubmit = allFormsCompleted && paymentComplete && !licenseGate.isBlocked;
               return (
                 <>
                   <div className="flex gap-2">
@@ -854,11 +854,13 @@ export default function ApplicationDetail() {
                       <Send className="h-4 w-4 mr-2" />
                       {processing
                         ? 'Submitting...'
-                        : !allFormsCompleted
-                          ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
-                          : !paymentComplete
-                            ? 'Complete payment to submit'
-                            : 'Review & Submit'}
+                        : licenseGate.isBlocked
+                          ? 'License Not Active'
+                          : !allFormsCompleted
+                            ? `Complete all forms (${formTemplateIds.filter(tid => formsData[tid] && Object.keys(formsData[tid]).length > 0).length}/${formTemplateIds.length})`
+                            : !paymentComplete
+                              ? 'Complete payment to submit'
+                              : 'Review & Submit'}
                     </Button>
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel
