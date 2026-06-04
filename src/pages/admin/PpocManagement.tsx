@@ -193,7 +193,7 @@ export default function PpocManagement() {
   };
   const handleSave = async () => {
     if (!ppocUserId) {
-      toast.error('Please select a PPOC user.');
+      toast.error('Please select a user to assign as PPOC.');
       return;
     }
     if (selectedSectorIds.length === 0) {
