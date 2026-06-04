@@ -97,7 +97,9 @@ export function Header() {
                   <p className="text-xs text-muted-foreground">
                     {user.delegatedRole
                       ? `${ROLE_LABELS[user.delegatedRole]} (delegated)`
-                      : (user.dynamicRoleName || ROLE_LABELS[user.role])}
+                      : isPpoc
+                        ? effectiveRoleLabel
+                        : (user.dynamicRoleName || effectiveRoleLabel)}
                   </p>
                 </div>
               </button>
