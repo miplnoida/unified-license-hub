@@ -23,7 +23,7 @@ const QUARTERS = ['Q1','Q2','Q3','Q4'];
 export default function CreateReturnPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isPpoc, mappedLicensees, activeLicenseeId } = usePpoc();
+  const { isPpoc, mappedLicensees, activeLicenseeId, actingAs, ownLicenseeId } = usePpoc();
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
