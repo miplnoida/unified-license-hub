@@ -455,7 +455,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
         if (SENSITIVE_DYNAMIC_KEYS.has(normalized)) return false;
         if (isTechnicalKey(normalized)) return false;
         if (isEmptyValue(value)) return false;
-        if (typeof value === 'string' && isUuid(value)) return false;
+        if (typeof value === 'string' && isUuid(value) && !idLookup[value.trim()]) return false;
         return true;
       })
     : [];
