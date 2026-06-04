@@ -8,6 +8,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
 import { useSiteSettings } from '@/contexts/SiteSettingsContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
+import { usePpoc } from '@/contexts/PpocContext';
+import { getEffectiveUserRoleLabel } from '@/lib/effectiveRole';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
