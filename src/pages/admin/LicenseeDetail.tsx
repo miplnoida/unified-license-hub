@@ -37,6 +37,7 @@ export default function LicenseeDetail() {
   const navigate = useNavigate();
   const [licensee, setLicensee] = useState<any>(null);
   const [license, setLicense] = useState<any>(null);
+  const [displayName, setDisplayName] = useState<string>('');
   const [sectors, setSectors] = useState<LookupMap>({});
   const [subSectors, setSubSectors] = useState<LookupMap>({});
   const [categories, setCategories] = useState<LookupMap>({});
