@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useMyReturns, useMutateReturn, useReturnsVersionMap } from '@/hooks/useReturnsManagement';
+import { useMyReturns, useMutateReturn } from '@/hooks/useReturnsManagement';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
