@@ -623,7 +623,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                         {isAttachmentValue(value) ? (
                           <AttachmentDisplay value={value} />
                         ) : (
-                          <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                          <span className="text-sm text-foreground break-words">{renderValue(value, idLookup)}</span>
                         )}
                       </div>
                     ))}
