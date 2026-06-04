@@ -8,7 +8,10 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
  */
 export function useCanSubmit(): boolean {
   const { user } = useAuth();
+  const portalContext = useEffectivePortalContext();
   if (!user) return false;
+  if (portalContext.loading) return false;
+  if (portalContext.isLicensee) return true;
   return [...INTERNAL_ROLES, 'licensee_primary'].includes(user.role);
 }
 
@@ -62,7 +65,10 @@ export function useUserRole(): AppRole | null {
  */
 export function useCanPay(): boolean {
   const { user } = useAuth();
+  const portalContext = useEffectivePortalContext();
   if (!user) return false;
+  if (portalContext.loading) return false;
+  if (portalContext.isLicensee) return true;
   return ['super_admin', 'admin', 'licensee_primary'].includes(user.role);
 }
 
