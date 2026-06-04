@@ -202,14 +202,14 @@ function MyReturns({ widget, context }: RendererProps) {
 function MyPayments({ widget, context }: RendererProps) {
   const { value, loading } = useScopedCount(async () => {
     if (!context.activeLicenseeId) return 0;
-    const { data: appRows } = await supabase.from('applications')
+    const { data: appRows } = await (supabase.from('applications' as any)
       .select('id')
-      .eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+      .eq('on_behalf_of_licensee_id', context.activeLicenseeId)) as any;
     const appIds = ((appRows || []) as any[]).map((row: any) => row.id).filter(Boolean);
     if (appIds.length === 0) return 0;
-    const { count } = await supabase.from('payments')
+    const { count } = await (supabase.from('payments' as any)
       .select('*', { count: 'exact', head: true })
-      .in('application_id', appIds);
+      .in('application_id', appIds)) as any;
     return count || 0;
   }, [context.activeLicenseeId]);
   return <MetricShell widget={widget} icon={<DollarSign className="h-5 w-5" />} value={value} loading={loading} />;
