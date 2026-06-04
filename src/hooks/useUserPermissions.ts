@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { AppRole, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
+import { AppRole, INTERNAL_ROLES } from '@/types/platform';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 /**

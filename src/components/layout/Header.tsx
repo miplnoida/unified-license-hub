@@ -2,7 +2,7 @@ import { Bell, Search, UserCircle, LogOut, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { ROLE_LABELS, LICENSEE_ROLES } from '@/types/platform';
+import { ROLE_LABELS } from '@/types/platform';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '@/hooks/useNotifications';
 import { RegulatorSwitcher } from './RegulatorSwitcher';
@@ -24,7 +24,6 @@ export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
-  const { branding } = useSiteSettings();
   const { activeSectorName } = useActiveSector();
   const { isPpoc, actingAs, ownLicenseeId, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
