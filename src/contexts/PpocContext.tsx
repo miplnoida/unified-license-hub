@@ -46,6 +46,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   const [mappedLicensees, setMappedLicensees] = useState<MappedLicensee[]>([]);
   const [resolvedLicensees, setResolvedLicensees] = useState<MappedLicensee[]>([]);
   const [activeLicenseeId, setActiveLicenseeIdState] = useState<string | null>(null);
+  const [directOwnLicenseeId, setDirectOwnLicenseeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
@@ -64,6 +65,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       setMappedLicensees([]);
       setResolvedLicensees([]);
       setActiveLicenseeIdState(null);
+      setDirectOwnLicenseeId(null);
       setLoadedUserId(null);
       setLoading(false);
       return;
@@ -350,6 +352,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       }
 
       setResolvedLicensees(resolvedList);
+      setDirectOwnLicenseeId(profileLicenseeId);
       if (import.meta.env.DEV) {
         console.log('licensee context', {
           userId: user.id,
@@ -374,9 +377,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   // `licensee_primary` role — those grant Primary User access to their own
   // entity via profiles.licensee_id, not PPOC rights.
   const isPpoc = mappedLicensees.length > 0;
-  const ownLicenseeId = user?.licenseeId
-    || (resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id)
-    || null;
+  const ownLicenseeId = directOwnLicenseeId || user?.licenseeId || null;
 
   // Acting mode: 'primary' when the selection points at the user's own entity
   // (or no PPOC mappings exist), 'ppoc' when the selection points at a mapped
