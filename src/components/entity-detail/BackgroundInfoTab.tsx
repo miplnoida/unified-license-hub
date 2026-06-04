@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Building2, MapPin, Save, Loader2, CheckCircle2, XCircle, User, FileText, Paperclip } from 'lucide-react';
+import { AttachmentDisplay, isAttachmentValue, normalizeAttachments } from '@/components/registration/AttachmentDisplay';
 
 interface BackgroundInfoTabProps {
   entity: any;
@@ -147,9 +148,41 @@ const SENSITIVE_DYNAMIC_KEYS = new Set([
   'password_confirmation',
   'confirm_password_value',
   'otp',
+  'otp_code',
+  'otp_token',
+  'otp_verified',
   'pin',
   'secret',
+  'captcha',
+  'captcha_token',
+  'recaptcha',
+  'recaptcha_token',
+  'hcaptcha',
+  'token',
+  'access_token',
+  'refresh_token',
+  'csrf',
+  'csrf_token',
+  'verification_token',
+  'verification_code',
+  'session_id',
+  'ip_address',
+  'user_agent',
 ]);
+
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+
+const isTechnicalKey = (normalized: string) => {
+  if (normalized === 'id' || normalized.endsWith('_id') || normalized.endsWith('_uuid')) return true;
+  if (normalized.includes('password')) return true;
+  if (normalized.includes('captcha')) return true;
+  if (normalized.includes('token')) return true;
+  if (normalized.includes('otp')) return true;
+  if (normalized.endsWith('_at') || normalized === 'created_at' || normalized === 'updated_at') return true;
+  if (['storage_path', 'bucket', 'bucket_name', 'mime_type', 'size', 'size_bytes', 'file_size', 'checksum', 'hash', 'etag'].includes(normalized)) return true;
+  return false;
+};
 
 const formatDateTime = (value: unknown): string => {
   if (!value) return 'Not provided';
@@ -360,47 +393,28 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
 
   const detailRows: Array<{ label: string; value: string }> = hasRegistration
     ? [
-        { label: 'Registration Reference', value: showVal(reg.registration_reference) },
         { label: 'Registration Number', value: showVal(pickFirstValue(reg.registration_number, getRecordValue(entitySpecificData, ['registration_number']))) },
-        { label: 'Email', value: showVal(pickFirstValue(reg.email, getRecordValue(entitySpecificData, ['email']), ap.email, ad.email)) },
-        { label: 'Username', value: showVal(pickFirstValue(reg.username, getRecordValue(entitySpecificData, ['username']))) },
-        { label: 'First Name', value: showVal(pickFirstValue(reg.first_name, getRecordValue(entitySpecificData, ['first_name']))) },
-        { label: 'Last Name', value: showVal(pickFirstValue(reg.last_name, getRecordValue(entitySpecificData, ['last_name']))) },
         { label: 'Applicant / Entity Name', value: showVal(pickFirstValue(reg.applicant_name, getRecordValue(entitySpecificData, ['applicant_name']), ad.applicant_name, ad.entity_name, ap.entity_name)) },
         { label: 'Alternate Name', value: showVal(pickFirstValue(reg.applicant_name_alt, getRecordValue(entitySpecificData, ['applicant_name_alt']))) },
+        { label: 'First Name', value: showVal(pickFirstValue(reg.first_name, getRecordValue(entitySpecificData, ['first_name']))) },
+        { label: 'Last Name', value: showVal(pickFirstValue(reg.last_name, getRecordValue(entitySpecificData, ['last_name']))) },
+        { label: 'Username', value: showVal(pickFirstValue(reg.username, getRecordValue(entitySpecificData, ['username']))) },
+        { label: 'Email', value: showVal(pickFirstValue(reg.email, getRecordValue(entitySpecificData, ['email']), ap.email, ad.email)) },
         { label: 'Telephone', value: showVal(pickFirstValue(reg.telephone, getRecordValue(entitySpecificData, ['telephone', 'phone']), ap.phone)) },
         { label: 'Mailing Address', value: showVal(mailingAddressValue) },
-        {
-          label: 'Physical Address',
-          value: showVal(physicalAddressValue),
-        },
-        {
-          label: 'Same As Mailing',
-          value: reg.same_as_mailing === undefined || reg.same_as_mailing === null ? 'Not provided' : (reg.same_as_mailing ? 'Yes' : 'No'),
-        },
-        {
-          label: 'Email Verified',
-          value: reg.email_verified === undefined || reg.email_verified === null ? 'Not provided' : (reg.email_verified ? 'Yes' : 'No'),
-        },
-        {
-          label: 'Terms Accepted',
-          value: reg.terms_accepted === undefined || reg.terms_accepted === null ? 'Not provided' : (reg.terms_accepted ? 'Yes' : 'No'),
-        },
-        { label: 'Status', value: showVal(reg.status) },
-        { label: 'Created At', value: formatDateTime(reg.created_at) },
-        { label: 'Updated At', value: formatDateTime(reg.updated_at) },
-        { label: 'Sector', value: resolveMappedValue(resolvedSectorId, sectors) },
-        { label: 'Sub-Sector', value: resolveMappedValue(resolvedSubSectorId, subSectors) },
-        { label: 'Category', value: resolveMappedValue(resolvedCategoryId, categories) },
-      ]
+        { label: 'Physical Address', value: showVal(physicalAddressValue) },
+      ].filter(row => row.value && row.value !== 'Not provided')
     : [];
 
   const entitySpecific: Array<[string, any]> = hasRegistration && reg?.entity_specific_data && typeof reg.entity_specific_data === 'object'
     ? Object.entries(reg.entity_specific_data as Record<string, unknown>).filter(([key, value]) => {
         const normalized = normalizeKey(key);
         if (FIXED_DYNAMIC_KEYS.has(normalized)) return false;
-        if (SENSITIVE_DYNAMIC_KEYS.has(normalized) || normalized.includes('password')) return false;
-        return !isEmptyValue(value);
+        if (SENSITIVE_DYNAMIC_KEYS.has(normalized)) return false;
+        if (isTechnicalKey(normalized)) return false;
+        if (isEmptyValue(value)) return false;
+        if (typeof value === 'string' && isUuid(value)) return false;
+        return true;
       })
     : [];
 
@@ -562,9 +576,13 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                     {entitySpecific.map(([key, value]) => (
-                      <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
+                      <div key={key} className="flex flex-col gap-1 py-1.5 border-b border-border/50">
                         <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
-                        <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                        {isAttachmentValue(value) ? (
+                          <AttachmentDisplay value={value} />
+                        ) : (
+                          <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -577,45 +595,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                     <Paperclip className="h-4 w-4 text-primary" />
                     Uploaded Documents ({documents.length})
                   </h4>
-                  <div className="space-y-3">
-                    {documents.map((document, index) => {
-                      const documentEntries = document && typeof document === 'object'
-                        ? Object.entries(document as Record<string, unknown>).filter(([key, value]) => {
-                            const normalized = normalizeKey(key);
-                            return !['name', 'file_name', 'label', 'document_name', 'type', 'mime_type'].includes(normalized) && !isEmptyValue(value);
-                          })
-                        : [];
-
-                      return (
-                        <div key={index} className="rounded-md border border-border/50 bg-muted/30 p-3 space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm font-medium break-words">
-                                {typeof document === 'object' && document
-                                  ? (document.name || document.file_name || document.label || document.document_name || `Document ${index + 1}`)
-                                  : `Document ${index + 1}`}
-                              </span>
-                            </div>
-                            {typeof document === 'object' && document && (document.type || document.mime_type) ? (
-                              <Badge variant="outline" className="text-xs shrink-0">{document.type || document.mime_type}</Badge>
-                            ) : null}
-                          </div>
-
-                          {documentEntries.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                              {documentEntries.map(([key, value]) => (
-                                <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
-                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
-                                  <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <AttachmentDisplay value={documents} />
                 </div>
               )}
             </div>
