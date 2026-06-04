@@ -154,6 +154,7 @@ function mapSystemProfile(userId: string, email: string, role: AppRole, profile:
     department: (profile as any).department || undefined,
     bio: (profile as any).bio || undefined,
     twoFactorEnabled: profile.two_factor_enabled,
+    userType: (profile as any).user_type ?? null,
   };
 }
 

@@ -81,6 +81,8 @@ export interface PlatformUser {
   department?: string;
   bio?: string;
   twoFactorEnabled?: boolean;
+  /** Raw profiles.user_type value (e.g. 'primary', 'secondary', 'contact'). */
+  userType?: string | null;
 }
 
 // Application statuses - simplified lifecycle
