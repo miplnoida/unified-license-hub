@@ -296,7 +296,7 @@ export default function CreateReturnPage() {
                 </div>
                 <div className="flex justify-between">
                   <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
-                  <Button onClick={handleCreate} disabled={createReturn.isPending}>{createReturn.isPending ? 'Creating...' : 'Create & Start Filing'}</Button>
+                  <Button onClick={handleCreate} disabled={createReturn.isPending || licenseGate.isBlocked}>{createReturn.isPending ? 'Creating...' : licenseGate.isBlocked ? 'License Not Active' : 'Create & Start Filing'}</Button>
                 </div>
               </div>
             )}
