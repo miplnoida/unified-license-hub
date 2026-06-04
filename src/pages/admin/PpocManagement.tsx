@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Link2, Pencil, X } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
-import { getEligiblePpocUsers, type EligiblePpocUser } from '@/lib/ppocUsers';
+import { getEligibleUsersForPpocMapping, type EligiblePpocUser } from '@/lib/ppocUsers';
 import { loadApprovedLicenseeOptions, type ApprovedLicenseeOption } from '@/lib/licenseeOptions';
 
 interface PpocMapping {
@@ -117,7 +117,7 @@ export default function PpocManagement() {
 
   const loadOptions = async (includeUserId?: string | null, keepLicenseeId?: string | null) => {
     const [eligibleUsers, deduped, { data: s }] = await Promise.all([
-      getEligiblePpocUsers(includeUserId),
+      getEligibleUsersForPpocMapping(includeUserId),
       // Use the same enriched/deduped pipeline as the Licensee Entities page so
       // PPOC entity dropdown shows real entity names and uses resolved sector ids.
       loadApprovedLicenseeOptions({ keepLicenseeId, onlyActive: true }),
@@ -193,7 +193,7 @@ export default function PpocManagement() {
   };
   const handleSave = async () => {
     if (!ppocUserId) {
-      toast.error('Please select a PPOC user.');
+      toast.error('Please select a user to assign as PPOC.');
       return;
     }
     if (selectedSectorIds.length === 0) {
@@ -332,7 +332,7 @@ export default function PpocManagement() {
       <div className="space-y-6">
         <PageHeader
           title="PPOC Entity Mappings"
-          description="PPOC is the Primary Point of Contact mapped to selected licensee entities and sectors. PPOC mapping controls contact/access assignment and is separate from entity Primary User ownership unless explicitly configured elsewhere."
+          description="A user becomes a Principal Point of Contact (PPOC) only after being explicitly mapped to a licensee entity and one or more sectors here. Primary Users already have direct access to their own entity — a PPOC mapping is only needed to grant a user PPOC rights for additional or different entities/sectors."
           actions={
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />Add Mapping
@@ -350,14 +350,14 @@ export default function PpocManagement() {
               <Link2 className="h-5 w-5" /> {editingId ? 'Edit PPOC Mapping' : 'Map PPOC to Entity'}
             </DialogTitle>
             <DialogDescription>
-              Select an active external/licensee contact user to map as PPOC for this entity.
+              Select an active licensee contact user to assign as PPOC. PPOC rights only take effect through this mapping — a user is not automatically a PPOC just because they are a Primary or Secondary user.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>PPOC User *</Label>
+              <Label>Select user to assign as PPOC *</Label>
               <Select value={ppocUserId} onValueChange={setPpocUserId}>
-                <SelectTrigger><SelectValue placeholder="Select contact user..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select candidate user..." /></SelectTrigger>
                 <SelectContent
                   position="popper"
                   side="bottom"
@@ -367,7 +367,7 @@ export default function PpocManagement() {
                 >
                   {users.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No eligible PPOC users found. Check that the user is active and has a licensee/contact role.
+                      No eligible candidates found. The user must be active and have a licensee contact role (primary, secondary, or contact).
                     </div>
                   ) : users.map(u => (
                     <SelectItem key={u.id} value={u.id}>
@@ -382,7 +382,7 @@ export default function PpocManagement() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Select an active external/licensee contact user.
+                Only users explicitly mapped here become PPOCs for the selected entity/sectors. Primary Users may be selected as candidates, but PPOC rights come from this mapping — not from their profile role.
               </p>
             </div>
             <div className="space-y-2">

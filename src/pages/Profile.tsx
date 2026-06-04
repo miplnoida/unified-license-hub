@@ -14,9 +14,11 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { usePpoc } from '@/contexts/PpocContext';
 
 export default function Profile() {
   const { user, refreshUser, clear2FAState, mark2FAVerified } = useAuth();
+  const { isPpoc, mappedLicensees } = usePpoc();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Personal info ----
@@ -265,6 +267,47 @@ export default function Profile() {
                   <div className="space-y-2"><Label>Phone Number</Label><Input value={phone} onChange={e => setPhone(e.target.value)} /></div>
                   <div className="space-y-2"><Label>Department</Label><Input value={department} onChange={e => setDepartment(e.target.value)} /></div>
                   <div className="space-y-2 md:col-span-2"><Label>Bio</Label><Textarea placeholder="Brief description..." value={bio} onChange={e => setBio(e.target.value)} /></div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Account Roles</CardTitle>
+                <CardDescription>
+                  Primary User access and PPOC mappings are distinct. PPOC rights only apply through explicit admin mappings — not from your profile role.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="font-medium">Primary User</p>
+                    <p className="text-sm text-muted-foreground">Account owner with direct access to your own licensee entity.</p>
+                  </div>
+                  <Badge variant={(user as any)?.licenseeId ? 'default' : 'secondary'}>
+                    {(user as any)?.licenseeId ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                <div className="p-3 rounded-lg border space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">PPOC (Principal Point of Contact)</p>
+                      <p className="text-sm text-muted-foreground">Active only through admin-managed PPOC mappings.</p>
+                    </div>
+                    <Badge variant={isPpoc ? 'default' : 'secondary'}>
+                      {isPpoc ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                  {isPpoc && mappedLicensees.length > 0 && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground mb-1">Mapped entities:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {mappedLicensees.map(l => (
+                          <Badge key={l.licensee_id} variant="outline" className="text-xs">{l.licensee_name}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -346,9 +346,16 @@ export function PpocProvider({ children }: { children: ReactNode }) {
     };
   }, [isFullyAuthenticated, user?.id, user?.licenseeId, user?.entityName]);
 
+  // PPOC status is granted ONLY through an active row in ppoc_entity_mappings
+  // (loaded above into `mappedLicensees`). A Primary User without a mapping is
+  // NOT a PPOC, even if their profile.user_type is 'primary' or they hold the
+  // `licensee_primary` role — those grant Primary User access to their own
+  // entity via profiles.licensee_id, not PPOC rights.
   const isPpoc = mappedLicensees.length > 0;
   const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;
   const resolvedLicenseeId = useMemo(() => {
+    // Acting as PPOC → use the currently selected mapped licensee.
+    // Otherwise → fall back to the user's own profiles.licensee_id (Primary User access).
     if (isPpoc) return activeLicenseeId;
     if (user?.licenseeId) return user.licenseeId;
     return resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id || null;
