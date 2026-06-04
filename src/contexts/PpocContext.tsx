@@ -207,8 +207,12 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         } catch {
           initial = null;
         }
-        if (!initial || !list.some((licensee) => licensee.licensee_id === initial)) {
-          initial = list[0]?.licensee_id || null;
+        const validIds = new Set<string>(list.map(l => l.licensee_id));
+        if (profileLicenseeId) validIds.add(profileLicenseeId);
+        if (!initial || !validIds.has(initial)) {
+          // Default to the user's own entity (Primary User context) when they
+          // also own a licensee — don't force Primary+PPOC users into PPOC mode.
+          initial = profileLicenseeId || list[0]?.licensee_id || null;
         }
         setActiveLicenseeIdState(initial);
         try {
