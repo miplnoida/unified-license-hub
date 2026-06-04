@@ -247,7 +247,7 @@ export default function LicenseeDetail() {
             </TabsContent>
 
             <TabsContent value="ownership" className="mt-6">
-              {loadedTabs.has('ownership') && <OwnershipTab entityId={id!} entityName={licensee.name} />}
+              {loadedTabs.has('ownership') && <OwnershipTab entityId={id!} entityName={displayName || licensee.name} />}
             </TabsContent>
 
             <TabsContent value="licenses" className="mt-6">
