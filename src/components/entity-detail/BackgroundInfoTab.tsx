@@ -393,47 +393,28 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
 
   const detailRows: Array<{ label: string; value: string }> = hasRegistration
     ? [
-        { label: 'Registration Reference', value: showVal(reg.registration_reference) },
         { label: 'Registration Number', value: showVal(pickFirstValue(reg.registration_number, getRecordValue(entitySpecificData, ['registration_number']))) },
-        { label: 'Email', value: showVal(pickFirstValue(reg.email, getRecordValue(entitySpecificData, ['email']), ap.email, ad.email)) },
-        { label: 'Username', value: showVal(pickFirstValue(reg.username, getRecordValue(entitySpecificData, ['username']))) },
-        { label: 'First Name', value: showVal(pickFirstValue(reg.first_name, getRecordValue(entitySpecificData, ['first_name']))) },
-        { label: 'Last Name', value: showVal(pickFirstValue(reg.last_name, getRecordValue(entitySpecificData, ['last_name']))) },
         { label: 'Applicant / Entity Name', value: showVal(pickFirstValue(reg.applicant_name, getRecordValue(entitySpecificData, ['applicant_name']), ad.applicant_name, ad.entity_name, ap.entity_name)) },
         { label: 'Alternate Name', value: showVal(pickFirstValue(reg.applicant_name_alt, getRecordValue(entitySpecificData, ['applicant_name_alt']))) },
+        { label: 'First Name', value: showVal(pickFirstValue(reg.first_name, getRecordValue(entitySpecificData, ['first_name']))) },
+        { label: 'Last Name', value: showVal(pickFirstValue(reg.last_name, getRecordValue(entitySpecificData, ['last_name']))) },
+        { label: 'Username', value: showVal(pickFirstValue(reg.username, getRecordValue(entitySpecificData, ['username']))) },
+        { label: 'Email', value: showVal(pickFirstValue(reg.email, getRecordValue(entitySpecificData, ['email']), ap.email, ad.email)) },
         { label: 'Telephone', value: showVal(pickFirstValue(reg.telephone, getRecordValue(entitySpecificData, ['telephone', 'phone']), ap.phone)) },
         { label: 'Mailing Address', value: showVal(mailingAddressValue) },
-        {
-          label: 'Physical Address',
-          value: showVal(physicalAddressValue),
-        },
-        {
-          label: 'Same As Mailing',
-          value: reg.same_as_mailing === undefined || reg.same_as_mailing === null ? 'Not provided' : (reg.same_as_mailing ? 'Yes' : 'No'),
-        },
-        {
-          label: 'Email Verified',
-          value: reg.email_verified === undefined || reg.email_verified === null ? 'Not provided' : (reg.email_verified ? 'Yes' : 'No'),
-        },
-        {
-          label: 'Terms Accepted',
-          value: reg.terms_accepted === undefined || reg.terms_accepted === null ? 'Not provided' : (reg.terms_accepted ? 'Yes' : 'No'),
-        },
-        { label: 'Status', value: showVal(reg.status) },
-        { label: 'Created At', value: formatDateTime(reg.created_at) },
-        { label: 'Updated At', value: formatDateTime(reg.updated_at) },
-        { label: 'Sector', value: resolveMappedValue(resolvedSectorId, sectors) },
-        { label: 'Sub-Sector', value: resolveMappedValue(resolvedSubSectorId, subSectors) },
-        { label: 'Category', value: resolveMappedValue(resolvedCategoryId, categories) },
-      ]
+        { label: 'Physical Address', value: showVal(physicalAddressValue) },
+      ].filter(row => row.value && row.value !== 'Not provided')
     : [];
 
   const entitySpecific: Array<[string, any]> = hasRegistration && reg?.entity_specific_data && typeof reg.entity_specific_data === 'object'
     ? Object.entries(reg.entity_specific_data as Record<string, unknown>).filter(([key, value]) => {
         const normalized = normalizeKey(key);
         if (FIXED_DYNAMIC_KEYS.has(normalized)) return false;
-        if (SENSITIVE_DYNAMIC_KEYS.has(normalized) || normalized.includes('password')) return false;
-        return !isEmptyValue(value);
+        if (SENSITIVE_DYNAMIC_KEYS.has(normalized)) return false;
+        if (isTechnicalKey(normalized)) return false;
+        if (isEmptyValue(value)) return false;
+        if (typeof value === 'string' && isUuid(value)) return false;
+        return true;
       })
     : [];
 
