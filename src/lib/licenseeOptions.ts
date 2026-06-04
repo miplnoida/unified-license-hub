@@ -128,21 +128,26 @@ export async function loadApprovedLicenseeOptions(opts?: {
     (!onlyActive || r.status === 'active') || (keepId && r.id === keepId)
   );
 
-  const norm = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
-  const bestByKey = new Map<string, ApprovedLicenseeOption>();
-  for (const row of filtered) {
-    const key = `${norm(row.display_name)}::${row.sector_id || ''}`;
-    const prev = bestByKey.get(key);
-    if (!prev) { bestByKey.set(key, row); continue; }
-    const prevActive = prev.status === 'active';
-    const curActive = row.status === 'active';
-    const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
-    const curTs = new Date(row.updated_at || row.created_at || 0).getTime();
-    if ((curActive && !prevActive) || (curActive === prevActive && curTs > prevTs)) {
-      bestByKey.set(key, row);
+  let deduped: ApprovedLicenseeOption[];
+  if (dedupe) {
+    const norm = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const bestByKey = new Map<string, ApprovedLicenseeOption>();
+    for (const row of filtered) {
+      const key = `${norm(row.display_name)}::${row.sector_id || ''}`;
+      const prev = bestByKey.get(key);
+      if (!prev) { bestByKey.set(key, row); continue; }
+      const prevActive = prev.status === 'active';
+      const curActive = row.status === 'active';
+      const prevTs = new Date(prev.updated_at || prev.created_at || 0).getTime();
+      const curTs = new Date(row.updated_at || row.created_at || 0).getTime();
+      if ((curActive && !prevActive) || (curActive === prevActive && curTs > prevTs)) {
+        bestByKey.set(key, row);
+      }
     }
+    deduped = Array.from(bestByKey.values());
+  } else {
+    deduped = filtered;
   }
-  let deduped = Array.from(bestByKey.values());
 
   if (keepId && !deduped.some(r => r.id === keepId)) {
     const original = enriched.find(r => r.id === keepId);
