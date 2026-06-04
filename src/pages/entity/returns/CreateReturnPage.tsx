@@ -164,6 +164,8 @@ export default function CreateReturnPage() {
       <div className="space-y-6">
         <PageHeader title="Create New Return" description="Select return configuration and filing period" />
 
+        <div className="max-w-2xl mx-auto"><LicenseStatusBanner /></div>
+
         <Card className="max-w-2xl mx-auto">
           <CardContent className="p-6">
             {/* Steps indicator */}
