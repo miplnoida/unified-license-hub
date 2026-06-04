@@ -209,3 +209,9 @@ export async function getEligibleUsersForPpocMapping(includeUserId?: string | nu
 
   return list;
 }
+
+/**
+ * @deprecated Use `getEligibleUsersForPpocMapping`. Kept for backward compat;
+ * the returned list is *candidates* for PPOC mapping, not active PPOCs.
+ */
+export const getEligiblePpocUsers = getEligibleUsersForPpocMapping;
