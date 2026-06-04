@@ -52,18 +52,22 @@ const DYNAMIC_ROLE_TOKENS = ['licensee_primary', 'licensee_secondary', 'primary_
 const INTERNAL_ROLE_TOKENS = ['admin', 'super_admin', 'supervisor', 'analyst', 'officer', 'developer', 'regulator'];
 
 /**
- * Load all eligible PPOC users by combining several role/user sources so the
- * dropdown is not bound to a single (and outdated) profiles.role value.
+ * Load all users that an admin may select as CANDIDATES when creating a PPOC
+ * mapping. This does NOT make any of them a PPOC — PPOC status applies only
+ * once an active row exists in `ppoc_entity_mappings` for the user/licensee
+ * (with optional sector scope in `ppoc_mapping_sectors`).
  *
  * Sources merged (de-duplicated by user id):
- *  - profiles.user_type ∈ ELIGIBLE_USER_TYPES
- *  - profiles.role ∈ ELIGIBLE_APP_ROLES (legacy)
+ *  - profiles.user_type ∈ ELIGIBLE_USER_TYPES (primary / secondary)
+ *  - profiles.role ∈ ELIGIBLE_PROFILE_ROLES (legacy licensee contact roles)
  *  - user_roles.role ∈ ELIGIBLE_APP_ROLES
- *  - user_dynamic_roles → roles whose system_role/name matches DYNAMIC_ROLE_TOKENS
+ *  - user_dynamic_roles → roles matching DYNAMIC_ROLE_TOKENS
  *  - existing PPOC mappings (so existing mappings never disappear from edit)
  *  - includeUserId (current selection while editing) — always included
+ *
+ * Internal/admin/regulator users are explicitly excluded.
  */
-export async function getEligiblePpocUsers(includeUserId?: string | null): Promise<EligiblePpocUser[]> {
+export async function getEligibleUsersForPpocMapping(includeUserId?: string | null): Promise<EligiblePpocUser[]> {
   const candidateIds = new Set<string>();
   const mappedIds = new Set<string>();
   const roleLabelsByUser: Record<string, Set<string>> = {};
