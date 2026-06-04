@@ -148,9 +148,41 @@ const SENSITIVE_DYNAMIC_KEYS = new Set([
   'password_confirmation',
   'confirm_password_value',
   'otp',
+  'otp_code',
+  'otp_token',
+  'otp_verified',
   'pin',
   'secret',
+  'captcha',
+  'captcha_token',
+  'recaptcha',
+  'recaptcha_token',
+  'hcaptcha',
+  'token',
+  'access_token',
+  'refresh_token',
+  'csrf',
+  'csrf_token',
+  'verification_token',
+  'verification_code',
+  'session_id',
+  'ip_address',
+  'user_agent',
 ]);
+
+const isUuid = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+
+const isTechnicalKey = (normalized: string) => {
+  if (normalized === 'id' || normalized.endsWith('_id') || normalized.endsWith('_uuid')) return true;
+  if (normalized.includes('password')) return true;
+  if (normalized.includes('captcha')) return true;
+  if (normalized.includes('token')) return true;
+  if (normalized.includes('otp')) return true;
+  if (normalized.endsWith('_at') || normalized === 'created_at' || normalized === 'updated_at') return true;
+  if (['storage_path', 'bucket', 'bucket_name', 'mime_type', 'size', 'size_bytes', 'file_size', 'checksum', 'hash', 'etag'].includes(normalized)) return true;
+  return false;
+};
 
 const formatDateTime = (value: unknown): string => {
   if (!value) return 'Not provided';
