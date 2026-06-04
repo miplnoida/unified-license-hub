@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
@@ -172,6 +173,7 @@ export default function ApplicationsList() {
   const { user } = useAuth();
   const { resolvedLicenseeId } = usePpoc();
   const { activeSectorId, availableSectors } = useActiveSector();
+  const portalContext = useEffectivePortalContext();
   const [searchParamsRaw] = useSearchParams();
   const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
@@ -215,7 +217,7 @@ export default function ApplicationsList() {
     left: { id: string; label: string; versionId: string | null; data: Record<string, any> };
     right: { id: string; label: string; versionId: string | null; data: Record<string, any> };
   } | null>(null);
-  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
