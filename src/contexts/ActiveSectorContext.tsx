@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, ReactNode, use
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
-import { LICENSEE_ROLES, AppRole } from '@/types/platform';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 
 export interface SectorOption {
   id: string;
@@ -43,6 +43,7 @@ function writeStored(id: string | null, name: string | null) {
 export function ActiveSectorProvider({ children }: { children: ReactNode }) {
   const { user, isFullyAuthenticated } = useAuth();
   const { isPpoc, activeLicenseeId, resolvedLicenseeId } = usePpoc();
+  const portalContext = useEffectivePortalContext();
 
   const initial = readStored();
   const [activeSectorId, setActiveSectorId] = useState<string | null>(initial.id);
@@ -64,8 +65,8 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isFullyAuthenticated || !user) return;
-    const role = user.role as AppRole;
-    const isLicenseeUser = LICENSEE_ROLES.includes(role) || isPpoc;
+    if (portalContext.loading) return;
+    const isLicenseeUser = portalContext.isLicensee || isPpoc;
     if (!isLicenseeUser) {
       setAvailableSectors([]);
       return;
@@ -228,7 +229,7 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
     })();
 
     return () => { cancelled = true; };
-  }, [isFullyAuthenticated, user?.id, user?.role, isPpoc, activeLicenseeId, resolvedLicenseeId]);
+  }, [activeLicenseeId, isFullyAuthenticated, isPpoc, portalContext.isLicensee, portalContext.loading, resolvedLicenseeId, user?.id]);
 
   return (
     <ActiveSectorContext.Provider
