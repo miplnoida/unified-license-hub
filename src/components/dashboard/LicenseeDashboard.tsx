@@ -26,18 +26,15 @@ export function LicenseeDashboard() {
     });
   }, [data]);
 
-  if (!resolvedLicenseeId) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No active licensee context. Select an entity from the switcher above to load your dashboard.
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
+      {!resolvedLicenseeId && (
+        <Card>
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            No active licensee selected yet — showing your personal scope. Use the licensee switcher above to load entity-level metrics.
+          </CardContent>
+        </Card>
+      )}
       {activeLicensee && (
         <p className="text-sm text-muted-foreground">Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>.</p>
       )}
