@@ -254,16 +254,26 @@ function MyApplications({ widget, context }: RendererProps) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
-    supabase.from('applications')
+    const query = (supabase.from('applications' as any)
       .select('id, application_number, license_type, status, created_at')
-      .eq('applicant_id', context.userId)
       .neq('status', 'draft')
       .order('created_at', { ascending: false })
-      .limit(3)
-      .then(({ data }) => { if (alive) setItems((data || []) as any); })
+      .limit(3)) as any;
+
+    if (context.isLicensee && context.activeLicenseeId) {
+      if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
+        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+      } else {
+        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+      }
+    } else {
+      query.eq('applicant_id', context.userId);
+    }
+
+    query.then(({ data }: any) => { if (alive) setItems((data || []) as any); })
       .then(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [context.userId]);
+  }, [context.activeLicenseeId, context.isLicensee, context.licenseeId, context.userId]);
 
   return (
     <Card className="md:col-span-2 lg:col-span-3">
@@ -315,14 +325,26 @@ function DraftApplications({ widget, context }: RendererProps) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
-    supabase.from('applications')
+    const query = (supabase.from('applications' as any)
       .select('id, application_number, updated_at, status, data')
-      .eq('applicant_id', context.userId).in('status', ['draft', 'in_progress'])
-      .order('updated_at', { ascending: false }).limit(5)
-      .then(({ data }) => { if (alive) setDrafts((data || []) as any); })
+      .in('status', ['draft', 'in_progress'])
+      .order('updated_at', { ascending: false })
+      .limit(5)) as any;
+
+    if (context.isLicensee && context.activeLicenseeId) {
+      if (context.licenseeId && context.licenseeId === context.activeLicenseeId) {
+        query.or(`applicant_id.eq.${context.userId},on_behalf_of_licensee_id.eq.${context.activeLicenseeId}`);
+      } else {
+        query.eq('on_behalf_of_licensee_id', context.activeLicenseeId);
+      }
+    } else {
+      query.eq('applicant_id', context.userId);
+    }
+
+    query.then(({ data }: any) => { if (alive) setDrafts((data || []) as any); })
       .then(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [context.userId]);
+  }, [context.activeLicenseeId, context.isLicensee, context.licenseeId, context.userId]);
 
   return (
     <Card className="md:col-span-2 lg:col-span-3 border-amber-200 dark:border-amber-800">
