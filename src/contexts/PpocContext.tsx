@@ -363,14 +363,25 @@ export function PpocProvider({ children }: { children: ReactNode }) {
   // `licensee_primary` role — those grant Primary User access to their own
   // entity via profiles.licensee_id, not PPOC rights.
   const isPpoc = mappedLicensees.length > 0;
+  const ownLicenseeId = user?.licenseeId
+    || (resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id)
+    || null;
+
+  // Acting mode: 'primary' when the selection points at the user's own entity
+  // (or no PPOC mappings exist), 'ppoc' when the selection points at a mapped
+  // licensee that the user does NOT own as Primary User.
+  const actingAs: 'primary' | 'ppoc' = (() => {
+    if (!isPpoc) return 'primary';
+    if (activeLicenseeId && ownLicenseeId && activeLicenseeId === ownLicenseeId) return 'primary';
+    if (activeLicenseeId && mappedLicensees.some(l => l.licensee_id === activeLicenseeId)) return 'ppoc';
+    return 'ppoc';
+  })();
+
   const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;
   const resolvedLicenseeId = useMemo(() => {
-    // Acting as PPOC → use the currently selected mapped licensee.
-    // Otherwise → fall back to the user's own profiles.licensee_id (Primary User access).
-    if (isPpoc) return activeLicenseeId;
-    if (user?.licenseeId) return user.licenseeId;
-    return resolvedLicensees.length === 1 ? resolvedLicensees[0].licensee_id : resolvedLicensees[0]?.licensee_id || null;
-  }, [isPpoc, activeLicenseeId, user?.licenseeId, resolvedLicensees]);
+    if (activeLicenseeId) return activeLicenseeId;
+    return ownLicenseeId;
+  }, [activeLicenseeId, ownLicenseeId]);
 
   return (
     <PpocContext.Provider
@@ -381,6 +392,8 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         activeLicensee,
         setActiveLicenseeId,
         loading,
+        ownLicenseeId,
+        actingAs,
         resolvedLicenseeId,
       }}
     >
@@ -400,6 +413,8 @@ export function usePpoc() {
       activeLicensee: null,
       setActiveLicenseeId: () => {},
       loading: false,
+      ownLicenseeId: null,
+      actingAs: 'primary',
       resolvedLicenseeId: null,
     } as PpocContextValue;
   }
