@@ -15,16 +15,27 @@ export interface MappedLicensee {
 }
 
 interface PpocContextValue {
-  /** True when the current user is mapped as PPOC for one or more licensees */
+  /**
+   * True when the current user has at least one active PPOC mapping. This is
+   * a CAPABILITY flag — it does NOT mean every action runs in PPOC context.
+   * Use `actingAs === 'ppoc'` to check the currently selected operating mode.
+   */
   isPpoc: boolean;
-  /** All licensees the current user is mapped to (active mappings only) */
+  /** All licensees the current user is mapped to as PPOC (active mappings only). */
   mappedLicensees: MappedLicensee[];
-  /** The licensee the PPOC is currently acting on behalf of (null if none selected or non-PPOC) */
+  /** Currently selected licensee id (own or mapped). */
   activeLicenseeId: string | null;
   activeLicensee: MappedLicensee | null;
   setActiveLicenseeId: (id: string | null) => void;
   loading: boolean;
-  /** Resolve the licensee context for any user: PPOC selection, or own profile.licensee_id */
+  /** The user's own Primary User licensee, from profiles.licensee_id. */
+  ownLicenseeId: string | null;
+  /**
+   * 'primary' when the active selection is the user's own licensee (or no
+   * PPOC mapping exists), 'ppoc' when acting on behalf of a mapped licensee.
+   */
+  actingAs: 'primary' | 'ppoc';
+  /** Resolved licensee context: active selection, else own. */
   resolvedLicenseeId: string | null;
 }
 
