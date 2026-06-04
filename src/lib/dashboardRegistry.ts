@@ -20,6 +20,7 @@
 
 import type { PermissionModule } from './permissionModules';
 import type { PlatformUser } from '@/types/platform';
+import type { EffectivePortalContext } from '@/lib/effectiveRole';
 
 export type DashboardAudience =
   | 'internal'        // staff: super_admin, admin, supervisor, officer, analyst, …
@@ -225,25 +226,17 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
-export function deriveUserContext(user: PlatformUser | null): DashboardUserContext | null {
+export function deriveUserContext(
+  user: PlatformUser | null,
+  portalContext?: Pick<EffectivePortalContext, 'isInternal' | 'isLicensee' | 'isPreLicensee' | 'isApplicant'> | null,
+): DashboardUserContext | null {
   if (!user) return null;
 
-  const internalRoles = new Set([
-    'super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst', 'developer',
-  ]);
-  const licenseeRoles = new Set(['licensee_primary', 'licensee_secondary']);
-  const preLicenseeRoles = new Set(['pre_licensee']);
-
-  const isPreLicensee = (!!user.isPreLicensee || preLicenseeRoles.has(user.role)) && !user.licenseeId;
-  const isInternal = internalRoles.has(user.role) && !isPreLicensee;
-  const isLicensee = (licenseeRoles.has(user.role) || !!user.licenseeId) && !isInternal;
-  const isApplicant = !isInternal && !isLicensee && !isPreLicensee;
-
   return {
-    isInternal,
-    isLicensee,
-    isPreLicensee,
-    isApplicant,
+    isInternal: portalContext?.isInternal ?? false,
+    isLicensee: portalContext?.isLicensee ?? false,
+    isPreLicensee: portalContext?.isPreLicensee ?? false,
+    isApplicant: portalContext?.isApplicant ?? false,
     licenseeId: user.licenseeId,
     userId: user.id,
   };
