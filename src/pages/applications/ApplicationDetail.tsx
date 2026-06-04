@@ -526,6 +526,10 @@ export default function ApplicationDetail() {
           }
         />
 
+        {isOwner && <LicenseStatusBanner />}
+
+
+
         {/* Simple Progress Bar */}
         <Card>
           <CardHeader className="pb-3">
