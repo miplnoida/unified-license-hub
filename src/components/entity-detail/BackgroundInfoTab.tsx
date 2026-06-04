@@ -288,6 +288,29 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   const [applicant, setApplicant] = useState<any>(null);
   const [appData, setAppData] = useState<any>(null);
   const [regLoading, setRegLoading] = useState(true);
+  const [idLookup, setIdLookup] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [countriesRes, statesRes, mdRes] = await Promise.all([
+          supabase.from('countries' as any).select('id,name'),
+          supabase.from('states' as any).select('id,name'),
+          supabase.from('master_data_items' as any).select('id,name'),
+        ]);
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const row of (countriesRes.data || []) as any[]) if (row?.id && row?.name) map[String(row.id)] = String(row.name);
+        for (const row of (statesRes.data || []) as any[]) if (row?.id && row?.name) map[String(row.id)] = String(row.name);
+        for (const row of (mdRes.data || []) as any[]) if (row?.id && row?.name) map[String(row.id)] = String(row.name);
+        setIdLookup(map);
+      } catch (e) {
+        console.warn('[BackgroundInfoTab] lookup fetch failed', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
