@@ -362,6 +362,10 @@ export default function ApplicationDetail() {
   // Applicant resubmits application after resubmission was requested
   const handleResubmit = async () => {
     if (!app || !user) return;
+    if (licenseGate.isBlocked) {
+      toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
+      return;
+    }
     setProcessing(true);
 
     try {
