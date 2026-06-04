@@ -906,8 +906,8 @@ export default function ApplicationDetail() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={handleResubmit} disabled={processing} className="flex-1">
-                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : 'Resubmit Application'}
+                    <Button onClick={handleResubmit} disabled={processing || licenseGate.isBlocked} className="flex-1">
+                      <Send className="h-4 w-4 mr-2" />{processing ? 'Resubmitting...' : licenseGate.isBlocked ? 'License Not Active' : 'Resubmit Application'}
                     </Button>
                     <Button variant="destructive" onClick={handleCancel} disabled={processing}>
                       <Ban className="h-4 w-4 mr-2" />Cancel
