@@ -117,7 +117,7 @@ export default function PpocManagement() {
 
   const loadOptions = async (includeUserId?: string | null, keepLicenseeId?: string | null) => {
     const [eligibleUsers, deduped, { data: s }] = await Promise.all([
-      getEligiblePpocUsers(includeUserId),
+      getEligibleUsersForPpocMapping(includeUserId),
       // Use the same enriched/deduped pipeline as the Licensee Entities page so
       // PPOC entity dropdown shows real entity names and uses resolved sector ids.
       loadApprovedLicenseeOptions({ keepLicenseeId, onlyActive: true }),
