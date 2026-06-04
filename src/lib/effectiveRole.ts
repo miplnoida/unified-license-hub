@@ -104,14 +104,15 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
 
   if (hasPrimaryUserAccess || resolvedLicenseeId || (normalizedBaseRole && LICENSEE_ROLE_SET.has(normalizedBaseRole))) {
     const isSecondaryUser = normalizedBaseRole === 'licensee_secondary' || String(userType || '').toLowerCase() === 'secondary';
+    const isPrimaryRole = normalizedBaseRole === 'licensee_primary' || String(userType || '').toLowerCase() === 'primary';
 
     return {
       loading: false,
       audience: 'licensee',
-      effectiveRole: hasPrimaryUserAccess
-        ? 'Primary User'
-        : isSecondaryUser
-          ? 'Secondary User'
+      effectiveRole: isSecondaryUser
+        ? 'Secondary User'
+        : isPrimaryRole || hasPrimaryUserAccess
+          ? 'Primary User'
           : getBaseRoleLabel(baseRole, userType),
       isInternal: false,
       isLicensee: true,
