@@ -25,7 +25,16 @@ export function Header() {
   const { unreadCount } = useNotifications();
   const { branding } = useSiteSettings();
   const { activeSectorName } = useActiveSector();
+  const { isPpoc, actingAs, ownLicenseeId } = usePpoc();
   const isLicensee = !!user && LICENSEE_ROLES.includes(user.role);
+  const effectiveRoleLabel = user
+    ? getEffectiveUserRoleLabel({
+        baseRole: user.role,
+        isPpoc,
+        actingAs,
+        hasPrimaryUserAccess: !!(user.licenseeId || ownLicenseeId),
+      })
+    : '';
 
   const handleLogout = async () => {
     await logout();
