@@ -4743,6 +4743,18 @@ export type Database = {
         Returns: string
       }
       audit_step_assignee_label: { Args: { _step_id: string }; Returns: string }
+      can_current_user_access_licensee: {
+        Args: { target_licensee_id: string; target_sector_id?: string }
+        Returns: boolean
+      }
+      can_user_access_licensee: {
+        Args: {
+          _target_licensee_id: string
+          _target_sector_id?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
