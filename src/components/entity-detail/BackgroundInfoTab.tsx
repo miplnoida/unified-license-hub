@@ -237,59 +237,6 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
   useEffect(() => {
     let cancelled = false;
 
-    const fetchLatestRegistration = async (column: 'registration_reference' | 'user_id' | 'email' | 'applicant_name', value: string) => {
-      const trimmedValue = value.trim();
-      if (!trimmedValue) return null;
-
-      let query = supabase.from('registrations').select('*').order('created_at', { ascending: false }).limit(1);
-      if (column === 'user_id' || column === 'registration_reference') {
-        query = query.eq(column, trimmedValue);
-      } else {
-        query = query.ilike(column, trimmedValue);
-      }
-
-      const { data } = await query.maybeSingle();
-      return data || null;
-    };
-
-    const fetchApplicantRecords = async (applicantId: string | null) => {
-      if (!applicantId) {
-        return { profileRecord: null, preLicenseUserRecord: null };
-      }
-
-      const [profileRes, preLicenseRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-        supabase.from('pre_license_users').select('id, full_name, email, phone, entity_name, department').eq('id', applicantId).maybeSingle(),
-      ]);
-
-      return {
-        profileRecord: profileRes.data || null,
-        preLicenseUserRecord: preLicenseRes.data || null,
-      };
-    };
-
-    const fetchBestApplicationForApplicant = async (applicantId: string) => {
-      const { data: applications } = await supabase
-        .from('applications')
-        .select('id, applicant_id, data, created_at')
-        .eq('applicant_id', applicantId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      const rankedApplications = (applications || []).map((application: any, index: number) => ({
-        application,
-        score: scoreApplicationMatch(application?.data, entity),
-        index,
-      }));
-
-      rankedApplications.sort((left, right) => {
-        if (right.score !== left.score) return right.score - left.score;
-        return left.index - right.index;
-      });
-
-      return rankedApplications[0]?.application || null;
-    };
-
     const load = async () => {
       setRegLoading(true);
       setRegistration(null);
@@ -297,136 +244,26 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
       setAppData(null);
 
       try {
-        const entityName = String(entity?.name || '').trim();
-        let applicantId: string | null = null;
-        let licenseRecord: any = null;
-        let applicationRecord: any = null;
-        let registrationRecord: any = null;
-        let profileRecord: any = null;
-        let preLicenseUserRecord: any = null;
+        const { data, error } = await supabase.functions.invoke('get-licensee-registration', {
+          body: {
+            entity_id: entity?.id || null,
+            license_id: entity?.license_id || null,
+            name: entity?.name || '',
+            sector_id: entity?.sector_id || null,
+            sub_sector_id: entity?.sub_sector_id || null,
+            category_id: entity?.category_id || null,
+          },
+        });
 
-        if (entity?.license_id) {
-          const { data: license } = await supabase
-            .from('licenses')
-            .select('id, license_number, application_id')
-            .eq('id', entity.license_id)
-            .maybeSingle();
-
-          licenseRecord = license || null;
-
-          if (licenseRecord?.application_id) {
-            const { data: application } = await supabase
-              .from('applications')
-              .select('id, applicant_id, data, created_at')
-              .eq('id', licenseRecord.application_id)
-              .maybeSingle();
-
-            applicationRecord = application || null;
-            applicantId = application?.applicant_id || null;
-          }
-        }
-
-        const applicationData = applicationRecord?.data && typeof applicationRecord.data === 'object'
-          ? applicationRecord.data
-          : null;
-        const registrationReference = typeof applicationData?.registration_reference === 'string'
-          ? applicationData.registration_reference.trim()
-          : '';
-
-        if (applicantId) {
-          registrationRecord = await fetchLatestRegistration('user_id', applicantId);
-        }
-
-        if (!registrationRecord && registrationReference) {
-          registrationRecord = await fetchLatestRegistration('registration_reference', registrationReference);
-        }
-
-        if (applicantId) {
-          const applicantRecords = await fetchApplicantRecords(applicantId);
-          profileRecord = applicantRecords.profileRecord;
-          preLicenseUserRecord = applicantRecords.preLicenseUserRecord;
-        }
-
-        if (!applicantId && entityName) {
-          const [profileByEntityRes, preLicenseByEntityRes] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('id, full_name, email, phone, entity_name, department, created_at')
-              .ilike('entity_name', entityName)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-            supabase
-              .from('pre_license_users')
-              .select('id, full_name, email, phone, entity_name, department, created_at')
-              .ilike('entity_name', entityName)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ]);
-
-          profileRecord = profileByEntityRes.data || profileRecord;
-          preLicenseUserRecord = preLicenseByEntityRes.data || preLicenseUserRecord;
-          applicantId = profileRecord?.id || preLicenseUserRecord?.id || null;
-        }
-
-        if (!applicationRecord && applicantId) {
-          applicationRecord = await fetchBestApplicationForApplicant(applicantId);
-        }
-
-        const resolvedApplicationData = applicationRecord?.data && typeof applicationRecord.data === 'object'
-          ? applicationRecord.data
-          : null;
-
-        if (!registrationRecord && applicantId) {
-          registrationRecord = await fetchLatestRegistration('user_id', applicantId);
-        }
-
-        const candidateEmail = [
-          registrationRecord?.email,
-          profileRecord?.email,
-          preLicenseUserRecord?.email,
-          resolvedApplicationData?.email,
-        ].map((value) => String(value || '').trim()).find(Boolean) || '';
-
-        const candidateNames = Array.from(new Set([
-          registrationRecord?.applicant_name,
-          resolvedApplicationData?.applicant_name,
-          resolvedApplicationData?.entity_name,
-          profileRecord?.entity_name,
-          preLicenseUserRecord?.entity_name,
-          entityName,
-        ].map((value) => String(value || '').trim()).filter(Boolean)));
-
-        if (!registrationRecord && registrationReference) {
-          registrationRecord = await fetchLatestRegistration('registration_reference', registrationReference);
-        }
-
-        if (!registrationRecord && candidateEmail) {
-          registrationRecord = await fetchLatestRegistration('email', candidateEmail);
-        }
-
-        if (!registrationRecord) {
-          for (const candidateName of candidateNames) {
-            registrationRecord = await fetchLatestRegistration('applicant_name', candidateName);
-            if (registrationRecord) break;
-          }
-        }
-
-        const resolvedApplicantId = applicantId || registrationRecord?.user_id || null;
-
-        if ((!profileRecord && !preLicenseUserRecord) && resolvedApplicantId) {
-          const applicantRecords = await fetchApplicantRecords(resolvedApplicantId);
-          profileRecord = applicantRecords.profileRecord;
-          preLicenseUserRecord = applicantRecords.preLicenseUserRecord;
-        }
-
-        const applicantRecord = profileRecord || preLicenseUserRecord || null;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
         if (cancelled) return;
-        setApplicant(applicantRecord);
-        setAppData(resolvedApplicationData);
-        setRegistration(registrationRecord || null);
+        setApplicant(data?.applicant || null);
+        setAppData(data?.application?.data && typeof data.application.data === 'object' ? data.application.data : null);
+        setRegistration(data?.registration || null);
+      } catch (error: any) {
+        console.error('[BackgroundInfoTab] Failed to load registration details:', error);
       } finally {
         if (!cancelled) setRegLoading(false);
       }
