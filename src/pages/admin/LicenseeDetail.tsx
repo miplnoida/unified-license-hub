@@ -87,6 +87,44 @@ export default function LicenseeDetail() {
 
   useEffect(() => { loadEntity(); }, [loadEntity]);
 
+  // Resolve a human-friendly display name (applicant/entity name) instead of
+  // the stored licensees.name which may contain a sector-subsector-category slug.
+  useEffect(() => {
+    let cancelled = false;
+    if (!licensee?.id) { setDisplayName(''); return; }
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke('get-licensee-registration', {
+          body: {
+            entity_id: licensee.id,
+            license_id: licensee.license_id || null,
+            name: licensee.name || '',
+            sector_id: licensee.sector_id || null,
+            sub_sector_id: licensee.sub_sector_id || null,
+            category_id: licensee.category_id || null,
+          },
+        });
+        if (cancelled) return;
+        const reg = data?.registration || {};
+        const ad = (data?.application?.data && typeof data.application.data === 'object') ? data.application.data : {};
+        const ap = data?.applicant || {};
+        const resolved =
+          reg.applicant_name ||
+          ad.applicant_name ||
+          ad.entity_name ||
+          ap.entity_name ||
+          ap.full_name ||
+          licensee.name ||
+          '';
+        setDisplayName(String(resolved || '').trim() || licensee.name || '');
+      } catch {
+        if (!cancelled) setDisplayName(licensee.name || '');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [licensee?.id, licensee?.license_id, licensee?.name, licensee?.sector_id, licensee?.sub_sector_id, licensee?.category_id]);
+
+
   const handleTabChange = async (newTab: string) => {
     if (isDirty) {
       const result = await Swal.fire({
