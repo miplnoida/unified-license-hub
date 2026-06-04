@@ -6,13 +6,20 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
-import { FileText, DollarSign, Bell, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { FileText, DollarSign, Bell, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 
-const fmtMoney = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
+const fmtMoney = (v: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 
 export function ApplicantDashboard() {
   const { user } = useAuth();
   const { data, isLoading } = useApplicantMetrics(user?.id);
+
+  const actionRequired =
+    (data?.applications.clarification_requested ?? 0) +
+    (data?.applications.resubmission_requested ?? 0);
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -20,7 +27,6 @@ export function ApplicantDashboard() {
       applications: {
         draft: data.applications.draft,
         submitted: data.applications.submitted,
-        returned: data.applications.returned,
       },
       payments: { pending: data.payments.pending },
     });
@@ -28,18 +34,94 @@ export function ApplicantDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Top metric strip — applicant-relevant only */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to="/applications?status=draft" />
-        <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications" />
-        <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={FileText} tone="warning" loading={isLoading} to="/applications" />
-        <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={FileText} tone="success" loading={isLoading} to="/applications" />
-        <MetricCard title="Outstanding fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/billing/pre-licensee" />
-        <MetricCard title="Unread notifications" value={data?.notifications.unread ?? 0} icon={Bell} tone="primary" loading={isLoading} to="/notifications" />
+        <MetricCard
+          title="Drafts"
+          value={data?.applications.draft ?? 0}
+          icon={FileText}
+          tone="default"
+          loading={isLoading}
+          to="/applications?status=draft"
+        />
+        <MetricCard
+          title="Submitted"
+          value={data?.applications.submitted ?? 0}
+          icon={FileText}
+          tone="primary"
+          loading={isLoading}
+          to="/applications"
+        />
+        <MetricCard
+          title="Under review"
+          value={data?.applications.under_review ?? 0}
+          icon={Clock}
+          tone="warning"
+          loading={isLoading}
+          to="/applications"
+        />
+        <MetricCard
+          title="Approved"
+          value={data?.applications.approved ?? 0}
+          icon={CheckCircle2}
+          tone="success"
+          loading={isLoading}
+          to="/applications"
+        />
+        <MetricCard
+          title="Action required"
+          value={actionRequired}
+          icon={AlertCircle}
+          tone={actionRequired > 0 ? 'destructive' : 'muted'}
+          loading={isLoading}
+          to="/applications"
+          hint="Clarification or resubmission"
+        />
+        <MetricCard
+          title="Pending payment"
+          value={data?.payments.outstanding_amount ?? 0}
+          format={fmtMoney}
+          icon={DollarSign}
+          tone={(data?.payments.pending ?? 0) > 0 ? 'warning' : 'muted'}
+          loading={isLoading}
+          to="/billing/pre-licensee"
+        />
       </div>
+
+      {/* Primary CTA — directly under the metrics */}
+      <div className="rounded-lg border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <p className="font-medium text-sm">Start a new licence application</p>
+          <p className="text-xs text-muted-foreground">
+            Choose a sector and category to begin a fresh application.
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link to="/applications/new">
+            <PlusCircle className="h-4 w-4 mr-1.5" /> New application
+          </Link>
+        </Button>
+      </div>
+
+      {/* Notifications strip */}
+      {(data?.notifications.unread ?? 0) > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <Bell className="h-4 w-4 text-primary" />
+            You have <strong className="tabular-nums">{data?.notifications.unread}</strong> unread notification
+            {(data?.notifications.unread ?? 0) === 1 ? '' : 's'}.
+          </div>
+          <Link to="/notifications" className="text-xs text-primary hover:underline">
+            View all
+          </Link>
+        </div>
+      )}
 
       {insights.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {insights.slice(0, 4).map((i) => <InsightCard key={i.id} insight={i} />)}
+          {insights.slice(0, 4).map((i) => (
+            <InsightCard key={i.id} insight={i} />
+          ))}
         </div>
       )}
 
@@ -51,9 +133,10 @@ export function ApplicantDashboard() {
             { label: 'Draft', value: data?.applications.draft ?? 0 },
             { label: 'Submitted', value: data?.applications.submitted ?? 0, tone: 'primary' },
             { label: 'Under review', value: data?.applications.under_review ?? 0, tone: 'warning' },
+            { label: 'Clarification requested', value: data?.applications.clarification_requested ?? 0, tone: 'warning' },
+            { label: 'Resubmission requested', value: data?.applications.resubmission_requested ?? 0, tone: 'warning' },
             { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success' },
             { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive' },
-            { label: 'Returned', value: data?.applications.returned ?? 0, tone: 'warning' },
           ]}
         />
         <PriorityListCard
@@ -79,16 +162,6 @@ export function ApplicantDashboard() {
             badge: { label: p.status, tone: 'warning' },
           }))}
         />
-      </div>
-
-      <div className="rounded-lg border border-dashed p-4 flex items-center justify-between">
-        <div>
-          <p className="font-medium text-sm">Need to start a new application?</p>
-          <p className="text-xs text-muted-foreground">Begin a new licence application from the public form catalogue.</p>
-        </div>
-        <a href="/applications/new" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-          <PlusCircle className="h-4 w-4" /> New application
-        </a>
       </div>
     </div>
   );
