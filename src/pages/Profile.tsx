@@ -315,8 +315,8 @@ export default function Profile() {
                     <p className="font-medium">Primary User</p>
                     <p className="text-sm text-muted-foreground">Account owner with direct access to your own licensee entity.</p>
                   </div>
-                  <Badge variant={(user as any)?.licenseeId ? 'default' : 'secondary'}>
-                    {(user as any)?.licenseeId ? 'Yes' : 'No'}
+                  <Badge variant={isPrimaryUser ? 'default' : 'secondary'}>
+                    {isPrimaryUser ? 'Yes' : 'No'}
                   </Badge>
                 </div>
                 <div className="p-3 rounded-lg border space-y-2">
