@@ -380,6 +380,7 @@ export default function FillReturnPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
+        <LicenseStatusBanner />
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
           <div>
