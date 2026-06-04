@@ -30,10 +30,10 @@ export interface LicenseeMetrics {
 export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined) {
   return useQuery<LicenseeMetrics>({
     queryKey: ['licensee-metrics', activeLicenseeId, userId],
-    enabled: !!activeLicenseeId,
+    enabled: !!(activeLicenseeId || userId),
     staleTime: 60_000,
     queryFn: async () => {
-      const lid = activeLicenseeId!;
+      const lid = activeLicenseeId || null;
 
       // licenses are linked via licensees.license_id → licenses.id, plus holder_id
       const [{ data: licenseeRow }] = await Promise.all([
