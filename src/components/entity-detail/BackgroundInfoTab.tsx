@@ -37,7 +37,10 @@ const isEmptyValue = (value: any): boolean => {
   if (value === null || value === undefined) return true;
   if (typeof value === 'string') return value.trim() === '';
   if (Array.isArray(value)) return value.length === 0 || value.every(isEmptyValue);
-  if (typeof value === 'object') return Object.keys(value).length === 0;
+  if (typeof value === 'object') {
+    const objectValues = Object.values(value);
+    return objectValues.length === 0 || objectValues.every(isEmptyValue);
+  }
   return false;
 };
 
