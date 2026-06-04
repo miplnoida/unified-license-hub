@@ -576,9 +576,13 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                     {entitySpecific.map(([key, value]) => (
-                      <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
+                      <div key={key} className="flex flex-col gap-1 py-1.5 border-b border-border/50">
                         <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
-                        <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                        {isAttachmentValue(value) ? (
+                          <AttachmentDisplay value={value} />
+                        ) : (
+                          <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -591,45 +595,7 @@ export default function BackgroundInfoTab({ entity, sectors, subSectors, categor
                     <Paperclip className="h-4 w-4 text-primary" />
                     Uploaded Documents ({documents.length})
                   </h4>
-                  <div className="space-y-3">
-                    {documents.map((document, index) => {
-                      const documentEntries = document && typeof document === 'object'
-                        ? Object.entries(document as Record<string, unknown>).filter(([key, value]) => {
-                            const normalized = normalizeKey(key);
-                            return !['name', 'file_name', 'label', 'document_name', 'type', 'mime_type'].includes(normalized) && !isEmptyValue(value);
-                          })
-                        : [];
-
-                      return (
-                        <div key={index} className="rounded-md border border-border/50 bg-muted/30 p-3 space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm font-medium break-words">
-                                {typeof document === 'object' && document
-                                  ? (document.name || document.file_name || document.label || document.document_name || `Document ${index + 1}`)
-                                  : `Document ${index + 1}`}
-                              </span>
-                            </div>
-                            {typeof document === 'object' && document && (document.type || document.mime_type) ? (
-                              <Badge variant="outline" className="text-xs shrink-0">{document.type || document.mime_type}</Badge>
-                            ) : null}
-                          </div>
-
-                          {documentEntries.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-                              {documentEntries.map(([key, value]) => (
-                                <div key={key} className="flex flex-col gap-0.5 py-1.5 border-b border-border/50">
-                                  <span className="text-xs uppercase tracking-wide text-muted-foreground">{humanizeKey(key)}</span>
-                                  <span className="text-sm text-foreground break-words">{renderValue(value)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <AttachmentDisplay value={documents} />
                 </div>
               )}
             </div>
