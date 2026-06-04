@@ -11,12 +11,13 @@ export function useEffectivePortalContext() {
     () =>
       getEffectivePortalContext({
         baseRole: user?.role,
+        userType: user?.userType,
         isPpoc,
         actingAs,
         resolvedLicenseeId,
         hasPrimaryUserAccess: !!(user?.licenseeId || ownLicenseeId),
         ppocLoading,
       }),
-    [actingAs, isPpoc, ownLicenseeId, ppocLoading, resolvedLicenseeId, user?.licenseeId, user?.role],
+    [actingAs, isPpoc, ownLicenseeId, ppocLoading, resolvedLicenseeId, user?.licenseeId, user?.role, user?.userType],
   );
 }
