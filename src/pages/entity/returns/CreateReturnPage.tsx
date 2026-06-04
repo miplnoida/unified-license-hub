@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from 'date-fns';
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const QUARTERS = ['Q1','Q2','Q3','Q4'];
