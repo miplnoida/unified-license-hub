@@ -175,7 +175,7 @@ export default function ApplicationsList() {
   const { resolvedLicenseeId } = usePpoc();
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
-  const [searchParamsRaw] = useSearchParams();
+  const [searchParamsRaw, setSearchParams] = useSearchParams();
   const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
