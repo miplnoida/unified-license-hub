@@ -223,7 +223,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Oldest pending applications"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/applications/queue' }}
+            viewAll={{ label: 'All', to: '/applications/queue?sla=pending' }}
             rows={(data?.priority_lists.oldest_pending_applications ?? []).map((a: any) => ({
               id: a.id,
               primary: a.application_number || a.id.slice(0, 8),
