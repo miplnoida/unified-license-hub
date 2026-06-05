@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  APPLICATION_QUEUE_PENDING_STATUSES,
+  APPLICATION_QUEUE_SLA_BREACH_DAYS,
+  APPLICATION_QUEUE_SLA_DUE_SOON_DAYS,
+} from '@/lib/applicationQueueFilters';
 
 /**
  * Aggregate supervisory metrics across all modules.
@@ -133,11 +138,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const sectorEq = (q: any) => filters?.sectorId ? q.eq('sector_id', filters.sectorId) : q;
       const regulatorEq = (q: any) => filters?.regulatorId ? q.eq('regulator_id', filters.regulatorId) : q;
 
-      const submittedSet = ['submitted', 'under_review', 'pending', 'pending_review', 'in_review'];
-
       const [
-        appsTotal, appsDraft, appsSubmitted, appsUnderReview, appsApproved, appsRejected, appsReturned,
-        appsSlaBreached, appsSlaDueSoon,
+        appsTotal, appsDraft, appsApproved, appsRejected, appsReturned,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
         retDueSoon, retOverdue, retPendingReview, retSubmitted,
         payPending, payPaid, payFailed,
@@ -149,13 +151,9 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       ] = await Promise.all([
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'draft'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['under_review', 'in_review']))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['returned', 'returned_for_clarification', 'resubmission_required']))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet).lt('submitted_at', daysAgo(30)))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet).lt('submitted_at', daysAgo(20)).gte('submitted_at', daysAgo(30)))),
 
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true })))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active')))),
@@ -195,11 +193,58 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(sectorEq(supabase.from('licensees').select('*', { count: 'exact', head: true }).eq('status', 'active'))),
       ]);
 
+      const [{ data: pendingRows }, { data: breachedRows }, { data: dueSoonRows }] = await Promise.all([
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 1,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'pending',
+        }),
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 1,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'breached',
+        }),
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 1,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'due_soon',
+        }),
+      ]);
+
+      const appsSubmitted = Number((pendingRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsSlaBreached = Number((breachedRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsSlaDueSoon = Number((dueSoonRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsUnderReview = Math.max(0, appsSubmitted - appsSlaBreached - appsSlaDueSoon >= 0 ? 0 : 0);
+
       // Priority lists (small, ids only)
       const [oldestPendingRes, expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
         supabase.from('applications')
           .select('id, application_number, created_at, status')
-          .in('status', submittedSet)
+          .in('status', [...APPLICATION_QUEUE_PENDING_STATUSES])
           .order('created_at', { ascending: true })
           .limit(5),
         supabase.from('licenses')
