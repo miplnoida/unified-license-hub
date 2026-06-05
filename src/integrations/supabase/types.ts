@@ -4827,6 +4827,7 @@ export type Database = {
           _search: string
           _search_mode: string
           _sector_id?: string
+          _sla?: string
           _sort_by: string
           _sort_dir: string
           _status: string
