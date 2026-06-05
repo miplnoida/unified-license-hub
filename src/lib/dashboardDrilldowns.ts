@@ -27,6 +27,10 @@ import {
   type ApplicationQueueSlaBucket,
   type ApplicationQueueStatusGroup,
 } from './applicationQueueFilters';
+import {
+  ADMIN_RETURN_VISIBLE_STORED_STATUSES,
+  type AdminReturnStatusFilter,
+} from './adminReturnFilters';
 
 export type DashboardRpcParams = {
   _status?: string | null;
@@ -44,6 +48,16 @@ export interface DashboardDrilldown {
   statuses?: readonly string[];
   description?: string;
 }
+
+export type ReturnDashboardDrilldown = {
+  id: string;
+  label: string;
+  targetPath: string;
+  query: Record<string, string>;
+  filter: AdminReturnStatusFilter;
+  statuses?: readonly string[];
+  description?: string;
+};
 
 const APPLICATIONS_QUEUE = '/applications/queue';
 
@@ -133,7 +147,46 @@ export const APPLICATION_DRILLDOWNS = {
   },
 } as const satisfies Record<string, DashboardDrilldown & { rpcParams: DashboardRpcParams }>;
 
+const RETURNS_MANAGEMENT = '/returns-management';
+
+export const RETURN_DRILLDOWNS = {
+  all: {
+    id: 'returns.all',
+    label: 'Submitted Returns',
+    targetPath: RETURNS_MANAGEMENT,
+    query: {},
+    filter: 'all',
+    statuses: ADMIN_RETURN_VISIBLE_STORED_STATUSES,
+  },
+  overdue: {
+    id: 'returns.overdue',
+    label: 'Overdue Returns',
+    targetPath: RETURNS_MANAGEMENT,
+    query: { status: 'overdue' },
+    filter: 'overdue',
+    statuses: ['submitted'],
+    description: 'Submitted returns past due and still awaiting review.',
+  },
+  pendingReview: {
+    id: 'returns.pendingReview',
+    label: 'Pending Review',
+    targetPath: RETURNS_MANAGEMENT,
+    query: { status: 'submitted' },
+    filter: 'submitted',
+    statuses: ['submitted'],
+  },
+  submitted: {
+    id: 'returns.submitted',
+    label: 'Submitted Returns',
+    targetPath: RETURNS_MANAGEMENT,
+    query: {},
+    filter: 'all',
+    statuses: ADMIN_RETURN_VISIBLE_STORED_STATUSES,
+  },
+} as const satisfies Record<string, ReturnDashboardDrilldown>;
+
 export type ApplicationDrilldownKey = keyof typeof APPLICATION_DRILLDOWNS;
+export type ReturnDrilldownKey = keyof typeof RETURN_DRILLDOWNS;
 
 /** Build the drill-down URL for a registered metric. */
 export function drilldownTo(key: ApplicationDrilldownKey): string {
@@ -145,4 +198,10 @@ export function drilldownTo(key: ApplicationDrilldownKey): string {
 /** Canonical RPC params for a registered metric — use when counting. */
 export function drilldownRpcParams(key: ApplicationDrilldownKey): DashboardRpcParams {
   return { ...APPLICATION_DRILLDOWNS[key].rpcParams };
+}
+
+export function returnDrilldownTo(key: ReturnDrilldownKey): string {
+  const def = RETURN_DRILLDOWNS[key];
+  const qs = new URLSearchParams(def.query).toString();
+  return qs ? `${def.targetPath}?${qs}` : def.targetPath;
 }
