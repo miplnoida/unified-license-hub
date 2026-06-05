@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
+import { ApplicationQueueSlaBucket } from '@/lib/applicationQueueFilters';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -190,12 +191,17 @@ export default function ApplicationsList() {
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
   const initialStatus = searchParamsRaw.get('status') || 'all';
+  const statusParam = searchParamsRaw.get('status') || 'all';
+  const versionParam = searchParamsRaw.get('version') || 'all';
   // SLA drill-down from the supervisory dashboard. Values: 'pending' | 'breached' | 'due_soon' | null.
   // When present, the RPC restricts to applications matching that SLA bucket
   // (status in submitted-set, plus optional submitted_at age window) so the
   // list count exactly matches the dashboard metric.
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
-  const slaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
+  const rawSlaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
+  const slaFilter: ApplicationQueueSlaBucket | null = rawSlaFilter === 'pending' || rawSlaFilter === 'breached' || rawSlaFilter === 'due_soon'
+    ? rawSlaFilter
+    : null;
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -211,7 +217,7 @@ export default function ApplicationsList() {
   const [templates, setTemplates] = useState<Record<string, FormTemplateRow>>({});
   /** application_id → { license_number, status } for approved apps */
   const [licensesByApp, setLicensesByApp] = useState<Record<string, { license_number: string; status: string }>>({});
-  const [versionFilter, setVersionFilter] = useState<string>('all');
+  const [versionFilter, setVersionFilter] = useState<string>(versionParam);
   const [versionSort, setVersionSort] = useState<'none' | 'asc' | 'desc'>('none');
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
