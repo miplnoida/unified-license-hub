@@ -56,3 +56,26 @@ describe('application queue SLA filters', () => {
     }
   });
 });
+import { matchesApplicationQueueStatusGroup, APPLICATION_QUEUE_RETURNED_STATUSES } from '@/lib/applicationQueueFilters';
+
+describe('application queue status groups', () => {
+  it('returned group includes only resubmission_requested and query_raised', () => {
+    expect(APPLICATION_QUEUE_RETURNED_STATUSES).toEqual(['resubmission_requested', 'query_raised']);
+    expect(matchesApplicationQueueStatusGroup('resubmission_requested', 'returned')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('query_raised', 'returned')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('submitted', 'returned')).toBe(false);
+    expect(matchesApplicationQueueStatusGroup('approved', 'returned')).toBe(false);
+  });
+
+  it('pending group mirrors submitted-set statuses', () => {
+    expect(matchesApplicationQueueStatusGroup('submitted', 'pending')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('in_progress', 'pending')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('approved', 'pending')).toBe(false);
+  });
+
+  it('approved/rejected groups match the literal status', () => {
+    expect(matchesApplicationQueueStatusGroup('approved', 'approved')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('rejected', 'rejected')).toBe(true);
+    expect(matchesApplicationQueueStatusGroup('submitted', 'approved')).toBe(false);
+  });
+});
