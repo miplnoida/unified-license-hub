@@ -190,7 +190,12 @@ export default function ApplicationsList() {
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
   const initialStatus = searchParamsRaw.get('status') || 'all';
+  // SLA drill-down from the supervisory dashboard. Values: 'pending' | 'breached' | 'due_soon' | null.
+  // When present, the RPC restricts to applications matching that SLA bucket
+  // (status in submitted-set, plus optional submitted_at age window) so the
+  // list count exactly matches the dashboard metric.
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+  const slaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -279,6 +284,7 @@ export default function ApplicationsList() {
         _sort_dir: 'desc',
         _licensee_id: resolvedLicenseeId,
         _sector_id: validActiveSectorId,
+        _sla: slaFilter || null,
       };
       const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
 
@@ -357,7 +363,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+  }, [refreshKey, page, statusFilter, slaFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Fetch license number + status for approved applications so we can render
   // them in the Status column (licensee view especially needs this).
@@ -447,6 +453,7 @@ export default function ApplicationsList() {
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
           _sector_id: validActiveSectorId,
+          _sla: slaFilter || null,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];

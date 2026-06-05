@@ -64,18 +64,18 @@ export function SupervisoryDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {can.applications && (
           <>
-            <MetricCard title="Pending Applications" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue" />
-            <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue" />
+            <MetricCard title="Pending Applications" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue?sla=pending" />
+            <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue?sla=breached" />
           </>
         )}
         {can.returns && (
-          <MetricCard title="Overdue Returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to="/admin/returns" />
+          <MetricCard title="Overdue Returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to="/returns-management?status=overdue" />
         )}
         {can.risk && (
           <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} />
         )}
         {can.fees && (
-          <MetricCard title="Outstanding Fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/admin/fees" />
+          <MetricCard title="Outstanding Fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/payments?status=pending" />
         )}
         {can.enforcement && (
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
@@ -223,7 +223,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Oldest pending applications"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/applications/queue' }}
+            viewAll={{ label: 'All', to: '/applications/queue?sla=pending' }}
             rows={(data?.priority_lists.oldest_pending_applications ?? []).map((a: any) => ({
               id: a.id,
               primary: a.application_number || a.id.slice(0, 8),
@@ -250,7 +250,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Overdue returns"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/admin/returns' }}
+            viewAll={{ label: 'All', to: '/returns-management?status=overdue' }}
             rows={(data?.priority_lists.overdue_returns ?? []).map((r: any) => ({
               id: r.id,
               primary: r.id.slice(0, 8),
@@ -285,8 +285,8 @@ export function SupervisoryDashboard() {
         {(() => {
           const links: Array<{ to: string; label: string }> = [];
           if (can.applications) links.push({ to: '/applications/queue', label: 'Application queue' });
-          if (can.returns) links.push({ to: '/admin/returns', label: 'Returns admin' });
-          if (can.fees) links.push({ to: '/admin/fees', label: 'Fee management' });
+          if (can.returns) links.push({ to: '/returns-management', label: 'Returns admin' });
+          if (can.fees) links.push({ to: '/payments', label: 'Fee management' });
           if (can.workflows) links.push({ to: '/workflows', label: 'Workflows' });
           if (can.complaints) links.push({ to: '/complaints', label: 'Complaints' });
           if (can.reports) links.push({ to: '/reports', label: 'Reports' });
