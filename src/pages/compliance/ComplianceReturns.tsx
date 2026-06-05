@@ -190,7 +190,26 @@ export default function ComplianceReturns() {
     toast.success(`Return ${label}`); loadAll();
   };
 
+  const matchesDashboardFilter = (r: ComplianceReturn): boolean => {
+    if (!urlFilter) return true;
+    const now = new Date();
+    const due = new Date(r.due_date);
+    const in30 = new Date(now.getTime() + 30 * 86400000);
+    switch (urlFilter) {
+      case 'overdue':
+        return ['pending', 'draft', 'overdue', 'not_submitted'].includes(r.status) && due < now;
+      case 'due_soon':
+      case 'upcoming':
+        return ['pending', 'draft', 'not_submitted'].includes(r.status) && due >= now && due <= in30;
+      case 'pending_review':
+        return ['submitted', 'pending_review'].includes(r.status);
+      default:
+        return true;
+    }
+  };
+
   const filtered = processedReturns.filter(r => {
+    if (!matchesDashboardFilter(r)) return false;
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (frequencyFilter !== 'all') {
       const freq = getConfigFrequency(r.return_config_id);
