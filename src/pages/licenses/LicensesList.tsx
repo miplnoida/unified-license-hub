@@ -187,7 +187,7 @@ export default function LicensesList() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No licenses found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{dashboardChip ? `No licenses matching “${dashboardChip}”.` : 'No licenses found'}</TableCell></TableRow>
                   ) : filtered.map(lic => (
                     <TableRow key={lic.id}>
                       <TableCell className="font-mono font-medium text-sm">{lic.license_number}</TableCell>
