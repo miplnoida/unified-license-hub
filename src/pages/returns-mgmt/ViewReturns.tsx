@@ -93,6 +93,7 @@ export default function ViewReturns() {
   }, [statusFilter, searchParams, setSearchParams]);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       setLoading(true);
       const serverToday = todayDateIso();
@@ -105,13 +106,15 @@ export default function ViewReturns() {
         supabase.from('return_configurations' as any).select('*'),
         supabase.from('profiles').select('id, full_name'),
       ]);
+      if (cancelled) return;
       if (!retRes.error) setReturns((retRes.data || []) as any);
       if (!confRes.error) setConfigs((confRes.data || []) as any);
       if (!profRes.error) setProfiles((profRes.data || []) as any);
       setLoading(false);
     }
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [statusFilter]);
 
   const getConfigName = (id: string | null) => configs.find(c => c.id === id)?.name || '—';
   const getSubmitterName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
