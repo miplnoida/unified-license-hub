@@ -194,9 +194,8 @@ export default function ApplicationsList() {
   // When present, the RPC restricts to applications matching that SLA bucket
   // (status in submitted-set, plus optional submitted_at age window) so the
   // list count exactly matches the dashboard metric.
-  const initialSla = searchParamsRaw.get('sla');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
-  const [slaFilter] = useState<string | null>(initialSla);
+  const slaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
