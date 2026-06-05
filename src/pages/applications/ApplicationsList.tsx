@@ -190,7 +190,13 @@ export default function ApplicationsList() {
   const [search, setSearch] = useState('');
   const [searchMode, setSearchMode] = useState<SearchMode>('contains');
   const initialStatus = searchParamsRaw.get('status') || 'all';
+  // SLA drill-down from the supervisory dashboard. Values: 'pending' | 'breached' | 'due_soon' | null.
+  // When present, the RPC restricts to applications matching that SLA bucket
+  // (status in submitted-set, plus optional submitted_at age window) so the
+  // list count exactly matches the dashboard metric.
+  const initialSla = searchParamsRaw.get('sla');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+  const [slaFilter] = useState<string | null>(initialSla);
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
