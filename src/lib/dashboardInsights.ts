@@ -1,4 +1,4 @@
-import { returnDrilldownTo } from './dashboardDrilldowns';
+import { drilldownTo, returnDrilldownTo } from './dashboardDrilldowns';
 
 /**
  * Rule-based supervisory insights engine. Takes an arbitrary metrics object
