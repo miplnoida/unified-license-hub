@@ -152,7 +152,25 @@ export default function PaymentHistory() {
     setLoading(false);
   };
 
+  const [searchParams] = useSearchParams();
+  // Status query param drives drill-down from the supervisory dashboard.
+  // Accepted values map to underlying payment statuses:
+  //   ?status=pending     → pending / awaiting_verification (outstanding fees)
+  //   ?status=paid        → paid / completed / verified
+  //   ?status=failed      → failed / rejected
+  //   ?status=<specific>  → exact match
+  const statusParam = searchParams.get('status');
+  const statusBuckets: Record<string, string[]> = {
+    pending: ['pending', 'awaiting_verification', 'processing', 'initiated'],
+    paid: ['paid', 'completed', 'verified', 'success'],
+    failed: ['failed', 'rejected'],
+  };
   const filtered = payments.filter(p => {
+    if (statusParam) {
+      const bucket = statusBuckets[statusParam];
+      const ok = bucket ? bucket.includes((p.status || '').toLowerCase()) : (p.status || '').toLowerCase() === statusParam.toLowerCase();
+      if (!ok) return false;
+    }
     if (!search) return true;
     const q = search.toLowerCase();
     return (p.transaction_ref?.toLowerCase().includes(q) ||
