@@ -92,9 +92,15 @@ export interface SupervisoryMetricsLike {
   };
 }
 
-export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
+export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudience = 'admin'): Insight[] {
   const out: Insight[] = [];
   const push = (i: Insight) => out.push(i);
+  const isLicensee = audience === 'licensee';
+  const returnsOverdueTo = isLicensee ? licenseeDrilldownTo('returnsOverdue') : returnDrilldownTo('overdue');
+  const returnsPendingReviewTo = isLicensee ? licenseeDrilldownTo('returnsPendingReview') : returnDrilldownTo('pendingReview');
+  const returnsSubmittedTo = isLicensee ? licenseeDrilldownTo('returnsSubmitted') : returnDrilldownTo('submitted');
+  const paymentsOverdueTo = isLicensee ? licenseeDrilldownTo('paymentsPending') : '/admin/fees';
+
 
   // Applications
   if ((m.applications?.sla_breached ?? 0) > 0) {
