@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_DRILLDOWNS, type ApplicationDrilldownKey } from '@/lib/dashboardDrilldowns';
 import {
-  ADMIN_RETURN_VISIBLE_STORED_STATUSES,
   applyAdminReturnServerFilter,
   isAdminReturnOverdue,
   type AdminReturnLike,
