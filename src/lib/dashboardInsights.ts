@@ -1,4 +1,7 @@
 import { drilldownTo, returnDrilldownTo } from './dashboardDrilldowns';
+import { licenseeDrilldownTo } from './licenseeDashboardDrilldowns';
+
+export type InsightAudience = 'admin' | 'licensee';
 
 /**
  * Rule-based supervisory insights engine. Takes an arbitrary metrics object
