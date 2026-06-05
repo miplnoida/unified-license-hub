@@ -285,8 +285,8 @@ export function SupervisoryDashboard() {
         {(() => {
           const links: Array<{ to: string; label: string }> = [];
           if (can.applications) links.push({ to: '/applications/queue', label: 'Application queue' });
-          if (can.returns) links.push({ to: '/admin/returns', label: 'Returns admin' });
-          if (can.fees) links.push({ to: '/admin/fees', label: 'Fee management' });
+          if (can.returns) links.push({ to: '/returns-management', label: 'Returns admin' });
+          if (can.fees) links.push({ to: '/payments', label: 'Fee management' });
           if (can.workflows) links.push({ to: '/workflows', label: 'Workflows' });
           if (can.complaints) links.push({ to: '/complaints', label: 'Complaints' });
           if (can.reports) links.push({ to: '/reports', label: 'Reports' });
