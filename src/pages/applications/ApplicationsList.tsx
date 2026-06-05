@@ -202,6 +202,11 @@ export default function ApplicationsList() {
   const slaFilter: ApplicationQueueSlaBucket | null = rawSlaFilter === 'pending' || rawSlaFilter === 'breached' || rawSlaFilter === 'due_soon'
     ? rawSlaFilter
     : null;
+  const rawStatusGroup = searchParamsRaw.get('statusGroup');
+  const statusGroupFilter: ApplicationQueueStatusGroup | null =
+    rawStatusGroup === 'pending' || rawStatusGroup === 'returned' || rawStatusGroup === 'approved' || rawStatusGroup === 'rejected'
+      ? rawStatusGroup
+      : null;
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
