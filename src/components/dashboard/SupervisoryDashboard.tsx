@@ -6,7 +6,7 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
-import { APPLICATION_DRILLDOWNS, drilldownTo } from '@/lib/dashboardDrilldowns';
+import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
   Building2, ShieldAlert, Gauge, MessagesSquare,
@@ -70,7 +70,7 @@ export function SupervisoryDashboard() {
           </>
         )}
         {can.returns && (
-          <MetricCard title="Overdue Returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to="/returns-management?status=overdue" />
+          <MetricCard title={RETURN_DRILLDOWNS.overdue.label} value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to={returnDrilldownTo('overdue')} />
         )}
         {can.risk && (
           <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} />
@@ -142,9 +142,9 @@ export function SupervisoryDashboard() {
             loading={isLoading}
             items={[
               { label: 'Due soon', value: data?.returns.due_soon ?? 0, tone: 'warning' },
-              { label: 'Overdue', value: data?.returns.overdue ?? 0, tone: 'destructive' },
-              { label: 'Pending review', value: data?.returns.pending_review ?? 0, tone: 'primary' },
-              { label: 'Submitted', value: data?.returns.submitted ?? 0, tone: 'success' },
+              { label: RETURN_DRILLDOWNS.overdue.label, value: data?.returns.overdue ?? 0, tone: 'destructive', to: returnDrilldownTo('overdue') },
+              { label: RETURN_DRILLDOWNS.pendingReview.label, value: data?.returns.pending_review ?? 0, tone: 'primary', to: returnDrilldownTo('pendingReview') },
+              { label: RETURN_DRILLDOWNS.submitted.label, value: data?.returns.submitted ?? 0, tone: 'success', to: returnDrilldownTo('submitted') },
             ]}
           />
         )}
@@ -251,7 +251,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Overdue returns"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/returns-management?status=overdue' }}
+            viewAll={{ label: 'All', to: returnDrilldownTo('overdue') }}
             rows={(data?.priority_lists.overdue_returns ?? []).map((r: any) => ({
               id: r.id,
               primary: r.id.slice(0, 8),

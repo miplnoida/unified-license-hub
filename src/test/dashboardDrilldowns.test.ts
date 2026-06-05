@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { APPLICATION_DRILLDOWNS, drilldownTo, drilldownRpcParams } from '@/lib/dashboardDrilldowns';
+import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, drilldownRpcParams, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   APPLICATION_QUEUE_PENDING_STATUSES,
   APPLICATION_QUEUE_RETURNED_STATUSES,
 } from '@/lib/applicationQueueFilters';
+import { ADMIN_RETURN_DRILLDOWNS } from '@/lib/adminReturnFilters';
 
 /**
  * The dashboard drill-down registry is the single source of truth for:
@@ -46,5 +47,19 @@ describe('dashboard application drill-down registry', () => {
     expect(APPLICATION_DRILLDOWNS.pending.statuses).toEqual(APPLICATION_QUEUE_PENDING_STATUSES);
     expect(APPLICATION_DRILLDOWNS.slaBreached.statuses).toEqual(APPLICATION_QUEUE_PENDING_STATUSES);
     expect(APPLICATION_DRILLDOWNS.returned.statuses).toEqual(APPLICATION_QUEUE_RETURNED_STATUSES);
+  });
+});
+
+describe('dashboard return drill-down registry', () => {
+  it('encodes the admin returns URLs used by dashboard cards', () => {
+    expect(returnDrilldownTo('overdue')).toBe('/returns-management?status=overdue');
+    expect(returnDrilldownTo('pendingReview')).toBe('/returns-management?status=submitted');
+    expect(returnDrilldownTo('submitted')).toBe('/returns-management');
+  });
+
+  it('reuses the canonical admin return drill-down contract', () => {
+    expect(RETURN_DRILLDOWNS.overdue.filter).toBe(ADMIN_RETURN_DRILLDOWNS.overdue.filter);
+    expect(RETURN_DRILLDOWNS.pendingReview.filter).toBe(ADMIN_RETURN_DRILLDOWNS.pendingReview.filter);
+    expect(RETURN_DRILLDOWNS.submitted.filter).toBe(ADMIN_RETURN_DRILLDOWNS.all.filter);
   });
 });

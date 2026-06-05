@@ -1,3 +1,5 @@
+import { returnDrilldownTo } from './dashboardDrilldowns';
+
 /**
  * Rule-based supervisory insights engine. Takes an arbitrary metrics object
  * and produces a sorted, deduplicated list of actionable insights.
@@ -153,7 +155,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.overdue} return${m.returns!.overdue === 1 ? '' : 's'} overdue`,
       explanation: 'Filing compliance is at risk. Trigger reminders or penalties.',
-      action: { label: 'Open returns', to: '/admin/returns' },
+      action: { label: 'Open returns', to: returnDrilldownTo('overdue') },
     });
   }
   if ((m.returns?.pending_review ?? 0) > 0) {
@@ -163,7 +165,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.pending_review} submitted returns awaiting review`,
       explanation: 'Reviewer queue is building up.',
-      action: { label: 'Review returns', to: '/admin/returns' },
+      action: { label: 'Review returns', to: returnDrilldownTo('pendingReview') },
     });
   }
   if ((m.returns?.repeat_late_filers ?? 0) > 0) {
@@ -173,7 +175,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.repeat_late_filers} repeat late filers detected`,
       explanation: 'Consider compliance follow-up or escalation.',
-      action: { label: 'View filers', to: '/admin/returns' },
+      action: { label: 'View filers', to: returnDrilldownTo('submitted') },
     });
   }
 
