@@ -144,19 +144,20 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
        */
       const countDrilldown = async (key: ApplicationDrilldownKey, pageSize = 1, sortDir: 'asc' | 'desc' = 'desc') => {
         const def = APPLICATION_DRILLDOWNS[key];
+        const rpcParams = def.rpcParams as { _status?: string | null; _status_group?: string | null; _sla?: string | null };
         const { data } = await supabase.rpc('get_application_list_page' as any, {
           _page: 0,
           _page_size: pageSize,
           _search: null,
           _search_mode: 'contains',
-          _status: def.rpcParams._status ?? null,
+          _status: rpcParams._status ?? null,
           _version_id: null,
           _sort_by: 'created_at',
           _sort_dir: sortDir,
           _licensee_id: null,
           _sector_id: filters?.sectorId || null,
-          _sla: def.rpcParams._sla ?? null,
-          _status_group: def.rpcParams._status_group ?? null,
+          _sla: rpcParams._sla ?? null,
+          _status_group: rpcParams._status_group ?? null,
         });
         const rows = (data as any[] | null) || [];
         return { rows, count: Number(rows[0]?.total_count ?? 0) };
