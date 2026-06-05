@@ -28,7 +28,7 @@ import {
   type ApplicationQueueStatusGroup,
 } from './applicationQueueFilters';
 import {
-  ADMIN_RETURN_VISIBLE_STORED_STATUSES,
+  ADMIN_RETURN_DRILLDOWNS,
   type AdminReturnStatusFilter,
 } from './adminReturnFilters';
 
@@ -147,42 +147,11 @@ export const APPLICATION_DRILLDOWNS = {
   },
 } as const satisfies Record<string, DashboardDrilldown & { rpcParams: DashboardRpcParams }>;
 
-const RETURNS_MANAGEMENT = '/returns-management';
-
 export const RETURN_DRILLDOWNS = {
-  all: {
-    id: 'returns.all',
-    label: 'Submitted Returns',
-    targetPath: RETURNS_MANAGEMENT,
-    query: {},
-    filter: 'all',
-    statuses: ADMIN_RETURN_VISIBLE_STORED_STATUSES,
-  },
-  overdue: {
-    id: 'returns.overdue',
-    label: 'Overdue Returns',
-    targetPath: RETURNS_MANAGEMENT,
-    query: { status: 'overdue' },
-    filter: 'overdue',
-    statuses: ['submitted'],
-    description: 'Submitted returns past due and still awaiting review.',
-  },
-  pendingReview: {
-    id: 'returns.pendingReview',
-    label: 'Pending Review',
-    targetPath: RETURNS_MANAGEMENT,
-    query: { status: 'submitted' },
-    filter: 'submitted',
-    statuses: ['submitted'],
-  },
-  submitted: {
-    id: 'returns.submitted',
-    label: 'Submitted Returns',
-    targetPath: RETURNS_MANAGEMENT,
-    query: {},
-    filter: 'all',
-    statuses: ADMIN_RETURN_VISIBLE_STORED_STATUSES,
-  },
+  all: { ...ADMIN_RETURN_DRILLDOWNS.all },
+  overdue: { ...ADMIN_RETURN_DRILLDOWNS.overdue, statuses: ['submitted'] },
+  pendingReview: { ...ADMIN_RETURN_DRILLDOWNS.pendingReview, statuses: ['submitted'] },
+  submitted: { ...ADMIN_RETURN_DRILLDOWNS.all },
 } as const satisfies Record<string, ReturnDashboardDrilldown>;
 
 export type ApplicationDrilldownKey = keyof typeof APPLICATION_DRILLDOWNS;
