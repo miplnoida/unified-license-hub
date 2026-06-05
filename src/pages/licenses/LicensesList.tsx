@@ -121,7 +121,16 @@ export default function LicensesList() {
     load();
   }, [isInternal, resolvedLicenseeId, validActiveSectorId, search, statusFilter, user?.id, user?.role, user?.licenseeId]);
 
-  const filtered = licenses;
+  const filtered = useMemo(() => {
+    if (urlFilter !== 'expiring') return licenses;
+    const cutoff = Date.now() + 30 * 86400000;
+    return licenses.filter(l => {
+      if (l.status !== 'active') return false;
+      if (!l.valid_until) return false;
+      const t = new Date(l.valid_until).getTime();
+      return t >= Date.now() && t <= cutoff;
+    });
+  }, [licenses, urlFilter]);
 
   return (
     <DashboardLayout>
