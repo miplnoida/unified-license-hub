@@ -439,6 +439,7 @@ export default function FeeManagement() {
                           selected={feeTypes}
                           onChange={handleFeeTypesChange}
                           placeholder="Select fee types..."
+                          withinDialog
                         />
                       </div>
                     </div>
