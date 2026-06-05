@@ -1,4 +1,7 @@
 import { drilldownTo, returnDrilldownTo } from './dashboardDrilldowns';
+import { licenseeDrilldownTo } from './licenseeDashboardDrilldowns';
+
+export type InsightAudience = 'admin' | 'licensee';
 
 /**
  * Rule-based supervisory insights engine. Takes an arbitrary metrics object
@@ -89,9 +92,15 @@ export interface SupervisoryMetricsLike {
   };
 }
 
-export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
+export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudience = 'admin'): Insight[] {
   const out: Insight[] = [];
   const push = (i: Insight) => out.push(i);
+  const isLicensee = audience === 'licensee';
+  const returnsOverdueTo = isLicensee ? licenseeDrilldownTo('returnsOverdue') : returnDrilldownTo('overdue');
+  const returnsPendingReviewTo = isLicensee ? licenseeDrilldownTo('returnsPendingReview') : returnDrilldownTo('pendingReview');
+  const returnsSubmittedTo = isLicensee ? licenseeDrilldownTo('returnsSubmitted') : returnDrilldownTo('submitted');
+  const paymentsOverdueTo = isLicensee ? licenseeDrilldownTo('paymentsPending') : '/admin/fees';
+
 
   // Applications
   if ((m.applications?.sla_breached ?? 0) > 0) {
@@ -133,7 +142,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Licensing',
       title: `${m.licenses!.expiring_30d} licence${m.licenses!.expiring_30d === 1 ? '' : 's'} expire within 30 days`,
       explanation: 'Renewal workload incoming. Notify holders and prepare reviewers.',
-      action: { label: 'View approved licensees', to: '/admin/approved-licensees' },
+      action: { label: isLicensee ? 'View licences' : 'View approved licensees', to: isLicensee ? licenseeDrilldownTo('licensesExpiring') : '/admin/approved-licensees' },
     });
   }
   if ((m.licenses?.expired ?? 0) > 0) {
@@ -143,7 +152,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Licensing',
       title: `${m.licenses!.expired} licence${m.licenses!.expired === 1 ? '' : 's'} already expired`,
       explanation: 'These holders are operating without valid licence.',
-      action: { label: 'View licences', to: '/admin/approved-licensees' },
+      action: { label: 'View licences', to: isLicensee ? licenseeDrilldownTo('licensesExpired') : '/admin/approved-licensees' },
     });
   }
 
@@ -155,7 +164,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.overdue} return${m.returns!.overdue === 1 ? '' : 's'} overdue`,
       explanation: 'Filing compliance is at risk. Trigger reminders or penalties.',
-      action: { label: 'Open returns', to: returnDrilldownTo('overdue') },
+      action: { label: 'Open returns', to: returnsOverdueTo },
     });
   }
   if ((m.returns?.pending_review ?? 0) > 0) {
@@ -165,7 +174,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.pending_review} submitted returns awaiting review`,
       explanation: 'Reviewer queue is building up.',
-      action: { label: 'Review returns', to: returnDrilldownTo('pendingReview') },
+      action: { label: 'Review returns', to: returnsPendingReviewTo },
     });
   }
   if ((m.returns?.repeat_late_filers ?? 0) > 0) {
@@ -175,9 +184,10 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Returns',
       title: `${m.returns!.repeat_late_filers} repeat late filers detected`,
       explanation: 'Consider compliance follow-up or escalation.',
-      action: { label: 'View filers', to: returnDrilldownTo('submitted') },
+      action: { label: 'View filers', to: returnsSubmittedTo },
     });
   }
+
 
   // Payments
   if ((m.payments?.blocked_applications ?? 0) > 0) {
@@ -197,7 +207,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Payments',
       title: `${m.payments!.overdue} overdue payment${m.payments!.overdue === 1 ? '' : 's'}`,
       explanation: 'Collections action recommended.',
-      action: { label: 'View payments', to: '/admin/fees' },
+      action: { label: 'View payments', to: paymentsOverdueTo },
     });
   }
 

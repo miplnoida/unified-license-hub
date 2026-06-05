@@ -25,7 +25,7 @@ export function LicenseeDashboard() {
       licenses: { expiring_30d: data.licenses.expiring_30d, expired: data.licenses.expired },
       returns: { overdue: data.returns.overdue, due_soon: data.returns.due_soon, pending_review: data.returns.pending_review },
       payments: { overdue: data.payments.pending },
-    });
+    }, 'licensee');
   }, [data]);
 
   return (
