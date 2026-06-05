@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  APPLICATION_QUEUE_PENDING_STATUSES,
-} from '@/lib/applicationQueueFilters';
 
 /**
  * Aggregate supervisory metrics across all modules.
@@ -198,13 +195,13 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const [{ data: pendingRows }, { data: breachedRows }, { data: dueSoonRows }] = await Promise.all([
         supabase.rpc('get_application_list_page' as any, {
           _page: 0,
-          _page_size: 1,
+          _page_size: 5,
           _search: null,
           _search_mode: 'contains',
           _status: null,
           _version_id: null,
           _sort_by: 'created_at',
-          _sort_dir: 'desc',
+          _sort_dir: 'asc',
           _licensee_id: null,
           _sector_id: filters?.sectorId || null,
           _sla: 'pending',
@@ -242,12 +239,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const appsSlaDueSoon = Number((dueSoonRows as any[] | null)?.[0]?.total_count ?? 0);
 
       // Priority lists (small, ids only)
-      const [oldestPendingRes, expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
-        supabase.from('applications')
-          .select('id, application_number, created_at, status')
-          .in('status', [...APPLICATION_QUEUE_PENDING_STATUSES])
-          .order('created_at', { ascending: true })
-          .limit(5),
+      const [expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
         supabase.from('licenses')
           .select('id, license_number, valid_until')
           .eq('status', 'active')
@@ -288,7 +280,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         }
       }
 
-      const oldest = (oldestPendingRes.data || [])[0] as any;
+      const oldestPendingApplications = (pendingRows || []) as any[];
+      const oldest = oldestPendingApplications[0] as any;
       const oldestDays = oldest?.created_at
         ? Math.floor((Date.now() - new Date(oldest.created_at).getTime()) / (1000 * 60 * 60 * 24))
         : 0;
@@ -362,7 +355,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         licensees: { total: licenseesTotal, active: licenseesActive },
         workflow: { bottleneck_stage: null, bottleneck_avg_hours: 0 },
         priority_lists: {
-          oldest_pending_applications: (oldestPendingRes.data || []) as any,
+          oldest_pending_applications: oldestPendingApplications as any,
           upcoming_license_expiries: (expiringRes.data || []) as any,
           overdue_returns: (overdueReturnsRes.data || []) as any,
           high_risk_entities: (highRiskRes.data || []) as any,
