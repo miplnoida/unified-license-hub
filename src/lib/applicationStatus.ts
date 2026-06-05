@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { APPLICATION_QUEUE_PENDING_STATUSES } from '@/lib/applicationQueueFilters';
 
 export const APPLICATION_STATUS = {
   DRAFT: 'draft',
@@ -29,10 +30,7 @@ export const EDITABLE_APPLICATION_STATUSES = [
 ];
 
 export const SUBMITTED_APPLICATION_STATUSES = [
-  'submitted',
-  'under_review',
-  'review',
-  'pending_review',
+  ...APPLICATION_QUEUE_PENDING_STATUSES,
 ];
 
 export const FINAL_APPLICATION_STATUSES = [
