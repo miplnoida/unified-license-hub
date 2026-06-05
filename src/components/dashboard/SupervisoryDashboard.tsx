@@ -64,18 +64,18 @@ export function SupervisoryDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {can.applications && (
           <>
-            <MetricCard title="Pending Applications" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue" />
-            <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue" />
+            <MetricCard title="Pending Applications" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue?sla=pending" />
+            <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue?sla=breached" />
           </>
         )}
         {can.returns && (
-          <MetricCard title="Overdue Returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to="/admin/returns" />
+          <MetricCard title="Overdue Returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to="/returns-management?status=overdue" />
         )}
         {can.risk && (
           <MetricCard title="High-Risk Entities" value={data?.risk.high ?? 0} icon={ShieldAlert} tone="destructive" loading={isLoading} />
         )}
         {can.fees && (
-          <MetricCard title="Outstanding Fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/admin/fees" />
+          <MetricCard title="Outstanding Fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to="/payments?status=pending" />
         )}
         {can.enforcement && (
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
