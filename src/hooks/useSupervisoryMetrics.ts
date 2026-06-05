@@ -2,6 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { APPLICATION_DRILLDOWNS, type ApplicationDrilldownKey } from '@/lib/dashboardDrilldowns';
+import {
+  ADMIN_RETURN_VISIBLE_STORED_STATUSES,
+  applyAdminReturnServerFilter,
+  isAdminReturnOverdue,
+  type AdminReturnLike,
+} from '@/lib/adminReturnFilters';
 
 /**
  * Aggregate supervisory metrics across all modules.
@@ -33,6 +39,32 @@ const daysAgo = (n: number) => {
 };
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const countAdminReturns = async (filter: 'all' | 'submitted' | 'accepted' | 'rejected' | 'resubmission_requested' | 'overdue') => {
+  const today = todayIso();
+  const { count, error } = await applyAdminReturnServerFilter(
+    supabase.from('compliance_returns').select('*', { count: 'exact', head: true }),
+    filter,
+    today,
+  );
+  if (error) return 0;
+  return count ?? 0;
+};
+
+const listAdminOverdueReturns = async () => {
+  const today = todayIso();
+  const { data, error } = await applyAdminReturnServerFilter(
+    supabase.from('compliance_returns').select('id, due_date, status, reviewed_at').order('due_date', { ascending: true }).limit(5),
+    'overdue',
+    today,
+  );
+  if (error) return [] as Array<{ id: string; due_date?: string | null; status: string }>;
+  return ((data || []) as AdminReturnLike[]).map((row: any) => ({
+    id: row.id,
+    due_date: row.due_date ?? null,
+    status: isAdminReturnOverdue(row, today) ? 'overdue' : row.status,
+  }));
+};
 
 export interface SupervisoryFilters {
   sectorId?: string | null;
@@ -166,7 +198,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const [
         appsTotal,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
-        retDueSoon, retOverdue, retPendingReview, retSubmitted,
+        retOverdue, retPendingReview, retSubmitted,
         payPending, payPaid, payFailed,
         inspScheduled, inspCompleted, inspOverdue,
         enfOpen, enfNew, enfPending, enfClosed,
@@ -184,10 +216,9 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', daysFromNow(30)).gte('valid_until', new Date().toISOString())))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', daysFromNow(90)).gte('valid_until', new Date().toISOString())))),
 
-        head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).in('status', ['pending', 'draft', 'not_submitted']).lte('due_date', todayIso())),
-        head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).in('status', ['pending', 'draft', 'overdue', 'not_submitted']).lt('due_date', todayIso())),
-        head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('status', 'submitted')),
-        head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).in('status', ['submitted', 'reviewed', 'approved'])),
+        countAdminReturns('overdue'),
+        countAdminReturns('submitted'),
+        countAdminReturns('all'),
 
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['pending', 'awaiting_verification'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).in('status', ['paid', 'completed', 'verified'])),
@@ -246,7 +277,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const appsReturned = returnedRes.count;
 
       // Priority lists (small, ids only)
-      const [expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
+      const [expiringRes, overdueReturnsRows, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
         supabase.from('licenses')
           .select('id, license_number, valid_until')
           .eq('status', 'active')
@@ -254,12 +285,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
           .lte('valid_until', daysFromNow(30))
           .order('valid_until', { ascending: true })
           .limit(5),
-        supabase.from('compliance_returns')
-          .select('id, due_date, status')
-          .in('status', ['pending', 'draft', 'overdue', 'not_submitted'])
-          .lt('due_date', todayIso())
-          .order('due_date', { ascending: true })
-          .limit(5),
+        listAdminOverdueReturns(),
         supabase.from('risk_ratings')
           .select('id, entity_id, overall_rating')
           .ilike('overall_rating', 'high%')
@@ -317,7 +343,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
           expiring_90d: licExp90,
         },
         returns: {
-          due_soon: retDueSoon,
+          due_soon: 0,
           overdue: retOverdue,
           pending_review: retPendingReview,
           submitted: retSubmitted,
@@ -364,7 +390,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         priority_lists: {
           oldest_pending_applications: oldestPendingApplications as any,
           upcoming_license_expiries: (expiringRes.data || []) as any,
-          overdue_returns: (overdueReturnsRes.data || []) as any,
+          overdue_returns: overdueReturnsRows as any,
           high_risk_entities: (highRiskRes.data || []) as any,
           open_enforcement_cases: (openEnfRes.data || []) as any,
         },
