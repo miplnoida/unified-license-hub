@@ -131,7 +131,7 @@ export const APPLICATION_DRILLDOWNS = {
     query: {},
     rpcParams: {},
   },
-} as const satisfies Record<string, DashboardDrilldown>;
+} as const satisfies Record<string, DashboardDrilldown & { rpcParams: DashboardRpcParams }>;
 
 export type ApplicationDrilldownKey = keyof typeof APPLICATION_DRILLDOWNS;
 
