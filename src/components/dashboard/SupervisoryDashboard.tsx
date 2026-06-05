@@ -6,6 +6,7 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
+import { APPLICATION_DRILLDOWNS, drilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
   Building2, ShieldAlert, Gauge, MessagesSquare,
