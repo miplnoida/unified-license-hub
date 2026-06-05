@@ -264,6 +264,18 @@ export default function ApplicationsList() {
     return () => clearTimeout(t);
   }, [search]);
 
+  useEffect(() => {
+    setStatusFilter(statusParam);
+  }, [statusParam]);
+
+  useEffect(() => {
+    setVersionFilter(versionParam);
+  }, [versionParam]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [statusParam, slaFilter, debouncedSearch, searchMode, versionParam, typeFilter, validActiveSectorId]);
+
   // Page of applications — fully server-driven via the get_application_list_page RPC.
   // The RPC handles: visibility (applicant vs internal), draft hiding for internal,
   // status filter (incl. resubmission_requested → query_raised), version filter,
