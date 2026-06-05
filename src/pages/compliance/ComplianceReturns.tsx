@@ -222,6 +222,101 @@ export default function ComplianceReturns() {
     return true;
   });
 
+  const renderReturnsTable = (rows: ComplianceReturn[]) => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Return Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Year</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Submitted</TableHead>
+            <TableHead>Due Date</TableHead>
+            <TableHead>Submit Date</TableHead>
+            <TableHead className="text-right">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                {dashboardFilterChip ? `No returns matching “${dashboardFilterChip}”.` : 'No returns found'}
+              </TableCell>
+            </TableRow>
+          ) : rows.map(ret => {
+            const configName = getConfigName(ret.return_config_id);
+            const freq = getConfigFrequency(ret.return_config_id);
+            const year = new Date(ret.period_end).getFullYear();
+            const returnDisplayName = configName !== '—'
+              ? `${configName}_${new Date(ret.period_end).toISOString().split('T')[0].replace(/-/g, '')}`
+              : '—';
+
+            return (
+              <TableRow key={ret.id}>
+                <TableCell>
+                  <button
+                    className="font-medium text-primary hover:underline text-left"
+                    onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}
+                  >
+                    {returnDisplayName}
+                  </button>
+                </TableCell>
+                <TableCell className="text-sm uppercase">{freq ? `${freq.toUpperCase()} ${configName}` : '—'}</TableCell>
+                <TableCell className="text-sm">{year}</TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
+                    {RETURN_STATUS_LABELS[ret.status] || ret.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? 'Yes' : '—'}</TableCell>
+                <TableCell className="text-sm">{new Date(ret.due_date).toLocaleDateString()}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}
+                </TableCell>
+                <TableCell className="text-right space-x-1">
+                  {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'overdue' || ret.status === 'resubmission_requested') && (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
+                        <FileText className="h-3 w-3 mr-1" />
+                        {ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : ret.status === 'overdue' ? 'Fill Now' : 'Fill Form'}
+                      </Button>
+                      {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
+                        <Button size="sm" onClick={() => handleSubmit(ret.id)}>
+                          <Send className="h-3 w-3 mr-1" />Submit
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {isInternal && ret.status === 'submitted' && (
+                    <div className="flex gap-1 justify-end">
+                      <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
+                      <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
+                    </div>
+                  )}
+                  {(ret.status === 'accepted' || ret.status === 'submitted') && (
+                    <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    );
+  };
+
   const isLate = (ret: ComplianceReturn) => {
     if (!ret.submitted_at || !ret.due_date) return false;
     return new Date(ret.submitted_at) > new Date(ret.due_date);
@@ -428,80 +523,7 @@ export default function ComplianceReturns() {
 
             <Card>
               <CardContent className="p-0">
-                {loading ? (
-                  <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Return Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Year</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Submitted</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Submit Date</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{dashboardFilterChip ? `No returns matching “${dashboardFilterChip}”.` : 'No returns found'}</TableCell></TableRow>
-                      ) : filtered.map(ret => {
-                        const configName = getConfigName(ret.return_config_id);
-                        const freq = getConfigFrequency(ret.return_config_id);
-                        const year = new Date(ret.period_end).getFullYear();
-                        const typeName = freq ? `${freq.charAt(0).toUpperCase() + freq.slice(1).toUpperCase()} ${configName}` : configName;
-                        // Build return name like reference: CONFIG_LICENSE_DATE_SEQ
-                        const returnDisplayName = configName !== '—' ? `${configName}_${new Date(ret.period_end).toISOString().split('T')[0].replace(/-/g, '')}` : '—';
-                        return (
-                          <TableRow key={ret.id}>
-                            <TableCell>
-                              <button
-                                className="font-medium text-primary hover:underline text-left"
-                                onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}
-                              >
-                                {returnDisplayName}
-                              </button>
-                            </TableCell>
-                            <TableCell className="text-sm uppercase">{freq ? `${freq.toUpperCase()} ${configName}` : '—'}</TableCell>
-                            <TableCell className="text-sm">{year}</TableCell>
-                            <TableCell>
-                              <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">{RETURN_STATUS_LABELS[ret.status] || ret.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? 'Yes' : '—'}</TableCell>
-                            <TableCell className="text-sm">{new Date(ret.due_date).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}</TableCell>
-                            <TableCell className="text-right space-x-1">
-                              {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'overdue' || ret.status === 'resubmission_requested') && (
-                                <>
-                                  <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                    <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : ret.status === 'overdue' ? 'Fill Now' : 'Fill Form'}
-                                  </Button>
-                                  {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
-                                    <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
-                                  )}
-                                </>
-                              )}
-                              {isInternal && ret.status === 'submitted' && (
-                                <div className="flex gap-1 justify-end">
-                                  <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
-                                  <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
-                                </div>
-                              )}
-                              {(ret.status === 'accepted' || ret.status === 'submitted') && (
-                                <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
+                {renderReturnsTable(filtered)}
               </CardContent>
             </Card>
           </TabsContent>
