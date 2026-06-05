@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { APPLICATION_DRILLDOWNS, type ApplicationDrilldownKey } from '@/lib/dashboardDrilldowns';
 
 /**
  * Aggregate supervisory metrics across all modules.
@@ -134,9 +135,36 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const sectorEq = (q: any) => filters?.sectorId ? q.eq('sector_id', filters.sectorId) : q;
       const regulatorEq = (q: any) => filters?.regulatorId ? q.eq('regulator_id', filters.regulatorId) : q;
 
+      /**
+       * Count helper — runs get_application_list_page with the canonical
+       * rpcParams declared in APPLICATION_DRILLDOWNS for `key` and returns
+       * the RPC's total_count. This is the SAME RPC + params the
+       * /applications/queue page invokes when the user clicks the link,
+       * so dashboard count and list count are guaranteed identical.
+       */
+      const countDrilldown = async (key: ApplicationDrilldownKey, pageSize = 1, sortDir: 'asc' | 'desc' = 'desc') => {
+        const def = APPLICATION_DRILLDOWNS[key];
+        const rpcParams = def.rpcParams as { _status?: string | null; _status_group?: string | null; _sla?: string | null };
+        const { data } = await supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: pageSize,
+          _search: null,
+          _search_mode: 'contains',
+          _status: rpcParams._status ?? null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: sortDir,
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: rpcParams._sla ?? null,
+          _status_group: rpcParams._status_group ?? null,
+        });
+        const rows = (data as any[] | null) || [];
+        return { rows, count: Number(rows[0]?.total_count ?? 0) };
+      };
+
       const [
-        appsTotal, appsDraft, appsSubmittedDirect, appsUnderReview,
-        appsApproved, appsRejected, appsReturned,
+        appsTotal,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
         retDueSoon, retOverdue, retPendingReview, retSubmitted,
         payPending, payPaid, payFailed,
@@ -147,12 +175,6 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         licenseesTotal, licenseesActive,
       ] = await Promise.all([
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'draft'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['resubmission_requested', 'query_raised']))),
 
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true })))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active')))),
@@ -192,51 +214,36 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(sectorEq(supabase.from('licensees').select('*', { count: 'exact', head: true }).eq('status', 'active'))),
       ]);
 
-      const [{ data: pendingRows }, { data: breachedRows }, { data: dueSoonRows }] = await Promise.all([
-        supabase.rpc('get_application_list_page' as any, {
-          _page: 0,
-          _page_size: 5,
-          _search: null,
-          _search_mode: 'contains',
-          _status: null,
-          _version_id: null,
-          _sort_by: 'created_at',
-          _sort_dir: 'asc',
-          _licensee_id: null,
-          _sector_id: filters?.sectorId || null,
-          _sla: 'pending',
-        }),
-        supabase.rpc('get_application_list_page' as any, {
-          _page: 0,
-          _page_size: 1,
-          _search: null,
-          _search_mode: 'contains',
-          _status: null,
-          _version_id: null,
-          _sort_by: 'created_at',
-          _sort_dir: 'desc',
-          _licensee_id: null,
-          _sector_id: filters?.sectorId || null,
-          _sla: 'breached',
-        }),
-        supabase.rpc('get_application_list_page' as any, {
-          _page: 0,
-          _page_size: 1,
-          _search: null,
-          _search_mode: 'contains',
-          _status: null,
-          _version_id: null,
-          _sort_by: 'created_at',
-          _sort_dir: 'desc',
-          _licensee_id: null,
-          _sector_id: filters?.sectorId || null,
-          _sla: 'due_soon',
-        }),
+      // All per-status application metrics resolve via the SAME RPC the
+      // drill-down list uses, with rpcParams sourced from the central
+      // dashboard drill-down registry. This guarantees the dashboard
+      // count for each metric is identical to the count shown on
+      // /applications/queue when the user follows the link.
+      const [
+        pendingRes, slaBreachedRes, slaDueSoonRes,
+        draftRes, submittedRes, inProgressRes, approvedRes, rejectedRes, returnedRes,
+      ] = await Promise.all([
+        countDrilldown('pending', 5, 'asc'),
+        countDrilldown('slaBreached'),
+        countDrilldown('slaDueSoon'),
+        countDrilldown('draft'),
+        countDrilldown('submitted'),
+        countDrilldown('inProgress'),
+        countDrilldown('approved'),
+        countDrilldown('rejected'),
+        countDrilldown('returned'),
       ]);
 
-      const appsPending = Number((pendingRows as any[] | null)?.[0]?.total_count ?? 0);
-      const appsSlaBreached = Number((breachedRows as any[] | null)?.[0]?.total_count ?? 0);
-      const appsSlaDueSoon = Number((dueSoonRows as any[] | null)?.[0]?.total_count ?? 0);
+      const pendingRows = pendingRes.rows;
+      const appsPending = pendingRes.count;
+      const appsSlaBreached = slaBreachedRes.count;
+      const appsSlaDueSoon = slaDueSoonRes.count;
+      const appsDraft = draftRes.count;
+      const appsSubmittedDirect = submittedRes.count;
+      const appsUnderReview = inProgressRes.count;
+      const appsApproved = approvedRes.count;
+      const appsRejected = rejectedRes.count;
+      const appsReturned = returnedRes.count;
 
       // Priority lists (small, ids only)
       const [expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([

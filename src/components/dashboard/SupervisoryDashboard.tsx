@@ -6,6 +6,7 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
+import { APPLICATION_DRILLDOWNS, drilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
   Building2, ShieldAlert, Gauge, MessagesSquare,
@@ -64,8 +65,8 @@ export function SupervisoryDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {can.applications && (
           <>
-            <MetricCard title="Pending Applications" value={data?.applications.pending ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue?sla=pending" />
-            <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue?sla=breached" />
+            <MetricCard title={APPLICATION_DRILLDOWNS.pending.label} value={data?.applications.pending ?? 0} icon={FileText} tone="primary" loading={isLoading} to={drilldownTo('pending')} />
+            <MetricCard title={APPLICATION_DRILLDOWNS.slaBreached.label} value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to={drilldownTo('slaBreached')} />
           </>
         )}
         {can.returns && (
@@ -112,12 +113,12 @@ export function SupervisoryDashboard() {
             title="Applications by status"
             loading={isLoading}
             items={[
-              { label: 'Draft', value: data?.applications.draft ?? 0, tone: 'default' },
-              { label: 'Submitted', value: data?.applications.submitted ?? 0, tone: 'primary', to: '/applications/queue?status=submitted' },
-              { label: 'In progress', value: data?.applications.under_review ?? 0, tone: 'warning', to: '/applications/queue?status=in_progress' },
-              { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success', to: '/applications/queue?statusGroup=approved' },
-              { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive', to: '/applications/queue?statusGroup=rejected' },
-              { label: 'Returned', value: data?.applications.returned ?? 0, tone: 'warning', to: '/applications/queue?statusGroup=returned' },
+              { label: 'Draft', value: data?.applications.draft ?? 0, tone: 'default', to: drilldownTo('draft') },
+              { label: 'Submitted', value: data?.applications.submitted ?? 0, tone: 'primary', to: drilldownTo('submitted') },
+              { label: 'In progress', value: data?.applications.under_review ?? 0, tone: 'warning', to: drilldownTo('inProgress') },
+              { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success', to: drilldownTo('approved') },
+              { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive', to: drilldownTo('rejected') },
+              { label: 'Returned', value: data?.applications.returned ?? 0, tone: 'warning', to: drilldownTo('returned') },
             ]}
           />
         )}
@@ -223,7 +224,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Oldest pending applications"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/applications/queue?sla=pending' }}
+            viewAll={{ label: 'All', to: drilldownTo('pending') }}
             rows={(data?.priority_lists.oldest_pending_applications ?? []).map((a: any) => ({
               id: a.id,
               primary: a.application_number || a.id.slice(0, 8),
