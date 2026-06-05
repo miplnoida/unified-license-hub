@@ -64,7 +64,7 @@ export function SupervisoryDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {can.applications && (
           <>
-            <MetricCard title="Pending Applications" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue?sla=pending" />
+            <MetricCard title="Pending Applications" value={data?.applications.pending ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications/queue?sla=pending" />
             <MetricCard title="SLA Breaches" value={data?.applications.sla_breached ?? 0} icon={AlertOctagon} tone="destructive" loading={isLoading} to="/applications/queue?sla=breached" />
           </>
         )}

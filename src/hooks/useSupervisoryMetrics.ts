@@ -44,6 +44,7 @@ export interface SupervisoryMetrics {
   applications: {
     total: number;
     draft: number;
+    pending: number;
     submitted: number;
     under_review: number;
     approved: number;
@@ -133,11 +134,9 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const sectorEq = (q: any) => filters?.sectorId ? q.eq('sector_id', filters.sectorId) : q;
       const regulatorEq = (q: any) => filters?.regulatorId ? q.eq('regulator_id', filters.regulatorId) : q;
 
-      const submittedSet = ['submitted', 'under_review', 'pending', 'pending_review', 'in_review'];
-
       const [
-        appsTotal, appsDraft, appsSubmitted, appsUnderReview, appsApproved, appsRejected, appsReturned,
-        appsSlaBreached, appsSlaDueSoon,
+        appsTotal, appsDraft, appsSubmittedDirect, appsUnderReview,
+        appsApproved, appsRejected, appsReturned,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
         retDueSoon, retOverdue, retPendingReview, retSubmitted,
         payPending, payPaid, payFailed,
@@ -149,13 +148,11 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       ] = await Promise.all([
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'draft'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['under_review', 'in_review']))),
+        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted'))),
+        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['returned', 'returned_for_clarification', 'resubmission_required']))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet).lt('submitted_at', daysAgo(30)))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', submittedSet).lt('submitted_at', daysAgo(20)).gte('submitted_at', daysAgo(30)))),
 
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true })))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active')))),
@@ -195,13 +192,54 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(sectorEq(supabase.from('licensees').select('*', { count: 'exact', head: true }).eq('status', 'active'))),
       ]);
 
+      const [{ data: pendingRows }, { data: breachedRows }, { data: dueSoonRows }] = await Promise.all([
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 5,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'asc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'pending',
+        }),
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 1,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'breached',
+        }),
+        supabase.rpc('get_application_list_page' as any, {
+          _page: 0,
+          _page_size: 1,
+          _search: null,
+          _search_mode: 'contains',
+          _status: null,
+          _version_id: null,
+          _sort_by: 'created_at',
+          _sort_dir: 'desc',
+          _licensee_id: null,
+          _sector_id: filters?.sectorId || null,
+          _sla: 'due_soon',
+        }),
+      ]);
+
+      const appsPending = Number((pendingRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsSlaBreached = Number((breachedRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsSlaDueSoon = Number((dueSoonRows as any[] | null)?.[0]?.total_count ?? 0);
+
       // Priority lists (small, ids only)
-      const [oldestPendingRes, expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
-        supabase.from('applications')
-          .select('id, application_number, created_at, status')
-          .in('status', submittedSet)
-          .order('created_at', { ascending: true })
-          .limit(5),
+      const [expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
         supabase.from('licenses')
           .select('id, license_number, valid_until')
           .eq('status', 'active')
@@ -242,7 +280,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         }
       }
 
-      const oldest = (oldestPendingRes.data || [])[0] as any;
+      const oldestPendingApplications = (pendingRows || []) as any[];
+      const oldest = oldestPendingApplications[0] as any;
       const oldestDays = oldest?.created_at
         ? Math.floor((Date.now() - new Date(oldest.created_at).getTime()) / (1000 * 60 * 60 * 24))
         : 0;
@@ -251,7 +290,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         applications: {
           total: appsTotal,
           draft: appsDraft,
-          submitted: appsSubmitted,
+          pending: appsPending,
+          submitted: appsSubmittedDirect,
           under_review: appsUnderReview,
           approved: appsApproved,
           rejected: appsRejected,
@@ -315,7 +355,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         licensees: { total: licenseesTotal, active: licenseesActive },
         workflow: { bottleneck_stage: null, bottleneck_avg_hours: 0 },
         priority_lists: {
-          oldest_pending_applications: (oldestPendingRes.data || []) as any,
+          oldest_pending_applications: oldestPendingApplications as any,
           upcoming_license_expiries: (expiringRes.data || []) as any,
           overdue_returns: (overdueReturnsRes.data || []) as any,
           high_risk_entities: (highRiskRes.data || []) as any,
