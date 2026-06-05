@@ -207,7 +207,7 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Payments',
       title: `${m.payments!.overdue} overdue payment${m.payments!.overdue === 1 ? '' : 's'}`,
       explanation: 'Collections action recommended.',
-      action: { label: 'View payments', to: '/admin/fees' },
+      action: { label: 'View payments', to: paymentsOverdueTo },
     });
   }
 
