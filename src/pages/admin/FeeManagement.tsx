@@ -584,41 +584,49 @@ export default function FeeManagement() {
                 {loading ? (
                   <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Calculation</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Sector</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {fees.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
-                      ) : fees.map(fee => (
-                        <TableRow key={fee.id}>
-                          <TableCell className="font-medium">{fee.name}</TableCell>
-                          <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
-                          <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
-                          <TableCell className="font-mono">
-                            {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{getSectorName(fee.sector_id)}</TableCell>
-                          <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                          <TableCell className="text-right">
-                            <RowActionsMenu actions={[
-                              { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },
-                              { label: 'Delete', icon: Trash2, onClick: () => handleDelete(fee.id), destructive: true, separator: true },
-                            ]} />
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Calculation</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Sector</TableHead>
+                          <TableHead>Sub-Sector</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Service</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {fees.length === 0 ? (
+                          <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
+                        ) : fees.map(fee => (
+                          <TableRow key={fee.id}>
+                            <TableCell className="font-medium">{fee.name}</TableCell>
+                            <TableCell><Badge variant="outline">{fee.fee_type}</Badge></TableCell>
+                            <TableCell><Badge variant="secondary" className="text-xs">{CALCULATION_TYPE_LABELS[fee.calculation_type] || 'Fixed'}</Badge></TableCell>
+                            <TableCell className="font-mono">
+                              {fee.calculation_type === 'percentage' ? `${fee.amount}%` : `${fee.currency} ${Number(fee.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getSectorName(fee.sector_id)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getSubSectorName(fee.sub_sector_id)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getCategoryName(fee.category_id)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getServiceName(fee.service_id)}</TableCell>
+                            <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <RowActionsMenu actions={[
+                                { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },
+                                { label: 'Delete', icon: Trash2, onClick: () => handleDelete(fee.id), destructive: true, separator: true },
+                              ]} />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
