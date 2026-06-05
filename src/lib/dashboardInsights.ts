@@ -164,7 +164,7 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Returns',
       title: `${m.returns!.overdue} return${m.returns!.overdue === 1 ? '' : 's'} overdue`,
       explanation: 'Filing compliance is at risk. Trigger reminders or penalties.',
-      action: { label: 'Open returns', to: returnDrilldownTo('overdue') },
+      action: { label: 'Open returns', to: returnsOverdueTo },
     });
   }
   if ((m.returns?.pending_review ?? 0) > 0) {
@@ -174,7 +174,7 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Returns',
       title: `${m.returns!.pending_review} submitted returns awaiting review`,
       explanation: 'Reviewer queue is building up.',
-      action: { label: 'Review returns', to: returnDrilldownTo('pendingReview') },
+      action: { label: 'Review returns', to: returnsPendingReviewTo },
     });
   }
   if ((m.returns?.repeat_late_filers ?? 0) > 0) {
@@ -184,9 +184,10 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Returns',
       title: `${m.returns!.repeat_late_filers} repeat late filers detected`,
       explanation: 'Consider compliance follow-up or escalation.',
-      action: { label: 'View filers', to: returnDrilldownTo('submitted') },
+      action: { label: 'View filers', to: returnsSubmittedTo },
     });
   }
+
 
   // Payments
   if ((m.payments?.blocked_applications ?? 0) > 0) {
