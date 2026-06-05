@@ -4,6 +4,8 @@ export const APPLICATION_QUEUE_SLA_BREACH_DAYS = 30;
 
 export const APPLICATION_QUEUE_SLA_DUE_SOON_DAYS = 20;
 
+export type ApplicationQueueSlaBucket = 'pending' | 'breached' | 'due_soon';
+
 export function getApplicationQueueSlaCutoffIso(now: Date, days: number) {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - days);
@@ -13,7 +15,7 @@ export function getApplicationQueueSlaCutoffIso(now: Date, days: number) {
 export function matchesApplicationQueueSla(
   status: string | null | undefined,
   submittedAt: string | null | undefined,
-  sla: 'pending' | 'breached' | 'due_soon' | null | undefined,
+  sla: ApplicationQueueSlaBucket | null | undefined,
   now: Date = new Date(),
 ) {
   if (!sla) return true;
