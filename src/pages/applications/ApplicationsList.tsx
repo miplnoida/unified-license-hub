@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
-import type { ApplicationQueueSlaBucket } from '@/lib/applicationQueueFilters';
+import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -202,6 +202,11 @@ export default function ApplicationsList() {
   const slaFilter: ApplicationQueueSlaBucket | null = rawSlaFilter === 'pending' || rawSlaFilter === 'breached' || rawSlaFilter === 'due_soon'
     ? rawSlaFilter
     : null;
+  const rawStatusGroup = searchParamsRaw.get('statusGroup');
+  const statusGroupFilter: ApplicationQueueStatusGroup | null =
+    rawStatusGroup === 'pending' || rawStatusGroup === 'returned' || rawStatusGroup === 'approved' || rawStatusGroup === 'rejected'
+      ? rawStatusGroup
+      : null;
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -274,7 +279,7 @@ export default function ApplicationsList() {
 
   useEffect(() => {
     setPage(0);
-  }, [statusParam, slaFilter, debouncedSearch, searchMode, versionParam, typeFilter, validActiveSectorId]);
+  }, [statusParam, slaFilter, statusGroupFilter, debouncedSearch, searchMode, versionParam, typeFilter, validActiveSectorId]);
 
   // Page of applications — fully server-driven via the get_application_list_page RPC.
   // The RPC handles: visibility (applicant vs internal), draft hiding for internal,
@@ -303,6 +308,7 @@ export default function ApplicationsList() {
         _licensee_id: resolvedLicenseeId,
         _sector_id: validActiveSectorId,
         _sla: slaFilter || null,
+        _status_group: statusGroupFilter || null,
       };
       const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
 
@@ -381,7 +387,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, slaFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+  }, [refreshKey, page, statusFilter, slaFilter, statusGroupFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Fetch license number + status for approved applications so we can render
   // them in the Status column (licensee view especially needs this).
@@ -472,6 +478,7 @@ export default function ApplicationsList() {
           _licensee_id: resolvedLicenseeId,
           _sector_id: validActiveSectorId,
           _sla: slaFilter || null,
+          _status_group: statusGroupFilter || null,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];
