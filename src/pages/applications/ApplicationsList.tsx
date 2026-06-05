@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
-import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES } from '@/types/platform';
+import { APPLICATION_STATUS_LABELS, ApplicationStatus, INTERNAL_ROLES, LICENSEE_ROLES } from '@/types/platform';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { PlusCircle, Search, Eye, Loader2, FileText, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, ChevronDown, ChevronUp, MessageSquare, Pencil, Ban, Layers, GitBranch, GitCompareArrows, X, Shield } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
@@ -1120,7 +1120,7 @@ export default function ApplicationsList() {
           description={isInternal ? 'All pre-license and post-license requests' : 'View and manage your license applications'}
           actions={
             !isInternal && (
-              <Button onClick={() => navigate('/applications/new')}>
+              <Button onClick={() => navigate(user && LICENSEE_ROLES.includes(user.role) ? '/post-license/new' : '/applications/new')}>
                 <PlusCircle className="h-4 w-4 mr-2" />New Application
               </Button>
             )
