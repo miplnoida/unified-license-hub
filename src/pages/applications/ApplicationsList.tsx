@@ -308,6 +308,7 @@ export default function ApplicationsList() {
         _licensee_id: resolvedLicenseeId,
         _sector_id: validActiveSectorId,
         _sla: slaFilter || null,
+        _status_group: statusGroupFilter || null,
       };
       const { data, error } = await supabase.rpc('get_application_list_page' as any, rpcParams);
 
