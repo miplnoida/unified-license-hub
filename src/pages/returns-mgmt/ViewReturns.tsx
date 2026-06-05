@@ -12,6 +12,17 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { RETURN_STATUS_LABELS, ReturnStatus } from '@/types/platform';
 import { Search, Loader2, ClipboardList, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import {
+  ADMIN_RETURN_DRILLDOWNS,
+  ADMIN_RETURN_STATUS_FILTERS,
+  applyAdminReturnServerFilter,
+  getAdminReturnDisplayStatus,
+  matchesAdminReturnFilter,
+  normalizeAdminReturnStatusFilter,
+  todayDateIso,
+  type AdminReturnDisplayStatus,
+  type AdminReturnStatusFilter,
+} from '@/lib/adminReturnFilters';
 
 interface ComplianceReturn {
   id: string;
@@ -43,6 +54,14 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 const PAGE_SIZE = 10;
 
+const statusFilterMeta: Record<AdminReturnDisplayStatus, { label: string; chip: string }> = {
+  submitted: { label: 'Submitted', chip: 'Pending Review' },
+  accepted: { label: 'Accepted', chip: 'Accepted Returns' },
+  rejected: { label: 'Rejected', chip: 'Rejected Returns' },
+  resubmission_requested: { label: 'To Be Resubmitted', chip: 'Returns To Be Resubmitted' },
+  overdue: { label: 'Overdue', chip: 'Overdue Returns' },
+};
+
 export default function ViewReturns() {
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
@@ -50,12 +69,11 @@ export default function ViewReturns() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchParams] = useSearchParams();
-  // Read status from URL on first load and whenever it changes (dashboard drill-down).
-  const urlStatus = searchParams.get('status');
-  const [statusFilter, setStatusFilter] = useState(urlStatus || 'all');
+  const urlStatus = normalizeAdminReturnStatusFilter(searchParams.get('status'));
+  const [statusFilter, setStatusFilter] = useState<AdminReturnStatusFilter>(urlStatus);
   const [page, setPage] = useState(0);
   useEffect(() => {
-    if (urlStatus && urlStatus !== statusFilter) {
+    if (urlStatus !== statusFilter) {
       setStatusFilter(urlStatus);
       setPage(0);
     }
@@ -65,10 +83,13 @@ export default function ViewReturns() {
   useEffect(() => {
     async function load() {
       setLoading(true);
+      const serverToday = todayDateIso();
       const [retRes, confRes, profRes] = await Promise.all([
-        supabase.from('compliance_returns' as any).select('*')
-          .not('status', 'in', '("pending","draft")')
-          .order('submitted_at', { ascending: false }),
+        applyAdminReturnServerFilter(
+          supabase.from('compliance_returns' as any).select('*').order('submitted_at', { ascending: false }),
+          statusFilter,
+          serverToday,
+        ),
         supabase.from('return_configurations' as any).select('*'),
         supabase.from('profiles').select('id, full_name'),
       ]);
@@ -93,18 +114,20 @@ export default function ViewReturns() {
     });
   }, [returns]);
 
-  // Allowed statuses for filter (no draft/pending)
-  const submittedStatuses: [string, string][] = [
-    ['submitted', 'Submitted'],
-    ['accepted', 'Accepted'],
-    ['rejected', 'Rejected'],
-    ['overdue', 'Overdue'],
-    ['resubmission_requested', 'To Be Resubmitted'],
+  const submittedStatuses: [AdminReturnStatusFilter, string][] = [
+    ['submitted', statusFilterMeta.submitted.label],
+    ['accepted', statusFilterMeta.accepted.label],
+    ['rejected', statusFilterMeta.rejected.label],
+    ['overdue', statusFilterMeta.overdue.label],
+    ['resubmission_requested', statusFilterMeta.resubmission_requested.label],
   ];
 
+  const activeFilterMeta = statusFilter !== 'all' ? statusFilterMeta[statusFilter as AdminReturnDisplayStatus] : null;
+
   const filtered = useMemo(() => {
+    const today = todayDateIso();
     return processedReturns.filter(r => {
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+      if (!matchesAdminReturnFilter(r, statusFilter, today)) return false;
       if (search) {
         const q = search.toLowerCase();
         const name = getConfigName(r.return_config_id).toLowerCase();
@@ -118,14 +141,18 @@ export default function ViewReturns() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const accepted = processedReturns.filter(r => r.status === 'accepted').length;
-  const submitted = processedReturns.filter(r => r.status === 'submitted').length;
-  const overdue = processedReturns.filter(r => r.status === 'overdue').length;
+  const today = todayDateIso();
+  const accepted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'accepted').length;
+  const submitted = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'submitted').length;
+  const overdue = processedReturns.filter(r => getAdminReturnDisplayStatus(r, today) === 'overdue').length;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <PageHeader title="Returns Management" description="View submitted compliance returns. Drafts and pending returns are excluded." />
+        <PageHeader
+          title={activeFilterMeta?.chip || ADMIN_RETURN_DRILLDOWNS.all.label}
+          description="View admin-visible submitted and finalized compliance returns. Draft, in-progress, and not-submitted returns are excluded."
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard title="Total Submitted" value={processedReturns.length} icon={<ClipboardList className="h-6 w-6" />} />
@@ -133,6 +160,12 @@ export default function ViewReturns() {
           <StatCard title="Awaiting Review" value={submitted} icon={<Clock className="h-6 w-6" />} variant="warning" />
           <StatCard title="Overdue" value={overdue} icon={<AlertTriangle className="h-6 w-6" />} variant="danger" />
         </div>
+
+        {activeFilterMeta && (
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{activeFilterMeta.chip}</Badge>
+          </div>
+        )}
 
         {/* Filters */}
         <Card>
@@ -147,7 +180,7 @@ export default function ViewReturns() {
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(0); }}>
+              <Select value={statusFilter} onValueChange={v => { if ((ADMIN_RETURN_STATUS_FILTERS as readonly string[]).includes(v)) { setStatusFilter(v as AdminReturnStatusFilter); setPage(0); } }}>
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
