@@ -340,6 +340,9 @@ export default function FeeManagement() {
   };
 
   const getSectorName = (id: string | null) => sectors.find(s => s.id === id)?.name || '—';
+  const getSubSectorName = (id: string | null) => subSectors.find(s => s.id === id)?.name || '—';
+  const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
+  const getServiceName = (id: string | null) => services.find(s => s.id === id)?.name || '—';
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
