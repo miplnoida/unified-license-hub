@@ -478,6 +478,7 @@ export default function ApplicationsList() {
           _licensee_id: resolvedLicenseeId,
           _sector_id: validActiveSectorId,
           _sla: slaFilter || null,
+          _status_group: statusGroupFilter || null,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];
