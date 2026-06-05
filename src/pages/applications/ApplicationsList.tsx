@@ -454,6 +454,7 @@ export default function ApplicationsList() {
           _sort_dir: 'desc',
           _licensee_id: resolvedLicenseeId,
           _sector_id: validActiveSectorId,
+          _sla: slaFilter || null,
         });
         if (error) throw error;
         let rows = (data as any[]) || [];
