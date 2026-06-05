@@ -473,10 +473,10 @@ export default function ComplianceReturns() {
                             <TableCell className="text-sm">{new Date(ret.due_date).toLocaleDateString()}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}</TableCell>
                             <TableCell className="text-right space-x-1">
-                              {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'resubmission_requested') && (
+                              {!isInternal && (ret.status === 'pending' || ret.status === 'draft' || ret.status === 'overdue' || ret.status === 'resubmission_requested') && (
                                 <>
                                   <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
-                                    <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : 'Fill Form'}
+                                    <FileText className="h-3 w-3 mr-1" />{ret.status === 'resubmission_requested' ? 'Edit & Resubmit' : ret.status === 'overdue' ? 'Fill Now' : 'Fill Form'}
                                   </Button>
                                   {ret.status !== 'resubmission_requested' && ret.form_data && Object.keys(ret.form_data).length > 0 && (
                                     <Button size="sm" onClick={() => handleSubmit(ret.id)}><Send className="h-3 w-3 mr-1" />Submit</Button>
