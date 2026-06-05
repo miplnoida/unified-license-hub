@@ -61,16 +61,34 @@ export default function ComplianceReturns() {
   const { isPpoc, activeLicensee, activeLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Dashboard drill-down params:
+  //   ?filter=due_soon|overdue|pending_review|upcoming
+  //   ?status=<ReturnStatus>            (exact-match)
+  const urlFilter = searchParams.get('filter');
+  const urlStatus = searchParams.get('status');
+  const dashboardFilterChip = describeReturnsFilter(searchParams);
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [licenseLicenseeMap, setLicenseLicenseeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : 'all');
   const [frequencyFilter, setFrequencyFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(urlFilter || urlStatus ? 'returns' : 'dashboard');
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+
+  // Keep tab/status in sync when the URL changes (e.g. user navigates from dashboard while page is mounted)
+  useEffect(() => {
+    if (urlStatus && urlStatus !== 'all') setStatusFilter(urlStatus);
+    if (urlFilter || urlStatus) setActiveTab('returns');
+  }, [urlFilter, urlStatus]);
+
+  const clearDashboardFilter = () => {
+    setSearchParams({});
+    setStatusFilter('all');
+  };
 
   useEffect(() => {
     loadAll();
