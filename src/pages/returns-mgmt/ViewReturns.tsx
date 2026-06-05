@@ -49,8 +49,18 @@ export default function ViewReturns() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchParams] = useSearchParams();
+  // Read status from URL on first load and whenever it changes (dashboard drill-down).
+  const urlStatus = searchParams.get('status');
+  const [statusFilter, setStatusFilter] = useState(urlStatus || 'all');
   const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (urlStatus && urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+      setPage(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlStatus]);
 
   useEffect(() => {
     async function load() {
