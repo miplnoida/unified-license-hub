@@ -152,7 +152,7 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'))),
-        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['returned', 'returned_for_clarification', 'resubmission_required']))),
+        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['resubmission_requested', 'query_raised']))),
 
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true })))),
         head(sectorEq(regulatorEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active')))),
