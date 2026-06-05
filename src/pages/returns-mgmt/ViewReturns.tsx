@@ -178,7 +178,10 @@ export default function ViewReturns() {
 
         {activeFilterMeta && (
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{activeFilterMeta.chip}</Badge>
+            <Badge variant="secondary">Filter: {activeFilterMeta.chip}</Badge>
+            <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setPage(0); }}>
+              Clear filter
+            </Button>
           </div>
         )}
 
@@ -204,7 +207,32 @@ export default function ViewReturns() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                disabled={loading || filtered.length === 0}
+                onClick={() => {
+                  const headers = ['Licensee Name', 'Return Type', 'Period Start', 'Period End', 'Submission Date', 'Status'];
+                  const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+                  const rows = filtered.map(r => [
+                    getSubmitterName(r.submitter_id),
+                    getConfigName(r.return_config_id),
+                    new Date(r.period_start).toLocaleDateString(),
+                    new Date(r.period_end).toLocaleDateString(),
+                    r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '',
+                    RETURN_STATUS_LABELS[r.status] || r.status,
+                  ].map(escape).join(','));
+                  const csv = [headers.map(escape).join(','), ...rows].join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `returns-${statusFilter}-${todayDateIso()}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
