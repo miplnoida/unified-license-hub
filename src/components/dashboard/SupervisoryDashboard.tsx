@@ -250,7 +250,7 @@ export function SupervisoryDashboard() {
           <PriorityListCard
             title="Overdue returns"
             loading={isLoading}
-            viewAll={{ label: 'All', to: '/admin/returns' }}
+            viewAll={{ label: 'All', to: '/returns-management?status=overdue' }}
             rows={(data?.priority_lists.overdue_returns ?? []).map((r: any) => ({
               id: r.id,
               primary: r.id.slice(0, 8),
