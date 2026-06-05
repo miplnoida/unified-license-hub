@@ -113,12 +113,12 @@ export function SupervisoryDashboard() {
             title="Applications by status"
             loading={isLoading}
             items={[
-              { label: 'Draft', value: data?.applications.draft ?? 0, tone: 'default' },
-              { label: 'Submitted', value: data?.applications.submitted ?? 0, tone: 'primary', to: '/applications/queue?status=submitted' },
-              { label: 'In progress', value: data?.applications.under_review ?? 0, tone: 'warning', to: '/applications/queue?status=in_progress' },
-              { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success', to: '/applications/queue?statusGroup=approved' },
-              { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive', to: '/applications/queue?statusGroup=rejected' },
-              { label: 'Returned', value: data?.applications.returned ?? 0, tone: 'warning', to: '/applications/queue?statusGroup=returned' },
+              { label: 'Draft', value: data?.applications.draft ?? 0, tone: 'default', to: drilldownTo('draft') },
+              { label: 'Submitted', value: data?.applications.submitted ?? 0, tone: 'primary', to: drilldownTo('submitted') },
+              { label: 'In progress', value: data?.applications.under_review ?? 0, tone: 'warning', to: drilldownTo('inProgress') },
+              { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success', to: drilldownTo('approved') },
+              { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive', to: drilldownTo('rejected') },
+              { label: 'Returned', value: data?.applications.returned ?? 0, tone: 'warning', to: drilldownTo('returned') },
             ]}
           />
         )}
