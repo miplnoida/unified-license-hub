@@ -3,8 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   APPLICATION_QUEUE_PENDING_STATUSES,
-  APPLICATION_QUEUE_SLA_BREACH_DAYS,
-  APPLICATION_QUEUE_SLA_DUE_SOON_DAYS,
 } from '@/lib/applicationQueueFilters';
 
 /**
@@ -49,6 +47,7 @@ export interface SupervisoryMetrics {
   applications: {
     total: number;
     draft: number;
+    pending: number;
     submitted: number;
     under_review: number;
     approved: number;
@@ -139,7 +138,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       const regulatorEq = (q: any) => filters?.regulatorId ? q.eq('regulator_id', filters.regulatorId) : q;
 
       const [
-        appsTotal, appsDraft, appsApproved, appsRejected, appsReturned,
+        appsTotal, appsDraft, appsSubmittedDirect, appsUnderReview,
+        appsApproved, appsRejected, appsReturned,
         licTotal, licActive, licExpired, licSuspended, licRevoked, licExp30, licExp90,
         retDueSoon, retOverdue, retPendingReview, retSubmitted,
         payPending, payPaid, payFailed,
@@ -151,6 +151,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
       ] = await Promise.all([
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'draft'))),
+        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'submitted'))),
+        head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'))),
         head(regulatorEq(supabase.from('applications').select('*', { count: 'exact', head: true }).in('status', ['returned', 'returned_for_clarification', 'resubmission_required']))),
@@ -235,10 +237,9 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         }),
       ]);
 
-      const appsSubmitted = Number((pendingRows as any[] | null)?.[0]?.total_count ?? 0);
+      const appsPending = Number((pendingRows as any[] | null)?.[0]?.total_count ?? 0);
       const appsSlaBreached = Number((breachedRows as any[] | null)?.[0]?.total_count ?? 0);
       const appsSlaDueSoon = Number((dueSoonRows as any[] | null)?.[0]?.total_count ?? 0);
-      const appsUnderReview = Math.max(0, appsSubmitted - appsSlaBreached - appsSlaDueSoon >= 0 ? 0 : 0);
 
       // Priority lists (small, ids only)
       const [oldestPendingRes, expiringRes, overdueReturnsRes, highRiskRes, openEnfRes, sumPayRes] = await Promise.all([
@@ -296,7 +297,8 @@ export function useSupervisoryMetrics(filters?: SupervisoryFilters, enabled = tr
         applications: {
           total: appsTotal,
           draft: appsDraft,
-          submitted: appsSubmitted,
+          pending: appsPending,
+          submitted: appsSubmittedDirect,
           under_review: appsUnderReview,
           approved: appsApproved,
           rejected: appsRejected,
