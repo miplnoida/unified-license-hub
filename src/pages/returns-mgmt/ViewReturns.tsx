@@ -261,7 +261,7 @@ export default function ViewReturns() {
                   {paged.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                        No submitted returns found.
+                        {activeFilterMeta ? `No ${activeFilterMeta.chip.toLowerCase()} found.` : 'No submitted returns found.'}
                       </TableCell>
                     </TableRow>
                   ) : paged.map(ret => (
