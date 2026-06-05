@@ -93,6 +93,7 @@ export default function ViewReturns() {
   }, [statusFilter, searchParams, setSearchParams]);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       setLoading(true);
       const serverToday = todayDateIso();
@@ -105,13 +106,15 @@ export default function ViewReturns() {
         supabase.from('return_configurations' as any).select('*'),
         supabase.from('profiles').select('id, full_name'),
       ]);
+      if (cancelled) return;
       if (!retRes.error) setReturns((retRes.data || []) as any);
       if (!confRes.error) setConfigs((confRes.data || []) as any);
       if (!profRes.error) setProfiles((profRes.data || []) as any);
       setLoading(false);
     }
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [statusFilter]);
 
   const getConfigName = (id: string | null) => configs.find(c => c.id === id)?.name || '—';
   const getSubmitterName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
@@ -175,7 +178,10 @@ export default function ViewReturns() {
 
         {activeFilterMeta && (
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{activeFilterMeta.chip}</Badge>
+            <Badge variant="secondary">Filter: {activeFilterMeta.chip}</Badge>
+            <Button variant="ghost" size="sm" onClick={() => { setStatusFilter('all'); setPage(0); }}>
+              Clear filter
+            </Button>
           </div>
         )}
 
@@ -201,7 +207,32 @@ export default function ViewReturns() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" className="ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                disabled={loading || filtered.length === 0}
+                onClick={() => {
+                  const headers = ['Licensee Name', 'Return Type', 'Period Start', 'Period End', 'Submission Date', 'Status'];
+                  const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+                  const rows = filtered.map(r => [
+                    getSubmitterName(r.submitter_id),
+                    getConfigName(r.return_config_id),
+                    new Date(r.period_start).toLocaleDateString(),
+                    new Date(r.period_end).toLocaleDateString(),
+                    r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '',
+                    RETURN_STATUS_LABELS[r.status] || r.status,
+                  ].map(escape).join(','));
+                  const csv = [headers.map(escape).join(','), ...rows].join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `returns-${statusFilter}-${todayDateIso()}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
                 <Download className="h-4 w-4 mr-2" />Export
               </Button>
             </div>
@@ -230,7 +261,7 @@ export default function ViewReturns() {
                   {paged.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                        No submitted returns found.
+                        {activeFilterMeta ? `No ${activeFilterMeta.chip.toLowerCase()} found.` : 'No submitted returns found.'}
                       </TableCell>
                     </TableRow>
                   ) : paged.map(ret => (
