@@ -446,7 +446,7 @@ export default function ComplianceReturns() {
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{dashboardFilterChip ? `No returns matching “${dashboardFilterChip}”.` : 'No returns found'}</TableCell></TableRow>
                       ) : filtered.map(ret => {
                         const configName = getConfigName(ret.return_config_id);
                         const freq = getConfigFrequency(ret.return_config_id);
