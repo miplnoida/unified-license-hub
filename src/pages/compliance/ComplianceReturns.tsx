@@ -417,6 +417,15 @@ export default function ComplianceReturns() {
               </CardContent>
             </Card>
 
+            {dashboardFilterChip && (
+              <div className="flex items-center gap-2 -mt-2">
+                <Badge variant="outline" className="text-xs">Filter: {dashboardFilterChip}</Badge>
+                <Button variant="ghost" size="sm" onClick={clearDashboardFilter} className="h-7 px-2 text-xs">
+                  <X className="h-3 w-3 mr-1" />Clear filter
+                </Button>
+              </div>
+            )}
+
             <Card>
               <CardContent className="p-0">
                 {loading ? (
