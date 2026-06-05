@@ -14,9 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
+import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { describeReturnsFilter } from '@/lib/licenseeDashboardDrilldowns';
 
 interface ComplianceReturn {
   id: string;
