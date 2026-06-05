@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,8 @@ import { usePpoc } from '@/contexts/PpocContext';
 import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Search, Eye, Loader2 } from 'lucide-react';
+import { Search, Eye, Loader2, X } from 'lucide-react';
+import { describeLicensesFilter } from '@/lib/licenseeDashboardDrilldowns';
 
 interface License {
   id: string;
@@ -43,14 +44,29 @@ export default function LicensesList() {
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get('status');
+  const urlFilter = searchParams.get('filter'); // 'expiring' | 'expired'
+  const dashboardChip = describeLicensesFilter(searchParams);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : (urlFilter === 'expired' ? 'expired' : 'all'));
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
+
+  useEffect(() => {
+    if (urlStatus && urlStatus !== 'all') setStatusFilter(urlStatus);
+    else if (urlFilter === 'expired') setStatusFilter('expired');
+    else if (urlFilter === 'expiring') setStatusFilter('active');
+  }, [urlStatus, urlFilter]);
+
+  const clearDashboardFilter = () => {
+    setSearchParams({});
+    setStatusFilter('all');
+  };
 
   useEffect(() => {
     async function load() {
@@ -105,7 +121,16 @@ export default function LicensesList() {
     load();
   }, [isInternal, resolvedLicenseeId, validActiveSectorId, search, statusFilter, user?.id, user?.role, user?.licenseeId]);
 
-  const filtered = licenses;
+  const filtered = useMemo(() => {
+    if (urlFilter !== 'expiring') return licenses;
+    const cutoff = Date.now() + 30 * 86400000;
+    return licenses.filter(l => {
+      if (l.status !== 'active') return false;
+      if (!l.valid_until) return false;
+      const t = new Date(l.valid_until).getTime();
+      return t >= Date.now() && t <= cutoff;
+    });
+  }, [licenses, urlFilter]);
 
   return (
     <DashboardLayout>
@@ -135,6 +160,15 @@ export default function LicensesList() {
           </CardContent>
         </Card>
 
+        {dashboardChip && (
+          <div className="flex items-center gap-2 -mt-2">
+            <Badge variant="outline" className="text-xs">Filter: {dashboardChip}</Badge>
+            <Button variant="ghost" size="sm" onClick={clearDashboardFilter} className="h-7 px-2 text-xs">
+              <X className="h-3 w-3 mr-1" />Clear filter
+            </Button>
+          </div>
+        )}
+
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -153,7 +187,7 @@ export default function LicensesList() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No licenses found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{dashboardChip ? `No licenses matching “${dashboardChip}”.` : 'No licenses found'}</TableCell></TableRow>
                   ) : filtered.map(lic => (
                     <TableRow key={lic.id}>
                       <TableCell className="font-mono font-medium text-sm">{lic.license_number}</TableCell>

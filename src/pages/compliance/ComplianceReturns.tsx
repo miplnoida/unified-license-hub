@@ -14,9 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { RETURN_STATUS_LABELS, ReturnStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText } from 'lucide-react';
+import { Search, Loader2, Send, Eye, ClipboardList, CheckCircle, Clock, AlertTriangle, DollarSign, Calendar, TrendingUp, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { describeReturnsFilter } from '@/lib/licenseeDashboardDrilldowns';
 
 interface ComplianceReturn {
   id: string;
@@ -60,16 +61,34 @@ export default function ComplianceReturns() {
   const { isPpoc, activeLicensee, activeLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Dashboard drill-down params:
+  //   ?filter=due_soon|overdue|pending_review|upcoming
+  //   ?status=<ReturnStatus>            (exact-match)
+  const urlFilter = searchParams.get('filter');
+  const urlStatus = searchParams.get('status');
+  const dashboardFilterChip = describeReturnsFilter(searchParams);
   const [returns, setReturns] = useState<ComplianceReturn[]>([]);
   const [configs, setConfigs] = useState<ReturnConfig[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [licenseLicenseeMap, setLicenseLicenseeMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : 'all');
   const [frequencyFilter, setFrequencyFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(urlFilter || urlStatus ? 'returns' : 'dashboard');
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+
+  // Keep tab/status in sync when the URL changes (e.g. user navigates from dashboard while page is mounted)
+  useEffect(() => {
+    if (urlStatus && urlStatus !== 'all') setStatusFilter(urlStatus);
+    if (urlFilter || urlStatus) setActiveTab('returns');
+  }, [urlFilter, urlStatus]);
+
+  const clearDashboardFilter = () => {
+    setSearchParams({});
+    setStatusFilter('all');
+  };
 
   useEffect(() => {
     loadAll();
@@ -171,7 +190,26 @@ export default function ComplianceReturns() {
     toast.success(`Return ${label}`); loadAll();
   };
 
+  const matchesDashboardFilter = (r: ComplianceReturn): boolean => {
+    if (!urlFilter) return true;
+    const now = new Date();
+    const due = new Date(r.due_date);
+    const in30 = new Date(now.getTime() + 30 * 86400000);
+    switch (urlFilter) {
+      case 'overdue':
+        return ['pending', 'draft', 'overdue', 'not_submitted'].includes(r.status) && due < now;
+      case 'due_soon':
+      case 'upcoming':
+        return ['pending', 'draft', 'not_submitted'].includes(r.status) && due >= now && due <= in30;
+      case 'pending_review':
+        return ['submitted', 'pending_review'].includes(r.status);
+      default:
+        return true;
+    }
+  };
+
   const filtered = processedReturns.filter(r => {
+    if (!matchesDashboardFilter(r)) return false;
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (frequencyFilter !== 'all') {
       const freq = getConfigFrequency(r.return_config_id);
@@ -379,6 +417,15 @@ export default function ComplianceReturns() {
               </CardContent>
             </Card>
 
+            {dashboardFilterChip && (
+              <div className="flex items-center gap-2 -mt-2">
+                <Badge variant="outline" className="text-xs">Filter: {dashboardFilterChip}</Badge>
+                <Button variant="ghost" size="sm" onClick={clearDashboardFilter} className="h-7 px-2 text-xs">
+                  <X className="h-3 w-3 mr-1" />Clear filter
+                </Button>
+              </div>
+            )}
+
             <Card>
               <CardContent className="p-0">
                 {loading ? (
@@ -399,7 +446,7 @@ export default function ComplianceReturns() {
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No returns found</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{dashboardFilterChip ? `No returns matching “${dashboardFilterChip}”.` : 'No returns found'}</TableCell></TableRow>
                       ) : filtered.map(ret => {
                         const configName = getConfigName(ret.return_config_id);
                         const freq = getConfigFrequency(ret.return_config_id);
