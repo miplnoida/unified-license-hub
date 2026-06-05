@@ -54,7 +54,8 @@ export function isApplicationEditable(status?: string | null) {
 }
 
 export function isApplicationSubmittedLike(status?: string | null) {
-  return SUBMITTED_APPLICATION_STATUSES.includes(normalizeApplicationStatus(status));
+  const normalizedStatus = normalizeApplicationStatus(status);
+  return SUBMITTED_APPLICATION_STATUSES.some((value) => value === normalizedStatus);
 }
 
 export function isApplicationFinal(status?: string | null) {
