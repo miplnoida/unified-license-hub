@@ -4819,51 +4819,98 @@ export type Database = {
           id: string
         }[]
       }
-      get_application_list_page: {
-        Args: {
-          _licensee_id?: string
-          _page: number
-          _page_size: number
-          _search: string
-          _search_mode: string
-          _sector_id?: string
-          _sla?: string
-          _sort_by: string
-          _sort_dir: string
-          _status: string
-          _version_id: string
-        }
-        Returns: {
-          action_count: number
-          applicant_email: string
-          applicant_id: string
-          applicant_name: string
-          application_number: string
-          category_id: string
-          category_name: string
-          created_at: string
-          data: Json
-          form_version_id: string
-          id: string
-          license_type: string
-          payment_amount: number
-          payment_currency: string
-          payment_id: string
-          payment_method: string
-          payment_paid_at: string
-          payment_status: string
-          resolved_sector_id: string
-          sector_id: string
-          sector_name: string
-          service_id: string
-          service_name: string
-          status: string
-          sub_sector_id: string
-          sub_sector_name: string
-          submitted_at: string
-          total_count: number
-        }[]
-      }
+      get_application_list_page:
+        | {
+            Args: {
+              _licensee_id?: string
+              _page: number
+              _page_size: number
+              _search: string
+              _search_mode: string
+              _sector_id?: string
+              _sla?: string
+              _sort_by: string
+              _sort_dir: string
+              _status: string
+              _version_id: string
+            }
+            Returns: {
+              action_count: number
+              applicant_email: string
+              applicant_id: string
+              applicant_name: string
+              application_number: string
+              category_id: string
+              category_name: string
+              created_at: string
+              data: Json
+              form_version_id: string
+              id: string
+              license_type: string
+              payment_amount: number
+              payment_currency: string
+              payment_id: string
+              payment_method: string
+              payment_paid_at: string
+              payment_status: string
+              resolved_sector_id: string
+              sector_id: string
+              sector_name: string
+              service_id: string
+              service_name: string
+              status: string
+              sub_sector_id: string
+              sub_sector_name: string
+              submitted_at: string
+              total_count: number
+            }[]
+          }
+        | {
+            Args: {
+              _licensee_id?: string
+              _page: number
+              _page_size: number
+              _search: string
+              _search_mode: string
+              _sector_id?: string
+              _sla?: string
+              _sort_by: string
+              _sort_dir: string
+              _status: string
+              _status_group?: string
+              _version_id: string
+            }
+            Returns: {
+              action_count: number
+              applicant_email: string
+              applicant_id: string
+              applicant_name: string
+              application_number: string
+              category_id: string
+              category_name: string
+              created_at: string
+              data: Json
+              form_version_id: string
+              id: string
+              license_type: string
+              payment_amount: number
+              payment_currency: string
+              payment_id: string
+              payment_method: string
+              payment_paid_at: string
+              payment_status: string
+              resolved_sector_id: string
+              sector_id: string
+              sector_name: string
+              service_id: string
+              service_name: string
+              status: string
+              sub_sector_id: string
+              sub_sector_name: string
+              submitted_at: string
+              total_count: number
+            }[]
+          }
       get_application_list_stats: {
         Args: { _licensee_id?: string; _sector_id?: string }
         Returns: Json
