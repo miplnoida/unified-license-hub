@@ -364,7 +364,7 @@ export default function ApplicationsList() {
     }
     loadPage();
     return () => { cancelled = true; };
-  }, [refreshKey, page, statusFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
+  }, [refreshKey, page, statusFilter, slaFilter, versionFilter, debouncedSearch, searchMode, groupingEnabled, resolvedLicenseeId, typeFilter, validActiveSectorId, user?.id, user?.role, user?.licenseeId]);
 
   // Fetch license number + status for approved applications so we can render
   // them in the Status column (licensee view especially needs this).
