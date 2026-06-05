@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
-import type { ApplicationQueueSlaBucket } from '@/lib/applicationQueueFilters';
+import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
