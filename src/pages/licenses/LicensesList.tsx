@@ -44,14 +44,29 @@ export default function LicensesList() {
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get('status');
+  const urlFilter = searchParams.get('filter'); // 'expiring' | 'expired'
+  const dashboardChip = describeLicensesFilter(searchParams);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : (urlFilter === 'expired' ? 'expired' : 'all'));
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
+
+  useEffect(() => {
+    if (urlStatus && urlStatus !== 'all') setStatusFilter(urlStatus);
+    else if (urlFilter === 'expired') setStatusFilter('expired');
+    else if (urlFilter === 'expiring') setStatusFilter('active');
+  }, [urlStatus, urlFilter]);
+
+  const clearDashboardFilter = () => {
+    setSearchParams({});
+    setStatusFilter('all');
+  };
 
   useEffect(() => {
     async function load() {
