@@ -152,7 +152,7 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Licensing',
       title: `${m.licenses!.expired} licence${m.licenses!.expired === 1 ? '' : 's'} already expired`,
       explanation: 'These holders are operating without valid licence.',
-      action: { label: 'View licences', to: '/admin/approved-licensees' },
+      action: { label: 'View licences', to: isLicensee ? licenseeDrilldownTo('licensesExpired') : '/admin/approved-licensees' },
     });
   }
 
