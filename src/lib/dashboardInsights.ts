@@ -142,7 +142,7 @@ export function buildInsights(m: SupervisoryMetricsLike, audience: InsightAudien
       module: 'Licensing',
       title: `${m.licenses!.expiring_30d} licence${m.licenses!.expiring_30d === 1 ? '' : 's'} expire within 30 days`,
       explanation: 'Renewal workload incoming. Notify holders and prepare reviewers.',
-      action: { label: 'View approved licensees', to: '/admin/approved-licensees' },
+      action: { label: isLicensee ? 'View licences' : 'View approved licensees', to: isLicensee ? licenseeDrilldownTo('licensesExpiring') : '/admin/approved-licensees' },
     });
   }
   if ((m.licenses?.expired ?? 0) > 0) {
