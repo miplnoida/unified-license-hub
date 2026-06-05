@@ -253,7 +253,7 @@ export default function ComplianceReturns() {
           }
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={(urlFilter || urlStatus) ? 'returns' : activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="dashboard"><TrendingUp className="h-4 w-4 mr-1" />Dashboard</TabsTrigger>
             <TabsTrigger value="returns"><ClipboardList className="h-4 w-4 mr-1" />Returns</TabsTrigger>
