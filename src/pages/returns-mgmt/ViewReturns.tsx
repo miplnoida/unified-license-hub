@@ -68,7 +68,7 @@ export default function ViewReturns() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = normalizeAdminReturnStatusFilter(searchParams.get('status'));
   const [statusFilter, setStatusFilter] = useState<AdminReturnStatusFilter>(urlStatus);
   const [page, setPage] = useState(0);
@@ -79,6 +79,18 @@ export default function ViewReturns() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlStatus]);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (statusFilter === 'all') {
+      next.delete('status');
+    } else {
+      next.set('status', statusFilter);
+    }
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [statusFilter, searchParams, setSearchParams]);
 
   useEffect(() => {
     async function load() {
