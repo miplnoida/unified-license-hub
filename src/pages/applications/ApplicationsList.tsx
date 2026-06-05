@@ -279,7 +279,7 @@ export default function ApplicationsList() {
 
   useEffect(() => {
     setPage(0);
-  }, [statusParam, slaFilter, debouncedSearch, searchMode, versionParam, typeFilter, validActiveSectorId]);
+  }, [statusParam, slaFilter, statusGroupFilter, debouncedSearch, searchMode, versionParam, typeFilter, validActiveSectorId]);
 
   // Page of applications — fully server-driven via the get_application_list_page RPC.
   // The RPC handles: visibility (applicant vs internal), draft hiding for internal,
