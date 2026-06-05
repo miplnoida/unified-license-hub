@@ -175,7 +175,7 @@ export default function ApplicationsList() {
   const { resolvedLicenseeId } = usePpoc();
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
-  const [searchParamsRaw] = useSearchParams();
+  const [searchParamsRaw, setSearchParams] = useSearchParams();
   const typeFilter = searchParamsRaw.get('type'); // 'pre' | 'post' | null
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const navigate = useNavigate();
@@ -1126,6 +1126,29 @@ export default function ApplicationsList() {
             )
           }
         />
+
+        {(slaFilter || statusGroupFilter) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="secondary" className="text-xs">
+              {slaFilter === 'breached' && 'SLA: Breached'}
+              {slaFilter === 'due_soon' && 'SLA: Nearing breach'}
+              {slaFilter === 'pending' && 'SLA: Pending'}
+              {statusGroupFilter === 'returned' && 'Status: Returned'}
+              {statusGroupFilter === 'approved' && 'Status: Approved'}
+              {statusGroupFilter === 'rejected' && 'Status: Rejected'}
+              {statusGroupFilter === 'pending' && 'Status: Pending'}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => { setSearchParams({}); setPage(0); }}
+            >
+              Clear filter
+            </Button>
+          </div>
+        )}
+
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard title="Total Requests" value={statCounts.total} icon={<FileText className="h-6 w-6" />} />

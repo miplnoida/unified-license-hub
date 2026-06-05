@@ -1,4 +1,4 @@
-import { returnDrilldownTo } from './dashboardDrilldowns';
+import { drilldownTo, returnDrilldownTo } from './dashboardDrilldowns';
 
 /**
  * Rule-based supervisory insights engine. Takes an arbitrary metrics object
@@ -101,7 +101,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Applications',
       title: `${m.applications!.sla_breached} application${m.applications!.sla_breached === 1 ? '' : 's'} breaching SLA`,
       explanation: 'Review queue and reassign or escalate to clear the backlog.',
-      action: { label: 'Open review queue', to: '/applications/queue' },
+      action: { label: 'Open review queue', to: drilldownTo('slaBreached') },
     });
   }
   if ((m.applications?.sla_due_soon ?? 0) > 0) {
@@ -111,7 +111,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Applications',
       title: `${m.applications!.sla_due_soon} applications nearing SLA breach`,
       explanation: 'Action within 24–48 hours to avoid breach.',
-      action: { label: 'Review now', to: '/applications/queue' },
+      action: { label: 'Review now', to: drilldownTo('slaDueSoon') },
     });
   }
   if ((m.applications?.oldest_pending_days ?? 0) > 30) {
@@ -121,7 +121,7 @@ export function buildInsights(m: SupervisoryMetricsLike): Insight[] {
       module: 'Applications',
       title: `Oldest pending application is ${m.applications!.oldest_pending_days} days old`,
       explanation: 'Investigate workflow stage holding this application.',
-      action: { label: 'View pending', to: '/applications/queue' },
+      action: { label: 'View pending', to: drilldownTo('pending') },
     });
   }
 
