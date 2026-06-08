@@ -76,10 +76,10 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
         head(licenseEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', new Date(Date.now() + 30*86400000).toISOString()))),
         head(licenseEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'expired'))),
 
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'draft')) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).in('status', ['submitted', 'under_review'])) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'approved')) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'rejected')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'draft')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).in('status', ['submitted', 'under_review'])) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'approved')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'rejected')) : 0,
 
         licenseId
           ? head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('license_id', licenseId).in('status', ['pending', 'draft', 'not_submitted']).lte('due_date', daysFromNow(30)))
@@ -94,8 +94,8 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           ? head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('license_id', licenseId).in('status', ['submitted', 'pending_review']))
           : 0,
 
-        userId ? head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('status', ['pending', 'awaiting_verification'])) : 0,
-        userId ? head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('status', ['paid', 'completed', 'verified'])) : 0,
+        hasScoped ? head(applyPayUserScope(supabase.from('payments').select('*', { count: 'exact', head: true })).in('status', ['pending', 'awaiting_verification'])) : 0,
+        hasScoped ? head(applyPayUserScope(supabase.from('payments').select('*', { count: 'exact', head: true })).in('status', ['paid', 'completed', 'verified'])) : 0,
 
         userId ? head(supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)) : 0,
       ]);
