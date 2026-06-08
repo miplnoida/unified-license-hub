@@ -164,16 +164,9 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
         scope.licenseeIds.length > 0
           ? supabase.from('profiles').select('id').in('licensee_id', scope.licenseeIds)
           : Promise.resolve({ data: [], error: null } as any),
-        scope.licenseeIds.length > 0
-          ? supabase.from('licenses').select('id, holder_id, license_number, status, valid_until').in(
-              'holder_id',
-              scope.licenseeIds.length > 0
-                ? ((await supabase.from('profiles').select('id').in('licensee_id', scope.licenseeIds)).data || []).map((row: any) => row.id)
-                : [],
-            )
-          : userId
+        scope.licenseeIds.length === 0 && userId
             ? supabase.from('licenses').select('id, holder_id, license_number, status, valid_until').eq('holder_id', userId)
-            : Promise.resolve({ data: [], error: null } as any),
+            : Promise.resolve({ data: [] as any[], error: null } as any),
         returnScope
           ? supabase
               .from('returns_filed')
