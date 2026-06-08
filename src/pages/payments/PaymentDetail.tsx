@@ -113,6 +113,18 @@ export default function PaymentDetail() {
                 {payment.paid_at && (
                   <InfoRow icon={<Calendar className="h-3.5 w-3.5" />} label="Paid At" value={new Date(payment.paid_at).toLocaleString()} />
                 )}
+                {application && (
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1"><FileText className="h-3.5 w-3.5" />Application</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm">{application.application_number}</span>
+                      <Badge variant="outline" className="text-xs">{getApplicationCategoryLabel(application.data)}</Badge>
+                      {application.license_type && (
+                        <span className="text-xs text-muted-foreground">· {application.license_type}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Fee Breakdown */}
