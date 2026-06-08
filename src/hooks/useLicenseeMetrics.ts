@@ -35,13 +35,32 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
     queryFn: async () => {
       const lid = activeLicenseeId || null;
 
-      // licenses are linked via licensees.license_id → licenses.id, plus holder_id
-      const [{ data: licenseeRow }] = lid
-        ? await Promise.all([
-            supabase.from('licensees').select('id, license_id, status').eq('id', lid).maybeSingle(),
-          ])
-        : [{ data: null as any }];
+      // Resolve licensee row + the licensee's primary user(s). When a PPOC
+      // switches licensee in the header, applications/payments must reflect
+      // the SELECTED licensee's records — not the caller's personal data.
+      const [licenseeRowRes, primaryUserRes] = await Promise.all([
+        lid
+          ? supabase.from('licensees').select('id, license_id, status').eq('id', lid).maybeSingle()
+          : Promise.resolve({ data: null as any }),
+        lid
+          ? supabase.from('profiles').select('id').eq('licensee_id', lid)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const licenseeRow = (licenseeRowRes as any).data;
       const licenseId = (licenseeRow as any)?.license_id;
+      const primaryUserIds = (((primaryUserRes as any).data || []) as any[])
+        .map((r: any) => r.id)
+        .filter(Boolean) as string[];
+      // Scope app/payment queries to the licensee's owner(s) when available,
+      // else fall back to the calling user (Primary User viewing own data).
+      const scopedUserIds: string[] = primaryUserIds.length > 0
+        ? primaryUserIds
+        : (userId ? [userId] : []);
+      const hasScoped = scopedUserIds.length > 0;
+      const applyUserScope = (q: any) =>
+        scopedUserIds.length === 1 ? q.eq('applicant_id', scopedUserIds[0]) : q.in('applicant_id', scopedUserIds);
+      const applyPayUserScope = (q: any) =>
+        scopedUserIds.length === 1 ? q.eq('user_id', scopedUserIds[0]) : q.in('user_id', scopedUserIds);
 
       const licenseEq = (q: any) => licenseId ? q.eq('id', licenseId) : q.eq('id', '00000000-0000-0000-0000-000000000000');
 
@@ -57,10 +76,10 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
         head(licenseEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active').lte('valid_until', new Date(Date.now() + 30*86400000).toISOString()))),
         head(licenseEq(supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'expired'))),
 
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'draft')) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).in('status', ['submitted', 'under_review'])) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'approved')) : 0,
-        userId ? head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId).eq('status', 'rejected')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'draft')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).in('status', ['submitted', 'under_review'])) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'approved')) : 0,
+        hasScoped ? head(applyUserScope(supabase.from('applications').select('*', { count: 'exact', head: true })).eq('status', 'rejected')) : 0,
 
         licenseId
           ? head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('license_id', licenseId).in('status', ['pending', 'draft', 'not_submitted']).lte('due_date', daysFromNow(30)))
@@ -75,8 +94,8 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           ? head(supabase.from('compliance_returns').select('*', { count: 'exact', head: true }).eq('license_id', licenseId).in('status', ['submitted', 'pending_review']))
           : 0,
 
-        userId ? head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('status', ['pending', 'awaiting_verification'])) : 0,
-        userId ? head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId).in('status', ['paid', 'completed', 'verified'])) : 0,
+        hasScoped ? head(applyPayUserScope(supabase.from('payments').select('*', { count: 'exact', head: true })).in('status', ['pending', 'awaiting_verification'])) : 0,
+        hasScoped ? head(applyPayUserScope(supabase.from('payments').select('*', { count: 'exact', head: true })).in('status', ['paid', 'completed', 'verified'])) : 0,
 
         userId ? head(supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)) : 0,
       ]);
@@ -86,8 +105,8 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           ? supabase.from('compliance_returns').select('id, due_date, status').eq('license_id', licenseId).in('status', ['pending', 'draft', 'not_submitted']).order('due_date', { ascending: true }).limit(5)
           : Promise.resolve({ data: [] as any[] }),
         licenseEq(supabase.from('licenses').select('id, license_number, valid_until').eq('status', 'active').order('valid_until', { ascending: true })).limit(5),
-        userId
-          ? supabase.from('payments').select('id, amount, status, created_at').eq('user_id', userId).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5)
+        hasScoped
+          ? applyPayUserScope(supabase.from('payments').select('id, amount, status, created_at')).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 

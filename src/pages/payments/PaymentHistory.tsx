@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { toast } from 'sonner';
 import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
@@ -86,12 +87,14 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 export default function PaymentHistory() {
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
+  const { resolvedLicenseeId } = usePpoc();
   const navigate = useNavigate();
   const isAdmin = !!user && !portalContext.loading && portalContext.isInternal;
   const isPreLicensee = !!user && !portalContext.loading && portalContext.isPreLicensee;
   const [payments, setPayments] = useState<Payment[]>([]);
   const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
   const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [scopedUserIds, setScopedUserIds] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('payments');
@@ -104,6 +107,24 @@ export default function PaymentHistory() {
   // Receipt dialog
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<PaymentReceipt | null>(null);
+
+  // Resolve the active licensee's primary user(s) so PPOC switching in the
+  // header re-scopes the payment list to that entity's records — not the
+  // calling PPOC user's personal data.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (isAdmin || !resolvedLicenseeId) { setScopedUserIds(null); return; }
+      const { data } = await supabase
+        .from('profiles' as any)
+        .select('id')
+        .eq('licensee_id', resolvedLicenseeId);
+      if (cancelled) return;
+      const ids = ((data || []) as any[]).map((r: any) => r.id).filter(Boolean);
+      setScopedUserIds(ids);
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin, resolvedLicenseeId]);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -167,6 +188,15 @@ export default function PaymentHistory() {
     failed: ['failed', 'rejected'],
   };
   const filtered = payments.filter(p => {
+    // Non-admin licensee/PPOC scoping: restrict the list to payments whose
+    // owning user belongs to the currently-active licensee from the header
+    // switcher. Without this, switching licensee leaves the list unchanged.
+    if (!isAdmin && scopedUserIds !== null) {
+      if (scopedUserIds.length === 0) return false;
+      const applicantId = p.application?.applicant_id || null;
+      const owner = applicantId || p.user_id;
+      if (!owner || !scopedUserIds.includes(owner)) return false;
+    }
     if (statusParam) {
       const bucket = statusBuckets[statusParam];
       const ok = bucket ? bucket.includes((p.status || '').toLowerCase()) : (p.status || '').toLowerCase() === statusParam.toLowerCase();
