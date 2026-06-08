@@ -559,9 +559,10 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Service</Label>
-                        <Select value={serviceId} onValueChange={setServiceId}>
-                          <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+                        <Select value={serviceId} onValueChange={v => setServiceId(v === 'none' ? '' : v)}>
+                          <SelectTrigger><SelectValue placeholder=" " /></SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
                             {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
