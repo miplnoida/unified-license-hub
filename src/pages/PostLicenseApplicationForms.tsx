@@ -553,7 +553,6 @@ export default function PostLicenseApplicationForms() {
                   }}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
-                  onAcknowledge={handleSubmitApplication}
                   onEdit={(idx) => {
                     const tmpl = matchedTemplates[idx];
                     if (tmpl) {
