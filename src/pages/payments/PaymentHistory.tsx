@@ -188,6 +188,15 @@ export default function PaymentHistory() {
     failed: ['failed', 'rejected'],
   };
   const filtered = payments.filter(p => {
+    // Non-admin licensee/PPOC scoping: restrict the list to payments whose
+    // owning user belongs to the currently-active licensee from the header
+    // switcher. Without this, switching licensee leaves the list unchanged.
+    if (!isAdmin && scopedUserIds !== null) {
+      if (scopedUserIds.length === 0) return false;
+      const applicantId = p.application?.applicant_id || null;
+      const owner = applicantId || p.user_id;
+      if (!owner || !scopedUserIds.includes(owner)) return false;
+    }
     if (statusParam) {
       const bucket = statusBuckets[statusParam];
       const ok = bucket ? bucket.includes((p.status || '').toLowerCase()) : (p.status || '').toLowerCase() === statusParam.toLowerCase();
