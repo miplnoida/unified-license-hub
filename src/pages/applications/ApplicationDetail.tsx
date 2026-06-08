@@ -542,9 +542,17 @@ export default function ApplicationDetail() {
           backHref={isInternal ? '/applications/queue' : '/applications'}
           backLabel="Back to Applications"
           actions={
-            <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
-              {APPLICATION_STATUS_LABELS[app.status]}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={getApplicationCategory(appData) === 'post_license' ? 'default' : 'secondary'}
+                className="text-sm px-3 py-1"
+              >
+                {getApplicationCategoryLabel(appData)} Application
+              </Badge>
+              <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
+                {APPLICATION_STATUS_LABELS[app.status]}
+              </Badge>
+            </div>
           }
         />
 
