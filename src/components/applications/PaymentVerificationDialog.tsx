@@ -10,6 +10,7 @@ import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 export interface PaymentInfo {
   id?: string;
