@@ -559,10 +559,10 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Service</Label>
-                        <Select value={serviceId} onValueChange={setServiceId} disabled={!subSectorId}>
+                        <Select value={serviceId} onValueChange={setServiceId}>
                           <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
                           <SelectContent>
-                            {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                            {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
