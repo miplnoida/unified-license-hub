@@ -112,7 +112,50 @@ export default function ViewReturnPage() {
   const { data: comments = [] } = useReturnComments(id);
   const [activeTab, setActiveTab] = useState('');
 
-  const effectiveConfigForms = configForms.length > 0 ? configForms : fallbackConfigForms;
+  const submittedFormIds = [...new Set(formData.map((row) => row.form_id).filter(Boolean))];
+  const { data: submittedFormTemplates = [] } = useQuery({
+    queryKey: ['submitted_return_templates_view', submittedFormIds.slice().sort().join(',')],
+    enabled: submittedFormIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, name, description, tab_name, form_order, created_at')
+        .in('id', submittedFormIds)
+        .order('form_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const templateById = submittedFormTemplates.reduce<Record<string, any>>((acc, template) => {
+    acc[template.id] = template;
+    return acc;
+  }, {});
+
+  const submittedConfigForms = submittedFormIds.map((formId, index) => {
+    const template = templateById[formId];
+    return {
+      id: `submitted-${formId}`,
+      form_id: formId,
+      return_configuration_id: returnData?.return_configuration_id,
+      tab_name: (template?.tab_name || template?.name || 'Submitted Forms').trim() || 'Submitted Forms',
+      display_order: template?.form_order ?? index,
+      status: 'active',
+      form_templates: {
+        id: formId,
+        name: template?.name || `Form ${index + 1}`,
+        description: template?.description || null,
+        status: 'submitted',
+      },
+    };
+  });
+
+  const effectiveConfigForms = configForms.length > 0
+    ? configForms
+    : fallbackConfigForms.length > 0
+      ? fallbackConfigForms
+      : submittedConfigForms;
 
   // Build per-form data map keyed by field_name (matches FormRenderer initialData)
   // Also collect the pinned form_version_id per form (last write wins; all rows share it).
