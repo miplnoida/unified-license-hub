@@ -32,6 +32,7 @@ interface License {
   sector_id?: string | null;
   resolved_sector_id?: string | null;
   total_count?: number;
+  entity_name?: string | null;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -101,10 +102,26 @@ export default function LicensesList() {
         return;
       }
 
-      setLicenses(((data || []) as any[]).map((row: any) => ({
+      const rows = ((data || []) as any[]).map((row: any) => ({
         ...row,
         total_count: row.total_count ? Number(row.total_count) : 0,
-      })));
+      }));
+
+      // Enrich with entity name from the linked licensee record.
+      const licIds = Array.from(new Set(rows.map((r: any) => r.id).filter(Boolean)));
+      if (licIds.length > 0) {
+        const { data: licensees } = await supabase
+          .from('licensees' as any)
+          .select('license_id, name')
+          .in('license_id', licIds);
+        const nameByLicenseId: Record<string, string> = {};
+        ((licensees || []) as any[]).forEach((l: any) => {
+          if (l?.license_id && l?.name) nameByLicenseId[l.license_id] = l.name;
+        });
+        rows.forEach((r: any) => { r.entity_name = nameByLicenseId[r.id] || null; });
+      }
+
+      setLicenses(rows);
       if (import.meta.env.DEV && ((data || []) as any[]).length === 0) {
         console.log('licenses empty state debug', {
           userId: user?.id,
@@ -178,7 +195,7 @@ export default function LicensesList() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>License #</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Entity Name</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Issued</TableHead>
                     <TableHead>Valid Until</TableHead>
@@ -191,7 +208,7 @@ export default function LicensesList() {
                   ) : filtered.map(lic => (
                     <TableRow key={lic.id}>
                       <TableCell className="font-mono font-medium text-sm">{lic.license_number}</TableCell>
-                      <TableCell>{lic.license_type}</TableCell>
+                      <TableCell className="text-sm">{lic.entity_name || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[lic.status] || 'outline'} className="capitalize">
                           {LICENSE_STATUS_LABELS[lic.status] || lic.status}
