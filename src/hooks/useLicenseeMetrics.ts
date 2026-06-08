@@ -105,8 +105,8 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           ? supabase.from('compliance_returns').select('id, due_date, status').eq('license_id', licenseId).in('status', ['pending', 'draft', 'not_submitted']).order('due_date', { ascending: true }).limit(5)
           : Promise.resolve({ data: [] as any[] }),
         licenseEq(supabase.from('licenses').select('id, license_number, valid_until').eq('status', 'active').order('valid_until', { ascending: true })).limit(5),
-        userId
-          ? supabase.from('payments').select('id, amount, status, created_at').eq('user_id', userId).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5)
+        hasScoped
+          ? applyPayUserScope(supabase.from('payments').select('id, amount, status, created_at')).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
