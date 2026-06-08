@@ -634,7 +634,7 @@ export default function FeeManagement() {
 
           <TabsContent value="rules" className="space-y-4">
             <div className="flex justify-end">
-              <Dialog open={ruleDialogOpen} onOpenChange={(v) => { setRuleDialogOpen(v); if (!v) resetRuleForm(); }}>
+              <Dialog open={ruleDialogOpen} onOpenChange={(v) => { setRuleDialogOpen(v); if (!v) { resetRuleForm(); setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
                 <DialogTrigger asChild>
                   <Button><PlusCircle className="h-4 w-4 mr-2" />Add Rule</Button>
                 </DialogTrigger>
