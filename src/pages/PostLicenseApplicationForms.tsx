@@ -41,6 +41,7 @@ function ActiveFormFiller({
   saving,
   onSaveDraft,
   onSubmit,
+  onChange,
   applicationId,
   versionLocked = false,
 }: {
@@ -49,6 +50,7 @@ function ActiveFormFiller({
   saving: boolean;
   onSaveDraft: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
+  onChange?: (data: Record<string, any>, versionId: string | null) => void;
   applicationId?: string;
   versionLocked?: boolean;
 }) {
@@ -95,6 +97,7 @@ function ActiveFormFiller({
         initialData={initialData}
         onSaveDraft={(d) => onSaveDraft(d, resolvedVersionId)}
         onSubmit={(d) => onSubmit(d, resolvedVersionId)}
+        onChange={onChange ? (d) => onChange(d, resolvedVersionId) : undefined}
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
