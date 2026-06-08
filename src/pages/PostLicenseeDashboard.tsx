@@ -1,69 +1,32 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { ReturnCard } from '@/components/dashboard/ReturnCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { Return } from '@/types';
 import {
   FileCheck,
   ClipboardList,
   AlertTriangle,
-  Users,
   CreditCard,
-  TrendingUp,
+  CheckCircle,
+  Clock,
 } from 'lucide-react';
+import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-const mockReturns: Return[] = [
-  {
-    id: '1',
-    returnNumber: 'RET-2024-M01',
-    userId: 'user-2',
-    licenseId: 'lic-1',
-    serviceId: 'svc-1',
-    formId: 'form-ret-1',
-    frequency: 'monthly',
-    periodStart: '2024-01-01T00:00:00Z',
-    periodEnd: '2024-01-31T23:59:59Z',
-    dueDate: '2024-02-10T23:59:59Z',
-    status: 'pending',
-    createdAt: '2024-01-01T00:00:00Z',
-    data: {},
-  },
-  {
-    id: '2',
-    returnNumber: 'RET-2023-Q4',
-    userId: 'user-2',
-    licenseId: 'lic-1',
-    serviceId: 'svc-2',
-    formId: 'form-ret-2',
-    frequency: 'quarterly',
-    periodStart: '2023-10-01T00:00:00Z',
-    periodEnd: '2023-12-31T23:59:59Z',
-    dueDate: '2024-01-15T23:59:59Z',
-    status: 'overdue',
-    createdAt: '2023-10-01T00:00:00Z',
-    data: {},
-  },
-  {
-    id: '3',
-    returnNumber: 'RET-2024-M02',
-    userId: 'user-2',
-    licenseId: 'lic-1',
-    serviceId: 'svc-1',
-    formId: 'form-ret-1',
-    frequency: 'monthly',
-    periodStart: '2024-02-01T00:00:00Z',
-    periodEnd: '2024-02-29T23:59:59Z',
-    dueDate: '2024-03-10T23:59:59Z',
-    status: 'draft',
-    createdAt: '2024-02-01T00:00:00Z',
-    data: {},
-  },
-];
+const fmtMoney = (value: number) =>
+  new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value || 0);
 
 export default function PostLicenseeDashboard() {
   const { user } = useAuth();
+  const { resolvedLicenseeId, activeLicensee } = usePpoc();
+  const { data: metrics, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
 
   if (!user) return null;
 
@@ -74,10 +37,10 @@ export default function PostLicenseeDashboard() {
         <div className="animate-slide-up">
           <h1 className="text-2xl font-bold text-foreground">Welcome back, {user.fullName}</h1>
           <p className="mt-1 text-muted-foreground">
-            {user.entityName && (
-              <span className="font-medium text-foreground">{user.entityName}</span>
+            {(activeLicensee?.licensee_name || user.entityName) && (
+              <span className="font-medium text-foreground">{activeLicensee?.licensee_name || user.entityName}</span>
             )}
-            {user.entityName && ' — '}
+            {(activeLicensee?.licensee_name || user.entityName) && ' — '}
             Manage your compliance, returns, and billing.
           </p>
         </div>
@@ -86,25 +49,25 @@ export default function PostLicenseeDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up delay-100">
           <StatCard
             title="Active Licenses"
-            value={3}
+            value={isLoading ? '…' : metrics?.licenses.active ?? 0}
             icon={<FileCheck className="h-6 w-6" />}
             variant="success"
           />
           <StatCard
             title="Pending Returns"
-            value={5}
+            value={isLoading ? '…' : metrics?.returns.due_soon ?? 0}
             icon={<ClipboardList className="h-6 w-6" />}
             variant="warning"
           />
           <StatCard
             title="Overdue Returns"
-            value={1}
+            value={isLoading ? '…' : metrics?.returns.overdue ?? 0}
             icon={<AlertTriangle className="h-6 w-6" />}
             variant="danger"
           />
           <StatCard
             title="Outstanding Billing"
-            value="$12,450"
+            value={isLoading ? '…' : fmtMoney(metrics?.payments.outstanding_amount ?? 0)}
             icon={<CreditCard className="h-6 w-6" />}
             variant="primary"
           />
@@ -120,11 +83,34 @@ export default function PostLicenseeDashboard() {
         <div className="grid lg:grid-cols-2 gap-6 animate-slide-up delay-300">
           <div>
             <h2 className="text-lg font-semibold mb-4">Pending Returns</h2>
-            <div className="space-y-4">
-              {mockReturns.map((ret) => (
-                <ReturnCard key={ret.id} returnItem={ret} />
-              ))}
-            </div>
+            <Card>
+              <CardContent className="p-4">
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading upcoming returns…</p>
+                ) : (metrics?.priority_lists.upcoming_returns.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming returns for the selected entity.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {metrics?.priority_lists.upcoming_returns.map((ret) => {
+                      const isOverdue = !!ret.due_date && ret.due_date < new Date().toISOString().slice(0, 10);
+                      return (
+                        <div key={ret.id} className="flex items-center justify-between rounded-lg border p-3">
+                          <div>
+                            <p className="font-medium text-foreground">{ret.unique_id || ret.id.slice(0, 8)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {ret.due_date ? `Due ${new Date(ret.due_date).toLocaleDateString()}` : 'No due date'}
+                            </p>
+                          </div>
+                          <Badge variant={isOverdue ? 'destructive' : 'outline'}>
+                            {ret.status}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <div>
@@ -137,23 +123,57 @@ export default function PostLicenseeDashboard() {
           <h2 className="text-lg font-semibold mb-4">Compliance Overview</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-success">98%</p>
+              <p className="text-3xl font-bold text-success">
+                {isLoading
+                  ? '…'
+                  : (() => {
+                      const submitted = metrics?.returns.submitted ?? 0;
+                      const dueSoon = metrics?.returns.due_soon ?? 0;
+                      const overdue = metrics?.returns.overdue ?? 0;
+                      const total = submitted + dueSoon + overdue;
+                      return total === 0 ? '100%' : `${Math.round((submitted / total) * 100)}%`;
+                    })()}
+              </p>
               <p className="text-sm text-muted-foreground">Filing Compliance</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-primary">12</p>
+              <p className="text-3xl font-bold text-primary">{isLoading ? '…' : metrics?.returns.submitted ?? 0}</p>
               <p className="text-sm text-muted-foreground">Returns Filed (YTD)</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-warning">2</p>
+              <p className="text-3xl font-bold text-warning">{isLoading ? '…' : metrics?.returns.pending_review ?? 0}</p>
               <p className="text-sm text-muted-foreground">Upcoming Due</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-info">$45,200</p>
-              <p className="text-sm text-muted-foreground">Fees Paid (YTD)</p>
+              <p className="text-3xl font-bold text-info">{isLoading ? '…' : metrics?.payments.paid ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Paid Transactions</p>
             </div>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Entity Status</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Submitted returns</p>
+              <p className="text-xl font-semibold">{isLoading ? '…' : metrics?.returns.submitted ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Pending review</p>
+              <p className="text-xl font-semibold">{isLoading ? '…' : metrics?.returns.pending_review ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Pending payments</p>
+              <p className="text-xl font-semibold">{isLoading ? '…' : metrics?.payments.pending ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Unread notifications</p>
+              <p className="text-xl font-semibold">{isLoading ? '…' : metrics?.notifications.unread ?? 0}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
