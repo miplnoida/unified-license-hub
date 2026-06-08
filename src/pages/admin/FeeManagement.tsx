@@ -618,7 +618,7 @@ export default function FeeManagement() {
                             <TableCell className="text-sm text-muted-foreground">{getServiceName(fee.service_id)}</TableCell>
                             <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
                             <TableCell className="text-right">
-                              <RowActionsMenu actions={[
+                              <RowActionsMenu dropdownModal={false} actions={[
                                 { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },
                                 { label: 'Delete', icon: Trash2, onClick: () => handleDelete(fee.id), destructive: true, separator: true },
                               ]} />
