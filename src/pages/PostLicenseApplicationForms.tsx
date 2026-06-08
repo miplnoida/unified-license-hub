@@ -126,6 +126,35 @@ export default function PostLicenseApplicationForms() {
   });
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const liveFormDataRef = useRef<{ data: Record<string, any>; versionId: string | null } | null>(null);
+
+  const handleLiveChange = (data: Record<string, any>, versionId: string | null) => {
+    liveFormDataRef.current = { data, versionId };
+  };
+
+  const handleExitActiveForm = async () => {
+    const live = liveFormDataRef.current;
+    const tid = activeFormTemplateId;
+    liveFormDataRef.current = null;
+    setActiveFormTemplateId(null);
+    if (tid && live && Object.keys(live.data || {}).length > 0) {
+      try {
+        setFormProgressMap(prev => ({
+          ...prev,
+          [tid]: {
+            ...prev[tid],
+            status: prev[tid]?.status === 'completed' ? 'completed' : 'in_progress',
+            data: live.data,
+            versionId: live.versionId,
+          },
+        }));
+        await persistFormsData(tid, live.data, live.versionId);
+        toast.success('Draft saved');
+      } catch (err) {
+        console.error('[PostLicenseApplicationForms] auto-save on back failed', err);
+      }
+    }
+  };
   const [paymentReady, setPaymentReady] = useState(false);
   const [paymentChecking, setPaymentChecking] = useState(false);
   const [showReview, setShowReview] = useState(() => {
