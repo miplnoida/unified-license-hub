@@ -487,7 +487,7 @@ export default function FillReturnPage() {
             {isEditable && (
               <TabsContent value="__review__" className="space-y-4">
                 <ReturnReviewPanel
-                  loading={saving || updateReturn.isPending}
+                  loading={submitting}
                   onAcknowledge={() =>
                     handleSubmit(
                       'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
