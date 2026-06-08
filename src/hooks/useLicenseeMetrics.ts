@@ -95,13 +95,12 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           : Promise.resolve({ data: [] as any[] }),
         licenseEq(supabase.from('licenses').select('id, license_number, valid_until').eq('status', 'active').order('valid_until', { ascending: true })).limit(5),
         visibleAppIds.length > 0
-          ? supabase.from('payments').select('id, application_id, amount, status, created_at').in('application_id', visibleAppIds).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(25)
+          ? supabase.from('payments').select('id, application_id, amount, status, created_at').in('application_id', visibleAppIds).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false })
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
       const pendingPayments = ((pendingPaymentsRes.data || []) as any[])
         .filter((payment: any) => visibleAppIdSet.has(payment.application_id))
-        .slice(0, 5);
       const outstanding_amount = pendingPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
       return {
@@ -113,7 +112,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
         priority_lists: {
           upcoming_returns: (upcomingReturnsRes.data || []) as any,
           expiring_licenses: (expiringLicensesRes.data || []) as any,
-          pending_payments: pendingPayments as any,
+          pending_payments: pendingPayments.slice(0, 5) as any,
         },
       };
     },

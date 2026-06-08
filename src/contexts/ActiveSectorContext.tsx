@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { loadVisibleApplications } from '@/lib/visibleApplications';
 
 export interface SectorOption {
   id: string;
@@ -122,34 +123,8 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          const { data: linkedProfiles } = await supabase
-            .from('profiles' as any)
-            .select('id')
-            .eq('licensee_id', resolvedLicenseeId);
-          const linkedProfileIds = ((linkedProfiles || []) as any[]).map((p) => p.id).filter(Boolean);
-
-          if (linkedProfileIds.length > 0) {
-            const [linkedRegs, linkedApps, linkedLicenses] = await Promise.all([
-              supabase
-                .from('registrations' as any)
-                .select('sector_id, created_at')
-                .in('user_id', linkedProfileIds)
-                .order('created_at', { ascending: true }),
-              supabase
-                .from('applications' as any)
-                .select('data, created_at')
-                .in('applicant_id', linkedProfileIds)
-                .order('created_at', { ascending: true }),
-              supabase
-                .from('licenses' as any)
-                .select('sector_id, created_at, holder_id')
-                .or(`holder_id.eq.${resolvedLicenseeId},holder_id.in.(${linkedProfileIds.join(',')})`)
-                .order('created_at', { ascending: true }),
-            ]);
-            ((linkedRegs.data || []) as any[]).forEach((r) => add(r.sector_id));
-            ((linkedApps.data || []) as any[]).forEach((a) => add(a?.data?.sector_id));
-            ((linkedLicenses.data || []) as any[]).forEach((l) => add(l?.sector_id));
-          }
+          const visibleApps = await loadVisibleApplications({ licenseeId: resolvedLicenseeId });
+          visibleApps.forEach((app) => add(app.resolved_sector_id || app.sector_id || app.data?.sector_id));
         } else {
           // Fallback for users not yet linked to a licensee entity.
           const userId = user.id;
