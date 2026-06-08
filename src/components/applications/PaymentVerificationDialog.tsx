@@ -155,9 +155,17 @@ export function PaymentVerificationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
             <DollarSign className="h-5 w-5 text-primary" />
             Payment Details
+            {applicationData && (
+              <Badge
+                variant={getApplicationCategory(applicationData) === 'post_license' ? 'default' : 'secondary'}
+                className="ml-1"
+              >
+                {getApplicationCategoryLabel(applicationData)} Fee
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
             {applicationNumber
