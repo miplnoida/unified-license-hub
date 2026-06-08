@@ -35,13 +35,32 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
     queryFn: async () => {
       const lid = activeLicenseeId || null;
 
-      // licenses are linked via licensees.license_id → licenses.id, plus holder_id
-      const [{ data: licenseeRow }] = lid
-        ? await Promise.all([
-            supabase.from('licensees').select('id, license_id, status').eq('id', lid).maybeSingle(),
-          ])
-        : [{ data: null as any }];
+      // Resolve licensee row + the licensee's primary user(s). When a PPOC
+      // switches licensee in the header, applications/payments must reflect
+      // the SELECTED licensee's records — not the caller's personal data.
+      const [licenseeRowRes, primaryUserRes] = await Promise.all([
+        lid
+          ? supabase.from('licensees').select('id, license_id, status').eq('id', lid).maybeSingle()
+          : Promise.resolve({ data: null as any }),
+        lid
+          ? supabase.from('profiles').select('id').eq('licensee_id', lid)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const licenseeRow = (licenseeRowRes as any).data;
       const licenseId = (licenseeRow as any)?.license_id;
+      const primaryUserIds = (((primaryUserRes as any).data || []) as any[])
+        .map((r: any) => r.id)
+        .filter(Boolean) as string[];
+      // Scope app/payment queries to the licensee's owner(s) when available,
+      // else fall back to the calling user (Primary User viewing own data).
+      const scopedUserIds: string[] = primaryUserIds.length > 0
+        ? primaryUserIds
+        : (userId ? [userId] : []);
+      const hasScoped = scopedUserIds.length > 0;
+      const applyUserScope = (q: any) =>
+        scopedUserIds.length === 1 ? q.eq('applicant_id', scopedUserIds[0]) : q.in('applicant_id', scopedUserIds);
+      const applyPayUserScope = (q: any) =>
+        scopedUserIds.length === 1 ? q.eq('user_id', scopedUserIds[0]) : q.in('user_id', scopedUserIds);
 
       const licenseEq = (q: any) => licenseId ? q.eq('id', licenseId) : q.eq('id', '00000000-0000-0000-0000-000000000000');
 
