@@ -52,7 +52,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function PaymentVerificationDialog({
-  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true,
+  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true, applicationData,
 }: Props) {
   const { user } = useAuth();
   const [draftRemark, setDraftRemark] = useState('');
