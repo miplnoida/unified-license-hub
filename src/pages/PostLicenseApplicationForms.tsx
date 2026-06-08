@@ -16,6 +16,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
+import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import {
   ArrowLeft, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
@@ -451,6 +452,13 @@ export default function PostLicenseApplicationForms() {
                 </Card>
               );
             })}
+
+            {applicationId && allFormsCompleted && (
+              <LicenseePaymentPanel
+                applicationId={applicationId}
+                canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
+              />
+            )}
 
             {!showReview && completedCount > 0 && !allFormsCompleted && (
               <div className="flex justify-end pt-4 border-t">
