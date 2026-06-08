@@ -213,6 +213,7 @@ export default function FillReturnPage() {
   const [versionByForm, setVersionByForm] = useState<Record<string, string | null>>({});
   const [activeTab, setActiveTab] = useState('');
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
@@ -286,79 +287,88 @@ export default function FillReturnPage() {
   }, [id, allData, returnData, saving]);
 
   const handleSubmit = async (ackText?: string) => {
+    if (submitting) return;
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
     }
-    // Server-verified authorization for the licensee/sector on this return.
-    const targetLicenseeId = (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null;
-    const targetSectorId = (returnData as any)?.sector_id || null;
-    const authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
-    if (!authorized) {
-      toast.error('You are not authorized to submit this return.');
-      return;
-    }
-    const result = await Swal.fire({
-      title: 'Submit Return?',
-      html: `<p>You are about to submit <strong>${returnData?.unique_id}</strong> for review.</p><p>This action cannot be undone.</p>`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Submit',
-    });
-    if (!result.isConfirmed) return;
+    setSubmitting(true);
+    try {
+      // Server-verified authorization for the licensee/sector on this return.
+      const targetLicenseeId = (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null;
+      const targetSectorId = (returnData as any)?.sector_id || null;
+      const authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+      if (!authorized) {
+        toast.error('You are not authorized to submit this return.');
+        return;
+      }
+      const result = await Swal.fire({
+        title: 'Submit Return?',
+        html: `<p>You are about to submit <strong>${returnData?.unique_id}</strong> for review.</p><p>This action cannot be undone.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Submit',
+      });
+      if (!result.isConfirmed) return;
 
-    // Save first
-    await handleSave(true);
+      // Save first
+      await handleSave(true);
 
-    const now = new Date();
-    const dueDate = returnData?.due_date ? new Date(returnData.due_date) : null;
-    const ontime = dueDate ? (now <= dueDate ? 'ON_TIME' : 'LATE') : null;
+      const now = new Date();
+      const dueDate = returnData?.due_date ? new Date(returnData.due_date) : null;
+      const ontime = dueDate ? (now <= dueDate ? 'ON_TIME' : 'LATE') : null;
 
-    // Persist acknowledgement metadata on compliance_returns (best-effort)
-    if (id && ackText) {
-      await supabase
-        .from('compliance_returns' as any)
-        .update({
-          ack_by: user?.id,
-          ack_at: now.toISOString(),
-          ack_text: String(ackText).slice(0, 4000),
-        })
-        .eq('id', id);
-    }
+      // Persist acknowledgement metadata on compliance_returns (best-effort)
+      if (id && ackText) {
+        await supabase
+          .from('compliance_returns' as any)
+          .update({
+            ack_by: user?.id,
+            ack_at: now.toISOString(),
+            ack_text: String(ackText).slice(0, 4000),
+          })
+          .eq('id', id);
+      }
 
-    updateReturn.mutate({
-      id,
-      workflow_status: 'SUB',
-      submit_date: now.toISOString(),
-      ontime_status: ontime,
-      updated_by: user?.id,
-    }, {
-      onSuccess: () => {
-        insertAudit.mutate({
-          return_id: id,
-          action: 'submitted',
-          previous_status: returnData?.workflow_status,
-          new_status: 'SUB',
-          performed_by: user?.id,
+      try {
+        await updateReturn.mutateAsync({
+          id,
+          workflow_status: 'SUB',
+          submit_date: now.toISOString(),
+          ontime_status: ontime,
+          updated_by: user?.id,
         });
-        // Fire-and-forget notification dispatch
-        supabase.functions.invoke('dispatch-notification-event', {
-          body: {
-            event_key: 'compliance.return_submitted',
-            entity_type: 'compliance_return',
-            entity_id: id,
-            payload: {
-              return_name: returnData?.unique_id || 'Compliance return',
-              actor_name: user?.email || 'User',
-              licensee_id: (returnData as any)?.licensee_id,
-              sector_id: (returnData as any)?.sector_id,
-            },
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to submit return');
+        return;
+      }
+
+      insertAudit.mutate({
+        return_id: id,
+        action: 'submitted',
+        previous_status: returnData?.workflow_status,
+        new_status: 'SUB',
+        performed_by: user?.id,
+      });
+      // Fire-and-forget notification dispatch
+      supabase.functions.invoke('dispatch-notification-event', {
+        body: {
+          event_key: 'compliance.return_submitted',
+          entity_type: 'compliance_return',
+          entity_id: id,
+          payload: {
+            return_name: returnData?.unique_id || 'Compliance return',
+            actor_name: user?.email || 'User',
+            licensee_id: (returnData as any)?.licensee_id,
+            sector_id: (returnData as any)?.sector_id,
           },
-        }).catch(() => {});
-        toast.success('Return submitted successfully!');
-        navigate(`/entity/returns/${id}/view`);
-      },
-    });
+        },
+      }).catch(() => {});
+      toast.success('Return submitted successfully!');
+      navigate(`/entity/returns/${id}/view`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loadingReturn) {
@@ -477,7 +487,7 @@ export default function FillReturnPage() {
             {isEditable && (
               <TabsContent value="__review__" className="space-y-4">
                 <ReturnReviewPanel
-                  loading={saving || updateReturn.isPending}
+                  loading={submitting}
                   onAcknowledge={() =>
                     handleSubmit(
                       'I confirm that the data submitted in this return is accurate and complete to the best of my knowledge.'
