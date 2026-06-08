@@ -213,6 +213,7 @@ export default function FillReturnPage() {
   const [versionByForm, setVersionByForm] = useState<Record<string, string | null>>({});
   const [activeTab, setActiveTab] = useState('');
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout>();
   const initializedRef = useRef(false);
