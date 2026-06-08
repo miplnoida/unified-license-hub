@@ -12,6 +12,7 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'outline', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
