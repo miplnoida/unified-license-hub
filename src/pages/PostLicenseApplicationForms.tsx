@@ -16,6 +16,8 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { markApplicationInProgressIfDraft } from '@/lib/applicationStatus';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { AttachmentList } from '@/components/shared/AttachmentList';
+import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
+import { resolveApplicationFeeBreakdown } from '@/lib/applicationFeeBreakdown';
 import {
   ArrowLeft, CheckCircle2, FileText, Loader2,
   ClipboardList, Clock, PlayCircle, Send,
@@ -121,6 +123,8 @@ export default function PostLicenseApplicationForms() {
   });
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
+  const [paymentChecking, setPaymentChecking] = useState(false);
   const [showReview, setShowReview] = useState(() => {
     try {
       return sessionStorage.getItem(`${postLicenseStepStorageKey}:review`) === 'true';
@@ -214,6 +218,45 @@ export default function PostLicenseApplicationForms() {
   const allFormsCompleted = matchedTemplates.length > 0 && completedCount === matchedTemplates.length;
   const activeTemplate = matchedTemplates.find(t => t.id === activeFormTemplateId) || null;
 
+  useEffect(() => {
+    if (!applicationId || !allFormsCompleted) {
+      setPaymentReady(false);
+      setPaymentChecking(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setPaymentChecking(true);
+      try {
+        const [resolvedFees, payRes] = await Promise.all([
+          resolveApplicationFeeBreakdown(applicationId),
+          supabase
+            .from('payments')
+            .select('status')
+            .eq('application_id', applicationId)
+            .order('created_at', { ascending: false }),
+        ]);
+
+        if (cancelled) return;
+
+        const totalDue = resolvedFees.reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
+        const hasSuccessfulPayment = (payRes.data || []).some((payment: any) =>
+          ['success', 'paid', 'completed'].includes(String(payment?.status || '').toLowerCase()),
+        );
+
+        setPaymentReady(totalDue <= 0 || hasSuccessfulPayment);
+      } finally {
+        if (!cancelled) setPaymentChecking(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId, allFormsCompleted]);
+
   const getFormStatusBadge = (status: FormStatus) => {
     switch (status) {
       case 'completed':
@@ -287,6 +330,11 @@ export default function PostLicenseApplicationForms() {
 
   const handleSubmitApplication = async () => {
     if (!applicationId || !allFormsCompleted) return;
+    if (paymentChecking) return;
+    if (!paymentReady) {
+      toast.error('Complete payment before submitting this application.');
+      return;
+    }
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke('verify-and-submit', {
@@ -452,6 +500,14 @@ export default function PostLicenseApplicationForms() {
               );
             })}
 
+            {applicationId && allFormsCompleted && (
+              <LicenseePaymentPanel
+                applicationId={applicationId}
+                canPay={['draft', 'in_progress'].includes((appData?.status || '').toLowerCase())}
+                onPaid={() => setPaymentReady(true)}
+              />
+            )}
+
             {!showReview && completedCount > 0 && !allFormsCompleted && (
               <div className="flex justify-end pt-4 border-t">
                 <Button size="lg" variant="outline" onClick={() => setShowReview(true)}>
@@ -466,12 +522,12 @@ export default function PostLicenseApplicationForms() {
                   size="lg"
                   variant="outline"
                   onClick={() => setShowReview(true)}
-                  disabled={submitting}
+                  disabled={submitting || paymentChecking || !paymentReady}
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" /> Review & Submit
                 </Button>
                 {reviewSettings?.application_review_enabled === false && (
-                  <Button size="lg" onClick={handleSubmitApplication} disabled={submitting}>
+                  <Button size="lg" onClick={handleSubmitApplication} disabled={submitting || paymentChecking || !paymentReady}>
                     {submitting ? (
                       <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</>
                     ) : (
@@ -497,7 +553,6 @@ export default function PostLicenseApplicationForms() {
                   }}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
-                  onAcknowledge={handleSubmitApplication}
                   onEdit={(idx) => {
                     const tmpl = matchedTemplates[idx];
                     if (tmpl) {
@@ -507,6 +562,7 @@ export default function PostLicenseApplicationForms() {
                   }}
                   title="Review Your Application"
                   description="Please review all entered information before final submission."
+                  onAcknowledge={paymentReady ? handleSubmitApplication : () => toast.error('Complete payment before submitting this application.')}
                 />
                 <div className="flex justify-start">
                   <Button variant="outline" onClick={() => setShowReview(false)}>
