@@ -446,7 +446,11 @@ export default function PaymentHistory() {
         onOpenChange={handleDetailDialogOpenChange}
         payment={selectedPayment}
         isAdminView={!!isAdmin}
+        applicationNumber={selectedPayment?.application?.application_number || undefined}
+        applicantName={selectedPayment ? getApplicantName(selectedPayment) : undefined}
+        applicationData={selectedPayment?.application?.data}
       />
+
 
       {/* Receipt View Dialog */}
       <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
