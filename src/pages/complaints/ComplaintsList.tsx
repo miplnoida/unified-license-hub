@@ -78,8 +78,13 @@ export default function ComplaintsList() {
 
   const loadComplaints = async () => {
     setLoading(true);
+    // Non-internal users only see complaints they filed themselves.
+    // This keeps the list stable when PPOC users switch the active licensee
+    // and aligns the licensee portal with personal-scope complaint records.
+    let q = supabase.from('complaints').select('*').order('created_at', { ascending: false });
+    if (!isInternal && user?.id) q = q.eq('complainant_id', user.id);
     const [{ data }, { data: typesData }] = await Promise.all([
-      supabase.from('complaints').select('*').order('created_at', { ascending: false }),
+      q,
       supabase.from('complaint_types').select('id, name').eq('is_active', true).order('name'),
     ]);
     setComplaints((data || []) as any);
@@ -87,7 +92,7 @@ export default function ComplaintsList() {
     setLoading(false);
   };
 
-  useEffect(() => { loadComplaints(); }, []);
+  useEffect(() => { loadComplaints(); }, [isInternal, user?.id]);
 
   const handleCreate = async () => {
     if (!newSubject.trim() || !newDesc.trim() || !user) {

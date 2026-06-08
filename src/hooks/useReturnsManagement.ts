@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { toast } from 'sonner';
+
 
 // ─── Return Types ───
 export function useReturnTypes() {
@@ -189,23 +191,14 @@ export function useReturnById(id: string | undefined) {
 
 export function useMyReturns() {
   const { user } = useAuth();
+  const { resolvedLicenseeId } = usePpoc();
   return useQuery({
-    queryKey: ['my_returns', user?.id],
+    queryKey: ['my_returns', user?.id, resolvedLicenseeId],
     enabled: !!user?.id,
     queryFn: async () => {
-      // Resolve the set of entity (licensee) IDs the user can see returns for:
-      //  - PPOC: all licensees they're actively mapped to
-      //  - Regular user: their own profile.licensee_id
-      const [{ data: mappings }, { data: prof }] = await Promise.all([
-        (supabase as any).from('ppoc_entity_mappings').select('licensee_id').eq('ppoc_user_id', user!.id).eq('is_active', true),
-        (supabase as any).from('profiles').select('licensee_id').eq('id', user!.id).maybeSingle(),
-      ]);
-      const entityIds = Array.from(new Set([
-        ...((mappings || []).map((m: any) => m.licensee_id).filter(Boolean)),
-        ...(prof?.licensee_id ? [prof.licensee_id] : []),
-      ]));
-
-      // Build OR filter: returns this user created OR for any entity they manage
+      // Strictly scope returns to the currently active licensee entity.
+      // PPOC users switching between mapped licensees must see only the
+      // selected entity's returns — never an aggregated view across entities.
       let query = (supabase as any)
         .from('returns_filed')
         .select(`
@@ -217,9 +210,10 @@ export function useMyReturns() {
         `)
         .order('created_at', { ascending: false });
 
-      if (entityIds.length > 0) {
-        query = query.or(`created_by.eq.${user!.id},entity_id.in.(${entityIds.join(',')})`);
+      if (resolvedLicenseeId) {
+        query = query.eq('entity_id', resolvedLicenseeId);
       } else {
+        // No licensee context yet — fall back to personal scope only.
         query = query.eq('created_by', user!.id);
       }
 
