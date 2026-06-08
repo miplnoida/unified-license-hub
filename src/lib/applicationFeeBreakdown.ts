@@ -76,9 +76,9 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
         (f.sector_id === selectedSector ? 1 : 0),
     }))
     .filter((f: any) =>
-      (!f.sub_sector_id || f.sub_sector_id === selectedSubSector) &&
-      (!f.category_id || f.category_id === selectedCategory) &&
-      (!f.service_id || f.service_id === selectedService)
+      (!f.sub_sector_id || !selectedSubSector || f.sub_sector_id === selectedSubSector) &&
+      (!f.category_id || !selectedCategory || f.category_id === selectedCategory) &&
+      (!f.service_id || !selectedService || f.service_id === selectedService)
     )
     .sort((a: any, b: any) => b.specificity - a.specificity);
 
