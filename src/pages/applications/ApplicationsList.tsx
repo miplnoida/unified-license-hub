@@ -293,8 +293,13 @@ export default function ApplicationsList() {
       setLoading(true);
       // Grouping needs the full filtered set; cap at 200 to keep the UI responsive.
       // (Users should narrow filters before grouping.)
-      const effectivePage = groupingEnabled ? 0 : page;
-      const effectivePageSize = groupingEnabled ? 200 : PAGE_SIZE;
+      const groupingMode = groupingEnabled;
+      // When a pre/post type filter is active we must paginate AFTER the
+      // client-side filter, otherwise pages can appear empty even when more
+      // matches exist deeper in the dataset.
+      const clientPaginate = !!typeFilter;
+      const effectivePage = (groupingMode || clientPaginate) ? 0 : page;
+      const effectivePageSize = (groupingMode || clientPaginate) ? 500 : PAGE_SIZE;
 
       const rpcParams = {
         _page: effectivePage,
@@ -339,8 +344,16 @@ export default function ApplicationsList() {
       } else if (typeFilter === 'pre') {
         rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
       }
-      // Scope to the active sector when one is set (licensee context).
-      setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
+      // When pre/post filter is active, paginate the filtered rows client-side
+      // so totalCount and the visible slice reflect the filter.
+      if (clientPaginate && !groupingMode) {
+        setTotalCount(rows.length);
+        const start = page * PAGE_SIZE;
+        rows = rows.slice(start, start + PAGE_SIZE);
+      } else {
+        setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
+      }
+
       setApplications(rows.map((r: any): Application => ({
         id: r.id,
         application_number: r.application_number,
