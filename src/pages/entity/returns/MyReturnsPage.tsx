@@ -21,7 +21,7 @@ export default function MyReturnsPage() {
   const [yearFilter, setYearFilter] = useState('');
 
   const filtered = returns.filter(r => {
-    if (tab === 'draft') return ['TEMP', 'WIP'].includes(r.workflow_status);
+    if (tab === 'draft') return ['TEMP', 'WIP', 'TBR'].includes(r.workflow_status);
     if (tab === 'submitted') return r.workflow_status === 'SUB';
     if (tab === 'validated') return r.workflow_status === 'VAL';
     if (tab === 'tbr') return r.workflow_status === 'TBR';
@@ -47,7 +47,7 @@ export default function MyReturnsPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="draft">Draft</TabsTrigger>
+              <TabsTrigger value="draft">Editable</TabsTrigger>
               <TabsTrigger value="submitted">Submitted</TabsTrigger>
               <TabsTrigger value="validated">Validated</TabsTrigger>
               <TabsTrigger value="tbr">Resubmit</TabsTrigger>
