@@ -41,7 +41,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 
 export default function LicensesList() {
   const { user } = useAuth();
-  const { resolvedLicenseeId } = usePpoc();
+  const { resolvedLicenseeId, isPpoc, actingAs } = usePpoc();
   const { activeSectorId, availableSectors } = useActiveSector();
   const portalContext = useEffectivePortalContext();
   const navigate = useNavigate();
@@ -53,7 +53,10 @@ export default function LicensesList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : (urlFilter === 'expired' ? 'expired' : 'all'));
-  const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+  const isGlobalInternalView = !!user
+    && !portalContext.loading
+    && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role))
+    && !(isPpoc && actingAs === 'ppoc' && resolvedLicenseeId);
   const validActiveSectorId = activeSectorId && availableSectors.some((sector) => sector.id === activeSectorId)
     ? activeSectorId
     : null;
@@ -79,7 +82,7 @@ export default function LicensesList() {
         _status: statusFilter === 'all' ? null : statusFilter,
         _sort_by: 'created_at',
         _sort_dir: 'desc',
-        _licensee_id: isInternal ? null : resolvedLicenseeId,
+        _licensee_id: isGlobalInternalView ? null : resolvedLicenseeId,
         _sector_id: validActiveSectorId,
       };
       const { data, error } = await supabase.rpc('get_my_licenses_page' as any, {
@@ -136,7 +139,7 @@ export default function LicensesList() {
       setLoading(false);
     }
     load();
-  }, [isInternal, resolvedLicenseeId, validActiveSectorId, search, statusFilter, user?.id, user?.role, user?.licenseeId]);
+  }, [isGlobalInternalView, resolvedLicenseeId, validActiveSectorId, search, statusFilter, user?.id, user?.role, user?.licenseeId]);
 
   const filtered = useMemo(() => {
     if (urlFilter !== 'expiring') return licenses;
@@ -153,8 +156,8 @@ export default function LicensesList() {
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
-          title={isInternal ? 'License Management' : 'My Licenses'}
-          description={isInternal ? 'Manage all issued licenses' : 'View all your licenses and their current status'}
+          title={isGlobalInternalView ? 'License Management' : 'My Licenses'}
+          description={isGlobalInternalView ? 'Manage all issued licenses' : 'View all your licenses and their current status'}
         />
 
         <Card>
