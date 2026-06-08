@@ -75,7 +75,17 @@ export default function PaymentDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <PageHeader title="Payment Details" description={`Transaction ${payment.transaction_ref || payment.id}`} />
+          <div className="flex-1">
+            <PageHeader title="Payment Details" description={`Transaction ${payment.transaction_ref || payment.id}`} />
+          </div>
+          {application && (
+            <Badge
+              variant={getApplicationCategory(application.data) === 'post_license' ? 'default' : 'secondary'}
+              className="text-sm px-3 py-1"
+            >
+              {getApplicationCategoryLabel(application.data)} Fee
+            </Badge>
+          )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
