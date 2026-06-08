@@ -31,8 +31,8 @@ const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
 const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector'));
 
-function M({ module, children }: { module: PermissionModule; children: React.ReactNode }) {
-  return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
+function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
+  return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
 }
 
 export const dashboardRoutes = (
