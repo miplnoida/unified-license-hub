@@ -26,6 +26,7 @@ export default function PaymentDetail() {
   const isAdmin = !!user && !portalContext.loading && portalContext.isInternal;
 
   const [payment, setPayment] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,8 +37,12 @@ export default function PaymentDetail() {
       const p = pData as any;
       setPayment(p);
       if (p?.application_id) {
-        const fees = await resolveApplicationFeeBreakdown(p.application_id);
+        const [fees, appRes] = await Promise.all([
+          resolveApplicationFeeBreakdown(p.application_id),
+          supabase.from('applications').select('id, application_number, license_type, data').eq('id', p.application_id).maybeSingle(),
+        ]);
         setFeeComponents(fees);
+        setApplication(appRes.data);
       }
       setLoading(false);
     })();
