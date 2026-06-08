@@ -292,7 +292,7 @@ export default function ViewReturns() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => navigate(`/entity/returns/${ret.id}/view`)}>
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/returns-management/${ret.id}`)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
