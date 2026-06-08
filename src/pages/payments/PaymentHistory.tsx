@@ -309,6 +309,7 @@ export default function PaymentHistory() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Application No</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Applicant</TableHead>
                         <TableHead>License Type</TableHead>
                         <TableHead>Sector / Category</TableHead>
