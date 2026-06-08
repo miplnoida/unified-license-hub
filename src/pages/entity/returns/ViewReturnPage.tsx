@@ -10,7 +10,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Loader2, CheckCircle, AlertTriangle, Clock, Pencil, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -173,11 +173,22 @@ export default function ViewReturnPage() {
     if ((d as any).form_version_id) versionByForm[d.form_id] = (d as any).form_version_id;
   });
 
+  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
+
+  useEffect(() => {
+    if (tabs.length === 0) {
+      if (activeTab) setActiveTab('');
+      return;
+    }
+
+    if (!activeTab || !tabs.includes(activeTab)) {
+      setActiveTab(tabs[0]);
+    }
+  }, [activeTab, tabs]);
+
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
   if (!returnData) return <DashboardLayout><p className="text-center py-20">Return not found</p></DashboardLayout>;
 
-  const tabs = [...new Set(effectiveConfigForms.map(f => f.tab_name))];
-  if (!activeTab && tabs.length > 0) setActiveTab(tabs[0]);
   const activeRequest = requests.find(r => r.status === 'active');
 
   return (
