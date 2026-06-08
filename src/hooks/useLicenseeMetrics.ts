@@ -77,7 +77,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const retScope = lid ? `entity_id.eq.${lid},on_behalf_of_licensee_id.eq.${lid}` : null;
       const retCount = () => supabase.from('returns_filed').select('id', { count: 'exact', head: true }).or(retScope as string);
 
-      const UNFILED = ['TEMP', 'WIP', 'TBR'];
+      const UNFILED = ['TEMP', 'WIP', 'TBR'] as const;
 
       const retQueries = retScope
         ? await Promise.all([
