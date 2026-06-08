@@ -151,11 +151,12 @@ export default function ViewReturnPage() {
     };
   });
 
-  const effectiveConfigForms = configForms.length > 0
-    ? configForms
-    : fallbackConfigForms.length > 0
-      ? fallbackConfigForms
-      : submittedConfigForms;
+  // Merge all known forms so every form is visible, even if not filled.
+  const mergedFormsMap = new Map<string, any>();
+  [...configForms, ...fallbackConfigForms, ...submittedConfigForms].forEach((f: any) => {
+    if (f?.form_id && !mergedFormsMap.has(f.form_id)) mergedFormsMap.set(f.form_id, f);
+  });
+  const effectiveConfigForms = Array.from(mergedFormsMap.values());
 
   // Build per-form data map keyed by field_name (matches FormRenderer initialData)
   // Also collect the pinned form_version_id per form (last write wins; all rows share it).
