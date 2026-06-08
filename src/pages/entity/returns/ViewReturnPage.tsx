@@ -160,9 +160,6 @@ export default function ViewReturnPage() {
         {returnData.workflow_status === 'TBR' && activeRequest && (
           <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription><strong>Resubmission Required:</strong> {activeRequest.reasons}</AlertDescription></Alert>
         )}
-        {returnData.workflow_status === 'SUB' && (
-          <Alert className="border-amber-500 bg-amber-50"><Clock className="h-4 w-4 text-amber-600" /><AlertDescription className="text-amber-800">This return is under review.</AlertDescription></Alert>
-        )}
 
         {/* Read-only forms */}
         {tabs.length > 0 && (
