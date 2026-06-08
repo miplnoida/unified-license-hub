@@ -12,6 +12,7 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { ArrowLeft, Loader2, DollarSign, Calendar, CreditCard, FileText, Hash } from 'lucide-react';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   pending: 'outline', completed: 'default', success: 'default', failed: 'destructive', refunded: 'secondary',
@@ -25,6 +26,7 @@ export default function PaymentDetail() {
   const isAdmin = !!user && !portalContext.loading && portalContext.isInternal;
 
   const [payment, setPayment] = useState<any>(null);
+  const [application, setApplication] = useState<any>(null);
   const [feeComponents, setFeeComponents] = useState<ApplicationFeeLine[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,8 +37,12 @@ export default function PaymentDetail() {
       const p = pData as any;
       setPayment(p);
       if (p?.application_id) {
-        const fees = await resolveApplicationFeeBreakdown(p.application_id);
+        const [fees, appRes] = await Promise.all([
+          resolveApplicationFeeBreakdown(p.application_id),
+          supabase.from('applications').select('id, application_number, license_type, data').eq('id', p.application_id).maybeSingle(),
+        ]);
         setFeeComponents(fees);
+        setApplication(appRes.data);
       }
       setLoading(false);
     })();
@@ -69,7 +75,17 @@ export default function PaymentDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <PageHeader title="Payment Details" description={`Transaction ${payment.transaction_ref || payment.id}`} />
+          <div className="flex-1">
+            <PageHeader title="Payment Details" description={`Transaction ${payment.transaction_ref || payment.id}`} />
+          </div>
+          {application && (
+            <Badge
+              variant={getApplicationCategory(application.data) === 'post_license' ? 'default' : 'secondary'}
+              className="text-sm px-3 py-1"
+            >
+              {getApplicationCategoryLabel(application.data)} Fee
+            </Badge>
+          )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -96,6 +112,18 @@ export default function PaymentDetail() {
                 <InfoRow icon={<Calendar className="h-3.5 w-3.5" />} label="Created" value={new Date(payment.created_at).toLocaleDateString()} />
                 {payment.paid_at && (
                   <InfoRow icon={<Calendar className="h-3.5 w-3.5" />} label="Paid At" value={new Date(payment.paid_at).toLocaleString()} />
+                )}
+                {application && (
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground text-xs mb-1 flex items-center gap-1"><FileText className="h-3.5 w-3.5" />Application</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-sm">{application.application_number}</span>
+                      <Badge variant="outline" className="text-xs">{getApplicationCategoryLabel(application.data)}</Badge>
+                      {application.license_type && (
+                        <span className="text-xs text-muted-foreground">· {application.license_type}</span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 

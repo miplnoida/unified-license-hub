@@ -17,6 +17,7 @@ import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink, ShieldCheck } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 interface ApplicationLite {
   id: string;
@@ -308,6 +309,7 @@ export default function PaymentHistory() {
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Application No</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Applicant</TableHead>
                         <TableHead>License Type</TableHead>
                         <TableHead>Sector / Category</TableHead>
@@ -320,14 +322,22 @@ export default function PaymentHistory() {
                     </TableHeader>
                     <TableBody>
                       {filtered.length === 0 ? (
-                        <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No payments found</TableCell></TableRow>
                       ) : filtered.map(p => {
                         const appNo = p.application?.application_number || (p.application_id ? p.application_id.slice(0, 8) : null);
                         const hasApp = !!p.application_id && !!p.application;
+                        const category = hasApp ? getApplicationCategory(p.application?.data) : null;
                         return (
                         <TableRow key={p.id}>
                           <TableCell className="text-sm whitespace-nowrap">{new Date(p.created_at).toLocaleDateString()}</TableCell>
                           <TableCell className="font-mono text-sm">{appNo || <span className="text-muted-foreground italic">Not linked</span>}</TableCell>
+                          <TableCell>
+                            {category ? (
+                              <Badge variant={category === 'post_license' ? 'default' : 'secondary'} className="text-xs whitespace-nowrap">
+                                {getApplicationCategoryLabel(p.application?.data)}
+                              </Badge>
+                            ) : <span className="text-muted-foreground text-xs">—</span>}
+                          </TableCell>
                           <TableCell className="text-sm">{getApplicantName(p)}</TableCell>
                           <TableCell className="text-sm">{p.application?.license_type || '-'}</TableCell>
                           <TableCell className="text-sm">{getSectorCategory(p)}</TableCell>

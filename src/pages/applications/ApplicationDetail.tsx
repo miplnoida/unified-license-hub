@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
@@ -542,9 +543,17 @@ export default function ApplicationDetail() {
           backHref={isInternal ? '/applications/queue' : '/applications'}
           backLabel="Back to Applications"
           actions={
-            <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
-              {APPLICATION_STATUS_LABELS[app.status]}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={getApplicationCategory(appData) === 'post_license' ? 'default' : 'secondary'}
+                className="text-sm px-3 py-1"
+              >
+                {getApplicationCategoryLabel(appData)} Application
+              </Badge>
+              <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
+                {APPLICATION_STATUS_LABELS[app.status]}
+              </Badge>
+            </div>
           }
         />
 
