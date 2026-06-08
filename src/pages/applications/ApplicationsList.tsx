@@ -335,9 +335,9 @@ export default function ApplicationsList() {
       // Client-side filter for pre/post licensing applications.
       // Post-license apps are tagged with data.type === 'post_license' (set by NewPostLicenseApplication).
       if (typeFilter === 'post') {
-        rows = rows.filter((r: any) => (r.data?.type === 'post_license'));
+        rows = rows.filter((r: any) => (r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
       } else if (typeFilter === 'pre') {
-        rows = rows.filter((r: any) => (r.data?.type !== 'post_license'));
+        rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
       }
       // Scope to the active sector when one is set (licensee context).
       setTotalCount(rows[0]?.total_count ? Number(rows[0].total_count) : 0);
@@ -483,9 +483,9 @@ export default function ApplicationsList() {
         if (error) throw error;
         let rows = (data as any[]) || [];
         if (typeFilter === 'post') {
-          rows = rows.filter((r: any) => r.data?.type === 'post_license');
+          rows = rows.filter((r: any) => r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id);
         } else if (typeFilter === 'pre') {
-          rows = rows.filter((r: any) => r.data?.type !== 'post_license');
+          rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
         }
         all = all.concat(rows);
         offset += PAGE;
