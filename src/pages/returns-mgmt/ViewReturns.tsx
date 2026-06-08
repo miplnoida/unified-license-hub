@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,41 +11,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { RETURN_STATUS_LABELS, ReturnStatus } from '@/types/platform';
-import { Search, Loader2, ClipboardList, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Search, Loader2, ClipboardList, CheckCircle, Clock, AlertTriangle, ChevronLeft, ChevronRight, Download, Eye } from 'lucide-react';
 import {
   ADMIN_RETURN_DRILLDOWNS,
   ADMIN_RETURN_STATUS_FILTERS,
-  applyAdminReturnServerFilter,
   getAdminReturnDisplayStatus,
   matchesAdminReturnFilter,
-  normalizeAdminReturnStatusFilter,
   todayDateIso,
   type AdminReturnDisplayStatus,
   type AdminReturnStatusFilter,
 } from '@/lib/adminReturnFilters';
 
-interface ComplianceReturn {
+/** Map returns_filed.workflow_status (TEMP/WIP/SUB/VAL/TBR) → admin status model. */
+function mapWorkflowStatus(ws: string | null | undefined): string {
+  switch (ws) {
+    case 'SUB': return 'submitted';
+    case 'VAL': return 'accepted';
+    case 'TBR': return 'resubmission_requested';
+    case 'REJ': return 'rejected';
+    default: return ws || ''; // TEMP/WIP fall through and get filtered out
+  }
+}
+
+interface AdminReturnRow {
   id: string;
-  return_config_id: string | null;
-  submitter_id: string;
-  period_start: string;
-  period_end: string;
-  due_date: string;
-  status: ReturnStatus;
+  unique_id: string | null;
+  return_configuration_id: string | null;
+  entity_id: string | null;
+  on_behalf_of_licensee_id: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  due_date: string | null;
+  status: string;            // mapped
+  workflow_status: string;
   submitted_at: string | null;
   reviewed_at: string | null;
   created_at: string;
-}
-
-interface ReturnConfig {
-  id: string;
-  name: string;
-  frequency: string;
-}
-
-interface Profile {
-  id: string;
-  full_name: string;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -63,53 +64,66 @@ const statusFilterMeta: Record<AdminReturnDisplayStatus, { label: string; chip: 
 };
 
 export default function ViewReturns() {
-  const [returns, setReturns] = useState<ComplianceReturn[]>([]);
-  const [configs, setConfigs] = useState<ReturnConfig[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const navigate = useNavigate();
+  const [returns, setReturns] = useState<AdminReturnRow[]>([]);
+  const [configs, setConfigs] = useState<Array<{ id: string; name: string }>>([]);
+  const [licensees, setLicensees] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlStatus = normalizeAdminReturnStatusFilter(searchParams.get('status'));
+  const urlStatus = (ADMIN_RETURN_STATUS_FILTERS as readonly string[]).includes(searchParams.get('status') || '')
+    ? (searchParams.get('status') as AdminReturnStatusFilter)
+    : 'all';
   const [statusFilter, setStatusFilter] = useState<AdminReturnStatusFilter>(urlStatus);
   const [page, setPage] = useState(0);
+
   useEffect(() => {
-    if (urlStatus !== statusFilter) {
-      setStatusFilter(urlStatus);
-      setPage(0);
-    }
+    if (urlStatus !== statusFilter) { setStatusFilter(urlStatus); setPage(0); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlStatus]);
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
-    if (statusFilter === 'all') {
-      next.delete('status');
-    } else {
-      next.set('status', statusFilter);
-    }
-    if (next.toString() !== searchParams.toString()) {
-      setSearchParams(next, { replace: true });
-    }
+    if (statusFilter === 'all') next.delete('status');
+    else next.set('status', statusFilter);
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true });
   }, [statusFilter, searchParams, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const serverToday = todayDateIso();
-      const [retRes, confRes, profRes] = await Promise.all([
-        applyAdminReturnServerFilter(
-          supabase.from('compliance_returns' as any).select('*').order('submitted_at', { ascending: false }),
-          statusFilter,
-          serverToday,
-        ),
-        supabase.from('return_configurations' as any).select('*'),
-        supabase.from('profiles').select('id, full_name'),
+      const [retRes, confRes, licRes] = await Promise.all([
+        (supabase as any)
+          .from('returns_filed')
+          .select('id, unique_id, return_configuration_id, entity_id, on_behalf_of_licensee_id, period_start_date, period_end_date, due_date, workflow_status, submit_date, created_at')
+          .in('workflow_status', ['SUB', 'VAL', 'TBR', 'REJ'])
+          .order('submit_date', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false }),
+        (supabase as any).from('return_configs').select('id, name'),
+        (supabase as any).from('licensees').select('id, name'),
       ]);
       if (cancelled) return;
-      if (!retRes.error) setReturns((retRes.data || []) as any);
-      if (!confRes.error) setConfigs((confRes.data || []) as any);
-      if (!profRes.error) setProfiles((profRes.data || []) as any);
+      if (!retRes.error) {
+        const mapped: AdminReturnRow[] = (retRes.data || []).map((r: any) => ({
+          id: r.id,
+          unique_id: r.unique_id,
+          return_configuration_id: r.return_configuration_id,
+          entity_id: r.entity_id,
+          on_behalf_of_licensee_id: r.on_behalf_of_licensee_id,
+          period_start: r.period_start_date,
+          period_end: r.period_end_date,
+          due_date: r.due_date,
+          workflow_status: r.workflow_status,
+          status: mapWorkflowStatus(r.workflow_status),
+          submitted_at: r.submit_date,
+          reviewed_at: r.workflow_status === 'VAL' || r.workflow_status === 'REJ' ? r.submit_date : null,
+          created_at: r.created_at,
+        }));
+        setReturns(mapped);
+      }
+      if (!confRes.error) setConfigs(confRes.data || []);
+      if (!licRes.error) setLicensees(licRes.data || []);
       setLoading(false);
     }
     load();
@@ -117,17 +131,12 @@ export default function ViewReturns() {
   }, [statusFilter]);
 
   const getConfigName = (id: string | null) => configs.find(c => c.id === id)?.name || '—';
-  const getSubmitterName = (id: string) => profiles.find(p => p.id === id)?.full_name || '—';
+  const getLicenseeName = (r: AdminReturnRow) => {
+    const id = r.on_behalf_of_licensee_id || r.entity_id;
+    return licensees.find(l => l.id === id)?.name || '—';
+  };
 
-  const processedReturns = useMemo(() => {
-    const now = new Date();
-    return returns.map(r => {
-      if (r.status === 'submitted' && new Date(r.due_date) < now && !r.reviewed_at) {
-        return { ...r, status: 'overdue' as ReturnStatus };
-      }
-      return r;
-    });
-  }, [returns]);
+  const processedReturns = useMemo(() => returns, [returns]);
 
   const submittedStatuses: [AdminReturnStatusFilter, string][] = [
     ['submitted', statusFilterMeta.submitted.label],
@@ -145,13 +154,14 @@ export default function ViewReturns() {
       if (!matchesAdminReturnFilter(r, statusFilter, today)) return false;
       if (search) {
         const q = search.toLowerCase();
-        const name = getConfigName(r.return_config_id).toLowerCase();
-        const submitter = getSubmitterName(r.submitter_id).toLowerCase();
-        if (!name.includes(q) && !submitter.includes(q)) return false;
+        const name = getConfigName(r.return_configuration_id).toLowerCase();
+        const lic = getLicenseeName(r).toLowerCase();
+        const uid = (r.unique_id || '').toLowerCase();
+        if (!name.includes(q) && !lic.includes(q) && !uid.includes(q)) return false;
       }
       return true;
     });
-  }, [processedReturns, statusFilter, search, configs, profiles]);
+  }, [processedReturns, statusFilter, search, configs, licensees]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -166,7 +176,7 @@ export default function ViewReturns() {
       <div className="space-y-6">
         <PageHeader
           title={activeFilterMeta?.chip || ADMIN_RETURN_DRILLDOWNS.all.label}
-          description="View admin-visible submitted and finalized compliance returns. Draft, in-progress, and not-submitted returns are excluded."
+          description="View admin-visible submitted and finalized compliance returns. Draft and in-progress returns are excluded."
         />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -185,14 +195,13 @@ export default function ViewReturns() {
           </div>
         )}
 
-        {/* Filters */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-wrap items-center gap-4">
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by return type or licensee..."
+                  placeholder="Search by reference, return type or licensee..."
                   className="pl-10"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
@@ -213,15 +222,16 @@ export default function ViewReturns() {
                 className="ml-auto"
                 disabled={loading || filtered.length === 0}
                 onClick={() => {
-                  const headers = ['Licensee Name', 'Return Type', 'Period Start', 'Period End', 'Submission Date', 'Status'];
+                  const headers = ['Reference', 'Licensee Name', 'Return Type', 'Period Start', 'Period End', 'Submission Date', 'Status'];
                   const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
                   const rows = filtered.map(r => [
-                    getSubmitterName(r.submitter_id),
-                    getConfigName(r.return_config_id),
-                    new Date(r.period_start).toLocaleDateString(),
-                    new Date(r.period_end).toLocaleDateString(),
+                    r.unique_id || '',
+                    getLicenseeName(r),
+                    getConfigName(r.return_configuration_id),
+                    r.period_start ? new Date(r.period_start).toLocaleDateString() : '',
+                    r.period_end ? new Date(r.period_end).toLocaleDateString() : '',
                     r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '',
-                    RETURN_STATUS_LABELS[r.status] || r.status,
+                    RETURN_STATUS_LABELS[r.status as ReturnStatus] || r.status,
                   ].map(escape).join(','));
                   const csv = [headers.map(escape).join(','), ...rows].join('\n');
                   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -239,7 +249,6 @@ export default function ViewReturns() {
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card>
           <CardContent className="p-0">
             {loading ? (
@@ -250,34 +259,42 @@ export default function ViewReturns() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Reference</TableHead>
                     <TableHead>Licensee Name</TableHead>
                     <TableHead>Return Type</TableHead>
                     <TableHead>Period</TableHead>
                     <TableHead>Submission Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paged.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                         {activeFilterMeta ? `No ${activeFilterMeta.chip.toLowerCase()} found.` : 'No submitted returns found.'}
                       </TableCell>
                     </TableRow>
                   ) : paged.map(ret => (
                     <TableRow key={ret.id}>
-                      <TableCell className="font-medium">{getSubmitterName(ret.submitter_id)}</TableCell>
-                      <TableCell>{getConfigName(ret.return_config_id)}</TableCell>
+                      <TableCell className="font-medium">{ret.unique_id || '—'}</TableCell>
+                      <TableCell>{getLicenseeName(ret)}</TableCell>
+                      <TableCell>{getConfigName(ret.return_configuration_id)}</TableCell>
                       <TableCell className="text-sm">
-                        {new Date(ret.period_start).toLocaleDateString()} – {new Date(ret.period_end).toLocaleDateString()}
+                        {ret.period_start ? new Date(ret.period_start).toLocaleDateString() : '—'} – {ret.period_end ? new Date(ret.period_end).toLocaleDateString() : '—'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {ret.submitted_at ? new Date(ret.submitted_at).toLocaleDateString() : '—'}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariant[ret.status] || 'outline'} className="capitalize">
-                          {RETURN_STATUS_LABELS[ret.status] || ret.status}
+                          {RETURN_STATUS_LABELS[ret.status as ReturnStatus] || ret.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/entity/returns/${ret.id}/view`)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -287,7 +304,6 @@ export default function ViewReturns() {
           </CardContent>
         </Card>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
