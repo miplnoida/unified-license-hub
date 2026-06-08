@@ -421,7 +421,7 @@ export default function FeeManagement() {
 
           <TabsContent value="configurations" className="space-y-4">
             <div className="flex justify-end">
-              <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
+              <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) { resetForm(); setTimeout(() => { document.body.style.pointerEvents = ''; }, 100); } }}>
                 <DialogTrigger asChild>
                   <Button><PlusCircle className="h-4 w-4 mr-2" />Add Fee</Button>
                 </DialogTrigger>
