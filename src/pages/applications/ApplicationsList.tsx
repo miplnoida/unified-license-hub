@@ -921,13 +921,13 @@ export default function ApplicationsList() {
               {
                 label: 'Edit', icon: Pencil,
                 onClick: () => navigate(editHref),
-                hidden: !(!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status)),
+                hidden: !(!isInternal && ['draft', 'in_progress', 'resubmission_requested', 'query_raised'].includes(app.status)),
               },
               {
-                label: 'Cancel', icon: Ban, destructive: true, separator: true,
-                hidden: !(!isInternal && ['draft', 'resubmission_requested', 'query_raised'].includes(app.status)),
+                label: 'Cancel Application', icon: Ban, destructive: true, separator: true,
+                hidden: !(!isInternal && ['draft', 'in_progress'].includes(app.status)),
                 onClick: async () => {
-                  if (!window.confirm('Are you sure you want to cancel this application?')) return;
+                  if (!window.confirm('Are you sure you want to cancel this application? This action cannot be undone.')) return;
                   const { data, error } = await supabase.rpc('cancel_application' as any, {
                     _application_id: app.id,
                     _reason: 'Application cancelled by applicant',
