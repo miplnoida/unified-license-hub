@@ -35,6 +35,8 @@ interface Props {
   onVerified?: () => void;
   /** When false, hides admin-only controls (add/edit remarks, verify button) */
   isAdminView?: boolean;
+  /** Application data used to derive Pre/Post-Licensee category badge */
+  applicationData?: any;
 }
 
 const normalizePaymentStatus = (status?: string | null) => {
