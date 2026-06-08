@@ -57,11 +57,23 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const approvedApps = visibleApps.filter((app) => app.status === 'approved').length;
       const rejectedApps = visibleApps.filter((app) => app.status === 'rejected').length;
 
-      // ── Licences (scoped by holder_id) ─────────────────────────────────────
-      const licBase = () => supabase.from('licenses').select('id, license_number, status, valid_until').eq('holder_id', lid as string);
-      const licCount = () => supabase.from('licenses').select('id', { count: 'exact', head: true }).eq('holder_id', lid as string);
+      // ── Licences (scoped by the selected entity/licensee) ──────────────────
+      // In this project, `licenses.holder_id` points to the auth/profile user,
+      // while the dashboard selection is a licensee/entity id. Resolve the
+      // entity's linked license ids first, then aggregate from `licenses.id`.
+      const linkedLicenseIds = lid
+        ? await supabase
+            .from('licensees')
+            .select('license_id')
+            .eq('id', lid)
+            .not('license_id', 'is', null)
+        : ({ data: [] } as any);
 
-      const licQueries = lid
+      const licenseIds = [...new Set(((linkedLicenseIds.data || []) as any[]).map((row: any) => row.license_id).filter(Boolean))];
+      const licBase = () => supabase.from('licenses').select('id, license_number, status, valid_until').in('id', licenseIds as string[]);
+      const licCount = () => supabase.from('licenses').select('id', { count: 'exact', head: true }).in('id', licenseIds as string[]);
+
+      const licQueries = licenseIds.length > 0
         ? await Promise.all([
             licCount(),
             licCount().eq('status', 'active'),
@@ -121,7 +133,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
               .order('due_date', { ascending: true })
               .limit(5)
           : Promise.resolve({ data: [] as any[] }),
-        lid
+        licenseIds.length > 0
           ? licBase().eq('status', 'active').not('valid_until', 'is', null).order('valid_until', { ascending: true }).limit(5)
           : Promise.resolve({ data: [] as any[] }),
         visibleAppIds.length > 0

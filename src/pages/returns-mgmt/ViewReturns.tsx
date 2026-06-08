@@ -65,6 +65,7 @@ const statusFilterMeta: Record<AdminReturnDisplayStatus, { label: string; chip: 
 
 export default function ViewReturns() {
   const navigate = useNavigate();
+  const adminBasePath = window.location.pathname.startsWith('/admin/returns/') ? '/admin/returns/queue' : '/returns-management';
   const [returns, setReturns] = useState<AdminReturnRow[]>([]);
   const [configs, setConfigs] = useState<Array<{ id: string; name: string }>>([]);
   const [licensees, setLicensees] = useState<Array<{ id: string; name: string }>>([]);
@@ -292,7 +293,7 @@ export default function ViewReturns() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => navigate(`/returns-management/${ret.id}`)}>
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`${adminBasePath}/${ret.id}`)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>

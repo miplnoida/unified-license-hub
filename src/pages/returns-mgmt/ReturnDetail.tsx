@@ -65,6 +65,7 @@ function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: st
 export default function ReturnDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const adminBasePath = window.location.pathname.startsWith('/admin/returns/') ? '/admin/returns/queue' : '/returns-management';
   const { user } = useAuth();
   const qc = useQueryClient();
   const { data: returnData, isLoading } = useReturnById(id);
@@ -171,7 +172,8 @@ export default function ReturnDetail() {
   const [submitting, setSubmitting] = useState<null | 'approve' | 'request_edit'>(null);
 
   const status = returnData?.workflow_status as string | undefined;
-  const isReviewable = status === 'SUB';
+  const normalizedStatus = String(status || '').toUpperCase();
+  const isReviewable = normalizedStatus === 'SUB' || (!!returnData?.submit_date && normalizedStatus !== 'VAL' && normalizedStatus !== 'TBR');
   const isApproved = status === 'VAL';
   const isResubmissionRequested = status === 'TBR';
   const activeRequest = requests.find((r: any) => r.status === 'active');
@@ -271,7 +273,7 @@ export default function ReturnDetail() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/returns-management')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(adminBasePath)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
           </Button>
         </div>

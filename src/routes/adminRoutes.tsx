@@ -3,6 +3,8 @@ import { lazy } from 'react';
 import { P } from '@/routes/routeHelpers';
 import { AdminRoute, ModuleRoute } from '@/components/auth/RouteGuards';
 import type { PermissionModule } from '@/lib/permissionModules';
+import ReturnDetail from '@/pages/returns-mgmt/ReturnDetail';
+import ViewReturns from '@/pages/returns-mgmt/ViewReturns';
 
 const AdminHub = lazy(() => import('@/pages/admin/AdminHub'));
 const FormManagement = lazy(() => import('@/pages/admin/FormManagement'));
@@ -77,6 +79,8 @@ export const adminRoutes = (
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
 
     {/* Returns Management - Admin */}
+    <Route path="/admin/returns/queue" element={<M module="returns_management"><ViewReturns /></M>} />
+    <Route path="/admin/returns/queue/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
     <Route path="/admin/returns/types" element={<M module="returns_management"><ReturnTypesPage /></M>} />
     <Route path="/admin/returns/configurations" element={<M module="returns_management"><ReturnConfigsPage /></M>} />
     <Route path="/admin/returns/cutoff" element={<M module="returns_management"><CutoffConfigPage /></M>} />
