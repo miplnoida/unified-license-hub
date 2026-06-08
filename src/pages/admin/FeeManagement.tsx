@@ -533,7 +533,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
-                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceId(''); }}>
+                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); }}>
                           <SelectTrigger><SelectValue placeholder="All sectors" /></SelectTrigger>
                           <SelectContent>
                             {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -542,7 +542,7 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Sub-Sector</Label>
-                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceId(''); }} disabled={!sectorId}>
+                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); }} disabled={!sectorId}>
                           <SelectTrigger><SelectValue placeholder="All sub-sectors" /></SelectTrigger>
                           <SelectContent>
                             {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
