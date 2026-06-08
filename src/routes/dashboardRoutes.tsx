@@ -60,7 +60,7 @@ export const dashboardRoutes = (
 
     <Route path="/payments" element={<P><PaymentHistory /></P>} />
     <Route path="/payments/:id" element={<P><PaymentDetail /></P>} />
-    <Route path="/complaints" element={<M module="complaint_management"><ComplaintsList /></M>} />
+    <Route path="/complaints" element={<M module="complaint_management" allowedRoles={['super_admin', 'admin', 'supervisor', 'reviewer', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
     <Route path="/documents" element={<P><DocumentStore /></P>} />
