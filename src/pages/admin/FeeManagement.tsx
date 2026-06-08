@@ -92,7 +92,7 @@ export default function FeeManagement() {
   const [sectorId, setSectorId] = useState('');
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [serviceId, setServiceId] = useState('');
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
   // Rule form state
@@ -165,7 +165,7 @@ export default function FeeManagement() {
 
   const resetForm = () => {
     setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
-    setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceId('');
+    setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]);
     setIsActive(true); setEditing(null); setLegacyNote(false);
   };
 
@@ -216,7 +216,7 @@ export default function FeeManagement() {
     setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
-    setServiceId(fee.service_id || ''); setIsActive(fee.is_active);
+    setServiceIds(fee.service_id ? [fee.service_id] : []); setIsActive(fee.is_active);
     setDialogOpen(true);
   };
 
@@ -265,40 +265,43 @@ export default function FeeManagement() {
     const basePayload: any = {
       currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
-      category_id: categoryId || null, service_id: serviceId || null, is_active: isActive,
+      category_id: categoryId || null, is_active: isActive,
       regulator_id: activeRegulatorId || null,
       calculation_expression: null,
     };
 
-    const buildRow = (ft: string) => {
+    const buildRow = (ft: string, svcId: string | null) => {
       const row = feeTypeAmounts[ft];
       return {
-        ...basePayload, name: name.trim(), fee_type: ft,
+        ...basePayload, name: name.trim(), fee_type: ft, service_id: svcId,
         amount: parseFloat(row.amount), calculation_type: row.calculationType,
         min_amount: parseFloat(row.minAmount) || 0,
         max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
       };
     };
 
-    if (editing) {
-      // Update the existing row with the first fee type
-      const firstFt = feeTypes[0];
-      const updatePayload = buildRow(firstFt);
-      const { error: updateErr } = await supabase.from('fee_configurations' as any).update(updatePayload).eq('id', editing.id);
-      if (updateErr) { toast.error(updateErr.message); setSaving(false); return; }
+    // Expand fee types × services. When no service is selected, write a single
+    // row per fee type with service_id=null (pre-licensee scope).
+    const serviceTargets: (string | null)[] = serviceIds.length > 0 ? serviceIds : [null];
+    const allRows: any[] = [];
+    feeTypes.forEach(ft => {
+      serviceTargets.forEach(svc => allRows.push(buildRow(ft, svc)));
+    });
 
-      // Insert new rows for any additional fee types beyond the first
-      if (feeTypes.length > 1) {
-        const additionalRows = feeTypes.slice(1).map(ft => buildRow(ft));
-        const { error: insertErr } = await supabase.from('fee_configurations' as any).insert(additionalRows);
+    if (editing) {
+      // Update the existing row with the first (fee type, service) combo
+      const [firstRow, ...rest] = allRows;
+      const { error: updateErr } = await supabase.from('fee_configurations' as any).update(firstRow).eq('id', editing.id);
+      if (updateErr) { toast.error(updateErr.message); setSaving(false); return; }
+      if (rest.length > 0) {
+        const { error: insertErr } = await supabase.from('fee_configurations' as any).insert(rest);
         if (insertErr) { toast.error(insertErr.message); setSaving(false); return; }
       }
-      toast.success(`${feeTypes.length} fee configuration(s) saved`);
+      toast.success(`${allRows.length} fee configuration(s) saved`);
     } else {
-      const rows = feeTypes.map(ft => buildRow(ft));
-      const { error } = await supabase.from('fee_configurations' as any).insert(rows);
+      const { error } = await supabase.from('fee_configurations' as any).insert(allRows);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success(`${rows.length} fee configuration(s) created`);
+      toast.success(`${allRows.length} fee configuration(s) created`);
     }
     setSaving(false); setDialogOpen(false); resetForm(); loadFees();
   };
@@ -530,7 +533,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
-                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceId(''); }}>
+                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); }}>
                           <SelectTrigger><SelectValue placeholder="All sectors" /></SelectTrigger>
                           <SelectContent>
                             {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -539,7 +542,7 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Sub-Sector</Label>
-                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceId(''); }} disabled={!sectorId}>
+                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); }} disabled={!sectorId}>
                           <SelectTrigger><SelectValue placeholder="All sub-sectors" /></SelectTrigger>
                           <SelectContent>
                             {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -558,14 +561,14 @@ export default function FeeManagement() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Service</Label>
-                        <Select value={serviceId} onValueChange={v => setServiceId(v === 'none' ? '' : v)}>
-                          <SelectTrigger><SelectValue placeholder=" " /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                        <Label>Services</Label>
+                        <MultiSelect
+                          options={services.map(s => ({ value: s.id, label: s.name }))}
+                          selected={serviceIds}
+                          onChange={setServiceIds}
+                          placeholder="None (applies to pre-licensee)"
+                          withinDialog
+                        />
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
