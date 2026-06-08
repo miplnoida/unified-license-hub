@@ -78,7 +78,11 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     .filter((f: any) =>
       (!f.sub_sector_id || !selectedSubSector || f.sub_sector_id === selectedSubSector) &&
       (!f.category_id || !selectedCategory || f.category_id === selectedCategory) &&
-      (!f.service_id || !selectedService || f.service_id === selectedService)
+      // Service-scoped distinction between post-licensee (service selected)
+      // and pre-licensee (no service). Fee configs with a service_id apply
+      // ONLY when that same service is selected; fee configs without a
+      // service_id apply ONLY when no service is selected.
+      (selectedService ? f.service_id === selectedService : !f.service_id)
     )
     .sort((a: any, b: any) => b.specificity - a.specificity);
 
