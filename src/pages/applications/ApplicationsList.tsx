@@ -483,9 +483,9 @@ export default function ApplicationsList() {
         if (error) throw error;
         let rows = (data as any[]) || [];
         if (typeFilter === 'post') {
-          rows = rows.filter((r: any) => r.data?.type === 'post_license');
+          rows = rows.filter((r: any) => r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id);
         } else if (typeFilter === 'pre') {
-          rows = rows.filter((r: any) => r.data?.type !== 'post_license');
+          rows = rows.filter((r: any) => !(r.data?.type === 'post_license' || !!r.data?.service_id || !!r.service_id));
         }
         all = all.concat(rows);
         offset += PAGE;
