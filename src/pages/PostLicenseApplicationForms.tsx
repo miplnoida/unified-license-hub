@@ -407,7 +407,7 @@ export default function PostLicenseApplicationForms() {
       <DashboardLayout>
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setActiveFormTemplateId(null)}>
+            <Button variant="ghost" size="icon" onClick={handleExitActiveForm}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -421,6 +421,7 @@ export default function PostLicenseApplicationForms() {
             saving={saving}
             onSaveDraft={handleFormSaveDraft}
             onSubmit={handleFormSubmit}
+            onChange={handleLiveChange}
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
           />
