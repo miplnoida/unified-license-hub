@@ -78,6 +78,7 @@ export function RowActionsMenu({
                 action.onClick?.(e);
               }}
               className={cn(
+                'cursor-pointer',
                 action.destructive && 'text-destructive focus:text-destructive focus:bg-destructive/10'
               )}
             >

@@ -10,6 +10,7 @@ import { Loader2, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { PaymentAttachments } from '@/components/payments/PaymentAttachments';
 import { PaymentRemarksThread } from '@/components/payments/PaymentRemarksThread';
 import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 export interface PaymentInfo {
   id?: string;
@@ -34,6 +35,8 @@ interface Props {
   onVerified?: () => void;
   /** When false, hides admin-only controls (add/edit remarks, verify button) */
   isAdminView?: boolean;
+  /** Application data used to derive Pre/Post-Licensee category badge */
+  applicationData?: any;
 }
 
 const normalizePaymentStatus = (status?: string | null) => {
@@ -49,7 +52,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export function PaymentVerificationDialog({
-  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true,
+  open, onOpenChange, payment, applicantName, applicationNumber, applicantId, onVerified, isAdminView = true, applicationData,
 }: Props) {
   const { user } = useAuth();
   const [draftRemark, setDraftRemark] = useState('');
@@ -152,9 +155,17 @@ export function PaymentVerificationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
             <DollarSign className="h-5 w-5 text-primary" />
             Payment Details
+            {applicationData && (
+              <Badge
+                variant={getApplicationCategory(applicationData) === 'post_license' ? 'default' : 'secondary'}
+                className="ml-1"
+              >
+                {getApplicationCategoryLabel(applicationData)} Fee
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
             {applicationNumber
