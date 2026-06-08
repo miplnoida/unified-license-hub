@@ -31,6 +31,7 @@ import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowled
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePpoc } from '@/contexts/PpocContext';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
@@ -93,6 +94,7 @@ export default function NewApplication() {
   const continuedApplicationId = continueIdFromPath || draftIdParam;
   const isContinuingDraft = !!continuedApplicationId && continueModeParam;
   const { user } = useAuth();
+  const { resolvedLicenseeId } = usePpoc();
   const { activeRegulator } = useRegulator();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<WizardStep>('selection');
@@ -947,6 +949,7 @@ export default function NewApplication() {
       regulator_id: activeRegulator?.id || null,
       data: {
         ...(existing || {}),
+        ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
         sector_id: selectedSector,
         sub_sector_id: selectedSubSector,
         category_id: selectedCategory,

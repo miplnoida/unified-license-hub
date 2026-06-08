@@ -120,6 +120,7 @@ export default function NewPostLicenseApplication() {
           license_type: licenseType,
           status: 'draft',
           data: {
+            ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
             sector_id: selectedSector,
             sub_sector_id: selectedSubSector,
             service_id: selectedService,
