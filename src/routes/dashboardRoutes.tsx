@@ -31,8 +31,8 @@ const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
 const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector'));
 
-function M({ module, children }: { module: PermissionModule; children: React.ReactNode }) {
-  return <P><ModuleRoute module={module}>{children}</ModuleRoute></P>;
+function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
+  return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
 }
 
 export const dashboardRoutes = (
@@ -60,7 +60,7 @@ export const dashboardRoutes = (
 
     <Route path="/payments" element={<P><PaymentHistory /></P>} />
     <Route path="/payments/:id" element={<P><PaymentDetail /></P>} />
-    <Route path="/complaints" element={<M module="complaint_management"><ComplaintsList /></M>} />
+    <Route path="/complaints" element={<M module="complaint_management" allowedRoles={['super_admin', 'admin', 'supervisor', 'reviewer', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
     <Route path="/documents" element={<P><DocumentStore /></P>} />

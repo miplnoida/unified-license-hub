@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,7 @@ function ActiveFormFiller({
   saving,
   onSaveDraft,
   onSubmit,
+  onChange,
   applicationId,
   versionLocked = false,
 }: {
@@ -49,6 +50,7 @@ function ActiveFormFiller({
   saving: boolean;
   onSaveDraft: (data: Record<string, any>, versionId: string | null) => Promise<void>;
   onSubmit: (data: Record<string, any>, versionId: string | null) => Promise<void>;
+  onChange?: (data: Record<string, any>, versionId: string | null) => void;
   applicationId?: string;
   versionLocked?: boolean;
 }) {
@@ -95,6 +97,7 @@ function ActiveFormFiller({
         initialData={initialData}
         onSaveDraft={(d) => onSaveDraft(d, resolvedVersionId)}
         onSubmit={(d) => onSubmit(d, resolvedVersionId)}
+        onChange={onChange ? (d) => onChange(d, resolvedVersionId) : undefined}
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
@@ -123,6 +126,35 @@ export default function PostLicenseApplicationForms() {
   });
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const liveFormDataRef = useRef<{ data: Record<string, any>; versionId: string | null } | null>(null);
+
+  const handleLiveChange = (data: Record<string, any>, versionId: string | null) => {
+    liveFormDataRef.current = { data, versionId };
+  };
+
+  const handleExitActiveForm = async () => {
+    const live = liveFormDataRef.current;
+    const tid = activeFormTemplateId;
+    liveFormDataRef.current = null;
+    setActiveFormTemplateId(null);
+    if (tid && live && Object.keys(live.data || {}).length > 0) {
+      try {
+        setFormProgressMap(prev => ({
+          ...prev,
+          [tid]: {
+            ...prev[tid],
+            status: prev[tid]?.status === 'completed' ? 'completed' : 'in_progress',
+            data: live.data,
+            versionId: live.versionId,
+          },
+        }));
+        await persistFormsData(tid, live.data, live.versionId);
+        toast.success('Draft saved');
+      } catch (err) {
+        console.error('[PostLicenseApplicationForms] auto-save on back failed', err);
+      }
+    }
+  };
   const [paymentReady, setPaymentReady] = useState(false);
   const [paymentChecking, setPaymentChecking] = useState(false);
   const [showReview, setShowReview] = useState(() => {
@@ -375,7 +407,7 @@ export default function PostLicenseApplicationForms() {
       <DashboardLayout>
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setActiveFormTemplateId(null)}>
+            <Button variant="ghost" size="icon" onClick={handleExitActiveForm}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -389,6 +421,7 @@ export default function PostLicenseApplicationForms() {
             saving={saving}
             onSaveDraft={handleFormSaveDraft}
             onSubmit={handleFormSubmit}
+            onChange={handleLiveChange}
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
           />
