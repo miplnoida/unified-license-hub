@@ -17,6 +17,7 @@ import { REFUND_STATUS_LABELS, RefundStatus } from '@/types/platform';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { Search, Loader2, RotateCcw, FileText, DollarSign, CheckCircle, Clock, XCircle, Eye, ExternalLink, ShieldCheck } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
+import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
 
 interface ApplicationLite {
   id: string;
