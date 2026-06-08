@@ -9,8 +9,6 @@ import {
   ClipboardList,
   AlertTriangle,
   CreditCard,
-  CheckCircle,
-  Clock,
 } from 'lucide-react';
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,7 +139,7 @@ export default function PostLicenseeDashboard() {
               <p className="text-sm text-muted-foreground">Returns Filed (YTD)</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-warning">{isLoading ? '…' : metrics?.returns.pending_review ?? 0}</p>
+              <p className="text-3xl font-bold text-warning">{isLoading ? '…' : metrics?.returns.due_soon ?? 0}</p>
               <p className="text-sm text-muted-foreground">Upcoming Due</p>
             </div>
             <div className="text-center">
