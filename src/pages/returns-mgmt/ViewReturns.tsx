@@ -98,7 +98,7 @@ export default function ViewReturns() {
         (supabase as any)
           .from('returns_filed')
           .select('id, unique_id, return_configuration_id, entity_id, on_behalf_of_licensee_id, period_start_date, period_end_date, due_date, workflow_status, submit_date, created_at')
-          .in('workflow_status', ['SUB', 'VAL', 'TBR'])
+          .in('workflow_status', ['SUB', 'VAL', 'TBR', 'REJ'])
           .order('submit_date', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false }),
         (supabase as any).from('return_configs').select('id, name'),

@@ -217,6 +217,7 @@ export default function ViewReturnPage() {
   if (isLoading) return <DashboardLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
   if (!returnData) return <DashboardLayout><p className="text-center py-20">Return not found</p></DashboardLayout>;
 
+  const normalizedStatus = String(returnData.workflow_status || '').toUpperCase();
   const activeRequest = requests.find(r => r.status === 'active');
 
   return (
@@ -230,17 +231,17 @@ export default function ViewReturnPage() {
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={returnData.workflow_status} />
-            {returnData.workflow_status === 'TBR' && (
+            {['TEMP', 'WIP', 'TBR'].includes(normalizedStatus) && (
               <Button size="sm" onClick={() => navigate(`/entity/returns/${id}/fill`)}><Pencil className="h-4 w-4 mr-2" />Edit & Resubmit</Button>
             )}
           </div>
         </div>
 
         {/* Status banners */}
-        {returnData.workflow_status === 'VAL' && (
+        {normalizedStatus === 'VAL' && (
           <Alert className="border-green-500 bg-green-50"><CheckCircle className="h-4 w-4 text-green-600" /><AlertDescription className="text-green-800">This return has been validated and approved.</AlertDescription></Alert>
         )}
-        {returnData.workflow_status === 'TBR' && activeRequest && (
+        {normalizedStatus === 'TBR' && activeRequest && (
           <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription><strong>Resubmission Required:</strong> {activeRequest.reasons}</AlertDescription></Alert>
         )}
 

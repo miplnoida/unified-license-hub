@@ -13,9 +13,9 @@ export default function EntityReturnsDashboard() {
   const navigate = useNavigate();
 
   const now = new Date();
-  const upcoming = returns.filter(r => r.workflow_status !== 'VAL' && r.due_date && new Date(r.due_date) > now && new Date(r.due_date) <= new Date(now.getTime() + 30 * 86400000));
+  const upcoming = returns.filter(r => ['TEMP', 'WIP', 'TBR'].includes(r.workflow_status) && r.due_date && new Date(r.due_date) > now && new Date(r.due_date) <= new Date(now.getTime() + 30 * 86400000));
   const overdue = returns.filter(r => !['VAL', 'SUB'].includes(r.workflow_status) && r.due_date && new Date(r.due_date) < now);
-  const inProgress = returns.filter(r => ['TEMP', 'WIP'].includes(r.workflow_status));
+  const inProgress = returns.filter(r => ['TEMP', 'WIP', 'TBR'].includes(r.workflow_status));
   const submitted = returns.filter(r => r.workflow_status === 'SUB');
   const approved = returns.filter(r => r.workflow_status === 'VAL');
 
@@ -70,9 +70,10 @@ export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: any }> = {
     TEMP: { label: 'Draft', variant: 'secondary' },
     WIP: { label: 'In Progress', variant: 'outline' },
-    SUB: { label: 'Submitted', variant: 'default' },
+    SUB: { label: 'Awaiting Review', variant: 'default' },
     VAL: { label: 'Validated', variant: 'default' },
-    TBR: { label: 'To Be Resubmitted', variant: 'destructive' },
+    TBR: { label: 'Resubmission Requested', variant: 'destructive' },
+    REJ: { label: 'Rejected', variant: 'destructive' },
   };
   const m = map[status] || { label: status, variant: 'secondary' };
   return <Badge variant={m.variant} className={status === 'VAL' ? 'bg-green-600 text-white' : status === 'SUB' ? 'bg-amber-500 text-white' : status === 'WIP' ? 'bg-blue-500 text-white' : ''}>{m.label}</Badge>;

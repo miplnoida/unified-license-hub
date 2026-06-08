@@ -140,7 +140,7 @@ export default function CreateReturnPage() {
         .maybeSingle();
       if (existing?.id) {
         const status = (existing.workflow_status || '').toString().toUpperCase();
-        const isOpen = ['TEMP', 'DRAFT', 'RETURNED', 'REJECTED'].includes(status);
+        const isOpen = ['TEMP', 'WIP', 'TBR', 'DRAFT', 'RETURNED', 'REJECTED'].includes(status);
         if (isOpen) {
           toast.info('A return already exists for this period. Resuming the existing draft.');
           navigate(`/entity/returns/${existing.id}/fill`);

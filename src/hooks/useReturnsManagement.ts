@@ -196,6 +196,20 @@ export function useMyReturns() {
     queryKey: ['my_returns', user?.id, resolvedLicenseeId],
     enabled: !!user?.id,
     queryFn: async () => {
+      let targetLicenseeId = resolvedLicenseeId || user?.licenseeId || null;
+      if (!targetLicenseeId && user?.id) {
+        const { data: profile, error: profileError } = await (supabase as any)
+          .from('profiles')
+          .select('licensee_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (profileError) {
+          console.error('[useMyReturns] Failed to resolve fallback licensee scope', profileError);
+          throw profileError;
+        }
+        targetLicenseeId = profile?.licensee_id || null;
+      }
+
       // Strictly scope returns to the currently active licensee entity.
       // PPOC users switching between mapped licensees must see only the
       // selected entity's returns — never an aggregated view across entities.
@@ -210,8 +224,8 @@ export function useMyReturns() {
         `)
         .order('created_at', { ascending: false });
 
-      if (resolvedLicenseeId) {
-        query = query.eq('entity_id', resolvedLicenseeId);
+      if (targetLicenseeId) {
+        query = query.or(`entity_id.eq.${targetLicenseeId},on_behalf_of_licensee_id.eq.${targetLicenseeId}`);
       } else {
         // No licensee context yet — fall back to personal scope only.
         query = query.eq('created_by', user!.id);
@@ -226,6 +240,15 @@ export function useMyReturns() {
 
 export function useMutateReturn() {
   const qc = useQueryClient();
+  const invalidateReturnQueries = (id?: string) => {
+    qc.invalidateQueries({ queryKey: ['returns_filed'] });
+    if (id) qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+    qc.invalidateQueries({ queryKey: ['my_returns'] });
+    qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
+    qc.invalidateQueries({ queryKey: ['return_requests'] });
+    qc.invalidateQueries({ queryKey: ['return_audit_log'] });
+    qc.invalidateQueries({ queryKey: ['return_comments'] });
+  };
   return {
     create: useMutation({
       mutationFn: async (payload: any) => {
@@ -233,7 +256,7 @@ export function useMutateReturn() {
         if (error) throw error;
         return data;
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: ['returns_filed'] }); qc.invalidateQueries({ queryKey: ['my_returns'] }); },
+      onSuccess: (data: any) => { invalidateReturnQueries(data?.id); },
       onError: (e: any) => {
         const msg = (e?.message || '').toString();
         if (e?.code === '23505' || /duplicate key|unique constraint/i.test(msg)) {
@@ -248,7 +271,7 @@ export function useMutateReturn() {
         const { error } = await (supabase as any).from('returns_filed').update(payload).eq('id', id);
         if (error) throw error;
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: ['returns_filed'] }); qc.invalidateQueries({ queryKey: ['my_returns'] }); },
+      onSuccess: (_: any, vars: any) => { invalidateReturnQueries(vars?.id); },
       onError: (e: any) => toast.error(e.message),
     }),
     remove: useMutation({
@@ -256,7 +279,7 @@ export function useMutateReturn() {
         const { error } = await (supabase as any).from('returns_filed').delete().eq('id', id);
         if (error) throw error;
       },
-      onSuccess: () => { qc.invalidateQueries({ queryKey: ['returns_filed'] }); qc.invalidateQueries({ queryKey: ['my_returns'] }); toast.success('Return deleted'); },
+      onSuccess: (_: any, id: string) => { invalidateReturnQueries(id); toast.success('Return deleted'); },
       onError: (e: any) => toast.error(e.message),
     }),
   };

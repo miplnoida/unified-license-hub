@@ -173,9 +173,9 @@ export default function ReturnDetail() {
 
   const status = returnData?.workflow_status as string | undefined;
   const normalizedStatus = String(status || '').toUpperCase();
-  const isReviewable = normalizedStatus === 'SUB' || (!!returnData?.submit_date && normalizedStatus !== 'VAL' && normalizedStatus !== 'TBR');
-  const isApproved = status === 'VAL';
-  const isResubmissionRequested = status === 'TBR';
+  const isReviewable = normalizedStatus === 'SUB';
+  const isApproved = normalizedStatus === 'VAL';
+  const isResubmissionRequested = normalizedStatus === 'TBR';
   const activeRequest = requests.find((r: any) => r.status === 'active');
 
   async function logAudit(action: string, prev: string, next: string, note: string) {
@@ -217,7 +217,11 @@ export default function ReturnDetail() {
       }
       toast.success('Return approved');
       setComments('');
+      qc.invalidateQueries({ queryKey: ['returns_filed'] });
       qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+      qc.invalidateQueries({ queryKey: ['my_returns'] });
+      qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
+      qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
     } catch (e: any) {
@@ -257,9 +261,13 @@ export default function ReturnDetail() {
       await logAudit('rejected', status || '', 'TBR', comments_.trim());
       toast.success('Edit request sent to licensee');
       setComments('');
+      qc.invalidateQueries({ queryKey: ['returns_filed'] });
       qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+      qc.invalidateQueries({ queryKey: ['my_returns'] });
+      qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_comments', id] });
     } catch (e: any) {
       toast.error(e.message || 'Failed to request edit');
     } finally { setSubmitting(null); }
