@@ -17,6 +17,7 @@ import { ReturnReviewPanel } from '@/components/returns/ReturnReviewPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { StatusBadge } from './EntityReturnsDashboard';
 import { Save, Send, ArrowLeft, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Clock, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -93,6 +94,7 @@ export default function FillReturnPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const licenseGate = useLicenseStatusGate();
   const accessGuard = useLicenseeAccessGuard();
   const { data: returnData, isLoading: loadingReturn } = useReturnById(id);
@@ -330,6 +332,7 @@ export default function FillReturnPage() {
           .eq('id', id);
       }
 
+      const previousStatus = String(returnData?.workflow_status || '').toUpperCase();
       try {
         await updateReturn.mutateAsync({
           id,
@@ -343,13 +346,31 @@ export default function FillReturnPage() {
         return;
       }
 
+      if (previousStatus === 'TBR' && activeRequest?.id) {
+        const { error: resolveRequestError } = await supabase
+          .from('return_requests')
+          .update({ status: 'resolved', resolved_at: now.toISOString() })
+          .eq('id', activeRequest.id);
+
+        if (resolveRequestError) {
+          toast.error(resolveRequestError.message || 'Return submitted, but the edit request could not be closed.');
+        }
+      }
+
       insertAudit.mutate({
         return_id: id,
-        action: 'submitted',
+        action: previousStatus === 'TBR' ? 'resubmitted' : 'submitted',
         previous_status: returnData?.workflow_status,
         new_status: 'SUB',
         performed_by: user?.id,
       });
+      qc.invalidateQueries({ queryKey: ['returns_filed'] });
+      qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+      qc.invalidateQueries({ queryKey: ['my_returns'] });
+      qc.invalidateQueries({ queryKey: ['licensee-metrics'] });
+      qc.invalidateQueries({ queryKey: ['return_requests', id] });
+      qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+      qc.invalidateQueries({ queryKey: ['return_comments', id] });
       // Fire-and-forget notification dispatch
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
