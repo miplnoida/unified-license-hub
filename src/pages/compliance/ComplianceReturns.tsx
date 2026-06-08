@@ -78,6 +78,7 @@ export default function ComplianceReturns() {
   const [frequencyFilter, setFrequencyFilter] = useState('all');
   const [activeTab, setActiveTab] = useState(urlFilter || urlStatus ? 'returns' : 'dashboard');
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+  const adminReturnPath = (id: string) => `/admin/returns/queue/${id}`;
 
   // Keep tab/status in sync when the URL changes (e.g. user navigates from dashboard while page is mounted)
   useEffect(() => {
@@ -265,7 +266,7 @@ export default function ComplianceReturns() {
                 <TableCell>
                   <button
                     className="font-medium text-primary hover:underline text-left"
-                    onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}
+                    onClick={() => navigate(isInternal ? adminReturnPath(ret.id) : `/compliance/returns/submit?returnId=${ret.id}`)}
                   >
                     {returnDisplayName}
                   </button>
@@ -296,18 +297,15 @@ export default function ComplianceReturns() {
                       )}
                     </>
                   )}
-                  {isInternal && ret.status === 'submitted' && (
-                    <div className="flex gap-1 justify-end">
-                      <Button size="sm" variant="default" onClick={() => handleReview(ret.id, 'accepted')}>Accept</Button>
-                      <Button size="sm" variant="outline" onClick={() => handleReview(ret.id, 'resubmission_requested')}>Resubmit</Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleReview(ret.id, 'rejected')}>Reject</Button>
-                    </div>
-                  )}
-                  {(ret.status === 'accepted' || ret.status === 'submitted') && (
+                  {isInternal ? (
+                    <Button size="sm" variant={ret.status === 'submitted' ? 'default' : 'ghost'} onClick={() => navigate(adminReturnPath(ret.id))}>
+                      <Eye className="h-3 w-3 mr-1" />{ret.status === 'submitted' ? 'Review' : 'View'}
+                    </Button>
+                  ) : (ret.status === 'accepted' || ret.status === 'submitted') ? (
                     <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/returns/submit?returnId=${ret.id}`)}>
                       <Eye className="h-3 w-3" />
                     </Button>
-                  )}
+                  ) : null}
                 </TableCell>
               </TableRow>
             );
