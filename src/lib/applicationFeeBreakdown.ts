@@ -54,6 +54,7 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
   const selectedSector = appData.sector_id as string | undefined;
   const selectedSubSector = appData.sub_sector_id as string | undefined;
   const selectedCategory = appData.category_id as string | undefined;
+  const selectedService = appData.service_id as string | undefined;
 
   if (!selectedSector) return [];
 
@@ -69,13 +70,15 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     .map((f: any) => ({
       ...f,
       specificity:
-        (f.category_id === selectedCategory ? 4 : 0) +
-        (f.sub_sector_id === selectedSubSector ? 2 : 0) +
+        (f.service_id && f.service_id === selectedService ? 8 : 0) +
+        (f.category_id && f.category_id === selectedCategory ? 4 : 0) +
+        (f.sub_sector_id && f.sub_sector_id === selectedSubSector ? 2 : 0) +
         (f.sector_id === selectedSector ? 1 : 0),
     }))
     .filter((f: any) =>
       (!f.sub_sector_id || f.sub_sector_id === selectedSubSector) &&
-      (!f.category_id || f.category_id === selectedCategory)
+      (!f.category_id || f.category_id === selectedCategory) &&
+      (!f.service_id || f.service_id === selectedService)
     )
     .sort((a: any, b: any) => b.specificity - a.specificity);
 
