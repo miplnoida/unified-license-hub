@@ -172,7 +172,8 @@ export default function ReturnDetail() {
   const [submitting, setSubmitting] = useState<null | 'approve' | 'request_edit'>(null);
 
   const status = returnData?.workflow_status as string | undefined;
-  const isReviewable = status === 'SUB';
+  const normalizedStatus = String(status || '').toUpperCase();
+  const isReviewable = normalizedStatus === 'SUB' || (!!returnData?.submit_date && normalizedStatus !== 'VAL' && normalizedStatus !== 'TBR');
   const isApproved = status === 'VAL';
   const isResubmissionRequested = status === 'TBR';
   const activeRequest = requests.find((r: any) => r.status === 'active');
