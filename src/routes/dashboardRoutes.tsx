@@ -26,6 +26,7 @@ const AnalyticsDashboard = lazy(() => import('@/pages/analytics/AnalyticsDashboa
 const ReportsDashboard = lazy(() => import('@/pages/reports/ReportsDashboard'));
 const FormDetail = lazy(() => import('@/pages/FormDetail'));
 const ViewReturns = lazy(() => import('@/pages/returns-mgmt/ViewReturns'));
+const ReturnDetail = lazy(() => import('@/pages/returns-mgmt/ReturnDetail'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
@@ -54,6 +55,7 @@ export const dashboardRoutes = (
     <Route path="/licenses/:id" element={<P><LicenseDetail /></P>} />
 
     <Route path="/returns-management" element={<M module="returns_management"><ViewReturns /></M>} />
+    <Route path="/returns-management/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
 
     <Route path="/compliance/returns" element={<P><ComplianceReturns /></P>} />
     <Route path="/compliance/returns/submit" element={<P><ReturnSubmission /></P>} />
