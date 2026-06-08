@@ -61,40 +61,68 @@ export default function ViewReturnPage() {
       returnData?.return_configuration_id,
       returnData?.return_configs?.sector_id,
       returnData?.return_configs?.subsector_id,
+      returnData?.return_configs?.return_type_id,
     ],
     enabled: !!returnData?.return_configuration_id && configForms.length === 0,
     queryFn: async () => {
       const config = returnData?.return_configs;
-      if (!config?.sector_id) return [];
-      const fetchTemplates = async (matchSubSector: boolean) => {
-        let query = supabase
-          .from('form_templates')
-          .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, created_at')
-          .eq('status', 'published')
-          .eq('form_type', 'returns')
-          .eq('sector_id', config.sector_id);
-        if (matchSubSector && config.subsector_id) {
-          query = query.eq('sub_sector_id', config.subsector_id);
+      if (!config) return [];
+
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, name, description, status, form_type, tab_name, form_order, return_template_id, sector_id, sub_sector_id, return_type_id, created_at')
+        .eq('status', 'published')
+        .eq('form_type', 'returns')
+        .order('form_order', { ascending: true })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const allTemplates = data || [];
+      if (allTemplates.length === 0) return [];
+
+      const scopedTemplates = allTemplates.filter((template) => {
+        const sectorOk = !template.sector_id || (config.sector_id && template.sector_id === config.sector_id);
+        const subSectorOk = !template.sub_sector_id || (config.subsector_id && template.sub_sector_id === config.subsector_id);
+        const returnTypeOk = !template.return_type_id || (config.return_type_id && template.return_type_id === config.return_type_id);
+        return sectorOk && subSectorOk && returnTypeOk;
+      });
+
+      if (scopedTemplates.length === 0) return [];
+
+      const templateIds = scopedTemplates.map((template) => template.id);
+      const { data: versions, error: versionsError } = await supabase
+        .from('form_versions')
+        .select('template_id, version, status, effective_from, effective_until')
+        .in('template_id', templateIds)
+        .eq('status', 'published')
+        .order('version', { ascending: false });
+      if (versionsError) throw versionsError;
+
+      const nowIso = new Date().toISOString();
+      const isEffective = (version: any): boolean => {
+        const fromOk = !version.effective_from || version.effective_from <= nowIso;
+        let untilOk = true;
+        if (version.effective_until) {
+          const until = new Date(version.effective_until);
+          until.setUTCHours(23, 59, 59, 999);
+          untilOk = until.toISOString() >= nowIso;
         }
-        const { data, error } = await query.order('form_order', { ascending: true }).order('created_at', { ascending: false });
-        if (error) throw error;
-        return data || [];
+        return fromOk && untilOk;
       };
-      const exactMatches = await fetchTemplates(true);
-      const sectorMatches = exactMatches.length > 0 ? exactMatches : await fetchTemplates(false);
-      if (sectorMatches.length === 0) return [];
-      const grouped = sectorMatches.reduce<Record<string, any[]>>((acc, template) => {
-        const key = template.return_template_id || '__ungrouped__';
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(template);
-        return acc;
-      }, {});
-      const bestGroup = Object.values(grouped)
-        .sort((a, b) => {
-          if (b.length !== a.length) return b.length - a.length;
-          return new Date(b[0]?.created_at || 0).getTime() - new Date(a[0]?.created_at || 0).getTime();
-        })[0] || [];
-      return bestGroup
+
+      const versionsByTemplate = new Map<string, any[]>();
+      for (const version of (versions || []) as any[]) {
+        if (!versionsByTemplate.has(version.template_id)) versionsByTemplate.set(version.template_id, []);
+        versionsByTemplate.get(version.template_id)!.push(version);
+      }
+
+      const effectiveTemplates = scopedTemplates.filter((template) => {
+        const templateVersions = versionsByTemplate.get(template.id);
+        if (!templateVersions || templateVersions.length === 0) return true;
+        return templateVersions.some(isEffective);
+      });
+
+      return effectiveTemplates
         .sort((a, b) => (a.form_order || 0) - (b.form_order || 0))
         .map((template, index) => ({
           id: `fallback-${template.id}`,
