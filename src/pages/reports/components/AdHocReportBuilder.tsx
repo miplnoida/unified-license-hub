@@ -15,6 +15,8 @@ import {
   deleteTemplate, generateFromBuilder, listTemplates, previewReport, saveTemplate,
 } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useAllRegulators } from '@/hooks/useRegulators';
+import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
 
 const SOURCES: { value: ReportSource; label: string }[] = [
   { value: 'applications', label: 'Applications' },
