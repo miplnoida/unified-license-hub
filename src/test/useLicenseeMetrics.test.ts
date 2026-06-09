@@ -99,9 +99,6 @@ describe('useLicenseeMetrics queryFn', () => {
             if (columns === 'id') {
               return { eq: eqMock.mockResolvedValue({ data: [], error: null }) };
             }
-            if (columns === 'id, holder_id, license_number, status, valid_until') {
-              return { in: inMock.mockResolvedValue({ data: [{ id: 'license-1', holder_id: 'user-1', license_number: 'LIC-001', status: 'active', valid_until: null }], error: null }) };
-            }
             if (columns === 'id, license_number, status, valid_until') {
               return { in: inMock.mockResolvedValue({ data: [{ id: 'license-1', license_number: 'LIC-001', status: 'active', valid_until: null }], error: null }) };
             }
@@ -142,6 +139,7 @@ describe('useLicenseeMetrics queryFn', () => {
     const result = await fetchLicenseeMetrics('lic-1', 'user-1');
 
     expect(result.licenses.active).toBe(1);
+    expect(result.licenses.total).toBe(1);
     expect(result.returns.submitted).toBe(1);
     expect(result.returns.pending_review).toBe(1);
     expect(result.returns.overdue).toBe(1);
