@@ -27,6 +27,19 @@ interface ResolvedLicenseeScope {
   licenseeIds: string[];
 }
 
+const EMPTY_METRICS: LicenseeMetrics = {
+  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0 },
+  applications: { draft: 0, submitted: 0, approved: 0, rejected: 0 },
+  returns: { due_soon: 0, overdue: 0, submitted: 0, pending_review: 0 },
+  payments: { pending: 0, paid: 0, outstanding_amount: 0 },
+  notifications: { unread: 0 },
+  priority_lists: {
+    upcoming_returns: [],
+    expiring_licenses: [],
+    pending_payments: [],
+  },
+};
+
 async function resolveLicenseeScope(
   activeLicenseeId: string | null | undefined,
   userId: string | undefined,
@@ -136,19 +149,19 @@ function buildReturnsScope(licenseeIds: string[]) {
  *     awaiting review, VAL = validated/approved, TBR = sent back for edit.
  *   - Payments are scoped through this licensee's visible applications.
  */
-export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined) {
-  return useQuery<LicenseeMetrics>({
-    queryKey: ['licensee-metrics', activeLicenseeId, userId],
-    enabled: !!(activeLicenseeId || userId),
-    staleTime: 60_000,
-    queryFn: async () => {
+export async function fetchLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined): Promise<LicenseeMetrics> {
       const scope = await resolveLicenseeScope(activeLicenseeId, userId);
       const lid = scope.primaryId;
       const today = todayIso();
       const in30 = daysFromNow(30);
       const returnScope = scope.licenseeIds.length > 0 ? buildReturnsScope(scope.licenseeIds) : null;
 
-      const visibleApps = await loadVisibleApplications({ licenseeId: lid });
+      let visibleApps: Awaited<ReturnType<typeof loadVisibleApplications>> = [];
+      try {
+        visibleApps = await loadVisibleApplications({ licenseeId: lid });
+      } catch (error) {
+        console.error('[useLicenseeMetrics] Failed to resolve visible applications, continuing with entity metrics only:', error);
+      }
       const visibleAppIds = visibleApps.map((app) => app.id).filter(Boolean);
       const visibleAppIdSet = new Set(visibleAppIds);
 
@@ -157,16 +170,10 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const approvedApps = visibleApps.filter((app) => app.status === 'approved').length;
       const rejectedApps = visibleApps.filter((app) => app.status === 'rejected').length;
 
-      const [entityLicenseLinksRes, entityProfileUsersRes, holderLicensesRes, returnsRes] = await Promise.all([
+      const [entityLicenseLinksRes, returnsRes] = await Promise.all([
         scope.licenseeIds.length > 0
           ? supabase.from('licensees').select('id, license_id').in('id', scope.licenseeIds)
           : Promise.resolve({ data: [], error: null } as any),
-        scope.licenseeIds.length > 0
-          ? supabase.from('profiles').select('id').in('licensee_id', scope.licenseeIds)
-          : Promise.resolve({ data: [], error: null } as any),
-        scope.licenseeIds.length === 0 && userId
-            ? supabase.from('licenses').select('id, holder_id, license_number, status, valid_until').eq('holder_id', userId)
-            : Promise.resolve({ data: [] as any[], error: null } as any),
         returnScope
           ? supabase
               .from('returns_filed')
@@ -179,27 +186,6 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
         console.error('[useLicenseeMetrics] Failed to resolve license links:', entityLicenseLinksRes.error);
         throw entityLicenseLinksRes.error;
       }
-      if (entityProfileUsersRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve licensee profile users:', entityProfileUsersRes.error);
-        throw entityProfileUsersRes.error;
-      }
-      const holderUserIds = ((entityProfileUsersRes.data || []) as Array<{ id: string }>).map((row) => row.id);
-
-      let holderLicenseRows = (holderLicensesRes.data || []) as any[];
-      if (scope.licenseeIds.length > 0 && holderUserIds.length > 0) {
-        const scopedHolderLicensesRes = await supabase
-          .from('licenses')
-          .select('id, holder_id, license_number, status, valid_until')
-          .in('holder_id', holderUserIds);
-        if (scopedHolderLicensesRes.error) {
-          console.error('[useLicenseeMetrics] Failed to resolve holder-based licenses for entity:', scopedHolderLicensesRes.error);
-          throw scopedHolderLicensesRes.error;
-        }
-        holderLicenseRows = (scopedHolderLicensesRes.data || []) as any[];
-      } else if (holderLicensesRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve holder-based licenses:', holderLicensesRes.error);
-        throw holderLicensesRes.error;
-      }
       if (returnsRes.error) {
         console.error('[useLicenseeMetrics] Failed to resolve returns:', returnsRes.error);
         throw returnsRes.error;
@@ -208,7 +194,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const linkedLicenseIds = ((entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
         .map((row) => row.license_id)
         .filter(Boolean) as string[];
-      const licenseIdSet = new Set<string>([...linkedLicenseIds, ...holderLicenseRows.map((row: any) => row.id).filter(Boolean)]);
+      const licenseIdSet = new Set<string>(linkedLicenseIds);
 
       let licenseRows: Array<{ id: string; license_number: string | null; status: string | null; valid_until: string | null }> = [];
       if (licenseIdSet.size > 0) {
@@ -248,10 +234,10 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const [payPendingRes, payPaidRes] = await Promise.all([
         visibleAppIds.length > 0
           ? supabase.from('payments').select('id', { count: 'exact', head: true }).in('application_id', visibleAppIds).in('status', ['pending', 'awaiting_verification'])
-          : Promise.resolve({ count: 0 } as any),
+          : Promise.resolve({ count: 0, error: null } as any),
         visibleAppIds.length > 0
           ? supabase.from('payments').select('id', { count: 'exact', head: true }).in('application_id', visibleAppIds).in('status', ['paid', 'completed', 'verified'])
-          : Promise.resolve({ count: 0 } as any),
+          : Promise.resolve({ count: 0, error: null } as any),
       ]);
 
       if (payPendingRes.error) {
@@ -265,7 +251,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
 
       const notifUnreadRes = userId
         ? await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)
-        : ({ count: 0 } as any);
+        : ({ count: 0, error: null } as any);
 
       if (notifUnreadRes.error) {
         console.error('[useLicenseeMetrics] Failed to resolve unread notifications:', notifUnreadRes.error);
@@ -329,6 +315,14 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           pending_payments: pendingPayments.slice(0, 5) as any,
         },
       };
-    },
+}
+
+export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined) {
+  return useQuery<LicenseeMetrics>({
+    queryKey: ['licensee-metrics', activeLicenseeId, userId],
+    enabled: !!(activeLicenseeId || userId),
+    staleTime: 60_000,
+    placeholderData: EMPTY_METRICS,
+    queryFn: () => fetchLicenseeMetrics(activeLicenseeId, userId),
   });
 }
