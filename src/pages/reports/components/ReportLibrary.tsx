@@ -5,11 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, Calendar, Star, Search } from 'lucide-react';
-import { REPORT_CATEGORIES, REPORT_DEFINITIONS } from '../reportDefinitions';
 import type { ReportDefinition, ReportRun } from '../types';
 import { generateReport, listFavorites, toggleFavorite } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { useReportDefinitions } from '../hooks/useReportMetadata';
 
 interface Props {
   onPreview: (run: ReportRun) => void;
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export function ReportLibrary({ onPreview, onSchedule }: Props) {
+  const { data: definitions = [], isLoading: defsLoading } = useReportDefinitions();
   const { toast } = useToast();
   const { hasModuleAccess, isLoading: permsLoading } = useUserDynamicPermissions();
   const [search, setSearch] = useState('');
@@ -30,9 +31,14 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
   }, []);
 
   const accessibleDefs = useMemo(() => {
-    if (permsLoading) return REPORT_DEFINITIONS;
-    return REPORT_DEFINITIONS.filter((d) => hasModuleAccess(d.module));
-  }, [hasModuleAccess, permsLoading]);
+    if (permsLoading || defsLoading) return definitions;
+    return definitions.filter((d) => hasModuleAccess(d.module));
+  }, [definitions, defsLoading, hasModuleAccess, permsLoading]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(accessibleDefs.map((d) => d.category))).sort(),
+    [accessibleDefs],
+  );
 
   const list = useMemo(() => {
     return accessibleDefs.filter((d) => {
@@ -100,7 +106,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
           <SelectTrigger className="md:w-72"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {REPORT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button
