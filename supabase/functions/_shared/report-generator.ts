@@ -404,12 +404,15 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   if (!ALLOWED_SOURCES.has(source)) {
     throw new Error(`Unsupported source: ${source}`);
   }
-  const table = source === 'users' ? 'profiles' : source;
+  // Resolve physical table/view from report_sources metadata. Fallback preserves
+  // legacy behavior (users -> profiles) when metadata is missing.
+  const meta = await loadSourceMeta(client, source);
+  const table = meta?.table_name || (source === 'users' ? 'profiles' : source);
   const effectiveLimit = Math.min(opts.limit ?? HARD_LIMIT, HARD_LIMIT);
 
   // Build a per-source filter map from metadata, falling back to hardcoded map.
   const metaDefs = await loadSourceFilterMeta(client, source);
-  const safeCols = (await loadSourceSafeColumns(client, source)) || [];
+  const safeCols = meta?.safe_columns || [];
   const metaMap: Record<string, FilterDef> = {};
   for (const d of metaDefs) {
     if (!d.filter_key) continue;
