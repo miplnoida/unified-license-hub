@@ -60,9 +60,9 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
 ];
 
 export const COLUMN_OPTIONS_BY_SOURCE: Record<string, string[]> = {
-  applications: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at', 'approved_at', 'rejected_at', 'updated_at'],
-  licenses: ['license_number', 'license_type', 'status', 'issued_date', 'expiry_date', 'created_at', 'updated_at'],
-  payments: ['amount', 'status', 'created_at', 'updated_at'],
+  applications: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at', 'approved_at', 'rejected_at', 'updated_at', 'regulator_id'],
+  licenses: ['license_number', 'license_type', 'status', 'issued_at', 'valid_from', 'valid_until', 'sector_id', 'sub_sector_id', 'created_at', 'updated_at'],
+  payments: ['amount', 'status', 'currency', 'payment_method', 'transaction_ref', 'receipt_number', 'paid_at', 'created_at'],
   compliance_returns: ['license_id', 'period_start', 'period_end', 'due_date', 'status', 'submitted_at', 'reviewed_at'],
   complaints: ['complaint_number', 'subject', 'status', 'complaint_type_id', 'created_at', 'updated_at'],
   users: ['email', 'full_name', 'created_at'],
