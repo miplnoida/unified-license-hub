@@ -66,6 +66,11 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const [templateDialog, setTemplateDialog] = useState(false);
   const [templateName, setTemplateName] = useState('');
 
+  const regulatorsQ = useAllRegulators();
+  const sectorsQ = useSectors(cfg.filters.regulator || null);
+  const subSectorsQ = useSubSectors(cfg.filters.regulator || null);
+  const servicesQ = useServices(cfg.filters.regulator || null);
+
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
 
