@@ -254,15 +254,15 @@ export async function logExport(reportId: string | null, format: ExportFormat, r
     } as Record<string, any>;
     // Try with both columns first.
     const full = { ...base, report_id: reportId, report_run_id: reportId };
-    let res = await supabase.from('report_logs').insert(full);
+    let res = await (supabase.from('report_logs') as any).insert(full);
     if (!res.error) return;
     const msg = String(res.error?.message || '');
     if (/report_run_id/i.test(msg)) {
-      res = await supabase.from('report_logs').insert({ ...base, report_id: reportId });
+      res = await (supabase.from('report_logs') as any).insert({ ...base, report_id: reportId });
       if (!res.error) return;
     }
     if (/report_id/i.test(String(res.error?.message || ''))) {
-      await supabase.from('report_logs').insert({ ...base, report_run_id: reportId } as any);
+      await (supabase.from('report_logs') as any).insert({ ...base, report_run_id: reportId });
     }
   } catch (e) {
     if (typeof console !== 'undefined') console.warn('[reports] logExport failed', e);
