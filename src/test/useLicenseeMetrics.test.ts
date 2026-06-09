@@ -26,6 +26,7 @@ describe('useLicenseeMetrics queryFn', () => {
     vi.resetModules();
     vi.clearAllMocks();
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     loadVisibleApplicationsMock.mockRejectedValue(new Error('rpc failed'));
 
     const queryByTable = (table: string) => {
@@ -132,6 +133,7 @@ describe('useLicenseeMetrics queryFn', () => {
     };
 
     fromMock.mockImplementation(queryByTable);
+    void consoleErrorSpy;
   });
 
   it('returns entity license and return metrics even when visible applications fail', async () => {
