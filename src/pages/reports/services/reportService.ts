@@ -270,21 +270,27 @@ export async function createReportSchedule(config: {
   selectedColumns?: string[];
   groupBy?: string;
   sortBy?: string;
+  sortDir?: SortDirection;
   frequency: ScheduleFrequency;
   recipients: string[];
   exportFormat: ExportFormat;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   const next = calculateNextRunAt(config.frequency);
+  // Resolve source: explicit > slug lookup. Never persist an empty source if avoidable.
+  const resolvedSource = (config.source && isAllowedSource(config.source))
+    ? config.source
+    : (config.reportSlug ? REPORT_SLUG_SOURCE_MAP[config.reportSlug] || null : null);
   const { error } = await supabase.from('report_schedules').insert({
     report_id: config.reportId ?? null,
     report_slug: config.reportSlug || null,
     report_name: config.reportName,
-    source: config.source || null,
+    source: resolvedSource,
     filters_json: config.filters || {},
     selected_columns: config.selectedColumns || [],
     group_by: config.groupBy || null,
     sort_by: config.sortBy || null,
+    sort_dir: config.sortDir || null,
     schedule_type: config.frequency,
     recipients: config.recipients,
     export_format: config.exportFormat,
