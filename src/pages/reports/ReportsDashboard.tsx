@@ -56,8 +56,9 @@ export default function ReportsDashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-4">
-            <ReportsOverview />
+            <ReportsOverview onDrilldown={openPreview} />
           </TabsContent>
+
 
           <TabsContent value="library" className="mt-4">
             <ReportLibrary onPreview={openPreview} onSchedule={handleScheduleFromLibrary} />

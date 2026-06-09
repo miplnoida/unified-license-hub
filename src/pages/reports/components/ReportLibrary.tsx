@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,46 +7,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, Calendar, Star, Search } from 'lucide-react';
 import { REPORT_CATEGORIES, REPORT_DEFINITIONS } from '../reportDefinitions';
 import type { ReportDefinition, ReportRun } from '../types';
-import { generateReport } from '../services/reportService';
+import { generateReport, listFavorites, toggleFavorite } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 
 interface Props {
   onPreview: (run: ReportRun) => void;
   onSchedule: (def: ReportDefinition) => void;
 }
 
-const FAV_KEY = 'reports:favorites';
-
-function loadFavs(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')); } catch { return new Set(); }
-}
-function saveFavs(set: Set<string>) {
-  localStorage.setItem(FAV_KEY, JSON.stringify(Array.from(set)));
-}
-
 export function ReportLibrary({ onPreview, onSchedule }: Props) {
   const { toast } = useToast();
+  const { hasModuleAccess, isLoading: permsLoading } = useUserDynamicPermissions();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState<string>('all');
-  const [favs, setFavs] = useState<Set<string>>(() => loadFavs());
+  const [showFavsOnly, setShowFavsOnly] = useState(false);
+  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  useEffect(() => {
+    listFavorites().then((rows) => setFavs(new Set(rows.map((r) => r.reportSlug)))).catch(() => {});
+  }, []);
+
+  const accessibleDefs = useMemo(() => {
+    if (permsLoading) return REPORT_DEFINITIONS;
+    return REPORT_DEFINITIONS.filter((d) => hasModuleAccess(d.module));
+  }, [hasModuleAccess, permsLoading]);
+
   const list = useMemo(() => {
-    return REPORT_DEFINITIONS.filter((d) => {
+    return accessibleDefs.filter((d) => {
       if (cat !== 'all' && d.category !== cat) return false;
+      if (showFavsOnly && !favs.has(d.id)) return false;
       if (search) {
         const q = search.toLowerCase();
         return d.name.toLowerCase().includes(q) || d.description.toLowerCase().includes(q);
       }
       return true;
+    }).sort((a, b) => {
+      const af = favs.has(a.id) ? 0 : 1;
+      const bf = favs.has(b.id) ? 0 : 1;
+      return af - bf;
     });
-  }, [search, cat]);
+  }, [accessibleDefs, search, cat, favs, showFavsOnly]);
 
-  const toggleFav = (id: string) => {
+  const handleToggleFav = async (id: string) => {
     const next = new Set(favs);
-    next.has(id) ? next.delete(id) : next.add(id);
+    const on = await toggleFavorite(id);
+    on ? next.add(id) : next.delete(id);
     setFavs(next);
-    saveFavs(next);
   };
 
   const handleGenerate = async (def: ReportDefinition) => {
@@ -57,8 +65,10 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
         category: def.category,
         source: def.source,
         filters: {},
-        reportType: 'predefined',
+        reportSlug: def.id,
         description: def.description,
+        selectedColumns: def.defaultColumns,
+        groupBy: def.defaultGroupBy,
       });
       toast({ title: 'Report generated', description: `${run.rowCount} rows.` });
       onPreview(run);
@@ -68,6 +78,16 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
       setBusyId(null);
     }
   };
+
+  if (!permsLoading && accessibleDefs.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          You don't have access to any report modules. Contact an administrator.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -83,6 +103,14 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
             {REPORT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          type="button"
+          variant={showFavsOnly ? 'default' : 'outline'}
+          onClick={() => setShowFavsOnly((v) => !v)}
+        >
+          <Star className={`h-4 w-4 mr-2 ${showFavsOnly ? 'fill-current' : ''}`} />
+          Favorites
+        </Button>
       </div>
 
       {list.length === 0 ? (
@@ -97,7 +125,7 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
                     <CardTitle className="text-base">{d.name}</CardTitle>
                     <Badge variant="secondary" className="text-xs">{d.category}</Badge>
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => toggleFav(d.id)} aria-label="Favorite">
+                  <Button size="icon" variant="ghost" onClick={() => handleToggleFav(d.id)} aria-label="Favorite">
                     <Star className={`h-4 w-4 ${favs.has(d.id) ? 'fill-yellow-400 text-yellow-500' : ''}`} />
                   </Button>
                 </div>

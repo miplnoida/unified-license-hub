@@ -1,26 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
 import type {
-  BuilderConfig,
-  ExportFormat,
-  ReportFilters,
-  ReportRun,
-  ReportSchedule,
-  ScheduleFrequency,
-  ReportSource,
+  BuilderConfig, ExportFormat, ReportFavorite, ReportFilters, ReportRun,
+  ReportSchedule, ReportSource, ReportTemplate, ScheduleFrequency, SortDirection,
 } from '../types';
 import { REPORT_DEFINITIONS, SENSITIVE_COLUMNS } from '../reportDefinitions';
 
-function startOfDay(d: Date) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+export const ALLOWED_SOURCES: ReportSource[] = [
+  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs',
+];
+
+export function isAllowedSource(s: string): s is ReportSource {
+  return (ALLOWED_SOURCES as string[]).includes(s);
+}
 
 export function resolveDateRange(filters: ReportFilters): { from?: string; to?: string } {
   if (filters.preset && filters.preset !== 'custom') {
     const now = new Date();
     const from = new Date(now);
     if (filters.preset === 'today') from.setHours(0, 0, 0, 0);
-    else if (filters.preset === 'this_week') { const d = now.getDay(); from.setDate(now.getDate() - d); from.setHours(0, 0, 0, 0); }
+    else if (filters.preset === 'this_week') { from.setDate(now.getDate() - now.getDay()); from.setHours(0, 0, 0, 0); }
     else if (filters.preset === 'this_month') { from.setDate(1); from.setHours(0, 0, 0, 0); }
     else if (filters.preset === 'this_quarter') { const q = Math.floor(now.getMonth() / 3) * 3; from.setMonth(q, 1); from.setHours(0, 0, 0, 0); }
-    else if (filters.preset === 'this_fy') { const fyStartMonth = 3; const y = now.getMonth() >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1; from.setFullYear(y, fyStartMonth, 1); from.setHours(0, 0, 0, 0); }
+    else if (filters.preset === 'this_fy') { const fy = 3; const y = now.getMonth() >= fy ? now.getFullYear() : now.getFullYear() - 1; from.setFullYear(y, fy, 1); from.setHours(0, 0, 0, 0); }
     return { from: from.toISOString(), to: now.toISOString() };
   }
   return { from: filters.dateFrom, to: filters.dateTo };
@@ -35,25 +36,57 @@ function stripSensitive(row: Record<string, unknown>) {
   return out;
 }
 
-const ALLOWED_SOURCES: ReportSource[] = ['applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'audit_logs'];
+export function selectColumns<T extends Record<string, unknown>>(rows: T[], cols?: string[]) {
+  if (!cols || !cols.length) return rows;
+  return rows.map((r) => {
+    const o: Record<string, unknown> = {};
+    cols.forEach((c) => { if (c in r) o[c] = r[c]; });
+    return o as T;
+  });
+}
 
-export async function runQuery(source: ReportSource, filters: ReportFilters, limit = 5000) {
-  if (!ALLOWED_SOURCES.includes(source) && source !== 'users') {
-    throw new Error(`Unsupported source: ${source}`);
-  }
-  const table = source === 'users' ? 'profiles' : source;
-  let q = (supabase.from(table as any).select('*', { count: 'exact' }) as any).limit(limit);
-  const { from, to } = resolveDateRange(filters);
-  if (from) q = q.gte('created_at', from);
-  if (to) q = q.lte('created_at', to);
-  if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
-  if (filters.sector && filters.sector !== 'all' && (source === 'applications' || source === 'licenses')) {
-    // sectors are not directly on these tables; skip silently
-  }
-  const { data, error, count } = await q;
+// =========== Edge function entry points ===========
+
+async function invokeGenerate(opts: {
+  reportSlug?: string;
+  reportName?: string;
+  category?: string;
+  source: ReportSource;
+  filters: ReportFilters;
+  selectedColumns?: string[];
+  groupBy?: string;
+  sortBy?: string;
+  sortDir?: SortDirection;
+  mode: 'preview' | 'generate';
+  limit?: number;
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-report', { body: opts });
   if (error) throw error;
-  const rows = (data || []).map(stripSensitive);
-  return { rows, count: count ?? rows.length };
+  if (data && data.ok === false) throw new Error(data.error || 'Report generation failed');
+  return data as { run: any; rows: any[]; summary: any; rowCount: number; totalCount: number };
+}
+
+export async function previewReport(
+  source: ReportSource,
+  filters: ReportFilters,
+  limit = 100,
+  extra: { selectedColumns?: string[]; groupBy?: string; sortBy?: string; sortDir?: SortDirection; reportSlug?: string } = {},
+) {
+  try {
+    const res = await invokeGenerate({ source, filters, mode: 'preview', limit, ...extra });
+    return { rows: res.rows, count: res.totalCount ?? res.rowCount };
+  } catch {
+    // Client-side fallback (dev only)
+    const table = source === 'users' ? 'profiles' : source;
+    let q = (supabase.from(table as any).select('*', { count: 'exact' }) as any).limit(limit);
+    const { from, to } = resolveDateRange(filters);
+    if (from) q = q.gte('created_at', from);
+    if (to) q = q.lte('created_at', to);
+    if (filters.status && filters.status !== 'all') q = q.eq('status', filters.status);
+    const { data, count } = await q;
+    const rows = (data || []).map(stripSensitive);
+    return { rows: selectColumns(rows, extra.selectedColumns), count: count ?? rows.length };
+  }
 }
 
 export async function generateReport(opts: {
@@ -61,38 +94,63 @@ export async function generateReport(opts: {
   category: string;
   source: ReportSource;
   filters: ReportFilters;
-  reportType?: 'predefined' | 'ad_hoc';
+  reportSlug?: string;
   description?: string;
+  selectedColumns?: string[];
+  groupBy?: string;
+  sortBy?: string;
+  sortDir?: SortDirection;
 }): Promise<ReportRun> {
-  const { rows, count } = await runQuery(opts.source, opts.filters);
-  const { data: { user } } = await supabase.auth.getUser();
-  const payload = {
-    name: opts.name,
-    description: opts.description ?? null,
-    report_type: opts.reportType ?? 'predefined',
+  const res = await invokeGenerate({
+    reportName: opts.name,
+    reportSlug: opts.reportSlug,
     category: opts.category,
-    query_config: { source: opts.source, filters: opts.filters } as any,
-    result_data: rows as any,
-    result_count: count,
-    generated_at: new Date().toISOString(),
-    status: 'ready',
-    created_by: user?.id,
-  };
-  const { data, error } = await supabase.from('reports').insert(payload).select('*').single();
-  if (error) throw error;
-  // best-effort log
-  await supabase.from('report_logs').insert({ action: 'generated', executed_by: user?.id, record_count: count }).then(() => null, () => null);
-  return mapReportRow(data);
+    source: opts.source,
+    filters: opts.filters,
+    selectedColumns: opts.selectedColumns,
+    groupBy: opts.groupBy,
+    sortBy: opts.sortBy,
+    sortDir: opts.sortDir,
+    mode: 'generate',
+  });
+  return mapReportRow(res.run, res.rows, res.summary);
 }
 
-export async function previewReport(source: ReportSource, filters: ReportFilters, limit = 100) {
-  return runQuery(source, filters, limit);
+export async function generateFromBuilder(config: BuilderConfig): Promise<ReportRun> {
+  return generateReport({
+    name: config.name,
+    category: 'Ad-Hoc',
+    source: config.source,
+    filters: config.filters,
+    selectedColumns: config.columns,
+    groupBy: config.groupBy,
+    sortBy: config.sortBy,
+    sortDir: config.sortDir,
+    description: config.description,
+  });
 }
+
+// =========== History ===========
 
 export async function getReportHistory(): Promise<ReportRun[]> {
-  const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(200);
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
   if (error) throw error;
-  return (data || []).map(mapReportRow);
+  return (data || []).map((row: any) => mapReportRow(row, Array.isArray(row.result_data) ? row.result_data : [], row.result_summary));
+}
+
+export async function fetchRunRows(runId: string, limit = 10000): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase
+    .from('report_run_rows' as any)
+    .select('row_data, row_index')
+    .eq('report_run_id', runId)
+    .order('row_index', { ascending: true })
+    .limit(limit);
+  if (error) return [];
+  return ((data || []) as any[]).map((r) => r.row_data);
 }
 
 export async function deleteReportRun(id: string) {
@@ -100,32 +158,46 @@ export async function deleteReportRun(id: string) {
   if (error) throw error;
 }
 
-export async function logExport(reportId: string | null, format: ExportFormat, rowCount: number) {
-  const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from('report_logs').insert({
-    action: `export_${format}`,
-    executed_by: user?.id,
-    record_count: rowCount,
-  }).then(() => null, () => null);
-}
-
-function mapReportRow(row: any): ReportRun {
-  const qc = (row.query_config || {}) as { source?: ReportSource; filters?: ReportFilters };
+function mapReportRow(row: any, rows: any[] = [], summary?: any): ReportRun {
+  const qc = (row?.query_config || {}) as any;
   return {
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    source: qc.source,
-    filters: qc.filters || {},
-    rows: Array.isArray(row.result_data) ? row.result_data : [],
-    rowCount: row.result_count ?? (Array.isArray(row.result_data) ? row.result_data.length : 0),
-    generatedBy: row.created_by,
-    generatedAt: row.generated_at || row.created_at,
-    status: (row.status as ReportRun['status']) || 'ready',
+    id: row?.id,
+    name: row?.name,
+    category: row?.category,
+    source: (row?.source || qc.source) as ReportSource | undefined,
+    slug: row?.report_slug || qc.reportSlug,
+    filters: row?.filters_json || qc.filters || {},
+    selectedColumns: row?.selected_columns || qc.selectedColumns || [],
+    groupBy: row?.group_by || qc.groupBy,
+    sortBy: row?.sort_by || qc.sortBy,
+    sortDir: (row?.sort_dir || qc.sortDir) as SortDirection | undefined,
+    summary: summary || row?.result_summary || {},
+    rows,
+    rowCount: row?.result_count ?? rows.length,
+    generatedBy: row?.created_by,
+    generatedAt: row?.generated_at || row?.created_at,
+    durationMs: row?.duration_ms ?? null,
+    errorMessage: row?.error_message ?? null,
+    status: (row?.status as ReportRun['status']) || 'ready',
   };
 }
 
-// ============ Schedules ============
+// =========== Audit logging ===========
+
+export async function logExport(reportId: string | null, format: ExportFormat, rowCount: number) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('report_logs').insert({
+      report_id: reportId,
+      action: `export_${format}`,
+      executed_by: user?.id,
+      record_count: rowCount,
+      export_format: format,
+    });
+  } catch {/* best-effort */}
+}
+
+// =========== Schedules ===========
 
 export function calculateNextRunAt(frequency: ScheduleFrequency, from = new Date()): Date {
   const d = new Date(from);
@@ -141,24 +213,38 @@ export function calculateNextRunAt(frequency: ScheduleFrequency, from = new Date
 
 export async function getReportSchedules(): Promise<ReportSchedule[]> {
   const { data, error } = await supabase
-    .from('report_schedules').select('*, reports(name)')
+    .from('report_schedules')
+    .select('*, reports(name)')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []).map((s: any) => ({
     id: s.id,
-    reportId: s.report_id,
-    reportName: s.reports?.name,
+    reportId: s.report_id ?? null,
+    reportSlug: s.report_slug,
+    reportName: s.report_name || s.reports?.name,
+    source: s.source,
     frequency: s.schedule_type as ScheduleFrequency,
     recipients: s.recipients || [],
+    recipientRoles: s.recipient_roles || [],
     exportFormat: s.export_format as ExportFormat,
     isActive: s.is_active,
     lastRunAt: s.last_run_at,
     nextRunAt: s.next_run_at,
+    lastStatus: s.last_status,
+    lastError: s.last_error,
+    retryCount: s.retry_count,
   }));
 }
 
 export async function createReportSchedule(config: {
-  reportId: string;
+  reportId?: string | null;
+  reportSlug?: string;
+  reportName: string;
+  source?: string;
+  filters?: ReportFilters;
+  selectedColumns?: string[];
+  groupBy?: string;
+  sortBy?: string;
   frequency: ScheduleFrequency;
   recipients: string[];
   exportFormat: ExportFormat;
@@ -166,14 +252,21 @@ export async function createReportSchedule(config: {
   const { data: { user } } = await supabase.auth.getUser();
   const next = calculateNextRunAt(config.frequency);
   const { error } = await supabase.from('report_schedules').insert({
-    report_id: config.reportId,
+    report_id: config.reportId ?? null,
+    report_slug: config.reportSlug || null,
+    report_name: config.reportName,
+    source: config.source || null,
+    filters_json: config.filters || {},
+    selected_columns: config.selectedColumns || [],
+    group_by: config.groupBy || null,
+    sort_by: config.sortBy || null,
     schedule_type: config.frequency,
     recipients: config.recipients,
     export_format: config.exportFormat,
     is_active: true,
     created_by: user?.id,
     next_run_at: next.toISOString(),
-  });
+  } as any);
   if (error) throw error;
 }
 
@@ -192,22 +285,139 @@ export async function deleteReportSchedule(id: string) {
   if (error) throw error;
 }
 
+export async function runScheduleNow(scheduleId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.from('report_logs').insert({
+    schedule_id: scheduleId,
+    action: 'schedule_run_manual',
+    executed_by: user?.id,
+  }).then(() => null, () => null);
+  const { data, error } = await supabase.functions.invoke('run-scheduled-reports', {
+    body: { scheduleId },
+  });
+  if (error) throw error;
+  if (data?.ok === false) throw new Error(data.error || 'Run failed');
+  return data;
+}
+
+// =========== Favorites (backend + localStorage fallback) ===========
+
+const LS_FAVS = 'reports:favorites';
+function lsFavs(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_FAVS) || '[]')); } catch { return new Set(); }
+}
+function saveLsFavs(set: Set<string>) {
+  localStorage.setItem(LS_FAVS, JSON.stringify(Array.from(set)));
+}
+
+export async function listFavorites(): Promise<ReportFavorite[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return Array.from(lsFavs()).map((s) => ({ reportSlug: s, createdAt: '' }));
+    const { data, error } = await supabase
+      .from('report_favorites' as any)
+      .select('report_slug, created_at')
+      .eq('user_id', user.id);
+    if (error) throw error;
+    return ((data || []) as any[]).map((r) => ({ reportSlug: r.report_slug, createdAt: r.created_at }));
+  } catch {
+    return Array.from(lsFavs()).map((s) => ({ reportSlug: s, createdAt: '' }));
+  }
+}
+
+export async function toggleFavorite(slug: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      const set = lsFavs();
+      if (set.has(slug)) { set.delete(slug); saveLsFavs(set); return false; }
+      set.add(slug); saveLsFavs(set); return true;
+    }
+    const existing = await supabase
+      .from('report_favorites' as any)
+      .select('id')
+      .eq('user_id', user.id).eq('report_slug', slug).maybeSingle();
+    if (existing.data) {
+      await supabase.from('report_favorites' as any).delete().eq('id', (existing.data as any).id);
+      return false;
+    }
+    await supabase.from('report_favorites' as any).insert({ user_id: user.id, report_slug: slug });
+    return true;
+  } catch {
+    const set = lsFavs();
+    if (set.has(slug)) { set.delete(slug); saveLsFavs(set); return false; }
+    set.add(slug); saveLsFavs(set); return true;
+  }
+}
+
+// =========== Templates ===========
+
+export async function listTemplates(): Promise<ReportTemplate[]> {
+  const { data, error } = await supabase
+    .from('report_templates' as any)
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return ((data || []) as any[]).map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    source: r.source as ReportSource,
+    filters: r.filters_json || {},
+    selectedColumns: r.selected_columns || [],
+    groupBy: r.group_by,
+    sortBy: r.sort_by,
+    sortDir: r.sort_dir,
+    visibility: r.visibility,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function saveTemplate(t: {
+  id?: string;
+  name: string;
+  description?: string;
+  source: ReportSource;
+  filters: ReportFilters;
+  selectedColumns: string[];
+  groupBy?: string;
+  sortBy?: string;
+  sortDir?: SortDirection;
+  visibility?: 'private' | 'shared';
+}) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    name: t.name,
+    description: t.description || null,
+    source: t.source,
+    filters_json: t.filters || {},
+    selected_columns: t.selectedColumns || [],
+    group_by: t.groupBy || null,
+    sort_by: t.sortBy || null,
+    sort_dir: t.sortDir || 'asc',
+    visibility: t.visibility || 'private',
+    created_by: user?.id,
+  };
+  if (t.id) {
+    const { error } = await supabase.from('report_templates' as any).update(payload).eq('id', t.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('report_templates' as any).insert(payload as any);
+    if (error) throw error;
+  }
+}
+
+export async function deleteTemplate(id: string) {
+  const { error } = await supabase.from('report_templates' as any).delete().eq('id', id);
+  if (error) throw error;
+}
+
 export function findDefinition(id: string) {
   return REPORT_DEFINITIONS.find((d) => d.id === id);
 }
 
-export async function generateFromBuilder(config: BuilderConfig): Promise<ReportRun> {
-  return generateReport({
-    name: config.name,
-    category: 'Ad-Hoc',
-    source: config.source,
-    filters: config.filters,
-    reportType: 'ad_hoc',
-    description: config.description,
-  });
-}
-
-// ============ Metrics ============
+// =========== Metrics (unchanged) ===========
 
 export async function getReportMetrics() {
   const [appsRes, paysRes, licRes, retRes, cmpRes] = await Promise.allSettled([
@@ -260,12 +470,14 @@ export async function getReportMetrics() {
     const s = (r.status || '').toLowerCase();
     return (s === 'pending' || s === 'tbr' || s === 'rej') && r.due_date && new Date(r.due_date) < now;
   }).length;
-  const submittedReturns = rets.filter((r: any) => r.submitted_at || ['submitted', 'sub', 'validated', 'approved'].includes((r.status || '').toLowerCase())).length;
+  const submittedReturns = rets.filter((r: any) =>
+    r.submitted_at || ['submitted', 'sub', 'validated', 'approved'].includes((r.status || '').toLowerCase())
+  ).length;
   const complianceRate = rets.length ? Math.round((submittedReturns / rets.length) * 100) : 0;
   const retStats = [
-    { name: 'Submitted', value: rets.filter((r: any) => (r.status || '').toLowerCase() === 'submitted' || (r.status || '').toLowerCase() === 'sub').length },
+    { name: 'Submitted', value: rets.filter((r: any) => ['submitted', 'sub'].includes((r.status || '').toLowerCase())).length },
     { name: 'Pending', value: rets.filter((r: any) => (r.status || '').toLowerCase() === 'pending').length },
-    { name: 'Validated', value: rets.filter((r: any) => (r.status || '').toLowerCase() === 'validated' || (r.status || '').toLowerCase() === 'approved').length },
+    { name: 'Validated', value: rets.filter((r: any) => ['validated', 'approved'].includes((r.status || '').toLowerCase())).length },
     { name: 'Overdue', value: overdueReturns },
   ];
 

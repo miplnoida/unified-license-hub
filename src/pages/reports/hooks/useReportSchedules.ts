@@ -15,5 +15,5 @@ export function useReportSchedules() {
     onSuccess: invalidate,
   });
   const remove = useMutation({ mutationFn: deleteReportSchedule, onSuccess: invalidate });
-  return { ...query, create, update, remove };
+  return { ...query, create, update, remove, invalidate };
 }

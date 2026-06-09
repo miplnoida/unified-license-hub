@@ -3219,6 +3219,81 @@ export type Database = {
           },
         ]
       }
+      report_definitions: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          default_columns: string[] | null
+          default_group_by: string | null
+          definition_json: Json
+          description: string | null
+          export_formats: string[] | null
+          id: string
+          is_active: boolean | null
+          module: string
+          name: string
+          slug: string
+          source: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          default_columns?: string[] | null
+          default_group_by?: string | null
+          definition_json?: Json
+          description?: string | null
+          export_formats?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          module: string
+          name: string
+          slug: string
+          source: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          default_columns?: string[] | null
+          default_group_by?: string | null
+          definition_json?: Json
+          description?: string | null
+          export_formats?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          module?: string
+          name?: string
+          slug?: string
+          source?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      report_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          report_slug: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          report_slug: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          report_slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       report_filters: {
         Row: {
           created_at: string
@@ -3261,9 +3336,13 @@ export type Database = {
           execution_time_ms: number | null
           export_format: string | null
           id: string
+          ip_address: string | null
           metadata: Json | null
           record_count: number | null
           report_id: string | null
+          report_name: string | null
+          schedule_id: string | null
+          user_agent: string | null
         }
         Insert: {
           action: string
@@ -3273,9 +3352,13 @@ export type Database = {
           execution_time_ms?: number | null
           export_format?: string | null
           id?: string
+          ip_address?: string | null
           metadata?: Json | null
           record_count?: number | null
           report_id?: string | null
+          report_name?: string | null
+          schedule_id?: string | null
+          user_agent?: string | null
         }
         Update: {
           action?: string
@@ -3285,14 +3368,116 @@ export type Database = {
           execution_time_ms?: number | null
           export_format?: string | null
           id?: string
+          ip_address?: string | null
           metadata?: Json | null
           record_count?: number | null
           report_id?: string | null
+          report_name?: string | null
+          schedule_id?: string | null
+          user_agent?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "report_logs_report_id_fkey"
             columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_logs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "report_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_run_files: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          file_size: number | null
+          format: string
+          id: string
+          report_run_id: string
+          storage_path: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          file_size?: number | null
+          format: string
+          id?: string
+          report_run_id: string
+          storage_path?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          file_size?: number | null
+          format?: string
+          id?: string
+          report_run_id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_run_files_report_run_id_fkey"
+            columns: ["report_run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_run_files_report_run_id_fkey"
+            columns: ["report_run_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_run_rows: {
+        Row: {
+          created_at: string | null
+          id: string
+          report_run_id: string
+          row_data: Json
+          row_index: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          report_run_id: string
+          row_data?: Json
+          row_index: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          report_run_id?: string
+          row_data?: Json
+          row_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_run_rows_report_run_id_fkey"
+            columns: ["report_run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_run_rows_report_run_id_fkey"
+            columns: ["report_run_id"]
             isOneToOne: false
             referencedRelation: "reports"
             referencedColumns: ["id"]
@@ -3305,13 +3490,25 @@ export type Database = {
           created_by: string
           cron_expression: string | null
           export_format: string
+          filters_json: Json | null
+          group_by: string | null
           id: string
           is_active: boolean
+          last_error: string | null
           last_run_at: string | null
+          last_status: string | null
           next_run_at: string | null
+          recipient_roles: string[] | null
           recipients: Json
-          report_id: string
+          report_definition_id: string | null
+          report_id: string | null
+          report_name: string | null
+          report_slug: string | null
+          retry_count: number | null
           schedule_type: string
+          selected_columns: string[] | null
+          sort_by: string | null
+          source: string | null
           updated_at: string
         }
         Insert: {
@@ -3319,13 +3516,25 @@ export type Database = {
           created_by: string
           cron_expression?: string | null
           export_format?: string
+          filters_json?: Json | null
+          group_by?: string | null
           id?: string
           is_active?: boolean
+          last_error?: string | null
           last_run_at?: string | null
+          last_status?: string | null
           next_run_at?: string | null
+          recipient_roles?: string[] | null
           recipients?: Json
-          report_id: string
+          report_definition_id?: string | null
+          report_id?: string | null
+          report_name?: string | null
+          report_slug?: string | null
+          retry_count?: number | null
           schedule_type?: string
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          source?: string | null
           updated_at?: string
         }
         Update: {
@@ -3333,16 +3542,35 @@ export type Database = {
           created_by?: string
           cron_expression?: string | null
           export_format?: string
+          filters_json?: Json | null
+          group_by?: string | null
           id?: string
           is_active?: boolean
+          last_error?: string | null
           last_run_at?: string | null
+          last_status?: string | null
           next_run_at?: string | null
+          recipient_roles?: string[] | null
           recipients?: Json
-          report_id?: string
+          report_definition_id?: string | null
+          report_id?: string | null
+          report_name?: string | null
+          report_slug?: string | null
+          retry_count?: number | null
           schedule_type?: string
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          source?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "report_schedules_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "report_schedules_report_id_fkey"
             columns: ["report_id"]
@@ -3352,55 +3580,142 @@ export type Database = {
           },
         ]
       }
+      report_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          filters_json: Json | null
+          group_by: string | null
+          id: string
+          name: string
+          selected_columns: string[] | null
+          sort_by: string | null
+          sort_dir: string | null
+          source: string
+          updated_at: string | null
+          visibility: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          filters_json?: Json | null
+          group_by?: string | null
+          id?: string
+          name: string
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source: string
+          updated_at?: string | null
+          visibility?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          filters_json?: Json | null
+          group_by?: string | null
+          id?: string
+          name?: string
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source?: string
+          updated_at?: string | null
+          visibility?: string | null
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           category: string
+          completed_at: string | null
           created_at: string
           created_by: string
           description: string | null
+          duration_ms: number | null
+          error_message: string | null
           expires_at: string | null
+          filters_json: Json | null
           generated_at: string | null
+          group_by: string | null
           id: string
           name: string
           query_config: Json
           regulator_id: string | null
+          report_definition_id: string | null
+          report_slug: string | null
           report_type: string
           result_count: number | null
           result_data: Json | null
+          result_summary: Json | null
+          selected_columns: string[] | null
+          sort_by: string | null
+          sort_dir: string | null
+          source: string | null
+          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
           category?: string
+          completed_at?: string | null
           created_at?: string
           created_by: string
           description?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
           expires_at?: string | null
+          filters_json?: Json | null
           generated_at?: string | null
+          group_by?: string | null
           id?: string
           name: string
           query_config?: Json
           regulator_id?: string | null
+          report_definition_id?: string | null
+          report_slug?: string | null
           report_type?: string
           result_count?: number | null
           result_data?: Json | null
+          result_summary?: Json | null
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source?: string | null
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           category?: string
+          completed_at?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
           expires_at?: string | null
+          filters_json?: Json | null
           generated_at?: string | null
+          group_by?: string | null
           id?: string
           name?: string
           query_config?: Json
           regulator_id?: string | null
+          report_definition_id?: string | null
+          report_slug?: string | null
           report_type?: string
           result_count?: number | null
           result_data?: Json | null
+          result_summary?: Json | null
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source?: string | null
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -4665,6 +4980,78 @@ export type Database = {
       }
     }
     Views: {
+      report_runs: {
+        Row: {
+          category: string | null
+          completed_at: string | null
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          filters_json: Json | null
+          generated_at: string | null
+          generated_by: string | null
+          group_by: string | null
+          id: string | null
+          report_definition_id: string | null
+          report_name: string | null
+          report_slug: string | null
+          result_summary: Json | null
+          row_count: number | null
+          selected_columns: string[] | null
+          sort_by: string | null
+          sort_dir: string | null
+          source: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          filters_json?: never
+          generated_at?: string | null
+          generated_by?: string | null
+          group_by?: string | null
+          id?: string | null
+          report_definition_id?: string | null
+          report_name?: string | null
+          report_slug?: string | null
+          result_summary?: Json | null
+          row_count?: never
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          category?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          filters_json?: never
+          generated_at?: string | null
+          generated_by?: string | null
+          group_by?: string | null
+          id?: string | null
+          report_definition_id?: string | null
+          report_name?: string | null
+          report_slug?: string | null
+          result_summary?: Json | null
+          row_count?: never
+          selected_columns?: string[] | null
+          sort_by?: string | null
+          sort_dir?: string | null
+          source?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       workflow_steps_legacy_role_report: {
         Row: {
           approver_role_id: string | null
