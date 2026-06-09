@@ -53,6 +53,21 @@ export interface ReportFilterMeta {
   sortOrder: number;
 }
 
+export interface ReportSourceColumnMeta {
+  sourceKey: string;
+  columnKey: string;
+  label: string;
+  dataType?: string | null;
+  isDefault: boolean;
+  isSensitive: boolean;
+  isRawId: boolean;
+  isEnriched: boolean;
+  isComputed: boolean;
+  format?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface ReportStatusOption {
   sourceKey: string;
   filterKey: string;
