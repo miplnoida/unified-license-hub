@@ -40,8 +40,19 @@ function download(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function exportToCsv(data: Record<string, unknown>[], filename: string) {
-  const rows = safeRows(data);
+function relabel(rows: Record<string, unknown>[], labels?: Record<string, string>): Record<string, unknown>[] {
+  if (!labels || Object.keys(labels).length === 0) return rows;
+  return rows.map((r) => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(r)) {
+      out[labels[k] || k] = v;
+    }
+    return out;
+  });
+}
+
+export function exportToCsv(data: Record<string, unknown>[], filename: string, labels?: Record<string, string>) {
+  const rows = relabel(safeRows(data), labels);
   if (!rows.length) {
     download(new Blob([''], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
     return;
@@ -57,8 +68,8 @@ export function exportToCsv(data: Record<string, unknown>[], filename: string) {
   download(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }), `${filename}.csv`);
 }
 
-export function exportToXlsx(data: Record<string, unknown>[], filename: string) {
-  const rows = safeRows(data);
+export function exportToXlsx(data: Record<string, unknown>[], filename: string, labels?: Record<string, string>) {
+  const rows = relabel(safeRows(data), labels);
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Report');

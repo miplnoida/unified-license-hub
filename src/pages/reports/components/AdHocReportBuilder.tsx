@@ -16,10 +16,13 @@ import {
 } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 import {
-  useReportSources, useReportFilters, useReportOptions,
+  useReportSources, useReportFilters, useReportOptions, useReportSourceColumns,
 } from '../hooks/useReportMetadata';
 import { DynamicReportFilters } from './filters/DynamicReportFilters';
 import { BasicFallbackFilters } from './filters/BasicFallbackFilters';
+import { groupColumns, GROUP_LABELS, humanizeKey, type ColumnGroup } from '../lib/columnLabels';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 const DEFAULT: BuilderConfig = {
   name: '',
@@ -79,9 +82,19 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const { data: sources = [] } = useReportSources();
   const { data: filterMeta = [] } = useReportFilters(cfg.source);
   const { data: sortDirs = [] } = useReportOptions('sort_direction');
+  const { data: sourceColumns = [] } = useReportSourceColumns(cfg.source);
 
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
+
+  // When source changes (or columns metadata loads), seed default selection from is_default flag.
+  useEffect(() => {
+    if (sourceColumns.length === 0) return;
+    if (cfg.columns.length > 0) return;
+    const defaults = sourceColumns.filter((c) => c.isDefault).map((c) => c.columnKey);
+    if (defaults.length) setCfg((c) => ({ ...c, columns: defaults }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.source, sourceColumns.length]);
 
   const update = (patch: Partial<BuilderConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const updateFilter = (patch: Record<string, any>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
@@ -178,11 +191,23 @@ export function AdHocReportBuilder({ onPreview }: Props) {
     }
   };
 
-  // Prefer columns from source metadata (safe_columns); fallback to static map
+  // Build the column option list. Prefer report_source_columns metadata
+  // (gives labels + grouping). Fall back to source.safeColumns, then static.
   const activeSource = sources.find((s) => s.sourceKey === cfg.source);
-  const columnOpts = activeSource?.safeColumns?.length
+  const fallbackKeys = activeSource?.safeColumns?.length
     ? activeSource.safeColumns
     : (COLUMN_OPTIONS_BY_SOURCE[cfg.source] || []);
+  const metaColumns = sourceColumns.length
+    ? sourceColumns
+    : fallbackKeys.map((k, i) => ({
+        sourceKey: cfg.source, columnKey: k, label: humanizeKey(k), dataType: null,
+        isDefault: false, isSensitive: false, isRawId: /(_id|^id)$/i.test(k),
+        isEnriched: false, isComputed: false, format: null, sortOrder: i, isActive: true,
+      }));
+  const grouped = groupColumns(metaColumns);
+  const labelByKey: Record<string, string> = {};
+  metaColumns.forEach((c) => { labelByKey[c.columnKey] = c.label; });
+  const columnOpts = metaColumns.map((c) => c.columnKey);
   const hasMetadataFilters = (filterMeta || []).some((m) => m.isActive);
 
   return (
@@ -226,19 +251,49 @@ export function AdHocReportBuilder({ onPreview }: Props) {
 
 
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Columns ({cfg.columns.length || 'all'})</Label>
-            <div className="flex flex-wrap gap-2">
-              {columnOpts.map((c) => {
-                const on = cfg.columns.includes(c);
-                return (
-                  <Button key={c} type="button" size="sm" variant={on ? 'default' : 'outline'}
-                    onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c) : [...cfg.columns, c] })}>
-                    {c}
+            {(['business', 'enriched', 'computed'] as ColumnGroup[]).map((g) => (
+              grouped[g].length ? (
+                <div key={g} className="space-y-1.5">
+                  <div className="text-xs font-medium text-muted-foreground">{GROUP_LABELS[g]}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {grouped[g].map((c) => {
+                      const on = cfg.columns.includes(c.columnKey);
+                      return (
+                        <Button key={c.columnKey} type="button" size="sm" variant={on ? 'default' : 'outline'}
+                          onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c.columnKey) : [...cfg.columns, c.columnKey] })}>
+                          {c.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null
+            ))}
+            {grouped.advanced.length > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                    {GROUP_LABELS.advanced} ({grouped.advanced.length})
                   </Button>
-                );
-              })}
-            </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="flex flex-wrap gap-2 pt-1.5">
+                    {grouped.advanced.map((c) => {
+                      const on = cfg.columns.includes(c.columnKey);
+                      return (
+                        <Button key={c.columnKey} type="button" size="sm" variant={on ? 'default' : 'outline'}
+                          onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c.columnKey) : [...cfg.columns, c.columnKey] })}>
+                          {c.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
@@ -248,7 +303,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{labelByKey[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -258,7 +313,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                 <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{labelByKey[c] || c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

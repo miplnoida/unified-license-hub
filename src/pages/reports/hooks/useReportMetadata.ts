@@ -3,6 +3,7 @@ import {
   getReportSources, getReportDefinitions, getReportFilters,
   getOptionSet, getDashboardWidgets, getDashboardLayouts,
   getReportMetadataBundle, getReportStatusOptions, fetchTableOptions,
+  getReportSourceColumns,
   type ReportFilterMeta,
 } from '../services/reportMetadataService';
 import { resolveFilterOptions } from '../services/reportFilterOptionsService';
@@ -44,6 +45,15 @@ export function useReportFilters(sourceKey: string | null | undefined) {
   return useQuery({
     queryKey: ['reports', 'metadata', 'filters', sourceKey],
     queryFn: () => getReportFilters(sourceKey!),
+    staleTime: STALE,
+    enabled: !!sourceKey,
+  });
+}
+
+export function useReportSourceColumns(sourceKey: string | null | undefined) {
+  return useQuery({
+    queryKey: ['reports', 'metadata', 'source-columns', sourceKey],
+    queryFn: () => getReportSourceColumns(sourceKey!),
     staleTime: STALE,
     enabled: !!sourceKey,
   });

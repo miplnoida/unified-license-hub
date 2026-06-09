@@ -53,6 +53,21 @@ export interface ReportFilterMeta {
   sortOrder: number;
 }
 
+export interface ReportSourceColumnMeta {
+  sourceKey: string;
+  columnKey: string;
+  label: string;
+  dataType?: string | null;
+  isDefault: boolean;
+  isSensitive: boolean;
+  isRawId: boolean;
+  isEnriched: boolean;
+  isComputed: boolean;
+  format?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface ReportStatusOption {
   sourceKey: string;
   filterKey: string;
@@ -192,6 +207,24 @@ export async function getReportFilters(sourceKey: string): Promise<ReportFilterM
     }));
   } catch (e) {
     warnFallback(`report_source_filters:${sourceKey}`, e);
+    return [];
+  }
+}
+
+// =========== Source columns (friendly labels & grouping) ===========
+export async function getReportSourceColumns(sourceKey: string): Promise<ReportSourceColumnMeta[]> {
+  try {
+    const { data, error } = await sb.from('report_source_columns')
+      .select('*').eq('source_key', sourceKey).eq('is_active', true).order('sort_order');
+    if (error) throw error;
+    return (data || []).map((r: any) => ({
+      sourceKey: r.source_key, columnKey: r.column_key, label: r.label,
+      dataType: r.data_type, isDefault: !!r.is_default, isSensitive: !!r.is_sensitive,
+      isRawId: !!r.is_raw_id, isEnriched: !!r.is_enriched, isComputed: !!r.is_computed,
+      format: r.format, sortOrder: r.sort_order ?? 0, isActive: r.is_active,
+    }));
+  } catch (e) {
+    warnFallback(`report_source_columns:${sourceKey}`, e);
     return [];
   }
 }
