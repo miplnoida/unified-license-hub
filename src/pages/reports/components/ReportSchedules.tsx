@@ -24,9 +24,10 @@ interface Props {
   scheduleDialogOpen: boolean;
   setScheduleDialogOpen: (o: boolean) => void;
   prefillReportId?: string | null;
+  prefillDefinition?: ReportDefinition | null;
 }
 
-export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, prefillReportId }: Props) {
+export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, prefillReportId, prefillDefinition }: Props) {
   const { toast } = useToast();
   const { data, isLoading, create, update, remove, invalidate } = useReportSchedules();
   const { data: reports } = useReports();
@@ -43,7 +44,8 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
 
   useEffect(() => {
     if (prefillReportId) setForm((f) => ({ ...f, reportId: prefillReportId }));
-  }, [prefillReportId]);
+    if (prefillDefinition) setForm((f) => ({ ...f, reportId: `slug:${prefillDefinition.id}` }));
+  }, [prefillReportId, prefillDefinition]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
