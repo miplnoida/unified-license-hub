@@ -3508,6 +3508,7 @@ export type Database = {
           schedule_type: string
           selected_columns: string[] | null
           sort_by: string | null
+          sort_dir: string | null
           source: string | null
           updated_at: string
         }
@@ -3534,6 +3535,7 @@ export type Database = {
           schedule_type?: string
           selected_columns?: string[] | null
           sort_by?: string | null
+          sort_dir?: string | null
           source?: string | null
           updated_at?: string
         }
@@ -3560,6 +3562,7 @@ export type Database = {
           schedule_type?: string
           selected_columns?: string[] | null
           sort_by?: string | null
+          sort_dir?: string | null
           source?: string | null
           updated_at?: string
         }
