@@ -175,7 +175,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.source} onValueChange={(v) => update({ source: v as ReportSource, columns: [] })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {SOURCES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  {sources.filter((s) => s.supportsAdHoc).map((s) => <SelectItem key={s.sourceKey} value={s.sourceKey}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -192,7 +192,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.filters.preset || 'custom'} onValueChange={(v) => updateFilter({ preset: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PRESETS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  {presets.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -211,7 +211,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                   <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Any</SelectItem>
-                    {statusOpts.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {statusOpts.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ) : (
