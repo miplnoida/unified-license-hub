@@ -8,8 +8,39 @@ import {
 const PREVIEW_LIMIT = 100;
 const GENERATE_LIMIT = 10000;
 
+/**
+ * Permission check for running reports. Strategy (in order):
+ *  1. Dynamic permission `report_management` via user_dynamic_roles -> role_permissions -> permissions.
+ *  2. Fallback: super_admin/admin/supervisor/analyst app_role via has_role().
+ * Returns true on first satisfied check.
+ */
 async function userCanRunReports(client: any, userId: string): Promise<boolean> {
-  // Allow any user with one of the management roles
+  // 1. Dynamic permission lookup (best effort)
+  try {
+    const { data: udr } = await client
+      .from('user_dynamic_roles')
+      .select('role_id')
+      .eq('user_id', userId);
+    const roleIds = Array.from(new Set(((udr as any[]) || []).map((r) => r.role_id).filter(Boolean)));
+    if (roleIds.length) {
+      const { data: rp } = await client
+        .from('role_permissions')
+        .select('permission_id')
+        .in('role_id', roleIds);
+      const permIds = Array.from(new Set(((rp as any[]) || []).map((r) => r.permission_id)));
+      if (permIds.length) {
+        const { data: perms } = await client
+          .from('permissions')
+          .select('module')
+          .in('id', permIds);
+        if ((perms || []).some((p: any) => String(p.module || '').toLowerCase().replace(/\s+/g, '_') === 'report_management')) {
+          return true;
+        }
+      }
+    }
+  } catch {/* fall through to role-based check */}
+
+  // 2. Role-based fallback
   const roles = ['super_admin', 'admin', 'supervisor', 'analyst'];
   for (const r of roles) {
     const { data, error } = await client.rpc('has_role', { _user_id: userId, _role: r });
