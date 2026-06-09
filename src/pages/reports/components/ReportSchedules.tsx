@@ -57,9 +57,24 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     const recipients = form.recipients.split(',').map((e) => e.trim()).filter(Boolean);
     if (!form.reportId) return toast({ title: 'Select a report', variant: 'destructive' });
     if (!recipients.length) return toast({ title: 'Add at least one recipient', variant: 'destructive' });
-    const report = (reports || []).find((r) => r.id === form.reportId);
-    create.mutate(
-      {
+
+    let payload: Parameters<typeof create.mutate>[0];
+    if (form.reportId.startsWith('slug:') && prefillDefinition) {
+      payload = {
+        reportId: null,
+        reportSlug: prefillDefinition.id,
+        reportName: prefillDefinition.name,
+        source: prefillDefinition.source,
+        filters: {},
+        selectedColumns: prefillDefinition.defaultColumns,
+        groupBy: prefillDefinition.defaultGroupBy,
+        frequency: form.frequency,
+        recipients,
+        exportFormat: form.exportFormat,
+      };
+    } else {
+      const report = (reports || []).find((r) => r.id === form.reportId);
+      payload = {
         reportId: form.reportId,
         reportName: report?.name || 'Report',
         reportSlug: report?.slug,
@@ -71,16 +86,16 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
         frequency: form.frequency,
         recipients,
         exportFormat: form.exportFormat,
+      };
+    }
+    create.mutate(payload, {
+      onSuccess: () => {
+        toast({ title: 'Schedule created' });
+        setScheduleDialogOpen(false);
+        setForm({ reportId: '', frequency: 'weekly', recipients: '', exportFormat: 'xlsx' });
       },
-      {
-        onSuccess: () => {
-          toast({ title: 'Schedule created' });
-          setScheduleDialogOpen(false);
-          setForm({ reportId: '', frequency: 'weekly', recipients: '', exportFormat: 'xlsx' });
-        },
-        onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
-      },
-    );
+      onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
+    });
   };
 
   const handleRunNow = async (id: string) => {
