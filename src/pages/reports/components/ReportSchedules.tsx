@@ -183,10 +183,12 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
                 <SelectTrigger><SelectValue placeholder="Select a report..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Select a report...</SelectItem>
-                  {prefillDefinition && (
-                    <SelectItem value={`slug:${prefillDefinition.id}`}>
-                      {prefillDefinition.name} (predefined)
-                    </SelectItem>
+                  {definitions.length > 0 && (
+                    <>
+                      {definitions.map((d) => (
+                        <SelectItem key={`slug-${d.id}`} value={`slug:${d.id}`}>{d.name} (predefined)</SelectItem>
+                      ))}
+                    </>
                   )}
                   {(reports || []).filter((r) => r.status === 'ready').map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
@@ -199,10 +201,7 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
               <Select value={form.frequency} onValueChange={(v) => setForm((f) => ({ ...f, frequency: v as ScheduleFrequency }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  {frequencies.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -215,10 +214,7 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
               <Select value={form.exportFormat} onValueChange={(v) => setForm((f) => ({ ...f, exportFormat: v as ExportFormat }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
-                  <SelectItem value="csv">CSV</SelectItem>
-                  <SelectItem value="json">JSON</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
+                  {exportFormats.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
