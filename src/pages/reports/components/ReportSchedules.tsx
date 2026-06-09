@@ -18,14 +18,16 @@ import { useReports } from '../hooks/useReports';
 import type { ExportFormat, ScheduleFrequency } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { runScheduleNow } from '../services/reportService';
+import type { ReportDefinition } from '../types';
 
 interface Props {
   scheduleDialogOpen: boolean;
   setScheduleDialogOpen: (o: boolean) => void;
   prefillReportId?: string | null;
+  prefillDefinition?: ReportDefinition | null;
 }
 
-export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, prefillReportId }: Props) {
+export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, prefillReportId, prefillDefinition }: Props) {
   const { toast } = useToast();
   const { data, isLoading, create, update, remove, invalidate } = useReportSchedules();
   const { data: reports } = useReports();
@@ -42,7 +44,8 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
 
   useEffect(() => {
     if (prefillReportId) setForm((f) => ({ ...f, reportId: prefillReportId }));
-  }, [prefillReportId]);
+    if (prefillDefinition) setForm((f) => ({ ...f, reportId: `slug:${prefillDefinition.id}` }));
+  }, [prefillReportId, prefillDefinition]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -54,9 +57,24 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     const recipients = form.recipients.split(',').map((e) => e.trim()).filter(Boolean);
     if (!form.reportId) return toast({ title: 'Select a report', variant: 'destructive' });
     if (!recipients.length) return toast({ title: 'Add at least one recipient', variant: 'destructive' });
-    const report = (reports || []).find((r) => r.id === form.reportId);
-    create.mutate(
-      {
+
+    let payload: Parameters<typeof create.mutate>[0];
+    if (form.reportId.startsWith('slug:') && prefillDefinition) {
+      payload = {
+        reportId: null,
+        reportSlug: prefillDefinition.id,
+        reportName: prefillDefinition.name,
+        source: prefillDefinition.source,
+        filters: {},
+        selectedColumns: prefillDefinition.defaultColumns,
+        groupBy: prefillDefinition.defaultGroupBy,
+        frequency: form.frequency,
+        recipients,
+        exportFormat: form.exportFormat,
+      };
+    } else {
+      const report = (reports || []).find((r) => r.id === form.reportId);
+      payload = {
         reportId: form.reportId,
         reportName: report?.name || 'Report',
         reportSlug: report?.slug,
@@ -68,16 +86,16 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
         frequency: form.frequency,
         recipients,
         exportFormat: form.exportFormat,
+      };
+    }
+    create.mutate(payload, {
+      onSuccess: () => {
+        toast({ title: 'Schedule created' });
+        setScheduleDialogOpen(false);
+        setForm({ reportId: '', frequency: 'weekly', recipients: '', exportFormat: 'xlsx' });
       },
-      {
-        onSuccess: () => {
-          toast({ title: 'Schedule created' });
-          setScheduleDialogOpen(false);
-          setForm({ reportId: '', frequency: 'weekly', recipients: '', exportFormat: 'xlsx' });
-        },
-        onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
-      },
-    );
+      onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
+    });
   };
 
   const handleRunNow = async (id: string) => {
@@ -157,9 +175,14 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
             <div className="space-y-2">
               <Label>Report</Label>
               <Select value={form.reportId || 'none'} onValueChange={(v) => setForm((f) => ({ ...f, reportId: v === 'none' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="Select a saved report..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a report..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Select a saved report...</SelectItem>
+                  <SelectItem value="none">Select a report...</SelectItem>
+                  {prefillDefinition && (
+                    <SelectItem value={`slug:${prefillDefinition.id}`}>
+                      {prefillDefinition.name} (predefined)
+                    </SelectItem>
+                  )}
                   {(reports || []).filter((r) => r.status === 'ready').map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                   ))}
