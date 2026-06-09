@@ -92,9 +92,10 @@ export function AdHocReportBuilder({ onPreview }: Props) {
       const { rows, count } = await previewReport(cfg.source, cfg.filters, 100, {
         selectedColumns: cfg.columns, groupBy: cfg.groupBy, sortBy: cfg.sortBy, sortDir: cfg.sortDir,
       });
+      const previewName = cfg.name?.trim() || buildDefaultReportName(cfg, activeSource?.label);
       onPreview({
         id: 'preview',
-        name: cfg.name || `Preview · ${cfg.source}`,
+        name: previewName,
         category: 'Ad-Hoc',
         source: cfg.source,
         filters: cfg.filters,
@@ -113,13 +114,13 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   };
 
   const handleGenerate = async () => {
-    if (!cfg.name.trim()) {
-      toast({ title: 'Name required', variant: 'destructive' });
-      return;
-    }
     setBusy('generate');
     try {
-      const run = await generateFromBuilder(cfg);
+      const finalConfig = {
+        ...cfg,
+        name: cfg.name?.trim() || buildDefaultReportName(cfg, activeSource?.label),
+      };
+      const run = await generateFromBuilder(finalConfig);
       toast({ title: 'Report saved', description: `${run.rowCount} rows.` });
       onPreview(run);
     } catch (e: any) {
@@ -194,8 +195,8 @@ export function AdHocReportBuilder({ onPreview }: Props) {
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Report Name *</Label>
-              <Input value={cfg.name} onChange={(e) => update({ name: e.target.value })} placeholder="My Custom Report" />
+              <Label>Report Name (optional)</Label>
+              <Input value={cfg.name} onChange={(e) => update({ name: e.target.value })} placeholder="Auto-generated if left blank" />
             </div>
             <div className="space-y-2">
               <Label>Dataset</Label>
