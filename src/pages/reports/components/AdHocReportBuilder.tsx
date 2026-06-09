@@ -17,33 +17,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAllRegulators } from '@/hooks/useRegulators';
 import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
-
-const SOURCES: { value: ReportSource; label: string }[] = [
-  { value: 'applications', label: 'Applications' },
-  { value: 'licenses', label: 'Licenses' },
-  { value: 'payments', label: 'Payments' },
-  { value: 'compliance_returns', label: 'Compliance Returns' },
-  { value: 'complaints', label: 'Complaints' },
-  { value: 'users', label: 'Users' },
-  { value: 'audit_logs', label: 'Audit Logs' },
-];
-
-const PRESETS = [
-  { value: 'today', label: 'Today' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'this_month', label: 'This Month' },
-  { value: 'this_quarter', label: 'This Quarter' },
-  { value: 'this_fy', label: 'This Financial Year' },
-  { value: 'custom', label: 'Custom' },
-];
-
-const STATUS_OPTIONS_BY_SOURCE: Partial<Record<ReportSource, string[]>> = {
-  applications: ['draft', 'submitted', 'in_review', 'approved', 'rejected', 'pending'],
-  licenses: ['active', 'expired', 'suspended', 'revoked', 'pending'],
-  payments: ['pending', 'completed', 'paid', 'failed', 'refunded'],
-  compliance_returns: ['pending', 'submitted', 'validated', 'rejected', 'tbr'],
-  complaints: ['open', 'in_review', 'escalated', 'resolved', 'closed', 'dismissed'],
-};
+import {
+  useReportSources, useReportStatusOptions, useReportOptions,
+} from '../hooks/useReportMetadata';
 
 const DEFAULT: BuilderConfig = {
   name: '',
