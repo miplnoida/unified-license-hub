@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const {
       reportSlug, reportName, category, source, filters = {},
-      selectedColumns = [], groupBy, sortBy, sortDir = 'asc',
+      selectedColumns = [], defaultColumns = [], groupBy, sortBy, sortDir = 'asc',
       mode = 'preview', limit,
     } = body || {};
 
@@ -94,13 +94,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    // report_logs source is admin-only (already restricted by the permission check above,
+    // but we also reject it for non-admins explicitly to keep the contract clear).
+    if (source === 'report_logs') {
+      const isAdmin = (await Promise.all(
+        ['super_admin', 'admin'].map((r) => userClient.rpc('has_role', { _user_id: userId, _role: r })),
+      )).some((res: any) => res?.data === true);
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ ok: false, error: 'Not authorized for this source' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     const effectiveLimit = Math.min(
       Number(limit) || (mode === 'preview' ? PREVIEW_LIMIT : GENERATE_LIMIT),
       mode === 'preview' ? PREVIEW_LIMIT : GENERATE_LIMIT,
     );
 
     const result = await executeQuery(userClient, {
-      source, filters, reportSlug, selectedColumns, groupBy, sortBy, sortDir, limit: effectiveLimit,
+      source, filters, reportSlug, selectedColumns, defaultColumns,
+      groupBy, sortBy, sortDir, limit: effectiveLimit,
     });
 
     if (mode === 'preview') {
