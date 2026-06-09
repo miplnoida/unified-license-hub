@@ -1,57 +1,96 @@
-# Reports & Analytics — Production Completion Plan
+# Make Reports & Analytics Fully Dynamic
 
-This is a large multi-area task. I'll deliver it in 5 phases, each ending in a working build. I will not duplicate the existing module — only extend `src/pages/reports/*`, `supabase/functions/*`, and add migrations.
+Refactor the existing `src/pages/reports/*` module so every tab reads from database metadata instead of hardcoded frontend constants. No new module — patch in place. Existing constants stay as fallback/seed only.
 
-## Phase 1 — Backend schema, RLS, types
+## 1. Database Migration (one new migration)
 
-1. Migration: create `report_definitions`, `report_runs`, `report_run_rows`, `report_run_files`, `report_schedules` (upgrade existing), `report_logs` (upgrade existing), `report_favorites`, `report_templates`, with indexes + `updated_at` triggers.
-2. Preserve existing `reports`, `report_schedules`, `report_logs` data:
-   - If old `reports` table exists, keep it; add a one-time backfill into `report_runs` (best-effort), and create a compatibility view `reports_compat` for read-only legacy access.
-   - For `report_schedules`/`report_logs`: add missing columns idempotently (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
-3. RLS using existing helpers (`has_role`, dynamic permissions). Admin/report_management = full; owner = own rows; logs insertable by self, readable by admin.
-4. Update `src/pages/reports/types.ts` with full type set.
+New metadata tables (RLS enabled, GRANTs included, idempotent `create table if not exists` + `insert ... on conflict do update`):
 
-## Phase 2 — Server-side generator + domain logic
+- **report_sources** — datasets (source_key, table_name, module, safe_columns[], default_columns[], sensitive_columns[], max_preview_rows, supports_ad_hoc, supports_scheduling, source_routes jsonb)
+- **report_filters** — filter definitions per source (filter_key, label, filter_type, column_name, operator, options_source, options_static, options_table/value/label, depends_on_filter)
+- **report_status_options** — status/option values per source+filter
+- **report_definitions** — extend existing or create; adds `source_key`, `query_config`, `filter_config`, `required_computed_columns`, `export_formats[]`, `report_type`
+- **report_dashboard_layouts** — `executive-overview` default
+- **report_dashboard_widgets** — KPI/chart metadata with metric_config, query_config, chart_config, drilldown_report_slug, drilldown_filters
+- **report_option_sets** — schedule_frequency, export_format, sort_direction, date_preset, report_run_status
+- **report_runtime_config** — feature flags
 
-1. `supabase/functions/generate-report/index.ts`:
-   - Auth via `getClaims`, allowlist of sources, preview/generate modes, row caps (100/10000), redaction, filter application, selected columns, group by, sort.
-   - Writes `report_runs` + chunked `report_run_rows`, inserts `report_logs` `generated`.
-2. Per-slug specialized generators (aging buckets, SLA breach, expiry windows, overdue defaulters, compliance scorecard, revenue trends, complaint resolution).
-3. `src/pages/reports/services/reportService.ts`: prefer edge function; fallback to client query for preview only. Map old `reports` rows into history view.
+RLS: read for authenticated users with report module access (via existing `has_role`/permission helper); write for `admin`/`super_admin`. No `USING (true)`.
 
-## Phase 3 — Scheduler + Run Now + Email placeholder
+Seed data:
+- All current `REPORT_DEFINITIONS` from `reportDefinitions.ts` → `report_definitions`
+- All 8 sources currently in `ReportSource` union → `report_sources` with safe_columns matching current `COLUMN_OPTIONS_BY_SOURCE`
+- Current `STATUS_OPTIONS_BY_SOURCE` → `report_status_options`
+- All 8 KPIs + 6 charts from `ReportsOverview.tsx` → `report_dashboard_widgets` under `executive-overview` layout
+- Option sets for frequency/export/sort/date preset/run status
+- Common filters (preset, dateFrom/To, status) + per-source filters listed in spec
 
-1. `supabase/functions/run-scheduled-reports/index.ts`: pull due schedules, invoke generator, update `last_run_at/next_run_at/last_status`, log actions, increment retries.
-2. `calculateNextRunAt` shared util (server + client) with unit tests.
-3. Wire **Run Now** in `ReportSchedules.tsx` (invokes scheduled runner with `scheduleId`).
-4. Email: if a `send-notification` function exists, call it with summary + signed download URL; else mark `generated_email_pending` and surface UI badge "Email integration pending". Add cron setup comment in migration.
+## 2. Frontend Metadata Layer
 
-## Phase 4 — UI completion
+New files:
+- `src/pages/reports/services/reportMetadataService.ts` — DB fetchers with static-fallback on empty/error
+- `src/pages/reports/hooks/useReportMetadata.ts` — React Query hooks (`useReportSources`, `useReportDefinitions`, `useReportFilters`, `useReportOptions`, `useDashboardWidgets`, `useReportMetadataBundle`)
 
-1. **AdHocReportBuilder**: real filter dropdowns (Regulator, Sector/Sub-sector, Service, Licensee, Status enums, SLA, Payment status, Risk) loaded from existing master data hooks; gracefully hide unsupported. Sort direction asc/desc. Pass `selectedColumns/groupBy/sortBy` through to generator.
-2. **ReportLibrary**: filter by `module` against `useUserDynamicPermissions`/`has_permission`; admin bypass. Backend favorites via `report_favorites` with localStorage fallback. "Favorites" filter.
-3. **Saved Templates**: tab in builder, save/load/delete against `report_templates`.
-4. **ReportPreviewDialog**: render filters, selected columns, group by, sort by, summary cards, paginated table, drilldown "Open source record" for known sources. Export buttons log to `report_logs`.
-5. **PDF / Print**: implement printable export via dedicated print stylesheet + `window.print()`, button labeled "Print / PDF". (No new heavy deps.)
-6. **ReportsOverview** drilldowns: clicking KPI/segment opens preview dialog with pre-filtered run via generator.
-7. **ReportHistory**: read from `report_runs` (with legacy `reports` fallback); add status/category/date filters; show duration/error.
+Fallback strategy: if a query throws or returns empty, return the existing static constant. Single warning logged in dev.
 
-## Phase 5 — Tests + cleanup
+## 3. Refactor Components
 
-- Vitest: `calculateNextRunAt`, `sanitizeCsvValue`, `flattenRecord`, `selectedColumns` filter, slug uniqueness, permission filter, source allowlist rejection.
-- Build pass.
+- **ReportLibrary.tsx** — `useReportDefinitions()`; derive categories from data; permission filter via `hasModuleAccess(def.module)`; favorites keyed by slug.
+- **AdHocReportBuilder.tsx** — replace `SOURCES` with `useReportSources()`; render filter controls from `useReportFilters(source)`; status dropdowns from `report_status_options`; date presets / sort dir from option sets; columns from `source.safe_columns`. Dependent filters (subSector ← sector) honored via `depends_on_filter`.
+- **ReportsOverview.tsx** — replace entire hardcoded grid with `<ReportWidgetRenderer>` map over `useDashboardWidgets('executive-overview')`. New widget components:
+  - `components/widgets/ReportWidgetRenderer.tsx`
+  - `components/widgets/KpiWidget.tsx`
+  - `components/widgets/ChartWidget.tsx` (bar/pie/line/area via `chart_config.kind`)
+  - `components/widgets/TableWidget.tsx`
+  - `hooks/useWidgetData.ts` — runs widget via shared report-generator (count/sum/group-by metric_config); drilldown calls existing `generateReport()` with widget's `drilldown_report_slug` + `drilldown_filters`.
+- **ReportHistory.tsx** — status filter from `report_option_sets.report_run_status` (fallback to derived); export buttons from `export_format` option set.
+- **ReportSchedules.tsx** — frequency/export options from option sets; report selector merges `report_definitions` + history + templates.
+- **ReportPreviewDialog.tsx** — column labels from source metadata; summary cards iterate `summary` keys dynamically; "Open record" link uses `report_sources.source_routes`.
 
-## Technical Notes
+## 4. Backend (Edge Functions)
 
-- No new npm deps. PDF via print stylesheet.
-- All edge functions: CORS via `npm:@supabase/supabase-js@2/cors`, JWT validated in code, zod-style validation manual.
-- Row storage: chunked inserts into `report_run_rows` (1000/batch) to avoid timeouts; for >5k rows produce CSV file into `storage` bucket `report-exports` and reference from `report_run_files`.
-- Storage bucket `report-exports` (private) created via `storage_create_bucket`; signed URLs 24h.
-- Compatibility: old `reports` rows surfaced in history via `unionAll` mapper in `useReports` hook; new generation always goes through `report_runs`.
+`supabase/functions/_shared/report-generator.ts`:
+- Add `loadReportSource(sourceKey)`, `loadReportDefinition(slug)`, `loadReportFilters(sourceKey)` — query metadata tables with service-role client.
+- `ALLOWED_SOURCES`, `REPORT_SLUG_SOURCE_MAP`, `COLUMN_OPTIONS_BY_SOURCE` become **fallback only** — DB metadata wins.
+- `applyConfiguredFilters()` validates each requested filter against `report_filters` rows; unknown filters silently dropped.
+- `getEffectiveColumnsFromMetadata()` intersects requested columns with `safe_columns`, strips `sensitive_columns`, adds `required_computed_columns`.
+- Specialized `decorate()` slug processors (app-sla, lic-expiry, ret-overdue, fee-trend) kept as a registry — still callable when `definition.query_config.processor` names them.
 
-## Out of scope (explicit)
-- Real SMTP/email provider wiring beyond existing notification infra.
-- Supabase cron auto-provisioning — instructions added in migration comments.
-- Heavy charting changes on Overview (drilldowns added; layout preserved).
+New Edge Function `supabase/functions/run-report-widget/index.ts`:
+- Input: `{ widgetId }` or `{ layoutKey, widgetKey }`.
+- Loads widget metadata, validates source/columns, runs aggregation per `metric_config` (`{ type: 'count'|'sum'|'avg'|'ratio'|'group_by_month'|'group_by_status', column?, filters? }`), returns `{ value, series }`.
+- RBAC: same `userCanRunReports` check as `generate-report`.
 
-Shipping in that order keeps the app building after each phase. Ready to proceed if you approve.
+`generate-report/index.ts`: switch source/column/filter validation to DB-backed helpers; behavior preserved for existing callers.
+
+## 5. Tests
+
+Extend `src/test/reportsModule.test.ts`:
+- Metadata service falls back to static when DB empty.
+- Categories derive from definitions array.
+- Filter validation rejects unknown keys.
+- Sensitive columns stripped even when requested.
+- Source validation rejects unknown source_key.
+- Widget data hook returns expected shape for count/sum/group metric configs.
+
+## 6. Out of Scope (explicit)
+
+- No admin CRUD UI for metadata this pass — service-layer functions only with TODO marker.
+- No removal of fallback constants.
+- No route changes, no permission model changes.
+
+## Technical notes
+
+- Migration uses `if not exists` everywhere; seeds use `on conflict (...) do update set ...` so it's idempotent on re-run.
+- All new tables get `GRANT SELECT ON ... TO authenticated; GRANT ALL ... TO service_role;` immediately after `CREATE TABLE` and before `ENABLE ROW LEVEL SECURITY`.
+- React Query keys namespaced `['reports','metadata', ...]` with 5min staleTime since metadata changes rarely.
+- Widget aggregation runs client-side via existing `supabase` client for read-only counts (avoids needing the new edge function for v1); edge function added for future server-side enforcement and listed as preferred path in code comments.
+- Existing `reportDefinitions.ts`, `STATUS_OPTIONS_BY_SOURCE`, `COLUMN_OPTIONS_BY_SOURCE` remain importable as fallback re-exports.
+
+## Acceptance verification
+
+- `npm run build` clean.
+- `vitest` suite (existing 33 + ~6 new) green.
+- Manual: `/reports` Overview/Library/Builder/History/Schedules render from seeded metadata; deactivating a `report_definitions` row hides it without code change; adding a row to `report_dashboard_widgets` adds a card.
+
+Commit message: `Make Reports & Analytics fully dynamic`
