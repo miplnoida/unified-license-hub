@@ -133,10 +133,17 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
           )}
 
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Button size="sm" variant="outline" onClick={() => handleExport('csv')}><FileSpreadsheet className="h-3 w-3 mr-1" />CSV</Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('xlsx')}><FileDown className="h-3 w-3 mr-1" />XLSX</Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('json')}><FileJson className="h-3 w-3 mr-1" />JSON</Button>
-            <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print / PDF</Button>
+            {exportFormats.map((f) => {
+              if (f.value === 'pdf') {
+                return <Button key={f.value} size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print / PDF</Button>;
+              }
+              const Icon = f.value === 'csv' ? FileSpreadsheet : f.value === 'json' ? FileJson : FileDown;
+              return (
+                <Button key={f.value} size="sm" variant="outline" onClick={() => handleExport(f.value as any)}>
+                  <Icon className="h-3 w-3 mr-1" />{f.label}
+                </Button>
+              );
+            })}
           </div>
 
           <div className="border rounded-md max-h-[50vh] overflow-auto print:max-h-none print:overflow-visible">
@@ -152,7 +159,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((r, i) => {
-                    const route = sourceRoute(run.source, r.id);
+                    const route = resolveRoute(run.source, r as any, sourceRoutes);
                     return (
                       <TableRow key={i}>
                         {headers.map((h) => (
