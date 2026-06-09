@@ -19,6 +19,7 @@ import type { ExportFormat, ScheduleFrequency } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { runScheduleNow } from '../services/reportService';
 import type { ReportDefinition } from '../types';
+import { useReportOptions, useReportDefinitions } from '../hooks/useReportMetadata';
 
 interface Props {
   scheduleDialogOpen: boolean;
@@ -31,6 +32,9 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
   const { toast } = useToast();
   const { data, isLoading, create, update, remove, invalidate } = useReportSchedules();
   const { data: reports } = useReports();
+  const { data: definitions = [] } = useReportDefinitions();
+  const { data: frequencies = [] } = useReportOptions('schedule_frequency');
+  const { data: exportFormats = [] } = useReportOptions('export_format');
   const [search, setSearch] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
