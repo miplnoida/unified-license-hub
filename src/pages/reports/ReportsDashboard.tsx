@@ -77,8 +77,10 @@ export default function ReportsDashboard() {
           <TabsContent value="schedules" className="mt-4">
             <ReportSchedules
               scheduleDialogOpen={scheduleDialogOpen}
-              setScheduleDialogOpen={setScheduleDialogOpen}
+              setScheduleDialogOpen={(o) => { setScheduleDialogOpen(o); if (!o) setPrefillDef(null); }}
+              prefillDefinition={prefillDef}
             />
+
           </TabsContent>
         </Tabs>
 
