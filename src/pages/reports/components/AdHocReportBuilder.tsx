@@ -191,11 +191,23 @@ export function AdHocReportBuilder({ onPreview }: Props) {
     }
   };
 
-  // Prefer columns from source metadata (safe_columns); fallback to static map
+  // Build the column option list. Prefer report_source_columns metadata
+  // (gives labels + grouping). Fall back to source.safeColumns, then static.
   const activeSource = sources.find((s) => s.sourceKey === cfg.source);
-  const columnOpts = activeSource?.safeColumns?.length
+  const fallbackKeys = activeSource?.safeColumns?.length
     ? activeSource.safeColumns
     : (COLUMN_OPTIONS_BY_SOURCE[cfg.source] || []);
+  const metaColumns = sourceColumns.length
+    ? sourceColumns
+    : fallbackKeys.map((k, i) => ({
+        sourceKey: cfg.source, columnKey: k, label: humanizeKey(k), dataType: null,
+        isDefault: false, isSensitive: false, isRawId: /(_id|^id)$/i.test(k),
+        isEnriched: false, isComputed: false, format: null, sortOrder: i, isActive: true,
+      }));
+  const grouped = groupColumns(metaColumns);
+  const labelByKey: Record<string, string> = {};
+  metaColumns.forEach((c) => { labelByKey[c.columnKey] = c.label; });
+  const columnOpts = metaColumns.map((c) => c.columnKey);
   const hasMetadataFilters = (filterMeta || []).some((m) => m.isActive);
 
   return (
