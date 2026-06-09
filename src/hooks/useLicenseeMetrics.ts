@@ -149,13 +149,7 @@ function buildReturnsScope(licenseeIds: string[]) {
  *     awaiting review, VAL = validated/approved, TBR = sent back for edit.
  *   - Payments are scoped through this licensee's visible applications.
  */
-export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined) {
-  return useQuery<LicenseeMetrics>({
-    queryKey: ['licensee-metrics', activeLicenseeId, userId],
-    enabled: !!(activeLicenseeId || userId),
-    staleTime: 60_000,
-    placeholderData: EMPTY_METRICS,
-    queryFn: async () => {
+export async function fetchLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined): Promise<LicenseeMetrics> {
       const scope = await resolveLicenseeScope(activeLicenseeId, userId);
       const lid = scope.primaryId;
       const today = todayIso();
@@ -348,6 +342,14 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
           pending_payments: pendingPayments.slice(0, 5) as any,
         },
       };
-    },
+}
+
+export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, userId: string | undefined) {
+  return useQuery<LicenseeMetrics>({
+    queryKey: ['licensee-metrics', activeLicenseeId, userId],
+    enabled: !!(activeLicenseeId || userId),
+    staleTime: 60_000,
+    placeholderData: EMPTY_METRICS,
+    queryFn: () => fetchLicenseeMetrics(activeLicenseeId, userId),
   });
 }

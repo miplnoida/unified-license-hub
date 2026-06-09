@@ -138,8 +138,8 @@ describe('useLicenseeMetrics queryFn', () => {
   });
 
   it('returns entity license and return metrics even when visible applications fail', async () => {
-    const { useLicenseeMetrics } = await import('@/hooks/useLicenseeMetrics');
-    const result = await useLicenseeMetrics('lic-1', 'user-1').queryFn!({ queryKey: ['licensee-metrics', 'lic-1', 'user-1'], meta: undefined, signal: undefined, client: undefined as any, pageParam: undefined, direction: 'forward' as any });
+    const { fetchLicenseeMetrics } = await import('@/hooks/useLicenseeMetrics');
+    const result = await fetchLicenseeMetrics('lic-1', 'user-1');
 
     expect(result.licenses.active).toBe(1);
     expect(result.returns.submitted).toBe(1);
