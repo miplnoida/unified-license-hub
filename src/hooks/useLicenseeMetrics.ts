@@ -170,16 +170,10 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const approvedApps = visibleApps.filter((app) => app.status === 'approved').length;
       const rejectedApps = visibleApps.filter((app) => app.status === 'rejected').length;
 
-      const [entityLicenseLinksRes, entityProfileUsersRes, holderLicensesRes, returnsRes] = await Promise.all([
+      const [entityLicenseLinksRes, returnsRes] = await Promise.all([
         scope.licenseeIds.length > 0
           ? supabase.from('licensees').select('id, license_id').in('id', scope.licenseeIds)
           : Promise.resolve({ data: [], error: null } as any),
-        scope.licenseeIds.length > 0
-          ? supabase.from('profiles').select('id').in('licensee_id', scope.licenseeIds)
-          : Promise.resolve({ data: [], error: null } as any),
-        scope.licenseeIds.length === 0 && userId
-            ? supabase.from('licenses').select('id, holder_id, license_number, status, valid_until').eq('holder_id', userId)
-            : Promise.resolve({ data: [] as any[], error: null } as any),
         returnScope
           ? supabase
               .from('returns_filed')
@@ -192,27 +186,6 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
         console.error('[useLicenseeMetrics] Failed to resolve license links:', entityLicenseLinksRes.error);
         throw entityLicenseLinksRes.error;
       }
-      if (entityProfileUsersRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve licensee profile users:', entityProfileUsersRes.error);
-        throw entityProfileUsersRes.error;
-      }
-      const holderUserIds = ((entityProfileUsersRes.data || []) as Array<{ id: string }>).map((row) => row.id);
-
-      let holderLicenseRows = (holderLicensesRes.data || []) as any[];
-      if (scope.licenseeIds.length > 0 && holderUserIds.length > 0) {
-        const scopedHolderLicensesRes = await supabase
-          .from('licenses')
-          .select('id, holder_id, license_number, status, valid_until')
-          .in('holder_id', holderUserIds);
-        if (scopedHolderLicensesRes.error) {
-          console.error('[useLicenseeMetrics] Failed to resolve holder-based licenses for entity:', scopedHolderLicensesRes.error);
-          throw scopedHolderLicensesRes.error;
-        }
-        holderLicenseRows = (scopedHolderLicensesRes.data || []) as any[];
-      } else if (holderLicensesRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve holder-based licenses:', holderLicensesRes.error);
-        throw holderLicensesRes.error;
-      }
       if (returnsRes.error) {
         console.error('[useLicenseeMetrics] Failed to resolve returns:', returnsRes.error);
         throw returnsRes.error;
@@ -221,7 +194,7 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const linkedLicenseIds = ((entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
         .map((row) => row.license_id)
         .filter(Boolean) as string[];
-      const licenseIdSet = new Set<string>([...linkedLicenseIds, ...holderLicenseRows.map((row: any) => row.id).filter(Boolean)]);
+      const licenseIdSet = new Set<string>(linkedLicenseIds);
 
       let licenseRows: Array<{ id: string; license_number: string | null; status: string | null; valid_until: string | null }> = [];
       if (licenseIdSet.size > 0) {
