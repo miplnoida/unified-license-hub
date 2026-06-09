@@ -6,7 +6,7 @@ import type {
 import { REPORT_DEFINITIONS, SENSITIVE_COLUMNS } from '../reportDefinitions';
 
 export const ALLOWED_SOURCES: ReportSource[] = [
-  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs',
+  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs', 'report_logs',
 ];
 
 export function isAllowedSource(s: string): s is ReportSource {
@@ -26,7 +26,7 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'op-ratio': 'applications', 'op-pending': 'applications', 'op-login': 'audit_logs',
   'cmp-volume': 'complaints', 'cmp-resolution': 'complaints', 'cmp-pending': 'complaints',
   'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
-  'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'audit_logs',
+  'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'report_logs',
   'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
 };
 
@@ -79,6 +79,7 @@ async function invokeGenerate(opts: {
   source: ReportSource;
   filters: ReportFilters;
   selectedColumns?: string[];
+  defaultColumns?: string[];
   groupBy?: string;
   sortBy?: string;
   sortDir?: SortDirection;
@@ -126,6 +127,7 @@ export async function generateReport(opts: {
   sortBy?: string;
   sortDir?: SortDirection;
 }): Promise<ReportRun> {
+  const def = opts.reportSlug ? REPORT_DEFINITIONS.find((d) => d.id === opts.reportSlug) : undefined;
   const res = await invokeGenerate({
     reportName: opts.name,
     reportSlug: opts.reportSlug,
@@ -133,6 +135,7 @@ export async function generateReport(opts: {
     source: opts.source,
     filters: opts.filters,
     selectedColumns: opts.selectedColumns,
+    defaultColumns: def?.defaultColumns,
     groupBy: opts.groupBy,
     sortBy: opts.sortBy,
     sortDir: opts.sortDir,
@@ -157,14 +160,38 @@ export async function generateFromBuilder(config: BuilderConfig): Promise<Report
 
 // =========== History ===========
 
+/**
+ * Read report history.
+ *
+ * Storage model:
+ *   - `reports` is the physical, legacy-compatible table that stores each run.
+ *   - `report_runs` is a read-only semantic view over `reports` (renamed columns).
+ *   - Full row payloads live in `report_run_rows`; `reports.result_data` is a
+ *     legacy preview cache only (capped at 500 rows).
+ * We prefer reading from `report_runs`. If the view is unavailable in a
+ * particular environment we transparently fall back to the physical table.
+ */
 export async function getReportHistory(): Promise<ReportRun[]> {
+  const viewRes = await supabase
+    .from('report_runs' as any)
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (!viewRes.error && viewRes.data) {
+    return (viewRes.data as any[]).map((row) =>
+      mapReportRow(row, [], row.result_summary),
+    );
+  }
+  // Fallback: physical table.
   const { data, error } = await supabase
     .from('reports')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw error;
-  return (data || []).map((row: any) => mapReportRow(row, Array.isArray(row.result_data) ? row.result_data : [], row.result_summary));
+  return (data || []).map((row: any) =>
+    mapReportRow(row, Array.isArray(row.result_data) ? row.result_data : [], row.result_summary),
+  );
 }
 
 export async function fetchRunRows(runId: string, limit = 10000): Promise<Record<string, unknown>[]> {
@@ -179,15 +206,18 @@ export async function fetchRunRows(runId: string, limit = 10000): Promise<Record
 }
 
 export async function deleteReportRun(id: string) {
+  // Delete targets the physical `reports` table because `report_runs` is a view.
   const { error } = await supabase.from('reports').delete().eq('id', id);
   if (error) throw error;
 }
 
 function mapReportRow(row: any, rows: any[] = [], summary?: any): ReportRun {
   const qc = (row?.query_config || {}) as any;
+  // Support both physical-table columns (name/result_count/created_by) and
+  // semantic view columns (report_name/row_count/generated_by).
   return {
     id: row?.id,
-    name: row?.name,
+    name: row?.report_name ?? row?.name,
     category: row?.category,
     source: (row?.source || qc.source) as ReportSource | undefined,
     slug: row?.report_slug || qc.reportSlug,
@@ -198,8 +228,8 @@ function mapReportRow(row: any, rows: any[] = [], summary?: any): ReportRun {
     sortDir: (row?.sort_dir || qc.sortDir) as SortDirection | undefined,
     summary: summary || row?.result_summary || {},
     rows,
-    rowCount: row?.result_count ?? rows.length,
-    generatedBy: row?.created_by,
+    rowCount: row?.row_count ?? row?.result_count ?? rows.length,
+    generatedBy: row?.generated_by ?? row?.created_by,
     generatedAt: row?.generated_at || row?.created_at,
     durationMs: row?.duration_ms ?? null,
     errorMessage: row?.error_message ?? null,
@@ -209,17 +239,34 @@ function mapReportRow(row: any, rows: any[] = [], summary?: any): ReportRun {
 
 // =========== Audit logging ===========
 
+/**
+ * Insert a report log entry. Tolerates schemas that have only `report_id`,
+ * only `report_run_id`, or both. Best-effort: never throws.
+ */
 export async function logExport(reportId: string | null, format: ExportFormat, rowCount: number) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('report_logs').insert({
-      report_id: reportId,
+    const base = {
       action: `export_${format}`,
       executed_by: user?.id,
       record_count: rowCount,
       export_format: format,
-    });
-  } catch {/* best-effort */}
+    } as Record<string, any>;
+    // Try with both columns first.
+    const full = { ...base, report_id: reportId, report_run_id: reportId };
+    let res = await (supabase.from('report_logs') as any).insert(full);
+    if (!res.error) return;
+    const msg = String(res.error?.message || '');
+    if (/report_run_id/i.test(msg)) {
+      res = await (supabase.from('report_logs') as any).insert({ ...base, report_id: reportId });
+      if (!res.error) return;
+    }
+    if (/report_id/i.test(String(res.error?.message || ''))) {
+      await (supabase.from('report_logs') as any).insert({ ...base, report_run_id: reportId });
+    }
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('[reports] logExport failed', e);
+  }
 }
 
 // =========== Schedules ===========

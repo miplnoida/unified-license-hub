@@ -10,7 +10,7 @@ export const corsHeaders = {
 
 export const ALLOWED_SOURCES = new Set([
   'applications', 'licenses', 'payments', 'compliance_returns',
-  'complaints', 'profiles', 'users', 'audit_logs',
+  'complaints', 'profiles', 'users', 'audit_logs', 'report_logs',
 ]);
 
 export const SENSITIVE = new Set([
@@ -43,7 +43,7 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, string> = {
   'cmp-pending': 'complaints', 'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
   // Audit
   'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs',
-  'aud-export': 'audit_logs', 'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
+  'aud-export': 'report_logs', 'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
 };
 
 export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): string | null {
@@ -64,7 +64,35 @@ export const FILTER_COLUMN_MAP: Record<string, Record<string, string>> = {
   profiles: {},
   users: {},
   audit_logs: {},
+  report_logs: { action: 'action' },
 };
+
+// Required computed columns that must always appear for a given report slug,
+// even if the user did not pick them in the column selector.
+export const REQUIRED_COMPUTED_COLUMNS: Record<string, string[]> = {
+  'app-aging': ['aging_days', 'aging_bucket'],
+  'app-sla': ['sla_days', 'elapsed_days', 'sla_status'],
+  'op-pending': ['aging_days', 'aging_bucket'],
+  'op-ratio': ['approved_count', 'rejected_count', 'pending_count', 'approval_rate'],
+  'lic-expiry': ['days_to_expiry'],
+  'ret-overdue': ['days_overdue'],
+  'ret-defaulters': ['overdue_count'],
+  'ret-repeat': ['overdue_count'],
+  'ret-scorecard': ['submitted_count', 'overdue_count', 'pending_count', 'compliance_rate'],
+  'cmp-resolution': ['resolution_days'],
+  'fee-trend': ['period_month', 'period_quarter'],
+};
+
+/**
+ * Determine the actual column set to project, ensuring required computed
+ * columns for a predefined report are always included.
+ */
+export function getEffectiveColumns(slug: string | undefined, selected: string[] | undefined, fallback: string[] = []): string[] {
+  const base = (selected && selected.length) ? [...selected] : [...fallback];
+  const required = slug ? (REQUIRED_COMPUTED_COLUMNS[slug] || []) : [];
+  for (const r of required) if (!base.includes(r)) base.push(r);
+  return base;
+}
 
 export function strip(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -117,7 +145,7 @@ export function decorate(slug: string | undefined, rows: any[]): any[] {
         elapsed_days: elapsed,
         sla_status: breached ? 'breached' : elapsed > SLA_DAYS - 7 ? 'at_risk' : 'on_track',
       };
-    }).filter((r) => r.sla_status !== 'on_track');
+    });
   }
   if (slug === 'op-ratio') {
     const approved = rows.filter((r) => String(r.status || '').toLowerCase() === 'approved').length;
@@ -210,21 +238,94 @@ export function decorate(slug: string | undefined, rows: any[]): any[] {
       return a.includes('admin') || a.includes('role') || a.includes('permission') || a.includes('settings');
     });
   }
+  if (slug === 'aud-export') {
+    return rows.filter((r) => String(r.action || '').toLowerCase().startsWith('export_'));
+  }
   return rows;
 }
 
-export function summarize(rows: any[], groupBy?: string, warnings?: string[]) {
+function countBy(rows: any[], key: string): Record<string, number> {
+  const o: Record<string, number> = {};
+  rows.forEach((r) => {
+    const k = String(r?.[key] ?? 'unknown');
+    o[k] = (o[k] || 0) + 1;
+  });
+  return o;
+}
+
+/**
+ * Domain-aware summary builder. Falls back to generic total/group counts.
+ * Missing optional columns are tolerated and surfaced as warnings.
+ */
+export function buildReportSummary(slug: string | undefined, rows: any[], groupBy?: string, warnings: string[] = []): Record<string, any> {
   const summary: Record<string, any> = { total: rows.length };
-  if (groupBy) {
-    const g: Record<string, number> = {};
-    rows.forEach((r) => {
-      const k = String(r[groupBy] ?? 'unknown');
-      g[k] = (g[k] || 0) + 1;
-    });
-    summary.groups = g;
+  if (groupBy) summary.groups = countBy(rows, groupBy);
+
+  try {
+    switch (slug) {
+      case 'app-status':
+        summary.status_counts = countBy(rows, 'status');
+        break;
+      case 'app-aging':
+      case 'op-pending':
+        summary.aging_bucket_counts = countBy(rows, 'aging_bucket');
+        break;
+      case 'app-sla': {
+        summary.breached_count = rows.filter((r) => r.sla_status === 'breached').length;
+        summary.at_risk_count = rows.filter((r) => r.sla_status === 'at_risk').length;
+        summary.on_track_count = rows.filter((r) => r.sla_status === 'on_track').length;
+        break;
+      }
+      case 'op-ratio': {
+        const first = rows[0] || {};
+        summary.approved_count = first.approved_count ?? 0;
+        summary.rejected_count = first.rejected_count ?? 0;
+        summary.pending_count = first.pending_count ?? 0;
+        summary.approval_rate = first.approval_rate ?? 0;
+        break;
+      }
+      case 'ret-scorecard': {
+        const first = rows[0] || {};
+        summary.submitted_count = first.submitted_count ?? 0;
+        summary.overdue_count = first.overdue_count ?? 0;
+        summary.pending_count = first.pending_count ?? 0;
+        summary.compliance_rate = first.compliance_rate ?? 0;
+        break;
+      }
+      case 'ret-defaulters':
+        summary.defaulter_count = new Set(rows.map((r) => r.license_id)).size;
+        summary.max_overdue_count = rows.reduce((m, r) => Math.max(m, r.overdue_count || 0), 0);
+        break;
+      case 'ret-repeat':
+        summary.repeated_non_compliance_count = rows.length;
+        break;
+      case 'fee-trend':
+        summary.revenue_by_month = {};
+        summary.revenue_by_quarter = {};
+        rows.forEach((r) => {
+          const amt = Number(r.amount || 0);
+          if (r.period_month) summary.revenue_by_month[r.period_month] = (summary.revenue_by_month[r.period_month] || 0) + amt;
+          if (r.period_quarter) summary.revenue_by_quarter[r.period_quarter] = (summary.revenue_by_quarter[r.period_quarter] || 0) + amt;
+        });
+        break;
+      case 'cmp-category':
+        summary.category_counts = countBy(rows, 'complaint_type_id');
+        break;
+      case 'aud-export':
+        summary.export_count_by_format = countBy(rows, 'export_format');
+        summary.export_count_by_user = countBy(rows, 'executed_by');
+        break;
+    }
+  } catch (e: any) {
+    warnings.push(`summary:${slug}: ${e?.message || 'failed'}`);
   }
-  if (warnings && warnings.length) summary.warnings = warnings;
+  if (warnings.length) summary.warnings = warnings;
   return summary;
+}
+
+// Backward-compatible generic summarizer (kept for callers using it directly).
+export function summarize(rows: any[], groupBy?: string, warnings?: string[]) {
+  return buildReportSummary(undefined, rows, groupBy, warnings || []);
 }
 
 export function selectColumns(rows: any[], cols?: string[]): any[] {
@@ -255,6 +356,7 @@ export interface RunOptions {
   filters: Record<string, any>;
   reportSlug?: string;
   selectedColumns?: string[];
+  defaultColumns?: string[];
   groupBy?: string;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
@@ -305,8 +407,9 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   let rows = (data || []).map(strip);
   rows = decorate(opts.reportSlug, rows);
   rows = sortRows(rows, opts.sortBy, opts.sortDir || 'asc');
-  const summary = summarize(rows, opts.groupBy, warnings);
-  const projected = selectColumns(rows, opts.selectedColumns);
+  const effCols = getEffectiveColumns(opts.reportSlug, opts.selectedColumns, opts.defaultColumns || []);
+  const summary = buildReportSummary(opts.reportSlug, rows, opts.groupBy, warnings);
+  const projected = selectColumns(rows, effCols);
 
   return {
     rawRowCount: data?.length ?? 0,
@@ -316,6 +419,28 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
     summary,
     warnings,
   };
+}
+
+/**
+ * Insert a report log row, tolerating schemas that have only `report_id`,
+ * only `report_run_id`, or both. Prefers writing both for forward-compat.
+ */
+export async function insertReportLog(client: any, payload: Record<string, any>) {
+  const runId = payload.report_run_id ?? payload.report_id ?? null;
+  const full = { ...payload, report_id: runId, report_run_id: runId };
+  let res = await client.from('report_logs').insert(full);
+  if (!res.error) return res;
+  const msg = String(res.error?.message || '');
+  if (/report_run_id/i.test(msg)) {
+    const { report_run_id: _x, ...rest } = full;
+    res = await client.from('report_logs').insert(rest);
+    if (!res.error) return res;
+  }
+  if (/report_id/i.test(String(res.error?.message || ''))) {
+    const { report_id: _y, ...rest } = full;
+    res = await client.from('report_logs').insert(rest);
+  }
+  return res;
 }
 
 const ROW_BATCH = 1000;
@@ -354,6 +479,7 @@ export async function persistRun(client: any, params: {
     sort_dir: params.sortDir || null,
     result_summary: params.result.summary,
     result_count: params.result.rows.length,
+    // result_data is a legacy preview cache only (capped); full rows live in report_run_rows.
     result_data: params.result.projected.slice(0, 500),
     status: 'ready',
     created_by: params.userId,
@@ -377,8 +503,8 @@ export async function persistRun(client: any, params: {
   const completed = new Date().toISOString();
   await client.from('reports').update({ completed_at: completed, duration_ms: Date.now() - startedTs }).eq('id', runId);
 
-  await client.from('report_logs').insert({
-    report_id: runId,
+  await insertReportLog(client, {
+    report_run_id: runId,
     schedule_id: params.scheduleId || null,
     action: params.scheduleId ? 'schedule_run_completed' : 'generated',
     executed_by: params.userId,

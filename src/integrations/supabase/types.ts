@@ -3341,6 +3341,7 @@ export type Database = {
           record_count: number | null
           report_id: string | null
           report_name: string | null
+          report_run_id: string | null
           schedule_id: string | null
           user_agent: string | null
         }
@@ -3357,6 +3358,7 @@ export type Database = {
           record_count?: number | null
           report_id?: string | null
           report_name?: string | null
+          report_run_id?: string | null
           schedule_id?: string | null
           user_agent?: string | null
         }
@@ -3373,6 +3375,7 @@ export type Database = {
           record_count?: number | null
           report_id?: string | null
           report_name?: string | null
+          report_run_id?: string | null
           schedule_id?: string | null
           user_agent?: string | null
         }
@@ -3387,6 +3390,20 @@ export type Database = {
           {
             foreignKeyName: "report_logs_report_id_fkey"
             columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_logs_report_run_id_fkey"
+            columns: ["report_run_id"]
+            isOneToOne: false
+            referencedRelation: "report_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_logs_report_run_id_fkey"
+            columns: ["report_run_id"]
             isOneToOne: false
             referencedRelation: "reports"
             referencedColumns: ["id"]

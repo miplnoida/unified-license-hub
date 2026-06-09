@@ -5,7 +5,8 @@ export type ReportSource =
   | 'compliance_returns'
   | 'complaints'
   | 'users'
-  | 'audit_logs';
+  | 'audit_logs'
+  | 'report_logs';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'json' | 'pdf';
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly';
