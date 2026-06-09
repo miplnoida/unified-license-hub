@@ -121,4 +121,85 @@ describe('resolveScheduleSource', () => {
   it('rejects invalid explicit source and falls back to slug', () => {
     expect(resolveScheduleSource({ source: 'not-a-table', report_slug: 'app-status' })).toBe('applications');
   });
+  it('aud-export resolves to report_logs', () => {
+    expect(resolveScheduleSource({ report_slug: 'aud-export' })).toBe('report_logs');
+  });
+});
+
+import {
+  buildReportSummary, decorate, getEffectiveColumns, strip,
+  REQUIRED_COMPUTED_COLUMNS,
+} from '../../supabase/functions/_shared/report-generator.ts';
+
+describe('decorate', () => {
+  it('app-aging adds aging_days and aging_bucket', () => {
+    const rows = decorate('app-aging', [{ id: 1, created_at: new Date(Date.now() - 10 * 86400_000).toISOString() }]);
+    expect(rows[0].aging_days).toBeGreaterThanOrEqual(9);
+    expect(rows[0].aging_bucket).toBeTruthy();
+  });
+  it('ret-overdue excludes submitted returns', () => {
+    const past = new Date(Date.now() - 5 * 86400_000).toISOString();
+    const rows = decorate('ret-overdue', [
+      { id: 1, due_date: past, status: 'pending' },
+      { id: 2, due_date: past, status: 'submitted' },
+      { id: 3, due_date: past, submitted_at: past, status: 'pending' },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(1);
+    expect(rows[0].days_overdue).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('strip sensitive fields', () => {
+  it('removes password/token/private_key', () => {
+    const out = strip({ id: 1, password: 'x', token: 'y', private_key: 'z', name: 'ok' });
+    expect(out.password).toBeUndefined();
+    expect(out.token).toBeUndefined();
+    expect(out.private_key).toBeUndefined();
+    expect(out.name).toBe('ok');
+  });
+});
+
+describe('getEffectiveColumns', () => {
+  it('appends required computed columns when user picks a subset', () => {
+    const cols = getEffectiveColumns('app-aging', ['application_number'], []);
+    expect(cols).toContain('application_number');
+    expect(cols).toContain('aging_days');
+    expect(cols).toContain('aging_bucket');
+  });
+  it('uses defaults plus required when selection is empty', () => {
+    const cols = getEffectiveColumns('ret-overdue', [], ['license_id']);
+    expect(cols).toContain('license_id');
+    expect(cols).toContain('days_overdue');
+  });
+  it('returns user selection unchanged for non-predefined reports', () => {
+    expect(getEffectiveColumns(undefined, ['a', 'b'], [])).toEqual(['a', 'b']);
+  });
+});
+
+describe('buildReportSummary', () => {
+  it('returns status_counts for app-status', () => {
+    const s = buildReportSummary('app-status', [{ status: 'approved' }, { status: 'pending' }, { status: 'approved' }]);
+    expect(s.status_counts.approved).toBe(2);
+    expect(s.status_counts.pending).toBe(1);
+  });
+  it('returns sla bucket counts for app-sla', () => {
+    const s = buildReportSummary('app-sla', [
+      { sla_status: 'breached' }, { sla_status: 'at_risk' }, { sla_status: 'on_track' }, { sla_status: 'breached' },
+    ]);
+    expect(s.breached_count).toBe(2);
+    expect(s.at_risk_count).toBe(1);
+    expect(s.on_track_count).toBe(1);
+  });
+  it('tolerates missing fields without crashing', () => {
+    expect(() => buildReportSummary('ret-scorecard', [])).not.toThrow();
+  });
+});
+
+describe('REQUIRED_COMPUTED_COLUMNS', () => {
+  it('covers key predefined slugs', () => {
+    expect(REQUIRED_COMPUTED_COLUMNS['app-aging']).toContain('aging_days');
+    expect(REQUIRED_COMPUTED_COLUMNS['app-sla']).toContain('sla_status');
+    expect(REQUIRED_COMPUTED_COLUMNS['lic-expiry']).toContain('days_to_expiry');
+  });
 });
