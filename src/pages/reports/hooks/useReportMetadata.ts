@@ -3,7 +3,19 @@ import {
   getReportSources, getReportDefinitions, getReportFilters,
   getOptionSet, getDashboardWidgets, getDashboardLayouts,
   getReportMetadataBundle, getReportStatusOptions, fetchTableOptions,
+  type ReportFilterMeta,
 } from '../services/reportMetadataService';
+import { resolveFilterOptions } from '../services/reportFilterOptionsService';
+
+export function useDynamicFilterOptions(meta: ReportFilterMeta | null | undefined, currentFilters: Record<string, any> = {}) {
+  const parent = meta?.dependsOnFilter ? currentFilters?.[meta.dependsOnFilter] : null;
+  return useQuery({
+    queryKey: ['reports', 'filter-options', meta?.sourceKey, meta?.filterKey, parent || null],
+    queryFn: () => resolveFilterOptions(meta!, currentFilters),
+    enabled: !!meta,
+    staleTime: 60_000,
+  });
+}
 
 const STALE = 5 * 60_000;
 
