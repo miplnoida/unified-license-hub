@@ -317,28 +317,6 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                 </SelectContent>
               </Select>
             </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Group By</Label>
-              <Select value={cfg.groupBy || 'none'} onValueChange={(v) => update({ groupBy: v === 'none' ? undefined : v })}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Sort By</Label>
-              <Select value={cfg.sortBy || 'none'} onValueChange={(v) => update({ sortBy: v === 'none' ? undefined : v })}>
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label>Direction</Label>
               <Select value={cfg.sortDir || 'asc'} onValueChange={(v) => update({ sortDir: v as SortDirection })}>
