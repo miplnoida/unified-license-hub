@@ -6,7 +6,7 @@ import type {
 import { REPORT_DEFINITIONS, SENSITIVE_COLUMNS } from '../reportDefinitions';
 
 export const ALLOWED_SOURCES: ReportSource[] = [
-  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs',
+  'applications', 'licenses', 'payments', 'compliance_returns', 'complaints', 'users', 'audit_logs', 'report_logs',
 ];
 
 export function isAllowedSource(s: string): s is ReportSource {
