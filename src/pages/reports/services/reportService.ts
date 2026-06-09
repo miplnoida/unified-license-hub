@@ -79,6 +79,7 @@ async function invokeGenerate(opts: {
   source: ReportSource;
   filters: ReportFilters;
   selectedColumns?: string[];
+  defaultColumns?: string[];
   groupBy?: string;
   sortBy?: string;
   sortDir?: SortDirection;
