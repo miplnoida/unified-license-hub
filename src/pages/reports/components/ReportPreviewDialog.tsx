@@ -159,7 +159,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {headers.map((h) => <TableHead key={h} className="whitespace-nowrap text-xs">{h}</TableHead>)}
+                    {headers.map((h) => <TableHead key={h} className="whitespace-nowrap text-xs">{labelFor(h, labels)}</TableHead>)}
                     <TableHead className="text-xs print:hidden">Open</TableHead>
                   </TableRow>
                 </TableHeader>
