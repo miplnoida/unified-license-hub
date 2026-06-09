@@ -8,16 +8,11 @@ export type ReportSource =
   | 'audit_logs';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'json' | 'pdf';
-
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly';
+export type SortDirection = 'asc' | 'desc';
 
 export type DateRangePreset =
-  | 'today'
-  | 'this_week'
-  | 'this_month'
-  | 'this_quarter'
-  | 'this_fy'
-  | 'custom';
+  | 'today' | 'this_week' | 'this_month' | 'this_quarter' | 'this_fy' | 'custom';
 
 export interface ReportDefinition {
   id: string;
@@ -46,6 +41,7 @@ export interface ReportFilters {
   slaStatus?: string;
   paymentStatus?: string;
   returnStatus?: string;
+  complaintStatus?: string;
   riskLevel?: string;
 }
 
@@ -57,6 +53,13 @@ export interface BuilderConfig {
   columns: string[];
   groupBy?: string;
   sortBy?: string;
+  sortDir?: SortDirection;
+}
+
+export interface ReportSummary {
+  total?: number;
+  groups?: Record<string, number>;
+  [key: string]: unknown;
 }
 
 export interface ReportRun {
@@ -64,24 +67,65 @@ export interface ReportRun {
   name: string;
   category: string;
   source?: ReportSource;
+  slug?: string;
   filters: ReportFilters;
+  selectedColumns?: string[];
+  groupBy?: string;
+  sortBy?: string;
+  sortDir?: SortDirection;
+  summary?: ReportSummary;
   rows: Record<string, unknown>[];
   rowCount: number;
   generatedBy?: string | null;
   generatedAt: string;
-  status: 'ready' | 'generating' | 'failed' | 'expired';
+  durationMs?: number | null;
+  errorMessage?: string | null;
+  status: 'ready' | 'generating' | 'failed' | 'expired' | 'queued';
+}
+
+export interface ReportRunRow {
+  id: string;
+  reportRunId: string;
+  rowIndex: number;
+  rowData: Record<string, unknown>;
 }
 
 export interface ReportSchedule {
   id: string;
-  reportId: string;
+  reportId: string | null;
+  reportSlug?: string | null;
   reportName?: string;
+  source?: string;
   frequency: ScheduleFrequency;
   recipients: string[];
+  recipientRoles?: string[];
   exportFormat: ExportFormat;
   isActive: boolean;
   lastRunAt: string | null;
   nextRunAt: string | null;
+  lastStatus?: string | null;
+  lastError?: string | null;
+  retryCount?: number;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  source: ReportSource;
+  filters: ReportFilters;
+  selectedColumns: string[];
+  groupBy?: string;
+  sortBy?: string;
+  sortDir?: SortDirection;
+  visibility: 'private' | 'shared';
+  createdBy?: string | null;
+  createdAt: string;
+}
+
+export interface ReportFavorite {
+  reportSlug: string;
+  createdAt: string;
 }
 
 export interface ReportMetrics {
