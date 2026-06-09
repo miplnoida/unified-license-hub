@@ -57,8 +57,10 @@ export function ReportLibrary({ onPreview, onSchedule }: Props) {
         category: def.category,
         source: def.source,
         filters: {},
-        reportType: 'predefined',
+        reportSlug: def.id,
         description: def.description,
+        selectedColumns: def.defaultColumns,
+        groupBy: def.defaultGroupBy,
       });
       toast({ title: 'Report generated', description: `${run.rowCount} rows.` });
       onPreview(run);
