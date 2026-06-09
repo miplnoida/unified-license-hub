@@ -44,6 +44,10 @@ function resolveRoute(
 export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const [page, setPage] = useState(0);
+  const { data: sources = [] } = useReportSources();
+  const { data: exportFormats = [] } = useReportOptions('export_format');
+  const activeSource = sources.find((s) => s.sourceKey === run?.source);
+  const sourceRoutes = activeSource?.sourceRoutes as Record<string, unknown> | undefined;
   const rows = useMemo(() => (run ? safeRows(run.rows) : []), [run]);
   const headers = useMemo(() => {
     const set = new Set<string>();
