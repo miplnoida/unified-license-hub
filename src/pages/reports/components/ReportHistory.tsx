@@ -15,12 +15,15 @@ import type { ReportRun } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename } from '../services/exportService';
 import { fetchRunRows, generateReport, logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useReportOptions } from '../hooks/useReportMetadata';
 
 interface Props { onPreview: (run: ReportRun) => void; }
 
 export function ReportHistory({ onPreview }: Props) {
   const { toast } = useToast();
   const { data, isLoading, remove, invalidate } = useReports();
+  const { data: statusOpts = [] } = useReportOptions('report_run_status');
+  const { data: exportOpts = [] } = useReportOptions('export_format');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('all');
@@ -28,6 +31,12 @@ export function ReportHistory({ onPreview }: Props) {
   const [rerunId, setRerunId] = useState<string | null>(null);
 
   const categories = useMemo(() => Array.from(new Set((data || []).map((r) => r.category))), [data]);
+
+  // History data exports (UI): CSV/XLSX/JSON only; PDF goes via print dialog.
+  const downloadableFormats = useMemo(
+    () => exportOpts.filter((o) => ['csv', 'xlsx', 'json'].includes(o.value)),
+    [exportOpts],
+  );
 
   const filtered = useMemo(() => {
     if (!data) return [];
