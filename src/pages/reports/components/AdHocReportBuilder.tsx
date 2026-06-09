@@ -82,9 +82,19 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const { data: sources = [] } = useReportSources();
   const { data: filterMeta = [] } = useReportFilters(cfg.source);
   const { data: sortDirs = [] } = useReportOptions('sort_direction');
+  const { data: sourceColumns = [] } = useReportSourceColumns(cfg.source);
 
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
+
+  // When source changes (or columns metadata loads), seed default selection from is_default flag.
+  useEffect(() => {
+    if (sourceColumns.length === 0) return;
+    if (cfg.columns.length > 0) return;
+    const defaults = sourceColumns.filter((c) => c.isDefault).map((c) => c.columnKey);
+    if (defaults.length) setCfg((c) => ({ ...c, columns: defaults }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.source, sourceColumns.length]);
 
   const update = (patch: Partial<BuilderConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const updateFilter = (patch: Record<string, any>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
