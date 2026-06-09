@@ -63,15 +63,20 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     if (!recipients.length) return toast({ title: 'Add at least one recipient', variant: 'destructive' });
 
     let payload: Parameters<typeof create.mutate>[0];
-    if (form.reportId.startsWith('slug:') && prefillDefinition) {
+    if (form.reportId.startsWith('slug:')) {
+      const slug = form.reportId.slice(5);
+      const def = (prefillDefinition && prefillDefinition.id === slug)
+        ? prefillDefinition
+        : definitions.find((d) => d.id === slug);
+      if (!def) return toast({ title: 'Report not found', variant: 'destructive' });
       payload = {
         reportId: null,
-        reportSlug: prefillDefinition.id,
-        reportName: prefillDefinition.name,
-        source: prefillDefinition.source,
+        reportSlug: def.id,
+        reportName: def.name,
+        source: def.source,
         filters: {},
-        selectedColumns: prefillDefinition.defaultColumns,
-        groupBy: prefillDefinition.defaultGroupBy,
+        selectedColumns: def.defaultColumns,
+        groupBy: def.defaultGroupBy,
         frequency: form.frequency,
         recipients,
         exportFormat: form.exportFormat,
