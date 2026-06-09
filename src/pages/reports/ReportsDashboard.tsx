@@ -17,13 +17,15 @@ export default function ReportsDashboard() {
   const [previewRun, setPreviewRun] = useState<ReportRun | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [prefillDef, setPrefillDef] = useState<ReportDefinition | null>(null);
 
   const openPreview = (run: ReportRun) => {
     setPreviewRun(run);
     setPreviewOpen(true);
   };
 
-  const handleScheduleFromLibrary = (_def: ReportDefinition) => {
+  const handleScheduleFromLibrary = (def: ReportDefinition) => {
+    setPrefillDef(def);
     setTab('schedules');
     setScheduleDialogOpen(true);
   };
