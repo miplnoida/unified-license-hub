@@ -44,6 +44,8 @@ export interface ReportFilters {
   returnStatus?: string;
   complaintStatus?: string;
   riskLevel?: string;
+  // Dynamic, metadata-driven filter keys are allowed.
+  [key: string]: any;
 }
 
 export interface BuilderConfig {
