@@ -47,6 +47,8 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const [page, setPage] = useState(0);
   const { data: sources = [] } = useReportSources();
   const { data: exportFormats = [] } = useReportOptions('export_format');
+  const { data: sourceColumns = [] } = useReportSourceColumns(run?.source as string | undefined);
+  const labels = useMemo(() => buildLabelMap(sourceColumns), [sourceColumns]);
   const activeSource = sources.find((s) => s.sourceKey === run?.source);
   const sourceRoutes = activeSource?.sourceRoutes as Record<string, unknown> | undefined;
   const rows = useMemo(() => (run ? safeRows(run.rows) : []), [run]);
@@ -65,8 +67,8 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const groupSummary = (summary as any).groups as Record<string, number> | undefined;
 
   const handleExport = (fmt: 'csv' | 'xlsx' | 'json') => {
-    if (fmt === 'csv') exportToCsv(run.rows, fname);
-    else if (fmt === 'xlsx') exportToXlsx(run.rows, fname);
+    if (fmt === 'csv') exportToCsv(run.rows, fname, labels);
+    else if (fmt === 'xlsx') exportToXlsx(run.rows, fname, labels);
     else exportToJson(run.rows, fname);
     logExport(run.id, fmt, run.rowCount);
     toast({ title: 'Export ready', description: `${run.name}.${fmt} downloaded.` });
