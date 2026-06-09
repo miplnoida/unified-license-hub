@@ -126,6 +126,7 @@ export async function generateReport(opts: {
   sortBy?: string;
   sortDir?: SortDirection;
 }): Promise<ReportRun> {
+  const def = opts.reportSlug ? REPORT_DEFINITIONS.find((d) => d.id === opts.reportSlug) : undefined;
   const res = await invokeGenerate({
     reportName: opts.name,
     reportSlug: opts.reportSlug,
@@ -133,6 +134,7 @@ export async function generateReport(opts: {
     source: opts.source,
     filters: opts.filters,
     selectedColumns: opts.selectedColumns,
+    defaultColumns: def?.defaultColumns,
     groupBy: opts.groupBy,
     sortBy: opts.sortBy,
     sortDir: opts.sortDir,
