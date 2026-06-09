@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { useReportSchedules } from '../hooks/useReportSchedules';
 import { useReports } from '../hooks/useReports';
 import type { ExportFormat, ScheduleFrequency } from '../types';
 import { useToast } from '@/hooks/use-toast';
+import { runScheduleNow } from '../services/reportService';
 
 interface Props {
   scheduleDialogOpen: boolean;
@@ -26,10 +27,11 @@ interface Props {
 
 export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, prefillReportId }: Props) {
   const { toast } = useToast();
-  const { data, isLoading, create, update, remove } = useReportSchedules();
+  const { data, isLoading, create, update, remove, invalidate } = useReportSchedules();
   const { data: reports } = useReports();
   const [search, setSearch] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     reportId: prefillReportId || '',
@@ -37,6 +39,10 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     recipients: '',
     exportFormat: 'xlsx' as ExportFormat,
   });
+
+  useEffect(() => {
+    if (prefillReportId) setForm((f) => ({ ...f, reportId: prefillReportId }));
+  }, [prefillReportId]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -48,8 +54,21 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     const recipients = form.recipients.split(',').map((e) => e.trim()).filter(Boolean);
     if (!form.reportId) return toast({ title: 'Select a report', variant: 'destructive' });
     if (!recipients.length) return toast({ title: 'Add at least one recipient', variant: 'destructive' });
+    const report = (reports || []).find((r) => r.id === form.reportId);
     create.mutate(
-      { reportId: form.reportId, frequency: form.frequency, recipients, exportFormat: form.exportFormat },
+      {
+        reportId: form.reportId,
+        reportName: report?.name || 'Report',
+        reportSlug: report?.slug,
+        source: report?.source,
+        filters: report?.filters,
+        selectedColumns: report?.selectedColumns,
+        groupBy: report?.groupBy,
+        sortBy: report?.sortBy,
+        frequency: form.frequency,
+        recipients,
+        exportFormat: form.exportFormat,
+      },
       {
         onSuccess: () => {
           toast({ title: 'Schedule created' });
@@ -59,6 +78,19 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
         onError: (e: any) => toast({ title: 'Failed', description: e?.message, variant: 'destructive' }),
       },
     );
+  };
+
+  const handleRunNow = async (id: string) => {
+    setRunningId(id);
+    try {
+      await runScheduleNow(id);
+      toast({ title: 'Schedule executed' });
+      invalidate();
+    } catch (e: any) {
+      toast({ title: 'Run failed', description: e?.message, variant: 'destructive' });
+    } finally {
+      setRunningId(null);
+    }
   };
 
   if (isLoading) {
@@ -90,14 +122,21 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
                       {s.nextRunAt && ` · Next: ${new Date(s.nextRunAt).toLocaleDateString()}`}
                       {s.lastRunAt && ` · Last: ${new Date(s.lastRunAt).toLocaleDateString()}`}
                     </p>
+                    {s.lastStatus && (
+                      <Badge variant={s.lastStatus === 'completed' ? 'default' : s.lastStatus === 'failed' ? 'destructive' : 'secondary'} className="mt-1 text-[10px]">
+                        {s.lastStatus.replace(/_/g, ' ')}
+                      </Badge>
+                    )}
+                    {s.lastError && <p className="mt-1 text-xs text-destructive truncate">{s.lastError}</p>}
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Paused'}</Badge>
                     <Switch checked={s.isActive} onCheckedChange={(checked) =>
                       update.mutate({ id: s.id, patch: { isActive: checked } })
                     } />
-                    <Button size="sm" variant="outline" disabled title="Run now will be processed server-side">
-                      <Play className="h-3 w-3 mr-1" />Run Now
+                    <Button size="sm" variant="outline" disabled={runningId === s.id} onClick={() => handleRunNow(s.id)}>
+                      <Play className={`h-3 w-3 mr-1 ${runningId === s.id ? 'animate-spin' : ''}`} />
+                      {runningId === s.id ? 'Running…' : 'Run Now'}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setConfirmId(s.id)}><Trash2 className="h-3 w-3" /></Button>
                   </div>
@@ -117,9 +156,10 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Report</Label>
-              <Select value={form.reportId} onValueChange={(v) => setForm((f) => ({ ...f, reportId: v }))}>
+              <Select value={form.reportId || 'none'} onValueChange={(v) => setForm((f) => ({ ...f, reportId: v === 'none' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="Select a saved report..." /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Select a saved report...</SelectItem>
                   {(reports || []).filter((r) => r.status === 'ready').map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                   ))}
@@ -157,6 +197,10 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
             <Button className="w-full" onClick={handleCreate} disabled={create.isPending}>
               <Mail className="h-4 w-4 mr-2" />{create.isPending ? 'Creating…' : 'Create Schedule'}
             </Button>
+            <p className="text-xs text-muted-foreground">
+              Note: email delivery is handled by the platform notification service if configured.
+              When unavailable, schedules show "generated_email_pending" so delivery can be wired by an admin.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
