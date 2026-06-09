@@ -63,6 +63,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "application_form_versions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "application_form_versions_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -214,6 +221,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
           {
@@ -612,6 +626,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "compliance_returns_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "compliance_returns_on_behalf_of_licensee_id_fkey"
             columns: ["on_behalf_of_licensee_id"]
             isOneToOne: false
@@ -937,6 +958,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_components_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
           {
@@ -1908,6 +1936,13 @@ export type Database = {
             referencedRelation: "licenses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "license_actions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       licensees: {
@@ -1957,6 +1992,13 @@ export type Database = {
             columns: ["license_id"]
             isOneToOne: false
             referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensees_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
             referencedColumns: ["id"]
           },
           {
@@ -2042,6 +2084,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
           {
@@ -2496,6 +2545,13 @@ export type Database = {
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_receipts_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_remarks: {
@@ -2535,6 +2591,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_remarks_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -2591,6 +2654,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
           {
@@ -2906,6 +2976,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refunds_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_payments"
             referencedColumns: ["id"]
           },
         ]
@@ -3799,6 +3876,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      report_source_columns: {
+        Row: {
+          column_key: string
+          created_at: string
+          data_type: string | null
+          format: string | null
+          id: string
+          is_active: boolean
+          is_computed: boolean
+          is_default: boolean
+          is_enriched: boolean
+          is_raw_id: boolean
+          is_sensitive: boolean
+          label: string
+          sort_order: number
+          source_key: string
+          updated_at: string
+        }
+        Insert: {
+          column_key: string
+          created_at?: string
+          data_type?: string | null
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          is_computed?: boolean
+          is_default?: boolean
+          is_enriched?: boolean
+          is_raw_id?: boolean
+          is_sensitive?: boolean
+          label: string
+          sort_order?: number
+          source_key: string
+          updated_at?: string
+        }
+        Update: {
+          column_key?: string
+          created_at?: string
+          data_type?: string | null
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          is_computed?: boolean
+          is_default?: boolean
+          is_enriched?: boolean
+          is_raw_id?: boolean
+          is_sensitive?: boolean
+          label?: string
+          sort_order?: number
+          source_key?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       report_source_filters: {
         Row: {
@@ -5444,6 +5575,251 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      report_view_applications: {
+        Row: {
+          aging_days: number | null
+          applicant_entity_name: string | null
+          applicant_id: string | null
+          applicant_name: string | null
+          application_number: string | null
+          approved_at: string | null
+          assigned_officer_id: string | null
+          assigned_officer_name: string | null
+          created_at: string | null
+          entity_name: string | null
+          id: string | null
+          license_type: string | null
+          regulator_id: string | null
+          regulator_name: string | null
+          rejected_at: string | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_view_complaints: {
+        Row: {
+          applicant_entity_name: string | null
+          assigned_officer_id: string | null
+          assigned_officer_name: string | null
+          category_id: string | null
+          category_name: string | null
+          complainant_id: string | null
+          complainant_name: string | null
+          complaint_number: string | null
+          complaint_type: string | null
+          created_at: string | null
+          id: string | null
+          regulator_id: string | null
+          regulator_name: string | null
+          resolution_days: number | null
+          status: string | null
+          subject: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaints_complaint_type_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_view_compliance_returns: {
+        Row: {
+          applicant_entity_name: string | null
+          created_at: string | null
+          days_overdue: number | null
+          due_date: string | null
+          id: string | null
+          license_id: string | null
+          license_number: string | null
+          licensee_id: string | null
+          licensee_name: string | null
+          period_end: string | null
+          period_start: string | null
+          regulator_id: string | null
+          regulator_name: string | null
+          return_period: string | null
+          sector_id: string | null
+          sector_name: string | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_returns_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_returns_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_view_licenses: {
+        Row: {
+          applicant_entity_name: string | null
+          applicant_id: string | null
+          applicant_name: string | null
+          application_id: string | null
+          application_number: string | null
+          created_at: string | null
+          days_to_expiry: number | null
+          entity_name: string | null
+          expiry_date: string | null
+          holder_id: string | null
+          holder_name: string | null
+          id: string | null
+          issued_at: string | null
+          license_number: string | null
+          license_type: string | null
+          licensee_id: string | null
+          licensee_name: string | null
+          regulator_id: string | null
+          regulator_name: string | null
+          sector_id: string | null
+          sector_name: string | null
+          status: string | null
+          sub_sector_id: string | null
+          sub_sector_name: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenses_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_view_payments: {
+        Row: {
+          amount: number | null
+          applicant_entity_name: string | null
+          application_id: string | null
+          application_number: string | null
+          created_at: string | null
+          currency: string | null
+          id: string | null
+          payer_id: string | null
+          payer_name: string | null
+          payment_date: string | null
+          payment_reference: string | null
+          regulator_id: string | null
+          regulator_name: string | null
+          status: string | null
+          transaction_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workflow_steps_legacy_role_report: {
         Row: {
