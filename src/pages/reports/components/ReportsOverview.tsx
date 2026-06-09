@@ -7,11 +7,29 @@ import {
 } from 'recharts';
 import { FileBarChart, TrendingUp, BarChart3, Clock, AlertTriangle, MessageSquare, CheckCircle2, DollarSign } from 'lucide-react';
 import { useReportMetrics } from '../hooks/useReportMetrics';
+import { generateReport } from '../services/reportService';
+import type { ReportRun, ReportSource } from '../types';
+import { useToast } from '@/hooks/use-toast';
 
 const CHART_COLORS = ['#1e3a5f', '#2dd4bf', '#f59e0b', '#ef4444', '#8b5cf6', '#22c55e'];
 
-export function ReportsOverview() {
+interface Props { onDrilldown?: (run: ReportRun) => void; }
+
+export function ReportsOverview({ onDrilldown }: Props = {}) {
+  const { toast } = useToast();
   const { data, isLoading } = useReportMetrics();
+
+  const drill = async (
+    name: string, slug: string, source: ReportSource, filters: Record<string, unknown> = {},
+  ) => {
+    if (!onDrilldown) return;
+    try {
+      const run = await generateReport({ name, category: 'Drilldown', source, filters: filters as any, reportSlug: slug });
+      onDrilldown(run);
+    } catch (e: any) {
+      toast({ title: 'Drilldown failed', description: e?.message, variant: 'destructive' });
+    }
+  };
 
   if (isLoading || !data) {
     return (
@@ -24,15 +42,28 @@ export function ReportsOverview() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Applications" value={data.totalApplications} icon={<FileBarChart className="h-6 w-6" />} />
-        <StatCard title="Pending Applications" value={data.pendingApplications} icon={<Clock className="h-6 w-6" />} variant="warning" />
-        <StatCard title="Active Licenses" value={data.activeLicenses} icon={<BarChart3 className="h-6 w-6" />} variant="primary" />
+        <button type="button" className="text-left" onClick={() => drill('All Applications', 'app-status', 'applications')}>
+          <StatCard title="Total Applications" value={data.totalApplications} icon={<FileBarChart className="h-6 w-6" />} />
+        </button>
+        <button type="button" className="text-left" onClick={() => drill('Pending Applications', 'app-status', 'applications', { status: 'pending' })}>
+          <StatCard title="Pending Applications" value={data.pendingApplications} icon={<Clock className="h-6 w-6" />} variant="warning" />
+        </button>
+        <button type="button" className="text-left" onClick={() => drill('Active Licenses', 'lic-distribution', 'licenses', { status: 'active' })}>
+          <StatCard title="Active Licenses" value={data.activeLicenses} icon={<BarChart3 className="h-6 w-6" />} variant="primary" />
+        </button>
         <StatCard title="Total Revenue" value={`$${data.totalRevenue.toLocaleString()}`} icon={<TrendingUp className="h-6 w-6" />} variant="success" />
-        <StatCard title="Outstanding Dues" value={`$${data.outstandingDues.toLocaleString()}`} icon={<DollarSign className="h-6 w-6" />} variant="warning" />
-        <StatCard title="Overdue Returns" value={data.overdueReturns} icon={<AlertTriangle className="h-6 w-6" />} variant={data.overdueReturns > 0 ? 'danger' : 'default'} />
+        <button type="button" className="text-left" onClick={() => drill('Outstanding Dues', 'fee-outstanding', 'payments')}>
+          <StatCard title="Outstanding Dues" value={`$${data.outstandingDues.toLocaleString()}`} icon={<DollarSign className="h-6 w-6" />} variant="warning" />
+        </button>
+        <button type="button" className="text-left" onClick={() => drill('Overdue Returns', 'ret-overdue', 'compliance_returns')}>
+          <StatCard title="Overdue Returns" value={data.overdueReturns} icon={<AlertTriangle className="h-6 w-6" />} variant={data.overdueReturns > 0 ? 'danger' : 'default'} />
+        </button>
         <StatCard title="Compliance Rate" value={`${data.complianceRate}%`} icon={<CheckCircle2 className="h-6 w-6" />} variant="success" />
-        <StatCard title="Complaint Backlog" value={data.complaintBacklog} icon={<MessageSquare className="h-6 w-6" />} variant={data.complaintBacklog > 0 ? 'warning' : 'default'} />
+        <button type="button" className="text-left" onClick={() => drill('Pending Complaints', 'cmp-pending', 'complaints')}>
+          <StatCard title="Complaint Backlog" value={data.complaintBacklog} icon={<MessageSquare className="h-6 w-6" />} variant={data.complaintBacklog > 0 ? 'warning' : 'default'} />
+        </button>
       </div>
+
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
