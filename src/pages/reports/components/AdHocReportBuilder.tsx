@@ -338,8 +338,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.sortDir || 'asc'} onValueChange={(v) => update({ sortDir: v as SortDirection })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
+                  {sortDirs.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
