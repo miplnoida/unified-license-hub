@@ -1,7 +1,10 @@
-// Scheduled report runner. Picks active schedules that are due, runs them,
-// updates next_run_at / last_status, and logs the result.
+// Scheduled report runner. Reuses the shared report-generator so manual + scheduled
+// runs produce identical results. Resolves schedule source from explicit source or
+// the report definition slug; never uses a slug as a table name.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import {
+  corsHeaders, executeQuery, persistRun, resolveScheduleSource,
+} from '../_shared/report-generator.ts';
 
 type Freq = 'daily' | 'weekly' | 'monthly' | 'quarterly';
 
@@ -18,7 +21,6 @@ function nextRunAt(freq: Freq, from = new Date()): Date {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // Optional single-schedule manual trigger
   let scheduleId: string | null = null;
   if (req.method === 'POST') {
     const body = await req.json().catch(() => ({}));
@@ -48,58 +50,41 @@ Deno.serve(async (req) => {
       schedule_id: s.id,
       action: 'schedule_run_started',
       report_name: s.report_name,
+      executed_by: s.created_by,
     });
+
     try {
-      // Inline minimal generator (read source, basic filters, persist run+rows)
-      const source: string = s.source || s.report_slug || '';
-      const filters = s.filters_json || {};
-      const table = source === 'users' ? 'profiles' : source;
-      const { data: rows, error: qErr } = await admin
-        .from(table).select('*').limit(10000);
-      if (qErr) throw qErr;
-
-      const safeRows = (rows || []).map((r: any) => {
-        const o: any = {};
-        for (const k of Object.keys(r || {})) {
-          if (['password', 'password_hash', 'token', 'secret'].includes(k.toLowerCase())) continue;
-          o[k] = r[k];
-        }
-        return o;
-      });
-
-      const ins = await admin.from('reports').insert({
-        name: s.report_name || s.report_slug || 'Scheduled Report',
-        category: 'Scheduled',
-        report_type: 'predefined',
-        query_config: { source, filters, scheduled: true },
-        filters_json: filters,
-        source,
-        report_slug: s.report_slug || null,
-        selected_columns: s.selected_columns || [],
-        group_by: s.group_by,
-        sort_by: s.sort_by,
-        result_summary: { total: safeRows.length },
-        result_count: safeRows.length,
-        status: 'ready',
-        created_by: s.created_by,
-        generated_at: nowIso,
-        started_at: nowIso,
-        completed_at: new Date().toISOString(),
-      }).select('*').single();
-      if (ins.error) throw ins.error;
-
-      // Persist rows
-      for (let i = 0; i < safeRows.length; i += 1000) {
-        const slice = safeRows.slice(i, i + 1000).map((r: any, idx: number) => ({
-          report_run_id: ins.data.id,
-          row_index: i + idx,
-          row_data: r,
-        }));
-        await admin.from('report_run_rows').insert(slice);
+      const source = resolveScheduleSource(s);
+      if (!source) {
+        throw new Error(`Cannot resolve source for schedule (slug=${s.report_slug || 'none'}, source=${s.source || 'none'})`);
       }
 
-      // Email delivery: best-effort via existing send-notification edge function.
-      // If unavailable, mark generated_email_pending so UI signals manual handoff.
+      const result = await executeQuery(admin, {
+        source,
+        filters: s.filters_json || {},
+        reportSlug: s.report_slug || undefined,
+        selectedColumns: s.selected_columns || [],
+        groupBy: s.group_by || undefined,
+        sortBy: s.sort_by || undefined,
+        sortDir: (s.sort_dir as 'asc' | 'desc') || 'asc',
+      });
+
+      const { run } = await persistRun(admin, {
+        userId: s.created_by,
+        reportSlug: s.report_slug || undefined,
+        reportName: s.report_name || s.report_slug || 'Scheduled Report',
+        category: 'Scheduled',
+        source,
+        filters: s.filters_json || {},
+        selectedColumns: s.selected_columns || [],
+        groupBy: s.group_by || undefined,
+        sortBy: s.sort_by || undefined,
+        sortDir: (s.sort_dir as 'asc' | 'desc') || 'asc',
+        result,
+        scheduleId: s.id,
+      });
+
+      // Best-effort email
       let lastStatus = 'completed';
       try {
         if ((s.recipients || []).length > 0) {
@@ -113,7 +98,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               to: s.recipients,
               subject: `Scheduled Report: ${s.report_name || s.report_slug}`,
-              body: `Your scheduled report has ${safeRows.length} records. Sign in to view.`,
+              body: `Your scheduled report has ${result.rows.length} records. Sign in to view.`,
             }),
           });
           if (!notif.ok) lastStatus = 'generated_email_pending';
@@ -131,30 +116,23 @@ Deno.serve(async (req) => {
         retry_count: 0,
       }).eq('id', s.id);
 
-      await admin.from('report_logs').insert({
-        schedule_id: s.id,
-        report_id: ins.data.id,
-        action: 'schedule_run_completed',
-        report_name: s.report_name,
-        record_count: safeRows.length,
-        metadata: { last_status: lastStatus },
-      });
-
-      results.push({ id: s.id, status: lastStatus, rows: safeRows.length });
+      results.push({ id: s.id, status: lastStatus, rows: result.rows.length, runId: run?.id });
     } catch (e: any) {
+      const errMsg = String(e?.message || e);
       await admin.from('report_schedules').update({
         last_run_at: nowIso,
         last_status: 'failed',
-        last_error: String(e?.message || e),
+        last_error: errMsg,
         retry_count: (s.retry_count || 0) + 1,
       }).eq('id', s.id);
       await admin.from('report_logs').insert({
         schedule_id: s.id,
         action: 'schedule_run_failed',
         report_name: s.report_name,
-        error_message: String(e?.message || e),
+        executed_by: s.created_by,
+        error_message: errMsg,
       });
-      results.push({ id: s.id, status: 'failed', error: String(e?.message || e) });
+      results.push({ id: s.id, status: 'failed', error: errMsg });
     }
   }
 

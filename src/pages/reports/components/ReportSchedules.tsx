@@ -83,6 +83,7 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
         selectedColumns: report?.selectedColumns,
         groupBy: report?.groupBy,
         sortBy: report?.sortBy,
+        sortDir: report?.sortDir,
         frequency: form.frequency,
         recipients,
         exportFormat: form.exportFormat,

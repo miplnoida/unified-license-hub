@@ -13,6 +13,31 @@ export function isAllowedSource(s: string): s is ReportSource {
   return (ALLOWED_SOURCES as string[]).includes(s);
 }
 
+/** Mirrors REPORT_DEFINITIONS source values; used to resolve schedule source from slug. */
+export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
+  'app-status': 'applications', 'app-aging': 'applications', 'app-sla': 'applications',
+  'lic-issuance': 'licenses', 'lic-expiry': 'licenses', 'lic-suspended': 'licenses', 'lic-distribution': 'licenses',
+  'ret-status': 'compliance_returns', 'ret-overdue': 'compliance_returns', 'ret-defaulters': 'compliance_returns',
+  'ret-scorecard': 'compliance_returns', 'ret-latefee': 'compliance_returns', 'ret-risk': 'compliance_returns',
+  'ret-repeat': 'compliance_returns',
+  'fee-collection': 'payments', 'fee-outstanding': 'payments', 'fee-failed': 'payments',
+  'fee-refund': 'payments', 'fee-sector': 'payments', 'fee-trend': 'payments',
+  'op-workload': 'applications', 'op-productivity': 'applications', 'op-process-time': 'applications',
+  'op-ratio': 'applications', 'op-pending': 'applications', 'op-login': 'audit_logs',
+  'cmp-volume': 'complaints', 'cmp-resolution': 'complaints', 'cmp-pending': 'complaints',
+  'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
+  'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'audit_logs',
+  'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
+};
+
+export function resolveScheduleSource(schedule: { source?: string | null; report_slug?: string | null }): ReportSource | null {
+  const s = (schedule.source || '').trim();
+  if (s && isAllowedSource(s)) return s;
+  const slug = (schedule.report_slug || '').trim();
+  if (slug && REPORT_SLUG_SOURCE_MAP[slug]) return REPORT_SLUG_SOURCE_MAP[slug];
+  return null;
+}
+
 export function resolveDateRange(filters: ReportFilters): { from?: string; to?: string } {
   if (filters.preset && filters.preset !== 'custom') {
     const now = new Date();
@@ -245,21 +270,27 @@ export async function createReportSchedule(config: {
   selectedColumns?: string[];
   groupBy?: string;
   sortBy?: string;
+  sortDir?: SortDirection;
   frequency: ScheduleFrequency;
   recipients: string[];
   exportFormat: ExportFormat;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   const next = calculateNextRunAt(config.frequency);
+  // Resolve source: explicit > slug lookup. Never persist an empty source if avoidable.
+  const resolvedSource = (config.source && isAllowedSource(config.source))
+    ? config.source
+    : (config.reportSlug ? REPORT_SLUG_SOURCE_MAP[config.reportSlug] || null : null);
   const { error } = await supabase.from('report_schedules').insert({
     report_id: config.reportId ?? null,
     report_slug: config.reportSlug || null,
     report_name: config.reportName,
-    source: config.source || null,
+    source: resolvedSource,
     filters_json: config.filters || {},
     selected_columns: config.selectedColumns || [],
     group_by: config.groupBy || null,
     sort_by: config.sortBy || null,
+    sort_dir: config.sortDir || null,
     schedule_type: config.frequency,
     recipients: config.recipients,
     export_format: config.exportFormat,

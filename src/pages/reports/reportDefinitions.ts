@@ -14,8 +14,8 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
   { id: 'app-status', name: 'Application Status Report', category: 'Licensing & Applications', module: 'application_management', description: 'Distribution of applications across all statuses.', source: 'applications', filters: ['dateFrom', 'dateTo', 'status', 'sector'], defaultColumns: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at'], defaultGroupBy: 'status', exportFormats: ['csv', 'xlsx', 'json'] },
   { id: 'app-aging', name: 'Application Aging Report', category: 'Licensing & Applications', module: 'application_management', description: 'Applications grouped by time-in-status buckets.', source: 'applications', filters: ['dateFrom', 'dateTo', 'status'], defaultColumns: ['application_number', 'status', 'created_at', 'updated_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'app-sla', name: 'Application SLA Breach Report', category: 'Licensing & Applications', module: 'application_management', description: 'Applications exceeding their SLA windows.', source: 'applications', filters: ['dateFrom', 'dateTo'], defaultColumns: ['application_number', 'status', 'created_at', 'submitted_at'], exportFormats: ['csv', 'xlsx'] },
-  { id: 'lic-issuance', name: 'License Issuance Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses issued within a chosen window.', source: 'licenses', filters: ['dateFrom', 'dateTo', 'sector'], defaultColumns: ['license_number', 'license_type', 'status', 'issued_date'], exportFormats: ['csv', 'xlsx'] },
-  { id: 'lic-expiry', name: 'License Expiry / Renewal Due Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses approaching expiry / renewal.', source: 'licenses', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_number', 'license_type', 'expiry_date', 'status'], exportFormats: ['csv', 'xlsx'] },
+  { id: 'lic-issuance', name: 'License Issuance Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses issued within a chosen window.', source: 'licenses', filters: ['dateFrom', 'dateTo', 'sector'], defaultColumns: ['license_number', 'license_type', 'status', 'issued_at'], exportFormats: ['csv', 'xlsx'] },
+  { id: 'lic-expiry', name: 'License Expiry / Renewal Due Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses approaching expiry / renewal.', source: 'licenses', filters: ['dateFrom', 'dateTo'], defaultColumns: ['license_number', 'license_type', 'valid_until', 'status'], exportFormats: ['csv', 'xlsx'] },
   { id: 'lic-suspended', name: 'Suspended / Revoked License Report', category: 'Licensing & Applications', module: 'license_management', description: 'Licenses in suspended or revoked status.', source: 'licenses', filters: ['status'], defaultColumns: ['license_number', 'license_type', 'status', 'updated_at'], exportFormats: ['csv', 'xlsx'] },
   { id: 'lic-distribution', name: 'Sector-wise License Distribution', category: 'Licensing & Applications', module: 'license_management', description: 'Active licenses broken down by sector.', source: 'licenses', filters: [], defaultColumns: ['license_type', 'status'], defaultGroupBy: 'license_type', exportFormats: ['csv', 'xlsx'] },
 
@@ -60,9 +60,9 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
 ];
 
 export const COLUMN_OPTIONS_BY_SOURCE: Record<string, string[]> = {
-  applications: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at', 'approved_at', 'rejected_at', 'updated_at'],
-  licenses: ['license_number', 'license_type', 'status', 'issued_date', 'expiry_date', 'created_at', 'updated_at'],
-  payments: ['amount', 'status', 'created_at', 'updated_at'],
+  applications: ['application_number', 'license_type', 'status', 'created_at', 'submitted_at', 'approved_at', 'rejected_at', 'updated_at', 'regulator_id'],
+  licenses: ['license_number', 'license_type', 'status', 'issued_at', 'valid_from', 'valid_until', 'sector_id', 'sub_sector_id', 'created_at', 'updated_at'],
+  payments: ['amount', 'status', 'currency', 'payment_method', 'transaction_ref', 'receipt_number', 'paid_at', 'created_at'],
   compliance_returns: ['license_id', 'period_start', 'period_end', 'due_date', 'status', 'submitted_at', 'reviewed_at'],
   complaints: ['complaint_number', 'subject', 'status', 'complaint_type_id', 'created_at', 'updated_at'],
   users: ['email', 'full_name', 'created_at'],

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { calculateNextRunAt, ALLOWED_SOURCES, isAllowedSource, selectColumns } from '@/pages/reports/services/reportService';
+import {
+  calculateNextRunAt, ALLOWED_SOURCES, isAllowedSource, selectColumns,
+  resolveScheduleSource, REPORT_SLUG_SOURCE_MAP,
+} from '@/pages/reports/services/reportService';
 import { sanitizeCsvValue, flattenRecord } from '@/pages/reports/services/exportService';
 import { REPORT_DEFINITIONS } from '@/pages/reports/reportDefinitions';
 
@@ -91,5 +94,31 @@ describe('report definitions', () => {
       expect(d.module).toBeTruthy();
       expect(d.source).toBeTruthy();
     });
+  });
+});
+
+describe('resolveScheduleSource', () => {
+  it('resolves explicit valid source', () => {
+    expect(resolveScheduleSource({ source: 'applications' })).toBe('applications');
+  });
+  it('resolves from slug when source missing', () => {
+    expect(resolveScheduleSource({ report_slug: 'app-status' })).toBe('applications');
+    expect(resolveScheduleSource({ report_slug: 'ret-overdue' })).toBe('compliance_returns');
+    expect(resolveScheduleSource({ report_slug: 'fee-collection' })).toBe('payments');
+    expect(resolveScheduleSource({ report_slug: 'cmp-pending' })).toBe('complaints');
+  });
+  it('returns null for unknown slug + no source', () => {
+    expect(resolveScheduleSource({ report_slug: 'nope-xyz' })).toBeNull();
+    expect(resolveScheduleSource({})).toBeNull();
+  });
+  it('never resolves to the slug itself', () => {
+    Object.keys(REPORT_SLUG_SOURCE_MAP).forEach((slug) => {
+      const resolved = resolveScheduleSource({ report_slug: slug });
+      expect(resolved).not.toBe(slug);
+      expect(ALLOWED_SOURCES).toContain(resolved);
+    });
+  });
+  it('rejects invalid explicit source and falls back to slug', () => {
+    expect(resolveScheduleSource({ source: 'not-a-table', report_slug: 'app-status' })).toBe('applications');
   });
 });
