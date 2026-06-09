@@ -251,20 +251,72 @@ export function AdHocReportBuilder({ onPreview }: Props) {
 
 
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label>Columns ({cfg.columns.length || 'all'})</Label>
-            <div className="flex flex-wrap gap-2">
-              {columnOpts.map((c) => {
-                const on = cfg.columns.includes(c);
-                return (
-                  <Button key={c} type="button" size="sm" variant={on ? 'default' : 'outline'}
-                    onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c) : [...cfg.columns, c] })}>
-                    {c}
+            {(['business', 'enriched', 'computed'] as ColumnGroup[]).map((g) => (
+              grouped[g].length ? (
+                <div key={g} className="space-y-1.5">
+                  <div className="text-xs font-medium text-muted-foreground">{GROUP_LABELS[g]}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {grouped[g].map((c) => {
+                      const on = cfg.columns.includes(c.columnKey);
+                      return (
+                        <Button key={c.columnKey} type="button" size="sm" variant={on ? 'default' : 'outline'}
+                          onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c.columnKey) : [...cfg.columns, c.columnKey] })}>
+                          {c.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null
+            ))}
+            {grouped.advanced.length > 0 && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+                    <ChevronDown className="h-3 w-3 mr-1" />
+                    {GROUP_LABELS.advanced} ({grouped.advanced.length})
                   </Button>
-                );
-              })}
-            </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="flex flex-wrap gap-2 pt-1.5">
+                    {grouped.advanced.map((c) => {
+                      const on = cfg.columns.includes(c.columnKey);
+                      return (
+                        <Button key={c.columnKey} type="button" size="sm" variant={on ? 'default' : 'outline'}
+                          onClick={() => update({ columns: on ? cfg.columns.filter((x) => x !== c.columnKey) : [...cfg.columns, c.columnKey] })}>
+                          {c.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Group By</Label>
+              <Select value={cfg.groupBy || 'none'} onValueChange={(v) => update({ groupBy: v === 'none' ? undefined : v })}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{labelByKey[c] || c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Sort By</Label>
+              <Select value={cfg.sortBy || 'none'} onValueChange={(v) => update({ sortBy: v === 'none' ? undefined : v })}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {columnOpts.map((c) => <SelectItem key={c} value={c}>{labelByKey[c] || c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
 
           <div className="grid md:grid-cols-3 gap-4">
             <div className="space-y-2">
