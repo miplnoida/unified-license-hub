@@ -27,6 +27,19 @@ interface ResolvedLicenseeScope {
   licenseeIds: string[];
 }
 
+const EMPTY_METRICS: LicenseeMetrics = {
+  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0 },
+  applications: { draft: 0, submitted: 0, approved: 0, rejected: 0 },
+  returns: { due_soon: 0, overdue: 0, submitted: 0, pending_review: 0 },
+  payments: { pending: 0, paid: 0, outstanding_amount: 0 },
+  notifications: { unread: 0 },
+  priority_lists: {
+    upcoming_returns: [],
+    expiring_licenses: [],
+    pending_payments: [],
+  },
+};
+
 async function resolveLicenseeScope(
   activeLicenseeId: string | null | undefined,
   userId: string | undefined,
@@ -141,6 +154,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
     queryKey: ['licensee-metrics', activeLicenseeId, userId],
     enabled: !!(activeLicenseeId || userId),
     staleTime: 60_000,
+    placeholderData: EMPTY_METRICS,
     queryFn: async () => {
       const scope = await resolveLicenseeScope(activeLicenseeId, userId);
       const lid = scope.primaryId;
@@ -148,7 +162,12 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const in30 = daysFromNow(30);
       const returnScope = scope.licenseeIds.length > 0 ? buildReturnsScope(scope.licenseeIds) : null;
 
-      const visibleApps = await loadVisibleApplications({ licenseeId: lid });
+      let visibleApps: Awaited<ReturnType<typeof loadVisibleApplications>> = [];
+      try {
+        visibleApps = await loadVisibleApplications({ licenseeId: lid });
+      } catch (error) {
+        console.error('[useLicenseeMetrics] Failed to resolve visible applications, continuing with entity metrics only:', error);
+      }
       const visibleAppIds = visibleApps.map((app) => app.id).filter(Boolean);
       const visibleAppIdSet = new Set(visibleAppIds);
 
@@ -248,10 +267,10 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
       const [payPendingRes, payPaidRes] = await Promise.all([
         visibleAppIds.length > 0
           ? supabase.from('payments').select('id', { count: 'exact', head: true }).in('application_id', visibleAppIds).in('status', ['pending', 'awaiting_verification'])
-          : Promise.resolve({ count: 0 } as any),
+          : Promise.resolve({ count: 0, error: null } as any),
         visibleAppIds.length > 0
           ? supabase.from('payments').select('id', { count: 'exact', head: true }).in('application_id', visibleAppIds).in('status', ['paid', 'completed', 'verified'])
-          : Promise.resolve({ count: 0 } as any),
+          : Promise.resolve({ count: 0, error: null } as any),
       ]);
 
       if (payPendingRes.error) {
@@ -265,7 +284,7 @@ export function useLicenseeMetrics(activeLicenseeId: string | null | undefined, 
 
       const notifUnreadRes = userId
         ? await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)
-        : ({ count: 0 } as any);
+        : ({ count: 0, error: null } as any);
 
       if (notifUnreadRes.error) {
         console.error('[useLicenseeMetrics] Failed to resolve unread notifications:', notifUnreadRes.error);
