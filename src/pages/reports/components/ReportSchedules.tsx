@@ -18,6 +18,7 @@ import { useReports } from '../hooks/useReports';
 import type { ExportFormat, ScheduleFrequency } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { runScheduleNow } from '../services/reportService';
+import type { ReportDefinition } from '../types';
 
 interface Props {
   scheduleDialogOpen: boolean;
