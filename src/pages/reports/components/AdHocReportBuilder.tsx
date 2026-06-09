@@ -15,11 +15,11 @@ import {
   deleteTemplate, generateFromBuilder, listTemplates, previewReport, saveTemplate,
 } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
-import { useAllRegulators } from '@/hooks/useRegulators';
-import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
 import {
-  useReportSources, useReportStatusOptions, useReportOptions,
+  useReportSources, useReportFilters, useReportOptions,
 } from '../hooks/useReportMetadata';
+import { DynamicReportFilters } from './filters/DynamicReportFilters';
+import { BasicFallbackFilters } from './filters/BasicFallbackFilters';
 
 const DEFAULT: BuilderConfig = {
   name: '',
@@ -42,22 +42,16 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const [templateDialog, setTemplateDialog] = useState(false);
   const [templateName, setTemplateName] = useState('');
 
-  const regulatorsQ = useAllRegulators();
-  const sectorsQ = useSectors(cfg.filters.regulator || null);
-  const subSectorsQ = useSubSectors(cfg.filters.regulator || null);
-  const servicesQ = useServices(cfg.filters.regulator || null);
-
   // Metadata-driven option lists
   const { data: sources = [] } = useReportSources();
-  const { data: statusOptionsRows = [] } = useReportStatusOptions(cfg.source);
-  const { data: presets = [] } = useReportOptions('date_preset');
+  const { data: filterMeta = [] } = useReportFilters(cfg.source);
   const { data: sortDirs = [] } = useReportOptions('sort_direction');
 
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
 
   const update = (patch: Partial<BuilderConfig>) => setCfg((c) => ({ ...c, ...patch }));
-  const updateFilter = (patch: Record<string, string>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
+  const updateFilter = (patch: Record<string, any>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
 
   const handlePreview = async () => {
     setBusy('preview');
