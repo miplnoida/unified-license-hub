@@ -26,7 +26,7 @@ export const REPORT_SLUG_SOURCE_MAP: Record<string, ReportSource> = {
   'op-ratio': 'applications', 'op-pending': 'applications', 'op-login': 'audit_logs',
   'cmp-volume': 'complaints', 'cmp-resolution': 'complaints', 'cmp-pending': 'complaints',
   'cmp-category': 'complaints', 'cmp-escalated': 'complaints',
-  'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'audit_logs',
+  'aud-trail': 'audit_logs', 'aud-permissions': 'audit_logs', 'aud-export': 'report_logs',
   'aud-failed-login': 'audit_logs', 'aud-admin': 'audit_logs',
 };
 
