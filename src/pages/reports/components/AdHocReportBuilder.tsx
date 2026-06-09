@@ -16,10 +16,13 @@ import {
 } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 import {
-  useReportSources, useReportFilters, useReportOptions,
+  useReportSources, useReportFilters, useReportOptions, useReportSourceColumns,
 } from '../hooks/useReportMetadata';
 import { DynamicReportFilters } from './filters/DynamicReportFilters';
 import { BasicFallbackFilters } from './filters/BasicFallbackFilters';
+import { groupColumns, GROUP_LABELS, humanizeKey, type ColumnGroup } from '../lib/columnLabels';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 const DEFAULT: BuilderConfig = {
   name: '',
