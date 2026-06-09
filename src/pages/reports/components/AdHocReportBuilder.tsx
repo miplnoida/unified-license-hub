@@ -234,6 +234,83 @@ export function AdHocReportBuilder({ onPreview }: Props) {
             </div>
           </div>
 
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label>Regulator</Label>
+              <Select value={cfg.filters.regulator || 'all'} onValueChange={(v) => updateFilter({ regulator: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {(regulatorsQ.data || []).map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Sector</Label>
+              <Select value={cfg.filters.sector || 'all'} onValueChange={(v) => updateFilter({ sector: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {(sectorsQ.data || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Sub-Sector</Label>
+              <Select value={cfg.filters.subSector || 'all'} onValueChange={(v) => updateFilter({ subSector: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {(subSectorsQ.data || []).filter((s: any) => !cfg.filters.sector || s.sector_id === cfg.filters.sector).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Service</Label>
+              <Select value={cfg.filters.service || 'all'} onValueChange={(v) => updateFilter({ service: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  {(servicesQ.data || []).filter((s: any) => !cfg.filters.sector || s.sector_id === cfg.filters.sector).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Risk Level</Label>
+              <Select value={cfg.filters.riskLevel || 'all'} onValueChange={(v) => updateFilter({ riskLevel: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Licensee ID</Label>
+              <Input value={cfg.filters.licensee || ''} onChange={(e) => updateFilter({ licensee: e.target.value })} placeholder="optional" />
+            </div>
+            <div className="space-y-2">
+              <Label>Officer ID</Label>
+              <Input value={cfg.filters.officer || ''} onChange={(e) => updateFilter({ officer: e.target.value })} placeholder="optional" />
+            </div>
+            <div className="space-y-2">
+              <Label>SLA Status</Label>
+              <Select value={cfg.filters.slaStatus || 'all'} onValueChange={(v) => updateFilter({ slaStatus: v === 'all' ? '' : v })}>
+                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any</SelectItem>
+                  <SelectItem value="on_track">On track</SelectItem>
+                  <SelectItem value="at_risk">At risk</SelectItem>
+                  <SelectItem value="breached">Breached</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+
           <div className="space-y-2">
             <Label>Columns ({cfg.columns.length || 'all'})</Label>
             <div className="flex flex-wrap gap-2">
