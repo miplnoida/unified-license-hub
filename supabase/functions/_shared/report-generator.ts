@@ -499,15 +499,15 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   };
 }
 
-async function loadSourceSafeColumns(client: any, source: string): Promise<string[] | null> {
+async function loadSourceMeta(client: any, source: string): Promise<{ table_name: string; safe_columns: string[] | null } | null> {
   try {
     const { data, error } = await client
       .from('report_sources')
-      .select('safe_columns')
+      .select('table_name, safe_columns')
       .eq('source_key', source)
       .maybeSingle();
     if (error || !data) return null;
-    return (data as any).safe_columns || null;
+    return { table_name: (data as any).table_name, safe_columns: (data as any).safe_columns || null };
   } catch {
     return null;
   }
