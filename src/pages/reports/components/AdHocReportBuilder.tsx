@@ -15,11 +15,11 @@ import {
   deleteTemplate, generateFromBuilder, listTemplates, previewReport, saveTemplate,
 } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
-import { useAllRegulators } from '@/hooks/useRegulators';
-import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
 import {
-  useReportSources, useReportStatusOptions, useReportOptions,
+  useReportSources, useReportFilters, useReportOptions,
 } from '../hooks/useReportMetadata';
+import { DynamicReportFilters } from './filters/DynamicReportFilters';
+import { BasicFallbackFilters } from './filters/BasicFallbackFilters';
 
 const DEFAULT: BuilderConfig = {
   name: '',
@@ -42,22 +42,16 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const [templateDialog, setTemplateDialog] = useState(false);
   const [templateName, setTemplateName] = useState('');
 
-  const regulatorsQ = useAllRegulators();
-  const sectorsQ = useSectors(cfg.filters.regulator || null);
-  const subSectorsQ = useSubSectors(cfg.filters.regulator || null);
-  const servicesQ = useServices(cfg.filters.regulator || null);
-
   // Metadata-driven option lists
   const { data: sources = [] } = useReportSources();
-  const { data: statusOptionsRows = [] } = useReportStatusOptions(cfg.source);
-  const { data: presets = [] } = useReportOptions('date_preset');
+  const { data: filterMeta = [] } = useReportFilters(cfg.source);
   const { data: sortDirs = [] } = useReportOptions('sort_direction');
 
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
 
   const update = (patch: Partial<BuilderConfig>) => setCfg((c) => ({ ...c, ...patch }));
-  const updateFilter = (patch: Record<string, string>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
+  const updateFilter = (patch: Record<string, any>) => setCfg((c) => ({ ...c, filters: { ...c.filters, ...patch } }));
 
   const handlePreview = async () => {
     setBusy('preview');
@@ -155,7 +149,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const columnOpts = activeSource?.safeColumns?.length
     ? activeSource.safeColumns
     : (COLUMN_OPTIONS_BY_SOURCE[cfg.source] || []);
-  const statusOpts = statusOptionsRows.map((s) => ({ value: s.value, label: s.label }));
+  const hasMetadataFilters = (filterMeta || []).some((m) => m.isActive);
 
   return (
     <div className="space-y-6">
@@ -172,7 +166,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
             </div>
             <div className="space-y-2">
               <Label>Dataset</Label>
-              <Select value={cfg.source} onValueChange={(v) => update({ source: v as ReportSource, columns: [] })}>
+              <Select value={cfg.source} onValueChange={(v) => update({ source: v as ReportSource, columns: [], filters: { preset: 'this_month' } })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {sources.filter((s) => s.supportsAdHoc).map((s) => <SelectItem key={s.sourceKey} value={s.sourceKey}>{s.label}</SelectItem>)}
@@ -186,115 +180,16 @@ export function AdHocReportBuilder({ onPreview }: Props) {
             <Textarea value={cfg.description} onChange={(e) => update({ description: e.target.value })} rows={2} />
           </div>
 
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Date Preset</Label>
-              <Select value={cfg.filters.preset || 'custom'} onValueChange={(v) => updateFilter({ preset: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {presets.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>From</Label>
-              <Input type="date" value={cfg.filters.dateFrom || ''} onChange={(e) => updateFilter({ dateFrom: e.target.value, preset: 'custom' })} />
-            </div>
-            <div className="space-y-2">
-              <Label>To</Label>
-              <Input type="date" value={cfg.filters.dateTo || ''} onChange={(e) => updateFilter({ dateTo: e.target.value, preset: 'custom' })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              {statusOpts.length ? (
-                <Select value={cfg.filters.status || 'all'} onValueChange={(v) => updateFilter({ status: v === 'all' ? '' : v })}>
-                  <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any</SelectItem>
-                    {statusOpts.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input value={cfg.filters.status || ''} onChange={(e) => updateFilter({ status: e.target.value })} placeholder="any" />
-              )}
-            </div>
-          </div>
+          {hasMetadataFilters ? (
+            <DynamicReportFilters
+              sourceKey={cfg.source}
+              filters={cfg.filters}
+              onChange={(patch) => updateFilter(patch)}
+            />
+          ) : (
+            <BasicFallbackFilters source={cfg.source} filters={cfg.filters} onChange={(patch) => updateFilter(patch)} />
+          )}
 
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Regulator</Label>
-              <Select value={cfg.filters.regulator || 'all'} onValueChange={(v) => updateFilter({ regulator: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {(regulatorsQ.data || []).map((r: any) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Sector</Label>
-              <Select value={cfg.filters.sector || 'all'} onValueChange={(v) => updateFilter({ sector: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {(sectorsQ.data || []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Sub-Sector</Label>
-              <Select value={cfg.filters.subSector || 'all'} onValueChange={(v) => updateFilter({ subSector: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {(subSectorsQ.data || []).filter((s: any) => !cfg.filters.sector || s.sector_id === cfg.filters.sector).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Service</Label>
-              <Select value={cfg.filters.service || 'all'} onValueChange={(v) => updateFilter({ service: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  {(servicesQ.data || []).filter((s: any) => !cfg.filters.sector || s.sector_id === cfg.filters.sector).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Risk Level</Label>
-              <Select value={cfg.filters.riskLevel || 'all'} onValueChange={(v) => updateFilter({ riskLevel: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Licensee ID</Label>
-              <Input value={cfg.filters.licensee || ''} onChange={(e) => updateFilter({ licensee: e.target.value })} placeholder="optional" />
-            </div>
-            <div className="space-y-2">
-              <Label>Officer ID</Label>
-              <Input value={cfg.filters.officer || ''} onChange={(e) => updateFilter({ officer: e.target.value })} placeholder="optional" />
-            </div>
-            <div className="space-y-2">
-              <Label>SLA Status</Label>
-              <Select value={cfg.filters.slaStatus || 'all'} onValueChange={(v) => updateFilter({ slaStatus: v === 'all' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any</SelectItem>
-                  <SelectItem value="on_track">On track</SelectItem>
-                  <SelectItem value="at_risk">At risk</SelectItem>
-                  <SelectItem value="breached">Breached</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
 
           <div className="space-y-2">
