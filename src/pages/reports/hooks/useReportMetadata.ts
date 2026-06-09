@@ -3,6 +3,7 @@ import {
   getReportSources, getReportDefinitions, getReportFilters,
   getOptionSet, getDashboardWidgets, getDashboardLayouts,
   getReportMetadataBundle, getReportStatusOptions, fetchTableOptions,
+  getReportSourceColumns,
   type ReportFilterMeta,
 } from '../services/reportMetadataService';
 import { resolveFilterOptions } from '../services/reportFilterOptionsService';
