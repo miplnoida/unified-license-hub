@@ -3219,22 +3219,146 @@ export type Database = {
           },
         ]
       }
+      report_dashboard_layouts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          layout_key: string
+          module: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          layout_key: string
+          module?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          layout_key?: string
+          module?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      report_dashboard_widgets: {
+        Row: {
+          chart_config: Json
+          created_at: string
+          description: string | null
+          drilldown_filters: Json
+          drilldown_report_slug: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          layout_key: string
+          metric_config: Json
+          query_config: Json
+          sort_order: number
+          source_key: string | null
+          title: string
+          updated_at: string
+          variant: string | null
+          widget_key: string
+          widget_type: string
+          width: string
+        }
+        Insert: {
+          chart_config?: Json
+          created_at?: string
+          description?: string | null
+          drilldown_filters?: Json
+          drilldown_report_slug?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          layout_key: string
+          metric_config?: Json
+          query_config?: Json
+          sort_order?: number
+          source_key?: string | null
+          title: string
+          updated_at?: string
+          variant?: string | null
+          widget_key: string
+          widget_type: string
+          width?: string
+        }
+        Update: {
+          chart_config?: Json
+          created_at?: string
+          description?: string | null
+          drilldown_filters?: Json
+          drilldown_report_slug?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          layout_key?: string
+          metric_config?: Json
+          query_config?: Json
+          sort_order?: number
+          source_key?: string | null
+          title?: string
+          updated_at?: string
+          variant?: string | null
+          widget_key?: string
+          widget_type?: string
+          width?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_dashboard_widgets_layout_key_fkey"
+            columns: ["layout_key"]
+            isOneToOne: false
+            referencedRelation: "report_dashboard_layouts"
+            referencedColumns: ["layout_key"]
+          },
+        ]
+      }
       report_definitions: {
         Row: {
           category: string
           created_at: string | null
           created_by: string | null
           default_columns: string[] | null
+          default_filters: Json | null
           default_group_by: string | null
+          default_sort_by: string | null
+          default_sort_dir: string | null
           definition_json: Json
           description: string | null
           export_formats: string[] | null
+          filter_config: Json | null
           id: string
           is_active: boolean | null
           module: string
           name: string
+          query_config: Json | null
+          report_type: string | null
+          required_computed_columns: string[] | null
           slug: string
+          sort_order: number | null
           source: string
+          source_key: string | null
+          supports_preview: boolean | null
+          supports_schedule: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -3242,16 +3366,27 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           default_columns?: string[] | null
+          default_filters?: Json | null
           default_group_by?: string | null
+          default_sort_by?: string | null
+          default_sort_dir?: string | null
           definition_json?: Json
           description?: string | null
           export_formats?: string[] | null
+          filter_config?: Json | null
           id?: string
           is_active?: boolean | null
           module: string
           name: string
+          query_config?: Json | null
+          report_type?: string | null
+          required_computed_columns?: string[] | null
           slug: string
+          sort_order?: number | null
           source: string
+          source_key?: string | null
+          supports_preview?: boolean | null
+          supports_schedule?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -3259,16 +3394,27 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           default_columns?: string[] | null
+          default_filters?: Json | null
           default_group_by?: string | null
+          default_sort_by?: string | null
+          default_sort_dir?: string | null
           definition_json?: Json
           description?: string | null
           export_formats?: string[] | null
+          filter_config?: Json | null
           id?: string
           is_active?: boolean | null
           module?: string
           name?: string
+          query_config?: Json | null
+          report_type?: string | null
+          required_computed_columns?: string[] | null
           slug?: string
+          sort_order?: number | null
           source?: string
+          source_key?: string | null
+          supports_preview?: boolean | null
+          supports_schedule?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -3417,6 +3563,39 @@ export type Database = {
           },
         ]
       }
+      report_option_sets: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          metadata: Json
+          option_set_key: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          metadata?: Json
+          option_set_key: string
+          sort_order?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          metadata?: Json
+          option_set_key?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: []
+      }
       report_run_files: {
         Row: {
           created_at: string | null
@@ -3500,6 +3679,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      report_runtime_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       report_schedules: {
         Row: {
@@ -3599,6 +3799,179 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      report_source_filters: {
+        Row: {
+          column_name: string | null
+          created_at: string
+          depends_on_filter: string | null
+          filter_key: string
+          filter_type: string
+          id: string
+          is_active: boolean
+          label: string
+          operator: string
+          options_label_column: string | null
+          options_source: string | null
+          options_static: Json
+          options_table: string | null
+          options_value_column: string | null
+          sort_order: number
+          source_key: string
+          updated_at: string
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string
+          depends_on_filter?: string | null
+          filter_key: string
+          filter_type: string
+          id?: string
+          is_active?: boolean
+          label: string
+          operator?: string
+          options_label_column?: string | null
+          options_source?: string | null
+          options_static?: Json
+          options_table?: string | null
+          options_value_column?: string | null
+          sort_order?: number
+          source_key: string
+          updated_at?: string
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string
+          depends_on_filter?: string | null
+          filter_key?: string
+          filter_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          operator?: string
+          options_label_column?: string | null
+          options_source?: string | null
+          options_static?: Json
+          options_table?: string | null
+          options_value_column?: string | null
+          sort_order?: number
+          source_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_source_filters_source_key_fkey"
+            columns: ["source_key"]
+            isOneToOne: false
+            referencedRelation: "report_sources"
+            referencedColumns: ["source_key"]
+          },
+        ]
+      }
+      report_sources: {
+        Row: {
+          created_at: string
+          default_columns: string[]
+          default_date_column: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          max_generate_rows: number
+          max_preview_rows: number
+          module: string
+          safe_columns: string[]
+          search_columns: string[]
+          sensitive_columns: string[]
+          sort_order: number
+          source_key: string
+          source_routes: Json
+          supports_ad_hoc: boolean
+          supports_scheduling: boolean
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_columns?: string[]
+          default_date_column?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          max_generate_rows?: number
+          max_preview_rows?: number
+          module: string
+          safe_columns?: string[]
+          search_columns?: string[]
+          sensitive_columns?: string[]
+          sort_order?: number
+          source_key: string
+          source_routes?: Json
+          supports_ad_hoc?: boolean
+          supports_scheduling?: boolean
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_columns?: string[]
+          default_date_column?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_generate_rows?: number
+          max_preview_rows?: number
+          module?: string
+          safe_columns?: string[]
+          search_columns?: string[]
+          sensitive_columns?: string[]
+          sort_order?: number
+          source_key?: string
+          source_routes?: Json
+          supports_ad_hoc?: boolean
+          supports_scheduling?: boolean
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      report_status_options: {
+        Row: {
+          color: string | null
+          created_at: string
+          filter_key: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          source_key: string
+          value: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          filter_key?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          source_key: string
+          value: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          filter_key?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          source_key?: string
+          value?: string
+        }
+        Relationships: []
       }
       report_templates: {
         Row: {
