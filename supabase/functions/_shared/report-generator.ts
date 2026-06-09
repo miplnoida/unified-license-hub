@@ -374,6 +374,30 @@ export interface RunResult {
 
 const HARD_LIMIT = 10000;
 
+const ALLOWED_OPERATORS = new Set(['eq', 'in', 'ilike', 'gte', 'lte', 'contains']);
+const DATE_KEYS = new Set(['dateFrom', 'dateTo', 'preset']);
+
+interface FilterDef {
+  filter_key: string;
+  column_name: string | null;
+  operator: string;
+  filter_type: string;
+}
+
+async function loadSourceFilterMeta(client: any, source: string): Promise<FilterDef[]> {
+  try {
+    const { data, error } = await client
+      .from('report_source_filters')
+      .select('filter_key, column_name, operator, filter_type, is_active')
+      .eq('source_key', source)
+      .eq('is_active', true);
+    if (error || !data) return [];
+    return data as FilterDef[];
+  } catch {
+    return [];
+  }
+}
+
 export async function executeQuery(client: any, opts: RunOptions): Promise<RunResult> {
   const warnings: string[] = [];
   const source = opts.source;
@@ -383,19 +407,70 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
   const table = source === 'users' ? 'profiles' : source;
   const effectiveLimit = Math.min(opts.limit ?? HARD_LIMIT, HARD_LIMIT);
 
-  let q = client.from(table).select('*', { count: 'exact' }).limit(effectiveLimit);
-  const { from, to } = resolveRange(opts.filters || {});
-  if (from) q = q.gte('created_at', from);
-  if (to) q = q.lte('created_at', to);
+  // Build a per-source filter map from metadata, falling back to hardcoded map.
+  const metaDefs = await loadSourceFilterMeta(client, source);
+  const safeCols = (await loadSourceSafeColumns(client, source)) || [];
+  const metaMap: Record<string, FilterDef> = {};
+  for (const d of metaDefs) {
+    if (!d.filter_key) continue;
+    if (d.column_name && safeCols.length && !safeCols.includes(d.column_name)) {
+      warnings.push(`filter:${d.filter_key} column ${d.column_name} not in safe_columns`);
+      continue;
+    }
+    if (d.operator && !ALLOWED_OPERATORS.has(d.operator)) {
+      warnings.push(`filter:${d.filter_key} operator ${d.operator} rejected`);
+      continue;
+    }
+    metaMap[d.filter_key] = d;
+  }
+  const fallbackMap = FILTER_COLUMN_MAP[source] || {};
 
-  const colMap = FILTER_COLUMN_MAP[source] || {};
+  let q = client.from(table).select('*', { count: 'exact' }).limit(effectiveLimit);
+
+  // Resolve the date range. Prefer the metadata-defined date column when available.
+  const dateColumn = metaMap.dateFrom?.column_name || metaMap.dateTo?.column_name || 'created_at';
+  const { from, to } = resolveRange(opts.filters || {});
+  if (from) q = q.gte(dateColumn, from);
+  if (to) q = q.lte(dateColumn, to);
+
   for (const [filterKey, val] of Object.entries(opts.filters || {})) {
     if (val == null || val === '' || val === 'all') continue;
-    if (['dateFrom', 'dateTo', 'preset', 'slaStatus'].includes(filterKey)) continue;
-    const col = colMap[filterKey];
-    if (!col) { warnings.push(`filter:${filterKey} not supported for ${source}`); continue; }
+    if (DATE_KEYS.has(filterKey)) continue;
+    if (filterKey === 'slaStatus') continue; // post-filter / derived
+
+    const def = metaMap[filterKey];
+    let col: string | undefined;
+    let op = 'eq';
+    if (def && def.column_name) {
+      col = def.column_name;
+      op = def.operator || 'eq';
+    } else if (fallbackMap[filterKey]) {
+      col = fallbackMap[filterKey];
+      op = 'eq';
+    } else {
+      warnings.push(`filter:${filterKey} not supported for ${source}`);
+      continue;
+    }
+    if (!ALLOWED_OPERATORS.has(op)) {
+      warnings.push(`filter:${filterKey} operator ${op} rejected`);
+      continue;
+    }
     try {
-      q = Array.isArray(val) ? q.in(col, val) : q.eq(col, val);
+      if (Array.isArray(val)) {
+        q = q.in(col, val);
+      } else if (op === 'gte') {
+        q = q.gte(col, val);
+      } else if (op === 'lte') {
+        q = q.lte(col, val);
+      } else if (op === 'ilike') {
+        q = q.ilike(col, `%${val}%`);
+      } else if (op === 'contains') {
+        q = q.contains(col, val);
+      } else if (op === 'in') {
+        q = q.in(col, String(val).split(','));
+      } else {
+        q = q.eq(col, val);
+      }
     } catch (e: any) {
       warnings.push(`filter:${filterKey} failed: ${e?.message}`);
     }
@@ -419,6 +494,20 @@ export async function executeQuery(client: any, opts: RunOptions): Promise<RunRe
     summary,
     warnings,
   };
+}
+
+async function loadSourceSafeColumns(client: any, source: string): Promise<string[] | null> {
+  try {
+    const { data, error } = await client
+      .from('report_sources')
+      .select('safe_columns')
+      .eq('source_key', source)
+      .maybeSingle();
+    if (error || !data) return null;
+    return (data as any).safe_columns || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
