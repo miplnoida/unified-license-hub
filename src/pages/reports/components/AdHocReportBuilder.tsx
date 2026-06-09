@@ -47,6 +47,12 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const subSectorsQ = useSubSectors(cfg.filters.regulator || null);
   const servicesQ = useServices(cfg.filters.regulator || null);
 
+  // Metadata-driven option lists
+  const { data: sources = [] } = useReportSources();
+  const { data: statusOptionsRows = [] } = useReportStatusOptions(cfg.source);
+  const { data: presets = [] } = useReportOptions('date_preset');
+  const { data: sortDirs = [] } = useReportOptions('sort_direction');
+
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
 
@@ -144,8 +150,12 @@ export function AdHocReportBuilder({ onPreview }: Props) {
     }
   };
 
-  const columnOpts = COLUMN_OPTIONS_BY_SOURCE[cfg.source] || [];
-  const statusOpts = STATUS_OPTIONS_BY_SOURCE[cfg.source] || [];
+  // Prefer columns from source metadata (safe_columns); fallback to static map
+  const activeSource = sources.find((s) => s.sourceKey === cfg.source);
+  const columnOpts = activeSource?.safeColumns?.length
+    ? activeSource.safeColumns
+    : (COLUMN_OPTIONS_BY_SOURCE[cfg.source] || []);
+  const statusOpts = statusOptionsRows.map((s) => ({ value: s.value, label: s.label }));
 
   return (
     <div className="space-y-6">
