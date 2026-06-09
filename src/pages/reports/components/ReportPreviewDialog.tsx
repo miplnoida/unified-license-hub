@@ -81,14 +81,17 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
       <DialogContent className="max-w-6xl print:max-w-full print:shadow-none">
         <DialogHeader>
           <DialogTitle>{run.name}</DialogTitle>
-          <DialogDescription className="flex flex-wrap items-center gap-2 text-xs">
+          <DialogDescription className="sr-only">
+            {run.category} report generated {new Date(run.generatedAt).toLocaleString()} with {run.rowCount} rows.
+          </DialogDescription>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="secondary">{run.category}</Badge>
             {run.source && <Badge variant="outline">{run.source}</Badge>}
             <span>Generated: {new Date(run.generatedAt).toLocaleString()}</span>
             <span>·</span>
             <span>{run.rowCount} rows</span>
             {run.durationMs != null && <span>· {run.durationMs}ms</span>}
-          </DialogDescription>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 print:space-y-2" id="report-preview-printable">
