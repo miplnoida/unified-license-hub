@@ -10,6 +10,7 @@ import type { ReportRun, ReportSource } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useReportSources, useReportOptions } from '../hooks/useReportMetadata';
 
 interface Props {
   run: ReportRun | null;
@@ -19,20 +20,34 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
-function sourceRoute(source: ReportSource | undefined, id: unknown): string | null {
-  if (!id || typeof id !== 'string') return null;
-  switch (source) {
-    case 'applications': return `/applications/${id}`;
-    case 'licenses': return `/licenses/${id}`;
-    case 'complaints': return `/complaints`;
-    case 'compliance_returns': return `/returns-management/${id}`;
-    default: return null;
-  }
+/** Fallback route map used if the source has no `source_routes` configured. */
+const FALLBACK_ROUTES: Partial<Record<ReportSource, { detailPath: string; idColumn: string }>> = {
+  applications: { detailPath: '/applications/:id', idColumn: 'id' },
+  licenses: { detailPath: '/licenses/:id', idColumn: 'id' },
+  complaints: { detailPath: '/complaints', idColumn: 'id' },
+  compliance_returns: { detailPath: '/returns-management/:id', idColumn: 'id' },
+};
+
+function resolveRoute(
+  source: ReportSource | undefined,
+  row: Record<string, unknown>,
+  sourceRoutes: Record<string, unknown> | undefined,
+): string | null {
+  const cfg = (sourceRoutes && sourceRoutes.detailPath ? sourceRoutes : FALLBACK_ROUTES[source as ReportSource]) as
+    | { detailPath: string; idColumn: string } | undefined;
+  if (!cfg?.detailPath) return null;
+  const idVal = row[cfg.idColumn || 'id'];
+  if (idVal == null || idVal === '') return null;
+  return cfg.detailPath.replace(/:(\w+)/g, (_, k) => String(row[k] ?? idVal));
 }
 
 export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
   const { toast } = useToast();
   const [page, setPage] = useState(0);
+  const { data: sources = [] } = useReportSources();
+  const { data: exportFormats = [] } = useReportOptions('export_format');
+  const activeSource = sources.find((s) => s.sourceKey === run?.source);
+  const sourceRoutes = activeSource?.sourceRoutes as Record<string, unknown> | undefined;
   const rows = useMemo(() => (run ? safeRows(run.rows) : []), [run]);
   const headers = useMemo(() => {
     const set = new Set<string>();
@@ -118,10 +133,17 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
           )}
 
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Button size="sm" variant="outline" onClick={() => handleExport('csv')}><FileSpreadsheet className="h-3 w-3 mr-1" />CSV</Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('xlsx')}><FileDown className="h-3 w-3 mr-1" />XLSX</Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('json')}><FileJson className="h-3 w-3 mr-1" />JSON</Button>
-            <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print / PDF</Button>
+            {exportFormats.map((f) => {
+              if (f.value === 'pdf') {
+                return <Button key={f.value} size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3 w-3 mr-1" />Print / PDF</Button>;
+              }
+              const Icon = f.value === 'csv' ? FileSpreadsheet : f.value === 'json' ? FileJson : FileDown;
+              return (
+                <Button key={f.value} size="sm" variant="outline" onClick={() => handleExport(f.value as any)}>
+                  <Icon className="h-3 w-3 mr-1" />{f.label}
+                </Button>
+              );
+            })}
           </div>
 
           <div className="border rounded-md max-h-[50vh] overflow-auto print:max-h-none print:overflow-visible">
@@ -137,7 +159,7 @@ export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((r, i) => {
-                    const route = sourceRoute(run.source, r.id);
+                    const route = resolveRoute(run.source, r as any, sourceRoutes);
                     return (
                       <TableRow key={i}>
                         {headers.map((h) => (

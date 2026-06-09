@@ -17,33 +17,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAllRegulators } from '@/hooks/useRegulators';
 import { useSectors, useSubSectors, useServices } from '@/hooks/useMasterConfig';
-
-const SOURCES: { value: ReportSource; label: string }[] = [
-  { value: 'applications', label: 'Applications' },
-  { value: 'licenses', label: 'Licenses' },
-  { value: 'payments', label: 'Payments' },
-  { value: 'compliance_returns', label: 'Compliance Returns' },
-  { value: 'complaints', label: 'Complaints' },
-  { value: 'users', label: 'Users' },
-  { value: 'audit_logs', label: 'Audit Logs' },
-];
-
-const PRESETS = [
-  { value: 'today', label: 'Today' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'this_month', label: 'This Month' },
-  { value: 'this_quarter', label: 'This Quarter' },
-  { value: 'this_fy', label: 'This Financial Year' },
-  { value: 'custom', label: 'Custom' },
-];
-
-const STATUS_OPTIONS_BY_SOURCE: Partial<Record<ReportSource, string[]>> = {
-  applications: ['draft', 'submitted', 'in_review', 'approved', 'rejected', 'pending'],
-  licenses: ['active', 'expired', 'suspended', 'revoked', 'pending'],
-  payments: ['pending', 'completed', 'paid', 'failed', 'refunded'],
-  compliance_returns: ['pending', 'submitted', 'validated', 'rejected', 'tbr'],
-  complaints: ['open', 'in_review', 'escalated', 'resolved', 'closed', 'dismissed'],
-};
+import {
+  useReportSources, useReportStatusOptions, useReportOptions,
+} from '../hooks/useReportMetadata';
 
 const DEFAULT: BuilderConfig = {
   name: '',
@@ -70,6 +46,12 @@ export function AdHocReportBuilder({ onPreview }: Props) {
   const sectorsQ = useSectors(cfg.filters.regulator || null);
   const subSectorsQ = useSubSectors(cfg.filters.regulator || null);
   const servicesQ = useServices(cfg.filters.regulator || null);
+
+  // Metadata-driven option lists
+  const { data: sources = [] } = useReportSources();
+  const { data: statusOptionsRows = [] } = useReportStatusOptions(cfg.source);
+  const { data: presets = [] } = useReportOptions('date_preset');
+  const { data: sortDirs = [] } = useReportOptions('sort_direction');
 
   const refreshTemplates = () => listTemplates().then(setTemplates).catch(() => setTemplates([]));
   useEffect(() => { refreshTemplates(); }, []);
@@ -168,8 +150,12 @@ export function AdHocReportBuilder({ onPreview }: Props) {
     }
   };
 
-  const columnOpts = COLUMN_OPTIONS_BY_SOURCE[cfg.source] || [];
-  const statusOpts = STATUS_OPTIONS_BY_SOURCE[cfg.source] || [];
+  // Prefer columns from source metadata (safe_columns); fallback to static map
+  const activeSource = sources.find((s) => s.sourceKey === cfg.source);
+  const columnOpts = activeSource?.safeColumns?.length
+    ? activeSource.safeColumns
+    : (COLUMN_OPTIONS_BY_SOURCE[cfg.source] || []);
+  const statusOpts = statusOptionsRows.map((s) => ({ value: s.value, label: s.label }));
 
   return (
     <div className="space-y-6">
@@ -189,7 +175,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.source} onValueChange={(v) => update({ source: v as ReportSource, columns: [] })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {SOURCES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                  {sources.filter((s) => s.supportsAdHoc).map((s) => <SelectItem key={s.sourceKey} value={s.sourceKey}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -206,7 +192,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.filters.preset || 'custom'} onValueChange={(v) => updateFilter({ preset: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PRESETS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                  {presets.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -225,7 +211,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
                   <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Any</SelectItem>
-                    {statusOpts.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    {statusOpts.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ) : (
@@ -352,8 +338,7 @@ export function AdHocReportBuilder({ onPreview }: Props) {
               <Select value={cfg.sortDir || 'asc'} onValueChange={(v) => update({ sortDir: v as SortDirection })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="asc">Ascending</SelectItem>
-                  <SelectItem value="desc">Descending</SelectItem>
+                  {sortDirs.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -19,6 +19,7 @@ import type { ExportFormat, ScheduleFrequency } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { runScheduleNow } from '../services/reportService';
 import type { ReportDefinition } from '../types';
+import { useReportOptions, useReportDefinitions } from '../hooks/useReportMetadata';
 
 interface Props {
   scheduleDialogOpen: boolean;
@@ -31,6 +32,9 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
   const { toast } = useToast();
   const { data, isLoading, create, update, remove, invalidate } = useReportSchedules();
   const { data: reports } = useReports();
+  const { data: definitions = [] } = useReportDefinitions();
+  const { data: frequencies = [] } = useReportOptions('schedule_frequency');
+  const { data: exportFormats = [] } = useReportOptions('export_format');
   const [search, setSearch] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
@@ -59,15 +63,20 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
     if (!recipients.length) return toast({ title: 'Add at least one recipient', variant: 'destructive' });
 
     let payload: Parameters<typeof create.mutate>[0];
-    if (form.reportId.startsWith('slug:') && prefillDefinition) {
+    if (form.reportId.startsWith('slug:')) {
+      const slug = form.reportId.slice(5);
+      const def = (prefillDefinition && prefillDefinition.id === slug)
+        ? prefillDefinition
+        : definitions.find((d) => d.id === slug);
+      if (!def) return toast({ title: 'Report not found', variant: 'destructive' });
       payload = {
         reportId: null,
-        reportSlug: prefillDefinition.id,
-        reportName: prefillDefinition.name,
-        source: prefillDefinition.source,
+        reportSlug: def.id,
+        reportName: def.name,
+        source: def.source,
         filters: {},
-        selectedColumns: prefillDefinition.defaultColumns,
-        groupBy: prefillDefinition.defaultGroupBy,
+        selectedColumns: def.defaultColumns,
+        groupBy: def.defaultGroupBy,
         frequency: form.frequency,
         recipients,
         exportFormat: form.exportFormat,
@@ -179,10 +188,12 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
                 <SelectTrigger><SelectValue placeholder="Select a report..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Select a report...</SelectItem>
-                  {prefillDefinition && (
-                    <SelectItem value={`slug:${prefillDefinition.id}`}>
-                      {prefillDefinition.name} (predefined)
-                    </SelectItem>
+                  {definitions.length > 0 && (
+                    <>
+                      {definitions.map((d) => (
+                        <SelectItem key={`slug-${d.id}`} value={`slug:${d.id}`}>{d.name} (predefined)</SelectItem>
+                      ))}
+                    </>
                   )}
                   {(reports || []).filter((r) => r.status === 'ready').map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
@@ -195,10 +206,7 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
               <Select value={form.frequency} onValueChange={(v) => setForm((f) => ({ ...f, frequency: v as ScheduleFrequency }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  {frequencies.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -211,10 +219,7 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
               <Select value={form.exportFormat} onValueChange={(v) => setForm((f) => ({ ...f, exportFormat: v as ExportFormat }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
-                  <SelectItem value="csv">CSV</SelectItem>
-                  <SelectItem value="json">JSON</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
+                  {exportFormats.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

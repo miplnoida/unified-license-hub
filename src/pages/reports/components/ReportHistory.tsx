@@ -15,12 +15,15 @@ import type { ReportRun } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename } from '../services/exportService';
 import { fetchRunRows, generateReport, logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useReportOptions } from '../hooks/useReportMetadata';
 
 interface Props { onPreview: (run: ReportRun) => void; }
 
 export function ReportHistory({ onPreview }: Props) {
   const { toast } = useToast();
   const { data, isLoading, remove, invalidate } = useReports();
+  const { data: statusOpts = [] } = useReportOptions('report_run_status');
+  const { data: exportOpts = [] } = useReportOptions('export_format');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [category, setCategory] = useState('all');
@@ -28,6 +31,12 @@ export function ReportHistory({ onPreview }: Props) {
   const [rerunId, setRerunId] = useState<string | null>(null);
 
   const categories = useMemo(() => Array.from(new Set((data || []).map((r) => r.category))), [data]);
+
+  // History data exports (UI): CSV/XLSX/JSON only; PDF goes via print dialog.
+  const downloadableFormats = useMemo(
+    () => exportOpts.filter((o) => ['csv', 'xlsx', 'json'].includes(o.value)),
+    [exportOpts],
+  );
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -96,10 +105,7 @@ export function ReportHistory({ onPreview }: Props) {
           <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="ready">Ready</SelectItem>
-            <SelectItem value="generating">Generating</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
+            {statusOpts.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={category} onValueChange={setCategory}>
@@ -138,9 +144,14 @@ export function ReportHistory({ onPreview }: Props) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant={r.status === 'ready' ? 'default' : r.status === 'failed' ? 'destructive' : 'secondary'} className="capitalize">{r.status}</Badge>
                     <Button size="sm" variant="outline" onClick={() => handleView(r)}><Eye className="h-3 w-3 mr-1" />View</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleExport(r, 'csv')}><FileSpreadsheet className="h-3 w-3 mr-1" />CSV</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleExport(r, 'xlsx')}><FileDown className="h-3 w-3 mr-1" />XLSX</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleExport(r, 'json')}><FileJson className="h-3 w-3 mr-1" />JSON</Button>
+                    {downloadableFormats.map((f) => (
+                      <Button key={f.value} size="sm" variant="outline" onClick={() => handleExport(r, f.value as any)}>
+                        {f.value === 'csv' && <FileSpreadsheet className="h-3 w-3 mr-1" />}
+                        {f.value === 'xlsx' && <FileDown className="h-3 w-3 mr-1" />}
+                        {f.value === 'json' && <FileJson className="h-3 w-3 mr-1" />}
+                        {f.value.toUpperCase()}
+                      </Button>
+                    ))}
                     <Button size="sm" variant="outline" disabled={rerunId === r.id} onClick={() => handleRerun(r)}>
                       <RefreshCw className={`h-3 w-3 mr-1 ${rerunId === r.id ? 'animate-spin' : ''}`} />Re-run
                     </Button>
