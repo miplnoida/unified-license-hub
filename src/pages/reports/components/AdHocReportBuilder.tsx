@@ -30,6 +30,39 @@ const DEFAULT: BuilderConfig = {
   sortDir: 'asc',
 };
 
+function formatShortDate(iso?: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function buildDefaultReportName(config: BuilderConfig, sourceLabel?: string): string {
+  const source = sourceLabel || config.source;
+  const preset = config.filters.preset;
+  let suffix = '';
+  if (preset && preset !== 'custom') {
+    const map: Record<string, string> = {
+      today: 'Today',
+      this_week: 'This Week',
+      this_month: 'This Month',
+      this_quarter: 'This Quarter',
+      this_fy: 'This Financial Year',
+    };
+    suffix = map[preset] || preset;
+  } else if (config.filters.dateFrom && config.filters.dateTo) {
+    const from = formatShortDate(config.filters.dateFrom);
+    const to = formatShortDate(config.filters.dateTo);
+    suffix = from === to ? from : `${from} - ${to}`;
+  } else if (config.filters.dateFrom) {
+    suffix = formatShortDate(config.filters.dateFrom);
+  } else if (config.filters.dateTo) {
+    suffix = formatShortDate(config.filters.dateTo);
+  } else {
+    suffix = 'Custom Range';
+  }
+  return `${source} Report - ${suffix}`;
+}
+
 interface Props {
   onPreview: (run: ReportRun) => void;
 }
