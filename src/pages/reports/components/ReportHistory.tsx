@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -12,7 +13,7 @@ import { Eye, Trash2, FileBarChart, RefreshCw, Search, FileSpreadsheet, FileJson
 import { useReports } from '../hooks/useReports';
 import type { ReportRun } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename } from '../services/exportService';
-import { generateReport, logExport } from '../services/reportService';
+import { fetchRunRows, generateReport, logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
 
 interface Props { onPreview: (run: ReportRun) => void; }
@@ -21,14 +22,35 @@ export function ReportHistory({ onPreview }: Props) {
   const { toast } = useToast();
   const { data, isLoading, remove, invalidate } = useReports();
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
+  const [category, setCategory] = useState('all');
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [rerunId, setRerunId] = useState<string | null>(null);
 
+  const categories = useMemo(() => Array.from(new Set((data || []).map((r) => r.category))), [data]);
+
   const filtered = useMemo(() => {
     if (!data) return [];
-    const q = search.toLowerCase();
-    return q ? data.filter((r) => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)) : data;
-  }, [data, search]);
+    return data.filter((r) => {
+      if (status !== 'all' && r.status !== status) return false;
+      if (category !== 'all' && r.category !== category) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [data, search, status, category]);
+
+  const loadFullRun = async (run: ReportRun): Promise<ReportRun> => {
+    const rows = run.rows && run.rows.length >= run.rowCount ? run.rows : await fetchRunRows(run.id);
+    return { ...run, rows: rows.length ? rows : run.rows };
+  };
+
+  const handleView = async (run: ReportRun) => {
+    const full = await loadFullRun(run);
+    onPreview(full);
+  };
 
   const handleRerun = async (run: ReportRun) => {
     if (!run.source) {
@@ -39,6 +61,8 @@ export function ReportHistory({ onPreview }: Props) {
     try {
       const next = await generateReport({
         name: run.name, category: run.category, source: run.source, filters: run.filters,
+        reportSlug: run.slug, selectedColumns: run.selectedColumns, groupBy: run.groupBy,
+        sortBy: run.sortBy, sortDir: run.sortDir,
       });
       toast({ title: 'Re-run complete', description: `${next.rowCount} rows.` });
       invalidate();
@@ -48,11 +72,12 @@ export function ReportHistory({ onPreview }: Props) {
     } finally { setRerunId(null); }
   };
 
-  const handleExport = (run: ReportRun, fmt: 'csv' | 'xlsx' | 'json') => {
+  const handleExport = async (run: ReportRun, fmt: 'csv' | 'xlsx' | 'json') => {
+    const full = await loadFullRun(run);
     const fname = sanitizeFilename(run.name);
-    if (fmt === 'csv') exportToCsv(run.rows, fname);
-    else if (fmt === 'xlsx') exportToXlsx(run.rows, fname);
-    else exportToJson(run.rows, fname);
+    if (fmt === 'csv') exportToCsv(full.rows, fname);
+    else if (fmt === 'xlsx') exportToXlsx(full.rows, fname);
+    else exportToJson(full.rows, fname);
     logExport(run.id, fmt, run.rowCount);
   };
 
@@ -62,9 +87,28 @@ export function ReportHistory({ onPreview }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search history..." className="pl-9" />
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search history..." className="pl-9" />
+        </div>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="ready">Ready</SelectItem>
+            <SelectItem value="generating">Generating</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="md:w-56"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {filtered.length === 0 ? (
@@ -86,12 +130,14 @@ export function ReportHistory({ onPreview }: Props) {
                       <p className="font-medium text-foreground truncate">{r.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {r.category} · {r.rowCount} rows · {new Date(r.generatedAt).toLocaleString()}
+                        {r.durationMs != null && ` · ${r.durationMs}ms`}
                       </p>
+                      {r.errorMessage && <p className="text-xs text-destructive truncate">{r.errorMessage}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant={r.status === 'ready' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge>
-                    <Button size="sm" variant="outline" onClick={() => onPreview(r)}><Eye className="h-3 w-3 mr-1" />View</Button>
+                    <Badge variant={r.status === 'ready' ? 'default' : r.status === 'failed' ? 'destructive' : 'secondary'} className="capitalize">{r.status}</Badge>
+                    <Button size="sm" variant="outline" onClick={() => handleView(r)}><Eye className="h-3 w-3 mr-1" />View</Button>
                     <Button size="sm" variant="outline" onClick={() => handleExport(r, 'csv')}><FileSpreadsheet className="h-3 w-3 mr-1" />CSV</Button>
                     <Button size="sm" variant="outline" onClick={() => handleExport(r, 'xlsx')}><FileDown className="h-3 w-3 mr-1" />XLSX</Button>
                     <Button size="sm" variant="outline" onClick={() => handleExport(r, 'json')}><FileJson className="h-3 w-3 mr-1" />JSON</Button>
