@@ -10,7 +10,8 @@ import type { ReportRun, ReportSource } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
-import { useReportSources, useReportOptions } from '../hooks/useReportMetadata';
+import { useReportSources, useReportOptions, useReportSourceColumns } from '../hooks/useReportMetadata';
+import { buildLabelMap, labelFor } from '../lib/columnLabels';
 
 interface Props {
   run: ReportRun | null;
