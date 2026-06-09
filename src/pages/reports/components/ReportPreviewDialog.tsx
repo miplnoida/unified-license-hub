@@ -10,6 +10,7 @@ import type { ReportRun, ReportSource } from '../types';
 import { exportToCsv, exportToJson, exportToXlsx, sanitizeFilename, safeRows } from '../services/exportService';
 import { logExport } from '../services/reportService';
 import { useToast } from '@/hooks/use-toast';
+import { useReportSources, useReportOptions } from '../hooks/useReportMetadata';
 
 interface Props {
   run: ReportRun | null;
@@ -19,15 +20,25 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
-function sourceRoute(source: ReportSource | undefined, id: unknown): string | null {
-  if (!id || typeof id !== 'string') return null;
-  switch (source) {
-    case 'applications': return `/applications/${id}`;
-    case 'licenses': return `/licenses/${id}`;
-    case 'complaints': return `/complaints`;
-    case 'compliance_returns': return `/returns-management/${id}`;
-    default: return null;
-  }
+/** Fallback route map used if the source has no `source_routes` configured. */
+const FALLBACK_ROUTES: Partial<Record<ReportSource, { detailPath: string; idColumn: string }>> = {
+  applications: { detailPath: '/applications/:id', idColumn: 'id' },
+  licenses: { detailPath: '/licenses/:id', idColumn: 'id' },
+  complaints: { detailPath: '/complaints', idColumn: 'id' },
+  compliance_returns: { detailPath: '/returns-management/:id', idColumn: 'id' },
+};
+
+function resolveRoute(
+  source: ReportSource | undefined,
+  row: Record<string, unknown>,
+  sourceRoutes: Record<string, unknown> | undefined,
+): string | null {
+  const cfg = (sourceRoutes && sourceRoutes.detailPath ? sourceRoutes : FALLBACK_ROUTES[source as ReportSource]) as
+    | { detailPath: string; idColumn: string } | undefined;
+  if (!cfg?.detailPath) return null;
+  const idVal = row[cfg.idColumn || 'id'];
+  if (idVal == null || idVal === '') return null;
+  return cfg.detailPath.replace(/:(\w+)/g, (_, k) => String(row[k] ?? idVal));
 }
 
 export function ReportPreviewDialog({ run, open, onOpenChange }: Props) {
