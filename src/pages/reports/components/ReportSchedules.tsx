@@ -175,9 +175,14 @@ export function ReportSchedules({ scheduleDialogOpen, setScheduleDialogOpen, pre
             <div className="space-y-2">
               <Label>Report</Label>
               <Select value={form.reportId || 'none'} onValueChange={(v) => setForm((f) => ({ ...f, reportId: v === 'none' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder="Select a saved report..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a report..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Select a saved report...</SelectItem>
+                  <SelectItem value="none">Select a report...</SelectItem>
+                  {prefillDefinition && (
+                    <SelectItem value={`slug:${prefillDefinition.id}`}>
+                      {prefillDefinition.name} (predefined)
+                    </SelectItem>
+                  )}
                   {(reports || []).filter((r) => r.status === 'ready').map((r) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                   ))}
