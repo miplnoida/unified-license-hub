@@ -50,6 +50,15 @@ export function useReportFilters(sourceKey: string | null | undefined) {
   });
 }
 
+export function useReportSourceColumns(sourceKey: string | null | undefined) {
+  return useQuery({
+    queryKey: ['reports', 'metadata', 'source-columns', sourceKey],
+    queryFn: () => getReportSourceColumns(sourceKey!),
+    staleTime: STALE,
+    enabled: !!sourceKey,
+  });
+}
+
 export function useReportStatusOptions(sourceKey: string | null | undefined, filterKey = 'status') {
   return useQuery({
     queryKey: ['reports', 'metadata', 'status', sourceKey, filterKey],
