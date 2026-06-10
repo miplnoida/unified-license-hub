@@ -26,6 +26,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
+import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
+import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 
 function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
