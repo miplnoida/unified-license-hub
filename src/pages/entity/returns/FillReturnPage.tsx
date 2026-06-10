@@ -371,13 +371,32 @@ export default function FillReturnPage() {
         }
       }
 
+      // Enriched activity rows for submit / resubmit.
+      const isResub = previousStatus === 'TBR';
       insertAudit.mutate({
         return_id: id,
-        action: previousStatus === 'TBR' ? 'resubmitted' : 'submitted',
+        action: isResub ? 'return_resubmitted' : 'return_submitted',
         previous_status: returnData?.workflow_status,
         new_status: 'SUB',
         performed_by: user?.id,
+        event_key: isResub ? 'return.resubmitted' : 'return.submitted',
+        source: 'client:FillReturnPage',
+        metadata: { submitted_at: now.toISOString() },
       });
+      // Status transition row (skip for resubmission path handled by RPC,
+      // which already writes status_changed).
+      if (!isResub) {
+        insertAudit.mutate({
+          return_id: id,
+          action: 'status_changed',
+          previous_status: returnData?.workflow_status,
+          new_status: 'SUB',
+          performed_by: user?.id,
+          event_key: 'return.status_changed',
+          source: 'client:FillReturnPage',
+          metadata: { from: returnData?.workflow_status, to: 'SUB' },
+        });
+      }
       qc.invalidateQueries({ queryKey: ['returns_filed'] });
       qc.invalidateQueries({ queryKey: ['returns_filed', id] });
       qc.invalidateQueries({ queryKey: ['my_returns'] });
