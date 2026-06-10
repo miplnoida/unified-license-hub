@@ -338,6 +338,7 @@ export default function FillReturnPage() {
       // workflow instance (if any) is reopened and the active edit-request
       // row is closed atomically. Falls back to a direct update for legacy
       // returns with no workflow configured.
+      let resubmissionHandledByEdge = false;
       if (previousStatus === 'TBR') {
         const { data: resub, error: resubErr } = await supabase.functions.invoke('resubmit-return', {
           body: { return_id: id, comments: 'Licensee resubmission' },
@@ -355,6 +356,8 @@ export default function FillReturnPage() {
               .update({ status: 'resolved', resolved_at: now.toISOString() })
               .eq('id', activeRequest.id);
           }
+        } else {
+          resubmissionHandledByEdge = true;
         }
       } else {
         try {
@@ -404,38 +407,51 @@ export default function FillReturnPage() {
           resolvedWorkflowId = (r2 as any)?.workflow_id || resolvedWorkflowId;
         } catch { /* ignore */ }
       }
-      // Fire-and-forget notification dispatch
-      supabase.functions.invoke('dispatch-notification-event', {
-        body: {
-          event_key: previousStatus === 'TBR' ? 'return.resubmitted' : 'return.submitted',
-          entity_type: 'return',
-          entity_id: id,
-          payload: {
-            return_id: id,
-            unique_id: returnData?.unique_id,
-            return_unique_id: returnData?.unique_id,
-            return_name: (returnData as any)?.return_configs?.name,
-            return_config_name: (returnData as any)?.return_configs?.name,
-            return_period: returnData?.return_period,
-            return_year: returnData?.return_year,
-            licensee_id: (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id,
-            sector_id: (returnData as any)?.sector_id,
-            submitted_by: user?.id,
-            submitted_by_email: user?.email,
-            submitted_by_name: user?.email || 'Licensee',
-            submitted_at: now.toISOString(),
-            resubmitted_at: previousStatus === 'TBR' ? now.toISOString() : undefined,
-            submit_date: now.toISOString(),
-            actor_id: user?.id,
-            actor_name: user?.email || 'Licensee',
-            previous_status: previousStatus,
-            new_status: 'SUB',
-            workflow_id: resolvedWorkflowId,
-            current_step_id: resolvedStepId,
-            step_id: resolvedStepId,
+      if (previousStatus !== 'TBR' || !resubmissionHandledByEdge) {
+        const basePayload = {
+          return_id: id,
+          unique_id: returnData?.unique_id,
+          return_unique_id: returnData?.unique_id,
+          return_name: (returnData as any)?.return_configs?.name,
+          return_config_name: (returnData as any)?.return_configs?.name,
+          return_period: returnData?.return_period,
+          return_year: returnData?.return_year,
+          licensee_id: (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id,
+          entity_id: (returnData as any)?.entity_id,
+          sector_id: (returnData as any)?.sector_id,
+          submitted_by: user?.id,
+          submitted_by_email: user?.email,
+          submitted_by_name: user?.email || 'Licensee',
+          submitted_at: now.toISOString(),
+          submit_date: now.toISOString(),
+          actor_id: user?.id,
+          actor_name: user?.email || 'Licensee',
+          actor_email: user?.email,
+          previous_status: previousStatus,
+          new_status: 'SUB',
+          workflow_id: resolvedWorkflowId,
+          current_step_id: resolvedStepId,
+          step_id: resolvedStepId,
+        };
+        const reviewerEventKey = previousStatus === 'TBR' ? 'return.resubmitted' : 'return.submitted';
+        const confirmationEventKey = previousStatus === 'TBR' ? 'return.resubmitted.confirmation' : 'return.submitted.confirmation';
+        supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: reviewerEventKey,
+            entity_type: 'return',
+            entity_id: id,
+            payload: { ...basePayload, cta_label: 'Review Return' },
           },
-        },
-      }).catch(() => {});
+        }).catch(() => {});
+        supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: confirmationEventKey,
+            entity_type: 'return',
+            entity_id: id,
+            payload: { ...basePayload, cta_label: 'View Return' },
+          },
+        }).catch(() => {});
+      }
       toast.success('Return submitted successfully!');
       navigate(`/entity/returns/${id}/view`);
     } finally {

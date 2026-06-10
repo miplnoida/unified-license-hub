@@ -53,8 +53,33 @@ Deno.serve(async (req) => {
           entity_type: "return",
           entity_id: return_id,
           payload: {
-            return_id, actor_id: caller.id, comments,
-            previous_status: "TBR", new_status: "SUB",
+            return_id,
+            actor_id: caller.id,
+            comments,
+            action_comments: comments,
+            previous_status: "TBR",
+            new_status: "SUB",
+            resubmitted_at: new Date().toISOString(),
+            actor_name: caller.email,
+            actor_email: caller.email,
+          },
+        },
+      });
+      await admin.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "return.resubmitted.confirmation",
+          entity_type: "return",
+          entity_id: return_id,
+          payload: {
+            return_id,
+            actor_id: caller.id,
+            comments,
+            previous_status: "TBR",
+            new_status: "SUB",
+            resubmitted_at: new Date().toISOString(),
+            actor_name: caller.email,
+            actor_email: caller.email,
+            cta_label: "View Return",
           },
         },
       });

@@ -271,7 +271,7 @@ export default function ReturnDetail() {
         await (supabase as any).from('return_comments').insert({
           return_id: id,
           comment_text: comments_.trim(),
-          created_by: user?.id,
+          commented_by: user?.id,
         });
       }
       toast.success('Return approved');
@@ -283,6 +283,24 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
+      if (comments_.trim()) {
+        supabase.functions.invoke('dispatch-notification-event', {
+          body: {
+            event_key: 'return.comment_added',
+            entity_type: 'return',
+            entity_id: id,
+            payload: {
+              return_id: id,
+              actor_id: user?.id,
+              actor_name: user?.email,
+              actor_email: user?.email,
+              action_comments: comments_.trim(),
+              comments: comments_.trim(),
+              actor_excluded: true,
+            },
+          },
+        }).catch(() => {});
+      }
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
           event_key: 'return.approved',
@@ -293,11 +311,17 @@ export default function ReturnDetail() {
             unique_id: returnData?.unique_id,
             actor_id: user?.id,
             actor_name: user?.email,
+            actor_email: user?.email,
+            reviewer_name: user?.email,
+            reviewer_email: user?.email,
             comments: comments_,
+            action_comments: comments_,
             previous_status: status,
             new_status: 'VAL',
             validated_by: user?.id,
             validated_at: new Date().toISOString(),
+            approved_at: new Date().toISOString(),
+            cta_label: 'View Approved Return',
           },
         },
       }).catch(() => {});
@@ -335,6 +359,11 @@ export default function ReturnDetail() {
         .update({ workflow_status: 'TBR', updated_by: user?.id })
         .eq('id', id);
       if (uErr) throw uErr;
+      await (supabase as any).from('return_comments').insert({
+        return_id: id,
+        comment_text: comments_.trim(),
+        commented_by: user?.id,
+      });
       await logAudit('rejected', status || '', 'TBR', comments_.trim());
       toast.success('Edit request sent to licensee');
       setComments('');
@@ -347,6 +376,22 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
+          event_key: 'return.comment_added',
+          entity_type: 'return',
+          entity_id: id,
+          payload: {
+            return_id: id,
+            actor_id: user?.id,
+            actor_name: user?.email,
+            actor_email: user?.email,
+            action_comments: comments_.trim(),
+            comments: comments_.trim(),
+            actor_excluded: true,
+          },
+        },
+      }).catch(() => {});
+      supabase.functions.invoke('dispatch-notification-event', {
+        body: {
           event_key: 'return.edit_requested',
           entity_type: 'return',
           entity_id: id,
@@ -355,10 +400,16 @@ export default function ReturnDetail() {
             unique_id: returnData?.unique_id,
             actor_id: user?.id,
             actor_name: user?.email,
+            actor_email: user?.email,
+            reviewer_name: user?.email,
+            reviewer_email: user?.email,
             comments: comments_.trim(),
+            action_comments: comments_.trim(),
             reason: comments_.trim(),
+            edit_reason: comments_.trim(),
             previous_status: status,
             new_status: 'TBR',
+            cta_label: 'Edit Return',
           },
         },
       }).catch(() => {});

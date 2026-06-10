@@ -19,6 +19,8 @@
 // - Never throws to caller; always returns 200 with a JSON summary.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
+import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +29,7 @@ const corsHeaders = {
 
 type Rule = { type: string; [k: string]: any };
 
-function render(tpl: string | null | undefined, vars: Record<string, any>): string {
+export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
   return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const v = vars[k];
@@ -187,6 +189,18 @@ async function licenseeSecondaryUsers(admin: SupabaseClient, licenseeId: string 
   return (data || []).map((r: any) => r.id);
 }
 
+async function entityUsers(admin: SupabaseClient, entityId: string | null | undefined): Promise<string[]> {
+  if (!entityId) return [];
+  const [{ data: directProfiles }, { data: mappedUsers }] = await Promise.all([
+    admin.from("profiles").select("id").eq("licensee_id", entityId),
+    admin.from("entity_user_access").select("user_id").eq("entity_id", entityId).eq("is_active", true),
+  ]);
+  const out = new Set<string>();
+  (directProfiles || []).forEach((row: any) => row.id && out.add(row.id));
+  (mappedUsers || []).forEach((row: any) => row.user_id && out.add(row.user_id));
+  return Array.from(out);
+}
+
 async function workflowStepApprovers(admin: SupabaseClient, stepId: string | null | undefined): Promise<string[]> {
   if (!stepId) return [];
   const { data: step } = await admin
@@ -227,6 +241,7 @@ async function resolveRecipients(
   ctx: { entity_type?: string; entity_id?: string; payload: Record<string, any>; app?: any },
 ): Promise<string[]> {
   const out = new Set<string>();
+  const excludedEmails = new Set<string>();
   for (const rule of rules) {
     try {
       switch (rule.type) {
@@ -286,6 +301,54 @@ async function resolveRecipients(
           if (sub) out.add(String(sub));
           break;
         }
+        case "return_entity_users": {
+          const entityId = ctx.payload?.entity_id || (ctx as any).ret?.entity_id;
+          (await entityUsers(admin, entityId)).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_workflow_current_step_approvers": {
+          const sid = ctx.payload?.step_id || ctx.payload?.current_step_id || (ctx as any).ret?.current_step_id;
+          const approvers = await workflowStepApprovers(admin, sid);
+          if (approvers.length === 0) {
+            (await returnSectorReviewers(admin, {
+              sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+              subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+              returnTypeId: ctx.payload?.return_type_id,
+            })).forEach((u) => out.add(u));
+          } else {
+            approvers.forEach((u) => out.add(u));
+          }
+          break;
+        }
+        case "return_workflow_next_step_approvers": {
+          const sid = ctx.payload?.new_step_id || ctx.payload?.next_step_id;
+          const approvers = await workflowStepApprovers(admin, sid);
+          if (approvers.length === 0) {
+            (await returnSectorReviewers(admin, {
+              sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+              subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+              returnTypeId: ctx.payload?.return_type_id,
+            })).forEach((u) => out.add(u));
+          } else {
+            approvers.forEach((u) => out.add(u));
+          }
+          break;
+        }
+        case "return_regulator_admins":
+        case "return_admins": {
+          const admins = await recipientsForRole(admin, "admin");
+          const supers = await recipientsForRole(admin, "super_admin");
+          [...admins, ...supers].forEach((u) => u && out.add(u));
+          break;
+        }
+        case "actor_excluded": {
+          const actorId = String(ctx.payload?.actor_id || "");
+          if (actorId) {
+            const actorEmail = await resolveRecipientEmail(admin, actorId);
+            if (actorEmail) excludedEmails.add(actorEmail);
+          }
+          break;
+        }
         case "workflow_step_approvers": {
           const sid = ctx.payload?.step_id || ctx.app?.current_step_id || (ctx as any).ret?.current_step_id;
           (await workflowStepApprovers(admin, sid)).forEach((u) => out.add(u));
@@ -303,7 +366,16 @@ async function resolveRecipients(
       console.error("recipient rule failure", rule, e?.message || e);
     }
   }
-  return Array.from(out);
+  const filtered: string[] = [];
+  const seenEmails = new Set<string>();
+  for (const userId of Array.from(out)) {
+    const email = await resolveRecipientEmail(admin, userId);
+    if (email && excludedEmails.has(email)) continue;
+    if (email && seenEmails.has(email)) continue;
+    if (email) seenEmails.add(email);
+    filtered.push(userId);
+  }
+  return filtered;
 }
 
 Deno.serve(async (req) => {
@@ -322,7 +394,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const vars: Record<string, any> = { ...(payload || {}) };
+    let vars: Record<string, any> = { ...(payload || {}) };
     // Always inject app_url + app_name into template vars for action links
     vars.app_url = vars.app_url || Deno.env.get("APP_BASE_URL") || "";
     vars.app_name = vars.app_name || Deno.env.get("APP_NAME") || "Regulator Portal";
@@ -354,22 +426,12 @@ Deno.serve(async (req) => {
     }
     if (entity_type === "return" && entity_id) {
       ret = await loadReturn(admin, entity_id);
-      if (ret) {
-        vars.return_id = vars.return_id || ret.id;
-        vars.unique_id = vars.unique_id || ret.unique_id;
-        vars.return_config_name = vars.return_config_name || ret.return_config_name;
-        vars.return_period = vars.return_period || ret.return_period;
-        vars.return_year = vars.return_year || ret.return_year;
-        vars.due_date = vars.due_date || ret.due_date;
-        vars.sector_id = vars.sector_id || ret.sector_id;
-        vars.subsector_id = vars.subsector_id || ret.subsector_id;
-        vars.licensee_id = vars.licensee_id || ret.on_behalf_of_licensee_id || ret.entity_id;
-        vars.workflow_status = vars.workflow_status || ret.workflow_status;
-        if (!vars.cta_url && vars.app_url) {
-          vars.cta_url = `${vars.app_url}/admin/returns/queue/${ret.id}`;
-          vars.cta_label = vars.cta_label || "View Return";
-        }
-      }
+      vars = await buildReturnNotificationPayload(admin, {
+        returnId: entity_id,
+        eventKey: String(event_key),
+        payload: vars,
+        actorId: typeof vars.actor_id === "string" ? vars.actor_id : null,
+      });
     }
 
     const rules: Rule[] = Array.isArray(cfg.recipient_rules) ? cfg.recipient_rules : [];
@@ -381,6 +443,7 @@ Deno.serve(async (req) => {
       ret,
     } as any);
     summary.recipients = recipients.length;
+    console.log("dispatch-notification-event", { event_key, entity_type, entity_id, recipient_count: recipients.length });
 
     const channels: string[] = Array.isArray(cfg.channels) && cfg.channels.length ? cfg.channels : ["in_app"];
     const dedupeWindow = Math.max(0, Number(cfg.dedupe_window_seconds) || 60);
@@ -388,52 +451,18 @@ Deno.serve(async (req) => {
       ? `rw:${reminder_window}`
       : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
 
-    const title = render(cfg.title_template, vars) || event_key;
-    const message = render(cfg.message_template, vars) || "";
-    const emailSubject = render(cfg.email_subject_template, vars) || title;
-    const emailBody = render(cfg.email_body_template, vars) || message;
-
-    const escapeHtml = (s: string) =>
-      String(s ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    // OTP-style branded card: header, body paragraphs, optional CTA button, footer.
-    // Vars consulted (all optional): cta_url, cta_label, app_name, support_email.
-    const buildEmailHtml = (heading: string, bodyText: string) => {
-      const safeHeading = escapeHtml(heading);
-      const paragraphs = String(bodyText || "")
-        .split(/\n{2,}/)
-        .map((p) => `<p style="color:#475569;margin:0 0 14px;line-height:1.6;font-size:14px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
-        .join("");
-      const appName = escapeHtml(vars.app_name || "Unified License Hub");
-      const ctaUrl = typeof vars.cta_url === "string" && vars.cta_url ? String(vars.cta_url) : "";
-      const ctaLabel = escapeHtml(vars.cta_label || "Open Portal");
-      const supportEmail = vars.support_email ? escapeHtml(String(vars.support_email)) : "";
-      const ctaBlock = ctaUrl
-        ? `<div style="text-align:center;margin:20px 0 8px;"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#1E3A8A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 22px;border-radius:8px;font-family:Arial,sans-serif;">${ctaLabel}</a></div>`
-        : "";
-      const supportLine = supportEmail
-        ? `Need help? Contact <a href="mailto:${supportEmail}" style="color:#1E3A8A;">${supportEmail}</a>.`
-        : "";
-      return `<div style="background:#f1f5f9;padding:24px 0;font-family:Arial,sans-serif;">
-        <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.08);">
-          <div style="background:#1E3A8A;padding:18px 24px;color:#ffffff;font-weight:700;font-size:16px;letter-spacing:.3px;">${appName}</div>
-          <div style="padding:24px;">
-            <h2 style="margin:0 0 14px;font-size:18px;color:#0f172a;">${safeHeading}</h2>
-            ${paragraphs}
-            ${ctaBlock}
-          </div>
-          <div style="background:#f8fafc;padding:14px 24px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;line-height:1.5;">
-            <div>${supportLine}</div>
-            <div style="margin-top:6px;">This is an automated message from ${appName}. Please do not reply to this email.</div>
-          </div>
-        </div>
-      </div>`;
-    };
-    const emailHtml = buildEmailHtml(emailSubject, emailBody);
+    const title = stripUnresolvedTemplateTokens(render(cfg.title_template, vars) || String(event_key));
+    const message = stripUnresolvedTemplateTokens(render(cfg.message_template, vars) || "");
+    const emailSubject = stripUnresolvedTemplateTokens(render(cfg.email_subject_template, vars) || title);
+    const emailBody = stripUnresolvedTemplateTokens(render(cfg.email_body_template, vars) || message);
+    const emailHtml = renderBrandedEmail({
+      appName: String(vars.app_name || "Unified License Hub"),
+      heading: emailSubject,
+      paragraphs: emailBody ? emailBody.split(/\n{2,}/) : [],
+      ctaUrl: typeof vars.cta_url === "string" ? vars.cta_url : "",
+      ctaLabel: typeof vars.cta_label === "string" ? vars.cta_label : "Open Portal",
+      supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
+    });
 
     for (const userId of recipients) {
       for (const channel of channels) {

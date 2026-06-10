@@ -82,19 +82,43 @@ Deno.serve(async (req) => {
         action_type === "send_back" ? "return.send_back" :
         action_type === "approve" ? ((result as any).new_status === "VAL" ? "return.approved" : "return.approved_step") :
         "return.workflow_action_taken";
+      const sharedPayload = {
+        return_id,
+        action_type,
+        comments,
+        action_comments: comments,
+        actor_id: caller.id,
+        step_id: step_id ?? null,
+        previous_step_id: step_id ?? null,
+        new_step_id: (result as any).new_step_id,
+        current_step_id: (result as any).new_step_id,
+        new_status: (result as any).new_status,
+        previous_status: body.previous_status ?? null,
+        reason: comments,
+        edit_reason: comments,
+        approved_at: action_type === "approve" && (result as any).new_status === "VAL" ? new Date().toISOString() : undefined,
+        rejected_at: action_type === "reject" ? new Date().toISOString() : undefined,
+        reviewer_name: caller.email,
+        reviewer_email: caller.email,
+        actor_name: caller.email,
+        actor_email: caller.email,
+      };
       await admin.functions.invoke("dispatch-notification-event", {
         body: {
           event_key: eventKey,
           entity_type: "return",
           entity_id: return_id,
+          payload: sharedPayload,
+        },
+      });
+      await admin.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "return.workflow_action_taken",
+          entity_type: "return",
+          entity_id: return_id,
           payload: {
-            return_id, action_type, comments,
-            actor_id: caller.id,
-            step_id: (result as any).new_step_id,
-            previous_step_id: step_id,
-            new_step_id: (result as any).new_step_id,
-            new_status: (result as any).new_status,
-            reason: comments,
+            ...sharedPayload,
+            actor_excluded: false,
           },
         },
       });
