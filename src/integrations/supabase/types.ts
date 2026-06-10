@@ -6022,6 +6022,10 @@ export type Database = {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
       }
+      create_approval_workflow_with_steps: {
+        Args: { _steps: Json; _workflow: Json }
+        Returns: Json
+      }
       create_audit_log: {
         Args: {
           _action: string
