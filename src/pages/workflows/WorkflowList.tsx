@@ -666,31 +666,60 @@ export default function WorkflowList() {
                     </Button>
                   </div>
                 ) : (
-                  workflows.map(wf => (
-                    <button
-                      key={wf.id}
-                      onClick={() => setSelectedId(wf.id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all ${
-                        selectedId === wf.id
-                          ? 'border-primary bg-primary/5 shadow-sm'
-                          : 'hover:border-primary/40'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <Badge variant="outline" className="text-[10px]">
-                              {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
+                  workflows.map(wf => {
+                    const typeIsKnown = activeTypeKeys.has(wf.entity_type as WorkflowEntityType);
+                    return (
+                      <button
+                        key={wf.id}
+                        onClick={() => setSelectedId(wf.id)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          selectedId === wf.id
+                            ? 'border-primary bg-primary/5 shadow-sm'
+                            : 'hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <Badge variant="outline" className="text-[10px]">
+                                {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
+                              </Badge>
+                              {!typeIsKnown && (
+                                <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
+                                  Legacy type
+                                </Badge>
+                              )}
+                              <span className="text-[10px] text-muted-foreground truncate">{wf.license_type}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                              {wf.is_active ? 'On' : 'Off'}
                             </Badge>
-                            <span className="text-[10px] text-muted-foreground truncate">{wf.license_type}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={e => { e.stopPropagation(); openEdit(wf); }}
+                              title="Edit workflow"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive"
+                              onClick={e => { e.stopPropagation(); handleDelete(wf); }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                            {wf.is_active ? 'On' : 'Off'}
-                          </Badge>
-                          <Button
+                      </button>
+                    );
+                  })
+
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-destructive"
