@@ -308,7 +308,10 @@ export default function WorkflowList() {
         workflow: {
           name: newName.trim(),
           description: newDesc.trim() || undefined,
-          license_type: newLicenseType.trim(),
+          // `license_type` is retained as a non-null DB column for backward
+          // compatibility but is no longer surfaced in the UI. Workflow routing
+          // uses regulator_id + sector_id + entity_type.
+          license_type: 'general',
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
