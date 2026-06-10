@@ -37,6 +37,7 @@ import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
+import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
 
 // ─── Templates ───
 type TemplateStep = { name: string; approver_role: string; sla_hours?: number };
