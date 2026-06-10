@@ -22,7 +22,7 @@ export type WorkflowEntityType =
   | 'inspection'
   | 'return';
 
-export const ENTITY_TYPE_LABELS: Record<WorkflowEntityType, string> = {
+export const FALLBACK_WORKFLOW_TYPE_LABELS: Record<WorkflowEntityType, string> = {
   registration: 'Registration',
   pre_application: 'Pre Application',
   post_application: 'Post Application',
@@ -30,6 +30,14 @@ export const ENTITY_TYPE_LABELS: Record<WorkflowEntityType, string> = {
   inspection: 'Inspection',
   return: 'Compliance Return',
 };
+
+export interface WorkflowTypeConfig {
+  key: WorkflowEntityType;
+  display_label: string;
+  description: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
 
 /**
  * Entity types whose workflow lookup also accepts the legacy `application`
@@ -40,6 +48,34 @@ export const LEGACY_APPLICATION_ENTITY_TYPES: ReadonlyArray<WorkflowEntityType> 
   'pre_application',
   'post_application',
 ];
+
+export function getWorkflowTypeLabel(
+  entityType: string | null | undefined,
+  workflowTypes?: Array<Pick<WorkflowTypeConfig, 'key' | 'display_label'>>,
+): string {
+  if (!entityType) return '';
+  const configured = workflowTypes?.find((item) => item.key === entityType);
+  if (configured?.display_label) return configured.display_label;
+  return FALLBACK_WORKFLOW_TYPE_LABELS[entityType as WorkflowEntityType] || entityType;
+}
+
+export function filterActiveWorkflowTypes(workflowTypes: WorkflowTypeConfig[]): WorkflowTypeConfig[] {
+  return [...workflowTypes]
+    .filter((item) => item.is_active)
+    .sort((a, b) => a.sort_order - b.sort_order || a.display_label.localeCompare(b.display_label));
+}
+
+export function getWorkflowTypeOptions(workflowTypes: WorkflowTypeConfig[]): Array<{
+  key: WorkflowEntityType;
+  label: string;
+  description: string | null;
+}> {
+  return filterActiveWorkflowTypes(workflowTypes).map((item) => ({
+    key: item.key,
+    label: item.display_label,
+    description: item.description,
+  }));
+}
 
 // Synthetic actions like `request_info` and `delegate` were never fully
 // implemented (no assignee handoff, no notifications, no state semantics) and
@@ -121,6 +157,24 @@ export interface WorkflowAction {
   sla_deadline: string | null;
   responded_at: string | null;
   created_at: string;
+}
+
+export async function fetchWorkflowTypeConfigs(): Promise<WorkflowTypeConfig[]> {
+  const { data, error } = await supabase
+    .from('approval_workflow_types')
+    .select('key, display_label, description, is_active, sort_order')
+    .order('sort_order', { ascending: true })
+    .order('display_label', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as WorkflowTypeConfig[];
+}
+
+export function useWorkflowTypeConfigs() {
+  return useQuery({
+    queryKey: ['approval_workflow_types'],
+    queryFn: fetchWorkflowTypeConfigs,
+  });
 }
 
 // ─── Queries ───
@@ -229,7 +283,7 @@ export function useCreateWorkflow() {
         .single();
       if (error) {
         // Postgres unique_violation surfaces from the
-        // approval_workflows_uniq_reg_sector_entity partial index.
+        // approval_workflows_unique_scope_used_for unique index.
         if ((error as any).code === '23505') {
           throw new Error('Workflow already exists for this sector and used-for type.');
         }

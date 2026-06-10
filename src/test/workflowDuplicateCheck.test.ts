@@ -3,7 +3,10 @@ import {
   findDuplicateWorkflow,
   DUPLICATE_WORKFLOW_MESSAGE,
 } from '@/lib/workflowDuplicateCheck';
-import { ENTITY_TYPE_LABELS } from '@/hooks/useWorkflowEngine';
+import {
+  filterActiveWorkflowTypes,
+  getWorkflowTypeLabel,
+} from '@/hooks/useWorkflowEngine';
 
 const rows = [
   { id: 'a', regulator_id: 'r1', sector_id: 's1', entity_type: 'registration' },
@@ -63,14 +66,24 @@ describe('findDuplicateWorkflow', () => {
     ).toBe('e');
   });
 
-  it('exposes the registration / pre / post used-for types dynamically', () => {
-    // Frontend must offer the three split workflow types and not the combined "application"
-    expect(ENTITY_TYPE_LABELS).toMatchObject({
-      registration: 'Registration',
-      pre_application: 'Pre Application',
-      post_application: 'Post Application',
-    });
-    expect(Object.keys(ENTITY_TYPE_LABELS)).not.toContain('application');
+  it('derives active used-for options from backend configuration records', () => {
+    const workflowTypes = filterActiveWorkflowTypes([
+      { key: 'complaint', display_label: 'Complaint', description: null, is_active: true, sort_order: 40 },
+      { key: 'post_application', display_label: 'Post Application', description: null, is_active: true, sort_order: 30 },
+      { key: 'registration', display_label: 'Registration', description: null, is_active: true, sort_order: 10 },
+      { key: 'pre_application', display_label: 'Pre Application', description: null, is_active: true, sort_order: 20 },
+      { key: 'inspection', display_label: 'Inspection', description: null, is_active: false, sort_order: 50 },
+    ]);
+
+    expect(workflowTypes.map((item) => item.key)).toEqual([
+      'registration',
+      'pre_application',
+      'post_application',
+      'complaint',
+    ]);
+    expect(workflowTypes.find((item) => item.key === 'inspection')).toBeUndefined();
+    expect(getWorkflowTypeLabel('pre_application', workflowTypes)).toBe('Pre Application');
+    expect(getWorkflowTypeLabel('application', workflowTypes)).toBe('application');
   });
 
   it('exports a user-facing message', () => {
