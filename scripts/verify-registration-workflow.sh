@@ -27,7 +27,7 @@ DECLARE
   v_workflow_id uuid;
   v_step1 uuid := gen_random_uuid();
   v_step2 uuid := gen_random_uuid();
-  v_user_id uuid := gen_random_uuid();
+  v_user_id uuid;
   v_registration_id uuid;
   v_instance_id uuid;
   v_action_count int;
