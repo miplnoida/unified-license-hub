@@ -85,8 +85,9 @@ export async function buildReturnNotificationPayload(
   );
   const companyName = coalesceText(payload.company_name, siteConfig.app_name, Deno.env.get("APP_NAME"), "Unified License Hub");
   const supportEmail = coalesceText(payload.support_email, siteConfig.support_email);
-  const returnDetailUrl = buildUrl(portalUrl, `/admin/returns/queue/${returnId}`);
+  const returnDetailUrl = buildUrl(portalUrl, `/entity/returns/${returnId}/view`);
   const returnEditUrl = buildUrl(portalUrl, `/entity/returns/${returnId}/edit`);
+  const returnReviewUrl = buildUrl(portalUrl, `/admin/returns/queue/${returnId}`);
 
   const isLicenseeFacing = [
     "return.submitted.confirmation",
@@ -100,7 +101,10 @@ export async function buildReturnNotificationPayload(
 
   const ctaUrl = coalesceText(
     payload.cta_url,
-    eventKey === "return.edit_requested" ? returnEditUrl : (isLicenseeFacing ? returnDetailUrl : returnDetailUrl),
+    eventKey === "return.edit_requested" ? returnEditUrl :
+      (eventKey === "return.submitted" || eventKey === "return.resubmitted" || eventKey === "return.approved_step"
+        ? returnReviewUrl
+        : returnDetailUrl),
   );
   const ctaLabel = coalesceText(
     payload.cta_label,
@@ -118,6 +122,7 @@ export async function buildReturnNotificationPayload(
     portal_url: portalUrl,
     return_detail_url: returnDetailUrl,
     return_edit_url: returnEditUrl,
+    return_review_url: returnReviewUrl,
     cta_url: ctaUrl,
     cta_label: ctaLabel,
     return_id: ret.id,
