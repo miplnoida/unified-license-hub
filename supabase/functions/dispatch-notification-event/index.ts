@@ -189,6 +189,18 @@ async function licenseeSecondaryUsers(admin: SupabaseClient, licenseeId: string 
   return (data || []).map((r: any) => r.id);
 }
 
+async function entityUsers(admin: SupabaseClient, entityId: string | null | undefined): Promise<string[]> {
+  if (!entityId) return [];
+  const [{ data: directProfiles }, { data: mappedUsers }] = await Promise.all([
+    admin.from("profiles").select("id").eq("licensee_id", entityId),
+    admin.from("entity_user_access").select("user_id").eq("entity_id", entityId).eq("is_active", true),
+  ]);
+  const out = new Set<string>();
+  (directProfiles || []).forEach((row: any) => row.id && out.add(row.id));
+  (mappedUsers || []).forEach((row: any) => row.user_id && out.add(row.user_id));
+  return Array.from(out);
+}
+
 async function workflowStepApprovers(admin: SupabaseClient, stepId: string | null | undefined): Promise<string[]> {
   if (!stepId) return [];
   const { data: step } = await admin
@@ -229,6 +241,7 @@ async function resolveRecipients(
   ctx: { entity_type?: string; entity_id?: string; payload: Record<string, any>; app?: any },
 ): Promise<string[]> {
   const out = new Set<string>();
+  const excludedEmails = new Set<string>();
   for (const rule of rules) {
     try {
       switch (rule.type) {
@@ -288,6 +301,54 @@ async function resolveRecipients(
           if (sub) out.add(String(sub));
           break;
         }
+        case "return_entity_users": {
+          const entityId = ctx.payload?.entity_id || (ctx as any).ret?.entity_id;
+          (await entityUsers(admin, entityId)).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_workflow_current_step_approvers": {
+          const sid = ctx.payload?.step_id || ctx.payload?.current_step_id || (ctx as any).ret?.current_step_id;
+          const approvers = await workflowStepApprovers(admin, sid);
+          if (approvers.length === 0) {
+            (await returnSectorReviewers(admin, {
+              sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+              subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+              returnTypeId: ctx.payload?.return_type_id,
+            })).forEach((u) => out.add(u));
+          } else {
+            approvers.forEach((u) => out.add(u));
+          }
+          break;
+        }
+        case "return_workflow_next_step_approvers": {
+          const sid = ctx.payload?.new_step_id || ctx.payload?.next_step_id;
+          const approvers = await workflowStepApprovers(admin, sid);
+          if (approvers.length === 0) {
+            (await returnSectorReviewers(admin, {
+              sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+              subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+              returnTypeId: ctx.payload?.return_type_id,
+            })).forEach((u) => out.add(u));
+          } else {
+            approvers.forEach((u) => out.add(u));
+          }
+          break;
+        }
+        case "return_regulator_admins":
+        case "return_admins": {
+          const admins = await recipientsForRole(admin, "admin");
+          const supers = await recipientsForRole(admin, "super_admin");
+          [...admins, ...supers].forEach((u) => u && out.add(u));
+          break;
+        }
+        case "actor_excluded": {
+          const actorId = String(ctx.payload?.actor_id || "");
+          if (actorId) {
+            const actorEmail = await resolveRecipientEmail(admin, actorId);
+            if (actorEmail) excludedEmails.add(actorEmail);
+          }
+          break;
+        }
         case "workflow_step_approvers": {
           const sid = ctx.payload?.step_id || ctx.app?.current_step_id || (ctx as any).ret?.current_step_id;
           (await workflowStepApprovers(admin, sid)).forEach((u) => out.add(u));
@@ -305,7 +366,13 @@ async function resolveRecipients(
       console.error("recipient rule failure", rule, e?.message || e);
     }
   }
-  return Array.from(out);
+  const filtered: string[] = [];
+  for (const userId of Array.from(out)) {
+    const email = await resolveRecipientEmail(admin, userId);
+    if (email && excludedEmails.has(email)) continue;
+    filtered.push(userId);
+  }
+  return filtered;
 }
 
 Deno.serve(async (req) => {
