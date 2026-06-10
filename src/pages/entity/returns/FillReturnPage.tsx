@@ -338,6 +338,7 @@ export default function FillReturnPage() {
       // workflow instance (if any) is reopened and the active edit-request
       // row is closed atomically. Falls back to a direct update for legacy
       // returns with no workflow configured.
+      let resubmissionHandledByEdge = false;
       if (previousStatus === 'TBR') {
         const { data: resub, error: resubErr } = await supabase.functions.invoke('resubmit-return', {
           body: { return_id: id, comments: 'Licensee resubmission' },
@@ -355,6 +356,8 @@ export default function FillReturnPage() {
               .update({ status: 'resolved', resolved_at: now.toISOString() })
               .eq('id', activeRequest.id);
           }
+        } else {
+          resubmissionHandledByEdge = true;
         }
       } else {
         try {
@@ -404,7 +407,7 @@ export default function FillReturnPage() {
           resolvedWorkflowId = (r2 as any)?.workflow_id || resolvedWorkflowId;
         } catch { /* ignore */ }
       }
-      if (previousStatus !== 'TBR') {
+      if (previousStatus !== 'TBR' || !resubmissionHandledByEdge) {
         const basePayload = {
           return_id: id,
           unique_id: returnData?.unique_id,
@@ -430,9 +433,11 @@ export default function FillReturnPage() {
           current_step_id: resolvedStepId,
           step_id: resolvedStepId,
         };
+        const reviewerEventKey = previousStatus === 'TBR' ? 'return.resubmitted' : 'return.submitted';
+        const confirmationEventKey = previousStatus === 'TBR' ? 'return.resubmitted.confirmation' : 'return.submitted.confirmation';
         supabase.functions.invoke('dispatch-notification-event', {
           body: {
-            event_key: 'return.submitted',
+            event_key: reviewerEventKey,
             entity_type: 'return',
             entity_id: id,
             payload: { ...basePayload, cta_label: 'Review Return' },
@@ -440,7 +445,7 @@ export default function FillReturnPage() {
         }).catch(() => {});
         supabase.functions.invoke('dispatch-notification-event', {
           body: {
-            event_key: 'return.submitted.confirmation',
+            event_key: confirmationEventKey,
             entity_type: 'return',
             entity_id: id,
             payload: { ...basePayload, cta_label: 'View Return' },
