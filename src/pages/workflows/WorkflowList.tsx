@@ -1357,69 +1357,63 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             </div>
           </div>
         ) : (
-          /* Advanced Options — only available in edit mode */
-          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground -ml-2">
-                <Settings2 className="h-3 w-3 mr-1" />
-                Advanced Options
-                {advancedOpen ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2">
-              <div className="rounded-md border bg-muted/30 p-3 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>Due Within</Label>
-                  <Input
-                    id={`sla-${step.id}`}
-                    type="number"
-                    min={1}
-                    max={24 * 365}
-                    className="h-8 w-24 text-xs"
-                    value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
-                    onChange={e => {
-                      const parsed = parseInt(e.target.value, 10);
-                      const safe = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 24 * 365) : 48;
-                      onUpdate(step.id, { sla_hours: safe } as any);
-                    }}
-                  />
-                  <span className="text-xs text-muted-foreground">hours</span>
-                </div>
+          /* Timing & allowed actions — always visible inline in edit mode so
+             admins never have to hunt for them behind a collapsible. */
+          <div className="rounded-md border bg-muted/30 p-3 space-y-3" data-testid={`step-edit-controls-${index}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>Due Within</Label>
+              <Input
+                id={`sla-${step.id}`}
+                type="number"
+                min={1}
+                max={24 * 365}
+                className="h-8 w-24 text-xs"
+                value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
+                onChange={e => {
+                  const raw = e.target.value;
+                  if (raw === '') return;
+                  const parsed = parseInt(raw, 10);
+                  if (!Number.isFinite(parsed) || parsed <= 0) return;
+                  const safe = Math.min(parsed, 24 * 365);
+                  onUpdate(step.id, { sla_hours: safe } as any);
+                }}
+                aria-label={`Step ${index + 1} due within (hours)`}
+              />
+              <span className="text-xs text-muted-foreground">hours</span>
+            </div>
 
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {ALL_ACTIONS.map(action => {
-                      const checked = allowedActions.includes(action);
-                      const cbId = `act-${step.id}-${action}`;
-                      return (
-                        <div key={action} className="flex items-center gap-1.5 text-xs select-none rounded-md border px-2 py-1 bg-background">
-                          <Checkbox
-                            id={cbId}
-                            checked={checked}
-                            onCheckedChange={(v) => {
-                              const next = v
-                                ? Array.from(new Set([...allowedActions, action]))
-                                : allowedActions.filter(a => a !== action);
-                              onUpdate(step.id, { allowed_actions: next } as any);
-                            }}
-                          />
-                          <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Approvers can only perform actions checked here.
-                  </p>
-                </div>
-
-                <p className="text-[11px] text-muted-foreground">
-                  Escalation, parallel approvals, and conditional rules are not yet available in this builder.
-                </p>
+            <div>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
+              <div className="flex flex-wrap gap-2">
+                {ALL_ACTIONS.map(action => {
+                  const checked = allowedActions.includes(action);
+                  const cbId = `act-${step.id}-${action}`;
+                  return (
+                    <div key={action} className="flex items-center gap-1.5 text-xs select-none rounded-md border px-2 py-1 bg-background">
+                      <Checkbox
+                        id={cbId}
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const next = v
+                            ? Array.from(new Set([...allowedActions, action]))
+                            : allowedActions.filter(a => a !== action);
+                          onUpdate(step.id, { allowed_actions: next } as any);
+                        }}
+                      />
+                      <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
+                    </div>
+                  );
+                })}
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Approvers can only perform actions checked here.
+              </p>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              Escalation, parallel approvals, and conditional rules are not yet available in this builder.
+            </p>
+          </div>
         )}
 
       </div>
