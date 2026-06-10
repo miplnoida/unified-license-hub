@@ -853,17 +853,8 @@ export default function WorkflowList() {
                   </SelectContent>
                 </Select>
               </div>
-
-
-              <div>
-                <Label>Category <span className="text-destructive">*</span></Label>
-                <Input
-                  value={newLicenseType}
-                  onChange={e => setNewLicenseType(e.target.value)}
-                  placeholder="e.g., Banking License"
-                />
-              </div>
             </div>
+
             <div>
               <Label>Sector</Label>
               <Select value={newSectorId} onValueChange={setNewSectorId}>
