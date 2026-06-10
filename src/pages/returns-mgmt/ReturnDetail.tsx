@@ -394,76 +394,94 @@ export default function ReturnDetail() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" /> Approval Workflow
+                  <Shield className="h-4 w-4 text-primary" /> Status
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Current Status</span>
                   <StatusBadge status={returnData.workflow_status} />
                 </div>
-                <Separator />
-
-                {isReviewable ? (
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="action-comments" className="text-xs">
-                        Comments / Reason {`(required for Request Edit)`}
-                      </Label>
-                      <Textarea
-                        id="action-comments"
-                        rows={4}
-                        placeholder="Add a note for the licensee..."
-                        value={comments_}
-                        onChange={(e) => setComments(e.target.value)}
-                        disabled={!!submitting}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        onClick={handleApprove}
-                        disabled={!!submitting}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {submitting === 'approve'
-                          ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          : <CheckCircle className="h-4 w-4 mr-2" />}
-                        Approve Return
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleRequestEdit}
-                        disabled={!!submitting}
-                        className="border-amber-500 text-amber-700 hover:bg-amber-50"
-                      >
-                        {submitting === 'request_edit'
-                          ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          : <AlertTriangle className="h-4 w-4 mr-2" />}
-                        Request Edit
-                      </Button>
-                    </div>
-                  </div>
-                ) : isApproved ? (
-                  <Alert className="border-green-500 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-xs text-green-800">
-                      No further actions required. Return is approved.
-                    </AlertDescription>
-                  </Alert>
-                ) : isResubmissionRequested ? (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      Waiting for licensee to edit and resubmit the return.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">
-                    No actions available for status: {status}
+                {workflowEnabled && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Configurable approval workflow is active for this return.
                   </p>
                 )}
               </CardContent>
             </Card>
+
+            {workflowEnabled ? (
+              <ReturnWorkflowPanel
+                returnId={returnData.id}
+                workflowId={matchedWorkflowId}
+                workflowEnabled={workflowEnabled}
+                returnStatus={returnData.workflow_status}
+                onStatusChange={() => {
+                  qc.invalidateQueries({ queryKey: ['returns_filed'] });
+                  qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+                  qc.invalidateQueries({ queryKey: ['return_requests', id] });
+                  qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+                  qc.invalidateQueries({ queryKey: ['approval_actions', 'return', id] });
+                }}
+              />
+            ) : (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" /> Approval Workflow
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isReviewable ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="action-comments" className="text-xs">
+                          Comments / Reason (required for Request Edit)
+                        </Label>
+                        <Textarea id="action-comments" rows={4}
+                          placeholder="Add a note for the licensee..."
+                          value={comments_} onChange={(e) => setComments(e.target.value)}
+                          disabled={!!submitting} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={handleApprove} disabled={!!submitting}
+                          className="bg-green-600 hover:bg-green-700">
+                          {submitting === 'approve'
+                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            : <CheckCircle className="h-4 w-4 mr-2" />}
+                          Approve Return
+                        </Button>
+                        <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
+                          className="border-amber-500 text-amber-700 hover:bg-amber-50">
+                          {submitting === 'request_edit'
+                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            : <AlertTriangle className="h-4 w-4 mr-2" />}
+                          Request Edit
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isApproved ? (
+                    <Alert className="border-green-500 bg-green-50">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-xs text-green-800">
+                        No further actions required. Return is approved.
+                      </AlertDescription>
+                    </Alert>
+                  ) : isResubmissionRequested ? (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        Waiting for licensee to edit and resubmit the return.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No actions available for status: {status}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Edit-request history */}
             {requests.length > 0 && (
