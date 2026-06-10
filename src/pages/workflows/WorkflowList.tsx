@@ -884,7 +884,7 @@ export default function WorkflowList() {
               )}
             </div>
             <div>
-              <Label>Start From</Label>
+              <Label>Template</Label>
               <Select value={seedFromTemplateId} onValueChange={setSeedFromTemplateId}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
