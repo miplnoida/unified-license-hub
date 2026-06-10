@@ -252,7 +252,12 @@ export function useUpdateWorkflow() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Workflow> & { id: string }) => {
       const { error } = await supabase.from('approval_workflows').update(updates as any).eq('id', id);
-      if (error) throw error;
+      if (error) {
+        if ((error as any).code === '23505') {
+          throw new Error('Workflow already exists for this sector and used-for type.');
+        }
+        throw error;
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_workflows'] }),
   });
