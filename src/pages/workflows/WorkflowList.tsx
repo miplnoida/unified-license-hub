@@ -762,6 +762,9 @@ export default function WorkflowList() {
                       <CardDescription className="mt-1">
                         {getWorkflowTypeLabel(selectedWorkflow.entity_type, workflowTypeConfigs)} ·
                         {' '}{steps.length} step{steps.length === 1 ? '' : 's'} · Anyone in the chosen role can approve
+                        {isEditingSteps && (
+                          <span className="ml-2 text-warning font-medium">· Editing — changes save automatically</span>
+                        )}
                       </CardDescription>
                     )}
                   </div>
@@ -773,9 +776,20 @@ export default function WorkflowList() {
                       <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>
                         <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
                       </Button>
-                      <Button size="sm" onClick={handleAddStep}>
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
-                      </Button>
+                      {!isEditingSteps ? (
+                        <Button size="sm" onClick={() => setIsEditingSteps(true)}>
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="outline" onClick={handleAddStep}>
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
+                          </Button>
+                          <Button size="sm" onClick={() => setIsEditingSteps(false)}>
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Done
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -794,6 +808,7 @@ export default function WorkflowList() {
                     dynamicRoles={dynamicRoles}
                     roleLabel={roleLabel}
                     stepRoleLabel={stepRoleLabel}
+                    isEditing={isEditingSteps}
                     onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
