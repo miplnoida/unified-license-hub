@@ -1181,6 +1181,37 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
   const [localRoleId, setLocalRoleId] = useState<string | null>(step.approver_role_id ?? null);
   const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
 
+  // ── Local draft state for editable fields ──
+  // Bind inputs to local drafts so typing is instant and never waits for
+  // a Supabase round-trip. Persist on blur (name + sla) and immediately
+  // for checkboxes (which don't suffer keystroke latency). Drafts re-sync
+  // from server when the step id changes or when the field is not focused.
+  const [nameDraft, setNameDraft] = useState<string>(step.name ?? '');
+  const [slaDraft, setSlaDraft] = useState<string>(
+    Number.isFinite(step.sla_hours as number) ? String(step.sla_hours) : '48',
+  );
+  const [slaError, setSlaError] = useState<string | null>(null);
+  const [nameFocused, setNameFocused] = useState(false);
+  const [slaFocused, setSlaFocused] = useState(false);
+  const [allowedDraft, setAllowedDraft] = useState<WorkflowActionType[]>(
+    Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : [],
+  );
+
+  useEffect(() => {
+    if (!nameFocused) setNameDraft(step.name ?? '');
+  }, [step.id, step.name, nameFocused]);
+
+  useEffect(() => {
+    if (!slaFocused) {
+      setSlaDraft(Number.isFinite(step.sla_hours as number) ? String(step.sla_hours) : '48');
+      setSlaError(null);
+    }
+  }, [step.id, step.sla_hours, slaFocused]);
+
+  useEffect(() => {
+    setAllowedDraft(Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : []);
+  }, [step.id, step.allowed_actions]);
+
   // Re-sync when the server-side step prop changes (e.g. after refetch or
   // when switching workflows).
   useEffect(() => {
@@ -1214,9 +1245,6 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     const previous = localRoleId;
     setLocalRoleId(r.id);
     setSavingRoleId(r.id);
-    // approval_steps.approver_role is NOT NULL. Dynamic roles (e.g. "Data Clerk")
-    // may not have a legacy system_role mapping. Fall back to the step's current
-    // legacy role, then to a safe default so we never send null.
     const safeApproverRole =
       (r.system_role && String(r.system_role).trim()) ||
       (step.approver_role && String(step.approver_role).trim()) ||
@@ -1235,9 +1263,53 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     }
   };
 
-  const allowedActions = Array.isArray(step.allowed_actions)
-    ? (step.allowed_actions as WorkflowActionType[])
-    : [];
+  const allowedActions = allowedDraft;
+
+  const commitName = () => {
+    setNameFocused(false);
+    const next = nameDraft.trim();
+    if (next === (step.name ?? '').trim()) return;
+    Promise.resolve(onUpdate(step.id, { name: next } as any)).catch((e: any) =>
+      toast.error(e?.message || 'Failed to update step name'),
+    );
+  };
+
+  const commitSla = () => {
+    setSlaFocused(false);
+    if (slaDraft === '') {
+      setSlaError('Required');
+      return;
+    }
+    const parsed = parseInt(slaDraft, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setSlaError('Must be a positive number');
+      return;
+    }
+    const MAX = 24 * 365;
+    if (parsed > MAX) {
+      setSlaError(`Max ${MAX}`);
+      return;
+    }
+    setSlaError(null);
+    if (parsed === step.sla_hours) return;
+    Promise.resolve(onUpdate(step.id, { sla_hours: parsed } as any)).catch((e: any) =>
+      toast.error(e?.message || 'Failed to update due-within'),
+    );
+  };
+
+  const toggleAction = (action: WorkflowActionType, checked: boolean) => {
+    const prev = allowedDraft;
+    const next = checked
+      ? Array.from(new Set([...prev, action]))
+      : prev.filter(a => a !== action);
+    setAllowedDraft(next);
+    Promise.resolve(onUpdate(step.id, { allowed_actions: next } as any)).catch((e: any) => {
+      setAllowedDraft(prev);
+      toast.error(e?.message || 'Failed to update allowed actions');
+    });
+  };
+
+
 
 
 
