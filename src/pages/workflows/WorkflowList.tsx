@@ -472,8 +472,8 @@ export default function WorkflowList() {
 
   const handleEditSave = async () => {
     if (!editTarget) return;
-    if (!editName.trim() || !editLicenseType.trim()) {
-      toast.error('Name and category are required.');
+    if (!editName.trim()) {
+      toast.error('Name is required.');
       return;
     }
     if (!editEntityType || !activeTypeKeys.has(editEntityType as WorkflowEntityType)) {
