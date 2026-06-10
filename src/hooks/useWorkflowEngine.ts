@@ -159,19 +159,21 @@ export interface WorkflowAction {
   created_at: string;
 }
 
+export async function fetchWorkflowTypeConfigs(): Promise<WorkflowTypeConfig[]> {
+  const { data, error } = await supabase
+    .from('approval_workflow_types')
+    .select('key, display_label, description, is_active, sort_order')
+    .order('sort_order', { ascending: true })
+    .order('display_label', { ascending: true });
+
+  if (error) throw error;
+  return (data || []) as WorkflowTypeConfig[];
+}
+
 export function useWorkflowTypeConfigs() {
   return useQuery({
     queryKey: ['approval_workflow_types'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('approval_workflow_types')
-        .select('key, display_label, description, is_active, sort_order')
-        .order('sort_order', { ascending: true })
-        .order('display_label', { ascending: true });
-
-      if (error) throw error;
-      return (data || []) as WorkflowTypeConfig[];
-    },
+    queryFn: fetchWorkflowTypeConfigs,
   });
 }
 
