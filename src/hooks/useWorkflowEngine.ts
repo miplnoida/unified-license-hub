@@ -227,7 +227,14 @@ export function useCreateWorkflow() {
         } as any)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        // Postgres unique_violation surfaces from the
+        // approval_workflows_uniq_reg_sector_entity partial index.
+        if ((error as any).code === '23505') {
+          throw new Error('Workflow already exists for this sector and used-for type.');
+        }
+        throw error;
+      }
       await logAudit({
         action: 'workflow_created',
         entityType: 'approval_workflow',
