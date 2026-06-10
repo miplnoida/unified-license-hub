@@ -65,6 +65,18 @@ export function filterActiveWorkflowTypes(workflowTypes: WorkflowTypeConfig[]): 
     .sort((a, b) => a.sort_order - b.sort_order || a.display_label.localeCompare(b.display_label));
 }
 
+export function getWorkflowTypeOptions(workflowTypes: WorkflowTypeConfig[]): Array<{
+  key: WorkflowEntityType;
+  label: string;
+  description: string | null;
+}> {
+  return filterActiveWorkflowTypes(workflowTypes).map((item) => ({
+    key: item.key,
+    label: item.display_label,
+    description: item.description,
+  }));
+}
+
 // Synthetic actions like `request_info` and `delegate` were never fully
 // implemented (no assignee handoff, no notifications, no state semantics) and
 // have been removed from the public action surface. `allowed_actions` on each
