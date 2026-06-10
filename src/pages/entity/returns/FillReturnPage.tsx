@@ -385,14 +385,24 @@ export default function FillReturnPage() {
       // Fire-and-forget notification dispatch
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
-          event_key: 'compliance.return_submitted',
-          entity_type: 'compliance_return',
+          event_key: previousStatus === 'TBR' ? 'return.resubmitted' : 'return.submitted',
+          entity_type: 'return',
           entity_id: id,
           payload: {
-            return_name: returnData?.unique_id || 'Compliance return',
-            actor_name: user?.email || 'User',
-            licensee_id: (returnData as any)?.licensee_id,
+            return_id: id,
+            unique_id: returnData?.unique_id,
+            return_config_name: (returnData as any)?.return_configs?.name,
+            return_period: returnData?.return_period,
+            return_year: returnData?.return_year,
+            licensee_id: (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id,
             sector_id: (returnData as any)?.sector_id,
+            submitted_by: user?.id,
+            submit_date: now.toISOString(),
+            actor_name: user?.email || 'Licensee',
+            previous_status: previousStatus,
+            new_status: 'SUB',
+            workflow_id: (returnData as any)?.workflow_id || null,
+            current_step_id: (returnData as any)?.current_step_id || null,
           },
         },
       }).catch(() => {});
