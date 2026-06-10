@@ -1489,21 +1489,27 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
               <Input
                 id={`sla-${step.id}`}
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={24 * 365}
                 className="h-8 w-24 text-xs"
-                value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
+                value={slaDraft}
+                onFocus={() => setSlaFocused(true)}
                 onChange={e => {
-                  const raw = e.target.value;
-                  if (raw === '') return;
-                  const parsed = parseInt(raw, 10);
-                  if (!Number.isFinite(parsed) || parsed <= 0) return;
-                  const safe = Math.min(parsed, 24 * 365);
-                  onUpdate(step.id, { sla_hours: safe } as any);
+                  setSlaDraft(e.target.value);
+                  if (slaError) setSlaError(null);
+                }}
+                onBlur={commitSla}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
                 }}
                 aria-label={`Step ${index + 1} due within (hours)`}
+                aria-invalid={!!slaError}
               />
               <span className="text-xs text-muted-foreground">hours</span>
+              {slaError && (
+                <span className="text-[11px] text-destructive">{slaError}</span>
+              )}
             </div>
 
             <div>
@@ -1517,12 +1523,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                       <Checkbox
                         id={cbId}
                         checked={checked}
-                        onCheckedChange={(v) => {
-                          const next = v
-                            ? Array.from(new Set([...allowedActions, action]))
-                            : allowedActions.filter(a => a !== action);
-                          onUpdate(step.id, { allowed_actions: next } as any);
-                        }}
+                        onCheckedChange={(v) => toggleAction(action, !!v)}
                       />
                       <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
                     </div>
