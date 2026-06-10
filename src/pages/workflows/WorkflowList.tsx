@@ -1323,8 +1323,14 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
         {isEditing ? (
           <Input
             className="h-9 text-sm font-medium flex-1 border-none shadow-none focus-visible:ring-1 px-2"
-            value={step.name}
-            onChange={e => onUpdate(step.id, { name: e.target.value })}
+            value={nameDraft}
+            onChange={e => setNameDraft(e.target.value)}
+            onFocus={() => setNameFocused(true)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
+              if (e.key === 'Escape') { setNameDraft(step.name ?? ''); setNameFocused(false); (e.currentTarget as HTMLInputElement).blur(); }
+            }}
             placeholder={`Step ${index + 1}`}
             aria-label={`Step ${index + 1} name`}
           />
