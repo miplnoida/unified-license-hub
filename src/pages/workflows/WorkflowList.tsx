@@ -1045,13 +1045,14 @@ interface TimelineBuilderProps {
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
+  isEditing: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
 }
 
-function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEditing, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
   // Validation: detect duplicate consecutive roles (by role id when available, else system role)
   const duplicateIdx = useMemo(() => {
     const key = (s: WorkflowStep) => s.approver_role_id || `sys:${s.approver_role}`;
@@ -1076,10 +1077,14 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpda
           <Connector />
           <div className="border-2 border-dashed rounded-lg p-6 text-center">
             <Sparkles className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-            <p className="text-sm text-muted-foreground mb-3">No steps yet — add your first approver</p>
-            <Button variant="outline" size="sm" onClick={onAdd}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
-            </Button>
+            <p className="text-sm text-muted-foreground mb-3">
+              {isEditing ? 'No steps yet — add your first approver' : 'No steps configured. Click "Edit Steps" to add one.'}
+            </p>
+            {isEditing && (
+              <Button variant="outline" size="sm" onClick={onAdd}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Step 1
+              </Button>
+            )}
           </div>
         </>
       ) : (
@@ -1094,6 +1099,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpda
               roleLabel={roleLabel}
               stepRoleLabel={stepRoleLabel}
               isDuplicate={idx === duplicateIdx}
+              isEditing={isEditing}
               onUpdate={onUpdate}
               onDelete={onDelete}
               onMove={onMove}
@@ -1104,11 +1110,13 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, onUpda
 
       {steps.length > 0 && (
         <>
-          <div className="flex justify-center py-1">
-            <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
-              <Plus className="h-3 w-3 mr-1" /> Add another step
-            </Button>
-          </div>
+          {isEditing && (
+            <div className="flex justify-center py-1">
+              <Button variant="ghost" size="sm" onClick={onAdd} className="text-xs h-7">
+                <Plus className="h-3 w-3 mr-1" /> Add another step
+              </Button>
+            </div>
+          )}
           <Connector />
           <TimelineNode
             icon={<CheckCircle2 className="h-4 w-4" />}
