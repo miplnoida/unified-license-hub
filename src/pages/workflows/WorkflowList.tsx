@@ -162,7 +162,7 @@ export default function WorkflowList() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newLicenseType, setNewLicenseType] = useState('');
+  
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType | ''>('');
   const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
