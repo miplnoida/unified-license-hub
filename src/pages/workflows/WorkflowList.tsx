@@ -810,6 +810,8 @@ export default function WorkflowList() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
 
               <div>
                 <Label>Category <span className="text-destructive">*</span></Label>
