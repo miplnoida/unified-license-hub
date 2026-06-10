@@ -45,6 +45,20 @@ Deno.serve(async (req) => {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return jsonResponse(req, status, result);
     }
+    // Best-effort notification dispatch
+    try {
+      await admin.functions.invoke("dispatch-notification-event", {
+        body: {
+          event_key: "return.resubmitted",
+          entity_type: "return",
+          entity_id: return_id,
+          payload: {
+            return_id, actor_id: caller.id, comments,
+            previous_status: "TBR", new_status: "SUB",
+          },
+        },
+      });
+    } catch (e) { console.warn("dispatch failed:", e); }
     return jsonResponse(req, 200, result);
   } catch (e) {
     return jsonResponse(req, 500, { error: e instanceof Error ? e.message : "Internal", code: "INTERNAL" });

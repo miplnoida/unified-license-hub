@@ -78,16 +78,24 @@ Deno.serve(async (req) => {
     try {
       const eventKey =
         action_type === "reject" ? "return.rejected" :
-        action_type === "request_resubmission" ? "return.resubmission_requested" :
+        action_type === "request_resubmission" ? "return.edit_requested" :
         action_type === "send_back" ? "return.send_back" :
-        action_type === "approve" ? (result.new_status === "VAL" ? "return.approved" : "return.approved_step") :
+        action_type === "approve" ? ((result as any).new_status === "VAL" ? "return.approved" : "return.approved_step") :
         "return.workflow_action_taken";
       await admin.functions.invoke("dispatch-notification-event", {
         body: {
           event_key: eventKey,
           entity_type: "return",
           entity_id: return_id,
-          payload: { return_id, action_type, comments, actor_id: caller.id, step_id: (result as any).new_step_id },
+          payload: {
+            return_id, action_type, comments,
+            actor_id: caller.id,
+            step_id: (result as any).new_step_id,
+            previous_step_id: step_id,
+            new_step_id: (result as any).new_step_id,
+            new_status: (result as any).new_status,
+            reason: comments,
+          },
         },
       });
     } catch (e) { console.warn("dispatch failed:", e); }

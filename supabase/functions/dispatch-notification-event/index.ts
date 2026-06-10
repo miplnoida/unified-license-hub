@@ -53,6 +53,59 @@ async function loadApplication(admin: SupabaseClient, id: string) {
   return data || null;
 }
 
+async function loadReturn(admin: SupabaseClient, id: string) {
+  const { data } = await admin
+    .from("returns_filed")
+    .select("id, unique_id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, subsector_id, return_year, return_period, due_date, workflow_status, workflow_id, current_step_id, created_by, updated_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  let config_name: string | null = null;
+  if ((data as any).return_configuration_id) {
+    const { data: cfg } = await admin
+      .from("return_configs")
+      .select("name")
+      .eq("id", (data as any).return_configuration_id)
+      .maybeSingle();
+    config_name = (cfg as any)?.name || null;
+  }
+  return { ...(data as any), return_config_name: config_name };
+}
+
+async function returnSectorReviewers(
+  admin: SupabaseClient,
+  args: { sectorId?: string | null; subsectorId?: string | null; returnTypeId?: string | null },
+): Promise<string[]> {
+  let q = admin
+    .from("approval_workflows")
+    .select("id")
+    .eq("entity_type", "return")
+    .eq("is_active", true);
+  if (args.sectorId) q = q.or(`sector_id.eq.${args.sectorId},sector_id.is.null`);
+  const { data: workflows } = await q;
+  const wfIds = (workflows || []).map((r: any) => r.id).filter(Boolean);
+  if (wfIds.length === 0) return [];
+  const { data: steps } = await admin
+    .from("approval_steps")
+    .select("approver_role, approver_role_id")
+    .in("workflow_id", wfIds);
+  const out = new Set<string>();
+  for (const step of steps || []) {
+    if ((step as any).approver_role) {
+      const r = await recipientsForRole(admin, String((step as any).approver_role));
+      r.forEach((u) => u && out.add(u));
+    }
+    if ((step as any).approver_role_id) {
+      const { data: udr } = await admin
+        .from("user_dynamic_roles")
+        .select("user_id")
+        .eq("role_id", (step as any).approver_role_id);
+      (udr || []).forEach((row: any) => row.user_id && out.add(row.user_id));
+    }
+  }
+  return Array.from(out);
+}
+
 async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Promise<string | null> {
   const [{ data: profile }, { data: preLicenseUser }] = await Promise.all([
     admin.from("profiles").select("email").eq("id", userId).maybeSingle(),
@@ -212,8 +265,29 @@ async function resolveRecipients(
           })).forEach((u) => out.add(u));
           break;
         }
+        case "return_sector_regulators": {
+          (await returnSectorReviewers(admin, {
+            sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+            subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+            returnTypeId: ctx.payload?.return_type_id,
+          })).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_licensee_users": {
+          const lid = ctx.payload?.licensee_id
+            || (ctx as any).ret?.on_behalf_of_licensee_id
+            || (ctx as any).ret?.entity_id;
+          (await licenseePrimaryUsers(admin, lid)).forEach((u) => out.add(u));
+          (await licenseeSecondaryUsers(admin, lid)).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_submitter": {
+          const sub = ctx.payload?.submitted_by || (ctx as any).ret?.created_by;
+          if (sub) out.add(String(sub));
+          break;
+        }
         case "workflow_step_approvers": {
-          const sid = ctx.payload?.step_id || ctx.app?.current_step_id;
+          const sid = ctx.payload?.step_id || ctx.app?.current_step_id || (ctx as any).ret?.current_step_id;
           (await workflowStepApprovers(admin, sid)).forEach((u) => out.add(u));
           break;
         }
@@ -268,6 +342,7 @@ Deno.serve(async (req) => {
     }
 
     let app: any = null;
+    let ret: any = null;
     if (entity_type === "application" && entity_id) {
       app = await loadApplication(admin, entity_id);
       if (app) {
@@ -277,6 +352,25 @@ Deno.serve(async (req) => {
         vars.licensee_id = vars.licensee_id || app.data?.licensee_id;
       }
     }
+    if (entity_type === "return" && entity_id) {
+      ret = await loadReturn(admin, entity_id);
+      if (ret) {
+        vars.return_id = vars.return_id || ret.id;
+        vars.unique_id = vars.unique_id || ret.unique_id;
+        vars.return_config_name = vars.return_config_name || ret.return_config_name;
+        vars.return_period = vars.return_period || ret.return_period;
+        vars.return_year = vars.return_year || ret.return_year;
+        vars.due_date = vars.due_date || ret.due_date;
+        vars.sector_id = vars.sector_id || ret.sector_id;
+        vars.subsector_id = vars.subsector_id || ret.subsector_id;
+        vars.licensee_id = vars.licensee_id || ret.on_behalf_of_licensee_id || ret.entity_id;
+        vars.workflow_status = vars.workflow_status || ret.workflow_status;
+        if (!vars.cta_url && vars.app_url) {
+          vars.cta_url = `${vars.app_url}/admin/returns/queue/${ret.id}`;
+          vars.cta_label = vars.cta_label || "View Return";
+        }
+      }
+    }
 
     const rules: Rule[] = Array.isArray(cfg.recipient_rules) ? cfg.recipient_rules : [];
     const recipients = await resolveRecipients(admin, rules, {
@@ -284,7 +378,8 @@ Deno.serve(async (req) => {
       entity_id,
       payload: vars,
       app,
-    });
+      ret,
+    } as any);
     summary.recipients = recipients.length;
 
     const channels: string[] = Array.isArray(cfg.channels) && cfg.channels.length ? cfg.channels : ["in_app"];
