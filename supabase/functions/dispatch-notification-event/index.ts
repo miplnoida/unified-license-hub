@@ -342,6 +342,7 @@ Deno.serve(async (req) => {
     }
 
     let app: any = null;
+    let ret: any = null;
     if (entity_type === "application" && entity_id) {
       app = await loadApplication(admin, entity_id);
       if (app) {
@@ -351,6 +352,25 @@ Deno.serve(async (req) => {
         vars.licensee_id = vars.licensee_id || app.data?.licensee_id;
       }
     }
+    if (entity_type === "return" && entity_id) {
+      ret = await loadReturn(admin, entity_id);
+      if (ret) {
+        vars.return_id = vars.return_id || ret.id;
+        vars.unique_id = vars.unique_id || ret.unique_id;
+        vars.return_config_name = vars.return_config_name || ret.return_config_name;
+        vars.return_period = vars.return_period || ret.return_period;
+        vars.return_year = vars.return_year || ret.return_year;
+        vars.due_date = vars.due_date || ret.due_date;
+        vars.sector_id = vars.sector_id || ret.sector_id;
+        vars.subsector_id = vars.subsector_id || ret.subsector_id;
+        vars.licensee_id = vars.licensee_id || ret.on_behalf_of_licensee_id || ret.entity_id;
+        vars.workflow_status = vars.workflow_status || ret.workflow_status;
+        if (!vars.cta_url && vars.app_url) {
+          vars.cta_url = `${vars.app_url}/admin/returns/queue/${ret.id}`;
+          vars.cta_label = vars.cta_label || "View Return";
+        }
+      }
+    }
 
     const rules: Rule[] = Array.isArray(cfg.recipient_rules) ? cfg.recipient_rules : [];
     const recipients = await resolveRecipients(admin, rules, {
@@ -358,7 +378,8 @@ Deno.serve(async (req) => {
       entity_id,
       payload: vars,
       app,
-    });
+      ret,
+    } as any);
     summary.recipients = recipients.length;
 
     const channels: string[] = Array.isArray(cfg.channels) && cfg.channels.length ? cfg.channels : ["in_app"];
