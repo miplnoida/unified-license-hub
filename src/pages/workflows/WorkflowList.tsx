@@ -517,7 +517,8 @@ export default function WorkflowList() {
         id: editTarget.id,
         name: editName.trim(),
         description: editDesc.trim() || null,
-        license_type: editLicenseType.trim(),
+        // license_type intentionally not updated — column preserved for
+        // backward compatibility, but no longer editable in the UI.
         entity_type: editEntityType,
         sector_id: sectorId,
       } as any);
