@@ -6363,7 +6363,7 @@ export type Database = {
         | "comment_edited"
         | "comment_deleted"
       return_request_status: "active" | "resolved"
-      return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR"
+      return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR" | "REJ"
       user_type: "primary" | "secondary" | "employee"
     }
     CompositeTypes: {
@@ -6520,7 +6520,7 @@ export const Constants = {
         "comment_deleted",
       ],
       return_request_status: ["active", "resolved"],
-      return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR"],
+      return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR", "REJ"],
       user_type: ["primary", "secondary", "employee"],
     },
   },
