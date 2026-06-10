@@ -312,6 +312,12 @@ export function useUpdateWorkflow() {
         }
         throw error;
       }
+      await logAudit({
+        action: 'workflow_updated',
+        entityType: 'approval_workflow',
+        entityId: id,
+        newValue: updates,
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_workflows'] }),
   });
