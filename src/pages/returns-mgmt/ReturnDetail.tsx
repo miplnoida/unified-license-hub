@@ -181,6 +181,44 @@ export default function ReturnDetail() {
   const isResubmissionRequested = normalizedStatus === 'TBR';
   const activeRequest = requests.find((r: any) => r.status === 'active');
 
+  // Configurable workflow resolution — if a return-scoped approval_workflow
+  // exists, we drive the UI through the same shared engine the application
+  // approval flow uses. Otherwise we fall back to the legacy SUB→VAL/TBR
+  // buttons so existing deployments continue to work.
+  const { data: workflowResolution } = useQuery({
+    queryKey: ['return-workflow-resolution', returnData?.id, returnData?.sector_id, returnData?.subsector_id, returnData?.return_configuration_id],
+    enabled: !!returnData?.id,
+    queryFn: () => resolveReturnWorkflow({
+      return: {
+        id: returnData!.id,
+        sector_id: returnData!.sector_id,
+        subsector_id: returnData!.subsector_id,
+        return_configuration_id: returnData!.return_configuration_id,
+        workflow_id: (returnData as any)?.workflow_id ?? null,
+      },
+    }),
+    staleTime: 60_000,
+  });
+  const workflowEnabled = !!workflowResolution?.enabled;
+  const matchedWorkflowId = workflowResolution?.matchedWorkflowId || (returnData as any)?.workflow_id || null;
+
+  // Approval-action history (workflow-driven). Joined to profiles for display.
+  const { data: approvalActions = [] } = useQuery({
+    queryKey: ['approval_actions', 'return', returnData?.id],
+    enabled: !!returnData?.id && workflowEnabled,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('approval_actions')
+        .select('id, action_type, comments, created_at, actor_id')
+        .eq('entity_type', 'return')
+        .eq('entity_id', returnData!.id)
+        .order('created_at', { ascending: false });
+      return (data as any[]) || [];
+    },
+  });
+  const { data: workflowInstances = [] } = useWorkflowInstances('return', returnData?.id);
+  const hasActiveInstance = workflowInstances.some((i: any) => i.status === 'active' || i.status === 'paused');
+
   async function logAudit(action: string, prev: string, next: string, note: string) {
     await (supabase as any).from('return_audit_log').insert({
       return_id: id,
