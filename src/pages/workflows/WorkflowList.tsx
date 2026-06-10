@@ -590,6 +590,7 @@ export default function WorkflowList() {
         name: s.name,
         approver_role: s.approver_role,
         sla_hours: s.sla_hours,
+        allowed_actions: Array.isArray(s.allowed_actions) ? s.allowed_actions : [],
       })),
     };
     const { error } = await supabase.from('workflow_templates' as any).insert(payload as any);
