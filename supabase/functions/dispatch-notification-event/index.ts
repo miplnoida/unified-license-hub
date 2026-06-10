@@ -367,9 +367,12 @@ async function resolveRecipients(
     }
   }
   const filtered: string[] = [];
+  const seenEmails = new Set<string>();
   for (const userId of Array.from(out)) {
     const email = await resolveRecipientEmail(admin, userId);
     if (email && excludedEmails.has(email)) continue;
+    if (email && seenEmails.has(email)) continue;
+    if (email) seenEmails.add(email);
     filtered.push(userId);
   }
   return filtered;
