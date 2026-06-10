@@ -633,44 +633,38 @@ export default function ReturnDetail() {
               </Card>
             )}
 
-            {/* Workflow approval-action history (configurable workflow mode) */}
-            {workflowEnabled && approvalActions.length > 0 && (
+            {/* Unified Activity / History — merges workflow approval_actions
+                with the enriched return_audit_log rows. */}
+            {(auditLog.length > 0 || approvalActions.length > 0) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" /> Workflow Activity
+                    <History className="h-4 w-4 text-primary" /> Activity & History
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {approvalActions.slice(0, 15).map((a: any) => (
-                    <div key={a.id} className="text-xs border-l-2 border-primary/60 pl-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium capitalize">{(a.action_type || '').replace(/_/g, ' ')}</span>
+                <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto">
+                  {auditLog.map((a: any) => (
+                    <div key={`audit-${a.id}`} className="text-xs border-l-2 border-primary/40 pl-2 py-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium">{labelForReturnActivity(a.action)}</span>
                         <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
                       </div>
-                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Legacy audit history */}
-            {auditLog.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" /> Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {auditLog.slice(0, 10).map((a: any) => (
-                    <div key={a.id} className="text-xs border-l-2 border-primary/40 pl-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium capitalize">{a.action.replace(/_/g, ' ')}</span>
-                        <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
-                      </div>
-                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
+                      {(a.previous_status || a.new_status) && a.previous_status !== a.new_status && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Status: <span className="font-mono">{a.previous_status || '—'}</span>
+                          {' → '}
+                          <span className="font-mono">{a.new_status || '—'}</span>
+                        </p>
+                      )}
+                      {(a.previous_step_id || a.new_step_id) && a.previous_step_id !== a.new_step_id && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Step changed
+                        </p>
+                      )}
+                      {a.comments && <p className="text-muted-foreground mt-0.5 whitespace-pre-wrap">{a.comments}</p>}
+                      {a.event_key && (
+                        <p className="text-[9px] text-muted-foreground/70 mt-0.5 font-mono">{a.event_key}</p>
+                      )}
                     </div>
                   ))}
                 </CardContent>
