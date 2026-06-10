@@ -718,20 +718,8 @@ export default function WorkflowList() {
                         </div>
                       </button>
                     );
-                  })
-
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-destructive"
-                            onClick={e => { e.stopPropagation(); handleDelete(wf); }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </button>
-                  ))
                 )}
+
               </CardContent>
             </Card>
           </div>
