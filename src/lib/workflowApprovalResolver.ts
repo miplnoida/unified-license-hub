@@ -1,4 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getApplicationCategory } from '@/lib/applicationCategory';
+
+/**
+ * Workflow entity_type values matched for an application during lookup.
+ * The new `pre_application` / `post_application` rows are preferred. Legacy
+ * `application` rows are still accepted as a fallback for un-migrated configs.
+ */
+function entityTypesForApplication(appRow: { data?: Record<string, any> | null }): string[] {
+  const category = getApplicationCategory(appRow?.data);
+  const primary = category === 'post_license' ? 'post_application' : 'pre_application';
+  return [primary, 'application'];
+}
 
 /**
  * Shared resolver that determines whether the approval-workflow review step
