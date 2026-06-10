@@ -359,6 +359,11 @@ export default function ReturnDetail() {
         .update({ workflow_status: 'TBR', updated_by: user?.id })
         .eq('id', id);
       if (uErr) throw uErr;
+      await (supabase as any).from('return_comments').insert({
+        return_id: id,
+        comment_text: comments_.trim(),
+        commented_by: user?.id,
+      });
       await logAudit('rejected', status || '', 'TBR', comments_.trim());
       toast.success('Edit request sent to licensee');
       setComments('');
