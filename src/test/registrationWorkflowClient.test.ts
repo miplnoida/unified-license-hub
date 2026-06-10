@@ -11,7 +11,7 @@
  *   3. The edge function payload contract is stable.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { invokePerformRegistrationWorkflowAction } from './helpers/registrationWorkflowClient';
+import { invokePerformRegistrationWorkflowAction } from '@/lib/registrationWorkflowClient';
 
 // ---- mocked supabase client ----
 const invokeMock = vi.fn();
