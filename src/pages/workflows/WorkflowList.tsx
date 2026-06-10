@@ -679,12 +679,22 @@ export default function WorkflowList() {
                 ) : (
                   workflows.map(wf => {
                     const typeIsKnown = activeTypeKeys.has(wf.entity_type as WorkflowEntityType);
+                    const isSelected = selectedId === wf.id;
                     return (
-                      <button
+                      <div
                         key={wf.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={isSelected}
                         onClick={() => setSelectedId(wf.id)}
-                        className={`w-full text-left p-3 rounded-lg border transition-all ${
-                          selectedId === wf.id
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedId(wf.id);
+                          }
+                        }}
+                        className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          isSelected
                             ? 'border-primary bg-primary/5 shadow-sm'
                             : 'hover:border-primary/40'
                         }`}
@@ -713,6 +723,7 @@ export default function WorkflowList() {
                               size="icon"
                               className="h-6 w-6"
                               onClick={e => { e.stopPropagation(); openEdit(wf); }}
+                              aria-label={`Edit workflow ${wf.name}`}
                               title="Edit workflow"
                             >
                               <Pencil className="h-3 w-3" />
@@ -722,12 +733,13 @@ export default function WorkflowList() {
                               size="icon"
                               className="h-6 w-6 text-destructive"
                               onClick={e => { e.stopPropagation(); handleDelete(wf); }}
+                              aria-label={`Delete workflow ${wf.name}`}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })
                 )}
