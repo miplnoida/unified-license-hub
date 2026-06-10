@@ -133,6 +133,7 @@ export default function WorkflowList() {
   const qc = useQueryClient();
 
   const createWorkflow = useCreateWorkflow();
+  const createWorkflowWithSteps = useCreateWorkflowWithSteps();
   const updateWorkflow = useUpdateWorkflow();
   const deleteWorkflow = useDeleteWorkflow();
   const createStep = useCreateStep();
