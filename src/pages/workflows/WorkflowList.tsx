@@ -464,7 +464,7 @@ export default function WorkflowList() {
     setEditTarget(wf);
     setEditName(wf.name);
     setEditDesc(wf.description || '');
-    setEditLicenseType(wf.license_type);
+    
     setEditEntityType(wf.entity_type as WorkflowEntityType);
     setEditSectorId(wf.sector_id || 'none');
     setEditOpen(true);
