@@ -26,6 +26,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
+import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
+import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 
 function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
@@ -177,6 +180,62 @@ export default function ReturnDetail() {
   const isApproved = normalizedStatus === 'VAL';
   const isResubmissionRequested = normalizedStatus === 'TBR';
   const activeRequest = requests.find((r: any) => r.status === 'active');
+
+  // Configurable workflow resolution — if a return-scoped approval_workflow
+  // exists, we drive the UI through the same shared engine the application
+  // approval flow uses. Otherwise we fall back to the legacy SUB→VAL/TBR
+  // buttons so existing deployments continue to work.
+  const { data: workflowResolution } = useQuery({
+    queryKey: ['return-workflow-resolution', returnData?.id, returnData?.sector_id, returnData?.subsector_id, returnData?.return_configuration_id],
+    enabled: !!returnData?.id,
+    queryFn: () => resolveReturnWorkflow({
+      return: {
+        id: returnData!.id,
+        sector_id: returnData!.sector_id,
+        subsector_id: returnData!.subsector_id,
+        return_configuration_id: returnData!.return_configuration_id,
+        workflow_id: (returnData as any)?.workflow_id ?? null,
+      },
+    }),
+    staleTime: 60_000,
+  });
+  const workflowEnabled = !!workflowResolution?.enabled;
+  const matchedWorkflowId = workflowResolution?.matchedWorkflowId || (returnData as any)?.workflow_id || null;
+
+  // Approval-action history (workflow-driven). Joined to profiles for display.
+  const { data: approvalActions = [] } = useQuery({
+    queryKey: ['approval_actions', 'return', returnData?.id],
+    enabled: !!returnData?.id && workflowEnabled,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('approval_actions')
+        .select('id, action_type, comments, created_at, actor_id')
+        .eq('entity_type', 'return')
+        .eq('entity_id', returnData!.id)
+        .order('created_at', { ascending: false });
+      return (data as any[]) || [];
+    },
+  });
+  const { data: workflowInstances = [] } = useWorkflowInstances('return', returnData?.id);
+  const hasActiveInstance = workflowInstances.some((i: any) => i.status === 'active' || i.status === 'paused');
+
+  // Auto-start the workflow instance for a submitted return when one doesn't
+  // exist yet. Idempotent — the RPC resumes any existing instance.
+  useEffect(() => {
+    if (!returnData?.id) return;
+    if (!workflowEnabled) return;
+    if (!isReviewable) return;
+    if (hasActiveInstance) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await (supabase as any).rpc('start_return_workflow', { _return_id: returnData.id });
+      if (!cancelled && !error) {
+        qc.invalidateQueries({ queryKey: ['workflow_instances', 'return', returnData.id] });
+        qc.invalidateQueries({ queryKey: ['returns_filed', returnData.id] });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [returnData?.id, workflowEnabled, isReviewable, hasActiveInstance, qc]);
 
   async function logAudit(action: string, prev: string, next: string, note: string) {
     await (supabase as any).from('return_audit_log').insert({
@@ -353,76 +412,94 @@ export default function ReturnDetail() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" /> Approval Workflow
+                  <Shield className="h-4 w-4 text-primary" /> Status
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Current Status</span>
                   <StatusBadge status={returnData.workflow_status} />
                 </div>
-                <Separator />
-
-                {isReviewable ? (
-                  <div className="space-y-3">
-                    <div>
-                      <Label htmlFor="action-comments" className="text-xs">
-                        Comments / Reason {`(required for Request Edit)`}
-                      </Label>
-                      <Textarea
-                        id="action-comments"
-                        rows={4}
-                        placeholder="Add a note for the licensee..."
-                        value={comments_}
-                        onChange={(e) => setComments(e.target.value)}
-                        disabled={!!submitting}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        onClick={handleApprove}
-                        disabled={!!submitting}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        {submitting === 'approve'
-                          ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          : <CheckCircle className="h-4 w-4 mr-2" />}
-                        Approve Return
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleRequestEdit}
-                        disabled={!!submitting}
-                        className="border-amber-500 text-amber-700 hover:bg-amber-50"
-                      >
-                        {submitting === 'request_edit'
-                          ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          : <AlertTriangle className="h-4 w-4 mr-2" />}
-                        Request Edit
-                      </Button>
-                    </div>
-                  </div>
-                ) : isApproved ? (
-                  <Alert className="border-green-500 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-xs text-green-800">
-                      No further actions required. Return is approved.
-                    </AlertDescription>
-                  </Alert>
-                ) : isResubmissionRequested ? (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      Waiting for licensee to edit and resubmit the return.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">
-                    No actions available for status: {status}
+                {workflowEnabled && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Configurable approval workflow is active for this return.
                   </p>
                 )}
               </CardContent>
             </Card>
+
+            {workflowEnabled ? (
+              <ReturnWorkflowPanel
+                returnId={returnData.id}
+                workflowId={matchedWorkflowId}
+                workflowEnabled={workflowEnabled}
+                returnStatus={returnData.workflow_status}
+                onStatusChange={() => {
+                  qc.invalidateQueries({ queryKey: ['returns_filed'] });
+                  qc.invalidateQueries({ queryKey: ['returns_filed', id] });
+                  qc.invalidateQueries({ queryKey: ['return_requests', id] });
+                  qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
+                  qc.invalidateQueries({ queryKey: ['approval_actions', 'return', id] });
+                }}
+              />
+            ) : (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" /> Approval Workflow
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {isReviewable ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="action-comments" className="text-xs">
+                          Comments / Reason (required for Request Edit)
+                        </Label>
+                        <Textarea id="action-comments" rows={4}
+                          placeholder="Add a note for the licensee..."
+                          value={comments_} onChange={(e) => setComments(e.target.value)}
+                          disabled={!!submitting} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button onClick={handleApprove} disabled={!!submitting}
+                          className="bg-green-600 hover:bg-green-700">
+                          {submitting === 'approve'
+                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            : <CheckCircle className="h-4 w-4 mr-2" />}
+                          Approve Return
+                        </Button>
+                        <Button variant="outline" onClick={handleRequestEdit} disabled={!!submitting}
+                          className="border-amber-500 text-amber-700 hover:bg-amber-50">
+                          {submitting === 'request_edit'
+                            ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            : <AlertTriangle className="h-4 w-4 mr-2" />}
+                          Request Edit
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isApproved ? (
+                    <Alert className="border-green-500 bg-green-50">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-xs text-green-800">
+                        No further actions required. Return is approved.
+                      </AlertDescription>
+                    </Alert>
+                  ) : isResubmissionRequested ? (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        Waiting for licensee to edit and resubmit the return.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No actions available for status: {status}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Edit-request history */}
             {requests.length > 0 && (
@@ -450,7 +527,29 @@ export default function ReturnDetail() {
               </Card>
             )}
 
-            {/* Audit history */}
+            {/* Workflow approval-action history (configurable workflow mode) */}
+            {workflowEnabled && approvalActions.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <History className="h-4 w-4 text-primary" /> Workflow Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {approvalActions.slice(0, 15).map((a: any) => (
+                    <div key={a.id} className="text-xs border-l-2 border-primary/60 pl-2 py-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium capitalize">{(a.action_type || '').replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                      </div>
+                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Legacy audit history */}
             {auditLog.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
