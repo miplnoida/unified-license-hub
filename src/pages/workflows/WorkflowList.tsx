@@ -278,6 +278,9 @@ export default function WorkflowList() {
         for (let i = 0; i < templateSteps.length; i++) {
           const s = templateSteps[i];
           const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
+          const tplAllowed = Array.isArray(s.allowed_actions) && s.allowed_actions.length > 0
+            ? (s.allowed_actions as WorkflowActionType[])
+            : (['approve', 'reject', 'send_back'] as WorkflowActionType[]);
           await createStep.mutateAsync({
             workflow_id: wf.id,
             step_order: i + 1,
@@ -285,7 +288,7 @@ export default function WorkflowList() {
             approver_role: (tplRole.system_role || 'admin') as any,
             approver_role_id: tplRole.id,
             sla_hours: s.sla_hours || 48,
-            allowed_actions: ['approve', 'reject', 'send_back'],
+            allowed_actions: tplAllowed,
           });
         }
       } else {
