@@ -1210,13 +1210,20 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     }
   }, [isEditing]);
 
-  const handleRoleSelect = async (r: { id: string; name: string; system_role: string }) => {
+  const handleRoleSelect = async (r: { id: string; name: string; system_role: string | null }) => {
     const previous = localRoleId;
     setLocalRoleId(r.id);
     setSavingRoleId(r.id);
+    // approval_steps.approver_role is NOT NULL. Dynamic roles (e.g. "Data Clerk")
+    // may not have a legacy system_role mapping. Fall back to the step's current
+    // legacy role, then to a safe default so we never send null.
+    const safeApproverRole =
+      (r.system_role && String(r.system_role).trim()) ||
+      (step.approver_role && String(step.approver_role).trim()) ||
+      'licensing_officer';
     try {
       await Promise.resolve(
-        onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any),
+        onUpdate(step.id, { approver_role: safeApproverRole as any, approver_role_id: r.id } as any),
       );
       setPickerOpen(false);
       setRoleSearch('');
