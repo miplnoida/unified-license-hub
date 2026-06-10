@@ -798,15 +798,19 @@ export default function WorkflowList() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Used For <span className="text-destructive">*</span></Label>
-                <Select value={newEntityType} onValueChange={v => setNewEntityType(v as WorkflowEntityType)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={newEntityType || undefined}
+                  onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
+                  disabled={activeWorkflowTypes.length === 0}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
                   <SelectContent>
-                    {createTypeOptions.map((workflowType) => (
+                    {activeWorkflowTypes.map((workflowType) => (
                       <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+
               <div>
                 <Label>Category <span className="text-destructive">*</span></Label>
                 <Input
