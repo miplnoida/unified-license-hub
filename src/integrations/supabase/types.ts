@@ -321,6 +321,36 @@ export type Database = {
           },
         ]
       }
+      approval_workflow_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_label: string
+          is_active: boolean
+          key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_label: string
+          is_active?: boolean
+          key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_label?: string
+          is_active?: boolean
+          key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       approval_workflows: {
         Row: {
           category_id: string | null
@@ -339,7 +369,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
-          entity_type?: string
+          entity_type: string
           id?: string
           is_active?: boolean
           license_type: string
@@ -368,6 +398,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categories"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_entity_type_fkey"
+            columns: ["entity_type"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_types"
+            referencedColumns: ["key"]
           },
           {
             foreignKeyName: "approval_workflows_regulator_id_fkey"
