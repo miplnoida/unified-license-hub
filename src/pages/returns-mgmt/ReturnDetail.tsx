@@ -345,6 +345,23 @@ export default function ReturnDetail() {
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
+      supabase.functions.invoke('dispatch-notification-event', {
+        body: {
+          event_key: 'return.edit_requested',
+          entity_type: 'return',
+          entity_id: id,
+          payload: {
+            return_id: id,
+            unique_id: returnData?.unique_id,
+            actor_id: user?.id,
+            actor_name: user?.email,
+            comments: comments_.trim(),
+            reason: comments_.trim(),
+            previous_status: status,
+            new_status: 'TBR',
+          },
+        },
+      }).catch(() => {});
     } catch (e: any) {
       toast.error(e.message || 'Failed to request edit');
     } finally { setSubmitting(null); }
