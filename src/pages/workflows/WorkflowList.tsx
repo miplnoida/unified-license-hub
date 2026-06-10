@@ -29,7 +29,7 @@ import { toast } from 'sonner';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import {
   useWorkflows, useWorkflowSteps,
-  useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow,
+  useCreateWorkflow, useCreateWorkflowWithSteps, useUpdateWorkflow, useDeleteWorkflow,
   useCreateStep, useUpdateStep, useDeleteStep, useReorderSteps,
   useWorkflowTypeConfigs, filterActiveWorkflowTypes, getWorkflowTypeLabel,
   type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
