@@ -333,27 +333,38 @@ export default function FillReturnPage() {
       }
 
       const previousStatus = String(returnData?.workflow_status || '').toUpperCase();
-      try {
-        await updateReturn.mutateAsync({
-          id,
-          workflow_status: 'SUB',
-          submit_date: now.toISOString(),
-          ontime_status: ontime,
-          updated_by: user?.id,
+
+      // Resubmission path: prefer the resubmit-return edge function so the
+      // workflow instance (if any) is reopened and the active edit-request
+      // row is closed atomically. Falls back to a direct update for legacy
+      // returns with no workflow configured.
+      if (previousStatus === 'TBR') {
+        const { data: resub, error: resubErr } = await supabase.functions.invoke('resubmit-return', {
+          body: { return_id: id, comments: 'Licensee resubmission' },
         });
-      } catch (e: any) {
-        toast.error(e?.message || 'Failed to submit return');
-        return;
-      }
-
-      if (previousStatus === 'TBR' && activeRequest?.id) {
-        const { error: resolveRequestError } = await supabase
-          .from('return_requests')
-          .update({ status: 'resolved', resolved_at: now.toISOString() })
-          .eq('id', activeRequest.id);
-
-        if (resolveRequestError) {
-          toast.error(resolveRequestError.message || 'Return submitted, but the edit request could not be closed.');
+        if (resubErr || (resub as any)?.error) {
+          // Fall back to legacy direct update
+          try {
+            await updateReturn.mutateAsync({
+              id, workflow_status: 'SUB', submit_date: now.toISOString(),
+              ontime_status: ontime, updated_by: user?.id,
+            });
+          } catch (e: any) { toast.error(e?.message || 'Failed to submit return'); return; }
+          if (activeRequest?.id) {
+            await supabase.from('return_requests')
+              .update({ status: 'resolved', resolved_at: now.toISOString() })
+              .eq('id', activeRequest.id);
+          }
+        }
+      } else {
+        try {
+          await updateReturn.mutateAsync({
+            id, workflow_status: 'SUB', submit_date: now.toISOString(),
+            ontime_status: ontime, updated_by: user?.id,
+          });
+        } catch (e: any) {
+          toast.error(e?.message || 'Failed to submit return');
+          return;
         }
       }
 
