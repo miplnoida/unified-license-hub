@@ -271,7 +271,7 @@ export default function ReturnDetail() {
         await (supabase as any).from('return_comments').insert({
           return_id: id,
           comment_text: comments_.trim(),
-          created_by: user?.id,
+          commented_by: user?.id,
         });
       }
       toast.success('Return approved');
