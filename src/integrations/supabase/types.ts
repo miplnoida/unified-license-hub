@@ -174,11 +174,13 @@ export type Database = {
           action: string
           action_type: string
           actor_id: string
-          application_id: string
+          application_id: string | null
           comments: string | null
           created_at: string
           delegated_from: string | null
           delegated_to: string | null
+          entity_id: string | null
+          entity_type: string
           id: string
           responded_at: string | null
           sla_deadline: string | null
@@ -189,11 +191,13 @@ export type Database = {
           action: string
           action_type?: string
           actor_id: string
-          application_id: string
+          application_id?: string | null
           comments?: string | null
           created_at?: string
           delegated_from?: string | null
           delegated_to?: string | null
+          entity_id?: string | null
+          entity_type?: string
           id?: string
           responded_at?: string | null
           sla_deadline?: string | null
@@ -204,11 +208,13 @@ export type Database = {
           action?: string
           action_type?: string
           actor_id?: string
-          application_id?: string
+          application_id?: string | null
           comments?: string | null
           created_at?: string
           delegated_from?: string | null
           delegated_to?: string | null
+          entity_id?: string | null
+          entity_type?: string
           id?: string
           responded_at?: string | null
           sla_deadline?: string | null
@@ -4983,6 +4989,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          current_step_id: string | null
           due_date: string | null
           entity_id: string | null
           id: string
@@ -5003,11 +5010,13 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           version: string | null
+          workflow_id: string | null
           workflow_status: Database["public"]["Enums"]["return_workflow_status"]
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          current_step_id?: string | null
           due_date?: string | null
           entity_id?: string | null
           id?: string
@@ -5028,11 +5037,13 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: string | null
+          workflow_id?: string | null
           workflow_status?: Database["public"]["Enums"]["return_workflow_status"]
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          current_step_id?: string | null
           due_date?: string | null
           entity_id?: string | null
           id?: string
@@ -5053,9 +5064,17 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           version?: string | null
+          workflow_id?: string | null
           workflow_status?: Database["public"]["Enums"]["return_workflow_status"]
         }
         Relationships: [
+          {
+            foreignKeyName: "returns_filed_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "returns_filed_entity_id_fkey"
             columns: ["entity_id"]
@@ -5089,6 +5108,13 @@ export type Database = {
             columns: ["subsector_id"]
             isOneToOne: false
             referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -6184,6 +6210,17 @@ export type Database = {
         }
         Returns: Json
       }
+      perform_return_workflow_transition: {
+        Args: {
+          _action_type: string
+          _actor_id: string
+          _comments: string
+          _instance_id: string
+          _return_id: string
+          _step_id: string
+        }
+        Returns: Json
+      }
       perform_workflow_transition: {
         Args: {
           _action_type: string
@@ -6227,6 +6264,11 @@ export type Database = {
         Args: { _return_submission_id: string; _template_id: string }
         Returns: Json
       }
+      resolve_return_workflow: { Args: { _return_id: string }; Returns: string }
+      resubmit_return: {
+        Args: { _actor_id: string; _comments: string; _return_id: string }
+        Returns: Json
+      }
       save_ppoc_mapping: {
         Args: {
           _licensee_id: string
@@ -6236,6 +6278,7 @@ export type Database = {
         }
         Returns: Json
       }
+      start_return_workflow: { Args: { _return_id: string }; Returns: Json }
       submit_application: {
         Args: { _ack_text?: string; _application_id: string }
         Returns: Json
