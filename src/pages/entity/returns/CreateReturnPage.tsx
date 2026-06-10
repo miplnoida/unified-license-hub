@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useReturnConfigs, useReturnTypes, useMutateReturn, useInsertReturnAudit } from '@/hooks/useReturnsManagement';
+import { useReturnConfigs, useReturnTypes, useMutateReturn } from '@/hooks/useReturnsManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +17,7 @@ import { addDays, lastDayOfMonth, lastDayOfYear, lastDayOfQuarter, format } from
 import { useLicenseStatusGate } from '@/hooks/useLicenseStatusGate';
 import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
+import { logReturnCreated } from '@/lib/returnActivityLogger';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const QUARTERS = ['Q1','Q2','Q3','Q4'];
@@ -28,7 +29,6 @@ export default function CreateReturnPage() {
   const { data: configs = [] } = useReturnConfigs();
   const { data: returnTypes = [] } = useReturnTypes();
   const { create: createReturn } = useMutateReturn();
-  const insertAudit = useInsertReturnAudit();
 
   // Get user's profile to find entity (for non-PPOC users)
   const { data: profile } = useQuery({
@@ -166,8 +166,14 @@ export default function CreateReturnPage() {
       created_by: user?.id,
       updated_by: user?.id,
     } as any, {
-      onSuccess: (data: any) => {
-        insertAudit.mutate({ return_id: data.id, action: 'created', new_status: 'TEMP', performed_by: user?.id });
+      onSuccess: async (data: any) => {
+        await logReturnCreated({
+          return_id: data.id,
+          new_status: 'TEMP',
+          performed_by: user?.id,
+          return_configuration_id: configId,
+          return_config_name: selectedConfig?.name || null,
+        });
         toast.success('Return created! Start filling the form.');
         navigate(`/entity/returns/${data.id}/fill`);
       },
