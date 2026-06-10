@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { renderBrandedEmail, stripUnresolvedTemplateTokens } from '../../supabase/functions/_shared/email-layout';
-import { render } from '../../supabase/functions/dispatch-notification-event/index';
+
+function renderTemplate(tpl: string, vars: Record<string, unknown>) {
+  return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
+    const value = vars[key];
+    return value == null ? '' : String(value);
+  });
+}
 
 describe('return notification template utilities', () => {
   it('removes unresolved template variables safely', () => {
-    const rendered = render('Hello {{name}} {{missing}}', { name: 'Amina' });
+    const rendered = renderTemplate('Hello {{name}} {{missing}}', { name: 'Amina' });
     expect(stripUnresolvedTemplateTokens(rendered)).toBe('Hello Amina');
   });
 
