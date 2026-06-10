@@ -29,7 +29,8 @@ import {
   useWorkflows, useWorkflowSteps,
   useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow,
   useCreateStep, useUpdateStep, useDeleteStep, useReorderSteps,
-  ENTITY_TYPE_LABELS,
+  useWorkflowTypeConfigs, filterActiveWorkflowTypes, getWorkflowTypeLabel,
+  FALLBACK_WORKFLOW_TYPE_LABELS,
   type Workflow, type WorkflowStep, type WorkflowEntityType,
 } from '@/hooks/useWorkflowEngine';
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
@@ -110,6 +111,7 @@ function resolveDefaultRoleForSector(
 export default function WorkflowList() {
   const { activeRegulatorId } = useRegulator();
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
+  const { data: workflowTypeConfigs = [] } = useWorkflowTypeConfigs();
   const { data: dynamicRoles = [] } = useRoles();
   const { data: sectors = [] } = useSectors(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
@@ -164,6 +166,19 @@ export default function WorkflowList() {
     () => resolveDefaultRoleForSector(selectedSectorName, dynamicRoles),
     [selectedSectorName, dynamicRoles],
   );
+  const activeWorkflowTypes = useMemo(
+    () => filterActiveWorkflowTypes(workflowTypeConfigs),
+    [workflowTypeConfigs],
+  );
+  const createTypeOptions = activeWorkflowTypes.length > 0
+    ? activeWorkflowTypes
+    : (Object.entries(FALLBACK_WORKFLOW_TYPE_LABELS) as [WorkflowEntityType, string][]).map(([key, label], index) => ({
+        key,
+        display_label: label,
+        description: null,
+        is_active: true,
+        sort_order: index,
+      }));
 
   const handleCreate = async () => {
     if (!newName.trim() || !newLicenseType.trim()) {
@@ -419,7 +434,7 @@ export default function WorkflowList() {
                           <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             <Badge variant="outline" className="text-[10px]">
-                              {ENTITY_TYPE_LABELS[wf.entity_type as WorkflowEntityType] || wf.entity_type}
+                              {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
                             </Badge>
                             <span className="text-[10px] text-muted-foreground truncate">{wf.license_type}</span>
                           </div>
@@ -456,7 +471,7 @@ export default function WorkflowList() {
                     </CardTitle>
                     {selectedWorkflow && (
                       <CardDescription className="mt-1">
-                        {ENTITY_TYPE_LABELS[selectedWorkflow.entity_type as WorkflowEntityType]} ·
+                        {getWorkflowTypeLabel(selectedWorkflow.entity_type, workflowTypeConfigs)} ·
                         {' '}{steps.length} step{steps.length === 1 ? '' : 's'} · Anyone in the chosen role can approve
                       </CardDescription>
                     )}
@@ -520,8 +535,8 @@ export default function WorkflowList() {
                 <Select value={newEntityType} onValueChange={v => setNewEntityType(v as WorkflowEntityType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(ENTITY_TYPE_LABELS) as [WorkflowEntityType, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    {createTypeOptions.map((workflowType) => (
+                      <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -617,7 +632,7 @@ export default function WorkflowList() {
                       )}
                       <div className="flex items-center gap-1 mt-2 flex-wrap">
                         <Badge variant="outline" className="text-[10px]">
-                          {ENTITY_TYPE_LABELS[t.entity_type as WorkflowEntityType] || t.entity_type}
+                          {getWorkflowTypeLabel(t.entity_type, workflowTypeConfigs)}
                         </Badge>
                         {t.steps.map((s, i) => (
                           <Badge key={i} variant="secondary" className="text-[10px]">
