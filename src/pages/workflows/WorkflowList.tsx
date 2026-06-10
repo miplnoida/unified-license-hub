@@ -1251,6 +1251,13 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
           </p>
         )}
 
+        {/* Allowed actions — explicit, no silent defaults */}
+        {(!Array.isArray(step.allowed_actions) || step.allowed_actions.length === 0) && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" /> No allowed actions configured — approvers will be blocked.
+          </p>
+        )}
+
         {/* Advanced Options */}
         <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <CollapsibleTrigger asChild>
@@ -1266,18 +1273,53 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                 <Label className="text-xs text-muted-foreground min-w-[90px]">Due Within</Label>
                 <Input
                   type="number"
+                  min={1}
+                  max={24 * 365}
                   className="h-8 w-24 text-xs"
-                  value={step.sla_hours || 48}
-                  onChange={e => onUpdate(step.id, { sla_hours: parseInt(e.target.value) || 48 } as any)}
+                  value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
+                  onChange={e => {
+                    const parsed = parseInt(e.target.value, 10);
+                    const safe = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 24 * 365) : 48;
+                    onUpdate(step.id, { sla_hours: safe } as any);
+                  }}
                 />
                 <span className="text-xs text-muted-foreground">hours</span>
               </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_ACTIONS.map(action => {
+                    const current = Array.isArray(step.allowed_actions) ? step.allowed_actions as WorkflowActionType[] : [];
+                    const checked = current.includes(action);
+                    return (
+                      <label key={action} className="flex items-center gap-1.5 text-xs cursor-pointer select-none rounded-md border px-2 py-1 bg-background">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) => {
+                            const next = v
+                              ? Array.from(new Set([...current, action]))
+                              : current.filter(a => a !== action);
+                            onUpdate(step.id, { allowed_actions: next } as any);
+                          }}
+                        />
+                        {ACTION_LABELS[action]}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Approvers can only perform actions checked here.
+                </p>
+              </div>
+
               <p className="text-[11px] text-muted-foreground">
-                Escalation, parallel approvals, and conditional rules can be configured here in future updates.
+                Escalation, parallel approvals, and conditional rules are not yet available in this builder.
               </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
+
       </div>
     </div>
   );
