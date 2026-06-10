@@ -46,7 +46,12 @@ const ALL_ACTIONS: WorkflowActionType[] = ['approve', 'reject', 'send_back', 'es
 
 
 // ─── Templates ───
-type TemplateStep = { name: string; approver_role: string; sla_hours?: number };
+type TemplateStep = {
+  name: string;
+  approver_role: string;
+  sla_hours?: number;
+  allowed_actions?: WorkflowActionType[];
+};
 type WorkflowTemplate = {
   id: string;
   name: string;
