@@ -809,7 +809,7 @@ export default function WorkflowList() {
                     roleLabel={roleLabel}
                     stepRoleLabel={stepRoleLabel}
                     isEditing={isEditingSteps}
-                    onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
+                    onUpdate={(id, u) => updateStep.mutateAsync({ id, ...u } as any).then(() => undefined)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
                     onAdd={handleAddStep}
