@@ -282,7 +282,7 @@ export default function WorkflowList() {
           return {
             step_order: i + 1,
             name: s.name || `Step ${i + 1}`,
-            approver_role: (tplRole.system_role || 'admin') as string,
+            approver_role: ((tplRole.system_role || 'admin') as any),
             approver_role_id: tplRole.id,
             sla_hours: s.sla_hours || 48,
             allowed_actions: tplAllowed,
