@@ -29,6 +29,12 @@ import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
+import {
+  logReturnActivity,
+  logReturnApprovedLegacy,
+  logEditRequestedLegacy,
+  labelForReturnActivity,
+} from '@/lib/returnActivityLogger';
 
 function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
