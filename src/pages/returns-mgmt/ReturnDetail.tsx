@@ -219,6 +219,24 @@ export default function ReturnDetail() {
   const { data: workflowInstances = [] } = useWorkflowInstances('return', returnData?.id);
   const hasActiveInstance = workflowInstances.some((i: any) => i.status === 'active' || i.status === 'paused');
 
+  // Auto-start the workflow instance for a submitted return when one doesn't
+  // exist yet. Idempotent — the RPC resumes any existing instance.
+  useEffect(() => {
+    if (!returnData?.id) return;
+    if (!workflowEnabled) return;
+    if (!isReviewable) return;
+    if (hasActiveInstance) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await (supabase as any).rpc('start_return_workflow', { _return_id: returnData.id });
+      if (!cancelled && !error) {
+        qc.invalidateQueries({ queryKey: ['workflow_instances', 'return', returnData.id] });
+        qc.invalidateQueries({ queryKey: ['returns_filed', returnData.id] });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [returnData?.id, workflowEnabled, isReviewable, hasActiveInstance, qc]);
+
   async function logAudit(action: string, prev: string, next: string, note: string) {
     await (supabase as any).from('return_audit_log').insert({
       return_id: id,
