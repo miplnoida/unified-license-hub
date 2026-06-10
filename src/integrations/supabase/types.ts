@@ -6279,6 +6279,17 @@ export type Database = {
         }
         Returns: Json
       }
+      perform_registration_workflow_transition: {
+        Args: {
+          _action_type: string
+          _actor_id: string
+          _comments: string
+          _instance_id: string
+          _registration_id: string
+          _step_id: string
+        }
+        Returns: Json
+      }
       perform_return_workflow_transition: {
         Args: {
           _action_type: string
@@ -6329,6 +6340,10 @@ export type Database = {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
       }
+      resolve_registration_workflow: {
+        Args: { _sector_id: string }
+        Returns: string
+      }
       resolve_return_form_version: {
         Args: { _return_submission_id: string; _template_id: string }
         Returns: Json
@@ -6346,6 +6361,10 @@ export type Database = {
           _sector_ids: string[]
         }
         Returns: Json
+      }
+      start_registration_workflow: {
+        Args: { _registration_id: string }
+        Returns: string
       }
       start_return_workflow: { Args: { _return_id: string }; Returns: Json }
       submit_application: {
