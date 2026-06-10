@@ -34,8 +34,8 @@ function getMutationFn() {
   // via a minimal harness. Easiest: invoke the hook in a fake React env.
   // We reach in via the source: hook returns the useMutation object — for a
   // pure contract test it's simpler to call the RPC the same way the hook does.
-  return async (params: any) => {
-    const { data, error } = await (rpcMock as any)(
+  return async (params: { workflow: unknown; steps: unknown }) => {
+    const { data, error } = await (rpcMock as unknown as (...a: unknown[]) => Promise<{ data: { workflow_id?: string } | null; error: unknown }>)(
       'create_approval_workflow_with_steps',
       { _workflow: params.workflow, _steps: params.steps },
     );
