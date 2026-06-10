@@ -162,7 +162,7 @@ export default function WorkflowList() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newLicenseType, setNewLicenseType] = useState('');
+  
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType | ''>('');
   const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
@@ -172,7 +172,7 @@ export default function WorkflowList() {
   const [editTarget, setEditTarget] = useState<Workflow | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const [editLicenseType, setEditLicenseType] = useState('');
+  
   const [editEntityType, setEditEntityType] = useState<WorkflowEntityType | ''>('');
   const [editSectorId, setEditSectorId] = useState<string>('none');
 
@@ -226,8 +226,8 @@ export default function WorkflowList() {
         : null;
 
   const handleCreate = async () => {
-    if (!newName.trim() || !newLicenseType.trim()) {
-      toast.error('Please give the workflow a name and a category');
+    if (!newName.trim()) {
+      toast.error('Please give the workflow a name');
       return;
     }
     if (!newEntityType || !activeTypeKeys.has(newEntityType as WorkflowEntityType)) {
@@ -308,7 +308,10 @@ export default function WorkflowList() {
         workflow: {
           name: newName.trim(),
           description: newDesc.trim() || undefined,
-          license_type: newLicenseType.trim(),
+          // `license_type` is retained as a non-null DB column for backward
+          // compatibility but is no longer surfaced in the UI. Workflow routing
+          // uses regulator_id + sector_id + entity_type.
+          license_type: 'general',
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
@@ -327,7 +330,7 @@ export default function WorkflowList() {
       }
       setSelectedId(workflowId);
       setCreateOpen(false);
-      setNewName(''); setNewDesc(''); setNewLicenseType('');
+      setNewName(''); setNewDesc('');
       setNewEntityType(activeWorkflowTypes[0]?.key ?? '');
       setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
@@ -461,7 +464,7 @@ export default function WorkflowList() {
     setEditTarget(wf);
     setEditName(wf.name);
     setEditDesc(wf.description || '');
-    setEditLicenseType(wf.license_type);
+    
     setEditEntityType(wf.entity_type as WorkflowEntityType);
     setEditSectorId(wf.sector_id || 'none');
     setEditOpen(true);
@@ -469,8 +472,8 @@ export default function WorkflowList() {
 
   const handleEditSave = async () => {
     if (!editTarget) return;
-    if (!editName.trim() || !editLicenseType.trim()) {
-      toast.error('Name and category are required.');
+    if (!editName.trim()) {
+      toast.error('Name is required.');
       return;
     }
     if (!editEntityType || !activeTypeKeys.has(editEntityType as WorkflowEntityType)) {
@@ -514,7 +517,8 @@ export default function WorkflowList() {
         id: editTarget.id,
         name: editName.trim(),
         description: editDesc.trim() || null,
-        license_type: editLicenseType.trim(),
+        // license_type intentionally not updated — column preserved for
+        // backward compatibility, but no longer editable in the UI.
         entity_type: editEntityType,
         sector_id: sectorId,
       } as any);
@@ -711,7 +715,7 @@ export default function WorkflowList() {
                                   Legacy type
                                 </Badge>
                               )}
-                              <span className="text-[10px] text-muted-foreground truncate">{wf.license_type}</span>
+
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
@@ -833,33 +837,23 @@ export default function WorkflowList() {
               <Label>Workflow Name <span className="text-destructive">*</span></Label>
               <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., New License Approval" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Used For <span className="text-destructive">*</span></Label>
-                <Select
-                  value={newEntityType || undefined}
-                  onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
-                  disabled={activeWorkflowTypes.length === 0}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    {activeWorkflowTypes.map((workflowType) => (
-                      <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-              <div>
-                <Label>Category <span className="text-destructive">*</span></Label>
-                <Input
-                  value={newLicenseType}
-                  onChange={e => setNewLicenseType(e.target.value)}
-                  placeholder="e.g., Banking License"
-                />
-              </div>
+            <div>
+              <Label>Used For <span className="text-destructive">*</span></Label>
+              <Select
+                value={newEntityType || undefined}
+                onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
+                disabled={activeWorkflowTypes.length === 0}
+              >
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {activeWorkflowTypes.map((workflowType) => (
+                    <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+
             <div>
               <Label>Sector</Label>
               <Select value={newSectorId} onValueChange={setNewSectorId}>
@@ -929,31 +923,25 @@ export default function WorkflowList() {
               <Label>Workflow Name <span className="text-destructive">*</span></Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Used For <span className="text-destructive">*</span></Label>
-                <Select
-                  value={editEntityType || undefined}
-                  onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
-                  disabled={activeWorkflowTypes.length === 0}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    {activeWorkflowTypes.map((t) => (
-                      <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
-                    ))}
-                    {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
-                      <SelectItem value={editTarget.entity_type} disabled>
-                        {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Category <span className="text-destructive">*</span></Label>
-                <Input value={editLicenseType} onChange={e => setEditLicenseType(e.target.value)} />
-              </div>
+            <div>
+              <Label>Used For <span className="text-destructive">*</span></Label>
+              <Select
+                value={editEntityType || undefined}
+                onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
+                disabled={activeWorkflowTypes.length === 0}
+              >
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {activeWorkflowTypes.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
+                  ))}
+                  {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
+                    <SelectItem value={editTarget.entity_type} disabled>
+                      {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Sector</Label>
