@@ -53,6 +53,59 @@ async function loadApplication(admin: SupabaseClient, id: string) {
   return data || null;
 }
 
+async function loadReturn(admin: SupabaseClient, id: string) {
+  const { data } = await admin
+    .from("returns_filed")
+    .select("id, unique_id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, subsector_id, return_year, return_period, due_date, workflow_status, workflow_id, current_step_id, created_by, updated_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  let config_name: string | null = null;
+  if ((data as any).return_configuration_id) {
+    const { data: cfg } = await admin
+      .from("return_configs")
+      .select("name")
+      .eq("id", (data as any).return_configuration_id)
+      .maybeSingle();
+    config_name = (cfg as any)?.name || null;
+  }
+  return { ...(data as any), return_config_name: config_name };
+}
+
+async function returnSectorReviewers(
+  admin: SupabaseClient,
+  args: { sectorId?: string | null; subsectorId?: string | null; returnTypeId?: string | null },
+): Promise<string[]> {
+  let q = admin
+    .from("approval_workflows")
+    .select("id")
+    .eq("entity_type", "return")
+    .eq("is_active", true);
+  if (args.sectorId) q = q.or(`sector_id.eq.${args.sectorId},sector_id.is.null`);
+  const { data: workflows } = await q;
+  const wfIds = (workflows || []).map((r: any) => r.id).filter(Boolean);
+  if (wfIds.length === 0) return [];
+  const { data: steps } = await admin
+    .from("approval_steps")
+    .select("approver_role, approver_role_id")
+    .in("workflow_id", wfIds);
+  const out = new Set<string>();
+  for (const step of steps || []) {
+    if ((step as any).approver_role) {
+      const r = await recipientsForRole(admin, String((step as any).approver_role));
+      r.forEach((u) => u && out.add(u));
+    }
+    if ((step as any).approver_role_id) {
+      const { data: udr } = await admin
+        .from("user_dynamic_roles")
+        .select("user_id")
+        .eq("role_id", (step as any).approver_role_id);
+      (udr || []).forEach((row: any) => row.user_id && out.add(row.user_id));
+    }
+  }
+  return Array.from(out);
+}
+
 async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Promise<string | null> {
   const [{ data: profile }, { data: preLicenseUser }] = await Promise.all([
     admin.from("profiles").select("email").eq("id", userId).maybeSingle(),
