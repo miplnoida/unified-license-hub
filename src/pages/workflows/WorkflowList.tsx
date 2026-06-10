@@ -809,7 +809,7 @@ export default function WorkflowList() {
                     roleLabel={roleLabel}
                     stepRoleLabel={stepRoleLabel}
                     isEditing={isEditingSteps}
-                    onUpdate={(id, u) => updateStep.mutate({ id, ...u } as any)}
+                    onUpdate={(id, u) => updateStep.mutateAsync({ id, ...u } as any).then(() => undefined)}
                     onDelete={(id) => deleteStep.mutate(id)}
                     onMove={handleMove}
                     onAdd={handleAddStep}
@@ -1046,7 +1046,7 @@ interface TimelineBuilderProps {
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isEditing: boolean;
-  onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
+  onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
@@ -1168,7 +1168,7 @@ interface StepCardProps {
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isDuplicate: boolean;
   isEditing: boolean;
-  onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
+  onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
 }
@@ -1176,17 +1176,33 @@ interface StepCardProps {
 function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const roleExists = step.approver_role_id
-    ? dynamicRoles.some(r => r.id === step.approver_role_id)
-    : dynamicRoles.some(r => r.system_role === step.approver_role);
+  // Optimistic local override so the selected highlight + badge update
+  // immediately on click, before the backend round-trip completes.
+  const [localRoleId, setLocalRoleId] = useState<string | null>(step.approver_role_id ?? null);
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
+
+  // Re-sync when the server-side step prop changes (e.g. after refetch or
+  // when switching workflows).
+  useEffect(() => {
+    setLocalRoleId(step.approver_role_id ?? null);
+  }, [step.id, step.approver_role_id]);
+
+  const effectiveRoleId = localRoleId ?? step.approver_role_id ?? null;
+  const effectiveRole = effectiveRoleId
+    ? dynamicRoles.find(r => r.id === effectiveRoleId)
+    : dynamicRoles.find(r => r.system_role === step.approver_role);
+  const roleExists = !!effectiveRole;
+  const displayStepForBadge = {
+    approver_role: effectiveRole?.system_role || step.approver_role,
+    approver_role_id: effectiveRoleId,
+  };
 
   const filteredRoles = useMemo(
     () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
     [dynamicRoles, roleSearch]
   );
 
-  // Close the inline role picker as soon as edit mode is exited to avoid
-  // dangling editable controls when the user clicks "Done".
+  // Close the inline role picker as soon as edit mode is exited.
   useEffect(() => {
     if (!isEditing) {
       setPickerOpen(false);
@@ -1194,9 +1210,29 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     }
   }, [isEditing]);
 
+  const handleRoleSelect = async (r: { id: string; name: string; system_role: string }) => {
+    const previous = localRoleId;
+    setLocalRoleId(r.id);
+    setSavingRoleId(r.id);
+    try {
+      await Promise.resolve(
+        onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any),
+      );
+      setPickerOpen(false);
+      setRoleSearch('');
+    } catch (err: any) {
+      setLocalRoleId(previous);
+      toast.error(err?.message || 'Failed to update role');
+    } finally {
+      setSavingRoleId(null);
+    }
+  };
+
   const allowedActions = Array.isArray(step.allowed_actions)
     ? (step.allowed_actions as WorkflowActionType[])
     : [];
+
+
 
   return (
     <div className="border-2 rounded-lg bg-card p-4 hover:border-primary/40 transition-colors">
@@ -1261,7 +1297,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
                 <Users className="h-3 w-3" />
-                {stepRoleLabel(step)}
+                {stepRoleLabel(displayStepForBadge)}
               </Badge>
               {isEditing && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
@@ -1291,25 +1327,30 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
               <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
                 {filteredRoles.length === 0 ? (
                   <p className="text-xs text-muted-foreground p-2">No roles match.</p>
-                ) : filteredRoles.map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => {
-                      onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any);
-                      setPickerOpen(false); setRoleSearch('');
-                    }}
-                    className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                      (step.approver_role_id ? step.approver_role_id === r.id : step.approver_role === r.system_role)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background hover:border-primary/50'
-                    }`}
-                  >
-                    {r.name}
-                  </button>
-                ))}
+                ) : filteredRoles.map(r => {
+                  const isSelected = effectiveRoleId
+                    ? effectiveRoleId === r.id
+                    : step.approver_role === r.system_role;
+                  const isSaving = savingRoleId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={!!savingRoleId}
+                      onClick={() => handleRoleSelect(r)}
+                      className={`px-3 py-1.5 rounded-full border text-xs transition-colors disabled:opacity-60 ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background hover:border-primary/50'
+                      }`}
+                    >
+                      {r.name}{isSaving ? '…' : ''}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
           )}
           <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
             <Info className="h-3 w-3" />
