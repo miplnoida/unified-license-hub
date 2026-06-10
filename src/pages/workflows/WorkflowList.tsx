@@ -291,7 +291,7 @@ export default function WorkflowList() {
       : [{
           step_order: 1,
           name: fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1',
-          approver_role: (fallbackRole.system_role || 'admin') as string,
+          approver_role: ((fallbackRole.system_role || 'admin') as any),
           approver_role_id: fallbackRole.id,
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'] as WorkflowActionType[],
