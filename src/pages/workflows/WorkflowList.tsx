@@ -330,7 +330,7 @@ export default function WorkflowList() {
       }
       setSelectedId(workflowId);
       setCreateOpen(false);
-      setNewName(''); setNewDesc(''); setNewLicenseType('');
+      setNewName(''); setNewDesc('');
       setNewEntityType(activeWorkflowTypes[0]?.key ?? '');
       setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
