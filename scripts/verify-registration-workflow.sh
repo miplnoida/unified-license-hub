@@ -47,8 +47,8 @@ BEGIN
     RAISE EXCEPTION 'no roles configured';
   END IF;
 
-  INSERT INTO public.regulators(id, name, short_name, jurisdiction, is_active)
-  VALUES (v_reg_uid, '__test_reg__', 'TR', 'TEST', true);
+  INSERT INTO public.regulators(id, name, code, status)
+  VALUES (v_reg_uid, '__test_reg__', '__TR_'||substr(v_reg_uid::text,1,8), 'active');
 
   INSERT INTO public.sectors(id, name, regulator_id) VALUES (v_sector_id, '__test_sec__', v_reg_uid);
   INSERT INTO public.sub_sectors(id, name, sector_id) VALUES (v_sub_id, '__test_sub__', v_sector_id);
