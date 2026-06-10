@@ -98,7 +98,7 @@ export default function ViewReturns() {
         (supabase as any)
           .from('returns_filed')
           .select('id, unique_id, return_configuration_id, entity_id, on_behalf_of_licensee_id, period_start_date, period_end_date, due_date, workflow_status, submit_date, created_at')
-          .in('workflow_status', ['SUB', 'VAL', 'TBR', 'REJ'])
+          .in('workflow_status', ['SUB', 'VAL', 'TBR'])
           .order('submit_date', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false }),
         (supabase as any).from('return_configs').select('id, name'),
@@ -118,7 +118,7 @@ export default function ViewReturns() {
           workflow_status: r.workflow_status,
           status: mapWorkflowStatus(r.workflow_status),
           submitted_at: r.submit_date,
-          reviewed_at: r.workflow_status === 'VAL' || r.workflow_status === 'REJ' ? r.submit_date : null,
+          reviewed_at: r.workflow_status === 'VAL' ? r.submit_date : null,
           created_at: r.created_at,
         }));
         setReturns(mapped);
