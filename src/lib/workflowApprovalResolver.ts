@@ -131,19 +131,27 @@ async function matchWorkflowForApplication(
     categoryId,
   );
 
+  const entityTypes = entityTypesForApplication({ data: appRow?.data });
+
   if (effectiveRegulator) {
     const { data } = await supabase
       .from('approval_workflows')
-      .select('id, is_active, license_type, sector_id, category_id')
+      .select('id, is_active, license_type, sector_id, category_id, entity_type')
       .eq('license_type', licenseType)
-      .eq('entity_type', 'application')
+      .in('entity_type', entityTypes)
       .eq('regulator_id', effectiveRegulator);
 
     const candidates = (data || []) as any[];
+    // Prefer rows of the primary (non-legacy) entity_type
+    const primaryType = entityTypes[0];
+    const ranked = [
+      ...candidates.filter((w) => w.entity_type === primaryType),
+      ...candidates.filter((w) => w.entity_type !== primaryType),
+    ];
     const found =
-      candidates.find((w) => categoryId && w.category_id === categoryId) ||
-      candidates.find((w) => sectorId && w.sector_id === sectorId) ||
-      candidates[0] ||
+      ranked.find((w) => categoryId && w.category_id === categoryId) ||
+      ranked.find((w) => sectorId && w.sector_id === sectorId) ||
+      ranked[0] ||
       null;
     if (found) return found as any;
   }
@@ -151,18 +159,20 @@ async function matchWorkflowForApplication(
   // Fallback: license_type only (prefix-tolerant match)
   const { data } = await supabase
     .from('approval_workflows')
-    .select('id, is_active, license_type')
-    .eq('entity_type', 'application');
+    .select('id, is_active, license_type, entity_type')
+    .in('entity_type', entityTypes);
 
   const lt = String(licenseType).toLowerCase();
+  const primaryType = entityTypes[0];
+  const matches = ((data || []) as any[]).filter((w) => {
+    const wl = String(w.license_type || '').toLowerCase();
+    return (
+      wl !== '' &&
+      (lt === wl || lt.startsWith(`${wl} `) || lt.startsWith(`${wl}_`) || lt.startsWith(`${wl}-`))
+    );
+  });
   return (
-    ((data || []) as any[]).find((w) => {
-      const wl = String(w.license_type || '').toLowerCase();
-      return (
-        wl !== '' &&
-        (lt === wl || lt.startsWith(`${wl} `) || lt.startsWith(`${wl}_`) || lt.startsWith(`${wl}-`))
-      );
-    }) || null
+    matches.find((w) => w.entity_type === primaryType) || matches[0] || null
   );
 }
 
