@@ -1174,7 +1174,6 @@ interface StepCardProps {
 }
 
 function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   const roleExists = step.approver_role_id
@@ -1192,7 +1191,6 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     if (!isEditing) {
       setPickerOpen(false);
       setRoleSearch('');
-      setAdvancedOpen(false);
     }
   }, [isEditing]);
 
