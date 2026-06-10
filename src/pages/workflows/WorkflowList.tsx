@@ -262,77 +262,72 @@ export default function WorkflowList() {
       return;
     }
 
-    let createdWorkflowId: string | null = null;
-    try {
-      const wf = await createWorkflow.mutateAsync({
-        name: newName.trim(),
-        description: newDesc.trim() || undefined,
-        license_type: newLicenseType.trim(),
-        entity_type: newEntityType as WorkflowEntityType,
-        regulator_id: activeRegulatorId,
-        sector_id: sectorId,
-        category_id: null,
-      });
-      createdWorkflowId = wf.id;
-
-      if (templateSteps) {
-        for (let i = 0; i < templateSteps.length; i++) {
-          const s = templateSteps[i];
+    // Build the step payload up front so the RPC can insert workflow + steps
+    // atomically. If the RPC rejects any step the entire creation rolls back
+    // in Postgres — no possibility of an orphan workflow.
+    type AtomicStep = {
+      step_order: number;
+      name: string;
+      approver_role: string;
+      approver_role_id: string;
+      sla_hours: number;
+      allowed_actions: WorkflowActionType[];
+    };
+    const stepsPayload: AtomicStep[] = templateSteps
+      ? templateSteps.map((s, i) => {
           const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
           const tplAllowed = Array.isArray(s.allowed_actions) && s.allowed_actions.length > 0
             ? (s.allowed_actions as WorkflowActionType[])
             : (['approve', 'reject', 'send_back'] as WorkflowActionType[]);
-          await createStep.mutateAsync({
-            workflow_id: wf.id,
+          return {
             step_order: i + 1,
             name: s.name || `Step ${i + 1}`,
-            approver_role: (tplRole.system_role || 'admin') as any,
+            approver_role: (tplRole.system_role || 'admin') as string,
             approver_role_id: tplRole.id,
             sla_hours: s.sla_hours || 48,
             allowed_actions: tplAllowed,
-          });
-        }
-      } else {
-        const stepName = fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1';
-        await createStep.mutateAsync({
-          workflow_id: wf.id,
+          };
+        })
+      : [{
           step_order: 1,
-          name: stepName,
-          approver_role: (fallbackRole.system_role || 'admin') as any,
+          name: fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1',
+          approver_role: (fallbackRole.system_role || 'admin') as string,
           approver_role_id: fallbackRole.id,
           sla_hours: 48,
-          allowed_actions: ['approve', 'reject', 'send_back'],
-        } as any);
-        if (sectorName) {
-          toast.success(
-            matched
-              ? `Step 1 auto-assigned to "${fallbackRole.name}" based on sector`
-              : `No matching regulator role for "${sectorName}" — defaulted to "${fallbackRole.name}"`,
-          );
-        }
-      }
+          allowed_actions: ['approve', 'reject', 'send_back'] as WorkflowActionType[],
+        }];
+
+    try {
+      const workflowId = await createWorkflowWithSteps.mutateAsync({
+        workflow: {
+          name: newName.trim(),
+          description: newDesc.trim() || undefined,
+          license_type: newLicenseType.trim(),
+          entity_type: newEntityType as WorkflowEntityType,
+          regulator_id: activeRegulatorId,
+          sector_id: sectorId,
+          category_id: null,
+        },
+        steps: stepsPayload,
+      });
 
       toast.success('Workflow created');
-      setSelectedId(wf.id);
+      if (!templateSteps && sectorName) {
+        toast.success(
+          matched
+            ? `Step 1 auto-assigned to "${fallbackRole.name}" based on sector`
+            : `No matching regulator role for "${sectorName}" — defaulted to "${fallbackRole.name}"`,
+        );
+      }
+      setSelectedId(workflowId);
       setCreateOpen(false);
       setNewName(''); setNewDesc(''); setNewLicenseType('');
       setNewEntityType(activeWorkflowTypes[0]?.key ?? '');
       setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
-      // Rollback: if the workflow was created but step seeding failed, delete it
-      // to avoid leaving an orphan workflow with zero steps.
-      if (createdWorkflowId) {
-        try {
-          await supabase.from('approval_workflows').delete().eq('id', createdWorkflowId);
-        } catch (rollbackErr) {
-          console.error('[workflow create] rollback failed', rollbackErr);
-        }
-      }
-      toast.error(err?.message || 'Failed to create workflow', {
-        description: createdWorkflowId
-          ? 'The partially-created workflow was rolled back. Please try again.'
-          : undefined,
-      });
+      // No client-side rollback needed — the RPC ran in a single transaction,
+      // so a failure means nothing was inserted.
+      toast.error(err?.message || 'Failed to create workflow');
     }
   };
 
