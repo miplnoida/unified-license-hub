@@ -19,6 +19,8 @@
 // - Never throws to caller; always returns 200 with a JSON summary.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
+import { buildReturnNotificationPayload } from "../_shared/return-notification-payload.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +29,7 @@ const corsHeaders = {
 
 type Rule = { type: string; [k: string]: any };
 
-function render(tpl: string | null | undefined, vars: Record<string, any>): string {
+export function render(tpl: string | null | undefined, vars: Record<string, any>): string {
   if (!tpl) return "";
   return tpl.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
     const v = vars[k];
