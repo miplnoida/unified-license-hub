@@ -52,7 +52,7 @@ BEGIN
 
   INSERT INTO public.sectors(id, name, regulator_id) VALUES (v_sector_id, '__test_sec__', v_reg_uid);
   INSERT INTO public.sub_sectors(id, name, sector_id) VALUES (v_sub_id, '__test_sub__', v_sector_id);
-  INSERT INTO public.categories(id, name, sub_sector_id) VALUES (v_cat_id, '__test_cat__', v_sub_id);
+  INSERT INTO public.categories(id, name, sector_id, sub_sector_id) VALUES (v_cat_id, '__test_cat__', v_sector_id, v_sub_id);
 
   -- 2. Create a 2-step registration workflow scoped to this sector.
   INSERT INTO public.approval_workflows(name, license_type, entity_type, sector_id, regulator_id, is_active)
