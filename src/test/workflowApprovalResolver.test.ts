@@ -10,45 +10,40 @@ vi.mock('@/integrations/supabase/client', () => ({
     from: vi.fn((table: string) => {
       if (table === 'approval_workflows') {
         return {
-          select: selectMock.mockImplementation(() => ({
-            eq: eqMock.mockImplementation((column: string, value: string) => {
-              if (column === 'license_type' && value === 'Insurance') {
-                return {
-                  in: inMock.mockResolvedValue({
+          select: selectMock.mockImplementation(() => {
+            const state: Record<string, any> = {};
+            const chain: any = {
+              eq: vi.fn((column: string, value: string) => {
+                state[column] = value;
+                return chain;
+              }),
+              in: vi.fn((column: string, values: string[]) => {
+                state[column] = values;
+
+                if (state.license_type === 'Insurance' && state.regulator_id === 'reg-1') {
+                  return Promise.resolve({
                     data: [
                       { id: 'wf-post', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'post_application' },
                       { id: 'wf-legacy', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'application' },
                     ],
                     error: null,
-                  }),
-                };
-              }
+                  });
+                }
 
-              if (column === 'license_type' && value === 'Micro Insurance') {
-                return {
-                  in: inMock.mockResolvedValue({
-                    data: [],
-                    error: null,
-                  }),
-                };
-              }
+                return Promise.resolve({
+                  data: [
+                    { id: 'wf-pre', is_active: true, license_type: 'micro', entity_type: 'pre_application' },
+                    { id: 'wf-legacy-prefix', is_active: true, license_type: 'micro', entity_type: 'application' },
+                  ],
+                  error: null,
+                });
+              }),
+            };
 
-              if (column === 'id') {
-                return { maybeSingle: maybeSingleMock.mockResolvedValue({ data: null, error: null }) };
-              }
-
-              return {
-                in: inMock.mockResolvedValue({ data: [], error: null }),
-              };
-            }),
-            in: inMock.mockResolvedValue({
-              data: [
-                { id: 'wf-pre', is_active: true, license_type: 'micro', entity_type: 'pre_application' },
-                { id: 'wf-legacy-prefix', is_active: true, license_type: 'micro', entity_type: 'application' },
-              ],
-              error: null,
-            }),
-          })),
+            eqMock.mockImplementation(chain.eq);
+            inMock.mockImplementation(chain.in);
+            return chain;
+          }),
         };
       }
 
@@ -93,7 +88,7 @@ describe('workflow approval resolver', () => {
       application: {
         id: 'app-1',
         license_type: 'Insurance',
-        regulator_id: null,
+        regulator_id: 'reg-1',
         data: { type: 'post_license', service_id: 'svc-1' },
       },
     });
