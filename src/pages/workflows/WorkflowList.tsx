@@ -1167,12 +1167,13 @@ interface StepCardProps {
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isDuplicate: boolean;
+  isEditing: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1185,6 +1186,20 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     [dynamicRoles, roleSearch]
   );
 
+  // Close the inline role picker as soon as edit mode is exited to avoid
+  // dangling editable controls when the user clicks "Done".
+  useEffect(() => {
+    if (!isEditing) {
+      setPickerOpen(false);
+      setRoleSearch('');
+      setAdvancedOpen(false);
+    }
+  }, [isEditing]);
+
+  const allowedActions = Array.isArray(step.allowed_actions)
+    ? (step.allowed_actions as WorkflowActionType[])
+    : [];
+
   return (
     <div className="border-2 rounded-lg bg-card p-4 hover:border-primary/40 transition-colors">
       {/* Header: step number + name + reorder/delete */}
@@ -1192,37 +1207,52 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
         <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">
           {index + 1}
         </div>
-        <Input
-          className="h-9 text-sm font-medium flex-1 border-none shadow-none focus-visible:ring-1 px-2"
-          value={step.name}
-          onChange={e => onUpdate(step.id, { name: e.target.value })}
-          placeholder={`Step ${index + 1}`}
-        />
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Button
-            variant="ghost" size="icon" className="h-7 w-7"
-            disabled={index === 0}
-            onClick={() => onMove(index, -1)}
-            title="Move up"
+        {isEditing ? (
+          <Input
+            className="h-9 text-sm font-medium flex-1 border-none shadow-none focus-visible:ring-1 px-2"
+            value={step.name}
+            onChange={e => onUpdate(step.id, { name: e.target.value })}
+            placeholder={`Step ${index + 1}`}
+            aria-label={`Step ${index + 1} name`}
+          />
+        ) : (
+          <p
+            className="h-9 text-sm font-medium flex-1 px-2 flex items-center text-foreground truncate"
+            data-testid={`step-name-readonly-${index}`}
           >
-            <ChevronUp className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" size="icon" className="h-7 w-7"
-            disabled={index === total - 1}
-            onClick={() => onMove(index, 1)}
-            title="Move down"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-            onClick={() => onDelete(step.id)}
-            title="Remove step"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+            {step.name || `Step ${index + 1}`}
+          </p>
+        )}
+        {isEditing && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button
+              variant="ghost" size="icon" className="h-7 w-7"
+              disabled={index === 0}
+              onClick={() => onMove(index, -1)}
+              title="Move up"
+              aria-label={`Move step ${index + 1} up`}
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" size="icon" className="h-7 w-7"
+              disabled={index === total - 1}
+              onClick={() => onMove(index, 1)}
+              title="Move down"
+              aria-label={`Move step ${index + 1} down`}
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+              onClick={() => onDelete(step.id)}
+              title="Remove step"
+              aria-label={`Remove step ${index + 1}`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Role chip + change */}
@@ -1235,9 +1265,11 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                 <Users className="h-3 w-3" />
                 {stepRoleLabel(step)}
               </Badge>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
-                Change role
-              </Button>
+              {isEditing && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
+                  Change role
+                </Button>
+              )}
             </div>
           ) : (
             <div className="border rounded-md p-2 space-y-2">
@@ -1253,6 +1285,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                 <Button
                   variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
                   onClick={() => { setPickerOpen(false); setRoleSearch(''); }}
+                  aria-label="Close role picker"
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -1263,6 +1296,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                 ) : filteredRoles.map(r => (
                   <button
                     key={r.id}
+                    type="button"
                     onClick={() => {
                       onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any);
                       setPickerOpen(false); setRoleSearch('');
@@ -1298,70 +1332,91 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
         )}
 
         {/* Allowed actions — explicit, no silent defaults */}
-        {(!Array.isArray(step.allowed_actions) || step.allowed_actions.length === 0) && (
+        {allowedActions.length === 0 && (
           <p className="text-xs text-destructive flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" /> No allowed actions configured — approvers will be blocked.
           </p>
         )}
 
-        {/* Advanced Options */}
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground -ml-2">
-              <Settings2 className="h-3 w-3 mr-1" />
-              Advanced Options
-              {advancedOpen ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-2">
-            <div className="rounded-md border bg-muted/30 p-3 space-y-3">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground min-w-[90px]">Due Within</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={24 * 365}
-                  className="h-8 w-24 text-xs"
-                  value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
-                  onChange={e => {
-                    const parsed = parseInt(e.target.value, 10);
-                    const safe = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 24 * 365) : 48;
-                    onUpdate(step.id, { sla_hours: safe } as any);
-                  }}
-                />
-                <span className="text-xs text-muted-foreground">hours</span>
+        {/* In view mode show SLA + allowed actions as read-only summary. */}
+        {!isEditing ? (
+          <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Due within:</span>
+              <span>{Number.isFinite(step.sla_hours as number) ? `${step.sla_hours} hours` : '48 hours'}</span>
+            </div>
+            <div className="flex items-start gap-2 text-xs">
+              <span className="font-medium text-foreground mt-0.5">Allowed actions:</span>
+              <div className="flex flex-wrap gap-1">
+                {allowedActions.length === 0 ? (
+                  <span className="text-muted-foreground">None</span>
+                ) : allowedActions.map(a => (
+                  <Badge key={a} variant="outline" className="text-[10px]">{ACTION_LABELS[a]}</Badge>
+                ))}
               </div>
-
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
-                <div className="flex flex-wrap gap-2">
-                  {ALL_ACTIONS.map(action => {
-                    const current = Array.isArray(step.allowed_actions) ? step.allowed_actions as WorkflowActionType[] : [];
-                    const checked = current.includes(action);
-                    return (
-                      <label key={action} className="flex items-center gap-1.5 text-xs cursor-pointer select-none rounded-md border px-2 py-1 bg-background">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(v) => {
-                            const next = v
-                              ? Array.from(new Set([...current, action]))
-                              : current.filter(a => a !== action);
-                            onUpdate(step.id, { allowed_actions: next } as any);
-                          }}
-                        />
-                        {ACTION_LABELS[action]}
-                      </label>
-                    );
-                  })}
+            </div>
+          </div>
+        ) : (
+          /* Advanced Options — only available in edit mode */
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground -ml-2">
+                <Settings2 className="h-3 w-3 mr-1" />
+                Advanced Options
+                {advancedOpen ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="rounded-md border bg-muted/30 p-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>Due Within</Label>
+                  <Input
+                    id={`sla-${step.id}`}
+                    type="number"
+                    min={1}
+                    max={24 * 365}
+                    className="h-8 w-24 text-xs"
+                    value={Number.isFinite(step.sla_hours as number) ? (step.sla_hours as number) : 48}
+                    onChange={e => {
+                      const parsed = parseInt(e.target.value, 10);
+                      const safe = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 24 * 365) : 48;
+                      onUpdate(step.id, { sla_hours: safe } as any);
+                    }}
+                  />
+                  <span className="text-xs text-muted-foreground">hours</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Approvers can only perform actions checked here.
-                </p>
-              </div>
 
-              <p className="text-[11px] text-muted-foreground">
-                Escalation, parallel approvals, and conditional rules are not yet available in this builder.
-              </p>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {ALL_ACTIONS.map(action => {
+                      const checked = allowedActions.includes(action);
+                      const cbId = `act-${step.id}-${action}`;
+                      return (
+                        <div key={action} className="flex items-center gap-1.5 text-xs select-none rounded-md border px-2 py-1 bg-background">
+                          <Checkbox
+                            id={cbId}
+                            checked={checked}
+                            onCheckedChange={(v) => {
+                              const next = v
+                                ? Array.from(new Set([...allowedActions, action]))
+                                : allowedActions.filter(a => a !== action);
+                              onUpdate(step.id, { allowed_actions: next } as any);
+                            }}
+                          />
+                          <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Approvers can only perform actions checked here.
+                  </p>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Escalation, parallel approvals, and conditional rules are not yet available in this builder.
+                </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
