@@ -26,6 +26,7 @@ const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
 const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFormBuilder'));
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
+const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
 
 // Returns Management - Admin
 const ReturnTypesPage = lazy(() => import('@/pages/admin/returns/ReturnTypesPage'));
