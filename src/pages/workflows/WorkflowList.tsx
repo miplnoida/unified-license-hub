@@ -837,23 +837,22 @@ export default function WorkflowList() {
               <Label>Workflow Name <span className="text-destructive">*</span></Label>
               <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g., New License Approval" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Used For <span className="text-destructive">*</span></Label>
-                <Select
-                  value={newEntityType || undefined}
-                  onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
-                  disabled={activeWorkflowTypes.length === 0}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    {activeWorkflowTypes.map((workflowType) => (
-                      <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label>Used For <span className="text-destructive">*</span></Label>
+              <Select
+                value={newEntityType || undefined}
+                onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
+                disabled={activeWorkflowTypes.length === 0}
+              >
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {activeWorkflowTypes.map((workflowType) => (
+                    <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
 
             <div>
               <Label>Sector</Label>
