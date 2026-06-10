@@ -1046,7 +1046,7 @@ interface TimelineBuilderProps {
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
   isEditing: boolean;
-  onUpdate: (id: string, updates: Partial<WorkflowStep>) => void;
+  onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
