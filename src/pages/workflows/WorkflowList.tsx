@@ -1297,7 +1297,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
                 <Users className="h-3 w-3" />
-                {stepRoleLabel(step)}
+                {stepRoleLabel(displayStepForBadge)}
               </Badge>
               {isEditing && (
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
@@ -1327,25 +1327,30 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
               <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
                 {filteredRoles.length === 0 ? (
                   <p className="text-xs text-muted-foreground p-2">No roles match.</p>
-                ) : filteredRoles.map(r => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => {
-                      onUpdate(step.id, { approver_role: r.system_role as any, approver_role_id: r.id } as any);
-                      setPickerOpen(false); setRoleSearch('');
-                    }}
-                    className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                      (step.approver_role_id ? step.approver_role_id === r.id : step.approver_role === r.system_role)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background hover:border-primary/50'
-                    }`}
-                  >
-                    {r.name}
-                  </button>
-                ))}
+                ) : filteredRoles.map(r => {
+                  const isSelected = effectiveRoleId
+                    ? effectiveRoleId === r.id
+                    : step.approver_role === r.system_role;
+                  const isSaving = savingRoleId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={!!savingRoleId}
+                      onClick={() => handleRoleSelect(r)}
+                      className={`px-3 py-1.5 rounded-full border text-xs transition-colors disabled:opacity-60 ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background hover:border-primary/50'
+                      }`}
+                    >
+                      {r.name}{isSaving ? '…' : ''}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
           )}
           <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
             <Info className="h-3 w-3" />
