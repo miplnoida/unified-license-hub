@@ -116,8 +116,13 @@ function resolveDefaultRoleForSector(
 export default function WorkflowList() {
   const { activeRegulatorId } = useRegulator();
   const { data: workflows = [], isLoading } = useWorkflows(activeRegulatorId);
-  const { data: workflowTypeConfigs = [] } = useWorkflowTypeConfigs();
-  const { data: dynamicRoles = [] } = useRoles();
+  const {
+    data: workflowTypeConfigs = [],
+    isLoading: typesLoading,
+    isError: typesError,
+    error: typesErrorObj,
+  } = useWorkflowTypeConfigs();
+  const { data: dynamicRoles = [], isLoading: rolesLoading } = useRoles();
   const { data: sectors = [] } = useSectors(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
   const qc = useQueryClient();
@@ -132,22 +137,46 @@ export default function WorkflowList() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const activeWorkflowTypes = useMemo(
+    () => filterActiveWorkflowTypes(workflowTypeConfigs),
+    [workflowTypeConfigs],
+  );
+  const activeTypeKeys = useMemo(
+    () => new Set(activeWorkflowTypes.map(t => t.key)),
+    [activeWorkflowTypes],
+  );
+
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newLicenseType, setNewLicenseType] = useState('');
-  const [newEntityType, setNewEntityType] = useState<WorkflowEntityType>('pre_application');
+  const [newEntityType, setNewEntityType] = useState<WorkflowEntityType | ''>('');
   const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Workflow | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLicenseType, setEditLicenseType] = useState('');
+  const [editEntityType, setEditEntityType] = useState<WorkflowEntityType | ''>('');
+  const [editSectorId, setEditSectorId] = useState<string>('none');
 
   // Templates dialog
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
+  // Default the create form's Used For to the first active type as soon as config loads.
+  useEffect(() => {
+    if (!createOpen) return;
+    if (!newEntityType && activeWorkflowTypes.length > 0) {
+      setNewEntityType(activeWorkflowTypes[0].key);
+    }
+  }, [createOpen, activeWorkflowTypes, newEntityType]);
+
   const selectedWorkflow = workflows.find(w => w.id === selectedId) || null;
   const { data: steps = [], isLoading: stepsLoading } = useWorkflowSteps(selectedId);
-
-  const firstRoleSystem = dynamicRoles[0]?.system_role || 'licensing_officer';
 
   const roleLabel = (sysRole: string) =>
     dynamicRoles.find(r => r.system_role === sysRole)?.name || sysRole;
@@ -158,7 +187,6 @@ export default function WorkflowList() {
       if (byId) return byId.name;
       return 'Configured role missing';
     }
-    // No dynamic role configured — legacy step.
     return `Legacy role: ${roleLabel(step.approver_role)}`;
   };
 
@@ -171,76 +199,89 @@ export default function WorkflowList() {
     () => resolveDefaultRoleForSector(selectedSectorName, dynamicRoles),
     [selectedSectorName, dynamicRoles],
   );
-  const activeWorkflowTypes = useMemo(
-    () => filterActiveWorkflowTypes(workflowTypeConfigs),
-    [workflowTypeConfigs],
-  );
-  const createTypeOptions = activeWorkflowTypes.length > 0
-    ? activeWorkflowTypes
-    : (Object.entries(FALLBACK_WORKFLOW_TYPE_LABELS) as [WorkflowEntityType, string][]).map(([key, label], index) => ({
-        key,
-        display_label: label,
-        description: null,
-        is_active: true,
-        sort_order: index,
-      }));
+
+  // ── Gate flags ──
+  const noActiveTypes = !typesLoading && !typesError && activeWorkflowTypes.length === 0;
+  const noRoles = !rolesLoading && dynamicRoles.length === 0;
+  const createDisabled =
+    typesLoading || typesError || noActiveTypes || rolesLoading || noRoles;
+  const createDisabledReason = typesError
+    ? 'Workflow type configuration failed to load. Refresh the page or contact an administrator.'
+    : noActiveTypes
+      ? 'No active workflow types are configured.'
+      : noRoles
+        ? 'No roles configured. Create at least one role before building a workflow.'
+        : null;
 
   const handleCreate = async () => {
     if (!newName.trim() || !newLicenseType.trim()) {
       toast.error('Please give the workflow a name and a category');
       return;
     }
-    try {
-      const sectorId = newSectorId !== 'none' ? newSectorId : null;
+    if (!newEntityType || !activeTypeKeys.has(newEntityType as WorkflowEntityType)) {
+      toast.error('Pick a valid, currently active Used For.');
+      return;
+    }
+    // Pre-validate a role exists BEFORE creating the workflow to avoid orphans.
+    const sectorId = newSectorId !== 'none' ? newSectorId : null;
+    const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
+    const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
+    const fallbackRole = defaultRole || dynamicRoles[0];
+    if (!fallbackRole) {
+      toast.error('No roles configured. Please create at least one role before building a workflow.');
+      return;
+    }
 
-      // Duplicate guard — Sector + Used For must be unique per regulator.
-      const dup = findDuplicateWorkflow(workflows, {
-        regulator_id: activeRegulatorId ?? null,
-        sector_id: sectorId,
-        entity_type: newEntityType,
-      });
-      if (dup) {
-        toast.error(DUPLICATE_WORKFLOW_MESSAGE, {
-          description: `Existing workflow: "${dup.name}"`,
-        });
+    // Pre-validate template (if any) resolves at least one step.
+    let templateSteps: TemplateStep[] | null = null;
+    if (seedFromTemplateId !== 'blank') {
+      const tpl = templates.find(t => t.id === seedFromTemplateId);
+      if (!tpl || !tpl.steps?.length) {
+        toast.error('Selected template has no steps. Pick another template or start blank.');
         return;
       }
+      templateSteps = tpl.steps;
+    }
 
+    // Duplicate guard — Sector + Used For must be unique per regulator.
+    const dup = findDuplicateWorkflow(workflows, {
+      regulator_id: activeRegulatorId ?? null,
+      sector_id: sectorId,
+      entity_type: newEntityType,
+    });
+    if (dup) {
+      toast.error(DUPLICATE_WORKFLOW_MESSAGE, {
+        description: `Existing workflow: "${dup.name}"`,
+      });
+      return;
+    }
+
+    let createdWorkflowId: string | null = null;
+    try {
       const wf = await createWorkflow.mutateAsync({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
         license_type: newLicenseType.trim(),
-        entity_type: newEntityType,
+        entity_type: newEntityType as WorkflowEntityType,
         regulator_id: activeRegulatorId,
         sector_id: sectorId,
         category_id: null,
       });
+      createdWorkflowId = wf.id;
 
-      // Seed steps from template OR auto-generate the smart default flow
-      const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
-      const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
-      const fallbackRole = defaultRole || dynamicRoles[0];
-      if (!fallbackRole) {
-        toast.error('No roles configured. Please create at least one role before building a workflow.');
-        return;
-      }
-
-      if (seedFromTemplateId !== 'blank') {
-        const tpl = templates.find(t => t.id === seedFromTemplateId);
-        if (tpl?.steps?.length) {
-          for (let i = 0; i < tpl.steps.length; i++) {
-            const s = tpl.steps[i];
-            const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
-            await createStep.mutateAsync({
-              workflow_id: wf.id,
-              step_order: i + 1,
-              name: s.name || `Step ${i + 1}`,
-              approver_role: (tplRole.system_role || 'admin') as any,
-              approver_role_id: tplRole.id,
-              sla_hours: s.sla_hours || 48,
-              allowed_actions: ['approve', 'reject', 'send_back'],
-            });
-          }
+      if (templateSteps) {
+        for (let i = 0; i < templateSteps.length; i++) {
+          const s = templateSteps[i];
+          const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
+          await createStep.mutateAsync({
+            workflow_id: wf.id,
+            step_order: i + 1,
+            name: s.name || `Step ${i + 1}`,
+            approver_role: (tplRole.system_role || 'admin') as any,
+            approver_role_id: tplRole.id,
+            sla_hours: s.sla_hours || 48,
+            allowed_actions: ['approve', 'reject', 'send_back'],
+          });
         }
       } else {
         const stepName = fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1';
@@ -266,16 +307,62 @@ export default function WorkflowList() {
       setSelectedId(wf.id);
       setCreateOpen(false);
       setNewName(''); setNewDesc(''); setNewLicenseType('');
-      setNewEntityType('pre_application'); setNewSectorId('none'); setSeedFromTemplateId('blank');
+      setNewEntityType(activeWorkflowTypes[0]?.key ?? '');
+      setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
-      toast.error(err.message);
+      // Rollback: if the workflow was created but step seeding failed, delete it
+      // to avoid leaving an orphan workflow with zero steps.
+      if (createdWorkflowId) {
+        try {
+          await supabase.from('approval_workflows').delete().eq('id', createdWorkflowId);
+        } catch (rollbackErr) {
+          console.error('[workflow create] rollback failed', rollbackErr);
+        }
+      }
+      toast.error(err?.message || 'Failed to create workflow', {
+        description: createdWorkflowId
+          ? 'The partially-created workflow was rolled back. Please try again.'
+          : undefined,
+      });
     }
   };
 
+  // Count workflow_instances referencing this workflow before allowing hard delete.
+  const fetchInstanceCount = async (workflowId: string): Promise<number> => {
+    const { count, error } = await supabase
+      .from('workflow_instances')
+      .select('id', { count: 'exact', head: true })
+      .eq('workflow_id', workflowId);
+    if (error) throw error;
+    return count ?? 0;
+  };
+
   const handleDelete = async (wf: Workflow) => {
+    let depCount = 0;
+    try { depCount = await fetchInstanceCount(wf.id); }
+    catch (err: any) { toast.error(err.message); return; }
+
+    if (depCount > 0) {
+      const res = await Swal.fire({
+        title: 'Cannot delete — workflow is in use',
+        html: `<p>"<strong>${wf.name}</strong>" has <strong>${depCount}</strong> active or historical workflow instance${depCount === 1 ? '' : 's'} depending on it.</p><p style="margin-top:8px">Deactivate it instead — it stops being used for new submissions but history is preserved.</p>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: wf.is_active ? 'Deactivate' : 'Keep',
+        cancelButtonText: 'Cancel',
+      });
+      if (res.isConfirmed && wf.is_active) {
+        try {
+          await updateWorkflow.mutateAsync({ id: wf.id, is_active: false } as any);
+          toast.success('Workflow deactivated');
+        } catch (err: any) { toast.error(err.message); }
+      }
+      return;
+    }
+
     const res = await Swal.fire({
       title: 'Delete workflow?',
-      text: `"${wf.name}" and all its steps will be removed.`,
+      text: `"${wf.name}" and all its steps will be permanently removed.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
@@ -292,9 +379,144 @@ export default function WorkflowList() {
   };
 
   const handleToggleActive = async (wf: Workflow) => {
-    await updateWorkflow.mutateAsync({ id: wf.id, is_active: !wf.is_active } as any);
-    toast.success(wf.is_active ? 'Workflow turned off' : 'Workflow turned on');
+    // Turning OFF: warn if it has live instances, but allow.
+    if (wf.is_active) {
+      let depCount = 0;
+      try { depCount = await fetchInstanceCount(wf.id); } catch { /* non-fatal */ }
+      if (depCount > 0) {
+        const res = await Swal.fire({
+          title: 'Turn off this workflow?',
+          html: `<p>${depCount} workflow instance${depCount === 1 ? '' : 's'} reference this workflow. They will keep running, but new submissions in this scope will not be routed.</p>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Turn Off',
+        });
+        if (!res.isConfirmed) return;
+      }
+      try {
+        await updateWorkflow.mutateAsync({ id: wf.id, is_active: false } as any);
+        toast.success('Workflow turned off');
+      } catch (err: any) { toast.error(err.message); }
+      return;
+    }
+
+    // Turning ON: validate type is active, no duplicate active, ≥1 step, every step has a role + ≥1 allowed action.
+    if (!activeTypeKeys.has(wf.entity_type as WorkflowEntityType)) {
+      toast.error('This workflow uses an inactive type. Update its Used For before turning it on.');
+      return;
+    }
+    const dup = findDuplicateWorkflow(
+      workflows.filter(w => w.is_active),
+      {
+        regulator_id: wf.regulator_id,
+        sector_id: wf.sector_id,
+        entity_type: wf.entity_type,
+      },
+      wf.id,
+    );
+    if (dup) {
+      toast.error(DUPLICATE_WORKFLOW_MESSAGE, {
+        description: `Another active workflow exists in this scope: "${dup.name}".`,
+      });
+      return;
+    }
+    const { data: wfSteps, error: stepsErr } = await supabase
+      .from('approval_steps')
+      .select('id, approver_role_id, approver_role, allowed_actions')
+      .eq('workflow_id', wf.id);
+    if (stepsErr) { toast.error(stepsErr.message); return; }
+    if (!wfSteps || wfSteps.length === 0) {
+      toast.error('Add at least one step before turning this workflow on.');
+      return;
+    }
+    const roleIds = new Set(dynamicRoles.map(r => r.id));
+    const invalid = wfSteps.filter(s =>
+      !s.approver_role_id ||
+      !roleIds.has(s.approver_role_id as string) ||
+      !Array.isArray(s.allowed_actions) ||
+      (s.allowed_actions as any[]).length === 0
+    );
+    if (invalid.length > 0) {
+      toast.error(`${invalid.length} step${invalid.length === 1 ? '' : 's'} need${invalid.length === 1 ? 's' : ''} a valid role and at least one allowed action.`);
+      return;
+    }
+    try {
+      await updateWorkflow.mutateAsync({ id: wf.id, is_active: true } as any);
+      toast.success('Workflow turned on');
+    } catch (err: any) { toast.error(err.message); }
   };
+
+  // ── Edit workflow metadata ──
+  const openEdit = (wf: Workflow) => {
+    setEditTarget(wf);
+    setEditName(wf.name);
+    setEditDesc(wf.description || '');
+    setEditLicenseType(wf.license_type);
+    setEditEntityType(wf.entity_type as WorkflowEntityType);
+    setEditSectorId(wf.sector_id || 'none');
+    setEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget) return;
+    if (!editName.trim() || !editLicenseType.trim()) {
+      toast.error('Name and category are required.');
+      return;
+    }
+    if (!editEntityType || !activeTypeKeys.has(editEntityType as WorkflowEntityType)) {
+      toast.error('Pick a valid, currently active Used For.');
+      return;
+    }
+    const sectorId = editSectorId !== 'none' ? editSectorId : null;
+    const scopeChanged =
+      sectorId !== editTarget.sector_id || editEntityType !== editTarget.entity_type;
+
+    // Duplicate guard for the new scope, excluding self.
+    const dup = findDuplicateWorkflow(workflows, {
+      regulator_id: editTarget.regulator_id,
+      sector_id: sectorId,
+      entity_type: editEntityType,
+    }, editTarget.id);
+    if (dup) {
+      toast.error(DUPLICATE_WORKFLOW_MESSAGE, {
+        description: `Existing workflow: "${dup.name}"`,
+      });
+      return;
+    }
+
+    if (scopeChanged) {
+      let depCount = 0;
+      try { depCount = await fetchInstanceCount(editTarget.id); } catch { /* non-fatal */ }
+      if (depCount > 0) {
+        const res = await Swal.fire({
+          title: 'Change scope?',
+          html: `<p>This workflow has <strong>${depCount}</strong> in-flight or historical instance${depCount === 1 ? '' : 's'}. Changing Sector or Used For may break routing for them.</p>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Change anyway',
+        });
+        if (!res.isConfirmed) return;
+      }
+    }
+
+    try {
+      await updateWorkflow.mutateAsync({
+        id: editTarget.id,
+        name: editName.trim(),
+        description: editDesc.trim() || null,
+        license_type: editLicenseType.trim(),
+        entity_type: editEntityType,
+        sector_id: sectorId,
+      } as any);
+      toast.success('Workflow updated');
+      setEditOpen(false);
+      setEditTarget(null);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+
 
   const handleAddStep = async () => {
     if (!selectedId) return;
