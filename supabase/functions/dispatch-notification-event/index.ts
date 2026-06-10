@@ -265,8 +265,29 @@ async function resolveRecipients(
           })).forEach((u) => out.add(u));
           break;
         }
+        case "return_sector_regulators": {
+          (await returnSectorReviewers(admin, {
+            sectorId: ctx.payload?.sector_id || (ctx as any).ret?.sector_id,
+            subsectorId: ctx.payload?.subsector_id || (ctx as any).ret?.subsector_id,
+            returnTypeId: ctx.payload?.return_type_id,
+          })).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_licensee_users": {
+          const lid = ctx.payload?.licensee_id
+            || (ctx as any).ret?.on_behalf_of_licensee_id
+            || (ctx as any).ret?.entity_id;
+          (await licenseePrimaryUsers(admin, lid)).forEach((u) => out.add(u));
+          (await licenseeSecondaryUsers(admin, lid)).forEach((u) => out.add(u));
+          break;
+        }
+        case "return_submitter": {
+          const sub = ctx.payload?.submitted_by || (ctx as any).ret?.created_by;
+          if (sub) out.add(String(sub));
+          break;
+        }
         case "workflow_step_approvers": {
-          const sid = ctx.payload?.step_id || ctx.app?.current_step_id;
+          const sid = ctx.payload?.step_id || ctx.app?.current_step_id || (ctx as any).ret?.current_step_id;
           (await workflowStepApprovers(admin, sid)).forEach((u) => out.add(u));
           break;
         }
