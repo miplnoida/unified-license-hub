@@ -40,6 +40,7 @@ BEGIN
   IF v_actor IS NULL THEN
     RAISE EXCEPTION 'no super_admin user exists; cannot run integration check';
   END IF;
+  v_user_id := v_actor;
 
   -- Borrow any role for approver.
   SELECT id INTO v_role_id FROM public.roles ORDER BY created_at LIMIT 1;
