@@ -402,13 +402,23 @@ export function useReorderSteps() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (steps: { id: string; step_order: number }[]) => {
-      for (const step of steps) {
-        const { error } = await supabase
-          .from('approval_steps')
-          .update({ step_order: step.step_order } as any)
-          .eq('id', step.id);
-        if (error) throw error;
-      }
+      if (steps.length === 0) return;
+      // Derive workflow_id from the first step. All steps in a reorder set
+      // must belong to the same workflow; the RPC enforces this server-side.
+      const { data: row, error: lookupErr } = await supabase
+        .from('approval_steps')
+        .select('workflow_id')
+        .eq('id', steps[0].id)
+        .maybeSingle();
+      if (lookupErr) throw lookupErr;
+      const workflowId = (row as any)?.workflow_id;
+      if (!workflowId) throw new Error('Cannot determine workflow for reorder');
+
+      const { error } = await supabase.rpc('reorder_approval_steps' as any, {
+        _workflow_id: workflowId,
+        _orders: steps.map(s => ({ id: s.id, step_order: s.step_order })) as any,
+      });
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['approval_steps'] }),
   });

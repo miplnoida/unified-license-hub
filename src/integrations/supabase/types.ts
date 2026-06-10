@@ -6328,6 +6328,10 @@ export type Database = {
         Args: { _application_id: string; _comments: string }
         Returns: Json
       }
+      reorder_approval_steps: {
+        Args: { _orders: Json; _workflow_id: string }
+        Returns: undefined
+      }
       request_resubmission_for_application: {
         Args: { _application_id: string; _comments: string }
         Returns: Json
