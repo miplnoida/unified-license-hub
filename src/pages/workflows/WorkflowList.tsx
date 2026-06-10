@@ -268,7 +268,7 @@ export default function WorkflowList() {
     type AtomicStep = {
       step_order: number;
       name: string;
-      approver_role: string;
+      approver_role: any;
       approver_role_id: string;
       sla_hours: number;
       allowed_actions: WorkflowActionType[];
