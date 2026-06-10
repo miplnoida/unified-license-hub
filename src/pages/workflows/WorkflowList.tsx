@@ -129,7 +129,7 @@ export default function WorkflowList() {
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newLicenseType, setNewLicenseType] = useState('');
-  const [newEntityType, setNewEntityType] = useState<WorkflowEntityType>('application');
+  const [newEntityType, setNewEntityType] = useState<WorkflowEntityType>('pre_application');
   const [newSectorId, setNewSectorId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
 
@@ -231,7 +231,7 @@ export default function WorkflowList() {
       setSelectedId(wf.id);
       setCreateOpen(false);
       setNewName(''); setNewDesc(''); setNewLicenseType('');
-      setNewEntityType('application'); setNewSectorId('none'); setSeedFromTemplateId('blank');
+      setNewEntityType('pre_application'); setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
       toast.error(err.message);
     }
