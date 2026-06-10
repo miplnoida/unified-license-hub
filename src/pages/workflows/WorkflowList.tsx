@@ -172,7 +172,7 @@ export default function WorkflowList() {
   const [editTarget, setEditTarget] = useState<Workflow | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
-  const [editLicenseType, setEditLicenseType] = useState('');
+  
   const [editEntityType, setEditEntityType] = useState<WorkflowEntityType | ''>('');
   const [editSectorId, setEditSectorId] = useState<string>('none');
 
