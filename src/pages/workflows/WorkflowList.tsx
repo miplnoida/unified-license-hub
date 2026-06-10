@@ -923,31 +923,25 @@ export default function WorkflowList() {
               <Label>Workflow Name <span className="text-destructive">*</span></Label>
               <Input value={editName} onChange={e => setEditName(e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Used For <span className="text-destructive">*</span></Label>
-                <Select
-                  value={editEntityType || undefined}
-                  onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
-                  disabled={activeWorkflowTypes.length === 0}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
-                  <SelectContent>
-                    {activeWorkflowTypes.map((t) => (
-                      <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
-                    ))}
-                    {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
-                      <SelectItem value={editTarget.entity_type} disabled>
-                        {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Category <span className="text-destructive">*</span></Label>
-                <Input value={editLicenseType} onChange={e => setEditLicenseType(e.target.value)} />
-              </div>
+            <div>
+              <Label>Used For <span className="text-destructive">*</span></Label>
+              <Select
+                value={editEntityType || undefined}
+                onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
+                disabled={activeWorkflowTypes.length === 0}
+              >
+                <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                <SelectContent>
+                  {activeWorkflowTypes.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
+                  ))}
+                  {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
+                    <SelectItem value={editTarget.entity_type} disabled>
+                      {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Sector</Label>
