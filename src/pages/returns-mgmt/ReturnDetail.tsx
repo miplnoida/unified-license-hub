@@ -509,7 +509,29 @@ export default function ReturnDetail() {
               </Card>
             )}
 
-            {/* Audit history */}
+            {/* Workflow approval-action history (configurable workflow mode) */}
+            {workflowEnabled && approvalActions.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <History className="h-4 w-4 text-primary" /> Workflow Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {approvalActions.slice(0, 15).map((a: any) => (
+                    <div key={a.id} className="text-xs border-l-2 border-primary/60 pl-2 py-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium capitalize">{(a.action_type || '').replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                      </div>
+                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Legacy audit history */}
             {auditLog.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
