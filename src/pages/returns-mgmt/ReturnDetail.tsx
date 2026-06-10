@@ -237,14 +237,18 @@ export default function ReturnDetail() {
     return () => { cancelled = true; };
   }, [returnData?.id, workflowEnabled, isReviewable, hasActiveInstance, qc]);
 
+  // Legacy audit helper retained for any one-off callers; new code should use
+  // logReturnApprovedLegacy / logEditRequestedLegacy below.
   async function logAudit(action: string, prev: string, next: string, note: string) {
-    await (supabase as any).from('return_audit_log').insert({
-      return_id: id,
+    await logReturnActivity({
+      return_id: id!,
       action,
       previous_status: prev,
       new_status: next,
       comments: note,
-      performed_by: user?.id,
+      performed_by: user?.id ?? null,
+      event_key: `return.${action}`,
+      source: 'client:ReturnDetail',
     });
   }
 
@@ -266,7 +270,12 @@ export default function ReturnDetail() {
         .update({ workflow_status: 'VAL', updated_by: user?.id })
         .eq('id', id);
       if (error) throw error;
-      await logAudit('validated', status || '', 'VAL', comments_ || 'Return validated by admin');
+      await logReturnApprovedLegacy({
+        return_id: id!,
+        previous_status: status || '',
+        comments: comments_ || 'Return validated by admin',
+        performed_by: user?.id ?? null,
+      });
       if (comments_.trim()) {
         await (supabase as any).from('return_comments').insert({
           return_id: id,
@@ -364,7 +373,12 @@ export default function ReturnDetail() {
         comment_text: comments_.trim(),
         commented_by: user?.id,
       });
-      await logAudit('rejected', status || '', 'TBR', comments_.trim());
+      await logEditRequestedLegacy({
+        return_id: id!,
+        previous_status: status || '',
+        comments: comments_.trim(),
+        performed_by: user?.id ?? null,
+      });
       toast.success('Edit request sent to licensee');
       setComments('');
       qc.invalidateQueries({ queryKey: ['returns_filed'] });
