@@ -59,19 +59,13 @@ export default function RegistrationReview() {
     if (!active) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('perform-registration-workflow-action', {
-        body: {
-          registration_id: active.registration.id,
-          action_type: active.action,
-          comments,
-        },
+      const res = await invokePerformRegistrationWorkflowAction({
+        registration_id: active.registration.id,
+        action_type: active.action,
+        comments,
       });
-      if (error || (data as any)?.error) {
-        toast({
-          title: 'Action failed',
-          description: (data as any)?.error || error?.message || 'Unknown error',
-          variant: 'destructive',
-        });
+      if (!res.ok) {
+        toast({ title: 'Action failed', description: res.error || 'Unknown error', variant: 'destructive' });
       } else {
         toast({ title: 'Done', description: `Registration ${ACTION_LABEL[active.action].toLowerCase()}d.` });
         setActive(null);
