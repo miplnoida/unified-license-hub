@@ -715,7 +715,7 @@ export default function WorkflowList() {
                                   Legacy type
                                 </Badge>
                               )}
-                              <span className="text-[10px] text-muted-foreground truncate">{wf.license_type}</span>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
