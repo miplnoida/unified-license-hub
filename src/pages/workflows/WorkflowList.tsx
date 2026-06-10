@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from '@/components/ui/card';
@@ -19,9 +20,10 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
-  GitBranch, Plus, Trash2, ArrowDown, CheckCircle2, FileInput,
+  GitBranch, Plus, Trash2, CheckCircle2, FileInput,
   Users, BookmarkPlus, Workflow as WorkflowIcon, Search,
   ChevronUp, ChevronDown, FileStack, Sparkles, Settings2, Info, X,
+  AlertTriangle, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRegulator } from '@/contexts/RegulatorContext';
@@ -30,8 +32,8 @@ import {
   useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow,
   useCreateStep, useUpdateStep, useDeleteStep, useReorderSteps,
   useWorkflowTypeConfigs, filterActiveWorkflowTypes, getWorkflowTypeLabel,
-  FALLBACK_WORKFLOW_TYPE_LABELS,
-  type Workflow, type WorkflowStep, type WorkflowEntityType,
+  type Workflow, type WorkflowStep, type WorkflowEntityType, type WorkflowActionType,
+  ACTION_LABELS,
 } from '@/hooks/useWorkflowEngine';
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
 import { useSectors } from '@/hooks/useMasterConfig';
@@ -39,6 +41,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
+
+const ALL_ACTIONS: WorkflowActionType[] = ['approve', 'reject', 'send_back', 'escalate', 'request_resubmission'];
+
 
 // ─── Templates ───
 type TemplateStep = { name: string; approver_role: string; sla_hours?: number };
