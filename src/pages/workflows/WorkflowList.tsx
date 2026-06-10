@@ -879,7 +879,72 @@ export default function WorkflowList() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Workflow Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Workflow</DialogTitle>
+            <DialogDescription>Update workflow metadata. Scope changes affect future routing.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Workflow Name <span className="text-destructive">*</span></Label>
+              <Input value={editName} onChange={e => setEditName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Used For <span className="text-destructive">*</span></Label>
+                <Select
+                  value={editEntityType || undefined}
+                  onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
+                  disabled={activeWorkflowTypes.length === 0}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>
+                    {activeWorkflowTypes.map((t) => (
+                      <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
+                    ))}
+                    {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
+                      <SelectItem value={editTarget.entity_type} disabled>
+                        {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Category <span className="text-destructive">*</span></Label>
+                <Input value={editLicenseType} onChange={e => setEditLicenseType(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Sector</Label>
+              <Select value={editSectorId} onValueChange={setEditSectorId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific sector</SelectItem>
+                  {(sectors as any[]).map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleEditSave} disabled={updateWorkflow.isPending}>
+              {updateWorkflow.isPending ? 'Saving…' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Templates Dialog */}
+
       <Dialog open={templatesOpen} onOpenChange={setTemplatesOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
