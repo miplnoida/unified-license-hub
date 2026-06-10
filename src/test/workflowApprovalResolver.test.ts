@@ -20,24 +20,33 @@ vi.mock('@/integrations/supabase/client', () => ({
               in: vi.fn((column: string, values: string[]) => {
                 state[column] = values;
 
+                chain.then = (resolve: any, reject?: any) => {
+                  const result = state.license_type === 'Insurance' && state.regulator_id === 'reg-1'
+                    ? {
+                        data: [
+                          { id: 'wf-post', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'post_application' },
+                          { id: 'wf-legacy', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'application' },
+                        ],
+                        error: null,
+                      }
+                    : {
+                        data: [
+                          { id: 'wf-pre', is_active: true, license_type: 'micro', entity_type: 'pre_application' },
+                          { id: 'wf-legacy-prefix', is_active: true, license_type: 'micro', entity_type: 'application' },
+                        ],
+                        error: null,
+                      };
+
+                  return Promise.resolve(result).then(resolve, reject);
+                };
+
                 if (state.license_type === 'Insurance' && state.regulator_id === 'reg-1') {
-                  return Promise.resolve({
-                    data: [
-                      { id: 'wf-post', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'post_application' },
-                      { id: 'wf-legacy', is_active: true, license_type: 'Insurance', sector_id: null, category_id: null, entity_type: 'application' },
-                    ],
-                    error: null,
-                  });
+                  return chain;
                 }
 
-                return Promise.resolve({
-                  data: [
-                    { id: 'wf-pre', is_active: true, license_type: 'micro', entity_type: 'pre_application' },
-                    { id: 'wf-legacy-prefix', is_active: true, license_type: 'micro', entity_type: 'application' },
-                  ],
-                  error: null,
-                });
+                return chain;
               }),
+              then: (resolve: any, reject?: any) => Promise.resolve({ data: [], error: null }).then(resolve, reject),
             };
 
             eqMock.mockImplementation(chain.eq);
