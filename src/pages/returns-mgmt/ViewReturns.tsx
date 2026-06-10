@@ -118,7 +118,7 @@ export default function ViewReturns() {
           workflow_status: r.workflow_status,
           status: mapWorkflowStatus(r.workflow_status),
           submitted_at: r.submit_date,
-          reviewed_at: r.workflow_status === 'VAL' || r.workflow_status === 'REJ' ? r.submit_date : null,
+          reviewed_at: r.workflow_status === 'VAL' ? r.submit_date : null,
           created_at: r.created_at,
         }));
         setReturns(mapped);
