@@ -37,6 +37,7 @@ import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
+import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
 
 // ─── Templates ───
 type TemplateStep = { name: string; approver_role: string; sla_hours?: number };
@@ -171,6 +172,20 @@ export default function WorkflowList() {
     }
     try {
       const sectorId = newSectorId !== 'none' ? newSectorId : null;
+
+      // Duplicate guard — Sector + Used For must be unique per regulator.
+      const dup = findDuplicateWorkflow(workflows, {
+        regulator_id: activeRegulatorId ?? null,
+        sector_id: sectorId,
+        entity_type: newEntityType,
+      });
+      if (dup) {
+        toast.error(DUPLICATE_WORKFLOW_MESSAGE, {
+          description: `Existing workflow: "${dup.name}"`,
+        });
+        return;
+      }
+
       const wf = await createWorkflow.mutateAsync({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
