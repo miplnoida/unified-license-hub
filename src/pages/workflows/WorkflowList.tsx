@@ -617,12 +617,32 @@ export default function WorkflowList() {
               <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
                 <FileStack className="h-4 w-4 mr-2" /> Templates
               </Button>
-              <Button onClick={() => setCreateOpen(true)}>
+              <Button
+                onClick={() => setCreateOpen(true)}
+                disabled={createDisabled}
+                title={createDisabledReason || undefined}
+              >
                 <Plus className="h-4 w-4 mr-2" /> New Workflow
               </Button>
             </div>
           }
         />
+
+        {createDisabledReason && (
+          <div className="rounded-md border border-warning/40 bg-warning/10 text-warning-foreground p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-foreground">Workflow creation is disabled</p>
+              <p className="text-muted-foreground">{createDisabledReason}</p>
+              {typesError && typesErrorObj && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(typesErrorObj as Error).message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Workflow List */}
