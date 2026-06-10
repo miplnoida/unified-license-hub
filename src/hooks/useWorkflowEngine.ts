@@ -301,6 +301,78 @@ export function useCreateWorkflow() {
   });
 }
 
+/**
+ * Atomic create-with-steps. Calls the `create_approval_workflow_with_steps`
+ * RPC so the workflow row AND all of its steps are inserted in a single DB
+ * transaction. If any step fails (role, RLS, constraint, etc.) the entire
+ * workflow is rolled back automatically — there is no possibility of an
+ * orphan zero-step workflow, even if the network drops mid-call.
+ */
+export function useCreateWorkflowWithSteps() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      workflow: {
+        name: string;
+        description?: string | null;
+        license_type: string;
+        entity_type: WorkflowEntityType;
+        regulator_id?: string | null;
+        sector_id?: string | null;
+        category_id?: string | null;
+        is_active?: boolean;
+      };
+      steps: Array<{
+        step_order?: number;
+        name: string;
+        description?: string | null;
+        approver_role: AppRole;
+        approver_role_id?: string | null;
+        step_type?: string;
+        is_required?: boolean;
+        sla_hours?: number;
+        allowed_actions: WorkflowActionType[];
+        escalation_role?: string | null;
+        escalation_after_hours?: number | null;
+      }>;
+    }) => {
+      const { data, error } = await supabase.rpc(
+        'create_approval_workflow_with_steps' as any,
+        {
+          _workflow: params.workflow as any,
+          _steps: params.steps as any,
+        } as any,
+      );
+      if (error) {
+        if ((error as any).code === '23505') {
+          throw new Error('Workflow already exists for this sector and used-for type.');
+        }
+        throw error;
+      }
+      const result = (data || {}) as { workflow_id?: string; step_count?: number };
+      if (!result.workflow_id) {
+        throw new Error('create_approval_workflow_with_steps returned no workflow id');
+      }
+      await logAudit({
+        action: 'workflow_created',
+        entityType: 'approval_workflow',
+        entityId: result.workflow_id,
+        newValue: {
+          name: params.workflow.name,
+          entity_type: params.workflow.entity_type,
+          step_count: result.step_count ?? params.steps.length,
+          atomic: true,
+        },
+      });
+      return result.workflow_id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['approval_workflows'] });
+      qc.invalidateQueries({ queryKey: ['approval_steps'] });
+    },
+  });
+}
+
 export function useUpdateWorkflow() {
   const qc = useQueryClient();
   return useMutation({
