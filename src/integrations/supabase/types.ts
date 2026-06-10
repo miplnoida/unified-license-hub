@@ -5887,18 +5887,32 @@ export type Database = {
       }
     }
     Functions: {
-      _resolve_application_workflow: {
-        Args: {
-          _category_id: string
-          _license_type: string
-          _regulator_id: string
-          _sector_id: string
-        }
-        Returns: {
-          first_step_id: string
-          workflow_id: string
-        }[]
-      }
+      _resolve_application_workflow:
+        | {
+            Args: {
+              _category_id: string
+              _license_type: string
+              _regulator_id: string
+              _sector_id: string
+            }
+            Returns: {
+              first_step_id: string
+              workflow_id: string
+            }[]
+          }
+        | {
+            Args: {
+              _category_id: string
+              _is_post_license?: boolean
+              _license_type: string
+              _regulator_id: string
+              _sector_id: string
+            }
+            Returns: {
+              first_step_id: string
+              workflow_id: string
+            }[]
+          }
       _resolve_effective_regulator: {
         Args: {
           _category_id: string

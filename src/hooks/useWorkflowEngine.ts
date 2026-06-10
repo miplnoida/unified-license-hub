@@ -5,14 +5,41 @@ import type { AppRole } from '@/types/platform';
 
 // ─── Types ───
 
-export type WorkflowEntityType = 'application' | 'complaint' | 'inspection' | 'return';
+/**
+ * Workflow entity types.
+ *
+ * Note: the combined `'application'` type has been split into
+ * `'pre_application'` and `'post_application'` so admins can configure
+ * independent approval flows for pre-license vs post-license applications.
+ * `'registration'` is offered as a top-level workflow for licensee registration
+ * approvals. Legacy `'application'` rows are migrated to `'pre_application'`.
+ */
+export type WorkflowEntityType =
+  | 'registration'
+  | 'pre_application'
+  | 'post_application'
+  | 'complaint'
+  | 'inspection'
+  | 'return';
 
 export const ENTITY_TYPE_LABELS: Record<WorkflowEntityType, string> = {
-  application: 'Application',
+  registration: 'Registration',
+  pre_application: 'Pre Application',
+  post_application: 'Post Application',
   complaint: 'Complaint',
   inspection: 'Inspection',
   return: 'Compliance Return',
 };
+
+/**
+ * Entity types whose workflow lookup also accepts the legacy `application`
+ * row as a fallback. Lets older configurations keep working until an admin
+ * splits them explicitly into pre / post.
+ */
+export const LEGACY_APPLICATION_ENTITY_TYPES: ReadonlyArray<WorkflowEntityType> = [
+  'pre_application',
+  'post_application',
+];
 
 // Synthetic actions like `request_info` and `delegate` were never fully
 // implemented (no assignee handoff, no notifications, no state semantics) and
