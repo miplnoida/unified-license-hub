@@ -29,6 +29,12 @@ import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
+import {
+  logReturnActivity,
+  logReturnApprovedLegacy,
+  logEditRequestedLegacy,
+  labelForReturnActivity,
+} from '@/lib/returnActivityLogger';
 
 function ReadOnlyFormBlock({ formId, name, data, pinnedVersionId }: { formId: string; name: string; data: Record<string, any>; pinnedVersionId?: string | null }) {
   const { data: latestVersion, isLoading: vLoading } = useLatestPublishedVersion(formId);
@@ -237,14 +243,18 @@ export default function ReturnDetail() {
     return () => { cancelled = true; };
   }, [returnData?.id, workflowEnabled, isReviewable, hasActiveInstance, qc]);
 
+  // Legacy audit helper retained for any one-off callers; new code should use
+  // logReturnApprovedLegacy / logEditRequestedLegacy below.
   async function logAudit(action: string, prev: string, next: string, note: string) {
-    await (supabase as any).from('return_audit_log').insert({
-      return_id: id,
+    await logReturnActivity({
+      return_id: id!,
       action,
       previous_status: prev,
       new_status: next,
       comments: note,
-      performed_by: user?.id,
+      performed_by: user?.id ?? null,
+      event_key: `return.${action}`,
+      source: 'client:ReturnDetail',
     });
   }
 
@@ -266,7 +276,12 @@ export default function ReturnDetail() {
         .update({ workflow_status: 'VAL', updated_by: user?.id })
         .eq('id', id);
       if (error) throw error;
-      await logAudit('validated', status || '', 'VAL', comments_ || 'Return validated by admin');
+      await logReturnApprovedLegacy({
+        return_id: id!,
+        previous_status: status || '',
+        comments: comments_ || 'Return validated by admin',
+        performed_by: user?.id ?? null,
+      });
       if (comments_.trim()) {
         await (supabase as any).from('return_comments').insert({
           return_id: id,
@@ -364,7 +379,12 @@ export default function ReturnDetail() {
         comment_text: comments_.trim(),
         commented_by: user?.id,
       });
-      await logAudit('rejected', status || '', 'TBR', comments_.trim());
+      await logEditRequestedLegacy({
+        return_id: id!,
+        previous_status: status || '',
+        comments: comments_.trim(),
+        performed_by: user?.id ?? null,
+      });
       toast.success('Edit request sent to licensee');
       setComments('');
       qc.invalidateQueries({ queryKey: ['returns_filed'] });
@@ -613,44 +633,38 @@ export default function ReturnDetail() {
               </Card>
             )}
 
-            {/* Workflow approval-action history (configurable workflow mode) */}
-            {workflowEnabled && approvalActions.length > 0 && (
+            {/* Unified Activity / History — merges workflow approval_actions
+                with the enriched return_audit_log rows. */}
+            {(auditLog.length > 0 || approvalActions.length > 0) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" /> Workflow Activity
+                    <History className="h-4 w-4 text-primary" /> Activity & History
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  {approvalActions.slice(0, 15).map((a: any) => (
-                    <div key={a.id} className="text-xs border-l-2 border-primary/60 pl-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium capitalize">{(a.action_type || '').replace(/_/g, ' ')}</span>
+                <CardContent className="space-y-2 max-h-[28rem] overflow-y-auto">
+                  {auditLog.map((a: any) => (
+                    <div key={`audit-${a.id}`} className="text-xs border-l-2 border-primary/40 pl-2 py-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-medium">{labelForReturnActivity(a.action)}</span>
                         <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
                       </div>
-                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Legacy audit history */}
-            {auditLog.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" /> Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {auditLog.slice(0, 10).map((a: any) => (
-                    <div key={a.id} className="text-xs border-l-2 border-primary/40 pl-2 py-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium capitalize">{a.action.replace(/_/g, ' ')}</span>
-                        <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
-                      </div>
-                      {a.comments && <p className="text-muted-foreground mt-0.5">{a.comments}</p>}
+                      {(a.previous_status || a.new_status) && a.previous_status !== a.new_status && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Status: <span className="font-mono">{a.previous_status || '—'}</span>
+                          {' → '}
+                          <span className="font-mono">{a.new_status || '—'}</span>
+                        </p>
+                      )}
+                      {(a.previous_step_id || a.new_step_id) && a.previous_step_id !== a.new_step_id && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Step changed
+                        </p>
+                      )}
+                      {a.comments && <p className="text-muted-foreground mt-0.5 whitespace-pre-wrap">{a.comments}</p>}
+                      {a.event_key && (
+                        <p className="text-[9px] text-muted-foreground/70 mt-0.5 font-mono">{a.event_key}</p>
+                      )}
                     </div>
                   ))}
                 </CardContent>

@@ -4261,34 +4261,52 @@ export type Database = {
       }
       return_audit_log: {
         Row: {
-          action: Database["public"]["Enums"]["return_audit_action"]
+          action: string
+          actor_role: string | null
           comments: string | null
           created_at: string
+          event_key: string | null
           id: string
+          metadata: Json
           new_status: string | null
+          new_step_id: string | null
           performed_by: string | null
           previous_status: string | null
+          previous_step_id: string | null
           return_id: string
+          source: string | null
         }
         Insert: {
-          action: Database["public"]["Enums"]["return_audit_action"]
+          action: string
+          actor_role?: string | null
           comments?: string | null
           created_at?: string
+          event_key?: string | null
           id?: string
+          metadata?: Json
           new_status?: string | null
+          new_step_id?: string | null
           performed_by?: string | null
           previous_status?: string | null
+          previous_step_id?: string | null
           return_id: string
+          source?: string | null
         }
         Update: {
-          action?: Database["public"]["Enums"]["return_audit_action"]
+          action?: string
+          actor_role?: string | null
           comments?: string | null
           created_at?: string
+          event_key?: string | null
           id?: string
+          metadata?: Json
           new_status?: string | null
+          new_step_id?: string | null
           performed_by?: string | null
           previous_status?: string | null
+          previous_step_id?: string | null
           return_id?: string
+          source?: string | null
         }
         Relationships: [
           {
