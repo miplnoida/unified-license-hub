@@ -382,6 +382,28 @@ export default function FillReturnPage() {
       qc.invalidateQueries({ queryKey: ['return_requests', id] });
       qc.invalidateQueries({ queryKey: ['return_audit_log', id] });
       qc.invalidateQueries({ queryKey: ['return_comments', id] });
+      // Ensure the configurable workflow (if any) is started so first-step
+      // approvers can be resolved as notification recipients. Best-effort.
+      let resolvedStepId: string | null = (returnData as any)?.current_step_id || null;
+      let resolvedWorkflowId: string | null = (returnData as any)?.workflow_id || null;
+      try {
+        const { data: startRes } = await (supabase as any).rpc('start_return_workflow', { _return_id: id });
+        const r = (startRes || {}) as Record<string, unknown>;
+        if (r.step_id) resolvedStepId = String(r.step_id);
+        if (r.workflow_id) resolvedWorkflowId = String(r.workflow_id);
+      } catch { /* legacy returns with no workflow configured */ }
+      // Re-read current_step_id from DB as a fallback (the RPC may update returns_filed directly).
+      if (!resolvedStepId) {
+        try {
+          const { data: r2 } = await (supabase as any)
+            .from('returns_filed')
+            .select('current_step_id, workflow_id')
+            .eq('id', id)
+            .maybeSingle();
+          resolvedStepId = (r2 as any)?.current_step_id || resolvedStepId;
+          resolvedWorkflowId = (r2 as any)?.workflow_id || resolvedWorkflowId;
+        } catch { /* ignore */ }
+      }
       // Fire-and-forget notification dispatch
       supabase.functions.invoke('dispatch-notification-event', {
         body: {
@@ -391,18 +413,26 @@ export default function FillReturnPage() {
           payload: {
             return_id: id,
             unique_id: returnData?.unique_id,
+            return_unique_id: returnData?.unique_id,
+            return_name: (returnData as any)?.return_configs?.name,
             return_config_name: (returnData as any)?.return_configs?.name,
             return_period: returnData?.return_period,
             return_year: returnData?.return_year,
             licensee_id: (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id,
             sector_id: (returnData as any)?.sector_id,
             submitted_by: user?.id,
+            submitted_by_email: user?.email,
+            submitted_by_name: user?.email || 'Licensee',
+            submitted_at: now.toISOString(),
+            resubmitted_at: previousStatus === 'TBR' ? now.toISOString() : undefined,
             submit_date: now.toISOString(),
+            actor_id: user?.id,
             actor_name: user?.email || 'Licensee',
             previous_status: previousStatus,
             new_status: 'SUB',
-            workflow_id: (returnData as any)?.workflow_id || null,
-            current_step_id: (returnData as any)?.current_step_id || null,
+            workflow_id: resolvedWorkflowId,
+            current_step_id: resolvedStepId,
+            step_id: resolvedStepId,
           },
         },
       }).catch(() => {});
