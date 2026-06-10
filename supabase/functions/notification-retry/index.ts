@@ -7,6 +7,7 @@
 // - Caller must be a super_admin/admin (RLS on dispatch log limits writes).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { renderBrandedEmail, stripUnresolvedTemplateTokens } from "../_shared/email-layout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,8 +73,8 @@ Deno.serve(async (req) => {
       .eq("event_key", row.event_key)
       .maybeSingle();
     const vars = (row.payload?.vars as Record<string, any>) || {};
-    const subject = row.subject || render(cfg?.email_subject_template, vars) || render(cfg?.title_template, vars) || row.event_key;
-    const body = render(cfg?.email_body_template, vars) || render(cfg?.message_template, vars) || "";
+    const subject = stripUnresolvedTemplateTokens(row.subject || render(cfg?.email_subject_template, vars) || render(cfg?.title_template, vars) || row.event_key);
+    const body = stripUnresolvedTemplateTokens(render(cfg?.email_body_template, vars) || render(cfg?.message_template, vars) || "");
 
     if (row.channel === "email") {
       const to = row.recipient_email;
@@ -85,8 +86,16 @@ Deno.serve(async (req) => {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const html = renderBrandedEmail({
+        appName: String(vars.app_name || 'Unified License Hub'),
+        heading: subject,
+        paragraphs: body ? body.split(/\n{2,}/) : [],
+        ctaUrl: typeof vars.cta_url === 'string' ? vars.cta_url : '',
+        ctaLabel: typeof vars.cta_label === 'string' ? vars.cta_label : 'Open Portal',
+        supportEmail: typeof vars.support_email === 'string' ? vars.support_email : '',
+      });
       const { data: sendRes, error: sendErr } = await admin.functions.invoke("send-notification", {
-        body: { type: "email", to, subject, body, dispatch_log_id: log_id },
+        body: { type: "email", to, subject, body, html, dispatch_log_id: log_id },
       });
       return new Response(JSON.stringify({ ok: !sendErr, result: sendRes }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
