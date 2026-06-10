@@ -226,8 +226,8 @@ export default function WorkflowList() {
         : null;
 
   const handleCreate = async () => {
-    if (!newName.trim() || !newLicenseType.trim()) {
-      toast.error('Please give the workflow a name and a category');
+    if (!newName.trim()) {
+      toast.error('Please give the workflow a name');
       return;
     }
     if (!newEntityType || !activeTypeKeys.has(newEntityType as WorkflowEntityType)) {
