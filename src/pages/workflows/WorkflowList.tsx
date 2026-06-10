@@ -142,6 +142,12 @@ export default function WorkflowList() {
   const reorderSteps = useReorderSteps();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isEditingSteps, setIsEditingSteps] = useState(false);
+
+  // Always exit edit mode when switching workflows — no edits carry over.
+  useEffect(() => {
+    setIsEditingSteps(false);
+  }, [selectedId]);
 
   const activeWorkflowTypes = useMemo(
     () => filterActiveWorkflowTypes(workflowTypeConfigs),
