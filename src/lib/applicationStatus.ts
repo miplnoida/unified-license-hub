@@ -16,6 +16,9 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   pending_review: 'Pending Review',
   query_raised: 'Query Raised',
   resubmission_requested: 'Resubmission Requested',
+  resubmission_required: 'Resubmission Required',
+  returned_for_correction: 'Returned for Correction',
+  info_requested: 'Information Requested',
   approved: 'Approved',
   rejected: 'Rejected',
   cancelled: 'Cancelled',
@@ -26,7 +29,10 @@ export const EDITABLE_APPLICATION_STATUSES = [
   'draft',
   'in_progress',
   'resubmission_requested',
+  'resubmission_required',
   'query_raised',
+  'returned_for_correction',
+  'info_requested',
 ];
 
 export const SUBMITTED_APPLICATION_STATUSES = [
