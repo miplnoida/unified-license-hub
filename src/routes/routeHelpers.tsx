@@ -4,6 +4,24 @@ import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
+
+/**
+ * Routes a non-approved pre-licensee is still allowed to visit so they can
+ * read the status page, change password, or resubmit a returned registration.
+ */
+const REGISTRATION_GATE_ALLOWLIST = [
+  '/registration-status',
+  '/change-password',
+  '/registration/pre-licensee',
+  '/registration/success',
+];
+
+function isRegistrationGateAllowed(pathname: string): boolean {
+  return REGISTRATION_GATE_ALLOWLIST.some(
+    (route) => pathname === route || pathname.startsWith(route + '/'),
+  );
+}
 
 /**
  * Protected route wrapper that:
@@ -38,10 +56,44 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/change-password" replace />;
   }
 
-  if (isRestrictedPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
-    return <Navigate to="/dashboard" replace />;
+  // Registration approval gate — pre-licensee users cannot enter the portal
+  // until their registration has been approved by the regulator.
+  if (isRestrictedPreLicensee) {
+    return (
+      <RegistrationApprovalGate pathname={location.pathname}>
+        {children}
+      </RegistrationApprovalGate>
+    );
+  }
+  return <>{children}</>;
+}
+
+/**
+ * Gate that blocks pre-licensee dashboard access until their `registrations`
+ * row reaches an approved status. Non-approved users are redirected to
+ * `/registration-status` (always allowed) where they can read the message and
+ * resubmit when applicable.
+ */
+function RegistrationApprovalGate({
+  pathname,
+  children,
+}: {
+  pathname: string;
+  children: React.ReactNode;
+}) {
+  const { loading, isApproved } = useRegistrationApprovalStatus();
+
+  if (loading) return <AuthLoadingScreen />;
+
+  if (!isApproved) {
+    if (isRegistrationGateAllowed(pathname)) return <>{children}</>;
+    return <Navigate to="/registration-status" replace />;
   }
 
+  // Approved → fall back to legacy pre-licensee allow-list behaviour.
+  if (!isPreLicenseeAllowedRoute(pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 

@@ -30,13 +30,13 @@ export default function RegistrationSuccess() {
 
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
             <p className="text-sm font-medium text-foreground">
-              Next step: Log in and complete your license application.
+              Next step: your registration will be reviewed. You will be able to log in once it is approved.
             </p>
           </div>
 
           <Button asChild className="w-full">
             <Link to="/">
-              Login to Continue
+              Back to Login
               <ArrowRight className="h-4 w-4 ml-2" />
             </Link>
           </Button>
