@@ -20,6 +20,10 @@ interface PendingRegistration {
   registration_reference: string;
   created_at: string;
   sector_id: string | null;
+  workflow_version_number?: number | null;
+  workflow_name?: string | null;
+  current_step_name?: string | null;
+  sla_hours?: number | null;
 }
 
 interface ActiveAction {
@@ -49,7 +53,53 @@ export default function RegistrationReview() {
       .select('id, applicant_name, email, status, registration_reference, created_at, sector_id')
       .in('status', ['pending_review', 'in_progress', 'resubmission_required'])
       .order('created_at', { ascending: false });
-    setRows((data || []) as any);
+
+    const base = (data || []) as PendingRegistration[];
+    if (base.length === 0) {
+      setRows(base);
+      setLoading(false);
+      return;
+    }
+
+    // Hydrate workflow version + current step name from pinned instances.
+    const ids = base.map(r => r.id);
+    const { data: instances } = await supabase
+      .from('workflow_instances')
+      .select('entity_id, workflow_id, workflow_version_id, current_step_id, current_step_key, version_snapshot')
+      .eq('entity_type', 'registration')
+      .in('entity_id', ids);
+
+    const verIds = Array.from(new Set((instances || []).map((i: any) => i.workflow_version_id).filter(Boolean))) as string[];
+    const wfIds = Array.from(new Set((instances || []).map((i: any) => i.workflow_id).filter(Boolean))) as string[];
+
+    const [versions, workflows] = await Promise.all([
+      verIds.length
+        ? supabase.from('approval_workflow_versions' as any).select('id, version_number').in('id', verIds)
+        : Promise.resolve({ data: [] as any[] }),
+      wfIds.length
+        ? supabase.from('approval_workflows').select('id, name').in('id', wfIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const verMap = new Map<string, number>((versions.data || []).map((v: any) => [v.id, v.version_number]));
+    const wfMap = new Map<string, string>((workflows.data || []).map((w: any) => [w.id, w.name]));
+    const instByEntity = new Map<string, any>((instances || []).map((i: any) => [i.entity_id, i]));
+
+    const hydrated = base.map(r => {
+      const inst = instByEntity.get(r.id);
+      if (!inst) return r;
+      const snap = inst.version_snapshot as { steps?: Array<{ local_id: string; name: string; sla_hours: number | null }> } | null;
+      const stepKey = inst.current_step_key ?? (inst.current_step_id ? String(inst.current_step_id) : null);
+      const step = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
+      return {
+        ...r,
+        workflow_version_number: inst.workflow_version_id ? verMap.get(inst.workflow_version_id) ?? null : null,
+        workflow_name: inst.workflow_id ? wfMap.get(inst.workflow_id) ?? null : null,
+        current_step_name: step?.name ?? null,
+        sla_hours: step?.sla_hours ?? null,
+      };
+    });
+    setRows(hydrated);
     setLoading(false);
   }, []);
 
@@ -102,6 +152,8 @@ export default function RegistrationReview() {
                       <TableHead>Applicant</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Workflow</TableHead>
+                      <TableHead>Current Step</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -113,6 +165,14 @@ export default function RegistrationReview() {
                         <TableCell className="font-medium">{r.applicant_name}</TableCell>
                         <TableCell className="text-sm">{r.email}</TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell className="text-sm">
+                          {r.workflow_name ?? '—'}
+                          {r.workflow_version_number ? <Badge variant="secondary" className="ml-2">v{r.workflow_version_number}</Badge> : null}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {r.current_step_name ?? '—'}
+                          {r.sla_hours ? <span className="text-muted-foreground"> · SLA {r.sla_hours}h</span> : null}
+                        </TableCell>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button size="sm" variant="default" onClick={() => { setActive({ registration: r, action: 'approve' }); setComments(''); }}>Approve</Button>
