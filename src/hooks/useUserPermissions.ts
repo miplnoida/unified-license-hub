@@ -82,6 +82,7 @@ export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/profile',
   '/change-password',
   '/notifications',
+  '/registration-status',
 ];
 
 /**
