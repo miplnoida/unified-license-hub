@@ -13,6 +13,18 @@ import { fireEvent, render, screen, within, waitFor } from '@testing-library/rea
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 
+const {
+  upsertMutateAsync,
+  upsertMutate,
+  deleteMutate,
+  useActionNotificationsMock,
+} = vi.hoisted(() => ({
+  upsertMutateAsync: vi.fn(async (payload?: unknown) => payload),
+  upsertMutate: vi.fn(),
+  deleteMutate: vi.fn(),
+  useActionNotificationsMock: vi.fn(),
+}));
+
 const existingRows = [
   {
     id: 'row-1',
@@ -35,11 +47,6 @@ const existingRows = [
     is_enabled: false,
   },
 ];
-
-const upsertMutateAsync = vi.fn(async (payload?: unknown) => payload);
-const upsertMutate = vi.fn();
-const deleteMutate = vi.fn();
-const useActionNotificationsMock = vi.fn();
 
 vi.mock('@/hooks/useActionNotifications', async () => {
   const actual = await vi.importActual<typeof import('@/hooks/useActionNotifications')>(
