@@ -57,6 +57,28 @@ export interface StepActionInput {
 
 const TABLE = 'approval_step_actions' as const;
 
+/**
+ * Re-sync approval_steps.allowed_actions to the union of currently enabled
+ * action_types in approval_step_actions for this step. Keeps the legacy
+ * runtime gate (`v_allowed_actions` in perform_workflow_transition) in lock-step
+ * with per-action config so admins only have to manage one list.
+ */
+async function syncAllowedActions(stepId: string) {
+  const { data, error } = await supabase
+    .from(TABLE as any)
+    .select('action_type, is_enabled')
+    .eq('step_id', stepId);
+  if (error) throw error;
+  const allowed = Array.from(
+    new Set(((data ?? []) as any[]).filter(r => r.is_enabled).map(r => r.action_type as string)),
+  );
+  const { error: upErr } = await supabase
+    .from('approval_steps')
+    .update({ allowed_actions: allowed as any })
+    .eq('id', stepId);
+  if (upErr) throw upErr;
+}
+
 export function useStepActions(stepId: string | null | undefined) {
   return useQuery({
     enabled: !!stepId,
@@ -78,7 +100,6 @@ export function useUpsertStepAction(stepId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: StepActionInput) => {
-      // Validate routing requirements
       const mode: NextStepMode = row.next_step_mode ?? 'next';
       if (mode === 'specific_step' && !row.next_step_id) {
         throw new Error('Choose the target step for "Move to Specific Step".');
@@ -105,16 +126,17 @@ export function useUpsertStepAction(stepId: string) {
         : supabase.from(TABLE as any).insert(payload as any);
       const { data, error } = await query.select().single();
       if (error) {
-        // 23505 is the unique (step_id, action_type) violation
         if ((error as any).code === '23505') {
           throw new Error('This step already has a row for that action type. Edit the existing row.');
         }
         throw error;
       }
+      await syncAllowedActions(stepId);
       return data as unknown as StepAction;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['approval_step_actions', stepId] });
+      qc.invalidateQueries({ queryKey: ['approval_steps'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to save action'),
   });
@@ -126,9 +148,11 @@ export function useDeleteStepAction(stepId: string) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from(TABLE as any).delete().eq('id', id);
       if (error) throw error;
+      await syncAllowedActions(stepId);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['approval_step_actions', stepId] });
+      qc.invalidateQueries({ queryKey: ['approval_steps'] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to delete action'),
   });
