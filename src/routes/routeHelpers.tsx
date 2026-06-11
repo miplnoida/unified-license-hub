@@ -65,11 +65,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </RegistrationApprovalGate>
     );
   }
-
-  if (isRestrictedPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return <>{children}</>;
 }
 
