@@ -4,6 +4,24 @@ import { isPreLicenseeAllowedRoute } from '@/hooks/useUserPermissions';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
+
+/**
+ * Routes a non-approved pre-licensee is still allowed to visit so they can
+ * read the status page, change password, or resubmit a returned registration.
+ */
+const REGISTRATION_GATE_ALLOWLIST = [
+  '/registration-status',
+  '/change-password',
+  '/registration/pre-licensee',
+  '/registration/success',
+];
+
+function isRegistrationGateAllowed(pathname: string): boolean {
+  return REGISTRATION_GATE_ALLOWLIST.some(
+    (route) => pathname === route || pathname.startsWith(route + '/'),
+  );
+}
 
 /**
  * Protected route wrapper that:
