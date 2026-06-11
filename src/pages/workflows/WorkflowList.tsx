@@ -71,6 +71,9 @@ type TemplateStep = {
   approver_role: string;
   sla_hours?: number;
   allowed_actions?: WorkflowActionType[];
+  // v2 fields (optional, present only when template is v2)
+  local_id?: string;
+  approver_type?: string;
 };
 type WorkflowTemplate = {
   id: string;
