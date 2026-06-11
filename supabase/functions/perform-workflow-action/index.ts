@@ -20,7 +20,18 @@ const ACCEPTED_ACTIONS = new Set([
   "send_back",
   "escalate",
   "request_resubmission",
+  "return_for_correction",
+  "request_more_info",
 ]);
+
+// Applicant-facing aliases. The DB RPC only understands the original 5
+// transition types, so we map these to `request_resubmission` (which pauses
+// the workflow pending applicant resubmission). The original alias is
+// preserved for notification dispatch + audit metadata.
+const ACTION_ALIAS_TO_RPC: Record<string, string> = {
+  return_for_correction: "request_resubmission",
+  request_more_info: "request_resubmission",
+};
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
