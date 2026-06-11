@@ -94,6 +94,9 @@ export type ApplicationStatus =
   | 'rejected'
   | 'cancelled'
   | 'resubmission_requested'
+  | 'resubmission_required'
+  | 'returned_for_correction'
+  | 'info_requested'
   | 'query_raised';
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -104,6 +107,9 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   rejected: 'Rejected',
   cancelled: 'Cancelled',
   resubmission_requested: 'To Be Resubmitted',
+  resubmission_required: 'To Be Resubmitted',
+  returned_for_correction: 'Returned for Correction',
+  info_requested: 'Information Requested',
   query_raised: 'To Be Resubmitted',
 };
 
