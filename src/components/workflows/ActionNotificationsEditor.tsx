@@ -433,7 +433,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                     value={roleValue || 'none'}
                                     onValueChange={(v) => setDraft(key, {
                                       ...draft,
-                                      recipient_config: v === 'none' ? {} : { role: v },
+                                       recipient_config: v === 'none' ? {} : { role: v, role_name: v },
                                       recipient_config_text: JSON.stringify(v === 'none' ? {} : { role: v, role_name: v }, null, 2),
                                       recipient_config_error: null,
                                     })}
@@ -643,7 +643,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 value={roleValue || 'none'}
                                 onValueChange={(v) => setDraft(key, {
                                   ...draft,
-                                  recipient_config: v === 'none' ? {} : { role: v },
+                                  recipient_config: v === 'none' ? {} : { role: v, role_name: v },
                                   recipient_config_text: JSON.stringify(v === 'none' ? {} : { role: v, role_name: v }, null, 2),
                                   recipient_config_error: null,
                                 })}
