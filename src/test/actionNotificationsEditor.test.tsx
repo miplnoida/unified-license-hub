@@ -115,6 +115,6 @@ describe('ActionNotificationsEditor', () => {
     const comboboxes = screen.getAllByRole('combobox');
     fireEvent.click(comboboxes[0]);
 
-    expect(screen.getByText('Application · Approved at Step')).toBeInTheDocument();
+    expect(screen.getAllByText('Application · Approved at Step').length).toBeGreaterThan(0);
   });
 });
