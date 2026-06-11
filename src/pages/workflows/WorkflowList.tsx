@@ -1496,7 +1496,6 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
             <StepActionsEditor step={step} siblingSteps={siblingSteps} />
           </div>
         )}
-        )}
 
       </div>
     </div>
