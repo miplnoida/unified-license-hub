@@ -31,6 +31,7 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
 const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector'));
+const RegistrationStatusPage = lazy(() => import('@/pages/registration/RegistrationStatusPage'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
