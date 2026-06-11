@@ -136,7 +136,7 @@ describe('ActionNotificationsEditor CRUD flows', () => {
 
     const updatedComboboxes = screen.getAllByRole('combobox');
     fireEvent.click(updatedComboboxes[2]);
-    fireEvent.click(screen.getByText('Reviewer Note'));
+    fireEvent.click(screen.getAllByText('Reviewer Note')[0]);
 
     const roleComboboxes = screen.getAllByRole('combobox');
     fireEvent.click(roleComboboxes[3]);
