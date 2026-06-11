@@ -71,7 +71,10 @@ export function normalizeRecipientConfig(
       : typeof base.role_name === 'string'
         ? base.role_name.trim()
         : '';
-    if (role) base.role = role;
+    if (role) {
+      base.role = role;
+      base.role_name = role;
+    }
   }
 
   return base;
