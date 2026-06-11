@@ -169,6 +169,60 @@ export type Database = {
           },
         ]
       }
+      approval_action_notifications: {
+        Row: {
+          action_type: string
+          created_at: string
+          event_key: string
+          id: string
+          is_enabled: boolean
+          recipient_config: Json
+          recipient_type: Database["public"]["Enums"]["workflow_notification_recipient"]
+          step_id: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          event_key: string
+          id?: string
+          is_enabled?: boolean
+          recipient_config?: Json
+          recipient_type: Database["public"]["Enums"]["workflow_notification_recipient"]
+          step_id: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          event_key?: string
+          id?: string
+          is_enabled?: boolean
+          recipient_config?: Json
+          recipient_type?: Database["public"]["Enums"]["workflow_notification_recipient"]
+          step_id?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_action_notifications_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_action_notifications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_actions: {
         Row: {
           action: string
@@ -6443,6 +6497,13 @@ export type Database = {
       return_request_status: "active" | "resolved"
       return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR" | "REJ"
       user_type: "primary" | "secondary" | "employee"
+      workflow_notification_recipient:
+        | "applicant"
+        | "current_approver"
+        | "previous_actor"
+        | "role"
+        | "admin"
+        | "custom_email"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6600,6 +6661,14 @@ export const Constants = {
       return_request_status: ["active", "resolved"],
       return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR", "REJ"],
       user_type: ["primary", "secondary", "employee"],
+      workflow_notification_recipient: [
+        "applicant",
+        "current_approver",
+        "previous_actor",
+        "role",
+        "admin",
+        "custom_email",
+      ],
     },
   },
 } as const
