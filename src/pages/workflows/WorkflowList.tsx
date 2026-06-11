@@ -1180,6 +1180,8 @@ interface StepCardProps {
   step: WorkflowStep;
   index: number;
   total: number;
+  /** Other steps in this workflow (used for next-step routing pickers). */
+  siblingSteps: WorkflowStep[];
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
@@ -1190,7 +1192,7 @@ interface StepCardProps {
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   // Optimistic local override so the selected highlight + badge update
