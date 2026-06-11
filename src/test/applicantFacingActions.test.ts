@@ -123,6 +123,29 @@ describe('edge function: perform-workflow-action', () => {
     expect(edgeSrc).toMatch(/approval_action_notifications/);
     expect(edgeSrc).toMatch(/\.eq\("action_type",\s*raw_action\)/);
     expect(edgeSrc).toMatch(/\.eq\("is_enabled",\s*true\)/);
+    expect(edgeSrc).toMatch(/action_notification_override:\s*true/);
+  });
+});
+
+describe('notification runtime override contract', () => {
+  const dispatchSrc = readFileSync(
+    resolve(__dirname, '../../supabase/functions/dispatch-notification-event/index.ts'),
+    'utf-8',
+  );
+
+  it('supports explicit per-action notification overrides only when requested by the caller', () => {
+    expect(dispatchSrc).toMatch(/action_notification_override === true/);
+    expect(dispatchSrc).toMatch(/resolveStepActionNotificationOverrides/);
+  });
+
+  it('maps custom recipient bindings into runtime recipient rules', () => {
+    expect(dispatchSrc).toMatch(/case "applicant"/);
+    expect(dispatchSrc).toMatch(/case "current_approver"/);
+    expect(dispatchSrc).toMatch(/case "previous_actor"/);
+    expect(dispatchSrc).toMatch(/case "role"/);
+    expect(dispatchSrc).toMatch(/case "admin"/);
+    expect(dispatchSrc).toMatch(/case "custom_email"/);
+    expect(dispatchSrc).toMatch(/case "direct_email"/);
   });
 });
 
