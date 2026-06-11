@@ -9,7 +9,7 @@
  *   5. Toggle enabled/disabled
  *   6. Existing rows render when the workflow is reloaded
  */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 
@@ -39,6 +39,7 @@ const existingRows = [
 const upsertMutateAsync = vi.fn(async (payload?: unknown) => payload);
 const upsertMutate = vi.fn();
 const deleteMutate = vi.fn();
+const useActionNotificationsMock = vi.fn();
 
 vi.mock('@/hooks/useActionNotifications', async () => {
   const actual = await vi.importActual<typeof import('@/hooks/useActionNotifications')>(
@@ -46,7 +47,7 @@ vi.mock('@/hooks/useActionNotifications', async () => {
   );
   return {
     ...actual,
-    useActionNotifications: vi.fn(() => ({ data: existingRows, isLoading: false })),
+    useActionNotifications: useActionNotificationsMock,
     useNotificationTemplates: vi.fn(() => ({
       data: [
         { id: 'tpl-1', name: 'Rejection Notice', event_type: 'application.rejected', channel: 'email', is_active: true },
@@ -65,6 +66,7 @@ vi.mock('@/hooks/useRoles', () => ({
 
 describe('ActionNotificationsEditor CRUD flows', () => {
   beforeEach(() => {
+    useActionNotificationsMock.mockReturnValue({ data: existingRows, isLoading: false });
     upsertMutateAsync.mockClear();
     upsertMutate.mockClear();
     deleteMutate.mockClear();
@@ -90,7 +92,7 @@ describe('ActionNotificationsEditor CRUD flows', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    expect(upsertMutateAsync).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(upsertMutateAsync).toHaveBeenCalledTimes(1));
     const payload = upsertMutateAsync.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.action_type).toBe('reject');
     expect(payload.event_key).toBe('application.rejected');
@@ -109,10 +111,59 @@ describe('ActionNotificationsEditor CRUD flows', () => {
     fireEvent.click(screen.getAllByText('Application · Generic Workflow Action')[0]);
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
-    expect(upsertMutateAsync).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(upsertMutateAsync).toHaveBeenCalledTimes(1));
     const payload = upsertMutateAsync.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.id).toBe('row-1');
     expect(payload.event_key).toBe('application.workflow_action_taken');
+  });
+
+  it('saves template_id and role recipient_config when editing a row', async () => {
+    render(<ActionNotificationsEditor stepId="step-9" allowedActions={['reject']} />);
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+
+    fireEvent.click(screen.getAllByRole('button', { name: /edit/i })[0]);
+
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(comboboxes[1]);
+    fireEvent.click(screen.getByText('Users with Role'));
+
+    const updatedComboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(updatedComboboxes[2]);
+    fireEvent.click(screen.getByText('Reviewer Note'));
+
+    const roleComboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(roleComboboxes[3]);
+    fireEvent.click(screen.getByText('Reviewer'));
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    await waitFor(() => expect(upsertMutateAsync).toHaveBeenCalledTimes(1));
+    const payload = upsertMutateAsync.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.id).toBe('row-1');
+    expect(payload.template_id).toBe('tpl-2');
+    expect(payload.recipient_type).toBe('role');
+    expect(payload.recipient_config).toEqual({ role: 'Reviewer', role_name: 'Reviewer' });
+  });
+
+  it('saves custom email recipient_config for a new notification row', async () => {
+    render(<ActionNotificationsEditor stepId="step-9" allowedActions={['reject']} />);
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add notification/i }));
+
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(comboboxes[1]);
+    fireEvent.click(screen.getByText('Custom Email'));
+
+    fireEvent.change(screen.getByPlaceholderText('name@example.com'), {
+      target: { value: 'alerts@example.com' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    await waitFor(() => expect(upsertMutateAsync).toHaveBeenCalledTimes(1));
+    const payload = upsertMutateAsync.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.recipient_type).toBe('custom_email');
+    expect(payload.recipient_config).toEqual({ email: 'alerts@example.com' });
   });
 
   it('shows an event key selector when adding a notification row', () => {
@@ -135,6 +186,19 @@ describe('ActionNotificationsEditor CRUD flows', () => {
     fireEvent.click(deleteButtons[0]);
 
     expect(deleteMutate).toHaveBeenCalledWith('row-1');
+  });
+
+  it('renders persisted rows again after the editor is reopened', () => {
+    const { unmount } = render(<ActionNotificationsEditor stepId="step-9" allowedActions={['reject']} />);
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+    expect(screen.getByText('Rejection Notice')).toBeInTheDocument();
+    unmount();
+
+    render(<ActionNotificationsEditor stepId="step-9" allowedActions={['reject']} />);
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+
+    expect(screen.getByText('Rejection Notice')).toBeInTheDocument();
+    expect(screen.getByText('Reviewer Note')).toBeInTheDocument();
   });
 
   it('toggles enabled/disabled state inline without entering edit mode', () => {
