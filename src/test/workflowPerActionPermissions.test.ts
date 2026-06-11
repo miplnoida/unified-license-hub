@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 
-type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'escalate' | 'request_resubmission';
+type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'escalate' | 'request_resubmission' | 'return_for_correction' | 'request_more_info';
 
 interface CanActFlags {
   can_add_remark?: boolean;
@@ -17,6 +17,8 @@ interface CanActFlags {
   can_send_back?: boolean;
   can_escalate?: boolean;
   can_request_resubmission?: boolean;
+  can_return_for_correction?: boolean;
+  can_request_more_info?: boolean;
 }
 
 function buildButtonLabels(f: CanActFlags): string[] {
@@ -27,6 +29,8 @@ function buildButtonLabels(f: CanActFlags): string[] {
   if (f.can_send_back) out.push('Send Back to Junior');
   if (f.can_escalate) out.push('Escalate to Senior');
   if (f.can_request_resubmission) out.push('Request Resubmission');
+  if (f.can_return_for_correction) out.push('Return for Correction');
+  if (f.can_request_more_info) out.push('Request More Information');
   if (f.can_add_remark) out.push('Add Remark');
   return out;
 }
@@ -65,5 +69,15 @@ describe('per-action workflow permissions', () => {
 
   it('non-internal viewer (all flags false) sees nothing', () => {
     expect(buildButtonLabels({})).toEqual([]);
+  });
+
+  it('assigned approver sees the new applicant-facing actions when permitted', () => {
+    const labels = buildButtonLabels({
+      can_add_remark: true,
+      can_return_for_correction: true,
+      can_request_more_info: true,
+    });
+    expect(labels).toContain('Return for Correction');
+    expect(labels).toContain('Request More Information');
   });
 });
