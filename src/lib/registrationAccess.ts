@@ -57,8 +57,8 @@ export function isInternalUser(role: AppRole | string | null | undefined): boole
 /** Per-category next action shown on the status page / login messaging. */
 const CATEGORY_ACTIONS: Partial<Record<RegistrationCategory, { actionLabel: string; actionUrl: string }>> = {
   approved: { actionLabel: 'Continue to Dashboard', actionUrl: '/dashboard' },
-  correction: { actionLabel: 'Update & Resubmit', actionUrl: '/registration/pre-licensee' },
-  unverified: { actionLabel: 'Continue Verification', actionUrl: '/registration/pre-licensee' },
+  correction: { actionLabel: 'Update & Resubmit', actionUrl: '/register' },
+  unverified: { actionLabel: 'Continue Verification', actionUrl: '/register' },
 };
 
 /** Build the structured access decision from a registration record. */

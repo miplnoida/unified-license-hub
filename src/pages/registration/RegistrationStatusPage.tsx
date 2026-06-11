@@ -81,14 +81,14 @@ export default function RegistrationStatusPage() {
 
               {category === 'correction' && (
                 <Button asChild className="w-full">
-                  <Link to="/registration/pre-licensee">
+                  <Link to="/register">
                     <FileEdit className="h-4 w-4 mr-2" /> Update & Resubmit Registration
                   </Link>
                 </Button>
               )}
               {category === 'unverified' && (
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/registration/pre-licensee">
+                  <Link to="/register">
                     <MailCheck className="h-4 w-4 mr-2" /> Continue Verification
                   </Link>
                 </Button>
