@@ -53,6 +53,7 @@ import {
   type TemplateSnapshotV2,
   type TemplateStepV2,
 } from '@/lib/workflowTemplateSnapshot';
+import { WorkflowVersionPanel } from '@/components/workflows/WorkflowVersionPanel';
 
 const ALL_ACTIONS: WorkflowActionType[] = [
   'approve',
@@ -866,7 +867,10 @@ export default function WorkflowList() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {selectedWorkflow && (
+                  <WorkflowVersionPanel workflowId={selectedWorkflow.id} workflowName={selectedWorkflow.name} />
+                )}
                 {!selectedWorkflow ? (
                   <div className="text-center py-12">
                     <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
