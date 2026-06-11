@@ -24,14 +24,13 @@ const ACCEPTED_ACTIONS = new Set([
   "request_more_info",
 ]);
 
-// Applicant-facing aliases. The DB RPC only understands the original 5
-// transition types, so we map these to `request_resubmission` (which pauses
-// the workflow pending applicant resubmission). The original alias is
-// preserved for notification dispatch + audit metadata.
-const ACTION_ALIAS_TO_RPC: Record<string, string> = {
-  return_for_correction: "request_resubmission",
-  request_more_info: "request_resubmission",
-};
+// All seven action types are now first-class transitions in the RPC.
+// return_for_correction / request_more_info each set their own application
+// status (returned_for_correction / info_requested) and pause the workflow
+// instance so the applicant can resubmit. They are NOT aliased to
+// request_resubmission anymore — keeping a distinct action_type matters for
+// audit history, notification routing, and applicant-facing status text.
+
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -84,15 +83,15 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Translate applicant-facing aliases into the underlying RPC transition.
-    const rpc_action = ACTION_ALIAS_TO_RPC[raw_action] ?? raw_action;
-
     // Atomic transition — lock + validate + write happens in one transaction.
+    // raw_action is passed through unchanged; the RPC understands every
+    // accepted action type as a first-class transition.
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: rpc_action,
+      _action_type: raw_action,
+
       _comments: comments,
       _actor_id: caller.id,
     });
