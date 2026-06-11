@@ -326,22 +326,47 @@ export default function WorkflowList() {
           allowed_actions: ['approve', 'reject', 'send_back'] as WorkflowActionType[],
         }];
 
+    // Detect v2 template — if so, we'll create the workflow first then apply
+    // the full snapshot (preserving approver_type, per-action routing, notifications).
+    const v2Steps: TemplateStepV2[] | null =
+      templateSteps && isV2Snapshot(templateSteps) ? (templateSteps as unknown as TemplateStepV2[]) : null;
+
     try {
-      const workflowId = await createWorkflowWithSteps.mutateAsync({
-        workflow: {
+      let workflowId: string;
+      if (v2Steps) {
+        // Workflow-only insert via useCreateWorkflow, then apply snapshot.
+        const wf = await createWorkflow.mutateAsync({
           name: newName.trim(),
           description: newDesc.trim() || undefined,
-          // `license_type` is retained as a non-null DB column for backward
-          // compatibility but is no longer surfaced in the UI. Workflow routing
-          // uses regulator_id + sector_id + entity_type.
           license_type: 'general',
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
           category_id: null,
-        },
-        steps: stepsPayload,
-      });
+        });
+        workflowId = wf.id;
+        await applyV2SnapshotToWorkflow({
+          workflowId,
+          snapshot: { version: 2, steps: v2Steps },
+          fallbackRoleId: fallbackRole.id,
+          fallbackSystemRole: fallbackRole.system_role || 'admin',
+          validRoleIds: new Set(dynamicRoles.map(r => r.id)),
+        });
+        qc.invalidateQueries({ queryKey: ['approval_steps'] });
+      } else {
+        workflowId = await createWorkflowWithSteps.mutateAsync({
+          workflow: {
+            name: newName.trim(),
+            description: newDesc.trim() || undefined,
+            license_type: 'general',
+            entity_type: newEntityType as WorkflowEntityType,
+            regulator_id: activeRegulatorId,
+            sector_id: sectorId,
+            category_id: null,
+          },
+          steps: stepsPayload,
+        });
+      }
 
       toast.success('Workflow created');
       if (!templateSteps && sectorName) {
