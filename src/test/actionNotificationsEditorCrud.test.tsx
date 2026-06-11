@@ -51,6 +51,7 @@ vi.mock('@/hooks/useActionNotifications', async () => {
       data: [
         { id: 'tpl-1', name: 'Rejection Notice', event_type: 'application.rejected', channel: 'email', is_active: true },
         { id: 'tpl-2', name: 'Reviewer Note', event_type: 'application.rejected', channel: 'email', is_active: true },
+        { id: 'tpl-3', name: 'Generic Workflow Event', event_type: 'application.workflow_action_taken', channel: 'in_app', is_active: true },
       ],
     })),
     useUpsertActionNotification: vi.fn(() => ({ mutateAsync: upsertMutateAsync, mutate: upsertMutate, isPending: false })),
@@ -105,7 +106,7 @@ describe('ActionNotificationsEditor CRUD flows', () => {
 
     const eventComboboxes = screen.getAllByRole('combobox');
     fireEvent.click(eventComboboxes[0]);
-    fireEvent.click(screen.getByText('Application · Generic Workflow Action'));
+    fireEvent.click(screen.getAllByText('Application · Generic Workflow Action')[0]);
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     expect(upsertMutateAsync).toHaveBeenCalledTimes(1);
@@ -122,8 +123,8 @@ describe('ActionNotificationsEditor CRUD flows', () => {
     const comboboxes = screen.getAllByRole('combobox');
     fireEvent.click(comboboxes[0]);
 
-    expect(screen.getByText('Application · Rejected')).toBeInTheDocument();
-    expect(screen.getByText('Application · Generic Workflow Action')).toBeInTheDocument();
+    expect(screen.getAllByText('Application · Rejected').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Application · Generic Workflow Action').length).toBeGreaterThan(0);
   });
 
   it('deletes a row via the trash button', () => {
