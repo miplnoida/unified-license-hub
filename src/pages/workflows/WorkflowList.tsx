@@ -46,6 +46,13 @@ import { Switch } from '@/components/ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
+import {
+  fetchSnapshotForWorkflow,
+  applyV2SnapshotToWorkflow,
+  isV2Snapshot,
+  type TemplateSnapshotV2,
+  type TemplateStepV2,
+} from '@/lib/workflowTemplateSnapshot';
 
 const ALL_ACTIONS: WorkflowActionType[] = [
   'approve',
@@ -64,6 +71,9 @@ type TemplateStep = {
   approver_role: string;
   sla_hours?: number;
   allowed_actions?: WorkflowActionType[];
+  // v2 fields (optional, present only when template is v2)
+  local_id?: string;
+  approver_type?: string;
 };
 type WorkflowTemplate = {
   id: string;
@@ -316,22 +326,47 @@ export default function WorkflowList() {
           allowed_actions: ['approve', 'reject', 'send_back'] as WorkflowActionType[],
         }];
 
+    // Detect v2 template — if so, we'll create the workflow first then apply
+    // the full snapshot (preserving approver_type, per-action routing, notifications).
+    const v2Steps: TemplateStepV2[] | null =
+      templateSteps && isV2Snapshot(templateSteps) ? (templateSteps as unknown as TemplateStepV2[]) : null;
+
     try {
-      const workflowId = await createWorkflowWithSteps.mutateAsync({
-        workflow: {
+      let workflowId: string;
+      if (v2Steps) {
+        // Workflow-only insert via useCreateWorkflow, then apply snapshot.
+        const wf = await createWorkflow.mutateAsync({
           name: newName.trim(),
           description: newDesc.trim() || undefined,
-          // `license_type` is retained as a non-null DB column for backward
-          // compatibility but is no longer surfaced in the UI. Workflow routing
-          // uses regulator_id + sector_id + entity_type.
           license_type: 'general',
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
           category_id: null,
-        },
-        steps: stepsPayload,
-      });
+        });
+        workflowId = wf.id;
+        await applyV2SnapshotToWorkflow({
+          workflowId,
+          snapshot: { version: 2, steps: v2Steps },
+          fallbackRoleId: fallbackRole.id,
+          fallbackSystemRole: fallbackRole.system_role || 'admin',
+          validRoleIds: new Set(dynamicRoles.map(r => r.id)),
+        });
+        qc.invalidateQueries({ queryKey: ['approval_steps'] });
+      } else {
+        workflowId = await createWorkflowWithSteps.mutateAsync({
+          workflow: {
+            name: newName.trim(),
+            description: newDesc.trim() || undefined,
+            license_type: 'general',
+            entity_type: newEntityType as WorkflowEntityType,
+            regulator_id: activeRegulatorId,
+            sector_id: sectorId,
+            category_id: null,
+          },
+          steps: stepsPayload,
+        });
+      }
 
       toast.success('Workflow created');
       if (!templateSteps && sectorName) {
@@ -606,16 +641,21 @@ export default function WorkflowList() {
     });
     if (!name) return;
 
+    let snapshot: TemplateSnapshotV2;
+    try {
+      snapshot = await fetchSnapshotForWorkflow(selectedWorkflow.id);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to capture workflow snapshot');
+      return;
+    }
+
     const payload = {
       name: String(name).trim(),
       description: selectedWorkflow.description,
       entity_type: selectedWorkflow.entity_type,
-      steps: steps.map(s => ({
-        name: s.name,
-        approver_role: s.approver_role,
-        sla_hours: s.sla_hours,
-        allowed_actions: Array.isArray(s.allowed_actions) ? s.allowed_actions : [],
-      })),
+      // Snapshot is v2; per-step it also carries `approver_role` so the
+      // template-list badges keep rendering against legacy expectations.
+      steps: snapshot.steps,
     };
     const { error } = await supabase.from('workflow_templates' as any).insert(payload as any);
     if (error) { toast.error(error.message); return; }
@@ -1215,6 +1255,40 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
   const [allowedDraft, setAllowedDraft] = useState<WorkflowActionType[]>(
     Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : [],
   );
+  const [orderDraft, setOrderDraft] = useState<string>(String(step.step_order));
+  const [orderFocused, setOrderFocused] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderFocused) {
+      setOrderDraft(String(step.step_order));
+      setOrderError(null);
+    }
+  }, [step.id, step.step_order, orderFocused]);
+
+  const duplicateStepOrder = useMemo(() => {
+    const parsed = parseInt(orderDraft, 10);
+    if (!Number.isFinite(parsed)) return false;
+    return siblingSteps.some(s => s.id !== step.id && s.step_order === parsed);
+  }, [orderDraft, siblingSteps, step.id]);
+
+  const commitStepOrder = () => {
+    setOrderFocused(false);
+    const parsed = parseInt(orderDraft, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setOrderError('Must be a positive number');
+      return;
+    }
+    if (siblingSteps.some(s => s.id !== step.id && s.step_order === parsed)) {
+      setOrderError(`Duplicate — step ${parsed} already exists`);
+      return;
+    }
+    setOrderError(null);
+    if (parsed === step.step_order) return;
+    Promise.resolve(onUpdate(step.id, { step_order: parsed } as any)).catch((e: any) =>
+      toast.error(e?.message || 'Failed to update step order'),
+    );
+  };
 
   useEffect(() => {
     if (!nameFocused) setNameDraft(step.name ?? '');
@@ -1437,6 +1511,35 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
           </div>
         ) : (
           <div className="rounded-md border bg-muted/30 p-3 space-y-4" data-testid={`step-edit-controls-${index}`}>
+            {/* Step order */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`step-order-${step.id}`}>Step Order</Label>
+              <Input
+                id={`step-order-${step.id}`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                className="h-8 w-20 text-xs"
+                value={orderDraft}
+                onFocus={() => setOrderFocused(true)}
+                onChange={e => {
+                  setOrderDraft(e.target.value);
+                  if (orderError) setOrderError(null);
+                }}
+                onBlur={commitStepOrder}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
+                }}
+                aria-label={`Step ${index + 1} order`}
+                aria-invalid={!!orderError || duplicateStepOrder}
+              />
+              {(orderError || duplicateStepOrder) && (
+                <span className="text-[11px] text-destructive" data-testid={`step-order-error-${index}`}>
+                  {orderError || `Duplicate — step ${orderDraft} already exists`}
+                </span>
+              )}
+            </div>
+
             {/* SLA controls */}
             <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>SLA hours</Label>
