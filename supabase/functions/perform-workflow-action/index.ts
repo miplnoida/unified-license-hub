@@ -274,6 +274,40 @@ export async function handler(req: Request): Promise<Response> {
           }
         }
       }
+
+      // Step-entry notifications: fired when the workflow advances INTO a new
+      // step. Distinct from action notifications above. We use the step_id the
+      // RPC returned as the new current step. Best-effort — never blocks.
+      const newStepId = (result as any).new_step_id as string | undefined;
+      if (newStepId && newStepId !== step_id) {
+        const { data: entryRows } = await admin
+          .from("approval_step_entry_notifications")
+          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .eq("step_id", newStepId)
+          .eq("is_enabled", true);
+        for (const row of (entryRows ?? [])) {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: (row as any).event_key,
+                entity_type: "application",
+                entity_id: application_id,
+                payload: {
+                  application_id,
+                  step_id: newStepId,
+                  trigger: "step_entered",
+                  action_notification_override: true,
+                  template_id: (row as any).template_id,
+                  recipient_type: (row as any).recipient_type,
+                  recipient_config: (row as any).recipient_config,
+                },
+              },
+            });
+          } catch (entryErr) {
+            console.warn("step-entry notification dispatch failed:", entryErr);
+          }
+        }
+      }
     } catch (dispatchErr) {
       console.warn("dispatch workflow action failed:", dispatchErr);
     }
