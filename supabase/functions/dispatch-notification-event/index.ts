@@ -543,14 +543,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    const overrideStepId = typeof vars.step_id === "string" ? vars.step_id : null;
-    const overrideActionType = typeof vars.action_type === "string" ? vars.action_type : null;
-    const { eventRows, templateMap } = await resolveStepActionNotificationOverrides(admin, {
-      stepId: overrideStepId,
-      actionType: overrideActionType,
-    });
+    const shouldUseActionOverrides = vars.action_notification_override === true;
+    const overrideStepId = shouldUseActionOverrides && typeof vars.step_id === "string" ? vars.step_id : null;
+    const overrideActionType = shouldUseActionOverrides && typeof vars.action_type === "string" ? vars.action_type : null;
+    const { eventRows, templateMap } = shouldUseActionOverrides
+      ? await resolveStepActionNotificationOverrides(admin, {
+          stepId: overrideStepId,
+          actionType: overrideActionType,
+        })
+      : { eventRows: [], templateMap: new Map<string, { subject: string | null; body: string; channel: string; name: string }>() };
 
-    const dispatchConfigs = eventRows.length > 0
+    const dispatchConfigs = shouldUseActionOverrides && eventRows.length > 0
       ? eventRows.map((row) => ({
           eventKey: row.event_key,
           cfg: buildOverrideConfig(cfg as Record<string, any>, row, templateMap),
