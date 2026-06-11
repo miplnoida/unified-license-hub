@@ -108,16 +108,7 @@ export async function handler(req: Request): Promise<Response> {
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
 
-    if (rpcErr) {
-      console.error("perform_workflow_transition error:", rpcErr);
-      return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
-    }
 
-    const result = (rpcRes || {}) as Record<string, unknown>;
-    if (result.error) {
-      const status = typeof result.http === "number" ? (result.http as number) : 422;
-      return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
-    }
 
     // Final approval → atomic RPC commits all DB state, then we call
     // approve-pre-licensee for auth-user provisioning (which needs auth admin APIs).
