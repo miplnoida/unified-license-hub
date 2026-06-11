@@ -36,6 +36,8 @@ export function resolveAvailableActions({ isFirstLevel, isLastLevel, allowedActi
   if (!isFirstLevel && !isLastLevel) candidate.push('send_back');
   if (!isLastLevel) candidate.push('escalate');
   candidate.push('request_resubmission');
+  // Applicant-facing actions — usable on any step.
+  candidate.push('return_for_correction', 'request_more_info');
 
   // Server-authoritative allowed_actions. If missing/invalid/empty, treat as
   // empty — matching the backend, which rejects any action not explicitly
@@ -54,7 +56,13 @@ export function hasNoAllowedActions(allowedActions: WorkflowActionType[] | null 
 }
 
 /** Actions that always require non-empty remarks (matches server enforcement). */
-export const REMARKS_REQUIRED_ACTIONS: WorkflowActionType[] = ['approve', 'reject', 'request_resubmission'];
+export const REMARKS_REQUIRED_ACTIONS: WorkflowActionType[] = [
+  'approve',
+  'reject',
+  'request_resubmission',
+  'return_for_correction',
+  'request_more_info',
+];
 
 export function isRemarksRequired(actionType: WorkflowActionType): boolean {
   return REMARKS_REQUIRED_ACTIONS.includes(actionType);
