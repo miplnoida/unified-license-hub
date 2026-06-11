@@ -84,15 +84,29 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // Translate applicant-facing aliases into the underlying RPC transition.
+    const rpc_action = ACTION_ALIAS_TO_RPC[raw_action] ?? raw_action;
+
     // Atomic transition — lock + validate + write happens in one transaction.
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: raw_action,
+      _action_type: rpc_action,
       _comments: comments,
       _actor_id: caller.id,
     });
+
+    if (rpcErr) {
+      console.error("perform_workflow_transition error:", rpcErr);
+      return errorResponse(req, 500, rpcErr.message || "Workflow transition failed", "DB_ERROR");
+    }
+
+    const result = (rpcRes || {}) as Record<string, unknown>;
+    if (result.error) {
+      const status = typeof result.http === "number" ? (result.http as number) : 422;
+      return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
+    }
 
     if (rpcErr) {
       console.error("perform_workflow_transition error:", rpcErr);
