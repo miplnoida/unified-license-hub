@@ -13,7 +13,7 @@ import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalSt
 const REGISTRATION_GATE_ALLOWLIST = [
   '/registration-status',
   '/change-password',
-  '/registration/pre-licensee',
+  '/register',
   '/registration/success',
 ];
 

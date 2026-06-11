@@ -69,7 +69,7 @@ export default function RegistrationPortal() {
 
       if (!regData) {
         toast.error('No registration found. Please register first.');
-        navigate('/registration/pre-licensee');
+        navigate('/register');
         return;
       }
 
