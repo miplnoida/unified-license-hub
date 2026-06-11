@@ -38,6 +38,7 @@ import {
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
 import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
+import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
