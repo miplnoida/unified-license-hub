@@ -1414,19 +1414,15 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
           </p>
         )}
 
-        {/* Allowed actions — explicit, no silent defaults */}
-        {allowedActions.length === 0 && (
-          <p className="text-xs text-destructive flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> No allowed actions configured — approvers will be blocked.
-          </p>
-        )}
-
         {/* In view mode show SLA + allowed actions as read-only summary. */}
         {!isEditing ? (
           <div className="rounded-md border bg-muted/20 p-3 space-y-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Due within:</span>
+              <span className="font-medium text-foreground">SLA hours:</span>
               <span>{Number.isFinite(step.sla_hours as number) ? `${step.sla_hours} hours` : '48 hours'}</span>
+              {step.auto_approve_on_timeout && (
+                <Badge variant="outline" className="text-[10px]">Auto-approve on timeout</Badge>
+              )}
             </div>
             <div className="flex items-start gap-2 text-xs">
               <span className="font-medium text-foreground mt-0.5">Allowed actions:</span>
@@ -1440,11 +1436,10 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
             </div>
           </div>
         ) : (
-          /* Timing & allowed actions — always visible inline in edit mode so
-             admins never have to hunt for them behind a collapsible. */
-          <div className="rounded-md border bg-muted/30 p-3 space-y-3" data-testid={`step-edit-controls-${index}`}>
+          <div className="rounded-md border bg-muted/30 p-3 space-y-4" data-testid={`step-edit-controls-${index}`}>
+            {/* SLA controls */}
             <div className="flex items-center gap-2 flex-wrap">
-              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>Due Within</Label>
+              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>SLA hours</Label>
               <Input
                 id={`sla-${step.id}`}
                 type="number"
@@ -1462,7 +1457,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
                 }}
-                aria-label={`Step ${index + 1} due within (hours)`}
+                aria-label={`Step ${index + 1} SLA hours`}
                 aria-invalid={!!slaError}
               />
               <span className="text-xs text-muted-foreground">hours</span>
@@ -1471,38 +1466,36 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               )}
             </div>
 
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_ACTIONS.map(action => {
-                  const checked = allowedActions.includes(action);
-                  const cbId = `act-${step.id}-${action}`;
-                  return (
-                    <div key={action} className="flex items-center gap-1.5 text-xs select-none rounded-md border px-2 py-1 bg-background">
-                      <Checkbox
-                        id={cbId}
-                        checked={checked}
-                        onCheckedChange={(v) => toggleAction(action, !!v)}
-                      />
-                      <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
-                    </div>
+            {/* Auto-approve on timeout */}
+            <div className="flex items-start gap-3">
+              <Switch
+                id={`auto-approve-${step.id}`}
+                checked={!!step.auto_approve_on_timeout}
+                onCheckedChange={(v) => {
+                  Promise.resolve(onUpdate(step.id, { auto_approve_on_timeout: !!v } as any)).catch((e: any) =>
+                    toast.error(e?.message || 'Failed to update auto-approve setting'),
                   );
-                })}
+                }}
+                aria-label="Auto-approve on timeout"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`auto-approve-${step.id}`} className="text-xs cursor-pointer">
+                  Auto-approve on timeout
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Saved as step config. Background processor for automatic approval is not yet active —
+                  setting is preserved for future runtime support.
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Approvers can only perform actions checked here.
-              </p>
             </div>
 
-            <ActionNotificationsEditor
-              stepId={step.id}
-              allowedActions={allowedActions}
-            />
+            {/* Step entry notifications */}
+            <StepEntryNotificationsEditor stepId={step.id} />
 
-            <p className="text-[11px] text-muted-foreground">
-              Escalation, parallel approvals, and conditional rules are not yet available in this builder.
-            </p>
+            {/* Per-action editor (replaces legacy allowed_actions checkboxes) */}
+            <StepActionsEditor step={step} siblingSteps={siblingSteps} />
           </div>
+        )}
         )}
 
       </div>
