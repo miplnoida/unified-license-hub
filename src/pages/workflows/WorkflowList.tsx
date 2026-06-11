@@ -46,6 +46,13 @@ import { Switch } from '@/components/ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
+import {
+  fetchSnapshotForWorkflow,
+  applyV2SnapshotToWorkflow,
+  isV2Snapshot,
+  type TemplateSnapshotV2,
+  type TemplateStepV2,
+} from '@/lib/workflowTemplateSnapshot';
 
 const ALL_ACTIONS: WorkflowActionType[] = [
   'approve',
