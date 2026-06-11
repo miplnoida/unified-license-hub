@@ -46,7 +46,7 @@ export interface TemplateStepV2 {
   step_order: number;
   name: string;
   description: string | null;
-  approver_role: AppRole | string;
+  approver_role: string;
   approver_role_id: string | null;
   approver_type: 'role_based_user' | 'specific_users';
   approver_config: Record<string, unknown>;
