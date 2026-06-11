@@ -81,7 +81,14 @@ export function getWorkflowTypeOptions(workflowTypes: WorkflowTypeConfig[]): Arr
 // implemented (no assignee handoff, no notifications, no state semantics) and
 // have been removed from the public action surface. `allowed_actions` on each
 // approval step is the single source of truth.
-export type WorkflowActionType = 'approve' | 'reject' | 'send_back' | 'escalate' | 'request_resubmission';
+export type WorkflowActionType =
+  | 'approve'
+  | 'reject'
+  | 'send_back'
+  | 'escalate'
+  | 'request_resubmission'
+  | 'return_for_correction'
+  | 'request_more_info';
 
 export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   approve: 'Approve',
@@ -89,6 +96,8 @@ export const ACTION_LABELS: Record<WorkflowActionType, string> = {
   send_back: 'Send Back',
   escalate: 'Escalate',
   request_resubmission: 'Request Resubmission',
+  return_for_correction: 'Return for Correction',
+  request_more_info: 'Request More Information',
 };
 
 export const ACTION_COLORS: Record<WorkflowActionType, string> = {
@@ -97,6 +106,8 @@ export const ACTION_COLORS: Record<WorkflowActionType, string> = {
   send_back: 'bg-warning/10 text-warning border-warning/30',
   escalate: 'bg-accent text-accent-foreground border-accent',
   request_resubmission: 'bg-warning/10 text-warning border-warning/30',
+  return_for_correction: 'bg-warning/10 text-warning border-warning/30',
+  request_more_info: 'bg-info/10 text-info border-info/30',
 };
 
 export interface Workflow {
