@@ -34,6 +34,8 @@ interface CanActResult {
   can_send_back?: boolean;
   can_escalate?: boolean;
   can_request_resubmission?: boolean;
+  can_return_for_correction?: boolean;
+  can_request_more_info?: boolean;
 }
 
 function useCanActOnStep(userId: string | undefined, stepId: string | undefined) {
@@ -159,6 +161,8 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const canSendBack = !!canActResult?.can_send_back;
   const canEscalate = !!canActResult?.can_escalate;
   const canRequestResubmission = !!canActResult?.can_request_resubmission;
+  const canReturnForCorrection = !!canActResult?.can_return_for_correction;
+  const canRequestMoreInfo = !!canActResult?.can_request_more_info;
 
   if (!isInternal) return null;
 
@@ -216,6 +220,8 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   if (canSendBack)           actions.push({ type: 'send_back', label: 'Send Back', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
   if (canEscalate)           actions.push({ type: 'escalate', label: 'Escalate', icon: <ArrowUp className="h-4 w-4 mr-1" />, variant: 'outline' });
   if (canRequestResubmission) actions.push({ type: 'request_resubmission', label: 'Request Edit / Resubmission', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
+  if (canReturnForCorrection) actions.push({ type: 'return_for_correction', label: 'Return for Correction', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
+  if (canRequestMoreInfo) actions.push({ type: 'request_more_info', label: 'Request More Information', icon: <ArrowDown className="h-4 w-4 mr-1" />, variant: 'outline' });
 
   const noActions = actions.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);

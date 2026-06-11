@@ -79,3 +79,16 @@ describe('registration workflow client contract', () => {
     });
   }
 });
+
+describe('registration workflow runtime notification wiring', () => {
+  it('keeps per-action notification binding support in the registration edge function', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(
+      resolve(__dirname, '../../supabase/functions/perform-registration-workflow-action/index.ts'),
+      'utf-8',
+    );
+    expect(src).toMatch(/approval_action_notifications/);
+    expect(src).toMatch(/action_notification_override:\s*true/);
+  });
+});

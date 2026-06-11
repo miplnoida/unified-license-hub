@@ -70,7 +70,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const isResubmission = app.status === "resubmission_requested" || app.status === "query_raised";
+    const isResubmission = [
+      "resubmission_requested",
+      "resubmission_required",
+      "query_raised",
+      "returned_for_correction",
+      "info_requested",
+    ].includes(app.status);
 
     if (app.status !== "draft" && app.status !== "in_progress" && !isResubmission) {
       return new Response(
@@ -152,7 +158,7 @@ Deno.serve(async (req) => {
         if (!allowReapply) {
           const ACTIVE = new Set([
             "submitted", "in_progress", "in_review", "pending_review",
-            "under_review", "forwarded", "query_raised", "resubmission_requested",
+            "under_review", "forwarded", "query_raised", "resubmission_requested", "resubmission_required", "returned_for_correction", "info_requested",
             "awaiting_approval",
           ]);
 

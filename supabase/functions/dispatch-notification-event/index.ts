@@ -117,6 +117,141 @@ async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Pro
   return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
 }
 
+async function resolveStepActionNotificationOverrides(
+  admin: SupabaseClient,
+  args: {
+    stepId?: string | null;
+    actionType?: string | null;
+    explicitRow?: {
+      event_key?: string | null;
+      recipient_type?: string | null;
+      recipient_config?: Record<string, any> | null;
+      template_id?: string | null;
+    } | null;
+  },
+): Promise<{
+  eventRows: Array<{
+    event_key: string;
+    recipient_type: string;
+    recipient_config: Record<string, any>;
+    template_id: string | null;
+  }>;
+  templateMap: Map<string, { subject: string | null; body: string; channel: string; name: string }>;
+}> {
+  const explicitRow = args.explicitRow;
+  if (explicitRow?.event_key && explicitRow?.recipient_type) {
+    const templateIds = explicitRow.template_id ? [String(explicitRow.template_id)] : [];
+    const templateMap = new Map<string, { subject: string | null; body: string; channel: string; name: string }>();
+    if (templateIds.length > 0) {
+      const { data: templates } = await admin
+        .from("notification_templates")
+        .select("id, name, subject, body, channel")
+        .in("id", templateIds);
+      for (const template of (templates || []) as any[]) {
+        templateMap.set(String(template.id), {
+          subject: template.subject ?? null,
+          body: String(template.body || ""),
+          channel: String(template.channel || "in_app"),
+          name: String(template.name || "Template"),
+        });
+      }
+    }
+    return {
+      eventRows: [{
+        event_key: String(explicitRow.event_key),
+        recipient_type: String(explicitRow.recipient_type),
+        recipient_config: (explicitRow.recipient_config || {}) as Record<string, any>,
+        template_id: explicitRow.template_id ? String(explicitRow.template_id) : null,
+      }],
+      templateMap,
+    };
+  }
+
+  if (!args.stepId || !args.actionType) {
+    return { eventRows: [], templateMap: new Map() };
+  }
+
+  const { data: rows } = await admin
+    .from("approval_action_notifications")
+    .select("event_key, recipient_type, recipient_config, template_id")
+    .eq("step_id", args.stepId)
+    .eq("action_type", args.actionType)
+    .eq("is_enabled", true);
+
+  const eventRows = ((rows || []) as any[]).map((row) => ({
+    event_key: String(row.event_key),
+    recipient_type: String(row.recipient_type),
+    recipient_config: (row.recipient_config || {}) as Record<string, any>,
+    template_id: row.template_id ? String(row.template_id) : null,
+  }));
+
+  const templateIds = Array.from(new Set(eventRows.map((row) => row.template_id).filter(Boolean))) as string[];
+  const templateMap = new Map<string, { subject: string | null; body: string; channel: string; name: string }>();
+
+  if (templateIds.length > 0) {
+    const { data: templates } = await admin
+      .from("notification_templates")
+      .select("id, name, subject, body, channel")
+      .in("id", templateIds);
+
+    for (const template of (templates || []) as any[]) {
+      templateMap.set(String(template.id), {
+        subject: template.subject ?? null,
+        body: String(template.body || ""),
+        channel: String(template.channel || "in_app"),
+        name: String(template.name || "Template"),
+      });
+    }
+  }
+
+  return { eventRows, templateMap };
+}
+
+function buildRecipientRulesForOverride(row: {
+  recipient_type: string;
+  recipient_config?: Record<string, any>;
+}): Rule[] {
+  const cfg = row.recipient_config || {};
+  switch (row.recipient_type) {
+    case "applicant":
+      return [{ type: "applicant" }];
+    case "current_approver":
+      return [{ type: "workflow_step_approvers" }];
+    case "previous_actor":
+      return [{ type: "previous_workflow_actors" }];
+    case "role": {
+      const role = typeof cfg.role === "string" ? cfg.role : typeof cfg.role_name === "string" ? cfg.role_name : "";
+      return role ? [{ type: "role", role }] : [];
+    }
+    case "admin":
+      return [{ type: "role", role: "admin" }, { type: "role", role: "super_admin" }];
+    case "custom_email": {
+      const email = typeof cfg.email === "string" ? cfg.email.trim().toLowerCase() : "";
+      return email ? [{ type: "direct_email", email }] : [];
+    }
+    default:
+      return [];
+  }
+}
+
+function buildOverrideConfig(
+  baseCfg: Record<string, any>,
+  row: { recipient_type: string; recipient_config: Record<string, any>; template_id: string | null },
+  templateMap: Map<string, { subject: string | null; body: string; channel: string; name: string }>,
+) {
+  const template = row.template_id ? templateMap.get(row.template_id) : null;
+  const recipientRules = buildRecipientRulesForOverride(row);
+  return {
+    ...baseCfg,
+    recipient_rules: recipientRules,
+    channels: template?.channel ? [template.channel] : (Array.isArray(baseCfg.channels) && baseCfg.channels.length ? baseCfg.channels : ["in_app"]),
+    title_template: template?.subject || baseCfg.title_template,
+    message_template: template?.body || baseCfg.message_template,
+    email_subject_template: template?.subject || baseCfg.email_subject_template,
+    email_body_template: template?.body || baseCfg.email_body_template,
+  };
+}
+
 async function sectorRegulators(
   admin: SupabaseClient,
   args: { sectorId?: string | null; categoryId?: string | null; regulatorId?: string | null },
@@ -255,6 +390,11 @@ async function resolveRecipients(
           if (v) out.add(String(v));
           break;
         }
+        case "direct_email": {
+          const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
+          if (email) out.add(`email:${email}`);
+          break;
+        }
         case "applicant": {
           if (ctx.app?.applicant_id) out.add(ctx.app.applicant_id);
           else if (ctx.payload?.applicant_id) out.add(String(ctx.payload.applicant_id));
@@ -369,6 +509,13 @@ async function resolveRecipients(
   const filtered: string[] = [];
   const seenEmails = new Set<string>();
   for (const userId of Array.from(out)) {
+    if (userId.startsWith("email:")) {
+      const directEmail = userId.slice("email:".length).trim().toLowerCase();
+      if (!directEmail || excludedEmails.has(directEmail) || seenEmails.has(directEmail)) continue;
+      seenEmails.add(directEmail);
+      filtered.push(userId);
+      continue;
+    }
     const email = await resolveRecipientEmail(admin, userId);
     if (email && excludedEmails.has(email)) continue;
     if (email && seenEmails.has(email)) continue;
@@ -434,52 +581,77 @@ Deno.serve(async (req) => {
       });
     }
 
-    const rules: Rule[] = Array.isArray(cfg.recipient_rules) ? cfg.recipient_rules : [];
-    const recipients = await resolveRecipients(admin, rules, {
-      entity_type,
-      entity_id,
-      payload: vars,
-      app,
-      ret,
-    } as any);
-    summary.recipients = recipients.length;
-    console.log("dispatch-notification-event", { event_key, entity_type, entity_id, recipient_count: recipients.length });
+    const shouldUseActionOverrides = vars.action_notification_override === true;
+    const overrideStepId = shouldUseActionOverrides && typeof vars.step_id === "string" ? vars.step_id : null;
+    const overrideActionType = shouldUseActionOverrides && typeof vars.action_type === "string" ? vars.action_type : null;
+    const explicitOverrideRow = shouldUseActionOverrides ? {
+      event_key: typeof event_key === "string" ? event_key : null,
+      recipient_type: typeof vars.recipient_type === "string" ? vars.recipient_type : null,
+      recipient_config: (vars.recipient_config && typeof vars.recipient_config === "object") ? vars.recipient_config as Record<string, any> : null,
+      template_id: typeof vars.template_id === "string" ? vars.template_id : null,
+    } : null;
+    const { eventRows, templateMap } = shouldUseActionOverrides
+      ? await resolveStepActionNotificationOverrides(admin, {
+          stepId: overrideStepId,
+          actionType: overrideActionType,
+          explicitRow: explicitOverrideRow,
+        })
+      : { eventRows: [], templateMap: new Map<string, { subject: string | null; body: string; channel: string; name: string }>() };
 
-    const channels: string[] = Array.isArray(cfg.channels) && cfg.channels.length ? cfg.channels : ["in_app"];
-    const dedupeWindow = Math.max(0, Number(cfg.dedupe_window_seconds) || 60);
-    const dedupeBucket = reminder_window
-      ? `rw:${reminder_window}`
-      : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
+    const dispatchConfigs = shouldUseActionOverrides && eventRows.length > 0
+      ? eventRows.map((row) => ({
+          eventKey: row.event_key,
+          cfg: buildOverrideConfig(cfg as Record<string, any>, row, templateMap),
+        }))
+      : [{ eventKey: String(event_key), cfg: cfg as Record<string, any> }];
 
-    const title = stripUnresolvedTemplateTokens(render(cfg.title_template, vars) || String(event_key));
-    const message = stripUnresolvedTemplateTokens(render(cfg.message_template, vars) || "");
-    const emailSubject = stripUnresolvedTemplateTokens(render(cfg.email_subject_template, vars) || title);
-    const emailBody = stripUnresolvedTemplateTokens(render(cfg.email_body_template, vars) || message);
-    const emailHtml = renderBrandedEmail({
-      appName: String(vars.app_name || "Unified License Hub"),
-      heading: emailSubject,
-      paragraphs: emailBody ? emailBody.split(/\n{2,}/) : [],
-      ctaUrl: typeof vars.cta_url === "string" ? vars.cta_url : "",
-      ctaLabel: typeof vars.cta_label === "string" ? vars.cta_label : "Open Portal",
-      supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
-    });
+    for (const dispatchCfg of dispatchConfigs) {
+      const rules: Rule[] = Array.isArray(dispatchCfg.cfg.recipient_rules) ? dispatchCfg.cfg.recipient_rules : [];
+      const recipients = await resolveRecipients(admin, rules, {
+        entity_type,
+        entity_id,
+        payload: vars,
+        app,
+        ret,
+      } as any);
+      summary.recipients += recipients.length;
+      console.log("dispatch-notification-event", { event_key: dispatchCfg.eventKey, entity_type, entity_id, recipient_count: recipients.length });
 
-    for (const userId of recipients) {
-      for (const channel of channels) {
+      const channels: string[] = Array.isArray(dispatchCfg.cfg.channels) && dispatchCfg.cfg.channels.length ? dispatchCfg.cfg.channels : ["in_app"];
+      const dedupeWindow = Math.max(0, Number(dispatchCfg.cfg.dedupe_window_seconds) || 60);
+      const dedupeBucket = reminder_window
+        ? `rw:${reminder_window}`
+        : String(Math.floor(Date.now() / 1000 / Math.max(dedupeWindow, 1)));
+
+      const title = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey));
+      const message = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.message_template, vars) || "");
+      const emailSubject = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
+      const emailBody = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
+      const emailHtml = renderBrandedEmail({
+        appName: String(vars.app_name || "Unified License Hub"),
+        heading: emailSubject,
+        paragraphs: emailBody ? emailBody.split(/\n{2,}/) : [],
+        ctaUrl: typeof vars.cta_url === "string" ? vars.cta_url : "",
+        ctaLabel: typeof vars.cta_label === "string" ? vars.cta_label : "Open Portal",
+        supportEmail: typeof vars.support_email === "string" ? vars.support_email : "",
+      });
+
+      for (const userId of recipients) {
+        for (const channel of channels) {
         const dedupeKey = [event_key, entity_type || "-", entity_id || "-", userId, channel, dedupeBucket].join("|");
         const { data: insertedRow, error: dedupeErr } = await admin
           .from("notification_dispatch_log")
           .insert({
-            event_key,
+            event_key: dispatchCfg.eventKey,
             entity_type: entity_type || null,
             entity_id: entity_id || null,
-            recipient_user_id: userId,
+            recipient_user_id: userId.startsWith("email:") ? null : userId,
             channel,
             dedupe_key: dedupeKey,
             status: "pending",
             reminder_window: reminder_window || null,
             subject: channel === "email" ? emailSubject : title,
-            payload: { vars, event_key, entity_type, entity_id },
+            payload: { vars, event_key: dispatchCfg.eventKey, entity_type, entity_id },
           })
           .select("id")
           .maybeSingle();
@@ -490,11 +662,19 @@ Deno.serve(async (req) => {
         const logId = insertedRow?.id;
         try {
           if (channel === "in_app") {
+            if (userId.startsWith("email:")) {
+              summary.skipped++;
+              await admin
+                .from("notification_dispatch_log")
+                .update({ status: "skipped", error: "direct_email_in_app_unsupported", last_attempt_at: new Date().toISOString() })
+                .eq("id", logId);
+              continue;
+            }
             const { error } = await admin.from("notifications").insert({
               user_id: userId,
               title,
               message,
-              type: cfg.notification_type || "info",
+              type: dispatchCfg.cfg.notification_type || "info",
               entity_type: entity_type || null,
               entity_id: entity_id || null,
               channel: "in_app",
@@ -507,7 +687,9 @@ Deno.serve(async (req) => {
               .eq("id", logId);
             summary.sent++;
           } else if (channel === "email") {
-            const email = await resolveRecipientEmail(admin, userId);
+            const email = userId.startsWith("email:")
+              ? userId.slice("email:".length)
+              : await resolveRecipientEmail(admin, userId);
             if (!email) {
               summary.skipped++;
               await admin
@@ -543,10 +725,10 @@ Deno.serve(async (req) => {
             }
             // Mirror to in-app inbox so users see the email even if SMTP fails silently
             await admin.from("notifications").insert({
-              user_id: userId,
+              user_id: userId.startsWith("email:") ? null : userId,
               title: emailSubject,
               message: emailBody,
-              type: cfg.notification_type || "info",
+              type: dispatchCfg.cfg.notification_type || "info",
               entity_type: entity_type || null,
               entity_id: entity_id || null,
               channel: "email",
@@ -562,6 +744,7 @@ Deno.serve(async (req) => {
             .eq("id", logId);
           summary.failed++;
         }
+      }
       }
     }
 

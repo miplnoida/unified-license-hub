@@ -115,6 +115,41 @@ export async function handler(req: Request): Promise<Response> {
           },
         },
       });
+
+      if (step_id) {
+        const { data: cfgRows } = await admin
+          .from("approval_action_notifications")
+          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .eq("step_id", step_id)
+          .eq("action_type", raw_action)
+          .eq("is_enabled", true);
+
+        for (const row of (cfgRows ?? [])) {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: (row as any).event_key,
+                entity_type: "registration",
+                entity_id: registration_id,
+                payload: {
+                  registration_id,
+                  action_type: raw_action,
+                  comments,
+                  actor_id: caller.id,
+                  step_id,
+                  new_status: (result as any).new_status,
+                  action_notification_override: true,
+                  template_id: (row as any).template_id,
+                  recipient_type: (row as any).recipient_type,
+                  recipient_config: (row as any).recipient_config,
+                },
+              },
+            });
+          } catch (perRowErr) {
+            console.warn("registration per-action notification dispatch failed:", perRowErr);
+          }
+        }
+      }
     } catch (dispatchErr) {
       console.warn("dispatch registration workflow action failed:", dispatchErr);
     }

@@ -122,6 +122,36 @@ Deno.serve(async (req) => {
           },
         },
       });
+
+      if (step_id) {
+        const { data: cfgRows } = await admin
+          .from("approval_action_notifications")
+          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .eq("step_id", step_id)
+          .eq("action_type", action_type)
+          .eq("is_enabled", true);
+
+        for (const row of (cfgRows ?? [])) {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: (row as any).event_key,
+                entity_type: "return",
+                entity_id: return_id,
+                payload: {
+                  ...sharedPayload,
+                  action_notification_override: true,
+                  template_id: (row as any).template_id,
+                  recipient_type: (row as any).recipient_type,
+                  recipient_config: (row as any).recipient_config,
+                },
+              },
+            });
+          } catch (perRowErr) {
+            console.warn("return per-action notification dispatch failed:", perRowErr);
+          }
+        }
+      }
     } catch (e) { console.warn("dispatch failed:", e); }
 
     return jsonResponse(req, 200, result);

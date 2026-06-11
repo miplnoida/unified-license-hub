@@ -160,4 +160,13 @@ describe('isRemarksRequired', () => {
     expect(actions).toContain('return_for_correction');
     expect(actions).toContain('request_more_info');
   });
+
+  it('keeps the new applicant-facing actions available on a final step when configured', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: true,
+      allowedActions: ['approve', 'reject', 'return_for_correction', 'request_more_info'],
+    });
+    expect(actions).toEqual(['approve', 'reject', 'return_for_correction', 'request_more_info']);
+  });
 });
