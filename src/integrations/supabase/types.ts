@@ -240,6 +240,7 @@ export type Database = {
           sla_deadline: string | null
           step_id: string | null
           workflow_instance_id: string | null
+          workflow_version_id: string | null
         }
         Insert: {
           action: string
@@ -257,6 +258,7 @@ export type Database = {
           sla_deadline?: string | null
           step_id?: string | null
           workflow_instance_id?: string | null
+          workflow_version_id?: string | null
         }
         Update: {
           action?: string
@@ -274,6 +276,7 @@ export type Database = {
           sla_deadline?: string | null
           step_id?: string | null
           workflow_instance_id?: string | null
+          workflow_version_id?: string | null
         }
         Relationships: [
           {
@@ -302,6 +305,13 @@ export type Database = {
             columns: ["workflow_instance_id"]
             isOneToOne: false
             referencedRelation: "workflow_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_actions_workflow_version_id_fkey"
+            columns: ["workflow_version_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -531,11 +541,57 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_workflow_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          published_at: string | null
+          snapshot: Json
+          status: string
+          version_number: number
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          published_at?: string | null
+          snapshot: Json
+          status?: string
+          version_number: number
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          published_at?: string | null
+          snapshot?: Json
+          status?: string
+          version_number?: number
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_workflow_versions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_workflows: {
         Row: {
           category_id: string | null
           created_at: string
+          current_published_version_id: string | null
           description: string | null
+          draft_version_id: string | null
           entity_type: string
           id: string
           is_active: boolean
@@ -548,7 +604,9 @@ export type Database = {
         Insert: {
           category_id?: string | null
           created_at?: string
+          current_published_version_id?: string | null
           description?: string | null
+          draft_version_id?: string | null
           entity_type: string
           id?: string
           is_active?: boolean
@@ -561,7 +619,9 @@ export type Database = {
         Update: {
           category_id?: string | null
           created_at?: string
+          current_published_version_id?: string | null
           description?: string | null
+          draft_version_id?: string | null
           entity_type?: string
           id?: string
           is_active?: boolean
@@ -577,6 +637,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_current_published_version_id_fkey"
+            columns: ["current_published_version_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_draft_version_id_fkey"
+            columns: ["draft_version_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_versions"
             referencedColumns: ["id"]
           },
           {
@@ -5681,37 +5755,46 @@ export type Database = {
           completed_at: string | null
           created_at: string
           current_step_id: string | null
+          current_step_key: string | null
           entity_id: string
           entity_type: string
           id: string
           started_at: string
           status: string
           updated_at: string
+          version_snapshot: Json | null
           workflow_id: string
+          workflow_version_id: string | null
         }
         Insert: {
           completed_at?: string | null
           created_at?: string
           current_step_id?: string | null
+          current_step_key?: string | null
           entity_id: string
           entity_type: string
           id?: string
           started_at?: string
           status?: string
           updated_at?: string
+          version_snapshot?: Json | null
           workflow_id: string
+          workflow_version_id?: string | null
         }
         Update: {
           completed_at?: string | null
           created_at?: string
           current_step_id?: string | null
+          current_step_key?: string | null
           entity_id?: string
           entity_type?: string
           id?: string
           started_at?: string
           status?: string
           updated_at?: string
+          version_snapshot?: Json | null
           workflow_id?: string
+          workflow_version_id?: string | null
         }
         Relationships: [
           {
@@ -5726,6 +5809,13 @@ export type Database = {
             columns: ["workflow_id"]
             isOneToOne: false
             referencedRelation: "approval_workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_workflow_version_id_fkey"
+            columns: ["workflow_version_id"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -6174,6 +6264,7 @@ export type Database = {
         Returns: string
       }
       audit_step_assignee_label: { Args: { _step_id: string }; Returns: string }
+      build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
         Returns: boolean
@@ -6507,6 +6598,26 @@ export type Database = {
       provision_application_entity: {
         Args: { _application_id: string }
         Returns: Json
+      }
+      publish_workflow_version: {
+        Args: { _notes?: string; _workflow_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          published_at: string | null
+          snapshot: Json
+          status: string
+          version_number: number
+          workflow_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "approval_workflow_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       reject_application_action: {
         Args: { _application_id: string; _comments: string }
