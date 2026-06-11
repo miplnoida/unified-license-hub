@@ -1,74 +1,120 @@
-# Approval Workflow Module — Extension Plan
+# Approval Workflow Builder — Upgrade Plan
 
-Building on the **existing** schema (`approval_workflows`, `approval_steps`, `workflow_instances`, `notification_templates`, `dispatch-notification-event`). No greenfield rebuild — additive only, so submissions/approvals/returns/registrations keep working.
+## Current state (verified in repo)
 
-## 1. Database (one migration)
+- `approval_steps` columns: `step_order`, `name`, `description`, `approver_role` (enum, required), `approver_role_id`, `sla_hours`, `allowed_actions` (jsonb string[]), `escalation_role`, `escalation_after_hours`, `is_required`, `condition`. **No** `approver_type`, `approver_config`, `auto_approve_on_timeout`.
+- `approval_action_notifications` exists and is keyed by `(step_id, action_type, event_key)`. UI editor `ActionNotificationsEditor.tsx` already supports full multi-row CRUD. Runtime `perform-workflow-action/index.ts` already fans out enabled rows per `(step_id, action_type)`.
+- Routing today is implicit: "next step = next `step_order`" inside `perform_workflow_transition` (SQL RPC). No per-action `next_step_id`, `end_state`, or `result_status_override`.
+- Per-action metadata (name, mandatory comments, result status override, next step) does **not** exist — actions are just strings in `allowed_actions`.
+- No step-entry notification table — only event-based dispatch via `dispatch-notification-event`.
+- WorkflowList editor (`src/pages/workflows/WorkflowList.tsx`, 1566 lines) shows "Due within" label, single role-only approver, allowed-actions checkboxes, and embeds `ActionNotificationsEditor`.
+- Action type whitelist (runtime + UI): `approve`, `reject`, `send_back`, `escalate`, `request_resubmission`, `return_for_correction`, `request_more_info`. The screenshots mention `query_to_applicant`, `review`, `review_for_previous_reviewer`, `schedule_meeting` — **none** are supported by `perform_workflow_transition` today.
 
-**New table — `approval_action_notifications`** (per-action template binding)
-- `id`, `step_id` (FK → approval_steps), `action_type` (text: approve/reject/return_for_correction/request_more_info/send_back/escalate/request_resubmission), `event_key` (text — matches notification_event_configs), `template_id` (FK → notification_templates, nullable), `recipient_type` (enum: applicant / current_approver / previous_actor / role / admin / custom_email), `recipient_config` (jsonb), `is_enabled` (bool), `created_at`, `updated_at`
-- Unique (step_id, action_type, event_key, recipient_type)
-- RLS: admins read/write; service_role full. Standard GRANTs.
+## Scope decisions (honest about runtime)
 
-**Extend `approval_steps`**
-- Already has `allowed_actions text[]`. Add two new allowed values to the application app type: `'return_for_correction'`, `'request_more_info'`. No column change — just expand the action filter in `workflowActionFilter.ts` and server validator.
+Per the brief ("Do not show action types that cannot be executed by runtime"), the build is split into:
 
-**Extend `workflow_instances` already supports paused/resumed.** No schema change needed for applicant resubmission — `verify-and-submit` already resumes paused instances.
+**In scope — UI + DB + runtime end-to-end**
+1. Specific-users approver type (resolver + step-permission check)
+2. SLA hours relabel + auto_approve_on_timeout **config** (saved, surfaced; runtime executor flagged as "planned" — no fake processor)
+3. Per-action config: name, mandatory comments (runtime enforced), result_status_override, next_step routing (`end_workflow`+end_state, `next`, `specific_step`, `previous`, `return_to_applicant`)
+4. Step-entry notifications (new table + dispatcher hook on transition into step)
+5. Full Workflow Builder UI redesign with cards/accordions
+6. Validation gates before publish
 
-## 2. Edge Function changes
+**Out of scope (will not be added as fake options)**
+- `schedule_meeting`, `review`, `review_for_previous_reviewer`, `query_to_applicant` as distinct action types — `query_to_applicant` is functionally `return_for_correction` / `request_more_info`; we will expose those with friendlier labels rather than fabricate new runtime types. A code comment + UI hint will note this.
+- Auto-approve-on-timeout background processor (config will save; UI clearly labels "requires scheduled job — not yet running").
 
-**`perform-workflow-action`**
-- Accept new action types `return_for_correction`, `request_more_info`.
-- Behavior: pause instance, mark current step actor as `previous_step_actor_id` on the instance metadata, set application status to `returned_for_correction` / `info_requested`.
-- After action: query `approval_action_notifications` for the (step_id, action_type) and call `dispatch-notification-event` for each enabled row, resolving recipients server-side.
-- Require remarks for both new actions.
+## Schema changes (additive only)
 
-**`verify-and-submit`** (resubmission path)
-- When resuming a paused instance, route back to step whose actor was `previous_step_actor_id` (already mostly in place via `current_step_id` — verify and add fallback).
+Migration 1 — `approval_steps`:
+- `approver_type text not null default 'role_based_user'` — `'role_based_user' | 'specific_users'`
+- `approver_config jsonb not null default '{}'::jsonb` — `{ role_ids?: uuid[], user_ids?: uuid[] }`
+- `auto_approve_on_timeout boolean not null default false`
+- `step_entry_notifications_enabled boolean not null default true` (kept for back-compat toggle)
+- Backfill: existing rows → `approver_type='role_based_user'`, `approver_config={role_ids:[approver_role_id]}`.
 
-## 3. Frontend
+Migration 2 — new `approval_step_actions` table (per-action config, keyed by id):
+```
+id uuid pk, step_id uuid fk, action_type text, label text,
+require_comments boolean default false,
+result_status_override text null,
+next_step_mode text, -- 'next' | 'specific_step' | 'previous' | 'return_to_applicant' | 'end_workflow'
+next_step_id uuid null fk approval_steps,
+end_state text null, -- 'approved' | 'rejected' | 'cancelled'
+sort_order int default 0,
+is_enabled boolean default true,
+created_at/updated_at
+unique(step_id, action_type)
+```
++ GRANTs for `authenticated` + `service_role`, RLS mirroring `approval_steps`.
+Backfill: for each existing step, insert one row per entry in `allowed_actions` with sensible defaults (`next` for non-terminal, `end_workflow`+`approved/rejected` only when `approve`/`reject` on last step). `allowed_actions` is preserved for back-compat — runtime keeps reading it as fallback.
 
-**Redesigned `src/pages/workflows/WorkflowList.tsx` Edit page**
-Split into a new route `/admin/workflows/:id/edit` rendering `WorkflowEditor.tsx` with three card sections:
-1. **Workflow Details** — name, description, process type (from `approval_workflow_types`), regulator/sector, default SLA, active toggle.
-2. **Workflow Steps** — vertical list of `StepCard`s (existing draft-state pattern preserved), reorder via up/down, add/delete, per-step: name, SLA, allowed_actions checkboxes (now including the two new actions), role picker.
-3. **Per-step Actions panel** — for each allowed action on a step, an accordion with:
-   - Action label (derived from action type)
-   - Mandatory comments toggle (read-only — server already enforces for approve/reject/RFI/return)
-   - **Notifications sub-section** — list of `approval_action_notifications` rows. Each row: event key dropdown, recipient type dropdown, template dropdown (filtered to active `notification_templates`), enabled toggle. Add/remove rows.
+Migration 3 — new `approval_step_entry_notifications` table:
+```
+id, step_id fk, event_key text, recipient_type text,
+recipient_config jsonb, template_id uuid fk notification_templates,
+is_enabled boolean
+```
++ GRANTs + RLS.
 
-The existing inline `WorkflowList.tsx` builder stays as a list view; edit deep-links to the new editor route. Keep all current tests passing.
+Migration 4 — RPC update (`perform_workflow_transition`):
+- Resolve action config from `approval_step_actions` when present, fall back to current behavior.
+- Enforce `require_comments` server-side.
+- Apply `result_status_override` to `applications.status` when set.
+- Apply `next_step_mode`: `end_workflow` (use `end_state`), `specific_step` (set current_step_id), `previous`, `next` (current behavior), `return_to_applicant` (map to existing pause behavior used by `return_for_correction`).
+- Resolver check: for `specific_users` approver, validate `caller.id ∈ approver_config.user_ids`; for `role_based_user` with multiple roles, allow any.
 
-**Action filter helper** (`src/lib/workflowActionFilter.ts`)
-- Extend `WorkflowActionType` union with `'return_for_correction' | 'request_more_info'`.
-- Add to `REMARKS_REQUIRED_ACTIONS`.
-- Candidate list: include both new actions on any non-final step.
+Migration 5 — step-entry dispatch: trigger function fired after the RPC sets `current_step_id`/creates `workflow_instances` row; reads `approval_step_entry_notifications` and enqueues via `dispatch-notification-event` (called from edge function after RPC returns, mirroring the existing post-action notification block — keeps SQL pure).
 
-**Application detail (`WorkflowPanel.tsx`)**
-- No structural change — `resolveAvailableActions` already drives buttons from `allowed_actions`. The two new buttons appear automatically once admins enable them.
+## Frontend changes
 
-## 4. Tests
+### Files refactored
+- `src/pages/workflows/WorkflowList.tsx` — split the monolithic `StepCard` into:
+  - `src/components/workflows/StepCard.tsx`
+  - `src/components/workflows/ApproverConfigEditor.tsx` (role multiselect + specific-users searchable checkbox list, fetched from `profiles` filtered to internal users via `user_roles`)
+  - `src/components/workflows/StepActionsEditor.tsx` (add/edit/delete/reorder action cards)
+  - `src/components/workflows/ActionCard.tsx` (name, type, mandatory comments, result status, next-step routing, embedded `ActionNotificationsEditor` per action)
+  - `src/components/workflows/StepEntryNotificationsEditor.tsx` (mirrors `ActionNotificationsEditor` shape)
+- `src/hooks/useWorkflowEngine.ts` — add types + CRUD hooks for `approval_step_actions`, `approval_step_entry_notifications`, extended step fields.
+- `src/hooks/useStepActions.ts` (new) and `src/hooks/useStepEntryNotifications.ts` (new).
+- `src/lib/workflowValidation.ts` (new) — pure validators (≥1 step, unique order, ≥1 action, end step needs end action, routing valid, etc.) consumed by the editor + a "Publish" gate.
+- Relabel "Due within" → "SLA hours" everywhere user-visible.
+- `ActionNotificationsEditor` keeps `(step_id, action_type)` key for back-compat (matches runtime + existing tests).
 
-- `workflowActionFilter.test.ts` — add cases for the new action types + remarks requirement.
-- New: `approvalActionNotifications.test.ts` — pure helper for resolving which notifications fire for an (action_type, event) pair.
-- Update `workflowStepCardViewMode.test.tsx` snapshot if needed (only if checkbox list changes).
+### UI structure
+Workflow Details card → Workflow Steps section (sorted by `step_order`, reorder buttons, dup-order guard) → per Step card with collapsible sections:
+1. Identity (name, order, description)
+2. Approver Configuration (type radio → role multiselect OR user checkbox list with search)
+3. SLA Controls (SLA hours, Auto-approve toggle with "planned" hint)
+4. Step Entry Notifications (multi-row CRUD)
+5. Step Actions → Action cards, each with its own Action Notifications block
 
-## 5. What I am NOT doing (and why)
+Inline validation, confirm-before-delete via SweetAlert2 (matches project convention), loading/saving spinners on each row.
 
-- No new `approval_workflow_*` parallel tables — existing schema covers it.
-- No new `email_templates` table — `notification_templates` already exists and is in active use.
-- No "Specific User" / "Previous Step Actor" / "Applicant" approver types in step config — you didn't pick that option. Approver stays role-based. Applicant routing is handled via the new RFI/Return actions, not as an approver type.
-- No maker-checker, reporting manager, secured-table, parallel approval — explicitly excluded by your brief.
+## Tests
 
-## File changes (estimated)
+New test files (Vitest, behavioral — not regex-only):
+- `src/test/workflowBuilder.specificUsers.test.tsx` — render approver editor, switch type, select users, assert payload.
+- `src/test/workflowBuilder.stepActions.test.tsx` — add/edit/delete action, next-step routing variants, end-state required when `end_workflow`.
+- `src/test/workflowBuilder.stepEntryNotifications.test.tsx` — CRUD + reload after save.
+- `src/test/workflowBuilder.validation.test.ts` — pure validators.
+- `src/test/workflowApproverResolver.specificUsers.test.ts` — resolver allows only listed users; role mode unchanged.
+- `src/test/workflowRuntimeRouting.test.ts` — RPC contract (string assertions against new SQL plus existing pattern in `workflowRuntimeNotificationDispatch.test.ts`).
+- Update `workflowActionFilter.test.ts` to cover per-action `is_enabled` filtering.
 
-- New migration: `approval_action_notifications` table + GRANTs + RLS.
-- New: `src/pages/workflows/WorkflowEditor.tsx` (redesigned editor).
-- New: `src/components/workflows/ActionNotificationsEditor.tsx`.
-- New: `src/hooks/useActionNotifications.ts`.
-- Edit: `src/lib/workflowActionFilter.ts` (+ test).
-- Edit: `supabase/functions/perform-workflow-action/index.ts` (handle new action types + dispatch notifications).
-- Edit: `src/pages/workflows/WorkflowList.tsx` (link Edit button to new editor; keep list logic).
-- Edit: `src/routes/adminRoutes.tsx` (register new route).
-- New test: `src/test/approvalActionNotifications.test.ts`.
+## Compatibility / non-regression
 
-Approve and I'll ship it in this order: migration → action filter + tests → editor UI → edge function → routing.
+- `allowed_actions` jsonb is preserved and remains the fallback when no `approval_step_actions` rows exist.
+- Existing role-based steps continue working; backfill writes `approver_config.role_ids`.
+- `ActionNotificationsEditor` API unchanged → existing tests (`actionNotificationsEditor.test.tsx`, `actionNotificationsEditorCrud.test.tsx`, `workflowRuntimeNotificationDispatch.test.ts`) stay green.
+- Registration workflow + return workflow runtimes are untouched.
+- Edge function `perform-workflow-action` only gains config-driven branches behind feature-detect on new tables.
+
+## Open questions before I start
+
+1. **Approve action label**: in screenshots the same step often has both an "Approve" action that moves to next step and a separate end-state action. OK to model "final approval" as: an `approve` action on the last step whose `next_step_mode='end_workflow'` + `end_state='approved'`? (matches current runtime behavior).
+2. **Specific-users source list**: filter `profiles` to users with any `user_roles` row (i.e. internal staff, exclude `pre_licensee`/`licensee` system roles)? Confirm this is the right "employee" definition.
+3. **Auto-approve on timeout**: save-only (clearly labeled "scheduled processor not yet implemented") for this PR, with the processor tracked as a follow-up — confirm acceptable, since the brief explicitly says "do not claim timeout automation works unless there is actual runtime support".
+4. **Schedule Meeting / Review / Review-for-Previous-Reviewer**: confirm we **omit** these from the action-type dropdown rather than add disabled placeholders.

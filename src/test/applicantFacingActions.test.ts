@@ -184,10 +184,17 @@ describe('applicant resubmission resumes the same workflow at the previous step'
     const path = require('node:path') as typeof import('node:path');
     const dir = path.resolve(__dirname, '../../supabase/migrations');
     const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.sql')).sort();
-    // Read the most recent migration that defines submit_application/perform_workflow_transition.
+    // Read the most recent migration that defines perform_workflow_transition
+    // AND submit_application together — that's the one that contains the
+    // first-class action + resubmission contract this test pins.
     for (const f of [...files].reverse()) {
       const src = fs.readFileSync(path.join(dir, f), 'utf-8');
-      if (src.includes('perform_workflow_transition') && src.includes('return_for_correction')) {
+      if (
+        src.includes('perform_workflow_transition')
+        && src.includes('return_for_correction')
+        && src.includes('submit_application')
+        && src.includes('v_existing_instance')
+      ) {
         return src;
       }
     }

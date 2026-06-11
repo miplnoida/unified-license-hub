@@ -39,6 +39,10 @@ import { useRoles, type DynamicRole } from '@/hooks/useRoles';
 import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
+import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEditor';
+import { StepActionsEditor } from '@/components/workflows/StepActionsEditor';
+import { StepEntryNotificationsEditor } from '@/components/workflows/StepEntryNotificationsEditor';
+import { Switch } from '@/components/ui/switch';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
@@ -1107,6 +1111,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               step={step}
               index={idx}
               total={steps.length}
+              siblingSteps={steps}
               dynamicRoles={dynamicRoles}
               roleLabel={roleLabel}
               stepRoleLabel={stepRoleLabel}
@@ -1175,6 +1180,8 @@ interface StepCardProps {
   step: WorkflowStep;
   index: number;
   total: number;
+  /** Other steps in this workflow (used for next-step routing pickers). */
+  siblingSteps: WorkflowStep[];
   dynamicRoles: { id: string; name: string; system_role: string }[];
   roleLabel: (sysRole: string) => string;
   stepRoleLabel: (step: { approver_role: string; approver_role_id?: string | null }) => string;
@@ -1185,7 +1192,7 @@ interface StepCardProps {
   onMove: (idx: number, dir: -1 | 1) => void;
 }
 
-function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   // Optimistic local override so the selected highlight + badge update
@@ -1386,91 +1393,24 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
         )}
       </div>
 
-      {/* Role chip + change */}
-      <div className="pl-11 space-y-2">
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Who approves</Label>
-          {!pickerOpen ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
-                <Users className="h-3 w-3" />
-                {stepRoleLabel(displayStepForBadge)}
-              </Badge>
-              {isEditing && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
-                  Change role
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="border rounded-md p-2 space-y-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  autoFocus
-                  className="h-8 pl-7 text-xs"
-                  placeholder="Search roles..."
-                  value={roleSearch}
-                  onChange={e => setRoleSearch(e.target.value)}
-                />
-                <Button
-                  variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                  onClick={() => { setPickerOpen(false); setRoleSearch(''); }}
-                  aria-label="Close role picker"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                {filteredRoles.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-2">No roles match.</p>
-                ) : filteredRoles.map(r => {
-                  const isSelected = effectiveRoleId
-                    ? effectiveRoleId === r.id
-                    : step.approver_role === r.system_role;
-                  const isSaving = savingRoleId === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      disabled={!!savingRoleId}
-                      onClick={() => handleRoleSelect(r)}
-                      className={`px-3 py-1.5 rounded-full border text-xs transition-colors disabled:opacity-60 ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background hover:border-primary/50'
-                      }`}
-                    >
-                      {r.name}{isSaving ? '…' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Approver configuration — role-based OR specific users */}
+      <div className="pl-11 space-y-3">
+        <ApproverConfigEditor
+          step={step}
+          dynamicRoles={dynamicRoles}
+          isEditing={isEditing}
+          onUpdate={onUpdate}
+        />
 
-          )}
-          <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            Any user assigned to this role can approve.
-          </p>
-        </div>
-
-        {!roleExists && (
+        {step.approver_type !== 'specific_users' && !roleExists && (
           <p className="text-xs text-destructive">
-            ⚠ This role no longer exists. Please pick another role.
+            ⚠ Selected role no longer exists. Please pick another role.
           </p>
         )}
 
-        {isDuplicate && (
+        {step.approver_type !== 'specific_users' && isDuplicate && (
           <p className="text-xs text-warning">
             ⚠ Same role as the previous step. Consider merging or changing one.
-          </p>
-        )}
-
-        {/* Allowed actions — explicit, no silent defaults */}
-        {allowedActions.length === 0 && (
-          <p className="text-xs text-destructive flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> No allowed actions configured — approvers will be blocked.
           </p>
         )}
 
@@ -1478,8 +1418,11 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
         {!isEditing ? (
           <div className="rounded-md border bg-muted/20 p-3 space-y-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Due within:</span>
+              <span className="font-medium text-foreground">SLA hours:</span>
               <span>{Number.isFinite(step.sla_hours as number) ? `${step.sla_hours} hours` : '48 hours'}</span>
+              {step.auto_approve_on_timeout && (
+                <Badge variant="outline" className="text-[10px]">Auto-approve on timeout</Badge>
+              )}
             </div>
             <div className="flex items-start gap-2 text-xs">
               <span className="font-medium text-foreground mt-0.5">Allowed actions:</span>
@@ -1493,11 +1436,10 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             </div>
           </div>
         ) : (
-          /* Timing & allowed actions — always visible inline in edit mode so
-             admins never have to hunt for them behind a collapsible. */
-          <div className="rounded-md border bg-muted/30 p-3 space-y-3" data-testid={`step-edit-controls-${index}`}>
+          <div className="rounded-md border bg-muted/30 p-3 space-y-4" data-testid={`step-edit-controls-${index}`}>
+            {/* SLA controls */}
             <div className="flex items-center gap-2 flex-wrap">
-              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>Due Within</Label>
+              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>SLA hours</Label>
               <Input
                 id={`sla-${step.id}`}
                 type="number"
@@ -1515,7 +1457,7 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
                 }}
-                aria-label={`Step ${index + 1} due within (hours)`}
+                aria-label={`Step ${index + 1} SLA hours`}
                 aria-invalid={!!slaError}
               />
               <span className="text-xs text-muted-foreground">hours</span>
@@ -1524,37 +1466,34 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
               )}
             </div>
 
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Allowed actions</Label>
-              <div className="flex flex-wrap gap-2">
-                {ALL_ACTIONS.map(action => {
-                  const checked = allowedActions.includes(action);
-                  const cbId = `act-${step.id}-${action}`;
-                  return (
-                    <div key={action} className="flex items-center gap-1.5 text-xs select-none rounded-md border px-2 py-1 bg-background">
-                      <Checkbox
-                        id={cbId}
-                        checked={checked}
-                        onCheckedChange={(v) => toggleAction(action, !!v)}
-                      />
-                      <Label htmlFor={cbId} className="text-xs cursor-pointer">{ACTION_LABELS[action]}</Label>
-                    </div>
+            {/* Auto-approve on timeout */}
+            <div className="flex items-start gap-3">
+              <Switch
+                id={`auto-approve-${step.id}`}
+                checked={!!step.auto_approve_on_timeout}
+                onCheckedChange={(v) => {
+                  Promise.resolve(onUpdate(step.id, { auto_approve_on_timeout: !!v } as any)).catch((e: any) =>
+                    toast.error(e?.message || 'Failed to update auto-approve setting'),
                   );
-                })}
+                }}
+                aria-label="Auto-approve on timeout"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`auto-approve-${step.id}`} className="text-xs cursor-pointer">
+                  Auto-approve on timeout
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Saved as step config. Background processor for automatic approval is not yet active —
+                  setting is preserved for future runtime support.
+                </p>
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Approvers can only perform actions checked here.
-              </p>
             </div>
 
-            <ActionNotificationsEditor
-              stepId={step.id}
-              allowedActions={allowedActions}
-            />
+            {/* Step entry notifications */}
+            <StepEntryNotificationsEditor stepId={step.id} />
 
-            <p className="text-[11px] text-muted-foreground">
-              Escalation, parallel approvals, and conditional rules are not yet available in this builder.
-            </p>
+            {/* Per-action editor (replaces legacy allowed_actions checkboxes) */}
+            <StepActionsEditor step={step} siblingSteps={siblingSteps} />
           </div>
         )}
 

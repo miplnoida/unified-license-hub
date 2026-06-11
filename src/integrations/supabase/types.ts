@@ -306,11 +306,128 @@ export type Database = {
           },
         ]
       }
+      approval_step_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          end_state: string | null
+          id: string
+          is_enabled: boolean
+          label: string | null
+          next_step_id: string | null
+          next_step_mode: string
+          require_comments: boolean
+          result_status_override: string | null
+          sort_order: number
+          step_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          end_state?: string | null
+          id?: string
+          is_enabled?: boolean
+          label?: string | null
+          next_step_id?: string | null
+          next_step_mode?: string
+          require_comments?: boolean
+          result_status_override?: string | null
+          sort_order?: number
+          step_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          end_state?: string | null
+          id?: string
+          is_enabled?: boolean
+          label?: string | null
+          next_step_id?: string | null
+          next_step_mode?: string
+          require_comments?: boolean
+          result_status_override?: string | null
+          sort_order?: number
+          step_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_step_actions_next_step_id_fkey"
+            columns: ["next_step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_step_actions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_step_entry_notifications: {
+        Row: {
+          created_at: string
+          event_key: string
+          id: string
+          is_enabled: boolean
+          recipient_config: Json
+          recipient_type: string
+          step_id: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_key: string
+          id?: string
+          is_enabled?: boolean
+          recipient_config?: Json
+          recipient_type: string
+          step_id: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_key?: string
+          id?: string
+          is_enabled?: boolean
+          recipient_config?: Json
+          recipient_type?: string
+          step_id?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_step_entry_notifications_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_step_entry_notifications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approval_steps: {
         Row: {
           allowed_actions: Json
+          approver_config: Json
           approver_role: Database["public"]["Enums"]["app_role"]
           approver_role_id: string | null
+          approver_type: string
+          auto_approve_on_timeout: boolean
           condition: Json | null
           created_at: string
           description: string | null
@@ -320,14 +437,18 @@ export type Database = {
           is_required: boolean
           name: string
           sla_hours: number | null
+          step_entry_notifications_enabled: boolean
           step_order: number
           step_type: string
           workflow_id: string
         }
         Insert: {
           allowed_actions?: Json
+          approver_config?: Json
           approver_role: Database["public"]["Enums"]["app_role"]
           approver_role_id?: string | null
+          approver_type?: string
+          auto_approve_on_timeout?: boolean
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -337,14 +458,18 @@ export type Database = {
           is_required?: boolean
           name: string
           sla_hours?: number | null
+          step_entry_notifications_enabled?: boolean
           step_order: number
           step_type?: string
           workflow_id: string
         }
         Update: {
           allowed_actions?: Json
+          approver_config?: Json
           approver_role?: Database["public"]["Enums"]["app_role"]
           approver_role_id?: string | null
+          approver_type?: string
+          auto_approve_on_timeout?: boolean
           condition?: Json | null
           created_at?: string
           description?: string | null
@@ -354,6 +479,7 @@ export type Database = {
           is_required?: boolean
           name?: string
           sla_hours?: number | null
+          step_entry_notifications_enabled?: boolean
           step_order?: number
           step_type?: string
           workflow_id?: string
