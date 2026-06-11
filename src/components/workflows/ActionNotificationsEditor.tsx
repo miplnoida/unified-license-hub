@@ -58,17 +58,22 @@ type NotificationRowDraft = {
   event_key: string;
   recipient_type: ActionNotificationRecipientType;
   recipient_config: Record<string, unknown>;
+  recipient_config_text: string;
+  recipient_config_error: string | null;
   template_id: string | null;
   is_enabled: boolean;
 };
 
 function createDraft(action: WorkflowActionType, row?: ActionNotification): NotificationRowDraft {
+  const recipientConfig = normalizeRecipientConfig(row?.recipient_type ?? 'applicant', row?.recipient_config ?? {});
   return {
     id: row?.id,
     action_type: action,
     event_key: row?.event_key ?? DEFAULT_EVENT_FOR_ACTION[action],
     recipient_type: row?.recipient_type ?? 'applicant',
-    recipient_config: normalizeRecipientConfig(row?.recipient_type ?? 'applicant', row?.recipient_config ?? {}),
+    recipient_config: recipientConfig,
+    recipient_config_text: JSON.stringify(recipientConfig, null, 2),
+    recipient_config_error: null,
     template_id: row?.template_id ?? null,
     is_enabled: row?.is_enabled ?? true,
   };
@@ -141,6 +146,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
     const key = getDraftKey(action, rowId);
     const draft = drafts[key];
     if (!draft) return;
+    if (draft.recipient_config_error) return;
     await upsert.mutateAsync(draft);
     cancelEditing(action, rowId);
   };
