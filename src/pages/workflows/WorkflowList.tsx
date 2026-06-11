@@ -1536,8 +1536,19 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
             </p>
           </div>
         )}
+            <ActionNotificationsEditor
+              stepId={step.id}
+              allowedActions={allowedActions}
+            />
+
+            <p className="text-[11px] text-muted-foreground">
+              Escalation, parallel approvals, and conditional rules are not yet available in this builder.
+            </p>
+          </div>
+        )}
 
       </div>
     </div>
   );
 }
+
