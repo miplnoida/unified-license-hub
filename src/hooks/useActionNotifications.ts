@@ -38,7 +38,81 @@ export interface NotificationTemplateLite {
   is_active: boolean;
 }
 
+export interface ActionNotificationSaveInput {
+  id?: string;
+  action_type: WorkflowActionType;
+  event_key: string;
+  recipient_type: ActionNotificationRecipientType;
+  recipient_config?: Record<string, unknown> | null;
+  template_id?: string | null;
+  is_enabled?: boolean;
+}
+
 const TABLE = 'approval_action_notifications' as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function normalizeRecipientConfig(
+  recipientType: ActionNotificationRecipientType,
+  recipientConfig: unknown,
+): Record<string, unknown> {
+  const base = isRecord(recipientConfig) ? { ...recipientConfig } : {};
+
+  if (recipientType === 'custom_email') {
+    const email = typeof base.email === 'string' ? base.email.trim().toLowerCase() : '';
+    if (email) base.email = email;
+  }
+
+  if (recipientType === 'role') {
+    const role = typeof base.role === 'string'
+      ? base.role.trim()
+      : typeof base.role_name === 'string'
+        ? base.role_name.trim()
+        : '';
+    if (role) base.role = role;
+  }
+
+  return base;
+}
+
+export function buildActionNotificationPayload(stepId: string, row: ActionNotificationSaveInput) {
+  const eventKey = row.event_key.trim();
+  if (!eventKey) {
+    throw new Error('Event key is required');
+  }
+
+  const recipientConfig = normalizeRecipientConfig(row.recipient_type, row.recipient_config);
+
+  if (row.recipient_type === 'role') {
+    const role = typeof recipientConfig.role === 'string'
+      ? recipientConfig.role.trim()
+      : typeof recipientConfig.role_name === 'string'
+        ? recipientConfig.role_name.trim()
+        : '';
+    if (!role) {
+      throw new Error('Role recipient requires a role selection');
+    }
+  }
+
+  if (row.recipient_type === 'custom_email') {
+    const email = typeof recipientConfig.email === 'string' ? recipientConfig.email.trim() : '';
+    if (!email) {
+      throw new Error('Custom email recipient requires an email address');
+    }
+  }
+
+  return {
+    step_id: stepId,
+    action_type: row.action_type,
+    event_key: eventKey,
+    recipient_type: row.recipient_type,
+    recipient_config: recipientConfig,
+    template_id: row.template_id ?? null,
+    is_enabled: row.is_enabled ?? true,
+  };
+}
 
 export function useActionNotifications(stepId: string | null | undefined) {
   return useQuery({
@@ -50,7 +124,8 @@ export function useActionNotifications(stepId: string | null | undefined) {
         .select('*')
         .eq('step_id', stepId)
         .order('action_type', { ascending: true })
-        .order('event_key', { ascending: true });
+        .order('event_key', { ascending: true })
+        .order('created_at', { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as ActionNotification[];
     },
@@ -76,22 +151,12 @@ export function useNotificationTemplates() {
 export function useUpsertActionNotification(stepId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (row: Partial<ActionNotification> & { action_type: WorkflowActionType; event_key: string; recipient_type: ActionNotificationRecipientType }) => {
-      const payload = {
-        step_id: stepId,
-        action_type: row.action_type,
-        event_key: row.event_key,
-        recipient_type: row.recipient_type,
-        recipient_config: row.recipient_config ?? {},
-        template_id: row.template_id ?? null,
-        is_enabled: row.is_enabled ?? true,
-        ...(row.id ? { id: row.id } : {}),
-      };
-      const { data, error } = await supabase
-        .from(TABLE as any)
-        .upsert(payload as any, { onConflict: 'step_id,action_type,event_key,recipient_type' })
-        .select()
-        .single();
+    mutationFn: async (row: ActionNotificationSaveInput) => {
+      const payload = buildActionNotificationPayload(stepId, row);
+      const query = row.id
+        ? supabase.from(TABLE as any).update(payload as any).eq('id', row.id)
+        : supabase.from(TABLE as any).insert(payload as any);
+      const { data, error } = await query.select().single();
       if (error) throw error;
       return data;
     },
