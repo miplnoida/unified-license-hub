@@ -1511,6 +1511,35 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
           </div>
         ) : (
           <div className="rounded-md border bg-muted/30 p-3 space-y-4" data-testid={`step-edit-controls-${index}`}>
+            {/* Step order */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`step-order-${step.id}`}>Step Order</Label>
+              <Input
+                id={`step-order-${step.id}`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                className="h-8 w-20 text-xs"
+                value={orderDraft}
+                onFocus={() => setOrderFocused(true)}
+                onChange={e => {
+                  setOrderDraft(e.target.value);
+                  if (orderError) setOrderError(null);
+                }}
+                onBlur={commitStepOrder}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
+                }}
+                aria-label={`Step ${index + 1} order`}
+                aria-invalid={!!orderError || duplicateStepOrder}
+              />
+              {(orderError || duplicateStepOrder) && (
+                <span className="text-[11px] text-destructive" data-testid={`step-order-error-${index}`}>
+                  {orderError || `Duplicate — step ${orderDraft} already exists`}
+                </span>
+              )}
+            </div>
+
             {/* SLA controls */}
             <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-xs text-muted-foreground min-w-[90px]" htmlFor={`sla-${step.id}`}>SLA hours</Label>
