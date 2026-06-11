@@ -119,7 +119,16 @@ async function resolveRecipientEmail(admin: SupabaseClient, userId: string): Pro
 
 async function resolveStepActionNotificationOverrides(
   admin: SupabaseClient,
-  args: { stepId?: string | null; actionType?: string | null },
+  args: {
+    stepId?: string | null;
+    actionType?: string | null;
+    explicitRow?: {
+      event_key?: string | null;
+      recipient_type?: string | null;
+      recipient_config?: Record<string, any> | null;
+      template_id?: string | null;
+    } | null;
+  },
 ): Promise<{
   eventRows: Array<{
     event_key: string;
@@ -129,6 +138,35 @@ async function resolveStepActionNotificationOverrides(
   }>;
   templateMap: Map<string, { subject: string | null; body: string; channel: string; name: string }>;
 }> {
+  const explicitRow = args.explicitRow;
+  if (explicitRow?.event_key && explicitRow?.recipient_type) {
+    const templateIds = explicitRow.template_id ? [String(explicitRow.template_id)] : [];
+    const templateMap = new Map<string, { subject: string | null; body: string; channel: string; name: string }>();
+    if (templateIds.length > 0) {
+      const { data: templates } = await admin
+        .from("notification_templates")
+        .select("id, name, subject, body, channel")
+        .in("id", templateIds);
+      for (const template of (templates || []) as any[]) {
+        templateMap.set(String(template.id), {
+          subject: template.subject ?? null,
+          body: String(template.body || ""),
+          channel: String(template.channel || "in_app"),
+          name: String(template.name || "Template"),
+        });
+      }
+    }
+    return {
+      eventRows: [{
+        event_key: String(explicitRow.event_key),
+        recipient_type: String(explicitRow.recipient_type),
+        recipient_config: (explicitRow.recipient_config || {}) as Record<string, any>,
+        template_id: explicitRow.template_id ? String(explicitRow.template_id) : null,
+      }],
+      templateMap,
+    };
+  }
+
   if (!args.stepId || !args.actionType) {
     return { eventRows: [], templateMap: new Map() };
   }
