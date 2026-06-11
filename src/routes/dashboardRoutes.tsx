@@ -78,5 +78,6 @@ export const dashboardRoutes = (
     <Route path="/change-password" element={<P><ChangePassword /></P>} />
     <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
     <Route path="/change-sector" element={<P><ChangeActiveSector /></P>} />
+    <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
   </>
 );
