@@ -641,16 +641,21 @@ export default function WorkflowList() {
     });
     if (!name) return;
 
+    let snapshot: TemplateSnapshotV2;
+    try {
+      snapshot = await fetchSnapshotForWorkflow(selectedWorkflow.id);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to capture workflow snapshot');
+      return;
+    }
+
     const payload = {
       name: String(name).trim(),
       description: selectedWorkflow.description,
       entity_type: selectedWorkflow.entity_type,
-      steps: steps.map(s => ({
-        name: s.name,
-        approver_role: s.approver_role,
-        sla_hours: s.sla_hours,
-        allowed_actions: Array.isArray(s.allowed_actions) ? s.allowed_actions : [],
-      })),
+      // Snapshot is v2; per-step it also carries `approver_role` so the
+      // template-list badges keep rendering against legacy expectations.
+      steps: snapshot.steps,
     };
     const { error } = await supabase.from('workflow_templates' as any).insert(payload as any);
     if (error) { toast.error(error.message); return; }
