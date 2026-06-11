@@ -1111,6 +1111,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               step={step}
               index={idx}
               total={steps.length}
+              siblingSteps={steps}
               dynamicRoles={dynamicRoles}
               roleLabel={roleLabel}
               stepRoleLabel={stepRoleLabel}
