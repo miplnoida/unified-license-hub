@@ -1255,6 +1255,40 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
   const [allowedDraft, setAllowedDraft] = useState<WorkflowActionType[]>(
     Array.isArray(step.allowed_actions) ? (step.allowed_actions as WorkflowActionType[]) : [],
   );
+  const [orderDraft, setOrderDraft] = useState<string>(String(step.step_order));
+  const [orderFocused, setOrderFocused] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orderFocused) {
+      setOrderDraft(String(step.step_order));
+      setOrderError(null);
+    }
+  }, [step.id, step.step_order, orderFocused]);
+
+  const duplicateStepOrder = useMemo(() => {
+    const parsed = parseInt(orderDraft, 10);
+    if (!Number.isFinite(parsed)) return false;
+    return siblingSteps.some(s => s.id !== step.id && s.step_order === parsed);
+  }, [orderDraft, siblingSteps, step.id]);
+
+  const commitStepOrder = () => {
+    setOrderFocused(false);
+    const parsed = parseInt(orderDraft, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setOrderError('Must be a positive number');
+      return;
+    }
+    if (siblingSteps.some(s => s.id !== step.id && s.step_order === parsed)) {
+      setOrderError(`Duplicate — step ${parsed} already exists`);
+      return;
+    }
+    setOrderError(null);
+    if (parsed === step.step_order) return;
+    Promise.resolve(onUpdate(step.id, { step_order: parsed } as any)).catch((e: any) =>
+      toast.error(e?.message || 'Failed to update step order'),
+    );
+  };
 
   useEffect(() => {
     if (!nameFocused) setNameDraft(step.name ?? '');
