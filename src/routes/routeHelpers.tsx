@@ -73,6 +73,35 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Gate that blocks pre-licensee dashboard access until their `registrations`
+ * row reaches an approved status. Non-approved users are redirected to
+ * `/registration-status` (always allowed) where they can read the message and
+ * resubmit when applicable.
+ */
+function RegistrationApprovalGate({
+  pathname,
+  children,
+}: {
+  pathname: string;
+  children: React.ReactNode;
+}) {
+  const { loading, isApproved } = useRegistrationApprovalStatus();
+
+  if (loading) return <AuthLoadingScreen />;
+
+  if (!isApproved) {
+    if (isRegistrationGateAllowed(pathname)) return <>{children}</>;
+    return <Navigate to="/registration-status" replace />;
+  }
+
+  // Approved → fall back to legacy pre-licensee allow-list behaviour.
+  if (!isPreLicenseeAllowedRoute(pathname)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
 /** Shorthand wrapper — also isolates per-route render errors. */
 export function P({ children }: { children: React.ReactNode }) {
   return (
