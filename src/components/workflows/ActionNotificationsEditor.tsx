@@ -204,7 +204,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       const emailValue = typeof draft.recipient_config.email === 'string'
                         ? draft.recipient_config.email
                         : '';
-                      const genericConfigValue = JSON.stringify(draft.recipient_config ?? {}, null, 2);
+                      const genericConfigValue = draft.recipient_config_text;
 
                       return (
                         <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
@@ -282,12 +282,18 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                               </div>
                               <div className="md:col-span-3">
                                 <Label className="text-[11px]">Recipient type</Label>
-                                <Select
+                                  <Select
                                   value={draft.recipient_type}
                                   onValueChange={(v) => setDraft(key, {
                                     ...draft,
                                     recipient_type: v as ActionNotificationRecipientType,
                                     recipient_config: normalizeRecipientConfig(v as ActionNotificationRecipientType, draft.recipient_config),
+                                      recipient_config_text: JSON.stringify(
+                                        normalizeRecipientConfig(v as ActionNotificationRecipientType, draft.recipient_config),
+                                        null,
+                                        2,
+                                      ),
+                                      recipient_config_error: null,
                                   })}
                                 >
                                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -336,6 +342,8 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                     onValueChange={(v) => setDraft(key, {
                                       ...draft,
                                       recipient_config: v === 'none' ? {} : { role: v },
+                                      recipient_config_text: JSON.stringify(v === 'none' ? {} : { role: v, role_name: v }, null, 2),
+                                      recipient_config_error: null,
                                     })}
                                   >
                                     <SelectTrigger className="h-8 text-xs max-w-sm"><SelectValue placeholder="Select role" /></SelectTrigger>
@@ -357,6 +365,8 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                     onChange={(e) => setDraft(key, {
                                       ...draft,
                                       recipient_config: { email: e.target.value },
+                                      recipient_config_text: JSON.stringify({ email: e.target.value }, null, 2),
+                                      recipient_config_error: null,
                                     })}
                                   />
                                 ) : (
@@ -365,19 +375,24 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                     value={genericConfigValue}
                                     onChange={(e) => {
                                       const next = e.target.value;
+                                      let parsedConfig = draft.recipient_config;
+                                      let error: string | null = null;
                                       try {
-                                        setDraft(key, {
-                                          ...draft,
-                                          recipient_config: next.trim() ? JSON.parse(next) : {},
-                                        });
+                                        parsedConfig = next.trim() ? JSON.parse(next) : {};
                                       } catch {
-                                        setDraft(key, {
-                                          ...draft,
-                                          recipient_config: draft.recipient_config,
-                                        });
+                                        error = 'Recipient details must be valid JSON.';
                                       }
+                                      setDraft(key, {
+                                        ...draft,
+                                        recipient_config_text: next,
+                                        recipient_config: parsedConfig,
+                                        recipient_config_error: error,
+                                      });
                                     }}
                                   />
+                                )}
+                                {draft.recipient_config_error && (
+                                  <p className="text-[11px] text-destructive">{draft.recipient_config_error}</p>
                                 )}
                                 <p className="text-[11px] text-muted-foreground">
                                   {recipientConfigHelpText(draft.recipient_type)}
@@ -458,7 +473,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     const emailValue = typeof draft.recipient_config.email === 'string'
                       ? draft.recipient_config.email
                       : '';
-                    const genericConfigValue = JSON.stringify(draft.recipient_config ?? {}, null, 2);
+                    const genericConfigValue = draft.recipient_config_text;
 
                     return (
                       <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
@@ -483,6 +498,12 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 ...draft,
                                 recipient_type: v as ActionNotificationRecipientType,
                                 recipient_config: normalizeRecipientConfig(v as ActionNotificationRecipientType, draft.recipient_config),
+                                recipient_config_text: JSON.stringify(
+                                  normalizeRecipientConfig(v as ActionNotificationRecipientType, draft.recipient_config),
+                                  null,
+                                  2,
+                                ),
+                                recipient_config_error: null,
                               })}
                             >
                               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -531,6 +552,8 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 onValueChange={(v) => setDraft(key, {
                                   ...draft,
                                   recipient_config: v === 'none' ? {} : { role: v },
+                                  recipient_config_text: JSON.stringify(v === 'none' ? {} : { role: v, role_name: v }, null, 2),
+                                  recipient_config_error: null,
                                 })}
                               >
                                 <SelectTrigger className="h-8 text-xs max-w-sm"><SelectValue placeholder="Select role" /></SelectTrigger>
@@ -552,6 +575,8 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 onChange={(e) => setDraft(key, {
                                   ...draft,
                                   recipient_config: { email: e.target.value },
+                                  recipient_config_text: JSON.stringify({ email: e.target.value }, null, 2),
+                                  recipient_config_error: null,
                                 })}
                               />
                             ) : (
@@ -560,19 +585,24 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 value={genericConfigValue}
                                 onChange={(e) => {
                                   const next = e.target.value;
+                                  let parsedConfig = draft.recipient_config;
+                                  let error: string | null = null;
                                   try {
-                                    setDraft(key, {
-                                      ...draft,
-                                      recipient_config: next.trim() ? JSON.parse(next) : {},
-                                    });
+                                    parsedConfig = next.trim() ? JSON.parse(next) : {};
                                   } catch {
-                                    setDraft(key, {
-                                      ...draft,
-                                      recipient_config: draft.recipient_config,
-                                    });
+                                    error = 'Recipient details must be valid JSON.';
                                   }
+                                  setDraft(key, {
+                                    ...draft,
+                                    recipient_config_text: next,
+                                    recipient_config: parsedConfig,
+                                    recipient_config_error: error,
+                                  });
                                 }}
                               />
+                            )}
+                            {draft.recipient_config_error && (
+                              <p className="text-[11px] text-destructive">{draft.recipient_config_error}</p>
                             )}
                             <p className="text-[11px] text-muted-foreground">
                               {recipientConfigHelpText(draft.recipient_type)}
@@ -591,7 +621,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                             <Button
                               size="sm"
                               className="h-8 text-xs"
-                              disabled={upsert.isPending}
+                              disabled={upsert.isPending || !!draft.recipient_config_error}
                               onClick={() => saveDraft(action)}
                             >
                               <Save className="h-3.5 w-3.5" /> Save
