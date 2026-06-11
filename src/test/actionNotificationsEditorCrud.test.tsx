@@ -132,15 +132,18 @@ describe('ActionNotificationsEditor CRUD flows', () => {
 
     const comboboxes = screen.getAllByRole('combobox');
     fireEvent.click(comboboxes[1]);
-    fireEvent.click(screen.getByText('Users with Role'));
+    fireEvent.click(screen.getByRole('option', { name: 'Users with Role' }));
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
 
     const updatedComboboxes = screen.getAllByRole('combobox');
     fireEvent.click(updatedComboboxes[2]);
-    fireEvent.click(screen.getAllByText('Reviewer Note')[0]);
+    fireEvent.click(screen.getByRole('option', { name: 'Reviewer Note' }));
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
 
     const roleComboboxes = screen.getAllByRole('combobox');
     fireEvent.click(roleComboboxes[3]);
-    fireEvent.click(screen.getByText('Reviewer'));
+    fireEvent.click(screen.getByRole('option', { name: 'Reviewer' }));
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
