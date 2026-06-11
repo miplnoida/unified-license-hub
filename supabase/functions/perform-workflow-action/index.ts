@@ -220,7 +220,7 @@ export async function handler(req: Request): Promise<Response> {
             action_type: raw_action,
             comments,
             actor_id: caller.id,
-            step_id: (result as any).new_step_id,
+            step_id: step_id ?? (result as any).new_step_id,
           },
         },
       });
@@ -262,6 +262,7 @@ export async function handler(req: Request): Promise<Response> {
                   comments,
                   actor_id: caller.id,
                   step_id,
+                  action_notification_override: true,
                   template_id: (row as any).template_id,
                   recipient_type: (row as any).recipient_type,
                   recipient_config: (row as any).recipient_config,
