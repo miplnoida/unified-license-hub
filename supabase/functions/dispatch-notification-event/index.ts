@@ -584,10 +584,17 @@ Deno.serve(async (req) => {
     const shouldUseActionOverrides = vars.action_notification_override === true;
     const overrideStepId = shouldUseActionOverrides && typeof vars.step_id === "string" ? vars.step_id : null;
     const overrideActionType = shouldUseActionOverrides && typeof vars.action_type === "string" ? vars.action_type : null;
+    const explicitOverrideRow = shouldUseActionOverrides ? {
+      event_key: typeof event_key === "string" ? event_key : null,
+      recipient_type: typeof vars.recipient_type === "string" ? vars.recipient_type : null,
+      recipient_config: (vars.recipient_config && typeof vars.recipient_config === "object") ? vars.recipient_config as Record<string, any> : null,
+      template_id: typeof vars.template_id === "string" ? vars.template_id : null,
+    } : null;
     const { eventRows, templateMap } = shouldUseActionOverrides
       ? await resolveStepActionNotificationOverrides(admin, {
           stepId: overrideStepId,
           actionType: overrideActionType,
+          explicitRow: explicitOverrideRow,
         })
       : { eventRows: [], templateMap: new Map<string, { subject: string | null; body: string; channel: string; name: string }>() };
 
