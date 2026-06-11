@@ -1,66 +1,91 @@
-# Plan: editable Step Order + full-fidelity Workflow Templates
+# Workflow Versioning, Registration Review UI & Notification Seeders
 
-Targets the two remaining gaps from the latest brief. Approver modes, Specific Users checkbox list, SLA hours wording, auto-approve toggle, step-entry / action notification editors, action routing and runtime enforcement are already implemented and stay untouched.
+This is a large, multi-part change. I'll verify the existing workflow-builder gap-fill first, then deliver versioning (DB + backend + frontend), the registration review UI on top of the pinned-version runtime, and idempotent notification seeders.
 
-## 1. Editable Step Order
+## Part 0 — Verify existing workflow-builder work (no rewrite)
 
-`src/pages/workflows/WorkflowList.tsx` (`StepCard`):
+Quick verification only — fix only if broken:
+- `StepCard` step-order numeric input + duplicate validation in `src/pages/workflows/WorkflowList.tsx`
+- `src/lib/workflowTemplateSnapshot.ts` v2 round-trip (step_order, approver_type/config, sla_hours, auto_approve_on_timeout, step actions, step entry notifications, action notifications, next_step remap)
+- `src/test/workflowTemplateSnapshot.test.ts`, `workflowStepCardViewMode.test.tsx`, `workflowValidation.test.ts` still green
 
-- Add a `Step Order` numeric `<Input min=1>` inside the SLA Controls row (visible in both view + edit; editable only when `isEditing`), bound to a `stepOrderDraft` local state mirroring the SLA pattern.
-- On blur / Enter: parse → reject blank / non-numeric / `<= 0` (inline error). If valid and different from `step.step_order`, call `onUpdate(step.id, { step_order: n })` (the existing `useUpdateStep` mutation).
-- Duplicate detection inside the card: compute `duplicateStepOrder = siblingSteps.some(s => s.id !== step.id && s.step_order === parsed)` and show an inline `text-destructive` message when the typed value or the persisted value collides.
-- `validateWorkflow` already produces a duplicate-order issue, so the existing publish gate (`Turn On`) naturally fails when duplicates exist; no extra wiring needed for that path.
-- Keep `Move up` / `Move down` buttons. `handleMove` continues to renumber `1..n`, which intentionally clears any manually entered gaps when the admin reorders.
-- Sorting already uses `step_order` ascending in `useWorkflowSteps`; no change.
+## Part 1 — Database: workflow versions (migration)
 
-## 2. Full-fidelity Workflow Templates
+New table `approval_workflow_versions`:
+- `id`, `workflow_id` (FK), `version_number` (int, unique per workflow), `status` (`draft|published|archived`), `snapshot` JSONB (v2 snapshot shape from `workflowTemplateSnapshot.ts`), `notes`, `created_by`, `created_at`, `published_at`
+- GRANTs: `authenticated` read, `service_role` all; RLS via existing admin role check; published versions readable by anyone with workflow read access.
 
-New module `src/lib/workflowTemplateSnapshot.ts` (pure helpers + Supabase glue):
+Extend `approval_workflows`:
+- `current_published_version_id uuid NULL`, `draft_version_id uuid NULL`
 
-- `buildSnapshotFromRows({ steps, actionsByStepId, entryNotificationsByStepId, actionNotificationsByStepId })` → `{ version: 2, steps: TemplateStepV2[] }`.
-- Each `TemplateStepV2` carries: `local_id` (= source step id), `step_order`, `name`, `description`, `approver_role`, `approver_role_id`, `approver_type`, `approver_config`, `sla_hours`, `auto_approve_on_timeout`, `allowed_actions`, `actions[]` (with `next_step_local_id`), `entry_notifications[]`, `action_notifications[]`.
-- `fetchSnapshotForWorkflow(workflowId)` does the three parallel reads against `approval_step_actions`, `approval_step_entry_notifications`, `approval_action_notifications` and feeds the pure builder.
-- `isV2Snapshot(steps)` — detects new vs legacy v1 templates so old templates keep applying as basic steps.
-- `buildLocalIdMap(snapshot, createdStepIds)` — pure remap of local → real ids.
-- `applyV2SnapshotToWorkflow({ workflowId, snapshot, fallbackRoleId, fallbackSystemRole })`:
-  1. Batch-insert `approval_steps` with full modern columns, preserving `step_order`.
-  2. Build the local→real id map from the returned rows (sorted by `step_order`).
-  3. Batch-insert `approval_step_actions` (remapping `next_step_local_id` → `next_step_id` for `specific_step` mode, dropping it otherwise; honouring `end_state` only for `end_workflow`).
-  4. Batch-insert `approval_step_entry_notifications` and `approval_action_notifications`.
+Extend `workflow_instances`:
+- `workflow_version_id uuid NULL` (FK), `version_snapshot JSONB NULL`, `current_step_key text NULL` (snapshot step local_id; `current_step_id` retained for back-compat)
 
-Wire into `WorkflowList.tsx`:
+Extend `approval_actions`:
+- `workflow_version_id uuid NULL` for audit
 
-- Extend the local `TemplateStep` / `WorkflowTemplate` types to optionally carry the v2 fields (back-compat preserved).
-- `handleSaveAsTemplate`: replace the lossy `steps.map(...)` payload with `await fetchSnapshotForWorkflow(selectedId)` and insert `{ name, description, entity_type, steps: snapshot.steps }`. Keep the v1-compatible field names per step so the existing template-list badges still render (they read `approver_role` from each step, which is in v2 too).
-- `handleCreate` (template branch): after the basic `createWorkflow` (using a single seed step to satisfy `createWorkflowWithSteps`’s contract), if the chosen template is v2, **delete** the seed step and call `applyV2SnapshotToWorkflow`. If v1, keep current behaviour.
-  - Alternative path I will use: create workflow with `useCreateWorkflow` (workflow-only, no steps), then call `applyV2SnapshotToWorkflow` for v2 or the existing seeding logic for v1. This avoids the seed-step + delete dance and keeps the atomic v1 path untouched.
+Backfill migration:
+- For every existing `approval_workflows` row, snapshot current steps/actions/notifications via the same shape `workflowTemplateSnapshot.buildSnapshot` produces, insert as version 1 `published`, point `current_published_version_id` at it.
+- For every existing `workflow_instances` row, set `workflow_version_id` = that v1, populate `version_snapshot`, and derive `current_step_key` from current `current_step_id`.
 
-## 3. Tests
+## Part 2 — Backend runtime (edge functions + RPCs)
 
-- `src/test/workflowTemplateSnapshot.test.ts` — pure tests:
-  - v2 build preserves approver_type / approver_config / sla_hours / auto_approve_on_timeout.
-  - `next_step_id` → `next_step_local_id` round-trip.
-  - Entry + action notifications carried per step.
-  - `buildLocalIdMap` happy path + length-mismatch throw.
-  - `isV2Snapshot` v1 vs v2 detection.
-- `src/test/workflowValidation.test.ts` — extend with cases for `validateStepOrder` duplicates and `validateSla` invalid values (the helpers exist; just add assertions).
-- `src/test/workflowStepOrderEditing.test.tsx` — render `StepCard` in edit mode, type a duplicate order → assert inline error; type a unique order, blur → assert `onUpdate({ step_order: n })`.
+Update execution paths to read from the pinned snapshot, not live `approval_steps`:
+- `supabase/functions/perform-workflow-action/index.ts`
+- `supabase/functions/perform-registration-workflow-action/index.ts`
+- `supabase/functions/perform-return-workflow-action/index.ts` (only the version-resolution wiring; no behavior change otherwise)
+- `start_*_workflow` / `resolve_*_workflow` SQL functions: select `current_published_version_id`, refuse drafts, write `workflow_version_id` + `version_snapshot` + initial `current_step_key` on the instance.
+- Action runtime: resolve current step, allowed actions, mandatory comments, status override, next-step routing, end-state, approver config, step-entry notifications, and action notifications **from `version_snapshot`** (keyed by `local_id`).
+- Notification dispatch reads the snapshot's `approval_action_notifications` / `approval_step_entry_notifications` blocks; falls back to live tables only when `workflow_version_id IS NULL` (legacy safety, should not occur after backfill).
+- `user_can_act_on_workflow_step` extended to accept a snapshot step (role_based_user / specific_users) so approver resolution matches snapshot.
 
-## 4. Files touched
+## Part 3 — Frontend: workflow builder version lifecycle
 
-- `src/pages/workflows/WorkflowList.tsx` — step-order input + duplicate flag in `StepCard`; new save-template / apply-template paths.
-- `src/lib/workflowTemplateSnapshot.ts` — new module.
-- `src/test/workflowTemplateSnapshot.test.ts` — new.
-- `src/test/workflowStepOrderEditing.test.tsx` — new.
-- `src/test/workflowValidation.test.ts` — extra cases.
+`src/pages/workflows/WorkflowList.tsx` + new `src/components/workflows/WorkflowVersionPanel.tsx`:
+- Show current published version #, draft indicator, last published date.
+- Buttons: Edit Draft, Save Draft, Publish Version, View Published, Duplicate Published → Draft, Archive.
+- Editing a published workflow auto-creates a draft (front-end opens the draft; back-end enforces).
+- Inline warning: “Changes create a new version. Existing in-progress submissions stay on their original version.”
+- New hook `src/hooks/useWorkflowVersions.ts` (list/create draft/publish/archive).
 
-## 5. Verification
+## Part 4 — Frontend: registration review uses pinned version
 
-- `bunx vitest run` — all suites pass (current 320+).
-- Manual smoke at `/workflows` per the brief: edit step order to duplicate (red error), to unique value (persists + reload preserves), save-as-template with Specific Users / SLA hours / auto-approve / entry notification / two actions + routing / action notification, apply the template → new workflow shows every field.
+Reuse application workflow patterns; do not fork a second engine.
+- New `src/pages/registration/RegistrationReviewList.tsx` (route `/admin/registrations/review`): pending/in-progress registrations assigned to current reviewer via snapshot approver resolution.
+- New `src/pages/registration/RegistrationReviewDetail.tsx` with a `RegistrationWorkflowPanel` reusing the application `WorkflowPanel` patterns: workflow name + version badge, current step, step order, approver summary, SLA, auto-approve indicator, pinned-version actions, action history.
+- Actions are rendered from the pinned snapshot's step actions (no hardcoded approve/reject), invoke `invokePerformRegistrationWorkflowAction`, enforce mandatory comments per snapshot config, reload state on success.
+- Admin sidebar gets a "Registration Reviews" entry; routes wired in `src/routes/adminRoutes.tsx`.
+
+## Part 5 — Registration access gate (mostly already in place)
+
+Verify `/register` canonical (already done in earlier task) and that `RegistrationApprovalGate` in `src/routes/routeHelpers.tsx` covers pending / in_review / correction / rejected / unverified / missing. Add an RFI/more-info category to `src/lib/registrationStatus.ts` only if backend emits one; otherwise reuse `correction`. No behavior change for internal users.
+
+## Part 6 — Registration notification seeders (idempotent)
+
+New migration seeds `notification_templates` + `notification_event_configs` for the keys in the brief (registration.workflow_started, step_assigned, pending_review, approved_step, rejected, send_back, resubmission_requested, more_info_requested, escalated, final_approved, final_rejected, submitted, approved, correction_required, resubmitted, new_submission, action_taken, workflow_completed).
+- Upsert by `event_key` / template `code` (existing unique keys) so reruns are no-ops.
+- Email channel always; in-app where supported. Subjects/bodies use the placeholder set listed in the brief plus `{{workflow_version}}`.
+- Dispatcher (`dispatch-notification-event`) extended to resolve `{{workflow_version}}` from the pinned instance.
+
+## Part 7 — Tests
+
+New / updated test files:
+- `src/test/workflowVersioning.test.ts` — publish increments version; new instance picks latest published; in-progress instance stays pinned; draft never used for new instance; backfill creates v1.
+- `src/test/workflowInstancePinnedRuntime.test.ts` — action set / routing / mandatory comments / notifications come from snapshot even after admin republishes.
+- `src/test/registrationReviewActions.test.tsx` — review detail renders pinned-version actions, calls `invokePerformRegistrationWorkflowAction`, enforces mandatory comments.
+- `src/test/registrationNotificationSeeder.test.ts` — required event keys exist; reseed is idempotent; templates appear in workflow notification selector list.
+- `src/test/registrationAccessGate.test.tsx` extended for RFI / rejected / missing copy.
+- Keep all existing workflow-builder tests green.
 
 ## Out of scope
+- No new builder UI features beyond version lifecycle controls.
+- No changes to existing return workflow behavior (only version-id wiring).
+- No new action types beyond the runtime-supported allowlist.
 
-- No schema migration. `workflow_templates.steps` is JSONB and absorbs the richer payload.
-- Action-type allowlist (`SUPPORTED_ACTION_TYPES`) is unchanged — brief still says "runtime-supported only".
-- No timeout processor.
+## Files (high level)
+- Migrations: `…_workflow_versions.sql`, `…_workflow_instances_pinning.sql`, `…_registration_notification_seed.sql`
+- Backend: `perform-workflow-action`, `perform-registration-workflow-action`, `dispatch-notification-event`, RPCs `start_*`/`resolve_*`/`user_can_act_on_workflow_step`
+- Frontend hooks: `useWorkflowVersions.ts`, extend `useWorkflowEngine.ts`
+- Frontend components: `WorkflowVersionPanel.tsx`, `RegistrationReviewList.tsx`, `RegistrationReviewDetail.tsx`, `RegistrationWorkflowPanel.tsx`
+- Routes: `src/routes/adminRoutes.tsx`, sidebar config
+- Tests as listed above
