@@ -20,7 +20,18 @@ const ACCEPTED_ACTIONS = new Set([
   "send_back",
   "escalate",
   "request_resubmission",
+  "return_for_correction",
+  "request_more_info",
 ]);
+
+// Applicant-facing aliases. The DB RPC only understands the original 5
+// transition types, so we map these to `request_resubmission` (which pauses
+// the workflow pending applicant resubmission). The original alias is
+// preserved for notification dispatch + audit metadata.
+const ACTION_ALIAS_TO_RPC: Record<string, string> = {
+  return_for_correction: "request_resubmission",
+  request_more_info: "request_resubmission",
+};
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -73,12 +84,15 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // Translate applicant-facing aliases into the underlying RPC transition.
+    const rpc_action = ACTION_ALIAS_TO_RPC[raw_action] ?? raw_action;
+
     // Atomic transition — lock + validate + write happens in one transaction.
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: raw_action,
+      _action_type: rpc_action,
       _comments: comments,
       _actor_id: caller.id,
     });
@@ -93,6 +107,8 @@ export async function handler(req: Request): Promise<Response> {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
+
+
 
     // Final approval → atomic RPC commits all DB state, then we call
     // approve-pre-licensee for auth-user provisioning (which needs auth admin APIs).
@@ -190,6 +206,8 @@ export async function handler(req: Request): Promise<Response> {
       const eventForAction =
         raw_action === "reject" ? "application.rejected" :
         raw_action === "request_resubmission" ? "application.resubmission_requested" :
+        raw_action === "return_for_correction" ? "application.returned_for_correction" :
+        raw_action === "request_more_info" ? "application.more_info_requested" :
         raw_action === "send_back" ? "application.send_back" :
         raw_action === "approve" ? "application.approved_step" :
         "application.workflow_action_taken";
@@ -221,6 +239,41 @@ export async function handler(req: Request): Promise<Response> {
           },
         },
       });
+
+      // Per-action admin-configured notifications from approval_action_notifications.
+      // The Edit Workflow UI lets admins bind extra (template, recipient) pairs to
+      // any (step, action_type). We resolve them here and fan out one dispatch per row.
+      if (step_id) {
+        const { data: cfgRows } = await admin
+          .from("approval_action_notifications")
+          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .eq("step_id", step_id)
+          .eq("action_type", raw_action)
+          .eq("is_enabled", true);
+        for (const row of (cfgRows ?? [])) {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: (row as any).event_key,
+                entity_type: "application",
+                entity_id: application_id,
+                payload: {
+                  application_id,
+                  action_type: raw_action,
+                  comments,
+                  actor_id: caller.id,
+                  step_id,
+                  template_id: (row as any).template_id,
+                  recipient_type: (row as any).recipient_type,
+                  recipient_config: (row as any).recipient_config,
+                },
+              },
+            });
+          } catch (perRowErr) {
+            console.warn("per-action notification dispatch failed:", perRowErr);
+          }
+        }
+      }
     } catch (dispatchErr) {
       console.warn("dispatch workflow action failed:", dispatchErr);
     }

@@ -38,11 +38,20 @@ import {
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
 import { useSectors } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
+import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
 
-const ALL_ACTIONS: WorkflowActionType[] = ['approve', 'reject', 'send_back', 'escalate', 'request_resubmission'];
+const ALL_ACTIONS: WorkflowActionType[] = [
+  'approve',
+  'reject',
+  'send_back',
+  'escalate',
+  'request_resubmission',
+  'return_for_correction',
+  'request_more_info',
+];
 
 
 // ─── Templates ───
@@ -1523,6 +1532,11 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
               </p>
             </div>
 
+            <ActionNotificationsEditor
+              stepId={step.id}
+              allowedActions={allowedActions}
+            />
+
             <p className="text-[11px] text-muted-foreground">
               Escalation, parallel approvals, and conditional rules are not yet available in this builder.
             </p>
@@ -1533,3 +1547,5 @@ function StepCard({ step, index, total, dynamicRoles, roleLabel, stepRoleLabel, 
     </div>
   );
 }
+
+

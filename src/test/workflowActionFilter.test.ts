@@ -139,9 +139,25 @@ describe('isRemarksRequired', () => {
     expect(isRemarksRequired('escalate')).toBe(false);
   });
 
-  it('REMARKS_REQUIRED_ACTIONS exactly matches backend rule (approve/reject/request_resubmission)', () => {
+  it('REMARKS_REQUIRED_ACTIONS matches server enforcement (approve/reject + applicant-facing actions)', () => {
     expect(new Set(REMARKS_REQUIRED_ACTIONS)).toEqual(
-      new Set(['approve', 'reject', 'request_resubmission'])
+      new Set([
+        'approve',
+        'reject',
+        'request_resubmission',
+        'return_for_correction',
+        'request_more_info',
+      ])
     );
+  });
+
+  it('surfaces return_for_correction and request_more_info when allowed on a step', () => {
+    const actions = resolveAvailableActions({
+      isFirstLevel: false,
+      isLastLevel: false,
+      allowedActions: ['approve', 'return_for_correction', 'request_more_info'],
+    });
+    expect(actions).toContain('return_for_correction');
+    expect(actions).toContain('request_more_info');
   });
 });
