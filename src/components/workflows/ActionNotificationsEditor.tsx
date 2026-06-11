@@ -52,6 +52,28 @@ const RECIPIENT_OPTIONS: ActionNotificationRecipientType[] = [
   'custom_email',
 ];
 
+const EVENT_LABELS: Record<string, string> = {
+  'application.approved_step': 'Application · Approved at Step',
+  'application.rejected': 'Application · Rejected',
+  'application.send_back': 'Application · Sent Back',
+  'application.escalated': 'Application · Escalated',
+  'application.resubmission_requested': 'Application · Resubmission Requested',
+  'application.returned_for_correction': 'Application · Returned for Correction',
+  'application.more_info_requested': 'Application · More Information Requested',
+  'application.workflow_action_taken': 'Application · Generic Workflow Action',
+  'registration.approved_step': 'Registration · Approved at Step',
+  'registration.rejected': 'Registration · Rejected',
+  'registration.send_back': 'Registration · Sent Back',
+  'registration.resubmission_requested': 'Registration · Resubmission Requested',
+  'registration.workflow_action_taken': 'Registration · Generic Workflow Action',
+  'return.approved_step': 'Return · Approved at Step',
+  'return.approved': 'Return · Fully Approved',
+  'return.rejected': 'Return · Rejected',
+  'return.send_back': 'Return · Sent Back',
+  'return.edit_requested': 'Return · Edit Requested',
+  'return.workflow_action_taken': 'Return · Generic Workflow Action',
+};
+
 type NotificationRowDraft = {
   id?: string;
   action_type: WorkflowActionType;
@@ -87,6 +109,32 @@ function recipientConfigHelpText(recipientType: ActionNotificationRecipientType)
   if (recipientType === 'role') return 'Choose which role should receive this template.';
   if (recipientType === 'custom_email') return 'Enter the destination email address.';
   return 'Optional recipient details as JSON for advanced routing.';
+}
+
+function formatEventLabel(eventKey: string) {
+  return EVENT_LABELS[eventKey] ?? eventKey;
+}
+
+function getEventOptions(
+  action: WorkflowActionType,
+  templates: Array<{ event_type: string }>,
+  currentEventKey?: string | null,
+) {
+  const options = new Set<string>([
+    DEFAULT_EVENT_FOR_ACTION[action],
+    ...templates.map((template) => template.event_type).filter(Boolean),
+  ]);
+
+  if (currentEventKey?.trim()) {
+    options.add(currentEventKey.trim());
+  }
+
+  return Array.from(options)
+    .sort((a, b) => formatEventLabel(a).localeCompare(formatEventLabel(b)))
+    .map((eventKey) => ({
+      value: eventKey,
+      label: formatEventLabel(eventKey),
+    }));
 }
 
 export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = false }: Props) {
@@ -238,6 +286,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       ? draft.recipient_config.email
                       : '';
                     const genericConfigValue = draft.recipient_config_text;
+                    const eventOptions = getEventOptions(action, templates, draft.event_key);
 
                     return (
                       <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
@@ -307,11 +356,21 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
                               <div className="md:col-span-3">
                                 <Label className="text-[11px]">Event key</Label>
-                                <Input
-                                  className="h-8 text-xs"
+                                <Select
                                   value={draft.event_key}
-                                  onChange={(e) => setDraft(key, { ...draft, event_key: e.target.value })}
-                                />
+                                  onValueChange={(value) => setDraft(key, { ...draft, event_key: value })}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select event" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {eventOptions.map((option) => (
+                                      <SelectItem key={option.value} value={option.value} className="text-xs">
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
                               <div className="md:col-span-3">
                                 <Label className="text-[11px]">Recipient type</Label>
@@ -496,6 +555,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     ? draft.recipient_config.email
                     : '';
                   const genericConfigValue = draft.recipient_config_text;
+                  const eventOptions = getEventOptions(action, templates, draft.event_key);
 
                   return (
                     <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
@@ -506,11 +566,21 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
                           <div className="md:col-span-3">
                             <Label className="text-[11px]">Event key</Label>
-                            <Input
-                              className="h-8 text-xs"
+                            <Select
                               value={draft.event_key}
-                              onChange={(e) => setDraft(key, { ...draft, event_key: e.target.value })}
-                            />
+                              onValueChange={(value) => setDraft(key, { ...draft, event_key: value })}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select event" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {eventOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value} className="text-xs">
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div className="md:col-span-3">
                             <Label className="text-[11px]">Recipient type</Label>

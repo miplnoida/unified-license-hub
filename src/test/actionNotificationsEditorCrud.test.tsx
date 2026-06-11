@@ -51,6 +51,7 @@ vi.mock('@/hooks/useActionNotifications', async () => {
       data: [
         { id: 'tpl-1', name: 'Rejection Notice', event_type: 'application.rejected', channel: 'email', is_active: true },
         { id: 'tpl-2', name: 'Reviewer Note', event_type: 'application.rejected', channel: 'email', is_active: true },
+        { id: 'tpl-3', name: 'Generic Workflow Event', event_type: 'application.workflow_action_taken', channel: 'in_app', is_active: true },
       ],
     })),
     useUpsertActionNotification: vi.fn(() => ({ mutateAsync: upsertMutateAsync, mutate: upsertMutate, isPending: false })),
@@ -103,14 +104,27 @@ describe('ActionNotificationsEditor CRUD flows', () => {
     const editButtons = screen.getAllByRole('button', { name: /edit/i });
     fireEvent.click(editButtons[0]);
 
-    const eventInput = screen.getByDisplayValue('application.rejected');
-    fireEvent.change(eventInput, { target: { value: 'application.rejected_v2' } });
+    const eventComboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(eventComboboxes[0]);
+    fireEvent.click(screen.getAllByText('Application · Generic Workflow Action')[0]);
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     expect(upsertMutateAsync).toHaveBeenCalledTimes(1);
     const payload = upsertMutateAsync.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.id).toBe('row-1');
-    expect(payload.event_key).toBe('application.rejected_v2');
+    expect(payload.event_key).toBe('application.workflow_action_taken');
+  });
+
+  it('shows an event key selector when adding a notification row', () => {
+    render(<ActionNotificationsEditor stepId="step-9" allowedActions={['reject']} />);
+    fireEvent.click(screen.getByRole('button', { name: /reject/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add notification/i }));
+
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(comboboxes[0]);
+
+    expect(screen.getAllByText('Application · Rejected').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Application · Generic Workflow Action').length).toBeGreaterThan(0);
   });
 
   it('deletes a row via the trash button', () => {

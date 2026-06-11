@@ -100,4 +100,21 @@ describe('ActionNotificationsEditor', () => {
     expect(screen.getByText('Template')).toBeInTheDocument();
     expect(screen.getAllByText('Enabled').length).toBeGreaterThan(0);
   });
+
+  it('renders event selection as a dropdown rather than a free-text input', () => {
+    render(
+      <ActionNotificationsEditor
+        stepId="step-2"
+        allowedActions={['approve']}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /approve/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add notification/i }));
+
+    const comboboxes = screen.getAllByRole('combobox');
+    fireEvent.click(comboboxes[0]);
+
+    expect(screen.getAllByText('Application · Approved at Step').length).toBeGreaterThan(0);
+  });
 });

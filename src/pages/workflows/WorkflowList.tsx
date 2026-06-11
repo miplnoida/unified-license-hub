@@ -479,6 +479,11 @@ export default function WorkflowList() {
     setEditOpen(true);
   };
 
+  const openWorkflowBuilder = (wf: Workflow) => {
+    setSelectedId(wf.id);
+    setIsEditingSteps(true);
+  };
+
   const handleEditSave = async () => {
     if (!editTarget) return;
     if (!editName.trim()) {
@@ -731,6 +736,16 @@ export default function WorkflowList() {
                             <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
                               {wf.is_active ? 'On' : 'Off'}
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[11px]"
+                              onClick={e => { e.stopPropagation(); openWorkflowBuilder(wf); }}
+                              aria-label={`Open workflow builder for ${wf.name}`}
+                              title="Open workflow builder"
+                            >
+                              <Settings2 className="h-3 w-3 mr-1" /> Builder
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
