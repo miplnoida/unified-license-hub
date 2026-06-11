@@ -56,7 +56,7 @@ Deno.test("perform-workflow-action: action allowlist excludes synthetic actions"
     .map((s) => s.replace(/['"\s]/g, ""))
     .filter(Boolean)
     .sort();
-  assertEquals(list, ["approve", "escalate", "reject", "request_resubmission", "send_back"]);
+  assertEquals(list, ["approve", "escalate", "reject", "request_more_info", "request_resubmission", "return_for_correction", "send_back"]);
   // Defense in depth — the removed synthetic actions must NOT be in the source.
   if (list.includes("request_info")) throw new Error("request_info must not be in ACCEPTED_ACTIONS");
   if (list.includes("delegate")) throw new Error("delegate must not be in ACCEPTED_ACTIONS");
