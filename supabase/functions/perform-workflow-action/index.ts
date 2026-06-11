@@ -83,15 +83,15 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Translate applicant-facing aliases into the underlying RPC transition.
-    const rpc_action = ACTION_ALIAS_TO_RPC[raw_action] ?? raw_action;
-
     // Atomic transition — lock + validate + write happens in one transaction.
+    // raw_action is passed through unchanged; the RPC understands every
+    // accepted action type as a first-class transition.
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_workflow_transition", {
       _application_id: application_id,
       _instance_id: instance_id ?? null,
       _step_id: step_id ?? null,
-      _action_type: rpc_action,
+      _action_type: raw_action,
+
       _comments: comments,
       _actor_id: caller.id,
     });
