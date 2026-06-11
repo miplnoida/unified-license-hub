@@ -11,7 +11,7 @@
  * to the newly-created step id.
  */
 import { supabase } from '@/integrations/supabase/client';
-import type { WorkflowStep, WorkflowActionType, AppRole } from '@/hooks/useWorkflowEngine';
+import type { WorkflowStep, WorkflowActionType } from '@/hooks/useWorkflowEngine';
 import type { StepAction, NextStepMode, EndState } from '@/hooks/useStepActions';
 import type { StepEntryNotification } from '@/hooks/useStepEntryNotifications';
 import type { ActionNotification } from '@/hooks/useActionNotifications';
