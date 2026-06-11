@@ -18,13 +18,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Search, Users, UserCheck } from 'lucide-react';
 import type { WorkflowStep, ApproverConfig, ApproverType } from '@/hooks/useWorkflowEngine';
-import type { DynamicRole } from '@/hooks/useRoles';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
 
+/** Minimal role shape the editor needs — accepts both DynamicRole and the
+ *  trimmed shape passed by WorkflowList without forcing a full type import. */
+interface RoleOption {
+  id: string;
+  name: string;
+  system_role: string | null;
+}
+
 interface Props {
   step: WorkflowStep;
-  dynamicRoles: DynamicRole[];
+  dynamicRoles: RoleOption[];
   isEditing: boolean;
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
 }
