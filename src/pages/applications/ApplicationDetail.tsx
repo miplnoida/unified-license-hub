@@ -47,6 +47,9 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   rejected: 'destructive',
   cancelled: 'destructive',
   resubmission_requested: 'outline',
+  resubmission_required: 'outline',
+  returned_for_correction: 'outline',
+  info_requested: 'outline',
   query_raised: 'outline',
 };
 
