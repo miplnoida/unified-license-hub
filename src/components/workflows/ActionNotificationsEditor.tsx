@@ -7,9 +7,6 @@
  * and fans out one dispatch-notification-event call per enabled row.
  */
 import { useMemo, useState } from 'react';
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,9 +14,12 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Pencil, Plus, Save, Trash2, Bell, Loader2, X } from 'lucide-react';
+import { ChevronDown, Loader2, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import {
   useActionNotifications,
   useNotificationTemplates,
@@ -152,123 +152,156 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
   };
 
   return (
-    <Card className="border-dashed">
-      <CardHeader className="py-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <Bell className="h-4 w-4" /> Action notifications
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {isLoading && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" /> Loading…
-          </div>
-        )}
-        {allowedActions.map((action) => {
-          const list = grouped.get(action) ?? [];
-          const isOpen = openAction === action;
-          return (
-            <div key={action} className="rounded border bg-background">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2">
+        <div>
+          <p className="text-sm font-medium">Action configuration</p>
+          <p className="text-[11px] text-muted-foreground">Open an action to manage all notification bindings for that step action.</p>
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {allowedActions.length} action{allowedActions.length === 1 ? '' : 's'} enabled
+        </Badge>
+      </div>
+
+      {isLoading && (
+        <div className="text-xs text-muted-foreground flex items-center gap-2 px-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+        </div>
+      )}
+
+      {allowedActions.map((action) => {
+        const list = grouped.get(action) ?? [];
+        const isOpen = openAction === action;
+        return (
+          <Collapsible
+            key={action}
+            open={isOpen}
+            onOpenChange={(next) => setOpenAction(next ? action : null)}
+            className="rounded-md border bg-background"
+          >
+            <CollapsibleTrigger asChild>
               <button
                 type="button"
-                className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/40"
-                onClick={() => setOpenAction(isOpen ? null : action)}
+                className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left hover:bg-muted/30"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{ACTION_LABELS[action]}</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {list.length} notification{list.length === 1 ? '' : 's'}
-                  </Badge>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">{ACTION_LABELS[action]}</span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {list.length} notification{list.length === 1 ? '' : 's'}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Notifications configured here run whenever this action is performed on the step.
+                  </p>
                 </div>
-                <span className="text-xs text-muted-foreground">{isOpen ? 'Hide' : 'Configure'}</span>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </button>
+            </CollapsibleTrigger>
 
-              {isOpen && (
-                <div className="px-3 py-3 border-t space-y-3">
-                  {list.length === 0 && (
-                    <div className="text-xs italic text-muted-foreground">
-                      No notifications configured for this action.
-                    </div>
+            <CollapsibleContent>
+              <div className="border-t px-3 py-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-medium">Notifications</p>
+                    <p className="text-[11px] text-muted-foreground">Add multiple bindings with different events, recipients, templates, and enabled states.</p>
+                  </div>
+                  {!readOnly && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={() => startEditing(action)}
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Add Notification
+                    </Button>
                   )}
+                </div>
 
-                  {list.map((row) => (
-                    (() => {
-                      const key = getDraftKey(action, row.id);
-                      const isEditingRow = editingRows[key] === true;
-                      const draft = drafts[key] ?? createDraft(action, row);
-                      const roleValue = typeof draft.recipient_config.role === 'string'
-                        ? draft.recipient_config.role
-                        : typeof draft.recipient_config.role_name === 'string'
-                          ? draft.recipient_config.role_name
-                          : 'none';
-                      const emailValue = typeof draft.recipient_config.email === 'string'
-                        ? draft.recipient_config.email
-                        : '';
-                      const genericConfigValue = draft.recipient_config_text;
+                {list.length === 0 && !editingRows[getDraftKey(action)] && (
+                  <div className="rounded-md border border-dashed px-3 py-4 text-xs italic text-muted-foreground">
+                    No notification bindings configured for this action.
+                  </div>
+                )}
 
-                      return (
-                        <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px]">
-                                {RECIPIENT_LABELS[row.recipient_type]}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">{row.event_key}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={isEditingRow ? draft.is_enabled : row.is_enabled}
-                                  disabled={readOnly || upsert.isPending}
-                                  onCheckedChange={(checked) => {
-                                    if (isEditingRow) {
-                                      setDraft(key, { ...draft, is_enabled: checked });
-                                      return;
-                                    }
-                                    upsert.mutate({
-                                      id: row.id,
-                                      action_type: row.action_type,
-                                      event_key: row.event_key,
-                                      recipient_type: row.recipient_type,
-                                      recipient_config: row.recipient_config,
-                                      template_id: row.template_id,
-                                      is_enabled: checked,
-                                    });
-                                  }}
-                                />
-                                <span className="text-[11px] text-muted-foreground">
-                                  {(isEditingRow ? draft.is_enabled : row.is_enabled) ? 'Enabled' : 'Disabled'}
-                                </span>
-                              </div>
-                              {!readOnly && !isEditingRow && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 text-xs"
-                                  onClick={() => startEditing(action, row)}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" /> Edit
-                                </Button>
-                              )}
-                              {!readOnly && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8 text-destructive"
-                                  onClick={() => {
-                                    if (isEditingRow) {
-                                      cancelEditing(action, row.id);
-                                      return;
-                                    }
-                                    del.mutate(row.id);
-                                  }}
-                                  aria-label={isEditingRow ? 'Cancel edit' : 'Delete notification'}
-                                >
-                                  {isEditingRow ? <X className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                </Button>
-                              )}
-                            </div>
+                {list.map((row) => (
+                  (() => {
+                    const key = getDraftKey(action, row.id);
+                    const isEditingRow = editingRows[key] === true;
+                    const draft = drafts[key] ?? createDraft(action, row);
+                    const roleValue = typeof draft.recipient_config.role === 'string'
+                      ? draft.recipient_config.role
+                      : typeof draft.recipient_config.role_name === 'string'
+                        ? draft.recipient_config.role_name
+                        : 'none';
+                    const emailValue = typeof draft.recipient_config.email === 'string'
+                      ? draft.recipient_config.email
+                      : '';
+                    const genericConfigValue = draft.recipient_config_text;
+
+                    return (
+                      <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">
+                              {RECIPIENT_LABELS[row.recipient_type]}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">{row.event_key}</span>
                           </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={isEditingRow ? draft.is_enabled : row.is_enabled}
+                                disabled={readOnly || upsert.isPending}
+                                onCheckedChange={(checked) => {
+                                  if (isEditingRow) {
+                                    setDraft(key, { ...draft, is_enabled: checked });
+                                    return;
+                                  }
+                                  upsert.mutate({
+                                    id: row.id,
+                                    action_type: row.action_type,
+                                    event_key: row.event_key,
+                                    recipient_type: row.recipient_type,
+                                    recipient_config: row.recipient_config,
+                                    template_id: row.template_id,
+                                    is_enabled: checked,
+                                  });
+                                }}
+                              />
+                              <span className="text-[11px] text-muted-foreground">
+                                {(isEditingRow ? draft.is_enabled : row.is_enabled) ? 'Enabled' : 'Disabled'}
+                              </span>
+                            </div>
+                            {!readOnly && !isEditingRow && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs"
+                                onClick={() => startEditing(action, row)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" /> Edit
+                              </Button>
+                            )}
+                            {!readOnly && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => {
+                                  if (isEditingRow) {
+                                    cancelEditing(action, row.id);
+                                    return;
+                                  }
+                                  del.mutate(row.id);
+                                }}
+                                aria-label={isEditingRow ? 'Cancel edit' : 'Delete notification'}
+                              >
+                                {isEditingRow ? <X className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
 
                           {isEditingRow ? (
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
@@ -449,39 +482,28 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                         </div>
                       );
                     })()
-                  ))}
+                ))}
 
-                  {!readOnly && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs"
-                      onClick={() => startEditing(action)}
-                    >
-                      <Plus className="h-3.5 w-3.5 mr-1" /> Add notification
-                    </Button>
-                  )}
+                {!readOnly && editingRows[getDraftKey(action)] && (() => {
+                  const key = getDraftKey(action);
+                  const draft = drafts[key] ?? createDraft(action);
+                  const roleValue = typeof draft.recipient_config.role === 'string'
+                    ? draft.recipient_config.role
+                    : typeof draft.recipient_config.role_name === 'string'
+                      ? draft.recipient_config.role_name
+                      : 'none';
+                  const emailValue = typeof draft.recipient_config.email === 'string'
+                    ? draft.recipient_config.email
+                    : '';
+                  const genericConfigValue = draft.recipient_config_text;
 
-                  {!readOnly && editingRows[getDraftKey(action)] && (() => {
-                    const key = getDraftKey(action);
-                    const draft = drafts[key] ?? createDraft(action);
-                    const roleValue = typeof draft.recipient_config.role === 'string'
-                      ? draft.recipient_config.role
-                      : typeof draft.recipient_config.role_name === 'string'
-                        ? draft.recipient_config.role_name
-                        : 'none';
-                    const emailValue = typeof draft.recipient_config.email === 'string'
-                      ? draft.recipient_config.email
-                      : '';
-                    const genericConfigValue = draft.recipient_config_text;
-
-                    return (
-                      <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-medium">New notification row</div>
-                          <Badge variant="outline" className="text-[10px]">{ACTION_LABELS[action]}</Badge>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                  return (
+                    <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium">New notification row</div>
+                        <Badge variant="outline" className="text-[10px]">{ACTION_LABELS[action]}</Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
                           <div className="md:col-span-3">
                             <Label className="text-[11px]">Event key</Label>
                             <Input
@@ -627,16 +649,15 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                               <Save className="h-3.5 w-3.5" /> Save
                             </Button>
                           </div>
-                        </div>
                       </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+                    </div>
+                  );
+                })()}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
   );
 }
