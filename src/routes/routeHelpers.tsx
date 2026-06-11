@@ -56,6 +56,16 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/change-password" replace />;
   }
 
+  // Registration approval gate — pre-licensee users cannot enter the portal
+  // until their registration has been approved by the regulator.
+  if (isRestrictedPreLicensee) {
+    return (
+      <RegistrationApprovalGate pathname={location.pathname}>
+        {children}
+      </RegistrationApprovalGate>
+    );
+  }
+
   if (isRestrictedPreLicensee && !isPreLicenseeAllowedRoute(location.pathname)) {
     return <Navigate to="/dashboard" replace />;
   }
