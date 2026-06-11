@@ -1393,82 +1393,22 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
         )}
       </div>
 
-      {/* Role chip + change */}
-      <div className="pl-11 space-y-2">
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Who approves</Label>
-          {!pickerOpen ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant="secondary" className="px-3 py-1.5 text-sm gap-1.5">
-                <Users className="h-3 w-3" />
-                {stepRoleLabel(displayStepForBadge)}
-              </Badge>
-              {isEditing && (
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setPickerOpen(true)}>
-                  Change role
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="border rounded-md p-2 space-y-2">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  autoFocus
-                  className="h-8 pl-7 text-xs"
-                  placeholder="Search roles..."
-                  value={roleSearch}
-                  onChange={e => setRoleSearch(e.target.value)}
-                />
-                <Button
-                  variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-                  onClick={() => { setPickerOpen(false); setRoleSearch(''); }}
-                  aria-label="Close role picker"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                {filteredRoles.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-2">No roles match.</p>
-                ) : filteredRoles.map(r => {
-                  const isSelected = effectiveRoleId
-                    ? effectiveRoleId === r.id
-                    : step.approver_role === r.system_role;
-                  const isSaving = savingRoleId === r.id;
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      disabled={!!savingRoleId}
-                      onClick={() => handleRoleSelect(r)}
-                      className={`px-3 py-1.5 rounded-full border text-xs transition-colors disabled:opacity-60 ${
-                        isSelected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background hover:border-primary/50'
-                      }`}
-                    >
-                      {r.name}{isSaving ? '…' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+      {/* Approver configuration — role-based OR specific users */}
+      <div className="pl-11 space-y-3">
+        <ApproverConfigEditor
+          step={step}
+          dynamicRoles={dynamicRoles}
+          isEditing={isEditing}
+          onUpdate={onUpdate}
+        />
 
-          )}
-          <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            Any user assigned to this role can approve.
-          </p>
-        </div>
-
-        {!roleExists && (
+        {step.approver_type !== 'specific_users' && !roleExists && (
           <p className="text-xs text-destructive">
-            ⚠ This role no longer exists. Please pick another role.
+            ⚠ Selected role no longer exists. Please pick another role.
           </p>
         )}
 
-        {isDuplicate && (
+        {step.approver_type !== 'specific_users' && isDuplicate && (
           <p className="text-xs text-warning">
             ⚠ Same role as the previous step. Consider merging or changing one.
           </p>
