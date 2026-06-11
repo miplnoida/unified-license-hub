@@ -1,9 +1,10 @@
-import { Navigate } from 'react-router-dom';
-
 /**
- * Public self-registration is exclusively for pre-license applicants.
- * Redirect to the detailed pre-licensee registration form.
+ * Public self-registration entry point.
+ * Canonical URL is `/register`. Renders the pre-licensee registration form
+ * directly so the browser URL stays `/register` (no nested route).
  */
+import PreLicenseeRegistration from '@/pages/registration/PreLicenseeRegistration';
+
 export default function Register() {
-  return <Navigate to="/registration/pre-licensee" replace />;
+  return <PreLicenseeRegistration />;
 }

@@ -15,7 +15,8 @@ export const publicRoutes = (
     <Route path="/" element={<Index />} />
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
-    <Route path="/registration/pre-licensee" element={<PreLicenseeRegistration />} />
+    {/* Backward compatibility: redirect legacy nested route to canonical /register */}
+    <Route path="/registration/pre-licensee" element={<LegacyRegisterRedirect />} />
     <Route path="/registration/success" element={<RegistrationSuccess />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
