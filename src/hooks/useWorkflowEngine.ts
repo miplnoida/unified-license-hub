@@ -124,6 +124,13 @@ export interface Workflow {
   updated_at: string;
 }
 
+export type ApproverType = 'role_based_user' | 'specific_users';
+
+export interface ApproverConfig {
+  role_ids?: string[];
+  user_ids?: string[];
+}
+
 export interface WorkflowStep {
   id: string;
   workflow_id: string;
@@ -132,6 +139,10 @@ export interface WorkflowStep {
   description: string | null;
   approver_role: AppRole;
   approver_role_id: string | null;
+  approver_type: ApproverType;
+  approver_config: ApproverConfig;
+  auto_approve_on_timeout: boolean;
+  step_entry_notifications_enabled: boolean;
   step_type: string;
   sla_hours: number | null;
   is_required: boolean;
