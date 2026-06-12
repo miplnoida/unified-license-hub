@@ -22,7 +22,7 @@ import {
 import {
   GitBranch, Plus, Trash2, CheckCircle2, FileInput,
   Users, BookmarkPlus, Workflow as WorkflowIcon, Search,
-  ChevronUp, ChevronDown, FileStack, Sparkles, Settings2, Info, X,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, FileStack, Sparkles, Settings2, Info, X,
   AlertTriangle, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
