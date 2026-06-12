@@ -38,6 +38,8 @@ export interface StepAction {
   end_state: EndState | null;
   sort_order: number;
   is_enabled: boolean;
+  require_digital_signature: boolean;
+  signature_data_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +55,8 @@ export interface StepActionInput {
   end_state?: EndState | null;
   sort_order?: number;
   is_enabled?: boolean;
+  require_digital_signature?: boolean;
+  signature_data_url?: string | null;
 }
 
 const TABLE = 'approval_step_actions' as const;
@@ -119,6 +123,8 @@ export function useUpsertStepAction(stepId: string) {
         end_state: mode === 'end_workflow' ? row.end_state ?? null : null,
         sort_order: row.sort_order ?? 0,
         is_enabled: row.is_enabled ?? true,
+        require_digital_signature: row.require_digital_signature ?? false,
+        signature_data_url: row.require_digital_signature ? (row.signature_data_url ?? null) : null,
       };
 
       const query = row.id
@@ -172,6 +178,18 @@ export const SUPPORTED_ACTION_TYPES: WorkflowActionType[] = [
   'request_resubmission',
   'return_for_correction',
   'request_more_info',
+];
+
+/**
+ * Action types that admins can pick from the Workflow Builder UI.
+ * Restricted to the three primary approval outcomes per product requirement.
+ * Legacy rows in approval_step_actions with other action_type values continue
+ * to load and execute at runtime — they only disappear from the picker.
+ */
+export const ALLOWED_UI_ACTION_TYPES: WorkflowActionType[] = [
+  'approve',
+  'reject',
+  'send_back',
 ];
 
 export const NEXT_STEP_MODE_LABELS: Record<NextStepMode, string> = {

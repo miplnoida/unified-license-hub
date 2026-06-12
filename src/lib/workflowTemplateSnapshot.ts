@@ -29,6 +29,8 @@ export interface TemplateActionV2 {
   end_state: EndState | null;
   sort_order: number;
   is_enabled: boolean;
+  require_digital_signature?: boolean;
+  signature_data_url?: string | null;
 }
 
 export interface TemplateNotificationV2 {
@@ -90,6 +92,8 @@ export function buildSnapshotFromRows(input: BuildSnapshotInput): TemplateSnapsh
       end_state: a.end_state,
       sort_order: a.sort_order,
       is_enabled: a.is_enabled,
+      require_digital_signature: !!a.require_digital_signature,
+      signature_data_url: a.signature_data_url ?? null,
     }));
     const entry = (input.entryNotificationsByStepId[s.id] ?? []).map<TemplateNotificationV2>(n => ({
       event_key: n.event_key,
@@ -256,6 +260,8 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
         end_state: a.next_step_mode === 'end_workflow' ? a.end_state : null,
         sort_order: a.sort_order ?? 0,
         is_enabled: a.is_enabled !== false,
+        require_digital_signature: !!a.require_digital_signature,
+        signature_data_url: a.require_digital_signature ? (a.signature_data_url ?? null) : null,
       });
     }
     for (const n of s.entry_notifications ?? []) {

@@ -327,7 +327,9 @@ export type Database = {
           next_step_id: string | null
           next_step_mode: string
           require_comments: boolean
+          require_digital_signature: boolean
           result_status_override: string | null
+          signature_data_url: string | null
           sort_order: number
           step_id: string
           updated_at: string
@@ -342,7 +344,9 @@ export type Database = {
           next_step_id?: string | null
           next_step_mode?: string
           require_comments?: boolean
+          require_digital_signature?: boolean
           result_status_override?: string | null
+          signature_data_url?: string | null
           sort_order?: number
           step_id: string
           updated_at?: string
@@ -357,7 +361,9 @@ export type Database = {
           next_step_id?: string | null
           next_step_mode?: string
           require_comments?: boolean
+          require_digital_signature?: boolean
           result_status_override?: string | null
+          signature_data_url?: string | null
           sort_order?: number
           step_id?: string
           updated_at?: string

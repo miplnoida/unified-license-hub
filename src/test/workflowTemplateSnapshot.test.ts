@@ -47,6 +47,8 @@ const action = (over: Partial<StepAction> = {}): StepAction => ({
   end_state: over.end_state ?? null,
   sort_order: 0,
   is_enabled: true,
+  require_digital_signature: false,
+  signature_data_url: null,
   created_at: '',
   updated_at: '',
 });

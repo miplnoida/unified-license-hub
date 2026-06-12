@@ -22,7 +22,7 @@ import {
 import {
   GitBranch, Plus, Trash2, CheckCircle2, FileInput,
   Users, BookmarkPlus, Workflow as WorkflowIcon, Search,
-  ChevronUp, ChevronDown, FileStack, Sparkles, Settings2, Info, X,
+  ChevronUp, ChevronDown, ChevronLeft, ChevronRight, FileStack, Sparkles, Settings2, Info, X,
   AlertTriangle, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -167,10 +167,14 @@ export default function WorkflowList() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditingSteps, setIsEditingSteps] = useState(false);
+  // Sidebar collapse — auto-collapses when a workflow is selected so the
+  // builder gets the full width, but the user can toggle it back open.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Always exit edit mode when switching workflows — no edits carry over.
   useEffect(() => {
     setIsEditingSteps(false);
+    if (selectedId) setSidebarCollapsed(true);
   }, [selectedId]);
 
   const activeWorkflowTypes = useMemo(
@@ -720,14 +724,30 @@ export default function WorkflowList() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Workflow List */}
-          <div className="lg:col-span-4">
+          <div className={sidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-4'}>
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <GitBranch className="h-4 w-4 text-primary" /> Workflows
-                  <Badge variant="secondary" className="ml-auto">{workflows.length}</Badge>
+                  {!sidebarCollapsed && <GitBranch className="h-4 w-4 text-primary" />}
+                  {!sidebarCollapsed && <span>Workflows</span>}
+                  {!sidebarCollapsed && (
+                    <Badge variant="secondary" className="ml-auto">{workflows.length}</Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${sidebarCollapsed ? 'mx-auto' : ''}`}
+                    onClick={() => setSidebarCollapsed(c => !c)}
+                    aria-label={sidebarCollapsed ? 'Expand workflow list' : 'Collapse workflow list'}
+                    title={sidebarCollapsed ? 'Expand workflow list' : 'Collapse workflow list'}
+                  >
+                    {sidebarCollapsed
+                      ? <ChevronRight className="h-4 w-4" />
+                      : <ChevronLeft className="h-4 w-4" />}
+                  </Button>
                 </CardTitle>
               </CardHeader>
+              {!sidebarCollapsed && (
               <CardContent className="space-y-2">
                 {isLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
@@ -819,11 +839,12 @@ export default function WorkflowList() {
 
 
               </CardContent>
+              )}
             </Card>
           </div>
 
           {/* Builder */}
-          <div className="lg:col-span-8">
+          <div className={sidebarCollapsed ? 'lg:col-span-11' : 'lg:col-span-8'}>
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
