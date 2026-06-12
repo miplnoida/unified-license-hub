@@ -123,6 +123,8 @@ export function useUpsertStepAction(stepId: string) {
         end_state: mode === 'end_workflow' ? row.end_state ?? null : null,
         sort_order: row.sort_order ?? 0,
         is_enabled: row.is_enabled ?? true,
+        require_digital_signature: row.require_digital_signature ?? false,
+        signature_data_url: row.require_digital_signature ? (row.signature_data_url ?? null) : null,
       };
 
       const query = row.id
