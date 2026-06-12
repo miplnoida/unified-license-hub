@@ -1,40 +1,38 @@
 /**
  * Editor for per-action configuration on an approval step.
  *
- * Each action card binds to a row in approval_step_actions:
- *   - action type (only runtime-supported types are selectable)
- *   - display label
- *   - mandatory comments toggle (server-enforced)
- *   - optional result status override
- *   - next-step routing (next / specific / previous / return / end / keep)
- *   - end state (when next_step_mode = end_workflow)
- *   - embedded ActionNotificationsEditor scoped to (step, action_type)
+ * Each action card binds to a row in approval_step_actions.
+ * The UI restricts new action selection to Approve / Reject / Send Back
+ * (per product requirement). Legacy rows with other action_types continue
+ * to load and execute at runtime — they just display a "legacy" badge and
+ * cannot be re-typed.
  *
- * "Schedule Meeting", "Review", and "Review for Previous Reviewer" from the
- * reference screenshots are intentionally NOT listed: the runtime function
- * `perform_workflow_transition` does not yet accept them. Listing them would
- * give admins a UI option that fails at execute time, which the spec
- * explicitly forbids ("Do not show action types that cannot be executed by
- * runtime").
+ * Duplicate action_types within the same step are prevented:
+ *  - other rows' action_types are filtered out of the picker
+ *  - save is rejected by the unique (step_id, action_type) constraint
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Save, X, Pencil } from 'lucide-react';
+import {
+  Plus, Trash2, Save, X, Pencil, Upload, Download, ImageIcon,
+} from 'lucide-react';
 import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { ACTION_LABELS, type WorkflowActionType, type WorkflowStep } from '@/hooks/useWorkflowEngine';
 import {
   useStepActions,
   useUpsertStepAction,
   useDeleteStepAction,
-  SUPPORTED_ACTION_TYPES,
+  ALLOWED_UI_ACTION_TYPES,
   NEXT_STEP_MODE_LABELS,
   END_STATE_LABELS,
   type StepAction,
@@ -46,7 +44,6 @@ import { ActionNotificationsEditor } from '@/components/workflows/ActionNotifica
 
 interface Props {
   step: WorkflowStep;
-  /** Sibling steps in the same workflow (for the "Specific Step" target picker). */
   siblingSteps: WorkflowStep[];
 }
 
@@ -60,11 +57,16 @@ interface DraftState {
   next_step_id: string | null;
   end_state: EndState | null;
   is_enabled: boolean;
+  require_digital_signature: boolean;
+  signature_data_url: string | null;
 }
 
-function emptyDraft(): DraftState {
+const ALLOWED_SIGNATURE_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+const MAX_SIGNATURE_BYTES = 512 * 1024; // 512KB — kept small because we store as data URL
+
+function emptyDraft(defaultType: WorkflowActionType = 'approve'): DraftState {
   return {
-    action_type: 'approve',
+    action_type: defaultType,
     label: '',
     require_comments: true,
     result_status_override: '',
@@ -72,6 +74,8 @@ function emptyDraft(): DraftState {
     next_step_id: null,
     end_state: null,
     is_enabled: true,
+    require_digital_signature: false,
+    signature_data_url: null,
   };
 }
 
@@ -86,6 +90,8 @@ function draftFrom(row: StepAction): DraftState {
     next_step_id: row.next_step_id,
     end_state: row.end_state,
     is_enabled: !!row.is_enabled,
+    require_digital_signature: !!row.require_digital_signature,
+    signature_data_url: row.signature_data_url ?? null,
   };
 }
 
@@ -97,15 +103,28 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
   const [editingId, setEditingId] = useState<string | null | 'new'>(null);
   const [draft, setDraft] = useState<DraftState>(emptyDraft());
 
-  const usedTypes = useMemo(() => new Set(actions.map(a => a.action_type)), [actions]);
+  // Map of action_type -> row currently using it
+  const typeUsage = useMemo(() => {
+    const m = new Map<string, StepAction>();
+    for (const a of actions) m.set(a.action_type, a);
+    return m;
+  }, [actions]);
 
   const targetStepOptions = useMemo(
     () => siblingSteps.filter(s => s.id !== step.id).sort((a, b) => a.step_order - b.step_order),
     [siblingSteps, step.id],
   );
 
+  const firstAvailableType = useMemo<WorkflowActionType | null>(() => {
+    return ALLOWED_UI_ACTION_TYPES.find(t => !typeUsage.has(t)) ?? null;
+  }, [typeUsage]);
+
   const startNew = () => {
-    setDraft(emptyDraft());
+    if (!firstAvailableType) {
+      toast.error('All allowed action types are already added to this step.');
+      return;
+    }
+    setDraft(emptyDraft(firstAvailableType));
     setEditingId('new');
   };
   const startEdit = (row: StepAction) => {
@@ -115,6 +134,16 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
   const cancel = () => { setEditingId(null); setDraft(emptyDraft()); };
 
   const save = async () => {
+    // Duplicate guard (UI level). Server has unique(step_id, action_type) too.
+    const existing = typeUsage.get(draft.action_type);
+    if (existing && existing.id !== draft.id) {
+      toast.error(`This step already has a "${ACTION_LABELS[draft.action_type]}" action.`);
+      return;
+    }
+    if (draft.require_digital_signature && !draft.signature_data_url) {
+      toast.error('Upload a signature image or turn Digital Signature off.');
+      return;
+    }
     const payload: StepActionInput = {
       id: draft.id,
       action_type: draft.action_type,
@@ -126,6 +155,8 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
       end_state: draft.next_step_mode === 'end_workflow' ? draft.end_state : null,
       sort_order: actions.length,
       is_enabled: draft.is_enabled,
+      require_digital_signature: draft.require_digital_signature,
+      signature_data_url: draft.require_digital_signature ? draft.signature_data_url : null,
     };
     try {
       await upsert.mutateAsync(payload);
@@ -161,6 +192,8 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
       end_state: row.end_state,
       sort_order: row.sort_order,
       is_enabled: next,
+      require_digital_signature: row.require_digital_signature,
+      signature_data_url: row.signature_data_url,
     });
   };
 
@@ -175,7 +208,8 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
           size="sm"
           variant="outline"
           onClick={startNew}
-          disabled={editingId === 'new'}
+          disabled={editingId === 'new' || !firstAvailableType}
+          title={!firstAvailableType ? 'All allowed action types are already added' : undefined}
         >
           <Plus className="h-3.5 w-3.5 mr-1" /> Add Action
         </Button>
@@ -192,13 +226,14 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
       <div className="space-y-2">
         {actions.map(row => {
           const isEditingThis = editingId === row.id;
+          const isLegacy = !ALLOWED_UI_ACTION_TYPES.includes(row.action_type);
           return (
             <Card key={row.id} className="p-3 space-y-2">
               {isEditingThis ? (
                 <ActionForm
                   draft={draft}
                   setDraft={setDraft}
-                  usedTypes={usedTypes}
+                  typeUsage={typeUsage}
                   editingId={row.id}
                   targetStepOptions={targetStepOptions}
                   onSave={save}
@@ -214,8 +249,16 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                     <Badge variant="secondary" className="text-[10px]">
                       {ACTION_LABELS[row.action_type] || row.action_type}
                     </Badge>
+                    {isLegacy && (
+                      <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
+                        Legacy / unsupported
+                      </Badge>
+                    )}
                     {row.require_comments && (
                       <Badge variant="outline" className="text-[10px]">Comments required</Badge>
+                    )}
+                    {row.require_digital_signature && (
+                      <Badge variant="outline" className="text-[10px]">Digital signature</Badge>
                     )}
                     <Badge variant="outline" className="text-[10px]">
                       → {NEXT_STEP_MODE_LABELS[row.next_step_mode]}
@@ -238,7 +281,12 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                         />
                         Enabled
                       </label>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(row)}>
+                      <Button
+                        size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={() => startEdit(row)}
+                        disabled={isLegacy}
+                        title={isLegacy ? 'Legacy action — delete and recreate with an allowed type to edit' : 'Edit action'}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
@@ -268,7 +316,7 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
             <ActionForm
               draft={draft}
               setDraft={setDraft}
-              usedTypes={usedTypes}
+              typeUsage={typeUsage}
               editingId={null}
               targetStepOptions={targetStepOptions}
               onSave={save}
@@ -283,20 +331,25 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
 }
 
 function ActionForm({
-  draft, setDraft, usedTypes, editingId, targetStepOptions, onSave, onCancel, saving,
+  draft, setDraft, typeUsage, editingId, targetStepOptions, onSave, onCancel, saving,
 }: {
   draft: DraftState;
   setDraft: (d: DraftState) => void;
-  usedTypes: Set<string>;
+  typeUsage: Map<string, StepAction>;
   editingId: string | null;
   targetStepOptions: WorkflowStep[];
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
 }) {
-  const typeOptions = SUPPORTED_ACTION_TYPES.filter(t =>
-    t === draft.action_type || !usedTypes.has(t) || editingId !== null,
-  );
+  // For new rows: hide all already-used types. For existing rows: hide types
+  // used by OTHER rows but keep the row's own current type selectable.
+  const typeOptions = ALLOWED_UI_ACTION_TYPES.filter(t => {
+    const used = typeUsage.get(t);
+    if (!used) return true;
+    return editingId !== null && used.id === editingId;
+  });
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -338,6 +391,9 @@ function ActionForm({
           Reviewer must enter remarks
         </Label>
       </div>
+
+      {/* Digital Signature Required */}
+      <DigitalSignatureBlock draft={draft} setDraft={setDraft} keySuffix={editingId ?? 'new'} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -416,6 +472,135 @@ function ActionForm({
           <Save className="h-3.5 w-3.5 mr-1" /> {saving ? 'Saving…' : 'Save Action'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+function DigitalSignatureBlock({
+  draft, setDraft, keySuffix,
+}: {
+  draft: DraftState;
+  setDraft: (d: DraftState) => void;
+  keySuffix: string;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File) => {
+    if (!ALLOWED_SIGNATURE_MIME.includes(file.type)) {
+      toast.error('Unsupported file type. Use PNG, JPG, or SVG.');
+      return;
+    }
+    if (file.size > MAX_SIGNATURE_BYTES) {
+      toast.error(`Signature must be under ${Math.round(MAX_SIGNATURE_BYTES / 1024)} KB.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : null;
+      if (!result) {
+        toast.error('Failed to read signature file.');
+        return;
+      }
+      setDraft({ ...draft, signature_data_url: result });
+    };
+    reader.onerror = () => toast.error('Failed to read signature file.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownload = () => {
+    if (!draft.signature_data_url) return;
+    const a = document.createElement('a');
+    a.href = draft.signature_data_url;
+    const ext = draft.signature_data_url.includes('image/svg') ? 'svg'
+      : draft.signature_data_url.includes('image/png') ? 'png' : 'jpg';
+    a.download = `signature.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleRemove = () => {
+    setDraft({ ...draft, signature_data_url: null });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  return (
+    <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center gap-3">
+        <Switch
+          id={`digital-sig-${keySuffix}`}
+          checked={draft.require_digital_signature}
+          onCheckedChange={v => setDraft({
+            ...draft,
+            require_digital_signature: !!v,
+            // Clear signature if disabled — explicit OFF should not retain a stored value
+            signature_data_url: v ? draft.signature_data_url : null,
+          })}
+        />
+        <Label htmlFor={`digital-sig-${keySuffix}`} className="text-xs cursor-pointer font-medium">
+          Digital Signature Required
+        </Label>
+      </div>
+
+      {draft.require_digital_signature && (
+        <div className="space-y-2 pt-1">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".png,.jpg,.jpeg,.svg,image/png,image/jpeg,image/svg+xml"
+            className="hidden"
+            onChange={e => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
+            aria-label="Upload signature image"
+          />
+
+          {draft.signature_data_url ? (
+            <div className="flex items-start gap-3">
+              <div className="rounded border bg-background p-2 shrink-0">
+                <img
+                  src={draft.signature_data_url}
+                  alt="Signature preview"
+                  className="h-16 w-32 object-contain"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Button
+                  type="button" variant="outline" size="sm" className="h-7 text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-3 w-3 mr-1" /> Replace
+                </Button>
+                <Button
+                  type="button" variant="outline" size="sm" className="h-7 text-xs"
+                  onClick={handleDownload}
+                >
+                  <Download className="h-3 w-3 mr-1" /> Download
+                </Button>
+                <Button
+                  type="button" variant="ghost" size="sm" className="h-7 text-xs text-destructive"
+                  onClick={handleRemove}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" /> Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button" variant="outline" size="sm" className="h-7 text-xs"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-3 w-3 mr-1" /> Upload Signature
+              </Button>
+              <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+                <ImageIcon className="h-3 w-3" /> PNG, JPG, SVG · max 512 KB
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
