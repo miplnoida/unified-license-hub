@@ -92,6 +92,8 @@ export function buildSnapshotFromRows(input: BuildSnapshotInput): TemplateSnapsh
       end_state: a.end_state,
       sort_order: a.sort_order,
       is_enabled: a.is_enabled,
+      require_digital_signature: !!a.require_digital_signature,
+      signature_data_url: a.signature_data_url ?? null,
     }));
     const entry = (input.entryNotificationsByStepId[s.id] ?? []).map<TemplateNotificationV2>(n => ({
       event_key: n.event_key,
