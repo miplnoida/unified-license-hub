@@ -38,6 +38,8 @@ export interface StepAction {
   end_state: EndState | null;
   sort_order: number;
   is_enabled: boolean;
+  require_digital_signature: boolean;
+  signature_data_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +55,8 @@ export interface StepActionInput {
   end_state?: EndState | null;
   sort_order?: number;
   is_enabled?: boolean;
+  require_digital_signature?: boolean;
+  signature_data_url?: string | null;
 }
 
 const TABLE = 'approval_step_actions' as const;
