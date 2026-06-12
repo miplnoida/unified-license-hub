@@ -180,6 +180,18 @@ export const SUPPORTED_ACTION_TYPES: WorkflowActionType[] = [
   'request_more_info',
 ];
 
+/**
+ * Action types that admins can pick from the Workflow Builder UI.
+ * Restricted to the three primary approval outcomes per product requirement.
+ * Legacy rows in approval_step_actions with other action_type values continue
+ * to load and execute at runtime — they only disappear from the picker.
+ */
+export const ALLOWED_UI_ACTION_TYPES: WorkflowActionType[] = [
+  'approve',
+  'reject',
+  'send_back',
+];
+
 export const NEXT_STEP_MODE_LABELS: Record<NextStepMode, string> = {
   next: 'Move to Next Step',
   specific_step: 'Move to Specific Step',
