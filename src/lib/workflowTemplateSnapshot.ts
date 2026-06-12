@@ -29,6 +29,8 @@ export interface TemplateActionV2 {
   end_state: EndState | null;
   sort_order: number;
   is_enabled: boolean;
+  require_digital_signature?: boolean;
+  signature_data_url?: string | null;
 }
 
 export interface TemplateNotificationV2 {
