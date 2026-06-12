@@ -55,15 +55,9 @@ import {
 } from '@/lib/workflowTemplateSnapshot';
 import { WorkflowVersionPanel } from '@/components/workflows/WorkflowVersionPanel';
 
-const ALL_ACTIONS: WorkflowActionType[] = [
-  'approve',
-  'reject',
-  'send_back',
-  'escalate',
-  'request_resubmission',
-  'return_for_correction',
-  'request_more_info',
-];
+// Legacy ALL_ACTIONS list removed — UI action selection is now restricted to
+// ALLOWED_UI_ACTION_TYPES (approve / reject / send_back) in
+// `src/hooks/useStepActions.ts`. Legacy action_type rows still load and run.
 
 
 // ─── Templates ───

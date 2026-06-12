@@ -79,6 +79,21 @@ export function validateStepActions(step: WorkflowStep, actions: StepAction[]): 
       message: 'Step must have at least one action',
     });
   }
+  // Duplicate action_type detection — blocks save/publish even if legacy data
+  // somehow bypassed the unique (step_id, action_type) constraint.
+  const seenTypes = new Map<string, number>();
+  for (const a of actions) {
+    seenTypes.set(a.action_type, (seenTypes.get(a.action_type) ?? 0) + 1);
+  }
+  for (const [t, n] of seenTypes.entries()) {
+    if (n > 1) {
+      issues.push({
+        step_id: step.id,
+        field: 'actions',
+        message: `Duplicate action type "${t}" — each action type may appear only once per step`,
+      });
+    }
+  }
   for (const a of actions) {
     if (a.next_step_mode === 'specific_step' && !a.next_step_id) {
       issues.push({
