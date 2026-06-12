@@ -167,10 +167,14 @@ export default function WorkflowList() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditingSteps, setIsEditingSteps] = useState(false);
+  // Sidebar collapse — auto-collapses when a workflow is selected so the
+  // builder gets the full width, but the user can toggle it back open.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Always exit edit mode when switching workflows — no edits carry over.
   useEffect(() => {
     setIsEditingSteps(false);
+    if (selectedId) setSidebarCollapsed(true);
   }, [selectedId]);
 
   const activeWorkflowTypes = useMemo(
