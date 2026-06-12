@@ -85,6 +85,14 @@ describe('workflowValidation', () => {
     expect(issues[0].message).toMatch(/end state/i);
   });
 
+  it('flags duplicate action_types within a step', () => {
+    const issues = validateStepActions(step(), [
+      action({ id: 'a1', action_type: 'approve' }),
+      action({ id: 'a2', action_type: 'approve' }),
+    ]);
+    expect(issues.some(i => /Duplicate action type/.test(i.message))).toBe(true);
+  });
+
   it('requires final step to have an end-workflow action', () => {
     const s1 = step({ id: 's1', step_order: 1 });
     const s2 = step({ id: 's2', step_order: 2 });
