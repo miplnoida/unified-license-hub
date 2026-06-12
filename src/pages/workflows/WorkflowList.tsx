@@ -839,11 +839,12 @@ export default function WorkflowList() {
 
 
               </CardContent>
+              )}
             </Card>
           </div>
 
           {/* Builder */}
-          <div className="lg:col-span-8">
+          <div className={sidebarCollapsed ? 'lg:col-span-11' : 'lg:col-span-8'}>
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
