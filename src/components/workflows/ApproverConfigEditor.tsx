@@ -42,7 +42,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
 
   const [userSearch, setUserSearch] = useState('');
   const [roleSearch, setRoleSearch] = useState('');
-  const { data: internalUsers = [], isLoading: usersLoading } = useInternalUsers(userSearch);
+  const { data: internalUsers = [], isLoading: usersLoading } = useEmployeeApprovers(userSearch);
 
   const filteredRoles = useMemo(
     () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
