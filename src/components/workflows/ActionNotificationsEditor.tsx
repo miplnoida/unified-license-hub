@@ -26,10 +26,12 @@ import {
   useUpsertActionNotification,
   useDeleteActionNotification,
   DEFAULT_EVENT_FOR_ACTION,
+  getDefaultEventForAction,
   RECIPIENT_LABELS,
   normalizeRecipientConfig,
   type ActionNotification,
   type ActionNotificationRecipientType,
+  type WorkflowEntityKind,
 } from '@/hooks/useActionNotifications';
 import {
   ACTION_LABELS,
@@ -41,6 +43,12 @@ interface Props {
   stepId: string;
   allowedActions: WorkflowActionType[];
   readOnly?: boolean;
+  /**
+   * Workflow entity type — drives entity-aware default event keys and filters
+   * the event dropdown to the matching prefix (application/registration/return).
+   * Defaults to `application` for back-compat.
+   */
+  entityType?: string;
 }
 
 const RECIPIENT_OPTIONS: ActionNotificationRecipientType[] = [
@@ -64,7 +72,10 @@ const EVENT_LABELS: Record<string, string> = {
   'registration.approved_step': 'Registration · Approved at Step',
   'registration.rejected': 'Registration · Rejected',
   'registration.send_back': 'Registration · Sent Back',
+  'registration.escalated': 'Registration · Escalated',
   'registration.resubmission_requested': 'Registration · Resubmission Requested',
+  'registration.returned_for_correction': 'Registration · Returned for Correction',
+  'registration.more_info_requested': 'Registration · More Information Requested',
   'registration.workflow_action_taken': 'Registration · Generic Workflow Action',
   'return.approved_step': 'Return · Approved at Step',
   'return.approved': 'Return · Fully Approved',
@@ -73,6 +84,11 @@ const EVENT_LABELS: Record<string, string> = {
   'return.edit_requested': 'Return · Edit Requested',
   'return.workflow_action_taken': 'Return · Generic Workflow Action',
 };
+
+function resolveEntityKind(entityType: string | undefined): WorkflowEntityKind {
+  if (entityType === 'registration' || entityType === 'return') return entityType;
+  return 'application';
+}
 
 type NotificationRowDraft = {
   id?: string;
