@@ -22,6 +22,7 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import { ApplicationReviewBuilder } from '@/components/applications/ApplicationReviewBuilder';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -826,38 +827,56 @@ export default function ApplicationDetail() {
             {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
               <Card>
-                <CardHeader><CardTitle className="text-base">Review Actions</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
-                  </p>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
-                    <Textarea
-                      value={actionComment}
-                      onChange={e => setActionComment(e.target.value)}
-                      placeholder="Enter your remarks before taking action..."
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      onClick={() => handleStageTransition('approved', 'approved', actionComment)}
-                      disabled={processing}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />Approve
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleStageTransition('rejected', 'rejected', actionComment)}
-                      disabled={processing}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />Reject
-                    </Button>
-                    <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
-                      <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
-                    </Button>
-                  </div>
+                <CardContent className="pt-6">
+                  <Accordion type="single" collapsible defaultValue="manual-review-actions" className="w-full rounded-md border border-border/60">
+                    <AccordionItem value="manual-review-actions" className="border-b-0">
+                      <AccordionTrigger className="px-4 py-4 hover:no-underline">
+                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left">
+                          <div className="min-w-0">
+                            <div className="text-base font-semibold text-foreground">Review Actions</div>
+                            <p className="text-sm text-muted-foreground">Workflow is not active/configured for this application.</p>
+                          </div>
+                          <Badge variant={statusVariant[app.status] || 'outline'} className="shrink-0">
+                            {APPLICATION_STATUS_LABELS[app.status]}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
+                          </p>
+                          <div className="space-y-2">
+                            <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
+                            <Textarea
+                              value={actionComment}
+                              onChange={e => setActionComment(e.target.value)}
+                              placeholder="Enter your remarks before taking action..."
+                              rows={3}
+                            />
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button
+                              onClick={() => handleStageTransition('approved', 'approved', actionComment)}
+                              disabled={processing}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-2" />Approve
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => handleStageTransition('rejected', 'rejected', actionComment)}
+                              disabled={processing}
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />Reject
+                            </Button>
+                            <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
+                              <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
+                            </Button>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </CardContent>
               </Card>
             )}
