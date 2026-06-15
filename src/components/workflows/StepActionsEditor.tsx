@@ -97,7 +97,7 @@ function draftFrom(row: StepAction): DraftState {
   };
 }
 
-export function StepActionsEditor({ step, siblingSteps }: Props) {
+export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
   const { data: actions = [], isLoading } = useStepActions(step.id);
   const upsert = useUpsertStepAction(step.id);
   const del = useDeleteStepAction(step.id);
