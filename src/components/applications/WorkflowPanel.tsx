@@ -506,21 +506,97 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build action buttons — collapse Forward vs Approve so only ONE approve-type button appears.
-  type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
+  // ─── Build action buttons from configured `approval_step_actions` rows
+  //     (enabled only), intersected with backend per-action permissions.
+  //     Falls back to legacy hardcoded buttons only when NO config rows exist.
+  type ActionDef = {
+    type: WorkflowActionType;
+    label: string;
+    icon: React.ReactNode;
+    variant: 'default' | 'destructive' | 'outline';
+    requireComments: boolean;
+  };
+
+  const fallbackLabel = (type: WorkflowActionType): string => {
+    switch (type) {
+      case 'approve': return isLastLevel ? 'Approve' : 'Forward to Next Level';
+      case 'reject': return 'Reject';
+      case 'send_back': return 'Send Back';
+      case 'escalate': return 'Escalate';
+      case 'request_resubmission': return 'Request Resubmission';
+      case 'return_for_correction': return 'Return for Correction';
+      case 'request_more_info': return 'Request More Information';
+      default: return type;
+    }
+  };
+  const iconFor = (type: WorkflowActionType): React.ReactNode => {
+    switch (type) {
+      case 'approve': return isLastLevel
+        ? <CheckCircle className="h-4 w-4 mr-1" />
+        : <ArrowRight className="h-4 w-4 mr-1" />;
+      case 'reject': return <XCircle className="h-4 w-4 mr-1" />;
+      case 'send_back': return <ArrowDown className="h-4 w-4 mr-1" />;
+      case 'escalate': return <ArrowUp className="h-4 w-4 mr-1" />;
+      default: return <ArrowDown className="h-4 w-4 mr-1" />;
+    }
+  };
+  const variantFor = (type: WorkflowActionType): 'default' | 'destructive' | 'outline' =>
+    type === 'reject' ? 'destructive' : type === 'approve' ? 'default' : 'outline';
+
+  const canByType: Record<WorkflowActionType, boolean> = {
+    approve: (!!canActResult?.can_approve || !!canActResult?.can_forward) && !isPaused,
+    reject: !!canActResult?.can_reject && !isPaused,
+    send_back: !!canActResult?.can_send_back && !isPaused,
+    escalate: !!canActResult?.can_escalate && !isPaused,
+    request_resubmission: !!canActResult?.can_request_resubmission && !isPaused,
+    return_for_correction: !!canActResult?.can_return_for_correction && !isPaused,
+    request_more_info: !!canActResult?.can_request_more_info && !isPaused,
+  };
+
+  const enabledConfigured = (configuredStepActions as StepAction[])
+    .filter(a => a.is_enabled)
+    .slice()
+    .sort((a, b) => (a.sort_order - b.sort_order) || a.action_type.localeCompare(b.action_type));
+
   const actionButtonsList: ActionDef[] = [];
-  // Approve / Forward — only one, never both.
-  if (canApprove && isLastLevel) {
-    actionButtonsList.push({ type: 'approve', label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' });
-  } else if (canForward || (canApprove && !isLastLevel)) {
-    actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' });
+  if (enabledConfigured.length > 0) {
+    // Dedupe by action_type (first wins) so a single configured action_type
+    // never renders twice.
+    const seen = new Set<WorkflowActionType>();
+    for (const row of enabledConfigured) {
+      const type = row.action_type as WorkflowActionType;
+      if (seen.has(type)) continue;
+      seen.add(type);
+      if (!canByType[type]) continue;
+      actionButtonsList.push({
+        type,
+        label: row.label?.trim() || fallbackLabel(type),
+        icon: iconFor(type),
+        variant: variantFor(type),
+        requireComments: !!row.require_comments,
+      });
+    }
+  } else {
+    // Legacy fallback: no per-action config rows configured for this step.
+    // Mirror prior behavior using canActResult flags directly.
+    if (canByType.approve && isLastLevel) {
+      actionButtonsList.push({ type: 'approve', label: 'Approve', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    } else if (canByType.approve) {
+      actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    }
+    (['reject','send_back','escalate','request_resubmission','return_for_correction','request_more_info'] as WorkflowActionType[]).forEach(t => {
+      if (canByType[t]) {
+        actionButtonsList.push({
+          type: t,
+          label: fallbackLabel(t),
+          icon: iconFor(t),
+          variant: variantFor(t),
+          requireComments: REMARKS_REQUIRED_ACTIONS.includes(t),
+        });
+      }
+    });
   }
-  if (canReject)              actionButtonsList.push({ type: 'reject',               label: 'Reject',                  icon: <XCircle className="h-4 w-4 mr-1" />,     variant: 'destructive' });
-  if (canSendBack)            actionButtonsList.push({ type: 'send_back',            label: 'Send Back to Junior',     icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canEscalate)            actionButtonsList.push({ type: 'escalate',             label: 'Escalate to Senior',      icon: <ArrowUp className="h-4 w-4 mr-1" />,     variant: 'outline' });
-  if (canRequestResubmission) actionButtonsList.push({ type: 'request_resubmission', label: 'Request Resubmission',    icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canReturnForCorrection) actionButtonsList.push({ type: 'return_for_correction',label: 'Return for Correction',   icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canRequestMoreInfo)     actionButtonsList.push({ type: 'request_more_info',    label: 'Request More Information',icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
+
 
   const noWorkflowActions = actionButtonsList.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
