@@ -48,6 +48,8 @@ export interface ActionNotificationSaveInput {
   is_enabled?: boolean;
 }
 
+type TemplateLookup = Pick<NotificationTemplateLite, 'id' | 'event_type' | 'channel' | 'is_active'>;
+
 const TABLE = 'approval_action_notifications' as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -115,6 +117,17 @@ export function buildActionNotificationPayload(stepId: string, row: ActionNotifi
     template_id: row.template_id ?? null,
     is_enabled: row.is_enabled ?? true,
   };
+}
+
+export function pickDefaultEmailTemplateId(
+  eventKey: string,
+  templates: TemplateLookup[],
+): string | null {
+  return templates.find((template) => (
+    template.event_type === eventKey &&
+    template.channel === 'email' &&
+    template.is_active
+  ))?.id ?? null;
 }
 
 export function useActionNotifications(stepId: string | null | undefined) {
