@@ -25,11 +25,12 @@ import {
   useNotificationTemplates,
   useUpsertActionNotification,
   useDeleteActionNotification,
-  DEFAULT_EVENT_FOR_ACTION,
+  getDefaultEventForAction,
   RECIPIENT_LABELS,
   normalizeRecipientConfig,
   type ActionNotification,
   type ActionNotificationRecipientType,
+  type WorkflowEntityKind,
 } from '@/hooks/useActionNotifications';
 import {
   ACTION_LABELS,
@@ -41,6 +42,12 @@ interface Props {
   stepId: string;
   allowedActions: WorkflowActionType[];
   readOnly?: boolean;
+  /**
+   * Workflow entity type — drives entity-aware default event keys and filters
+   * the event dropdown to the matching prefix (application/registration/return).
+   * Defaults to `application` for back-compat.
+   */
+  entityType?: string;
 }
 
 const RECIPIENT_OPTIONS: ActionNotificationRecipientType[] = [
@@ -64,7 +71,10 @@ const EVENT_LABELS: Record<string, string> = {
   'registration.approved_step': 'Registration · Approved at Step',
   'registration.rejected': 'Registration · Rejected',
   'registration.send_back': 'Registration · Sent Back',
+  'registration.escalated': 'Registration · Escalated',
   'registration.resubmission_requested': 'Registration · Resubmission Requested',
+  'registration.returned_for_correction': 'Registration · Returned for Correction',
+  'registration.more_info_requested': 'Registration · More Information Requested',
   'registration.workflow_action_taken': 'Registration · Generic Workflow Action',
   'return.approved_step': 'Return · Approved at Step',
   'return.approved': 'Return · Fully Approved',
@@ -73,6 +83,11 @@ const EVENT_LABELS: Record<string, string> = {
   'return.edit_requested': 'Return · Edit Requested',
   'return.workflow_action_taken': 'Return · Generic Workflow Action',
 };
+
+function resolveEntityKind(entityType: string | undefined): WorkflowEntityKind {
+  if (entityType === 'registration' || entityType === 'return') return entityType;
+  return 'application';
+}
 
 type NotificationRowDraft = {
   id?: string;
@@ -86,12 +101,16 @@ type NotificationRowDraft = {
   is_enabled: boolean;
 };
 
-function createDraft(action: WorkflowActionType, row?: ActionNotification): NotificationRowDraft {
+function createDraft(
+  action: WorkflowActionType,
+  entityKind: WorkflowEntityKind,
+  row?: ActionNotification,
+): NotificationRowDraft {
   const recipientConfig = normalizeRecipientConfig(row?.recipient_type ?? 'applicant', row?.recipient_config ?? {});
   return {
     id: row?.id,
     action_type: action,
-    event_key: row?.event_key ?? DEFAULT_EVENT_FOR_ACTION[action],
+    event_key: row?.event_key ?? getDefaultEventForAction(action, entityKind),
     recipient_type: row?.recipient_type ?? 'applicant',
     recipient_config: recipientConfig,
     recipient_config_text: JSON.stringify(recipientConfig, null, 2),
@@ -117,15 +136,22 @@ function formatEventLabel(eventKey: string) {
 
 function getEventOptions(
   action: WorkflowActionType,
+  entityKind: WorkflowEntityKind,
   templates: Array<{ event_type: string }>,
   currentEventKey?: string | null,
 ) {
+  const prefix = `${entityKind}.`;
   const options = new Set<string>([
-    DEFAULT_EVENT_FOR_ACTION[action],
-    ...templates.map((template) => template.event_type).filter(Boolean),
+    getDefaultEventForAction(action, entityKind),
+    // Include all labelled events for this entity kind so admins can pick e.g.
+    // a generic "workflow_action_taken" template even when it isn't the default.
+    ...Object.keys(EVENT_LABELS).filter((k) => k.startsWith(prefix)),
+    // Templates whose event_type matches this entity kind become selectable too.
+    ...templates.map((template) => template.event_type).filter((k) => k && k.startsWith(prefix)),
   ]);
 
   if (currentEventKey?.trim()) {
+    // Preserve whatever is currently saved, even if it's cross-entity legacy data.
     options.add(currentEventKey.trim());
   }
 
@@ -137,7 +163,8 @@ function getEventOptions(
     }));
 }
 
-export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = false }: Props) {
+export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = false, entityType }: Props) {
+  const entityKind = resolveEntityKind(entityType);
   const { data: rows = [], isLoading } = useActionNotifications(stepId);
   const { data: templates = [] } = useNotificationTemplates();
   const { data: roles = [] } = useRoles();
@@ -172,7 +199,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
   const startEditing = (action: WorkflowActionType, row?: ActionNotification) => {
     const key = getDraftKey(action, row?.id);
-    setDraft(key, createDraft(action, row));
+    setDraft(key, createDraft(action, entityKind, row));
     setEditingRows((prev) => ({ ...prev, [key]: true }));
   };
 
@@ -276,7 +303,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                   (() => {
                     const key = getDraftKey(action, row.id);
                     const isEditingRow = editingRows[key] === true;
-                    const draft = drafts[key] ?? createDraft(action, row);
+                    const draft = drafts[key] ?? createDraft(action, entityKind, row);
                     const roleValue = typeof draft.recipient_config.role === 'string'
                       ? draft.recipient_config.role
                       : typeof draft.recipient_config.role_name === 'string'
@@ -286,7 +313,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       ? draft.recipient_config.email
                       : '';
                     const genericConfigValue = draft.recipient_config_text;
-                    const eventOptions = getEventOptions(action, templates, draft.event_key);
+                    const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
 
                     return (
                       <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
@@ -545,7 +572,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
                 {!readOnly && editingRows[getDraftKey(action)] && (() => {
                   const key = getDraftKey(action);
-                  const draft = drafts[key] ?? createDraft(action);
+                  const draft = drafts[key] ?? createDraft(action, entityKind);
                   const roleValue = typeof draft.recipient_config.role === 'string'
                     ? draft.recipient_config.role
                     : typeof draft.recipient_config.role_name === 'string'
@@ -555,7 +582,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     ? draft.recipient_config.email
                     : '';
                   const genericConfigValue = draft.recipient_config_text;
-                  const eventOptions = getEventOptions(action, templates, draft.event_key);
+                  const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
 
                   return (
                     <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">

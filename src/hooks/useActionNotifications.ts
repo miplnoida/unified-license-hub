@@ -184,7 +184,12 @@ export function useDeleteActionNotification(stepId: string) {
   });
 }
 
-/** Default suggested event_key per action_type, used when admin adds a fresh row. */
+/**
+ * Default suggested event_key per action_type, used when admin adds a fresh row.
+ * NOTE: This object preserves the legacy application-only mapping for backward
+ * compatibility with existing imports/tests. For entity-aware defaults
+ * (registration.*, return.*), use {@link getDefaultEventForAction} instead.
+ */
 export const DEFAULT_EVENT_FOR_ACTION: Record<WorkflowActionType, string> = {
   approve: 'application.approved_step',
   reject: 'application.rejected',
@@ -194,6 +199,33 @@ export const DEFAULT_EVENT_FOR_ACTION: Record<WorkflowActionType, string> = {
   return_for_correction: 'application.returned_for_correction',
   request_more_info: 'application.more_info_requested',
 };
+
+export type WorkflowEntityKind = 'application' | 'registration' | 'return';
+
+const ACTION_EVENT_SUFFIX: Record<WorkflowActionType, string> = {
+  approve: 'approved_step',
+  reject: 'rejected',
+  send_back: 'send_back',
+  escalate: 'escalated',
+  request_resubmission: 'resubmission_requested',
+  return_for_correction: 'returned_for_correction',
+  request_more_info: 'more_info_requested',
+};
+
+/**
+ * Resolve the suggested default event_key for an action based on the workflow
+ * entity_type. Registration workflows must NOT default to `application.*` keys
+ * (and vice versa) — runtime template lookup and email preview depend on the
+ * event_key prefix matching the entity.
+ */
+export function getDefaultEventForAction(
+  action: WorkflowActionType,
+  entityType: string | null | undefined,
+): string {
+  const kind: WorkflowEntityKind =
+    entityType === 'registration' || entityType === 'return' ? entityType : 'application';
+  return `${kind}.${ACTION_EVENT_SUFFIX[action]}`;
+}
 
 export const RECIPIENT_LABELS: Record<ActionNotificationRecipientType, string> = {
   applicant: 'Applicant',

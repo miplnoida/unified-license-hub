@@ -45,6 +45,8 @@ import { ActionNotificationsEditor } from '@/components/workflows/ActionNotifica
 interface Props {
   step: WorkflowStep;
   siblingSteps: WorkflowStep[];
+  /** Workflow entity_type — forwarded to ActionNotificationsEditor so default event_keys are entity-aware. */
+  entityType?: string;
 }
 
 interface DraftState {
@@ -95,7 +97,7 @@ function draftFrom(row: StepAction): DraftState {
   };
 }
 
-export function StepActionsEditor({ step, siblingSteps }: Props) {
+export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
   const { data: actions = [], isLoading } = useStepActions(step.id);
   const upsert = useUpsertStepAction(step.id);
   const del = useDeleteStepAction(step.id);
@@ -306,6 +308,7 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                     <ActionNotificationsEditor
                       stepId={step.id}
                       allowedActions={[row.action_type]}
+                      entityType={entityType}
                     />
                   </div>
                 </div>

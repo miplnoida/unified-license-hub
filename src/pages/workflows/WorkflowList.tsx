@@ -906,6 +906,7 @@ export default function WorkflowList() {
                                     onDelete={(id) => deleteStep.mutate(id)}
                                     onMove={handleMove}
                                     onAdd={handleAddStep}
+                                    entityType={selectedWorkflow.entity_type}
                                   />
                                 )}
                               </div>
@@ -1139,9 +1140,11 @@ interface TimelineBuilderProps {
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
+  /** Forwarded to StepCard / StepActionsEditor for entity-aware notification defaults. */
+  entityType?: string;
 }
 
-function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEditing, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEditing, onUpdate, onDelete, onMove, onAdd, entityType }: TimelineBuilderProps) {
   // Validation: detect duplicate consecutive roles (by role id when available, else system role)
   const duplicateIdx = useMemo(() => {
     const key = (s: WorkflowStep) => s.approver_role_id || `sys:${s.approver_role}`;
@@ -1193,6 +1196,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               onUpdate={onUpdate}
               onDelete={onDelete}
               onMove={onMove}
+              entityType={entityType}
             />
           </div>
         ))
@@ -1263,9 +1267,11 @@ interface StepCardProps {
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
+  /** Workflow entity_type — drives entity-aware default event keys in the notifications editor. */
+  entityType?: string;
 }
 
-function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove, entityType }: StepCardProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   // Optimistic local override so the selected highlight + badge update
@@ -1647,7 +1653,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
             <StepEntryNotificationsEditor stepId={step.id} />
 
             {/* Per-action editor (replaces legacy allowed_actions checkboxes) */}
-            <StepActionsEditor step={step} siblingSteps={siblingSteps} />
+            <StepActionsEditor step={step} siblingSteps={siblingSteps} entityType={entityType} />
           </div>
         )}
 
