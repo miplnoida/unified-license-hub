@@ -26,6 +26,7 @@ import {
   useUpsertActionNotification,
   useDeleteActionNotification,
   getDefaultEventForAction,
+  pickDefaultEmailTemplateId,
   RECIPIENT_LABELS,
   normalizeRecipientConfig,
   type ActionNotification,
@@ -104,18 +105,20 @@ type NotificationRowDraft = {
 function createDraft(
   action: WorkflowActionType,
   entityKind: WorkflowEntityKind,
+  templates: Array<{ id: string; event_type: string; channel: string; is_active: boolean }> = [],
   row?: ActionNotification,
 ): NotificationRowDraft {
   const recipientConfig = normalizeRecipientConfig(row?.recipient_type ?? 'applicant', row?.recipient_config ?? {});
+  const eventKey = row?.event_key ?? getDefaultEventForAction(action, entityKind);
   return {
     id: row?.id,
     action_type: action,
-    event_key: row?.event_key ?? getDefaultEventForAction(action, entityKind),
+    event_key: eventKey,
     recipient_type: row?.recipient_type ?? 'applicant',
     recipient_config: recipientConfig,
     recipient_config_text: JSON.stringify(recipientConfig, null, 2),
     recipient_config_error: null,
-    template_id: row?.template_id ?? null,
+    template_id: row?.template_id ?? pickDefaultEmailTemplateId(eventKey, templates),
     is_enabled: row?.is_enabled ?? true,
   };
 }
@@ -199,7 +202,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
   const startEditing = (action: WorkflowActionType, row?: ActionNotification) => {
     const key = getDraftKey(action, row?.id);
-    setDraft(key, createDraft(action, entityKind, row));
+    setDraft(key, createDraft(action, entityKind, templates, row));
     setEditingRows((prev) => ({ ...prev, [key]: true }));
   };
 
@@ -224,6 +227,14 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
     if (draft.recipient_config_error) return;
     await upsert.mutateAsync(draft);
     cancelEditing(action, rowId);
+  };
+
+  const updateDraftEventKey = (key: string, draft: NotificationRowDraft, eventKey: string) => {
+    setDraft(key, {
+      ...draft,
+      event_key: eventKey,
+      template_id: pickDefaultEmailTemplateId(eventKey, templates),
+    });
   };
 
   return (
@@ -303,7 +314,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                   (() => {
                     const key = getDraftKey(action, row.id);
                     const isEditingRow = editingRows[key] === true;
-                    const draft = drafts[key] ?? createDraft(action, entityKind, row);
+                    const draft = drafts[key] ?? createDraft(action, entityKind, templates, row);
                     const roleValue = typeof draft.recipient_config.role === 'string'
                       ? draft.recipient_config.role
                       : typeof draft.recipient_config.role_name === 'string'
@@ -314,6 +325,9 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       : '';
                     const genericConfigValue = draft.recipient_config_text;
                     const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
+                    const templateOptions = templates.filter((t) => (
+                      t.channel === 'email' && (t.event_type === draft.event_key || t.id === row.template_id)
+                    ));
 
                     return (
                       <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
@@ -385,7 +399,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                 <Label className="text-[11px]">Event key</Label>
                                 <Select
                                   value={draft.event_key}
-                                  onValueChange={(value) => setDraft(key, { ...draft, event_key: value })}
+                                  onValueChange={(value) => updateDraftEventKey(key, draft, value)}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
                                     <SelectValue placeholder="Select event" />
@@ -434,7 +448,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pick template" /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none" className="text-xs">— Use event default —</SelectItem>
-                                    {templates.map((t) => (
+                                    {templateOptions.map((t) => (
                                       <SelectItem key={t.id} value={t.id} className="text-xs">
                                         {t.name}
                                       </SelectItem>
@@ -572,7 +586,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
                 {!readOnly && editingRows[getDraftKey(action)] && (() => {
                   const key = getDraftKey(action);
-                  const draft = drafts[key] ?? createDraft(action, entityKind);
+                  const draft = drafts[key] ?? createDraft(action, entityKind, templates);
                   const roleValue = typeof draft.recipient_config.role === 'string'
                     ? draft.recipient_config.role
                     : typeof draft.recipient_config.role_name === 'string'
@@ -583,6 +597,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     : '';
                   const genericConfigValue = draft.recipient_config_text;
                   const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
+                  const templateOptions = templates.filter((t) => t.channel === 'email' && t.event_type === draft.event_key);
 
                   return (
                     <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
@@ -595,7 +610,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                             <Label className="text-[11px]">Event key</Label>
                             <Select
                               value={draft.event_key}
-                              onValueChange={(value) => setDraft(key, { ...draft, event_key: value })}
+                              onValueChange={(value) => updateDraftEventKey(key, draft, value)}
                             >
                               <SelectTrigger className="h-8 text-xs">
                                 <SelectValue placeholder="Select event" />
@@ -644,7 +659,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pick template" /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none" className="text-xs">— Use event default —</SelectItem>
-                                {templates.map((t) => (
+                                {templateOptions.map((t) => (
                                   <SelectItem key={t.id} value={t.id} className="text-xs">
                                     {t.name}
                                   </SelectItem>

@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertTriangle, Loader2, Mail, RotateCcw, Send } from 'lucide-react';
-import { RECIPIENT_LABELS, type ActionNotificationRecipientType } from '@/hooks/useActionNotifications';
+import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
 
 export interface ActionNotificationOverride {
@@ -41,7 +41,7 @@ interface Props {
   actionType: WorkflowActionType;
   actionLabel: string;
   comments: string;
-  entityType: 'application' | 'registration';
+  entityType: WorkflowEntityKind;
   entityId: string;
   /** Display name of the actor (for {{actor_name}} substitution). */
   actorName?: string | null;
@@ -58,7 +58,20 @@ interface BindingRow {
   recipient_config: Record<string, any> | null;
   template_id: string | null;
   is_enabled: boolean;
-  template?: { id: string; name: string; subject: string | null; body: string; channel: string } | null;
+  template?: { id: string; name: string; subject: string | null; body: string; channel: string; is_active: boolean } | null;
+  template_found?: boolean;
+  template_active?: boolean;
+  template_id_was_null?: boolean;
+}
+
+interface BindingDiagnostic {
+  currentStepId: string;
+  actionType: WorkflowActionType;
+  entityType: WorkflowEntityKind;
+  expectedEventKey: string;
+  foundApprovalActionNotificationsCount: number;
+  templateIdIsNull: boolean;
+  templateExistsAndActive: boolean;
 }
 
 /** Minimal `{{token}}` substitution mirroring the dispatch render function. */
@@ -75,11 +88,13 @@ function render(template: string | null | undefined, vars: Record<string, any>):
   });
 }
 
-function useBindings(stepId: string, actionType: WorkflowActionType) {
+function useBindings(stepId: string, actionType: WorkflowActionType, entityType: WorkflowEntityKind) {
   return useQuery({
-    queryKey: ['preview_action_bindings', stepId, actionType],
+    queryKey: ['preview_action_bindings', stepId, actionType, entityType],
     enabled: !!stepId,
-    queryFn: async (): Promise<BindingRow[]> => {
+    queryFn: async (): Promise<{ bindings: BindingRow[]; diagnostic: BindingDiagnostic }> => {
+      const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+      const prefix = `${entityType}.`;
       const { data, error } = await supabase
         .from('approval_action_notifications' as any)
         .select('id, step_id, action_type, event_key, recipient_type, recipient_config, template_id, is_enabled')
@@ -87,22 +102,61 @@ function useBindings(stepId: string, actionType: WorkflowActionType) {
         .eq('action_type', actionType)
         .eq('is_enabled', true);
       if (error) throw error;
-      const rows = (data ?? []) as unknown as BindingRow[];
+      const allRows = (data ?? []) as unknown as BindingRow[];
+      const rows = allRows.filter(r => r.event_key === expectedEventKey || r.event_key?.startsWith(prefix));
       const templateIds = Array.from(new Set(rows.map(r => r.template_id).filter((x): x is string => !!x)));
-      if (templateIds.length === 0) return rows.map(r => ({ ...r, template: null }));
-      const { data: tpls } = await supabase
-        .from('notification_templates')
-        .select('id, name, subject, body, channel')
-        .in('id', templateIds);
+      const eventKeys = Array.from(new Set(rows.map(r => r.event_key).filter(Boolean)));
       const tplMap = new Map<string, any>();
-      (tpls || []).forEach((t: any) => tplMap.set(t.id, t));
-      return rows.map(r => ({ ...r, template: r.template_id ? (tplMap.get(r.template_id) ?? null) : null }));
+      const eventTplMap = new Map<string, any>();
+      const [byId, byEvent] = await Promise.all([
+        templateIds.length
+          ? supabase
+              .from('notification_templates')
+              .select('id, name, subject, body, channel, is_active, event_type')
+              .in('id', templateIds)
+          : Promise.resolve({ data: [] as any[] }),
+        eventKeys.length
+          ? supabase
+              .from('notification_templates')
+              .select('id, name, subject, body, channel, is_active, event_type')
+              .in('event_type', eventKeys)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const tpls = [...(byId.data || []), ...(byEvent.data || [])];
+      tpls.forEach((t: any) => {
+        tplMap.set(t.id, t);
+        if (t.channel === 'email' && t.is_active && !eventTplMap.has(t.event_type)) eventTplMap.set(t.event_type, t);
+      });
+      const resolved = rows.map(r => {
+        const direct = r.template_id ? (tplMap.get(r.template_id) ?? null) : null;
+        const fallback = eventTplMap.get(r.event_key) ?? null;
+        const template = direct && direct.channel === 'email' && direct.is_active ? direct : fallback;
+        return {
+          ...r,
+          template,
+          template_found: !!template,
+          template_active: !!template?.is_active,
+          template_id_was_null: !r.template_id,
+        };
+      }).filter(r => r.template?.channel === 'email' && r.template?.is_active);
+      return {
+        bindings: resolved,
+        diagnostic: {
+          currentStepId: stepId,
+          actionType,
+          entityType,
+          expectedEventKey,
+          foundApprovalActionNotificationsCount: rows.length,
+          templateIdIsNull: rows.some(r => !r.template_id),
+          templateExistsAndActive: resolved.length > 0,
+        },
+      };
     },
     staleTime: 30_000,
   });
 }
 
-function useEntityPreviewData(entityType: 'application' | 'registration', entityId: string) {
+function useEntityPreviewData(entityType: WorkflowEntityKind, entityId: string) {
   return useQuery({
     queryKey: ['preview_entity_vars', entityType, entityId],
     enabled: !!entityId,
@@ -110,15 +164,30 @@ function useEntityPreviewData(entityType: 'application' | 'registration', entity
       if (entityType === 'registration') {
         const { data } = await supabase
           .from('registrations')
-          .select('id, primary_email, status, registration_number, applicant_name, business_name')
+          .select('id, email, status, registration_number, registration_reference, applicant_name')
           .eq('id', entityId)
           .maybeSingle();
         return {
           registration_id: entityId,
-          registration_number: (data as any)?.registration_number || '',
-          applicant_email: (data as any)?.primary_email || '',
-          applicant_name: (data as any)?.applicant_name || (data as any)?.business_name || '',
+          registration_number: (data as any)?.registration_number || (data as any)?.registration_reference || '',
+          applicant_email: (data as any)?.email || '',
+          applicant_name: (data as any)?.applicant_name || '',
           status: (data as any)?.status || '',
+        };
+      }
+      if (entityType === 'return') {
+        const { data } = await supabase
+          .from('returns_filed')
+          .select('id, unique_id, status, workflow_status, return_year, return_period')
+          .eq('id', entityId)
+          .maybeSingle();
+        return {
+          return_id: entityId,
+          return_name: (data as any)?.unique_id || entityId,
+          entity_name: 'Licensee',
+          period: (data as any)?.return_period || '',
+          year: (data as any)?.return_year || '',
+          status: (data as any)?.workflow_status || (data as any)?.status || '',
         };
       }
       const { data } = await supabase
@@ -140,7 +209,18 @@ export function WorkflowActionPreviewDialog({
   open, onOpenChange, stepId, actionType, actionLabel, comments,
   entityType, entityId, actorName, processing, onConfirm,
 }: Props) {
-  const { data: bindings = [], isLoading } = useBindings(stepId, actionType);
+  const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+  const { data: bindingResult, isLoading } = useBindings(stepId, actionType, entityType);
+  const bindings = bindingResult?.bindings ?? [];
+  const diagnostic = bindingResult?.diagnostic ?? {
+    currentStepId: stepId,
+    actionType,
+    entityType,
+    expectedEventKey,
+    foundApprovalActionNotificationsCount: 0,
+    templateIdIsNull: false,
+    templateExistsAndActive: false,
+  };
   const { data: entityVars = {} } = useEntityPreviewData(entityType, entityId);
 
   const vars = useMemo(() => ({
@@ -229,12 +309,20 @@ export function WorkflowActionPreviewDialog({
           ) : bindings.length === 0 ? (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-              <div>
+              <div className="space-y-2">
                 <p className="font-medium">No email notification is configured for this action.</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  The action will still be executed and logged. Administrators can configure email
-                  notifications under <em>Edit Steps → Notifications</em>.
+                  No enabled action-notification binding with an active email template was found for this exact step/action.
                 </p>
+                <div className="grid grid-cols-1 gap-1 rounded border bg-background/60 p-2 font-mono text-[11px]">
+                  <div>currentStep.id: {diagnostic.currentStepId}</div>
+                  <div>action_type: {diagnostic.actionType}</div>
+                  <div>entityType: {diagnostic.entityType}</div>
+                  <div>expected event_key: {diagnostic.expectedEventKey}</div>
+                  <div>approval_action_notifications count: {diagnostic.foundApprovalActionNotificationsCount}</div>
+                  <div>template_id is null: {String(diagnostic.templateIdIsNull)}</div>
+                  <div>template exists and active: {String(diagnostic.templateExistsAndActive)}</div>
+                </div>
               </div>
             </div>
           ) : (
