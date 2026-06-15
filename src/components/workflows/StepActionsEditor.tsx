@@ -99,7 +99,7 @@ function draftFrom(row: StepAction): DraftState {
 
 export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
   const { data: actions = [], isLoading } = useStepActions(step.id);
-  const upsert = useUpsertStepAction(step.id);
+  const upsert = useUpsertStepAction(step.id, entityType);
   const del = useDeleteStepAction(step.id);
 
   const [editingId, setEditingId] = useState<string | null | 'new'>(null);
