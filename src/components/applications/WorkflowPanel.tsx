@@ -192,9 +192,13 @@ interface Props {
   workflowEnabled: boolean;
   applicationStatus: string;
   onStatusChange?: () => void;
+  /** Entity behind this workflow. Defaults to 'application' for backward compat. */
+  entityType?: WorkflowEntity;
+  /** Display noun for messages/titles ('application' or 'registration'). Defaults from entityType. */
+  entityNoun?: string;
 }
 
-export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange }: Props) {
+export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange, entityType = 'application', entityNoun }: Props) {
   if (!workflowEnabled) return null;
   return (
     <WorkflowPanelContent
@@ -202,11 +206,13 @@ export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, appl
       workflowId={workflowId}
       applicationStatus={applicationStatus}
       onStatusChange={onStatusChange}
+      entityType={entityType}
+      entityNoun={entityNoun ?? (entityType === 'registration' ? 'registration' : 'application')}
     />
   );
 }
 
-function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange }: Omit<Props, 'workflowEnabled'>) {
+function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange, entityType, entityNoun }: Omit<Props, 'workflowEnabled'> & { entityType: WorkflowEntity; entityNoun: string }) {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
@@ -220,10 +226,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     provisioning_warning?: string | null;
   } | null>(null);
 
-  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const moduleKey = entityType === 'registration' ? 'registration_review' : 'application_management';
+  const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
-  const { data: instances = [] } = useWorkflowInstances('application', applicationId);
-  const { data: actions = [] } = useApplicationActions(applicationId);
+  const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
+  const { data: actions = [] } = useEntityActions(entityType, applicationId);
   const queryClient = useQueryClient();
 
   const activeInstance = instances.find(i => i.status === 'active');
