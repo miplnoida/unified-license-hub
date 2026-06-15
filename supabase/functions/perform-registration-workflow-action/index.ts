@@ -20,6 +20,8 @@ const ACCEPTED_ACTIONS = new Set([
   "send_back",
   "escalate",
   "request_resubmission",
+  "return_for_correction",
+  "request_more_info",
 ]);
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
@@ -97,6 +99,8 @@ export async function handler(req: Request): Promise<Response> {
       const eventForAction =
         raw_action === "reject" ? "registration.rejected" :
         raw_action === "request_resubmission" ? "registration.resubmission_requested" :
+        raw_action === "return_for_correction" ? "registration.returned_for_correction" :
+        raw_action === "request_more_info" ? "registration.more_info_requested" :
         raw_action === "send_back" ? "registration.send_back" :
         raw_action === "approve" ? "registration.approved_step" :
         "registration.workflow_action_taken";

@@ -3,14 +3,12 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
-import { invokePerformRegistrationWorkflowAction } from '@/lib/registrationWorkflowClient';
+import { Loader2, Eye } from 'lucide-react';
+import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 
 interface PendingRegistration {
   id: string;
@@ -20,31 +18,17 @@ interface PendingRegistration {
   registration_reference: string;
   created_at: string;
   sector_id: string | null;
+  workflow_id?: string | null;
   workflow_version_number?: number | null;
   workflow_name?: string | null;
   current_step_name?: string | null;
   sla_hours?: number | null;
 }
 
-interface ActiveAction {
-  registration: PendingRegistration;
-  action: 'approve' | 'reject' | 'send_back' | 'request_resubmission';
-}
-
-const ACTION_LABEL: Record<ActiveAction['action'], string> = {
-  approve: 'Approve',
-  reject: 'Reject',
-  send_back: 'Send Back',
-  request_resubmission: 'Request Resubmission',
-};
-
 export default function RegistrationReview() {
-  const { toast } = useToast();
   const [rows, setRows] = useState<PendingRegistration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [active, setActive] = useState<ActiveAction | null>(null);
-  const [comments, setComments] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [reviewing, setReviewing] = useState<PendingRegistration | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,7 +45,6 @@ export default function RegistrationReview() {
       return;
     }
 
-    // Hydrate workflow version + current step name from pinned instances.
     const ids = base.map(r => r.id);
     const { data: instances } = await supabase
       .from('workflow_instances')
@@ -93,6 +76,7 @@ export default function RegistrationReview() {
       const step = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
       return {
         ...r,
+        workflow_id: inst.workflow_id ?? null,
         workflow_version_number: inst.workflow_version_id ? verMap.get(inst.workflow_version_id) ?? null : null,
         workflow_name: inst.workflow_id ? wfMap.get(inst.workflow_id) ?? null : null,
         current_step_name: step?.name ?? null,
@@ -105,34 +89,19 @@ export default function RegistrationReview() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function submitAction() {
-    if (!active) return;
-    setSubmitting(true);
-    try {
-      const res = await invokePerformRegistrationWorkflowAction({
-        registration_id: active.registration.id,
-        action_type: active.action,
-        comments,
-      });
-      if (!res.ok) {
-        toast({ title: 'Action failed', description: res.error || 'Unknown error', variant: 'destructive' });
-      } else {
-        toast({ title: 'Done', description: `Registration ${ACTION_LABEL[active.action].toLowerCase()}d.` });
-        setActive(null);
-        setComments('');
-        await load();
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  // Keep the open drawer's row in sync after any action
+  const refreshReviewing = useCallback(async () => {
+    if (!reviewing) return;
+    await load();
+    setReviewing(prev => prev ? rows.find(r => r.id === prev.id) ?? prev : prev);
+  }, [load, reviewing, rows]);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <PageHeader
           title="Registration Review"
-          description="Review and act on pending licensee registrations via the shared approval workflow."
+          description="Review and act on pending licensee registrations through the configured Registration approval workflow."
         />
 
         <Card>
@@ -155,7 +124,7 @@ export default function RegistrationReview() {
                       <TableHead>Workflow</TableHead>
                       <TableHead>Current Step</TableHead>
                       <TableHead>Submitted</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -166,7 +135,7 @@ export default function RegistrationReview() {
                         <TableCell className="text-sm">{r.email}</TableCell>
                         <TableCell><Badge variant="outline" className="capitalize">{r.status.replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell className="text-sm">
-                          {r.workflow_name ?? '—'}
+                          {r.workflow_name ?? <span className="text-muted-foreground">No workflow</span>}
                           {r.workflow_version_number ? <Badge variant="secondary" className="ml-2">v{r.workflow_version_number}</Badge> : null}
                         </TableCell>
                         <TableCell className="text-sm">
@@ -174,11 +143,10 @@ export default function RegistrationReview() {
                           {r.sla_hours ? <span className="text-muted-foreground"> · SLA {r.sla_hours}h</span> : null}
                         </TableCell>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button size="sm" variant="default" onClick={() => { setActive({ registration: r, action: 'approve' }); setComments(''); }}>Approve</Button>
-                          <Button size="sm" variant="outline" onClick={() => { setActive({ registration: r, action: 'send_back' }); setComments(''); }}>Send Back</Button>
-                          <Button size="sm" variant="outline" onClick={() => { setActive({ registration: r, action: 'request_resubmission' }); setComments(''); }}>Request Resubmission</Button>
-                          <Button size="sm" variant="destructive" onClick={() => { setActive({ registration: r, action: 'reject' }); setComments(''); }}>Reject</Button>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="default" onClick={() => setReviewing(r)}>
+                            <Eye className="h-4 w-4 mr-1" /> Open Review
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -190,34 +158,39 @@ export default function RegistrationReview() {
         </Card>
       </div>
 
-      <Dialog open={!!active} onOpenChange={open => { if (!open) { setActive(null); setComments(''); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{active ? ACTION_LABEL[active.action] : ''} Registration</DialogTitle>
-          </DialogHeader>
-          {active && (
-            <div className="space-y-3">
-              <div className="text-sm">
-                <div><span className="text-muted-foreground">Applicant:</span> {active.registration.applicant_name}</div>
-                <div><span className="text-muted-foreground">Reference:</span> <span className="font-mono">{active.registration.registration_reference}</span></div>
-              </div>
-              <Textarea
-                value={comments}
-                onChange={e => setComments(e.target.value)}
-                placeholder="Remarks (required for approve/reject/request_resubmission)"
-                rows={4}
-              />
-            </div>
+      <Sheet open={!!reviewing} onOpenChange={(o) => { if (!o) setReviewing(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          {reviewing && (
+            <>
+              <SheetHeader className="mb-4">
+                <SheetTitle>Registration Review · {reviewing.registration_reference}</SheetTitle>
+                <SheetDescription>
+                  {reviewing.applicant_name} · {reviewing.email}
+                </SheetDescription>
+              </SheetHeader>
+              {reviewing.workflow_id ? (
+                <WorkflowPanel
+                  entityType="registration"
+                  entityNoun="registration"
+                  applicationId={reviewing.id}
+                  workflowId={reviewing.workflow_id}
+                  workflowEnabled={true}
+                  applicationStatus={reviewing.status}
+                  onStatusChange={refreshReviewing}
+                />
+              ) : (
+                <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
+                  <p className="font-medium">No Registration workflow attached</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    No active Registration workflow could be matched for this submission. Configure one under
+                    <strong> Approval Workflows → Used For: Registration</strong> and re-trigger workflow start.
+                  </p>
+                </div>
+              )}
+            </>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setActive(null); setComments(''); }}>Cancel</Button>
-            <Button onClick={submitAction} disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Confirm {active ? ACTION_LABEL[active.action] : ''}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }

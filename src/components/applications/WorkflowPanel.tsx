@@ -89,21 +89,31 @@ interface ActionRecord {
   created_at: string;
 }
 
-function useApplicationActions(applicationId: string) {
+type WorkflowEntity = 'application' | 'registration';
+
+function useEntityActions(entityType: WorkflowEntity, entityId: string) {
   return useQuery({
-    queryKey: ['approval_actions', 'application', applicationId],
-    enabled: !!applicationId,
+    queryKey: ['approval_actions', entityType, entityId],
+    enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const filterCol = entityType === 'application' ? 'application_id' : 'entity_id';
+      let query = supabase
         .from('approval_actions')
-        .select('id, step_id, actor_id, action_type, action, comments, created_at')
-        .eq('application_id', applicationId)
+        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id')
         .order('created_at', { ascending: true });
+      query = entityType === 'application'
+        ? query.eq('application_id', entityId)
+        : query.eq('entity_type', 'registration').eq('entity_id', entityId);
+      const { data, error } = await query;
       if (error) {
         console.warn('approval_actions fetch failed:', error);
         return [] as ActionRecord[];
       }
-      return (data || []) as ActionRecord[];
+      return ((data || []) as any[]).map(r => ({
+        id: r.id, step_id: r.step_id, actor_id: r.actor_id,
+        action_type: r.action_type, action: r.action,
+        comments: r.comments, created_at: r.created_at,
+      })) as ActionRecord[];
     },
     staleTime: 15_000,
   });
@@ -144,20 +154,21 @@ function actionLabel(actionType: string) {
   return ACTION_LABELS[actionType] || actionType.replace(/_/g, ' ');
 }
 
-function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean): string {
-  if (actionType === 'approve') return isFinalApprove ? 'Application approved.' : 'Application forwarded to the next review step.';
-  if (actionType === 'reject') return 'Application rejected.';
-  if (actionType === 'send_back') return 'Application sent back.';
-  if (actionType === 'escalate') return 'Application escalated.';
+function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean, entityNoun: string): string {
+  const Noun = entityNoun.charAt(0).toUpperCase() + entityNoun.slice(1);
+  if (actionType === 'approve') return isFinalApprove ? `${Noun} approved.` : `${Noun} forwarded to the next review step.`;
+  if (actionType === 'reject') return `${Noun} rejected.`;
+  if (actionType === 'send_back') return `${Noun} sent back.`;
+  if (actionType === 'escalate') return `${Noun} escalated.`;
   if (actionType === 'request_resubmission') return 'Resubmission requested.';
-  if (actionType === 'return_for_correction') return 'Application returned for correction.';
+  if (actionType === 'return_for_correction') return `${Noun} returned for correction.`;
   if (actionType === 'request_more_info') return 'More information requested.';
   return `Action recorded: ${actionLabel(actionType)}`;
 }
 
-function remarksRequiredMessage(actionType: WorkflowActionType): string {
+function remarksRequiredMessage(actionType: WorkflowActionType, entityNoun: string): string {
   switch (actionType) {
-    case 'reject': return 'Remarks are required to reject this application.';
+    case 'reject': return `Remarks are required to reject this ${entityNoun}.`;
     case 'request_resubmission': return 'Remarks are required to request resubmission.';
     case 'return_for_correction': return 'Remarks are required to return for correction.';
     case 'request_more_info': return 'Remarks are required to request more information.';
@@ -181,9 +192,13 @@ interface Props {
   workflowEnabled: boolean;
   applicationStatus: string;
   onStatusChange?: () => void;
+  /** Entity behind this workflow. Defaults to 'application' for backward compat. */
+  entityType?: WorkflowEntity;
+  /** Display noun for messages/titles ('application' or 'registration'). Defaults from entityType. */
+  entityNoun?: string;
 }
 
-export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange }: Props) {
+export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange, entityType = 'application', entityNoun }: Props) {
   if (!workflowEnabled) return null;
   return (
     <WorkflowPanelContent
@@ -191,11 +206,13 @@ export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, appl
       workflowId={workflowId}
       applicationStatus={applicationStatus}
       onStatusChange={onStatusChange}
+      entityType={entityType}
+      entityNoun={entityNoun ?? (entityType === 'registration' ? 'registration' : 'application')}
     />
   );
 }
 
-function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange }: Omit<Props, 'workflowEnabled'>) {
+function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange, entityType, entityNoun }: Omit<Props, 'workflowEnabled'> & { entityType: WorkflowEntity; entityNoun: string }) {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
@@ -209,10 +226,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     provisioning_warning?: string | null;
   } | null>(null);
 
-  const isInternal = !!user && (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
+  const moduleKey = entityType === 'registration' ? 'registration_review' : 'application_management';
+  const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
-  const { data: instances = [] } = useWorkflowInstances('application', applicationId);
-  const { data: actions = [] } = useApplicationActions(applicationId);
+  const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
+  const { data: actions = [] } = useEntityActions(entityType, applicationId);
   const queryClient = useQueryClient();
 
   const activeInstance = instances.find(i => i.status === 'active');
@@ -295,7 +313,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   if (!currentStep) return null;
 
   // Per-action permissions (backend authoritative).
-  const canAddRemark = !!canActResult?.can_add_remark;
+  const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
   const canReject = !!canActResult?.can_reject && !isPaused;
   const canForward = !!canActResult?.can_forward && !isPaused;
   const canApprove = !!canActResult?.can_approve && !isPaused;
@@ -309,27 +327,35 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
     if (isRemarksRequired(actionType) && !comment.trim()) {
-      toast.error(remarksRequiredMessage(actionType));
+      toast.error(remarksRequiredMessage(actionType, entityNoun));
       return;
     }
     setProcessingAction(actionType);
     try {
-      const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
-        body: {
-          application_id: applicationId,
-          instance_id: activeInstance.id,
-          step_id: currentStep.id,
-          action_type: actionType,
-          comments: comment,
-        },
-      });
+      const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
+      const body: Record<string, unknown> = entityType === 'registration'
+        ? {
+            registration_id: applicationId,
+            instance_id: activeInstance.id,
+            step_id: currentStep.id,
+            action_type: actionType,
+            comments: comment,
+          }
+        : {
+            application_id: applicationId,
+            instance_id: activeInstance.id,
+            step_id: currentStep.id,
+            action_type: actionType,
+            comments: comment,
+          };
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
       if (error) {
         let serverMsg = error.message || 'Action failed';
         try {
           const ctx = (error as any).context;
           if (ctx && typeof ctx.json === 'function') {
-            const body = await ctx.json();
-            if (body?.error) serverMsg = body.error;
+            const eb = await ctx.json();
+            if (eb?.error) serverMsg = eb.error;
           }
         } catch { /* ignore */ }
         toast.error(serverMsg);
@@ -337,7 +363,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       }
       if (data?.error) { toast.error(data.error); return; }
 
-      if (actionType === 'approve' && isLastLevel) {
+      if (entityType === 'application' && actionType === 'approve' && isLastLevel) {
         setApprovalResult({
           license_number: data.license_number,
           web_user_email: data.web_user_email,
@@ -347,14 +373,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         });
         toast.success(data.message || `Application approved! License: ${data.license_number || ''}`.trim());
       } else {
-        toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel));
+        toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel, entityNoun));
       }
       setComment('');
       // Invalidate all related queries (instance + history + permissions)
       queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
       queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       queryClient.invalidateQueries({ queryKey: ['user_can_act_on_workflow_step'] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: entityType === 'registration' ? ['registrations'] : ['applications'] });
       onStatusChange?.();
     } catch (err: any) {
       toast.error(err?.message || 'Action failed');
@@ -533,7 +559,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Shield className="h-4 w-4 text-primary" />
-          Workflow Review — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
+          {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
           {isPaused && (
             <Badge variant="outline" className="ml-2 border-warning text-warning text-[10px]">
               <PauseCircle className="h-3 w-3 mr-1" /> Paused
