@@ -50,6 +50,7 @@ export interface WorkflowApprovalResolution {
   enabled: boolean;
   /** Why it was ON/OFF — useful for the admin diagnostics card */
   reason:
+    | 'attached_active_workflow'
     | 'global_disabled'
     | 'no_matched_workflow'
     | 'workflow_inactive'
@@ -176,6 +177,43 @@ async function matchWorkflowForApplication(
   );
 }
 
+async function resolveAttachedActiveWorkflow(
+  appRow: WorkflowApprovalContext['application'],
+): Promise<{ workflow: { id: string; is_active: boolean; license_type: string }; stepCount: number } | null> {
+  if (!appRow?.id || !appRow?.workflow_id) return null;
+
+  const { data: attachedWorkflow } = await supabase
+    .from('approval_workflows')
+    .select('id, is_active, license_type')
+    .eq('id', appRow.workflow_id)
+    .maybeSingle();
+
+  const workflow = attachedWorkflow as { id: string; is_active: boolean; license_type: string } | null;
+  if (!workflow?.id || !workflow.is_active) return null;
+
+  const { count } = await supabase
+    .from('approval_steps')
+    .select('id', { count: 'exact', head: true })
+    .eq('workflow_id', workflow.id);
+
+  const stepCount = count || 0;
+  if (stepCount === 0) return null;
+
+  const { data: activeInstance } = await supabase
+    .from('workflow_instances')
+    .select('id')
+    .eq('entity_type', 'application')
+    .eq('entity_id', appRow.id)
+    .eq('workflow_id', workflow.id)
+    .in('status', ['active', 'paused'])
+    .limit(1)
+    .maybeSingle();
+
+  if (!activeInstance) return null;
+
+  return { workflow, stepCount };
+}
+
 /**
  * Main entry point — resolve the effective workflow-approval ON/OFF state
  * for an application. Always honours all four authoritative signals.
@@ -192,6 +230,17 @@ export async function resolveWorkflowApproval(
       globalReviewEnabled,
       matchedWorkflow: null,
       stepCount: 0,
+    };
+  }
+
+  const attachedActiveWorkflow = await resolveAttachedActiveWorkflow(ctx.application);
+  if (attachedActiveWorkflow) {
+    return {
+      enabled: true,
+      reason: 'attached_active_workflow',
+      globalReviewEnabled,
+      matchedWorkflow: attachedActiveWorkflow.workflow,
+      stepCount: attachedActiveWorkflow.stepCount,
     };
   }
 
