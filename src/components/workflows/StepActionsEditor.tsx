@@ -261,8 +261,8 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                       <Badge variant="outline" className="text-[10px]">Digital signature</Badge>
                     )}
                     <Badge variant="outline" className="text-[10px]">
-                      → {NEXT_STEP_MODE_LABELS[row.next_step_mode]}
-                      {row.next_step_mode === 'end_workflow' && row.end_state && ` · ${END_STATE_LABELS[row.end_state]}`}
+                      → {NEXT_STEP_MODE_LABELS[row.next_step_mode] || row.next_step_mode || 'Unknown'}
+                      {row.next_step_mode === 'end_workflow' && row.end_state && ` · ${END_STATE_LABELS[row.end_state] || row.end_state}`}
                       {row.next_step_mode === 'specific_step' && row.next_step_id && (
                         ` · ${targetStepOptions.find(s => s.id === row.next_step_id)?.name || '?'}`
                       )}
