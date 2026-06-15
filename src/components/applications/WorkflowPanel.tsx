@@ -868,11 +868,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
                       <Separator />
 
-                      {stepHasNoAllowedActions && noWorkflowActions && (
+                      {noConfiguredActions && (
                         <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                           <div className="space-y-1">
-                            <p className="font-medium text-destructive">No reviewer actions are configured or enabled for this step</p>
+                            <p className="font-medium text-destructive">No actions are configured for this step.</p>
                             <p className="text-xs text-muted-foreground">
                               Ask an administrator to enable at least one action under <em>Edit Steps → Step Actions</em>.
                             </p>
@@ -880,7 +880,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         </div>
                       )}
 
-                      {!stepHasNoAllowedActions && noWorkflowActions && canActResult && (
+                      {!noConfiguredActions && noWorkflowActions && canActResult && (
                         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="space-y-1">
@@ -894,6 +894,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           </div>
                         </div>
                       )}
+
 
                       {remarksBlock}
                       {actionButtons}
