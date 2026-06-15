@@ -56,7 +56,7 @@ describe('per-action workflow permissions', () => {
     expect(labels).toContain('Forward to Next Level');
     expect(labels).not.toContain('Approve');
     expect(labels).toContain('Reject');
-    expect(labels).toContain('Send Back to Junior');
+    expect(labels).toContain('Send Back');
   });
 
   it('final-level approver sees Approve (not Forward) + Reject', () => {
