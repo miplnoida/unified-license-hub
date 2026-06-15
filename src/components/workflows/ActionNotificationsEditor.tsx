@@ -573,7 +573,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
                 {!readOnly && editingRows[getDraftKey(action)] && (() => {
                   const key = getDraftKey(action);
-                  const draft = drafts[key] ?? createDraft(action);
+                  const draft = drafts[key] ?? createDraft(action, entityKind);
                   const roleValue = typeof draft.recipient_config.role === 'string'
                     ? draft.recipient_config.role
                     : typeof draft.recipient_config.role_name === 'string'
@@ -583,7 +583,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     ? draft.recipient_config.email
                     : '';
                   const genericConfigValue = draft.recipient_config_text;
-                  const eventOptions = getEventOptions(action, templates, draft.event_key);
+                  const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
 
                   return (
                     <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
