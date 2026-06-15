@@ -752,10 +752,10 @@ export default function WorkflowList() {
                         <AccordionItem
                           key={wf.id}
                           value={wf.id}
-                          className={`rounded-lg border transition-all ${
+                          className={`rounded-lg border bg-card overflow-hidden transition-all duration-200 ${
                             isSelected
-                              ? 'border-primary bg-primary/5 shadow-sm'
-                              : 'hover:border-primary/40'
+                              ? 'border-primary/50 bg-primary/5 shadow-sm'
+                              : 'hover:border-primary/40 hover:bg-muted/40'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2 pr-3">
