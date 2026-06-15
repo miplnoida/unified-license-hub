@@ -640,7 +640,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             key={a.label}
             variant={a.variant}
             size="sm"
-            onClick={() => handleAction(a.type)}
+            onClick={() => handleAction(a.type, a.requireComments)}
             disabled={processing}
             title={requiresRemarks ? 'Remarks required' : undefined}
           >
