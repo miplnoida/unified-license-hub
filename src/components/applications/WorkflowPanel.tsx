@@ -849,10 +849,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="space-y-1">
-                            <p className="font-medium">You don't have permission to act on this step</p>
+                            <p className="font-medium">You are not authorized to act on this step</p>
                             <p className="text-xs text-muted-foreground">
-                              Required role: <strong>{canActResult.required_role_name || canActResult.required_system_role || stepRoleLabel(s)}</strong>.
-                              {canActResult.reason && <> Reason: {canActResult.reason}.</>}
+                              {(s as any).approver_type === 'specific_users'
+                                ? <>This step is assigned to <strong>{stepRoleLabel(s)}</strong>. Only the assigned user(s) can take action.</>
+                                : <>Required role: <strong>{canActResult.required_role_name || canActResult.required_system_role || stepRoleLabel(s)}</strong>.</>}
+                              {canActResult.reason && canActResult.reason !== 'WRONG_APPROVER' && <> Reason: {canActResult.reason}.</>}
                             </p>
                           </div>
                         </div>
