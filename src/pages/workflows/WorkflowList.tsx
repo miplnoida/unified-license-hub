@@ -906,6 +906,7 @@ export default function WorkflowList() {
                                     onDelete={(id) => deleteStep.mutate(id)}
                                     onMove={handleMove}
                                     onAdd={handleAddStep}
+                                    entityType={selectedWorkflow.entity_type}
                                   />
                                 )}
                               </div>
