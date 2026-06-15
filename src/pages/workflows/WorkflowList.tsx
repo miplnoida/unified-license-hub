@@ -758,11 +758,16 @@ export default function WorkflowList() {
                               : 'hover:border-primary/40 hover:bg-muted/40'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-2 pr-3">
-                            <AccordionTrigger className="flex-1 p-3 hover:no-underline">
+                          <div className="flex flex-wrap items-start justify-between gap-2 pr-4">
+                            <AccordionTrigger className="flex-1 px-4 py-3 hover:no-underline text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                               <div className="flex-1 min-w-0 text-left">
-                                <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
-                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-foreground truncate">{wf.name}</p>
+                                  <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                                    {wf.is_active ? 'On' : 'Off'}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                                   <Badge variant="outline" className="text-[10px]">
                                     {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
                                   </Badge>
@@ -771,13 +776,20 @@ export default function WorkflowList() {
                                       Legacy type
                                     </Badge>
                                   )}
+                                  {wf.sector_id && (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {(sectors as any[]).find(s => s.id === wf.sector_id)?.name}
+                                    </span>
+                                  )}
+                                  {(wf as any).step_count != null && (
+                                    <Badge variant="secondary" className="text-[10px]">
+                                      {(wf as any).step_count} step{(wf as any).step_count === 1 ? '' : 's'}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             </AccordionTrigger>
-                            <div className="flex items-center gap-1 shrink-0 py-3">
-                              <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                                {wf.is_active ? 'On' : 'Off'}
-                              </Badge>
+                            <div className="flex flex-wrap items-center gap-1 shrink-0 py-3">
                               <Button
                                 variant="ghost"
                                 size="sm"
