@@ -108,11 +108,22 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
       const eventKeys = Array.from(new Set(rows.map(r => r.event_key).filter(Boolean)));
       const tplMap = new Map<string, any>();
       const eventTplMap = new Map<string, any>();
-      const { data: tpls } = await supabase
-        .from('notification_templates')
-        .select('id, name, subject, body, channel, is_active, event_type')
-        .or(`id.in.(${templateIds.length ? templateIds.join(',') : '00000000-0000-0000-0000-000000000000'}),event_type.in.(${eventKeys.length ? eventKeys.join(',') : '__none__'})`);
-      (tpls || []).forEach((t: any) => {
+      const [byId, byEvent] = await Promise.all([
+        templateIds.length
+          ? supabase
+              .from('notification_templates')
+              .select('id, name, subject, body, channel, is_active, event_type')
+              .in('id', templateIds)
+          : Promise.resolve({ data: [] as any[] }),
+        eventKeys.length
+          ? supabase
+              .from('notification_templates')
+              .select('id, name, subject, body, channel, is_active, event_type')
+              .in('event_type', eventKeys)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const tpls = [...(byId.data || []), ...(byEvent.data || [])];
+      tpls.forEach((t: any) => {
         tplMap.set(t.id, t);
         if (t.channel === 'email' && t.is_active && !eventTplMap.has(t.event_type)) eventTplMap.set(t.event_type, t);
       });
