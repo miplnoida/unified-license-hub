@@ -633,7 +633,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     <div className="flex gap-2 flex-wrap">
       {actionButtonsList.map(a => {
         const isThisProcessing = processingAction === a.type;
-        const requiresRemarks = REMARKS_REQUIRED_ACTIONS.includes(a.type);
+        const requiresRemarks = a.requireComments;
         return (
           <Button
             key={a.label}
