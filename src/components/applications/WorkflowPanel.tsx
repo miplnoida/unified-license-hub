@@ -351,6 +351,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
   }, [actions, isPaused]);
 
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
+
   // ─── Early-return guards (after ALL hooks above) ───
   if (!workflowId) {
     return (
