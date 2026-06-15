@@ -559,7 +559,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Shield className="h-4 w-4 text-primary" />
-          Workflow Review — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
+          {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {Math.max(currentStepIdx, 0) + 1} of {steps.length}
           {isPaused && (
             <Badge variant="outline" className="ml-2 border-warning text-warning text-[10px]">
               <PauseCircle className="h-3 w-3 mr-1" /> Paused
