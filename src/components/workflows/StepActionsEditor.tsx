@@ -353,6 +353,26 @@ function ActionForm({
     return editingId !== null && used.id === editingId;
   });
 
+  // Existing draft is legacy if its action_type is not in the allowed UI set.
+  const isLegacyDraft = !!editingId && !ALLOWED_UI_ACTION_TYPES.includes(draft.action_type);
+
+  // Defensive: if the saved next_step_id references a step that no longer
+  // exists in this workflow, fall back to 'none' for the Select value.
+  const validNextStepId =
+    draft.next_step_id && targetStepOptions.some(s => s.id === draft.next_step_id)
+      ? draft.next_step_id
+      : null;
+
+  const handleModeChange = (next: NextStepMode) => {
+    // Reset stale fields so we never leave the draft in an inconsistent state.
+    setDraft({
+      ...draft,
+      next_step_mode: next,
+      next_step_id: next === 'specific_step' ? validNextStepId : null,
+      end_state: next === 'end_workflow' ? draft.end_state : null,
+    });
+  };
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -361,10 +381,16 @@ function ActionForm({
           <Select
             value={draft.action_type}
             onValueChange={v => setDraft({ ...draft, action_type: v as WorkflowActionType })}
-            disabled={!!editingId}
+            disabled={isLegacyDraft}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              {/* Keep the current legacy type visible so the Select doesn't render empty */}
+              {isLegacyDraft && (
+                <SelectItem value={draft.action_type} className="text-xs" disabled>
+                  {ACTION_LABELS[draft.action_type] || draft.action_type} (legacy)
+                </SelectItem>
+              )}
               {typeOptions.map(t => (
                 <SelectItem key={t} value={t} className="text-xs">
                   {ACTION_LABELS[t]}
@@ -372,6 +398,11 @@ function ActionForm({
               ))}
             </SelectContent>
           </Select>
+          {isLegacyDraft && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Legacy action type cannot be changed. Delete and recreate with a supported action type.
+            </p>
+          )}
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Action Name</Label>
@@ -403,7 +434,7 @@ function ActionForm({
           <Label className="text-xs text-muted-foreground">What happens next?</Label>
           <Select
             value={draft.next_step_mode}
-            onValueChange={v => setDraft({ ...draft, next_step_mode: v as NextStepMode })}
+            onValueChange={v => handleModeChange(v as NextStepMode)}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -413,6 +444,7 @@ function ActionForm({
             </SelectContent>
           </Select>
         </div>
+
 
         {draft.next_step_mode === 'specific_step' && (
           <div>
