@@ -154,20 +154,21 @@ function actionLabel(actionType: string) {
   return ACTION_LABELS[actionType] || actionType.replace(/_/g, ' ');
 }
 
-function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean): string {
-  if (actionType === 'approve') return isFinalApprove ? 'Application approved.' : 'Application forwarded to the next review step.';
-  if (actionType === 'reject') return 'Application rejected.';
-  if (actionType === 'send_back') return 'Application sent back.';
-  if (actionType === 'escalate') return 'Application escalated.';
+function actionSuccessMessage(actionType: WorkflowActionType, isFinalApprove: boolean, entityNoun: string): string {
+  const Noun = entityNoun.charAt(0).toUpperCase() + entityNoun.slice(1);
+  if (actionType === 'approve') return isFinalApprove ? `${Noun} approved.` : `${Noun} forwarded to the next review step.`;
+  if (actionType === 'reject') return `${Noun} rejected.`;
+  if (actionType === 'send_back') return `${Noun} sent back.`;
+  if (actionType === 'escalate') return `${Noun} escalated.`;
   if (actionType === 'request_resubmission') return 'Resubmission requested.';
-  if (actionType === 'return_for_correction') return 'Application returned for correction.';
+  if (actionType === 'return_for_correction') return `${Noun} returned for correction.`;
   if (actionType === 'request_more_info') return 'More information requested.';
   return `Action recorded: ${actionLabel(actionType)}`;
 }
 
-function remarksRequiredMessage(actionType: WorkflowActionType): string {
+function remarksRequiredMessage(actionType: WorkflowActionType, entityNoun: string): string {
   switch (actionType) {
-    case 'reject': return 'Remarks are required to reject this application.';
+    case 'reject': return `Remarks are required to reject this ${entityNoun}.`;
     case 'request_resubmission': return 'Remarks are required to request resubmission.';
     case 'return_for_correction': return 'Remarks are required to return for correction.';
     case 'request_more_info': return 'Remarks are required to request more information.';
