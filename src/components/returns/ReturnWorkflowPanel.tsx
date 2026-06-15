@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 
 interface CanActResult {
   can_act: boolean;
@@ -91,6 +92,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
   const [processingAction, setProcessingAction] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string } | null>(null);
   const processing = processingAction !== null;
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('returns_management') || hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
@@ -166,12 +168,8 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
 
   if (!isInternal) return null;
 
-  const handleAction = async (actionType: WorkflowActionType) => {
+  const executeAction = async (actionType: WorkflowActionType, overrides: ActionNotificationOverride[] = []) => {
     if (!user || !activeInstance || !currentStep) return;
-    if (isRemarksRequired(actionType) && !comment.trim()) {
-      toast.error('Remarks are mandatory for this action.');
-      return;
-    }
     setProcessingAction(actionType);
     try {
       const { data, error } = await supabase.functions.invoke('perform-return-workflow-action', {
@@ -181,6 +179,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           step_id: currentStep.id,
           action_type: actionType,
           comments: comment,
+          notification_overrides: overrides,
         },
       });
       if (error) {
@@ -198,6 +197,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       if (data?.error) { toast.error(data.error); return; }
       toast.success(`Action recorded: ${actionType.replace(/_/g, ' ')}`);
       setComment('');
+      setPreviewState(null);
       queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
       queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       queryClient.invalidateQueries({ queryKey: ['returns_filed'] });
@@ -210,6 +210,15 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
     } finally {
       setProcessingAction(null);
     }
+  };
+
+  const handleAction = (actionType: WorkflowActionType, label: string) => {
+    if (!user || !activeInstance || !currentStep) return;
+    if (isRemarksRequired(actionType) && !comment.trim()) {
+      toast.error('Remarks are mandatory for this action.');
+      return;
+    }
+    setPreviewState({ actionType, label });
   };
 
   type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
@@ -277,7 +286,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           <div className="flex flex-col gap-2">
             {actions.map(a => (
               <Button key={a.label} variant={a.variant} disabled={processing}
-                onClick={() => handleAction(a.type)}>
+                onClick={() => handleAction(a.type, a.label)}>
                 {processingAction === a.type ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : a.icon}
                 {a.label}
               </Button>
@@ -285,6 +294,22 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           </div>
         )}
       </CardContent>
+
+      {previewState && currentStep && (
+        <WorkflowActionPreviewDialog
+          open={!!previewState}
+          onOpenChange={(v) => { if (!v) setPreviewState(null); }}
+          stepId={currentStep.id}
+          actionType={previewState.actionType}
+          actionLabel={previewState.label}
+          comments={comment}
+          entityType="return"
+          entityId={returnId}
+          actorName={user?.email || null}
+          processing={processing}
+          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+        />
+      )}
     </Card>
   );
 }
