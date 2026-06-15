@@ -325,6 +325,9 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                       : '';
                     const genericConfigValue = draft.recipient_config_text;
                     const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
+                    const templateOptions = templates.filter((t) => (
+                      t.channel === 'email' && (t.event_type === draft.event_key || t.id === row.template_id)
+                    ));
 
                     return (
                       <div key={row.id} className="rounded-md border bg-muted/20 p-3 space-y-3">
@@ -445,7 +448,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pick template" /></SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none" className="text-xs">— Use event default —</SelectItem>
-                                    {templates.map((t) => (
+                                    {templateOptions.map((t) => (
                                       <SelectItem key={t.id} value={t.id} className="text-xs">
                                         {t.name}
                                       </SelectItem>
@@ -594,6 +597,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                     : '';
                   const genericConfigValue = draft.recipient_config_text;
                   const eventOptions = getEventOptions(action, entityKind, templates, draft.event_key);
+                  const templateOptions = templates.filter((t) => t.channel === 'email' && t.event_type === draft.event_key);
 
                   return (
                     <div className="rounded-md border border-dashed bg-muted/20 p-3 space-y-3">
@@ -655,7 +659,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
                               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pick template" /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="none" className="text-xs">— Use event default —</SelectItem>
-                                {templates.map((t) => (
+                                {templateOptions.map((t) => (
                                   <SelectItem key={t.id} value={t.id} className="text-xs">
                                     {t.name}
                                   </SelectItem>
