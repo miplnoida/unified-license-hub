@@ -513,9 +513,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     requireComments: boolean;
   };
 
+  // Fallback labels mirror action_type 1:1. We NEVER silently rename "approve"
+  // to "Forward to Next Level" — if admins want a custom label they must set
+  // approval_step_actions.label explicitly.
   const fallbackLabel = (type: WorkflowActionType): string => {
     switch (type) {
-      case 'approve': return isLastLevel ? 'Approve' : 'Forward to Next Level';
+      case 'approve': return 'Approve';
       case 'reject': return 'Reject';
       case 'send_back': return 'Send Back';
       case 'escalate': return 'Escalate';
@@ -527,13 +530,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
   const iconFor = (type: WorkflowActionType): React.ReactNode => {
     switch (type) {
-      case 'approve': return isLastLevel
-        ? <CheckCircle className="h-4 w-4 mr-1" />
-        : <ArrowRight className="h-4 w-4 mr-1" />;
+      case 'approve': return <CheckCircle className="h-4 w-4 mr-1" />;
       case 'reject': return <XCircle className="h-4 w-4 mr-1" />;
       case 'send_back': return <ArrowDown className="h-4 w-4 mr-1" />;
       case 'escalate': return <ArrowUp className="h-4 w-4 mr-1" />;
-      default: return <ArrowDown className="h-4 w-4 mr-1" />;
+      default: return <ArrowRight className="h-4 w-4 mr-1" />;
     }
   };
   const variantFor = (type: WorkflowActionType): 'default' | 'destructive' | 'outline' =>
