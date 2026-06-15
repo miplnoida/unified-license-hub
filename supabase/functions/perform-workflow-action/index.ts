@@ -70,6 +70,16 @@ export async function handler(req: Request): Promise<Response> {
     const instance_id: string | undefined = body.instance_id;
     const raw_action: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    // Optional per-binding subject/body overrides supplied from the reviewer's
+    // email preview dialog. Shape: [{ binding_id, subject, body }].
+    const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
+      Array.isArray(body.notification_overrides) ? body.notification_overrides : [];
+    const overrideMap = new Map<string, { subject?: string; body?: string }>();
+    for (const o of notification_overrides) {
+      if (o && typeof o.binding_id === "string") {
+        overrideMap.set(o.binding_id, { subject: o.subject, body: o.body });
+      }
+    }
 
     if (!application_id) return errorResponse(req, 400, "application_id is required", "BAD_REQUEST");
     if (!raw_action || !ACCEPTED_ACTIONS.has(raw_action)) {
