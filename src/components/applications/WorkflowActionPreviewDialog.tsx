@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertTriangle, Loader2, Mail, RotateCcw, Send } from 'lucide-react';
-import { RECIPIENT_LABELS, type ActionNotificationRecipientType } from '@/hooks/useActionNotifications';
+import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
 
 export interface ActionNotificationOverride {
@@ -41,7 +41,7 @@ interface Props {
   actionType: WorkflowActionType;
   actionLabel: string;
   comments: string;
-  entityType: 'application' | 'registration';
+  entityType: WorkflowEntityKind;
   entityId: string;
   /** Display name of the actor (for {{actor_name}} substitution). */
   actorName?: string | null;
@@ -58,7 +58,20 @@ interface BindingRow {
   recipient_config: Record<string, any> | null;
   template_id: string | null;
   is_enabled: boolean;
-  template?: { id: string; name: string; subject: string | null; body: string; channel: string } | null;
+  template?: { id: string; name: string; subject: string | null; body: string; channel: string; is_active: boolean } | null;
+  template_found?: boolean;
+  template_active?: boolean;
+  template_id_was_null?: boolean;
+}
+
+interface BindingDiagnostic {
+  currentStepId: string;
+  actionType: WorkflowActionType;
+  entityType: WorkflowEntityKind;
+  expectedEventKey: string;
+  foundApprovalActionNotificationsCount: number;
+  templateIdIsNull: boolean;
+  templateExistsAndActive: boolean;
 }
 
 /** Minimal `{{token}}` substitution mirroring the dispatch render function. */
@@ -75,11 +88,13 @@ function render(template: string | null | undefined, vars: Record<string, any>):
   });
 }
 
-function useBindings(stepId: string, actionType: WorkflowActionType) {
+function useBindings(stepId: string, actionType: WorkflowActionType, entityType: WorkflowEntityKind) {
   return useQuery({
-    queryKey: ['preview_action_bindings', stepId, actionType],
+    queryKey: ['preview_action_bindings', stepId, actionType, entityType],
     enabled: !!stepId,
-    queryFn: async (): Promise<BindingRow[]> => {
+    queryFn: async (): Promise<{ bindings: BindingRow[]; diagnostic: BindingDiagnostic }> => {
+      const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+      const prefix = `${entityType}.`;
       const { data, error } = await supabase
         .from('approval_action_notifications' as any)
         .select('id, step_id, action_type, event_key, recipient_type, recipient_config, template_id, is_enabled')
@@ -87,22 +102,50 @@ function useBindings(stepId: string, actionType: WorkflowActionType) {
         .eq('action_type', actionType)
         .eq('is_enabled', true);
       if (error) throw error;
-      const rows = (data ?? []) as unknown as BindingRow[];
+      const allRows = (data ?? []) as unknown as BindingRow[];
+      const rows = allRows.filter(r => r.event_key === expectedEventKey || r.event_key?.startsWith(prefix));
       const templateIds = Array.from(new Set(rows.map(r => r.template_id).filter((x): x is string => !!x)));
-      if (templateIds.length === 0) return rows.map(r => ({ ...r, template: null }));
+      const eventKeys = Array.from(new Set(rows.map(r => r.event_key).filter(Boolean)));
+      const tplMap = new Map<string, any>();
+      const eventTplMap = new Map<string, any>();
       const { data: tpls } = await supabase
         .from('notification_templates')
-        .select('id, name, subject, body, channel')
-        .in('id', templateIds);
-      const tplMap = new Map<string, any>();
-      (tpls || []).forEach((t: any) => tplMap.set(t.id, t));
-      return rows.map(r => ({ ...r, template: r.template_id ? (tplMap.get(r.template_id) ?? null) : null }));
+        .select('id, name, subject, body, channel, is_active, event_type')
+        .or(`id.in.(${templateIds.length ? templateIds.join(',') : '00000000-0000-0000-0000-000000000000'}),event_type.in.(${eventKeys.length ? eventKeys.join(',') : '__none__'})`);
+      (tpls || []).forEach((t: any) => {
+        tplMap.set(t.id, t);
+        if (t.channel === 'email' && t.is_active && !eventTplMap.has(t.event_type)) eventTplMap.set(t.event_type, t);
+      });
+      const resolved = rows.map(r => {
+        const direct = r.template_id ? (tplMap.get(r.template_id) ?? null) : null;
+        const fallback = eventTplMap.get(r.event_key) ?? null;
+        const template = direct && direct.channel === 'email' && direct.is_active ? direct : fallback;
+        return {
+          ...r,
+          template,
+          template_found: !!template,
+          template_active: !!template?.is_active,
+          template_id_was_null: !r.template_id,
+        };
+      }).filter(r => r.template?.channel === 'email' && r.template?.is_active);
+      return {
+        bindings: resolved,
+        diagnostic: {
+          currentStepId: stepId,
+          actionType,
+          entityType,
+          expectedEventKey,
+          foundApprovalActionNotificationsCount: rows.length,
+          templateIdIsNull: rows.some(r => !r.template_id),
+          templateExistsAndActive: resolved.length > 0,
+        },
+      };
     },
     staleTime: 30_000,
   });
 }
 
-function useEntityPreviewData(entityType: 'application' | 'registration', entityId: string) {
+function useEntityPreviewData(entityType: WorkflowEntityKind, entityId: string) {
   return useQuery({
     queryKey: ['preview_entity_vars', entityType, entityId],
     enabled: !!entityId,
@@ -119,6 +162,21 @@ function useEntityPreviewData(entityType: 'application' | 'registration', entity
           applicant_email: (data as any)?.primary_email || '',
           applicant_name: (data as any)?.applicant_name || (data as any)?.business_name || '',
           status: (data as any)?.status || '',
+        };
+      }
+      if (entityType === 'return') {
+        const { data } = await supabase
+          .from('returns_filed')
+          .select('id, unique_id, status, workflow_status, return_year, return_period')
+          .eq('id', entityId)
+          .maybeSingle();
+        return {
+          return_id: entityId,
+          return_name: (data as any)?.unique_id || entityId,
+          entity_name: 'Licensee',
+          period: (data as any)?.return_period || '',
+          year: (data as any)?.return_year || '',
+          status: (data as any)?.workflow_status || (data as any)?.status || '',
         };
       }
       const { data } = await supabase
