@@ -102,12 +102,16 @@ type NotificationRowDraft = {
   is_enabled: boolean;
 };
 
-function createDraft(action: WorkflowActionType, row?: ActionNotification): NotificationRowDraft {
+function createDraft(
+  action: WorkflowActionType,
+  entityKind: WorkflowEntityKind,
+  row?: ActionNotification,
+): NotificationRowDraft {
   const recipientConfig = normalizeRecipientConfig(row?.recipient_type ?? 'applicant', row?.recipient_config ?? {});
   return {
     id: row?.id,
     action_type: action,
-    event_key: row?.event_key ?? DEFAULT_EVENT_FOR_ACTION[action],
+    event_key: row?.event_key ?? getDefaultEventForAction(action, entityKind),
     recipient_type: row?.recipient_type ?? 'applicant',
     recipient_config: recipientConfig,
     recipient_config_text: JSON.stringify(recipientConfig, null, 2),
@@ -133,15 +137,22 @@ function formatEventLabel(eventKey: string) {
 
 function getEventOptions(
   action: WorkflowActionType,
+  entityKind: WorkflowEntityKind,
   templates: Array<{ event_type: string }>,
   currentEventKey?: string | null,
 ) {
+  const prefix = `${entityKind}.`;
   const options = new Set<string>([
-    DEFAULT_EVENT_FOR_ACTION[action],
-    ...templates.map((template) => template.event_type).filter(Boolean),
+    getDefaultEventForAction(action, entityKind),
+    // Include all labelled events for this entity kind so admins can pick e.g.
+    // a generic "workflow_action_taken" template even when it isn't the default.
+    ...Object.keys(EVENT_LABELS).filter((k) => k.startsWith(prefix)),
+    // Templates whose event_type matches this entity kind become selectable too.
+    ...templates.map((template) => template.event_type).filter((k) => k && k.startsWith(prefix)),
   ]);
 
   if (currentEventKey?.trim()) {
+    // Preserve whatever is currently saved, even if it's cross-entity legacy data.
     options.add(currentEventKey.trim());
   }
 
@@ -153,7 +164,8 @@ function getEventOptions(
     }));
 }
 
-export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = false }: Props) {
+export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = false, entityType }: Props) {
+  const entityKind = resolveEntityKind(entityType);
   const { data: rows = [], isLoading } = useActionNotifications(stepId);
   const { data: templates = [] } = useNotificationTemplates();
   const { data: roles = [] } = useRoles();
