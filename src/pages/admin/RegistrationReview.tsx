@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Eye } from 'lucide-react';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 interface PendingRegistration {
   id: string;
