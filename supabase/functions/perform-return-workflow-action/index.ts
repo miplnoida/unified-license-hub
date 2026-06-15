@@ -48,6 +48,14 @@ Deno.serve(async (req) => {
     const instance_id: string | undefined = body.instance_id;
     const action_type: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
+      Array.isArray(body.notification_overrides) ? body.notification_overrides : [];
+    const overrideMap = new Map<string, { subject?: string; body?: string }>();
+    for (const o of notification_overrides) {
+      if (o && typeof o.binding_id === "string") {
+        overrideMap.set(o.binding_id, { subject: o.subject, body: o.body });
+      }
+    }
 
     if (!return_id) return errorResponse(req, 400, "return_id is required", "BAD_REQUEST");
     if (!action_type || !ACCEPTED_ACTIONS.has(action_type)) {
@@ -126,13 +134,14 @@ Deno.serve(async (req) => {
       if (step_id) {
         const { data: cfgRows } = await admin
           .from("approval_action_notifications")
-          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .select("id, event_key, recipient_type, recipient_config, template_id, is_enabled")
           .eq("step_id", step_id)
           .eq("action_type", action_type)
           .eq("is_enabled", true);
 
         for (const row of (cfgRows ?? [])) {
           try {
+            const override = overrideMap.get((row as any).id);
             await admin.functions.invoke("dispatch-notification-event", {
               body: {
                 event_key: (row as any).event_key,
@@ -144,6 +153,9 @@ Deno.serve(async (req) => {
                   template_id: (row as any).template_id,
                   recipient_type: (row as any).recipient_type,
                   recipient_config: (row as any).recipient_config,
+                  binding_id: (row as any).id,
+                  subject_override: override?.subject,
+                  body_override: override?.body,
                 },
               },
             });
