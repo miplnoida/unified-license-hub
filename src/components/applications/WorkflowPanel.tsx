@@ -327,27 +327,35 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const handleAction = async (actionType: WorkflowActionType) => {
     if (!user || !activeInstance || !currentStep) return;
     if (isRemarksRequired(actionType) && !comment.trim()) {
-      toast.error(remarksRequiredMessage(actionType));
+      toast.error(remarksRequiredMessage(actionType, entityNoun));
       return;
     }
     setProcessingAction(actionType);
     try {
-      const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
-        body: {
-          application_id: applicationId,
-          instance_id: activeInstance.id,
-          step_id: currentStep.id,
-          action_type: actionType,
-          comments: comment,
-        },
-      });
+      const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
+      const body: Record<string, unknown> = entityType === 'registration'
+        ? {
+            registration_id: applicationId,
+            instance_id: activeInstance.id,
+            step_id: currentStep.id,
+            action_type: actionType,
+            comments: comment,
+          }
+        : {
+            application_id: applicationId,
+            instance_id: activeInstance.id,
+            step_id: currentStep.id,
+            action_type: actionType,
+            comments: comment,
+          };
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
       if (error) {
         let serverMsg = error.message || 'Action failed';
         try {
           const ctx = (error as any).context;
           if (ctx && typeof ctx.json === 'function') {
-            const body = await ctx.json();
-            if (body?.error) serverMsg = body.error;
+            const eb = await ctx.json();
+            if (eb?.error) serverMsg = eb.error;
           }
         } catch { /* ignore */ }
         toast.error(serverMsg);
@@ -355,7 +363,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       }
       if (data?.error) { toast.error(data.error); return; }
 
-      if (actionType === 'approve' && isLastLevel) {
+      if (entityType === 'application' && actionType === 'approve' && isLastLevel) {
         setApprovalResult({
           license_number: data.license_number,
           web_user_email: data.web_user_email,
@@ -365,14 +373,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         });
         toast.success(data.message || `Application approved! License: ${data.license_number || ''}`.trim());
       } else {
-        toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel));
+        toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel, entityNoun));
       }
       setComment('');
       // Invalidate all related queries (instance + history + permissions)
       queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
       queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       queryClient.invalidateQueries({ queryKey: ['user_can_act_on_workflow_step'] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: entityType === 'registration' ? ['registrations'] : ['applications'] });
       onStatusChange?.();
     } catch (err: any) {
       toast.error(err?.message || 'Action failed');
