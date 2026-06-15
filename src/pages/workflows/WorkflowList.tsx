@@ -1195,6 +1195,7 @@ function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEdit
               onUpdate={onUpdate}
               onDelete={onDelete}
               onMove={onMove}
+              entityType={entityType}
             />
           </div>
         ))
