@@ -408,9 +408,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const canRequestMoreInfo = !!canActResult?.can_request_more_info && !isPaused;
   const permissionsUnknown = activeInstance && canActResult === null;
 
-  const handleAction = async (actionType: WorkflowActionType) => {
+  const handleAction = async (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
     if (!user || !activeInstance || !currentStep) return;
-    if (isRemarksRequired(actionType) && !comment.trim()) {
+    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
+    if (requiresRemarks && !comment.trim()) {
       toast.error(remarksRequiredMessage(actionType, entityNoun));
       return;
     }
