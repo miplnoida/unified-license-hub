@@ -396,16 +396,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   }
 
-  // Per-action permissions (backend authoritative).
+  // Per-action permissions (backend authoritative). The granular flags
+  // (can_approve, can_reject, …) are consumed inside the dynamic button
+  // builder below via `canByType` — they are not pulled out as standalone
+  // locals to avoid drift.
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
-  const canReject = !!canActResult?.can_reject && !isPaused;
-  const canForward = !!canActResult?.can_forward && !isPaused;
-  const canApprove = !!canActResult?.can_approve && !isPaused;
-  const canSendBack = !!canActResult?.can_send_back && !isPaused;
-  const canEscalate = !!canActResult?.can_escalate && !isPaused;
-  const canRequestResubmission = !!canActResult?.can_request_resubmission && !isPaused;
-  const canReturnForCorrection = !!canActResult?.can_return_for_correction && !isPaused;
-  const canRequestMoreInfo = !!canActResult?.can_request_more_info && !isPaused;
   const permissionsUnknown = activeInstance && canActResult === null;
 
   const handleAction = async (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
