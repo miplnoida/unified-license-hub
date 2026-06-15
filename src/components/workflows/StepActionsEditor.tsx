@@ -272,14 +272,17 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                         Status → {row.result_status_override}
                       </Badge>
                     )}
-                    <div className="ml-auto flex items-center gap-1">
-                      <label className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Checkbox
+                    <div className="ml-auto flex items-center gap-2">
+                      <label
+                        className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer"
+                        title="When enabled, reviewers can use this action at this step. When disabled, the action is hidden during review."
+                      >
+                        <Switch
                           checked={row.is_enabled}
                           onCheckedChange={v => toggleEnabled(row, !!v)}
-                          aria-label="Enabled"
+                          aria-label="Available to reviewer"
                         />
-                        Enabled
+                        <span>Available to reviewer</span>
                       </label>
                       <Button
                         size="icon" variant="ghost" className="h-7 w-7"
