@@ -182,11 +182,23 @@ export const SUPPORTED_ACTION_TYPES: WorkflowActionType[] = [
 
 /**
  * Action types that admins can pick from the Workflow Builder UI.
- * Restricted to the three primary approval outcomes per product requirement.
- * Legacy rows in approval_step_actions with other action_type values continue
- * to load and execute at runtime — they only disappear from the picker.
+ * Mirrors SUPPORTED_ACTION_TYPES — every runtime-supported action is
+ * configurable. New steps default to approve / reject / send_back
+ * (see DEFAULT_STEP_ACTION_TYPES), but admins can add any supported
+ * action where not already configured.
  */
 export const ALLOWED_UI_ACTION_TYPES: WorkflowActionType[] = [
+  'approve',
+  'reject',
+  'send_back',
+  'escalate',
+  'request_resubmission',
+  'return_for_correction',
+  'request_more_info',
+];
+
+/** Default action types seeded for a brand-new step. */
+export const DEFAULT_STEP_ACTION_TYPES: WorkflowActionType[] = [
   'approve',
   'reject',
   'send_back',
