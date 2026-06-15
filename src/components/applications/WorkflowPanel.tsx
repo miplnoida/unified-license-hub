@@ -577,9 +577,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     .sort((a, b) => (a.sort_order - b.sort_order) || a.action_type.localeCompare(b.action_type));
 
   const actionButtonsList: ActionDef[] = [];
-  if (enabledConfigured.length > 0) {
-    // Dedupe by action_type (first wins) so a single configured action_type
-    // never renders twice.
+  // Strict config-driven rendering. Buttons are ONLY rendered when there is an
+  // enabled row in `approval_step_actions` for the current step. No static /
+  // legacy fallback — if nothing is configured, the panel shows
+  // "No actions are configured for this step." (see render below).
+  {
     const seen = new Set<WorkflowActionType>();
     for (const row of enabledConfigured) {
       const type = row.action_type as WorkflowActionType;
@@ -594,32 +596,16 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         requireComments: !!row.require_comments,
       });
     }
-  } else {
-    // Legacy fallback: no per-action config rows configured for this step.
-    // Mirror prior behavior using canActResult flags directly.
-    // Legacy fallback: no per-action config rows for this step. Mirror prior
-    // behavior using canActResult flags, but use neutral fallback labels.
-    if (canByType.approve) {
-      actionButtonsList.push({ type: 'approve', label: fallbackLabel('approve'), icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
-    }
-    (['reject','send_back','escalate','request_resubmission','return_for_correction','request_more_info'] as WorkflowActionType[]).forEach(t => {
-      if (canByType[t]) {
-        actionButtonsList.push({
-          type: t,
-          label: fallbackLabel(t),
-          icon: iconFor(t),
-          variant: variantFor(t),
-          requireComments: REMARKS_REQUIRED_ACTIONS.includes(t),
-        });
-      }
-    });
   }
 
 
+
   const noWorkflowActions = actionButtonsList.length === 0;
+  const noConfiguredActions = enabledConfigured.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
   const anyRemarksRequired = actionButtonsList.some(a => a.requireComments);
   const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
+
 
   // Dev-only diagnostic so admins can see exactly why an action is/isn't
   // visible. Logs configured rows, backend allowed_actions, per-type can_*
@@ -882,11 +868,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
                       <Separator />
 
-                      {stepHasNoAllowedActions && noWorkflowActions && (
+                      {noConfiguredActions && (
                         <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                           <div className="space-y-1">
-                            <p className="font-medium text-destructive">No reviewer actions are configured or enabled for this step</p>
+                            <p className="font-medium text-destructive">No actions are configured for this step.</p>
                             <p className="text-xs text-muted-foreground">
                               Ask an administrator to enable at least one action under <em>Edit Steps → Step Actions</em>.
                             </p>
@@ -894,7 +880,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         </div>
                       )}
 
-                      {!stepHasNoAllowedActions && noWorkflowActions && canActResult && (
+                      {!noConfiguredActions && noWorkflowActions && canActResult && (
                         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="space-y-1">
@@ -908,6 +894,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           </div>
                         </div>
                       )}
+
 
                       {remarksBlock}
                       {actionButtons}
