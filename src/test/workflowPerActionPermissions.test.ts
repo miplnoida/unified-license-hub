@@ -26,8 +26,9 @@ function buildButtonLabels(f: CanActFlags): string[] {
   if (f.can_forward) out.push('Forward to Next Level');
   if (f.can_approve) out.push('Approve');
   if (f.can_reject) out.push('Reject');
-  if (f.can_send_back) out.push('Send Back to Junior');
-  if (f.can_escalate) out.push('Escalate to Senior');
+  if (f.can_send_back) out.push('Send Back');
+  if (f.can_escalate) out.push('Escalate');
+
   if (f.can_request_resubmission) out.push('Request Resubmission');
   if (f.can_return_for_correction) out.push('Return for Correction');
   if (f.can_request_more_info) out.push('Request More Information');
