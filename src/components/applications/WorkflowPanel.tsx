@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 
 interface CanActResult {
   can_act: boolean;
@@ -254,6 +255,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const isPaused = !activeInstance && !!pausedInstance;
 
   const { data: canActResult } = useCanActOnStep(user?.id, activeInstance ? currentStep?.id : undefined);
+  const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 
   const actorIds = useMemo(() => actions.map(a => a.actor_id).filter((x): x is string => !!x), [actions]);
@@ -394,21 +396,17 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   }
 
-  // Per-action permissions (backend authoritative).
+  // Per-action permissions (backend authoritative). The granular flags
+  // (can_approve, can_reject, …) are consumed inside the dynamic button
+  // builder below via `canByType` — they are not pulled out as standalone
+  // locals to avoid drift.
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
-  const canReject = !!canActResult?.can_reject && !isPaused;
-  const canForward = !!canActResult?.can_forward && !isPaused;
-  const canApprove = !!canActResult?.can_approve && !isPaused;
-  const canSendBack = !!canActResult?.can_send_back && !isPaused;
-  const canEscalate = !!canActResult?.can_escalate && !isPaused;
-  const canRequestResubmission = !!canActResult?.can_request_resubmission && !isPaused;
-  const canReturnForCorrection = !!canActResult?.can_return_for_correction && !isPaused;
-  const canRequestMoreInfo = !!canActResult?.can_request_more_info && !isPaused;
   const permissionsUnknown = activeInstance && canActResult === null;
 
-  const handleAction = async (actionType: WorkflowActionType) => {
+  const handleAction = async (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
     if (!user || !activeInstance || !currentStep) return;
-    if (isRemarksRequired(actionType) && !comment.trim()) {
+    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
+    if (requiresRemarks && !comment.trim()) {
       toast.error(remarksRequiredMessage(actionType, entityNoun));
       return;
     }
@@ -504,26 +502,102 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     }
   };
 
-  // Build action buttons — collapse Forward vs Approve so only ONE approve-type button appears.
-  type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
+  // ─── Build action buttons from configured `approval_step_actions` rows
+  //     (enabled only), intersected with backend per-action permissions.
+  //     Falls back to legacy hardcoded buttons only when NO config rows exist.
+  type ActionDef = {
+    type: WorkflowActionType;
+    label: string;
+    icon: React.ReactNode;
+    variant: 'default' | 'destructive' | 'outline';
+    requireComments: boolean;
+  };
+
+  const fallbackLabel = (type: WorkflowActionType): string => {
+    switch (type) {
+      case 'approve': return isLastLevel ? 'Approve' : 'Forward to Next Level';
+      case 'reject': return 'Reject';
+      case 'send_back': return 'Send Back';
+      case 'escalate': return 'Escalate';
+      case 'request_resubmission': return 'Request Resubmission';
+      case 'return_for_correction': return 'Return for Correction';
+      case 'request_more_info': return 'Request More Information';
+      default: return type;
+    }
+  };
+  const iconFor = (type: WorkflowActionType): React.ReactNode => {
+    switch (type) {
+      case 'approve': return isLastLevel
+        ? <CheckCircle className="h-4 w-4 mr-1" />
+        : <ArrowRight className="h-4 w-4 mr-1" />;
+      case 'reject': return <XCircle className="h-4 w-4 mr-1" />;
+      case 'send_back': return <ArrowDown className="h-4 w-4 mr-1" />;
+      case 'escalate': return <ArrowUp className="h-4 w-4 mr-1" />;
+      default: return <ArrowDown className="h-4 w-4 mr-1" />;
+    }
+  };
+  const variantFor = (type: WorkflowActionType): 'default' | 'destructive' | 'outline' =>
+    type === 'reject' ? 'destructive' : type === 'approve' ? 'default' : 'outline';
+
+  const canByType: Record<WorkflowActionType, boolean> = {
+    approve: (!!canActResult?.can_approve || !!canActResult?.can_forward) && !isPaused,
+    reject: !!canActResult?.can_reject && !isPaused,
+    send_back: !!canActResult?.can_send_back && !isPaused,
+    escalate: !!canActResult?.can_escalate && !isPaused,
+    request_resubmission: !!canActResult?.can_request_resubmission && !isPaused,
+    return_for_correction: !!canActResult?.can_return_for_correction && !isPaused,
+    request_more_info: !!canActResult?.can_request_more_info && !isPaused,
+  };
+
+  const enabledConfigured = (configuredStepActions as StepAction[])
+    .filter(a => a.is_enabled)
+    .slice()
+    .sort((a, b) => (a.sort_order - b.sort_order) || a.action_type.localeCompare(b.action_type));
+
   const actionButtonsList: ActionDef[] = [];
-  // Approve / Forward — only one, never both.
-  if (canApprove && isLastLevel) {
-    actionButtonsList.push({ type: 'approve', label: 'Approve', icon: <CheckCircle className="h-4 w-4 mr-1" />, variant: 'default' });
-  } else if (canForward || (canApprove && !isLastLevel)) {
-    actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: <ArrowRight className="h-4 w-4 mr-1" />, variant: 'default' });
+  if (enabledConfigured.length > 0) {
+    // Dedupe by action_type (first wins) so a single configured action_type
+    // never renders twice.
+    const seen = new Set<WorkflowActionType>();
+    for (const row of enabledConfigured) {
+      const type = row.action_type as WorkflowActionType;
+      if (seen.has(type)) continue;
+      seen.add(type);
+      if (!canByType[type]) continue;
+      actionButtonsList.push({
+        type,
+        label: row.label?.trim() || fallbackLabel(type),
+        icon: iconFor(type),
+        variant: variantFor(type),
+        requireComments: !!row.require_comments,
+      });
+    }
+  } else {
+    // Legacy fallback: no per-action config rows configured for this step.
+    // Mirror prior behavior using canActResult flags directly.
+    if (canByType.approve && isLastLevel) {
+      actionButtonsList.push({ type: 'approve', label: 'Approve', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    } else if (canByType.approve) {
+      actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    }
+    (['reject','send_back','escalate','request_resubmission','return_for_correction','request_more_info'] as WorkflowActionType[]).forEach(t => {
+      if (canByType[t]) {
+        actionButtonsList.push({
+          type: t,
+          label: fallbackLabel(t),
+          icon: iconFor(t),
+          variant: variantFor(t),
+          requireComments: REMARKS_REQUIRED_ACTIONS.includes(t),
+        });
+      }
+    });
   }
-  if (canReject)              actionButtonsList.push({ type: 'reject',               label: 'Reject',                  icon: <XCircle className="h-4 w-4 mr-1" />,     variant: 'destructive' });
-  if (canSendBack)            actionButtonsList.push({ type: 'send_back',            label: 'Send Back to Junior',     icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canEscalate)            actionButtonsList.push({ type: 'escalate',             label: 'Escalate to Senior',      icon: <ArrowUp className="h-4 w-4 mr-1" />,     variant: 'outline' });
-  if (canRequestResubmission) actionButtonsList.push({ type: 'request_resubmission', label: 'Request Resubmission',    icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canReturnForCorrection) actionButtonsList.push({ type: 'return_for_correction',label: 'Return for Correction',   icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
-  if (canRequestMoreInfo)     actionButtonsList.push({ type: 'request_more_info',    label: 'Request More Information',icon: <ArrowDown className="h-4 w-4 mr-1" />,   variant: 'outline' });
+
 
   const noWorkflowActions = actionButtonsList.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
-  const anyRemarksRequired = actionButtonsList.some(a => REMARKS_REQUIRED_ACTIONS.includes(a.type));
-  const remarksRequiredLabels = actionButtonsList.filter(a => REMARKS_REQUIRED_ACTIONS.includes(a.type)).map(a => a.label);
+  const anyRemarksRequired = actionButtonsList.some(a => a.requireComments);
+  const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
 
   const remarksBlock = !isPaused && (canAddRemark || !noWorkflowActions) && (
     <div className="space-y-2">
@@ -555,13 +629,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     <div className="flex gap-2 flex-wrap">
       {actionButtonsList.map(a => {
         const isThisProcessing = processingAction === a.type;
-        const requiresRemarks = REMARKS_REQUIRED_ACTIONS.includes(a.type);
+        const requiresRemarks = a.requireComments;
         return (
           <Button
             key={a.label}
             variant={a.variant}
             size="sm"
-            onClick={() => handleAction(a.type)}
+            onClick={() => handleAction(a.type, a.requireComments)}
             disabled={processing}
             title={requiresRemarks ? 'Remarks required' : undefined}
           >
@@ -770,10 +844,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
                           <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="space-y-1">
-                            <p className="font-medium">You don't have permission to act on this step</p>
+                            <p className="font-medium">You are not authorized to act on this step</p>
                             <p className="text-xs text-muted-foreground">
-                              Required role: <strong>{canActResult.required_role_name || canActResult.required_system_role || stepRoleLabel(s)}</strong>.
-                              {canActResult.reason && <> Reason: {canActResult.reason}.</>}
+                              {(s as any).approver_type === 'specific_users'
+                                ? <>This step is assigned to <strong>{stepRoleLabel(s)}</strong>. Only the assigned user(s) can take action.</>
+                                : <>Required role: <strong>{canActResult.required_role_name || canActResult.required_system_role || stepRoleLabel(s)}</strong>.</>}
+                              {canActResult.reason && canActResult.reason !== 'WRONG_APPROVER' && <> Reason: {canActResult.reason}.</>}
                             </p>
                           </div>
                         </div>
