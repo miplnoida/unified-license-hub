@@ -1649,7 +1649,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
             <StepEntryNotificationsEditor stepId={step.id} />
 
             {/* Per-action editor (replaces legacy allowed_actions checkboxes) */}
-            <StepActionsEditor step={step} siblingSteps={siblingSteps} />
+            <StepActionsEditor step={step} siblingSteps={siblingSteps} entityType={entityType} />
           </div>
         )}
 
