@@ -200,7 +200,7 @@ export function ActionNotificationsEditor({ stepId, allowedActions, readOnly = f
 
   const startEditing = (action: WorkflowActionType, row?: ActionNotification) => {
     const key = getDraftKey(action, row?.id);
-    setDraft(key, createDraft(action, row));
+    setDraft(key, createDraft(action, entityKind, row));
     setEditingRows((prev) => ({ ...prev, [key]: true }));
   };
 
