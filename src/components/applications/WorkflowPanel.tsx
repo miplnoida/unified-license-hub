@@ -601,9 +601,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
 
   const noWorkflowActions = actionButtonsList.length === 0;
+  const noConfiguredActions = enabledConfigured.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
   const anyRemarksRequired = actionButtonsList.some(a => a.requireComments);
   const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
+
 
   // Dev-only diagnostic so admins can see exactly why an action is/isn't
   // visible. Logs configured rows, backend allowed_actions, per-type can_*
