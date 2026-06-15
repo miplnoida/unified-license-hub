@@ -45,6 +45,8 @@ import { ActionNotificationsEditor } from '@/components/workflows/ActionNotifica
 interface Props {
   step: WorkflowStep;
   siblingSteps: WorkflowStep[];
+  /** Workflow entity_type — forwarded to ActionNotificationsEditor so default event_keys are entity-aware. */
+  entityType?: string;
 }
 
 interface DraftState {
