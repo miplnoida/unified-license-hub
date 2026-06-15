@@ -66,7 +66,10 @@ describe('registration workflow client contract', () => {
     expect(res.code).toBe('REMARKS_REQUIRED');
   });
 
-  for (const action of ['approve', 'reject', 'send_back', 'request_resubmission', 'escalate'] as const) {
+  for (const action of [
+    'approve', 'reject', 'send_back', 'request_resubmission', 'escalate',
+    'return_for_correction', 'request_more_info',
+  ] as const) {
     it(`accepts the shared workflow action: ${action}`, async () => {
       invokeMock.mockResolvedValueOnce({ data: { success: true }, error: null });
       await invokePerformRegistrationWorkflowAction({
