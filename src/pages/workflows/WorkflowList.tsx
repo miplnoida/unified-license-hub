@@ -717,32 +717,17 @@ export default function WorkflowList() {
         )}
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Workflow List */}
-          <div className={sidebarCollapsed ? 'lg:col-span-1' : 'lg:col-span-4'}>
+        <div className="space-y-6">
+          {/* Workflow List — full width */}
+          <div className="w-full">
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  {!sidebarCollapsed && <GitBranch className="h-4 w-4 text-primary" />}
-                  {!sidebarCollapsed && <span>Workflows</span>}
-                  {!sidebarCollapsed && (
-                    <Badge variant="secondary" className="ml-auto">{workflows.length}</Badge>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-7 w-7 ${sidebarCollapsed ? 'mx-auto' : ''}`}
-                    onClick={() => setSidebarCollapsed(c => !c)}
-                    aria-label={sidebarCollapsed ? 'Expand workflow list' : 'Collapse workflow list'}
-                    title={sidebarCollapsed ? 'Expand workflow list' : 'Collapse workflow list'}
-                  >
-                    {sidebarCollapsed
-                      ? <ChevronRight className="h-4 w-4" />
-                      : <ChevronLeft className="h-4 w-4" />}
-                  </Button>
+                  <GitBranch className="h-4 w-4 text-primary" />
+                  <span>Workflows</span>
+                  <Badge variant="secondary" className="ml-auto">{workflows.length}</Badge>
                 </CardTitle>
               </CardHeader>
-              {!sidebarCollapsed && (
               <CardContent className="space-y-2">
                 {isLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
@@ -764,11 +749,12 @@ export default function WorkflowList() {
                         role="button"
                         tabIndex={0}
                         aria-pressed={isSelected}
-                        onClick={() => setSelectedId(wf.id)}
+                        onClick={() => { setSelectedId(wf.id); setShowDetails(true); }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             setSelectedId(wf.id);
+                            setShowDetails(true);
                           }
                         }}
                         className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
@@ -834,12 +820,28 @@ export default function WorkflowList() {
 
 
               </CardContent>
-              )}
             </Card>
           </div>
 
+          {/* Detail / Editor — full width, stacked below the list */}
+          {selectedWorkflow && !showDetails && (
+            <div className="w-full">
+              <Card>
+                <CardContent className="py-3 flex items-center justify-between gap-3">
+                  <div className="text-sm text-muted-foreground">
+                    Details hidden for <span className="font-medium text-foreground">{selectedWorkflow.name}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
+                    <ChevronDown className="h-3.5 w-3.5 mr-1" /> Show Details
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Builder */}
-          <div className={sidebarCollapsed ? 'lg:col-span-11' : 'lg:col-span-8'}>
+          {selectedWorkflow && showDetails && (
+          <div className="w-full">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
