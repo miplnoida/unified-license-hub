@@ -383,6 +383,65 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     });
   }
 
+  const remarksBlock = (canAddRemark || !noWorkflowActions) && (
+    <div className="space-y-2">
+      <Label className="text-sm">
+        Remarks / Comments
+        {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      <Textarea
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        placeholder={
+          anyRemarksRequired
+            ? `Required for: ${remarksRequiredLabels.join(', ')}.`
+            : 'Record an observation, query, or note for the assigned approver…'
+        }
+        rows={3}
+        disabled={processing}
+      />
+      {noWorkflowActions && canAddRemark && (
+        <p className="text-xs text-muted-foreground">
+          This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can add a remark for the
+          audit trail; you are not authorized to advance this workflow.
+        </p>
+      )}
+    </div>
+  );
+
+  const actionButtons = (
+    <div className="flex gap-2 flex-wrap">
+      {actions.map(a => {
+        const isThisProcessing = processingAction === a.type;
+        return (
+          <Button
+            key={a.label}
+            variant={a.variant}
+            size="sm"
+            onClick={() => handleAction(a.type)}
+            disabled={processing}
+          >
+            {isThisProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
+            {a.label}
+          </Button>
+        );
+      })}
+      {canAddRemark && noWorkflowActions && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleAddRemark}
+          disabled={processing || !comment.trim()}
+        >
+          {processingAction === '__remark__' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+          Add Remark
+        </Button>
+      )}
+    </div>
+  );
+
+  const defaultOpenStepId = currentStep?.id ?? steps[steps.length - 1]?.id;
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -392,92 +451,109 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{currentStep.name}</span>
-          <Badge variant="outline" className="text-xs">
-            Pending: {stepRoleLabel(currentStep)}
-          </Badge>
-        </div>
-
-        {currentStep.sla_hours && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            SLA: {currentStep.sla_hours}h
-          </div>
-        )}
-
-        <ProgressTimeline />
-
-        <Separator />
-
-        {stepHasNoAllowedActions && (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-medium text-destructive">No actions configured for this step</p>
-              <p className="text-xs text-muted-foreground">
-                This workflow step has no <code className="font-mono">allowed_actions</code> defined. Ask an
-                administrator to update the workflow step configuration.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {(canAddRemark || !noWorkflowActions) && (
-          <div className="space-y-2">
-            <Label className="text-sm">
-              Remarks / Comments
-              {anyRemarksRequired && <span className="text-destructive ml-1">*</span>}
-            </Label>
-            <Textarea
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              placeholder={
-                anyRemarksRequired
-                  ? `Required for: ${remarksRequiredLabels.join(', ')}.`
-                  : 'Record an observation, query, or note for the assigned approver…'
-              }
-              rows={3}
-              disabled={processing}
-            />
-            {noWorkflowActions && canAddRemark && (
-              <p className="text-xs text-muted-foreground">
-                This step is assigned to <strong>{stepRoleLabel(currentStep)}</strong>. You can add a remark for the
-                audit trail; you are not authorized to advance this workflow.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-2 flex-wrap">
-          {actions.map(a => {
-            const isThisProcessing = processingAction === a.type;
+        <Accordion
+          type="single"
+          collapsible
+          defaultValue={defaultOpenStepId}
+          className="w-full divide-y rounded-md border border-border/60"
+        >
+          {steps.map((s, idx) => {
+            const isDone = idx < currentStepIdx;
+            const isCurrent = idx === currentStepIdx;
+            const statusBadge = isDone ? (
+              <Badge variant="approved" className="text-[10px]">Completed</Badge>
+            ) : isCurrent ? (
+              <Badge variant="pending" className="text-[10px]">Pending Action</Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px]">Upcoming</Badge>
+            );
+            const StatusIcon = isDone ? CheckCircle : isCurrent ? CircleDot : Circle;
             return (
-              <Button
-                key={a.label}
-                variant={a.variant}
-                size="sm"
-                onClick={() => handleAction(a.type)}
-                disabled={processing}
+              <AccordionItem
+                key={s.id}
+                value={s.id}
+                className={cn(
+                  'border-0 px-3',
+                  isCurrent && 'bg-primary/5',
+                )}
               >
-                {isThisProcessing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : a.icon}
-                {a.label}
-              </Button>
+                <AccordionTrigger className="hover:no-underline py-3">
+                  <div className="flex flex-1 items-center gap-3 pr-3 text-left">
+                    <StatusIcon
+                      className={cn(
+                        'h-4 w-4 shrink-0',
+                        isDone && 'text-success',
+                        isCurrent && 'text-primary',
+                        !isDone && !isCurrent && 'text-muted-foreground/50',
+                      )}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('text-sm truncate', isCurrent ? 'font-semibold' : 'font-medium')}>
+                        Step {idx + 1}: {s.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {s.sla_hours ? (
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {s.sla_hours}h
+                        </span>
+                      ) : null}
+                      {statusBadge}
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  {isCurrent ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{currentStep.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          Pending: {stepRoleLabel(currentStep)}
+                        </Badge>
+                      </div>
+                      {currentStep.sla_hours && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          SLA: {currentStep.sla_hours}h
+                        </div>
+                      )}
+
+                      <Separator />
+
+                      {stepHasNoAllowedActions && (
+                        <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                          <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                          <div className="space-y-1">
+                            <p className="font-medium text-destructive">No actions configured for this step</p>
+                            <p className="text-xs text-muted-foreground">
+                              This workflow step has no <code className="font-mono">allowed_actions</code> defined. Ask an
+                              administrator to update the workflow step configuration.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {remarksBlock}
+                      {actionButtons}
+                    </div>
+                  ) : isDone ? (
+                    <p className="text-xs text-muted-foreground">
+                      This step has been completed. See the activity log for full action history.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      This step is pending. It will become actionable once previous steps are completed.
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
             );
           })}
-          {canAddRemark && noWorkflowActions && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddRemark}
-              disabled={processing || !comment.trim()}
-            >
-              {processingAction === '__remark__' ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Add Remark
-            </Button>
-          )}
-        </div>
+        </Accordion>
       </CardContent>
+
 
       {/* Approval Result Dialog — never shows plaintext password */}
       <Dialog open={!!approvalResult} onOpenChange={() => setApprovalResult(null)}>
