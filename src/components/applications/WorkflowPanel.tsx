@@ -600,8 +600,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const noWorkflowActions = actionButtonsList.length === 0;
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
-  const anyRemarksRequired = actionButtonsList.some(a => REMARKS_REQUIRED_ACTIONS.includes(a.type));
-  const remarksRequiredLabels = actionButtonsList.filter(a => REMARKS_REQUIRED_ACTIONS.includes(a.type)).map(a => a.label);
+  const anyRemarksRequired = actionButtonsList.some(a => a.requireComments);
+  const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
 
   const remarksBlock = !isPaused && (canAddRemark || !noWorkflowActions) && (
     <div className="space-y-2">
