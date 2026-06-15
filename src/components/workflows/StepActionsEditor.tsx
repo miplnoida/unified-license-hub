@@ -308,6 +308,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
                     <ActionNotificationsEditor
                       stepId={step.id}
                       allowedActions={[row.action_type]}
+                      entityType={entityType}
                     />
                   </div>
                 </div>
