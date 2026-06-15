@@ -625,8 +625,12 @@ Deno.serve(async (req) => {
 
       const title = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.title_template, vars) || String(dispatchCfg.eventKey));
       const message = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.message_template, vars) || "");
-      const emailSubject = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
-      const emailBody = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
+      // Reviewer-supplied subject/body overrides take precedence when the
+      // workflow action was confirmed through the Email Preview dialog.
+      const subjectOverride = typeof vars.subject_override === "string" && vars.subject_override.length > 0 ? vars.subject_override : null;
+      const bodyOverride = typeof vars.body_override === "string" && vars.body_override.length > 0 ? vars.body_override : null;
+      const emailSubject = subjectOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
+      const emailBody = bodyOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
       const emailHtml = renderBrandedEmail({
         appName: String(vars.app_name || "Unified License Hub"),
         heading: emailSubject,
