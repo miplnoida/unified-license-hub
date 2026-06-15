@@ -62,6 +62,12 @@ export const MODULE_REGISTRY: Record<PermissionModule, Omit<ModuleRegistryEntry,
     description: 'Manage issued licenses and licensee entities.',
     actions: ['view', 'create', 'edit', 'approve'],
   },
+  registration_management: {
+    module: 'registration_management',
+    label: 'Registration Review',
+    description: 'View and process submitted licensee registration requests (Submitted Registration Requests queue).',
+    actions: ['view', 'create', 'edit', 'approve', 'reject'],
+  },
   returns_management: {
     module: 'returns_management',
     label: 'Returns Management',
