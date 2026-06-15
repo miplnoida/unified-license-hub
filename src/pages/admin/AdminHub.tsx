@@ -9,6 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
+  ClipboardEdit,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -50,6 +51,7 @@ export default function AdminHub() {
     { label: 'Audit Logs', desc: `${m?.totalAuditLogs ?? '—'} events logged`, icon: <ScrollText className="h-5 w-5" />, href: '/admin/audit-logs', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
+    { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'license_management' },
   ];
 
   // Filter modules by dynamic permissions. Super admin / legacy admin (no dynamic

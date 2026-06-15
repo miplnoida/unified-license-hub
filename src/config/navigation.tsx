@@ -67,6 +67,7 @@ export const mainNavSections: NavSection[] = [
       { label: 'Post Licensing Applications', href: '/applications?type=post', icon: <FileText className="h-5 w-5" />, roles: LICENSEE_ALL },
       { label: 'All License Requests', href: '/applications/queue', icon: <ClipboardList className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensing_officer', 'analyst'], module: 'application_management' },
       { label: 'Licensee Entities', href: '/admin/licensees', icon: <Briefcase className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
+      { label: 'Registration Review', href: '/admin/registration-review', icon: <ClipboardEdit className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
     ],
   },
   {
