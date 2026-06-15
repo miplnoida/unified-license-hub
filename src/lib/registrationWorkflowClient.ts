@@ -5,7 +5,9 @@ export type RegistrationWorkflowAction =
   | 'reject'
   | 'send_back'
   | 'escalate'
-  | 'request_resubmission';
+  | 'request_resubmission'
+  | 'return_for_correction'
+  | 'request_more_info';
 
 export interface PerformRegistrationWorkflowActionInput {
   registration_id: string;
