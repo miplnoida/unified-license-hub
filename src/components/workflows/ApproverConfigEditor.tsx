@@ -59,19 +59,33 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
   const setApproverType = async (next: ApproverType) => {
     if (next === approverType) return;
     try {
-      await Promise.resolve(
-        onUpdate(step.id, {
-          approver_type: next,
-          // Keep existing config but ensure both shapes are present
-          approver_config: next === 'specific_users'
-            ? { user_ids: cfg.user_ids ?? [] }
-            : { role_ids: cfg.role_ids ?? (step.approver_role_id ? [step.approver_role_id] : []) },
-        } as any),
-      );
+      if (next === 'specific_users') {
+        // Switching to Specific Users: drop role-based assignment so review
+        // UI and the user_can_act_on_workflow_step RPC stop matching stale roles.
+        await Promise.resolve(
+          onUpdate(step.id, {
+            approver_type: 'specific_users',
+            approver_role_id: null,
+            approver_config: { user_ids: cfg.user_ids ?? [] },
+          } as any),
+        );
+      } else {
+        // Switching to Role Based User: drop any previously selected
+        // specific users so they no longer gate the step.
+        await Promise.resolve(
+          onUpdate(step.id, {
+            approver_type: 'role_based_user',
+            approver_config: {
+              role_ids: cfg.role_ids ?? (step.approver_role_id ? [step.approver_role_id] : []),
+            },
+          } as any),
+        );
+      }
     } catch (e: any) {
       toast.error(e?.message || 'Failed to update approver type');
     }
   };
+
 
   const toggleUser = async (userId: string, checked: boolean) => {
     const next = new Set(selectedUserIds);
