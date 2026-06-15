@@ -404,13 +404,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
   const permissionsUnknown = activeInstance && canActResult === null;
 
-  const handleAction = async (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
+
+  const executeAction = async (
+    actionType: WorkflowActionType,
+    overrides: ActionNotificationOverride[] = [],
+  ) => {
     if (!user || !activeInstance || !currentStep) return;
-    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
-    if (requiresRemarks && !comment.trim()) {
-      toast.error(remarksRequiredMessage(actionType, entityNoun));
-      return;
-    }
     setProcessingAction(actionType);
     try {
       const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
@@ -421,6 +421,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
+            notification_overrides: overrides,
           }
         : {
             application_id: applicationId,
@@ -428,6 +429,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
+            notification_overrides: overrides,
           };
       const { data, error } = await supabase.functions.invoke(fnName, { body });
       if (error) {
@@ -457,7 +459,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel, entityNoun));
       }
       setComment('');
-      // Invalidate all related queries (instance + history + permissions)
+      setPreviewState(null);
       queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
       queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       queryClient.invalidateQueries({ queryKey: ['user_can_act_on_workflow_step'] });
@@ -468,6 +470,24 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } finally {
       setProcessingAction(null);
     }
+  };
+
+  const handleAction = (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
+    if (!user || !activeInstance || !currentStep) return;
+    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
+    if (requiresRemarks && !comment.trim()) {
+      toast.error(remarksRequiredMessage(actionType, entityNoun));
+      return;
+    }
+    // Open preview dialog so the reviewer can inspect / edit the notification
+    // email(s) before the action is committed. Empty bindings → dialog still
+    // confirms but shows "no email configured".
+    const def = actionButtonsList.find(a => a.type === actionType);
+    setPreviewState({
+      actionType,
+      label: def?.label ?? actionType,
+      requireComments: requiresRemarks,
+    });
   };
 
   const handleAddRemark = async () => {
