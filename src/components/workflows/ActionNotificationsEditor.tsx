@@ -25,7 +25,6 @@ import {
   useNotificationTemplates,
   useUpsertActionNotification,
   useDeleteActionNotification,
-  DEFAULT_EVENT_FOR_ACTION,
   getDefaultEventForAction,
   RECIPIENT_LABELS,
   normalizeRecipientConfig,
