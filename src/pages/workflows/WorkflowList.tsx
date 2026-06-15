@@ -20,6 +20,9 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
+  Accordion, AccordionItem, AccordionTrigger, AccordionContent,
+} from '@/components/ui/accordion';
+import {
   GitBranch, Plus, Trash2, CheckCircle2, FileInput,
   Users, BookmarkPlus, Workflow as WorkflowIcon, Search,
   ChevronUp, ChevronDown, FileStack, Sparkles, Settings2, Info, X,
