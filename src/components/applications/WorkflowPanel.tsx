@@ -255,6 +255,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const isPaused = !activeInstance && !!pausedInstance;
 
   const { data: canActResult } = useCanActOnStep(user?.id, activeInstance ? currentStep?.id : undefined);
+  const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 
   const actorIds = useMemo(() => actions.map(a => a.actor_id).filter((x): x is string => !!x), [actions]);
