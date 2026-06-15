@@ -261,8 +261,8 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                       <Badge variant="outline" className="text-[10px]">Digital signature</Badge>
                     )}
                     <Badge variant="outline" className="text-[10px]">
-                      → {NEXT_STEP_MODE_LABELS[row.next_step_mode]}
-                      {row.next_step_mode === 'end_workflow' && row.end_state && ` · ${END_STATE_LABELS[row.end_state]}`}
+                      → {NEXT_STEP_MODE_LABELS[row.next_step_mode] || row.next_step_mode || 'Unknown'}
+                      {row.next_step_mode === 'end_workflow' && row.end_state && ` · ${END_STATE_LABELS[row.end_state] || row.end_state}`}
                       {row.next_step_mode === 'specific_step' && row.next_step_id && (
                         ` · ${targetStepOptions.find(s => s.id === row.next_step_id)?.name || '?'}`
                       )}
@@ -272,14 +272,17 @@ export function StepActionsEditor({ step, siblingSteps }: Props) {
                         Status → {row.result_status_override}
                       </Badge>
                     )}
-                    <div className="ml-auto flex items-center gap-1">
-                      <label className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Checkbox
+                    <div className="ml-auto flex items-center gap-2">
+                      <label
+                        className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer"
+                        title="When enabled, reviewers can use this action at this step. When disabled, the action is hidden during review."
+                      >
+                        <Switch
                           checked={row.is_enabled}
                           onCheckedChange={v => toggleEnabled(row, !!v)}
-                          aria-label="Enabled"
+                          aria-label="Available to reviewer"
                         />
-                        Enabled
+                        <span>Available to reviewer</span>
                       </label>
                       <Button
                         size="icon" variant="ghost" className="h-7 w-7"
@@ -350,6 +353,26 @@ function ActionForm({
     return editingId !== null && used.id === editingId;
   });
 
+  // Existing draft is legacy if its action_type is not in the allowed UI set.
+  const isLegacyDraft = !!editingId && !ALLOWED_UI_ACTION_TYPES.includes(draft.action_type);
+
+  // Defensive: if the saved next_step_id references a step that no longer
+  // exists in this workflow, fall back to 'none' for the Select value.
+  const validNextStepId =
+    draft.next_step_id && targetStepOptions.some(s => s.id === draft.next_step_id)
+      ? draft.next_step_id
+      : null;
+
+  const handleModeChange = (next: NextStepMode) => {
+    // Reset stale fields so we never leave the draft in an inconsistent state.
+    setDraft({
+      ...draft,
+      next_step_mode: next,
+      next_step_id: next === 'specific_step' ? validNextStepId : null,
+      end_state: next === 'end_workflow' ? draft.end_state : null,
+    });
+  };
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -358,10 +381,16 @@ function ActionForm({
           <Select
             value={draft.action_type}
             onValueChange={v => setDraft({ ...draft, action_type: v as WorkflowActionType })}
-            disabled={!!editingId}
+            disabled={isLegacyDraft}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              {/* Keep the current legacy type visible so the Select doesn't render empty */}
+              {isLegacyDraft && (
+                <SelectItem value={draft.action_type} className="text-xs" disabled>
+                  {ACTION_LABELS[draft.action_type] || draft.action_type} (legacy)
+                </SelectItem>
+              )}
               {typeOptions.map(t => (
                 <SelectItem key={t} value={t} className="text-xs">
                   {ACTION_LABELS[t]}
@@ -369,6 +398,11 @@ function ActionForm({
               ))}
             </SelectContent>
           </Select>
+          {isLegacyDraft && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Legacy action type cannot be changed. Delete and recreate with a supported action type.
+            </p>
+          )}
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Action Name</Label>
@@ -400,7 +434,7 @@ function ActionForm({
           <Label className="text-xs text-muted-foreground">What happens next?</Label>
           <Select
             value={draft.next_step_mode}
-            onValueChange={v => setDraft({ ...draft, next_step_mode: v as NextStepMode })}
+            onValueChange={v => handleModeChange(v as NextStepMode)}
           >
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -411,11 +445,12 @@ function ActionForm({
           </Select>
         </div>
 
+
         {draft.next_step_mode === 'specific_step' && (
           <div>
             <Label className="text-xs text-muted-foreground">Target Step</Label>
             <Select
-              value={draft.next_step_id ?? 'none'}
+              value={validNextStepId ?? 'none'}
               onValueChange={v => setDraft({ ...draft, next_step_id: v === 'none' ? null : v })}
             >
               <SelectTrigger className="h-8 text-xs">
@@ -430,6 +465,11 @@ function ActionForm({
                 ))}
               </SelectContent>
             </Select>
+            {targetStepOptions.length === 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Add another step to this workflow to route here.
+              </p>
+            )}
           </div>
         )}
 

@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Search, Users, UserCheck } from 'lucide-react';
 import type { WorkflowStep, ApproverConfig, ApproverType } from '@/hooks/useWorkflowEngine';
-import { useInternalUsers } from '@/hooks/useInternalUsers';
+import { useEmployeeApprovers } from '@/hooks/useEmployeeApprovers';
 import { toast } from 'sonner';
 
 /** Minimal role shape the editor needs — accepts both DynamicRole and the
@@ -42,7 +42,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
 
   const [userSearch, setUserSearch] = useState('');
   const [roleSearch, setRoleSearch] = useState('');
-  const { data: internalUsers = [], isLoading: usersLoading } = useInternalUsers(userSearch);
+  const { data: internalUsers = [], isLoading: usersLoading } = useEmployeeApprovers(userSearch);
 
   const filteredRoles = useMemo(
     () => dynamicRoles.filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase())),
@@ -196,7 +196,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
       ) : (
         <div>
           <Label className="text-xs text-muted-foreground mb-1.5 block">
-            Allowed Users {selectedUserIds.size > 0 && (
+            Allowed Employees {selectedUserIds.size > 0 && (
               <span className="text-foreground">({selectedUserIds.size} selected)</span>
             )}
           </Label>
@@ -204,7 +204,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search internal users..."
+                placeholder="Search employees by name, email, or department..."
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
                 className="h-8 pl-7 text-xs"
@@ -213,10 +213,10 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
           )}
           <div className="border rounded-md max-h-52 overflow-y-auto divide-y" data-testid={`approver-users-${step.id}`}>
             {usersLoading ? (
-              <p className="p-2 text-xs text-muted-foreground">Loading users…</p>
+              <p className="p-2 text-xs text-muted-foreground">Loading employees…</p>
             ) : (isEditing ? internalUsers : internalUsers.filter(u => selectedUserIds.has(u.id))).length === 0 ? (
               <p className="p-2 text-xs text-muted-foreground">
-                {isEditing ? 'No internal users match.' : 'No users selected.'}
+                {isEditing ? 'No employees match.' : 'No employees selected.'}
               </p>
             ) : (
               (isEditing ? internalUsers : internalUsers.filter(u => selectedUserIds.has(u.id))).map(u => {
@@ -230,13 +230,16 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
                       <Checkbox
                         checked={checked}
                         onCheckedChange={v => toggleUser(u.id, !!v)}
-                        aria-label={`Toggle user ${u.full_name || u.email}`}
+                        aria-label={`Toggle employee ${u.full_name || u.email}`}
                       />
                     )}
-                    <span className="font-medium flex-1 truncate">{u.full_name || u.email || u.id}</span>
-                    {u.email && u.full_name && (
-                      <span className="text-muted-foreground truncate">{u.email}</span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{u.full_name || u.email || u.id}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
+                        {u.email && u.full_name && <span className="truncate">{u.email}</span>}
+                        {u.department && <span>· {u.department}</span>}
+                      </div>
+                    </div>
                     {u.primary_role && (
                       <Badge variant="outline" className="text-[10px]">{u.primary_role}</Badge>
                     )}

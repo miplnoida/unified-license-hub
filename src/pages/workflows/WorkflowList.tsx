@@ -782,8 +782,16 @@ export default function WorkflowList() {
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <p className="font-semibold text-foreground truncate">{wf.name}</p>
-                                    <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                                      {wf.is_active ? 'On' : 'Off'}
+                                    <Badge
+                                      variant={wf.is_active ? 'default' : 'secondary'}
+                                      className="text-[10px]"
+                                      title={
+                                        wf.is_active
+                                          ? 'Active workflows are used to route new matching submissions.'
+                                          : 'Inactive workflows are saved but not used for new matching submissions.'
+                                      }
+                                    >
+                                      {wf.is_active ? 'Active' : 'Inactive'}
                                     </Badge>
                                   </div>
                                   <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -1574,17 +1582,35 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
                 inputMode="numeric"
                 min={1}
                 max={24 * 365}
+                step={1}
                 className="h-8 w-24 text-xs"
                 value={slaDraft}
                 onFocus={() => setSlaFocused(true)}
+                onKeyDown={(e) => {
+                  // Reject negative sign, plus, exponent and decimal — integer-only SLA
+                  if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                    e.preventDefault();
+                    return;
+                  }
+                  if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
+                }}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData('text');
+                  const cleaned = text.replace(/[^0-9]/g, '');
+                  if (cleaned !== text) {
+                    e.preventDefault();
+                    setSlaDraft(cleaned);
+                    if (slaError) setSlaError(null);
+                  }
+                }}
                 onChange={e => {
-                  setSlaDraft(e.target.value);
+                  // Allow only empty string or positive integer digits
+                  const raw = e.target.value;
+                  const cleaned = raw.replace(/[^0-9]/g, '');
+                  setSlaDraft(cleaned);
                   if (slaError) setSlaError(null);
                 }}
                 onBlur={commitSla}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
-                }}
                 aria-label={`Step ${index + 1} SLA hours`}
                 aria-invalid={!!slaError}
               />
