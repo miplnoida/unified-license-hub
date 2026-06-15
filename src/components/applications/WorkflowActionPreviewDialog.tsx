@@ -198,7 +198,18 @@ export function WorkflowActionPreviewDialog({
   open, onOpenChange, stepId, actionType, actionLabel, comments,
   entityType, entityId, actorName, processing, onConfirm,
 }: Props) {
-  const { data: bindings = [], isLoading } = useBindings(stepId, actionType);
+  const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+  const { data: bindingResult, isLoading } = useBindings(stepId, actionType, entityType);
+  const bindings = bindingResult?.bindings ?? [];
+  const diagnostic = bindingResult?.diagnostic ?? {
+    currentStepId: stepId,
+    actionType,
+    entityType,
+    expectedEventKey,
+    foundApprovalActionNotificationsCount: 0,
+    templateIdIsNull: false,
+    templateExistsAndActive: false,
+  };
   const { data: entityVars = {} } = useEntityPreviewData(entityType, entityId);
 
   const vars = useMemo(() => ({
@@ -287,12 +298,20 @@ export function WorkflowActionPreviewDialog({
           ) : bindings.length === 0 ? (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-              <div>
+              <div className="space-y-2">
                 <p className="font-medium">No email notification is configured for this action.</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  The action will still be executed and logged. Administrators can configure email
-                  notifications under <em>Edit Steps → Notifications</em>.
+                  No enabled action-notification binding with an active email template was found for this exact step/action.
                 </p>
+                <div className="grid grid-cols-1 gap-1 rounded border bg-background/60 p-2 font-mono text-[11px]">
+                  <div>currentStep.id: {diagnostic.currentStepId}</div>
+                  <div>action_type: {diagnostic.actionType}</div>
+                  <div>entityType: {diagnostic.entityType}</div>
+                  <div>expected event_key: {diagnostic.expectedEventKey}</div>
+                  <div>approval_action_notifications count: {diagnostic.foundApprovalActionNotificationsCount}</div>
+                  <div>template_id is null: {String(diagnostic.templateIdIsNull)}</div>
+                  <div>template exists and active: {String(diagnostic.templateExistsAndActive)}</div>
+                </div>
               </div>
             </div>
           ) : (
