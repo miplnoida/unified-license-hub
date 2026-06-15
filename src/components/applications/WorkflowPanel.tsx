@@ -313,7 +313,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   if (!currentStep) return null;
 
   // Per-action permissions (backend authoritative).
-  const canAddRemark = !!canActResult?.can_add_remark;
+  const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
   const canReject = !!canActResult?.can_reject && !isPaused;
   const canForward = !!canActResult?.can_forward && !isPaused;
   const canApprove = !!canActResult?.can_approve && !isPaused;
