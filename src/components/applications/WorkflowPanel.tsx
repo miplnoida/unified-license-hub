@@ -1010,6 +1010,23 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Email preview & edit dialog — shown before any workflow action runs. */}
+      {previewState && currentStep && (
+        <WorkflowActionPreviewDialog
+          open={!!previewState}
+          onOpenChange={(v) => { if (!v) setPreviewState(null); }}
+          stepId={currentStep.id}
+          actionType={previewState.actionType}
+          actionLabel={previewState.label}
+          comments={comment}
+          entityType={entityType}
+          entityId={applicationId}
+          actorName={user?.email || null}
+          processing={processing}
+          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+        />
+      )}
     </Card>
   );
 }
