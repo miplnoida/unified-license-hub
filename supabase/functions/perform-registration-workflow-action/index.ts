@@ -131,13 +131,14 @@ export async function handler(req: Request): Promise<Response> {
       if (step_id) {
         const { data: cfgRows } = await admin
           .from("approval_action_notifications")
-          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .select("id, event_key, recipient_type, recipient_config, template_id, is_enabled")
           .eq("step_id", step_id)
           .eq("action_type", raw_action)
           .eq("is_enabled", true);
 
         for (const row of (cfgRows ?? [])) {
           try {
+            const override = overrideMap.get((row as any).id);
             await admin.functions.invoke("dispatch-notification-event", {
               body: {
                 event_key: (row as any).event_key,
@@ -154,6 +155,9 @@ export async function handler(req: Request): Promise<Response> {
                   template_id: (row as any).template_id,
                   recipient_type: (row as any).recipient_type,
                   recipient_config: (row as any).recipient_config,
+                  binding_id: (row as any).id,
+                  subject_override: override?.subject,
+                  body_override: override?.body,
                 },
               },
             });
