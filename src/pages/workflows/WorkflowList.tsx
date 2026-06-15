@@ -752,41 +752,68 @@ export default function WorkflowList() {
                         <AccordionItem
                           key={wf.id}
                           value={wf.id}
-                          className={`rounded-lg border bg-card overflow-hidden transition-all duration-200 ${
+                          className={`relative rounded-lg border-2 bg-card overflow-hidden transition-all duration-200 ${
                             isSelected
-                              ? 'border-primary/50 bg-primary/5 shadow-sm'
-                              : 'hover:border-primary/40 hover:bg-muted/40'
+                              ? 'border-primary bg-primary/[0.06] shadow-md ring-1 ring-primary/30'
+                              : 'border-border hover:border-primary/50 hover:bg-muted/40 hover:shadow-sm'
                           }`}
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-2 pr-4">
-                            <AccordionTrigger className="flex-1 px-4 py-3 hover:no-underline text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                              <div className="flex-1 min-w-0 text-left">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium text-foreground truncate">{wf.name}</p>
-                                  <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                                    {wf.is_active ? 'On' : 'Off'}
-                                  </Badge>
+                          {isSelected && (
+                            <span
+                              aria-hidden
+                              className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary"
+                            />
+                          )}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pr-3">
+                            <AccordionTrigger
+                              className="flex-1 px-4 py-4 hover:no-underline text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&>svg]:hidden group"
+                            >
+                              <div className="flex items-center gap-3 w-full min-w-0 text-left">
+                                <div
+                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200 ${
+                                    isSelected
+                                      ? 'border-primary bg-primary text-primary-foreground rotate-180'
+                                      : 'border-primary/40 bg-background text-primary group-hover:border-primary group-hover:bg-primary/10'
+                                  }`}
+                                  aria-hidden
+                                >
+                                  <ChevronDown className="h-5 w-5" strokeWidth={2.5} />
                                 </div>
-                                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
-                                  </Badge>
-                                  {!typeIsKnown && (
-                                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
-                                      Legacy type
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-foreground truncate">{wf.name}</p>
+                                    <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                                      {wf.is_active ? 'On' : 'Off'}
                                     </Badge>
-                                  )}
-                                  {wf.sector_id && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {(sectors as any[]).find(s => s.id === wf.sector_id)?.name}
-                                    </span>
-                                  )}
-                                  {(wf as any).step_count != null && (
-                                    <Badge variant="secondary" className="text-[10px]">
-                                      {(wf as any).step_count} step{(wf as any).step_count === 1 ? '' : 's'}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                    <Badge variant="outline" className="text-[10px]">
+                                      {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
                                     </Badge>
-                                  )}
+                                    {!typeIsKnown && (
+                                      <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
+                                        Legacy type
+                                      </Badge>
+                                    )}
+                                    {wf.sector_id && (
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {(sectors as any[]).find(s => s.id === wf.sector_id)?.name}
+                                      </span>
+                                    )}
+                                    {(wf as any).step_count != null && (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        {(wf as any).step_count} step{(wf as any).step_count === 1 ? '' : 's'}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
+                                <span
+                                  className={`hidden lg:inline-block text-[11px] font-medium shrink-0 transition-colors ${
+                                    isSelected ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
+                                  }`}
+                                >
+                                  {isSelected ? 'Click to collapse' : 'Click to expand'}
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <div className="flex flex-wrap items-center gap-1 shrink-0 py-3">
