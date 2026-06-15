@@ -881,6 +881,14 @@ export default function WorkflowList() {
                           </Button>
                         </>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowDetails(false)}
+                        aria-label="Hide workflow details"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5 mr-1" /> Hide Details
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -889,12 +897,7 @@ export default function WorkflowList() {
                 {selectedWorkflow && (
                   <WorkflowVersionPanel workflowId={selectedWorkflow.id} workflowName={selectedWorkflow.name} />
                 )}
-                {!selectedWorkflow ? (
-                  <div className="text-center py-12">
-                    <WorkflowIcon className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
-                    <p className="text-sm text-muted-foreground">Pick a workflow on the left, or create a new one</p>
-                  </div>
-                ) : stepsLoading ? (
+                {stepsLoading ? (
                   <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
                 ) : (
                   <TimelineBuilder
@@ -912,8 +915,10 @@ export default function WorkflowList() {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
+
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
