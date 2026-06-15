@@ -186,35 +186,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return null;
   }
 
-  // Workflow progress timeline
-  const ProgressTimeline = () => (
-    <div className="space-y-2 rounded-md border border-border/60 bg-muted/30 p-3">
-      <p className="text-xs font-medium text-muted-foreground">Workflow Progress</p>
-      <ol className="space-y-1.5">
-        {steps.map((s, idx) => {
-          const isDone = idx < currentStepIdx;
-          const isCurrent = idx === currentStepIdx;
-          return (
-            <li key={s.id} className="flex items-center gap-2 text-xs">
-              {isDone ? (
-                <CheckCircle className="h-3.5 w-3.5 text-success" />
-              ) : isCurrent ? (
-                <CircleDot className="h-3.5 w-3.5 text-primary animate-pulse" />
-              ) : (
-                <Circle className="h-3.5 w-3.5 text-muted-foreground/50" />
-              )}
-              <span className={isCurrent ? 'font-medium' : 'text-muted-foreground'}>
-                Step {idx + 1}: {s.name}
-              </span>
-              <Badge variant="outline" className="ml-auto text-[10px]">
-                {stepRoleLabel(s)}
-              </Badge>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
+  // (Previous ProgressTimeline removed — the accordion now renders the full
+  // step list inline with status indicators in each AccordionTrigger.)
+
+
 
   // Per-action permissions resolved server-side by user_can_act_on_workflow_step.
   // The frontend never independently infers who can do what — it only renders
