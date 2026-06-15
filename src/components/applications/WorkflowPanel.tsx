@@ -576,10 +576,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   } else {
     // Legacy fallback: no per-action config rows configured for this step.
     // Mirror prior behavior using canActResult flags directly.
-    if (canByType.approve && isLastLevel) {
-      actionButtonsList.push({ type: 'approve', label: 'Approve', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
-    } else if (canByType.approve) {
-      actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    // Legacy fallback: no per-action config rows for this step. Mirror prior
+    // behavior using canActResult flags, but use neutral fallback labels.
+    if (canByType.approve) {
+      actionButtonsList.push({ type: 'approve', label: fallbackLabel('approve'), icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
     }
     (['reject','send_back','escalate','request_resubmission','return_for_correction','request_more_info'] as WorkflowActionType[]).forEach(t => {
       if (canByType[t]) {
