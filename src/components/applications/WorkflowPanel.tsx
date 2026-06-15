@@ -406,7 +406,6 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
   const permissionsUnknown = activeInstance && canActResult === null;
 
-  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
 
   const executeAction = async (
     actionType: WorkflowActionType,
