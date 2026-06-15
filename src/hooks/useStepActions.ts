@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { getDefaultEventForAction, pickDefaultEmailTemplateId } from '@/hooks/useActionNotifications';
 
 export type NextStepMode =
   | 'next'
@@ -83,6 +84,47 @@ async function syncAllowedActions(stepId: string) {
   if (upErr) throw upErr;
 }
 
+async function ensureDefaultActionNotification(
+  stepId: string,
+  actionType: WorkflowActionType,
+  entityType: string | null | undefined,
+) {
+  const eventKey = getDefaultEventForAction(actionType, entityType);
+  const { data: existing, error: existingError } = await supabase
+    .from('approval_action_notifications' as any)
+    .select('id')
+    .eq('step_id', stepId)
+    .eq('action_type', actionType)
+    .eq('event_key', eventKey)
+    .limit(1);
+  if (existingError) throw existingError;
+  if ((existing ?? []).length > 0) return;
+
+  const { data: templates, error: templateError } = await supabase
+    .from('notification_templates')
+    .select('id, event_type, channel, is_active')
+    .eq('event_type', eventKey)
+    .eq('channel', 'email')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true });
+  if (templateError) throw templateError;
+  const templateId = pickDefaultEmailTemplateId(eventKey, (templates ?? []) as any[]);
+  if (!templateId) return;
+
+  const { error: insertError } = await supabase
+    .from('approval_action_notifications' as any)
+    .insert({
+      step_id: stepId,
+      action_type: actionType,
+      event_key: eventKey,
+      recipient_type: 'applicant',
+      recipient_config: {},
+      template_id: templateId,
+      is_enabled: true,
+    } as any);
+  if (insertError && (insertError as any).code !== '23505') throw insertError;
+}
+
 export function useStepActions(stepId: string | null | undefined) {
   return useQuery({
     enabled: !!stepId,
@@ -100,7 +142,7 @@ export function useStepActions(stepId: string | null | undefined) {
   });
 }
 
-export function useUpsertStepAction(stepId: string) {
+export function useUpsertStepAction(stepId: string, entityType?: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: StepActionInput) => {
@@ -138,11 +180,15 @@ export function useUpsertStepAction(stepId: string) {
         throw error;
       }
       await syncAllowedActions(stepId);
+      if (payload.is_enabled) {
+        await ensureDefaultActionNotification(stepId, payload.action_type as WorkflowActionType, entityType);
+      }
       return data as unknown as StepAction;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['approval_step_actions', stepId] });
       qc.invalidateQueries({ queryKey: ['approval_steps'] });
+      qc.invalidateQueries({ queryKey: ['action_notifications', stepId] });
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to save action'),
   });
