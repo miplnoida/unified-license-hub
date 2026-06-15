@@ -164,14 +164,14 @@ function useEntityPreviewData(entityType: WorkflowEntityKind, entityId: string) 
       if (entityType === 'registration') {
         const { data } = await supabase
           .from('registrations')
-          .select('id, primary_email, status, registration_number, applicant_name, business_name')
+          .select('id, email, status, registration_number, registration_reference, applicant_name')
           .eq('id', entityId)
           .maybeSingle();
         return {
           registration_id: entityId,
-          registration_number: (data as any)?.registration_number || '',
-          applicant_email: (data as any)?.primary_email || '',
-          applicant_name: (data as any)?.applicant_name || (data as any)?.business_name || '',
+          registration_number: (data as any)?.registration_number || (data as any)?.registration_reference || '',
+          applicant_email: (data as any)?.email || '',
+          applicant_name: (data as any)?.applicant_name || '',
           status: (data as any)?.status || '',
         };
       }
