@@ -89,21 +89,31 @@ interface ActionRecord {
   created_at: string;
 }
 
-function useApplicationActions(applicationId: string) {
+type WorkflowEntity = 'application' | 'registration';
+
+function useEntityActions(entityType: WorkflowEntity, entityId: string) {
   return useQuery({
-    queryKey: ['approval_actions', 'application', applicationId],
-    enabled: !!applicationId,
+    queryKey: ['approval_actions', entityType, entityId],
+    enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const filterCol = entityType === 'application' ? 'application_id' : 'entity_id';
+      let query = supabase
         .from('approval_actions')
-        .select('id, step_id, actor_id, action_type, action, comments, created_at')
-        .eq('application_id', applicationId)
+        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id')
         .order('created_at', { ascending: true });
+      query = entityType === 'application'
+        ? query.eq('application_id', entityId)
+        : query.eq('entity_type', 'registration').eq('entity_id', entityId);
+      const { data, error } = await query;
       if (error) {
         console.warn('approval_actions fetch failed:', error);
         return [] as ActionRecord[];
       }
-      return (data || []) as ActionRecord[];
+      return ((data || []) as any[]).map(r => ({
+        id: r.id, step_id: r.step_id, actor_id: r.actor_id,
+        action_type: r.action_type, action: r.action,
+        comments: r.comments, created_at: r.created_at,
+      })) as ActionRecord[];
     },
     staleTime: 15_000,
   });
