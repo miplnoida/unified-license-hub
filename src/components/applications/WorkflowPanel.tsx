@@ -226,7 +226,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     provisioning_warning?: string | null;
   } | null>(null);
 
-  const moduleKey = entityType === 'registration' ? 'registration_review' : 'application_management';
+  const moduleKey = entityType === 'registration' ? 'registration_management' : 'application_management';
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess(moduleKey as any) : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
   const { data: instances = [] } = useWorkflowInstances(entityType, applicationId);
@@ -237,7 +237,18 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const pausedInstance = instances.find(i => i.status === 'paused');
   const liveInstance = activeInstance || pausedInstance;
 
-  const currentStep = liveInstance ? steps.find(s => s.id === liveInstance.current_step_id) : null;
+  // Resolve current step: prefer approval_steps.id match, then snapshot key (registrations).
+  const currentStep = useMemo(() => {
+    if (!liveInstance) return null;
+    const byId = steps.find(s => s.id === (liveInstance as any).current_step_id);
+    if (byId) return byId;
+    const key = (liveInstance as any).current_step_key as string | undefined;
+    if (key) {
+      const byKey = steps.find(s => (s as any).local_id === key || s.id === key);
+      if (byKey) return byKey;
+    }
+    return null;
+  }, [liveInstance, steps]);
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isLastLevel = currentStepIdx >= 0 && currentStepIdx === steps.length - 1;
   const isPaused = !activeInstance && !!pausedInstance;
@@ -248,7 +259,6 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const actorIds = useMemo(() => actions.map(a => a.actor_id).filter((x): x is string => !!x), [actions]);
   const { data: actorsMap = {} } = useActorsMap(actorIds);
 
-  // Group action history per step
   const actionsByStep = useMemo(() => {
     const map = new Map<string, ActionRecord[]>();
     actions.forEach(a => {
@@ -260,7 +270,6 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return map;
   }, [actions]);
 
-  // Derive a status for each step using history + current instance.
   type StepStatus = 'completed' | 'current' | 'upcoming' | 'paused' | 'returned';
   const stepStatuses = useMemo<StepStatus[]>(() => {
     return steps.map((s, idx) => {
@@ -269,10 +278,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         ['approve', 'reject', 'send_back', 'escalate', 'request_resubmission', 'return_for_correction', 'request_more_info'].includes(a.action_type),
       );
       if (currentStep && s.id === currentStep.id) {
-        if (isPaused) {
-          const lastPaused = decisive && ['request_resubmission', 'return_for_correction', 'request_more_info'].includes(decisive.action_type);
-          return lastPaused ? 'paused' : 'paused';
-        }
+        if (isPaused) return 'paused';
         return 'current';
       }
       if (decisive) {
@@ -289,28 +295,64 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return `Legacy role: ${ROLE_LABELS[step.approver_role as AppRole] || step.approver_role}`;
   };
 
-  // Controlled accordion: open the actionable step by default and follow it as it changes.
   const focusStepId = currentStep?.id ?? steps[steps.length - 1]?.id;
   const [openStepId, setOpenStepId] = useState<string | undefined>(focusStepId);
   useEffect(() => {
     if (focusStepId) setOpenStepId(focusStepId);
   }, [focusStepId]);
 
-  // No instance yet — backend creates it on submit.
-  if (!workflowId || !isInternal) return null;
+  // Declared BEFORE any early return to preserve hook order (fixes React error #310).
+  const pauseCauseAction = useMemo(() => {
+    if (!isPaused) return null;
+    const causes = new Set(['request_resubmission', 'return_for_correction', 'request_more_info']);
+    return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
+  }, [actions, isPaused]);
+
+  // ─── Early-return guards (after ALL hooks above) ───
+  if (!workflowId) {
+    return (
+      <Card><CardContent className="py-6 text-sm text-muted-foreground">
+        No workflow is attached to this {entityNoun}.
+      </CardContent></Card>
+    );
+  }
+  if (!isInternal) {
+    return (
+      <Card><CardContent className="py-6 text-sm text-muted-foreground">
+        You do not have permission to review this {entityNoun}.
+      </CardContent></Card>
+    );
+  }
   if (!liveInstance) {
-    if (workflowId && isInternal && instances.length === 0 && ['submitted', 'in_progress'].includes(applicationStatus)) {
+    if (instances.length === 0 && ['submitted', 'in_progress', 'pending', 'pending_review', 'under_review', 'in_review'].includes(applicationStatus)) {
       return (
-        <Card>
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            Workflow has not started yet. It will be created automatically when the application is submitted.
-          </CardContent>
-        </Card>
+        <Card><CardContent className="py-6 text-sm text-muted-foreground">
+          Workflow has not started yet. It will be created automatically when the {entityNoun} is submitted.
+        </CardContent></Card>
       );
     }
-    return null;
+    return (
+      <Card><CardContent className="py-6 text-sm text-muted-foreground">
+        No active workflow instance found for this {entityNoun}.
+      </CardContent></Card>
+    );
   }
-  if (!currentStep) return null;
+  if (!currentStep) {
+    return (
+      <Card><CardContent className="py-6 text-sm">
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">Current workflow step could not be resolved</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              The workflow instance references a step that is not present in the current workflow version.
+              Please check the workflow configuration.
+            </p>
+          </div>
+        </div>
+      </CardContent></Card>
+    );
+  }
 
   // Per-action permissions (backend authoritative).
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
@@ -537,12 +579,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   };
 
-  // Find the most recent paused-cause action for context
-  const pauseCauseAction = useMemo(() => {
-    if (!isPaused) return null;
-    const causes = new Set(['request_resubmission', 'return_for_correction', 'request_more_info']);
-    return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
-  }, [actions, isPaused]);
+  // pauseCauseAction is computed above (hoisted before early returns)
+
 
   const renderStatusBadge = (status: StepStatus) => {
     switch (status) {
