@@ -196,7 +196,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
       ) : (
         <div>
           <Label className="text-xs text-muted-foreground mb-1.5 block">
-            Allowed Users {selectedUserIds.size > 0 && (
+            Allowed Employees {selectedUserIds.size > 0 && (
               <span className="text-foreground">({selectedUserIds.size} selected)</span>
             )}
           </Label>
@@ -204,7 +204,7 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
             <div className="relative mb-2">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search internal users..."
+                placeholder="Search employees by name, email, or department..."
                 value={userSearch}
                 onChange={e => setUserSearch(e.target.value)}
                 className="h-8 pl-7 text-xs"
@@ -213,10 +213,10 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
           )}
           <div className="border rounded-md max-h-52 overflow-y-auto divide-y" data-testid={`approver-users-${step.id}`}>
             {usersLoading ? (
-              <p className="p-2 text-xs text-muted-foreground">Loading users…</p>
+              <p className="p-2 text-xs text-muted-foreground">Loading employees…</p>
             ) : (isEditing ? internalUsers : internalUsers.filter(u => selectedUserIds.has(u.id))).length === 0 ? (
               <p className="p-2 text-xs text-muted-foreground">
-                {isEditing ? 'No internal users match.' : 'No users selected.'}
+                {isEditing ? 'No employees match.' : 'No employees selected.'}
               </p>
             ) : (
               (isEditing ? internalUsers : internalUsers.filter(u => selectedUserIds.has(u.id))).map(u => {
