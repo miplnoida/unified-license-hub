@@ -62,6 +62,14 @@ export async function handler(req: Request): Promise<Response> {
     const instance_id: string | undefined = body.instance_id;
     const raw_action: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
+      Array.isArray(body.notification_overrides) ? body.notification_overrides : [];
+    const overrideMap = new Map<string, { subject?: string; body?: string }>();
+    for (const o of notification_overrides) {
+      if (o && typeof o.binding_id === "string") {
+        overrideMap.set(o.binding_id, { subject: o.subject, body: o.body });
+      }
+    }
 
     if (!registration_id) return errorResponse(req, 400, "registration_id is required", "BAD_REQUEST");
     if (!raw_action || !ACCEPTED_ACTIONS.has(raw_action)) {
@@ -123,13 +131,14 @@ export async function handler(req: Request): Promise<Response> {
       if (step_id) {
         const { data: cfgRows } = await admin
           .from("approval_action_notifications")
-          .select("event_key, recipient_type, recipient_config, template_id, is_enabled")
+          .select("id, event_key, recipient_type, recipient_config, template_id, is_enabled")
           .eq("step_id", step_id)
           .eq("action_type", raw_action)
           .eq("is_enabled", true);
 
         for (const row of (cfgRows ?? [])) {
           try {
+            const override = overrideMap.get((row as any).id);
             await admin.functions.invoke("dispatch-notification-event", {
               body: {
                 event_key: (row as any).event_key,
@@ -146,6 +155,9 @@ export async function handler(req: Request): Promise<Response> {
                   template_id: (row as any).template_id,
                   recipient_type: (row as any).recipient_type,
                   recipient_config: (row as any).recipient_config,
+                  binding_id: (row as any).id,
+                  subject_override: override?.subject,
+                  body_override: override?.body,
                 },
               },
             });

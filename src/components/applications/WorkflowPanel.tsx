@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
+import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 
 interface CanActResult {
   can_act: boolean;
@@ -403,13 +404,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const canAddRemark = !!canActResult?.can_add_remark && entityType === 'application';
   const permissionsUnknown = activeInstance && canActResult === null;
 
-  const handleAction = async (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
+
+  const executeAction = async (
+    actionType: WorkflowActionType,
+    overrides: ActionNotificationOverride[] = [],
+  ) => {
     if (!user || !activeInstance || !currentStep) return;
-    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
-    if (requiresRemarks && !comment.trim()) {
-      toast.error(remarksRequiredMessage(actionType, entityNoun));
-      return;
-    }
     setProcessingAction(actionType);
     try {
       const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
@@ -420,6 +421,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
+            notification_overrides: overrides,
           }
         : {
             application_id: applicationId,
@@ -427,6 +429,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
+            notification_overrides: overrides,
           };
       const { data, error } = await supabase.functions.invoke(fnName, { body });
       if (error) {
@@ -456,7 +459,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         toast.success(data?.message || actionSuccessMessage(actionType, isLastLevel, entityNoun));
       }
       setComment('');
-      // Invalidate all related queries (instance + history + permissions)
+      setPreviewState(null);
       queryClient.invalidateQueries({ queryKey: ['workflow_instances'] });
       queryClient.invalidateQueries({ queryKey: ['approval_actions'] });
       queryClient.invalidateQueries({ queryKey: ['user_can_act_on_workflow_step'] });
@@ -467,6 +470,24 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     } finally {
       setProcessingAction(null);
     }
+  };
+
+  const handleAction = (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
+    if (!user || !activeInstance || !currentStep) return;
+    const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
+    if (requiresRemarks && !comment.trim()) {
+      toast.error(remarksRequiredMessage(actionType, entityNoun));
+      return;
+    }
+    // Open preview dialog so the reviewer can inspect / edit the notification
+    // email(s) before the action is committed. Empty bindings → dialog still
+    // confirms but shows "no email configured".
+    const def = actionButtonsList.find(a => a.type === actionType);
+    setPreviewState({
+      actionType,
+      label: def?.label ?? actionType,
+      requireComments: requiresRemarks,
+    });
   };
 
   const handleAddRemark = async () => {
@@ -513,9 +534,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     requireComments: boolean;
   };
 
+  // Fallback labels mirror action_type 1:1. We NEVER silently rename "approve"
+  // to "Forward to Next Level" — if admins want a custom label they must set
+  // approval_step_actions.label explicitly.
   const fallbackLabel = (type: WorkflowActionType): string => {
     switch (type) {
-      case 'approve': return isLastLevel ? 'Approve' : 'Forward to Next Level';
+      case 'approve': return 'Approve';
       case 'reject': return 'Reject';
       case 'send_back': return 'Send Back';
       case 'escalate': return 'Escalate';
@@ -527,13 +551,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
   const iconFor = (type: WorkflowActionType): React.ReactNode => {
     switch (type) {
-      case 'approve': return isLastLevel
-        ? <CheckCircle className="h-4 w-4 mr-1" />
-        : <ArrowRight className="h-4 w-4 mr-1" />;
+      case 'approve': return <CheckCircle className="h-4 w-4 mr-1" />;
       case 'reject': return <XCircle className="h-4 w-4 mr-1" />;
       case 'send_back': return <ArrowDown className="h-4 w-4 mr-1" />;
       case 'escalate': return <ArrowUp className="h-4 w-4 mr-1" />;
-      default: return <ArrowDown className="h-4 w-4 mr-1" />;
+      default: return <ArrowRight className="h-4 w-4 mr-1" />;
     }
   };
   const variantFor = (type: WorkflowActionType): 'default' | 'destructive' | 'outline' =>
@@ -575,10 +597,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   } else {
     // Legacy fallback: no per-action config rows configured for this step.
     // Mirror prior behavior using canActResult flags directly.
-    if (canByType.approve && isLastLevel) {
-      actionButtonsList.push({ type: 'approve', label: 'Approve', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
-    } else if (canByType.approve) {
-      actionButtonsList.push({ type: 'approve', label: 'Forward to Next Level', icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
+    // Legacy fallback: no per-action config rows for this step. Mirror prior
+    // behavior using canActResult flags, but use neutral fallback labels.
+    if (canByType.approve) {
+      actionButtonsList.push({ type: 'approve', label: fallbackLabel('approve'), icon: iconFor('approve'), variant: 'default', requireComments: REMARKS_REQUIRED_ACTIONS.includes('approve') });
     }
     (['reject','send_back','escalate','request_resubmission','return_for_correction','request_more_info'] as WorkflowActionType[]).forEach(t => {
       if (canByType[t]) {
@@ -598,6 +620,38 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const stepHasNoAllowedActions = hasNoAllowedActions(canActResult?.allowed_actions ?? (currentStep as any).allowed_actions);
   const anyRemarksRequired = actionButtonsList.some(a => a.requireComments);
   const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
+
+  // Dev-only diagnostic so admins can see exactly why an action is/isn't
+  // visible. Logs configured rows, backend allowed_actions, per-type can_*
+  // flags, and the final rendered button labels.
+  useEffect(() => {
+    if (!import.meta.env.DEV || !currentStep) return;
+    const configuredTypes = (configuredStepActions as StepAction[])
+      .map(r => `${r.action_type}${r.is_enabled ? '' : '(disabled)'}${r.label ? `[label="${r.label}"]` : ''}`);
+    const rendered = actionButtonsList.map(a => `${a.type}="${a.label}"`);
+    const hiddenReasons: Record<string, string> = {};
+    (configuredStepActions as StepAction[]).filter(r => r.is_enabled).forEach(r => {
+      const type = r.action_type as WorkflowActionType;
+      if (canByType[type]) return;
+      const reason = !canActResult
+        ? 'permissions-unknown'
+        : !canActResult.can_act
+          ? `not-authorized (reason=${canActResult.reason})`
+          : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
+      hiddenReasons[type] = reason;
+    });
+    // eslint-disable-next-line no-console
+    console.debug('[WorkflowPanel] action diagnostic', {
+      stepId: currentStep.id,
+      stepName: currentStep.name,
+      configured: configuredTypes,
+      backendAllowed: canActResult?.allowed_actions,
+      canByType,
+      rendered,
+      hidden: hiddenReasons,
+    });
+  }, [currentStep?.id, configuredStepActions, canActResult, actionButtonsList.length]);
+
 
   const remarksBlock = !isPaused && (canAddRemark || !noWorkflowActions) && (
     <div className="space-y-2">
@@ -956,6 +1010,23 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Email preview & edit dialog — shown before any workflow action runs. */}
+      {previewState && currentStep && (
+        <WorkflowActionPreviewDialog
+          open={!!previewState}
+          onOpenChange={(v) => { if (!v) setPreviewState(null); }}
+          stepId={currentStep.id}
+          actionType={previewState.actionType}
+          actionLabel={previewState.label}
+          comments={comment}
+          entityType={entityType}
+          entityId={applicationId}
+          actorName={user?.email || null}
+          processing={processing}
+          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+        />
+      )}
     </Card>
   );
 }
