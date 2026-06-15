@@ -556,9 +556,13 @@ export function useStartWorkflow() {
 }
 
 /**
- * Centralized: routes ALL workflow actions through the perform-workflow-action
- * edge function which validates the actor, step, action and atomically advances
- * the workflow. Returns the server response.
+ * Centralized workflow-action mutation. Routes to the correct edge function
+ * based on entity_type:
+ *   - 'application'  → perform-workflow-action
+ *   - 'registration' → perform-registration-workflow-action
+ *
+ * Backward compat: callers that pass only `application_id` are treated as
+ * application actions, preserving the original signature.
  */
 export function usePerformAction() {
   const qc = useQueryClient();
@@ -570,32 +574,54 @@ export function usePerformAction() {
       action_type: WorkflowActionType;
       comments?: string;
       delegated_to?: string;
-      application_id: string;
+      /** Application workflow (legacy / default). */
+      application_id?: string;
+      /** Generic entity workflow. */
+      entity_type?: 'application' | 'registration';
+      entity_id?: string;
     }) => {
-      const { data, error } = await supabase.functions.invoke('perform-workflow-action', {
-        body: {
-          application_id: params.application_id,
-          instance_id: params.instance_id,
-          step_id: params.step_id,
-          action_type: params.action_type,
-          comments: params.comments,
-          delegated_to: params.delegated_to,
-        },
-      });
+      const entityType: 'application' | 'registration' =
+        params.entity_type ?? 'application';
+      const entityId = params.entity_id ?? params.application_id;
+      if (!entityId) throw new Error('entity_id or application_id is required');
+
+      const fnName = entityType === 'registration'
+        ? 'perform-registration-workflow-action'
+        : 'perform-workflow-action';
+      const body = entityType === 'registration'
+        ? {
+            registration_id: entityId,
+            instance_id: params.instance_id,
+            step_id: params.step_id,
+            action_type: params.action_type,
+            comments: params.comments,
+          }
+        : {
+            application_id: entityId,
+            instance_id: params.instance_id,
+            step_id: params.step_id,
+            action_type: params.action_type,
+            comments: params.comments,
+            delegated_to: params.delegated_to,
+          };
+
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
       if (error) throw new Error(error.message || 'Action failed');
       if ((data as any)?.error) throw new Error((data as any).error);
       await logAudit({
         action: `workflow_${params.action_type}`,
         entityType: 'workflow_instance',
         entityId: params.instance_id,
-        newValue: { step_id: params.step_id, action: params.action_type },
+        newValue: { step_id: params.step_id, action: params.action_type, entity_type: entityType },
       });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['workflow_instances'] });
       qc.invalidateQueries({ queryKey: ['approval_actions'] });
-      qc.invalidateQueries({ queryKey: ['applications'] });
+      qc.invalidateQueries({
+        queryKey: [vars.entity_type === 'registration' ? 'registrations' : 'applications'],
+      });
     },
   });
 }
