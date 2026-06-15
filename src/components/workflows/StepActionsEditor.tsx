@@ -450,7 +450,7 @@ function ActionForm({
           <div>
             <Label className="text-xs text-muted-foreground">Target Step</Label>
             <Select
-              value={draft.next_step_id ?? 'none'}
+              value={validNextStepId ?? 'none'}
               onValueChange={v => setDraft({ ...draft, next_step_id: v === 'none' ? null : v })}
             >
               <SelectTrigger className="h-8 text-xs">
@@ -465,6 +465,11 @@ function ActionForm({
                 ))}
               </SelectContent>
             </Select>
+            {targetStepOptions.length === 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Add another step to this workflow to route here.
+              </p>
+            )}
           </div>
         )}
 
