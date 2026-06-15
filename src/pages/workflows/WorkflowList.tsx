@@ -1139,9 +1139,11 @@ interface TimelineBuilderProps {
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
   onAdd: () => void;
+  /** Forwarded to StepCard / StepActionsEditor for entity-aware notification defaults. */
+  entityType?: string;
 }
 
-function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEditing, onUpdate, onDelete, onMove, onAdd }: TimelineBuilderProps) {
+function TimelineBuilder({ steps, dynamicRoles, roleLabel, stepRoleLabel, isEditing, onUpdate, onDelete, onMove, onAdd, entityType }: TimelineBuilderProps) {
   // Validation: detect duplicate consecutive roles (by role id when available, else system role)
   const duplicateIdx = useMemo(() => {
     const key = (s: WorkflowStep) => s.approver_role_id || `sys:${s.approver_role}`;
