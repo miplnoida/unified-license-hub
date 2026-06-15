@@ -9,6 +9,7 @@
 export type PermissionModule =
   | 'application_management'
   | 'license_management'
+  | 'registration_management'
   | 'returns_management'
   | 'complaint_management'
   | 'user_management'
@@ -41,6 +42,9 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/admin/licensees', 'license_management'],
   ['/admin/approved-licensees', 'license_management'],
   ['/admin/ppoc-mappings', 'license_management'],
+
+  // Registration review (dedicated module so it can be granted independently)
+  ['/admin/registration-review', 'registration_management'],
 
   // Returns
   ['/admin/returns', 'returns_management'],

@@ -35,7 +35,21 @@ export default function RegistrationReview() {
     const { data } = await supabase
       .from('registrations')
       .select('id, applicant_name, email, status, registration_reference, created_at, sector_id')
-      .in('status', ['pending_review', 'in_progress', 'resubmission_required'])
+      .in('status', [
+        'submitted',
+        'pending',
+        'pending_review',
+        'under_review',
+        'in_progress',
+        'in_review',
+        'resubmission_required',
+        'resubmission_requested',
+        'returned_for_correction',
+        'return_for_correction',
+        'info_requested',
+        'more_info_requested',
+        'query_raised',
+      ])
       .order('created_at', { ascending: false });
 
     const base = (data || []) as PendingRegistration[];
