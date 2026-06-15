@@ -579,12 +579,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     );
   };
 
-  // Find the most recent paused-cause action for context
-  const pauseCauseAction = useMemo(() => {
-    if (!isPaused) return null;
-    const causes = new Set(['request_resubmission', 'return_for_correction', 'request_more_info']);
-    return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
-  }, [actions, isPaused]);
+  // pauseCauseAction is computed above (hoisted before early returns)
+
 
   const renderStatusBadge = (status: StepStatus) => {
     switch (status) {
