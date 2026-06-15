@@ -33,6 +33,22 @@ vi.mock('@/hooks/useActionNotifications', () => ({
     return_for_correction: 'application.returned_for_correction',
     request_more_info: 'application.more_info_requested',
   },
+  getDefaultEventForAction: vi.fn((action: string, entityType?: string) => {
+    const prefix = entityType === 'registration' || entityType === 'return' ? entityType : 'application';
+    const suffixes: Record<string, string> = {
+      approve: 'approved_step',
+      reject: 'rejected',
+      send_back: 'send_back',
+      escalate: 'escalated',
+      request_resubmission: 'resubmission_requested',
+      return_for_correction: 'returned_for_correction',
+      request_more_info: 'more_info_requested',
+    };
+    return `${prefix}.${suffixes[action]}`;
+  }),
+  pickDefaultEmailTemplateId: vi.fn((eventKey: string, templates: Array<{ id: string; event_type: string; channel: string; is_active: boolean }>) => (
+    templates.find(t => t.event_type === eventKey && t.channel === 'email' && t.is_active)?.id ?? null
+  )),
   RECIPIENT_LABELS: {
     applicant: 'Applicant',
     current_approver: 'Current Approver',
