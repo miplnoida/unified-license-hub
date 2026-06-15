@@ -1,0 +1,301 @@
+/**
+ * Email Preview & Edit dialog shown before a workflow action is executed.
+ *
+ * Loads all `approval_action_notifications` bindings for (step, action_type),
+ * resolves each binding's notification_templates row, renders a realistic
+ * subject/body preview with available variables, and lets the reviewer edit
+ * subject/body per binding before confirming.
+ *
+ * On confirm: invokes onConfirm(overrides) where overrides is an array of
+ * { binding_id, subject, body } for the bindings the reviewer changed (or
+ * accepted). These flow through perform-workflow-action and ultimately to
+ * dispatch-notification-event as subject_override / body_override.
+ *
+ * If there are no configured notifications, the dialog simply confirms the
+ * action with a "no email is configured" notice — it does NOT block actions.
+ */
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertTriangle, Loader2, Mail, RotateCcw, Send } from 'lucide-react';
+import { RECIPIENT_LABELS, type ActionNotificationRecipientType } from '@/hooks/useActionNotifications';
+import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
+
+export interface ActionNotificationOverride {
+  binding_id: string;
+  subject: string;
+  body: string;
+}
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  stepId: string;
+  actionType: WorkflowActionType;
+  actionLabel: string;
+  comments: string;
+  entityType: 'application' | 'registration';
+  entityId: string;
+  /** Display name of the actor (for {{actor_name}} substitution). */
+  actorName?: string | null;
+  processing: boolean;
+  onConfirm: (overrides: ActionNotificationOverride[]) => void | Promise<void>;
+}
+
+interface BindingRow {
+  id: string;
+  step_id: string;
+  action_type: string;
+  event_key: string;
+  recipient_type: ActionNotificationRecipientType;
+  recipient_config: Record<string, any> | null;
+  template_id: string | null;
+  is_enabled: boolean;
+  template?: { id: string; name: string; subject: string | null; body: string; channel: string } | null;
+}
+
+/** Minimal `{{token}}` substitution mirroring the dispatch render function. */
+function render(template: string | null | undefined, vars: Record<string, any>): string {
+  if (!template) return '';
+  return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
+    const path = key.split('.');
+    let cur: any = vars;
+    for (const p of path) {
+      if (cur && typeof cur === 'object' && p in cur) cur = cur[p];
+      else return `{{${key}}}`;
+    }
+    return cur == null ? '' : String(cur);
+  });
+}
+
+function useBindings(stepId: string, actionType: WorkflowActionType) {
+  return useQuery({
+    queryKey: ['preview_action_bindings', stepId, actionType],
+    enabled: !!stepId,
+    queryFn: async (): Promise<BindingRow[]> => {
+      const { data, error } = await supabase
+        .from('approval_action_notifications' as any)
+        .select('id, step_id, action_type, event_key, recipient_type, recipient_config, template_id, is_enabled')
+        .eq('step_id', stepId)
+        .eq('action_type', actionType)
+        .eq('is_enabled', true);
+      if (error) throw error;
+      const rows = (data ?? []) as unknown as BindingRow[];
+      const templateIds = Array.from(new Set(rows.map(r => r.template_id).filter((x): x is string => !!x)));
+      if (templateIds.length === 0) return rows.map(r => ({ ...r, template: null }));
+      const { data: tpls } = await supabase
+        .from('notification_templates')
+        .select('id, name, subject, body, channel')
+        .in('id', templateIds);
+      const tplMap = new Map<string, any>();
+      (tpls || []).forEach((t: any) => tplMap.set(t.id, t));
+      return rows.map(r => ({ ...r, template: r.template_id ? (tplMap.get(r.template_id) ?? null) : null }));
+    },
+    staleTime: 30_000,
+  });
+}
+
+function useEntityPreviewData(entityType: 'application' | 'registration', entityId: string) {
+  return useQuery({
+    queryKey: ['preview_entity_vars', entityType, entityId],
+    enabled: !!entityId,
+    queryFn: async (): Promise<Record<string, any>> => {
+      if (entityType === 'registration') {
+        const { data } = await supabase
+          .from('registrations')
+          .select('id, primary_email, status, registration_number, applicant_name, business_name')
+          .eq('id', entityId)
+          .maybeSingle();
+        return {
+          registration_id: entityId,
+          registration_number: (data as any)?.registration_number || '',
+          applicant_email: (data as any)?.primary_email || '',
+          applicant_name: (data as any)?.applicant_name || (data as any)?.business_name || '',
+          status: (data as any)?.status || '',
+        };
+      }
+      const { data } = await supabase
+        .from('applications')
+        .select('id, status, application_number, applicant_id')
+        .eq('id', entityId)
+        .maybeSingle();
+      return {
+        application_id: entityId,
+        application_number: (data as any)?.application_number || '',
+        status: (data as any)?.status || '',
+      };
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function WorkflowActionPreviewDialog({
+  open, onOpenChange, stepId, actionType, actionLabel, comments,
+  entityType, entityId, actorName, processing, onConfirm,
+}: Props) {
+  const { data: bindings = [], isLoading } = useBindings(stepId, actionType);
+  const { data: entityVars = {} } = useEntityPreviewData(entityType, entityId);
+
+  const vars = useMemo(() => ({
+    ...entityVars,
+    action_type: actionType,
+    action_label: actionLabel,
+    comments: comments || '',
+    remarks: comments || '',
+    actor_name: actorName || 'Reviewer',
+    app_name: 'Unified License Hub',
+  }), [entityVars, actionType, actionLabel, comments, actorName]);
+
+  // Per-binding editable subject/body. Reset whenever the dialog opens or
+  // bindings change so reviewers always see the freshly rendered template.
+  const [edited, setEdited] = useState<Record<string, { subject: string; body: string }>>({});
+  useEffect(() => {
+    if (!open) return;
+    const next: Record<string, { subject: string; body: string }> = {};
+    for (const b of bindings) {
+      next[b.id] = {
+        subject: render(b.template?.subject || `[${actionLabel}] {{application_number}}{{registration_number}}`, vars),
+        body: render(b.template?.body || `Hello,\n\nThe reviewer has performed action: ${actionLabel}.\n\nRemarks:\n{{comments}}\n\nThank you.`, vars),
+      };
+    }
+    setEdited(next);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, bindings.map(b => b.id).join(','), actionLabel]);
+
+  const resetBinding = (b: BindingRow) => {
+    setEdited(prev => ({
+      ...prev,
+      [b.id]: {
+        subject: render(b.template?.subject || `[${actionLabel}] {{application_number}}{{registration_number}}`, vars),
+        body: render(b.template?.body || `Hello,\n\nThe reviewer has performed action: ${actionLabel}.\n\nRemarks:\n{{comments}}\n\nThank you.`, vars),
+      },
+    }));
+  };
+
+  const recipientSummary = (b: BindingRow): string => {
+    const label = RECIPIENT_LABELS[b.recipient_type] || b.recipient_type;
+    if (b.recipient_type === 'custom_email') {
+      const email = b.recipient_config?.email || '(no email set)';
+      return `${label}: ${email}`;
+    }
+    if (b.recipient_type === 'role') {
+      const role = b.recipient_config?.role || b.recipient_config?.role_name || '(no role set)';
+      return `${label}: ${role}`;
+    }
+    return label;
+  };
+
+  const handleConfirm = async () => {
+    const overrides: ActionNotificationOverride[] = bindings.map(b => ({
+      binding_id: b.id,
+      subject: edited[b.id]?.subject ?? '',
+      body: edited[b.id]?.body ?? '',
+    }));
+    await onConfirm(overrides);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!processing) onOpenChange(v); }}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" /> Preview &amp; Send — {actionLabel}
+          </DialogTitle>
+          <DialogDescription>
+            Review the notification email(s) below. You can edit the subject and body before sending.
+            Action will not be executed until you click <strong>Confirm &amp; Send</strong>.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="rounded-md bg-muted/40 border p-3 text-xs space-y-1">
+            <div><span className="text-muted-foreground">Action:</span> <strong>{actionLabel}</strong></div>
+            {comments && (
+              <div className="whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {comments}</div>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading notification templates…
+            </div>
+          ) : bindings.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">No email notification is configured for this action.</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The action will still be executed and logged. Administrators can configure email
+                  notifications under <em>Edit Steps → Notifications</em>.
+                </p>
+              </div>
+            </div>
+          ) : (
+            bindings.map((b, idx) => {
+              const e = edited[b.id] || { subject: '', body: '' };
+              const noTemplate = !b.template;
+              const recipientWarning =
+                (b.recipient_type === 'custom_email' && !b.recipient_config?.email) ||
+                (b.recipient_type === 'role' && !(b.recipient_config?.role || b.recipient_config?.role_name));
+              return (
+                <div key={b.id} className="rounded-md border p-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <Badge variant="outline">Email {idx + 1} of {bindings.length}</Badge>
+                      <span className="text-muted-foreground">{recipientSummary(b)}</span>
+                      {b.template && <span className="text-muted-foreground">· Template: <strong>{b.template.name}</strong></span>}
+                    </div>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => resetBinding(b)} disabled={processing}>
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset to template
+                    </Button>
+                  </div>
+                  {noTemplate && (
+                    <p className="text-xs text-warning">No template bound — a basic default is used.</p>
+                  )}
+                  {recipientWarning && (
+                    <p className="text-xs text-destructive">Recipient is not fully configured; this email may not be delivered.</p>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Subject</Label>
+                    <Input
+                      value={e.subject}
+                      onChange={(ev) => setEdited(prev => ({ ...prev, [b.id]: { ...prev[b.id], subject: ev.target.value } }))}
+                      disabled={processing}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Body</Label>
+                    <Textarea
+                      value={e.body}
+                      onChange={(ev) => setEdited(prev => ({ ...prev, [b.id]: { ...prev[b.id], body: ev.target.value } }))}
+                      rows={8}
+                      disabled={processing}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <Separator />
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm} disabled={processing}>
+            {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+            Confirm &amp; Send
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
