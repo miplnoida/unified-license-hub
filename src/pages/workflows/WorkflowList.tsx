@@ -848,9 +848,9 @@ export default function WorkflowList() {
                               </Button>
                             </div>
                           </div>
-                          <AccordionContent className="px-4">
+                          <AccordionContent className="px-4 border-t-2 border-primary/30 bg-muted/20">
                             {isSelected && selectedWorkflow && (
-                              <div className="space-y-4 pt-4">
+                              <div className="space-y-4 pt-4 pb-2">
                                 <div className="flex items-start justify-between gap-3 flex-wrap">
                                   <div className="min-w-0">
                                     <CardDescription>
