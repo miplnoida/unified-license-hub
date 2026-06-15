@@ -20,6 +20,8 @@ const ACCEPTED_ACTIONS = new Set([
   "send_back",
   "escalate",
   "request_resubmission",
+  "return_for_correction",
+  "request_more_info",
 ]);
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
