@@ -12,6 +12,8 @@ const ACCEPTED_ACTIONS = new Set([
   "send_back",
   "escalate",
   "request_resubmission",
+  "return_for_correction",
+  "request_more_info",
 ]);
 
 function jsonResponse(req: Request, status: number, body: Record<string, unknown>) {
@@ -86,8 +88,11 @@ Deno.serve(async (req) => {
     try {
       const eventKey =
         action_type === "reject" ? "return.rejected" :
-        action_type === "request_resubmission" ? "return.edit_requested" :
+        action_type === "request_resubmission" ? "return.resubmission_requested" :
+        action_type === "return_for_correction" ? "return.returned_for_correction" :
+        action_type === "request_more_info" ? "return.more_info_requested" :
         action_type === "send_back" ? "return.send_back" :
+        action_type === "escalate" ? "return.escalated" :
         action_type === "approve" ? ((result as any).new_status === "VAL" ? "return.approved" : "return.approved_step") :
         "return.workflow_action_taken";
       const sharedPayload = {
