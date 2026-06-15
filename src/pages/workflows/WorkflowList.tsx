@@ -738,82 +738,136 @@ export default function WorkflowList() {
                     </Button>
                   </div>
                 ) : (
-                  workflows.map(wf => {
-                    const typeIsKnown = activeTypeKeys.has(wf.entity_type as WorkflowEntityType);
-                    const isSelected = selectedId === wf.id;
-                    return (
-                      <div
-                        key={wf.id}
-                        role="button"
-                        tabIndex={0}
-                        aria-pressed={isSelected}
-                        onClick={() => { setSelectedId(wf.id); setShowDetails(true); }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setSelectedId(wf.id);
-                            setShowDetails(true);
-                          }
-                        }}
-                        className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                          isSelected
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'hover:border-primary/40'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              <Badge variant="outline" className="text-[10px]">
-                                {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
+                  <Accordion
+                    type="single"
+                    collapsible
+                    value={selectedId ?? ''}
+                    onValueChange={(v) => setSelectedId(v || null)}
+                    className="space-y-2"
+                  >
+                    {workflows.map(wf => {
+                      const typeIsKnown = activeTypeKeys.has(wf.entity_type as WorkflowEntityType);
+                      const isSelected = selectedId === wf.id;
+                      return (
+                        <AccordionItem
+                          key={wf.id}
+                          value={wf.id}
+                          className={`rounded-lg border transition-all ${
+                            isSelected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'hover:border-primary/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 pr-3">
+                            <AccordionTrigger className="flex-1 p-3 hover:no-underline">
+                              <div className="flex-1 min-w-0 text-left">
+                                <p className="font-medium text-sm text-foreground truncate">{wf.name}</p>
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                  <Badge variant="outline" className="text-[10px]">
+                                    {getWorkflowTypeLabel(wf.entity_type, workflowTypeConfigs)}
+                                  </Badge>
+                                  {!typeIsKnown && (
+                                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
+                                      Legacy type
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <div className="flex items-center gap-1 shrink-0 py-3">
+                              <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                                {wf.is_active ? 'On' : 'Off'}
                               </Badge>
-                              {!typeIsKnown && (
-                                <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">
-                                  Legacy type
-                                </Badge>
-                              )}
-
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-[11px]"
+                                onClick={e => { e.stopPropagation(); openWorkflowBuilder(wf); }}
+                                aria-label={`Open workflow builder for ${wf.name}`}
+                                title="Open workflow builder"
+                              >
+                                <Settings2 className="h-3 w-3 mr-1" /> Builder
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={e => { e.stopPropagation(); openEdit(wf); }}
+                                aria-label={`Edit workflow ${wf.name}`}
+                                title="Edit workflow"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-destructive"
+                                onClick={e => { e.stopPropagation(); handleDelete(wf); }}
+                                aria-label={`Delete workflow ${wf.name}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <Badge variant={wf.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                              {wf.is_active ? 'On' : 'Off'}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-[11px]"
-                              onClick={e => { e.stopPropagation(); openWorkflowBuilder(wf); }}
-                              aria-label={`Open workflow builder for ${wf.name}`}
-                              title="Open workflow builder"
-                            >
-                              <Settings2 className="h-3 w-3 mr-1" /> Builder
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={e => { e.stopPropagation(); openEdit(wf); }}
-                              aria-label={`Edit workflow ${wf.name}`}
-                              title="Edit workflow"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
-                              onClick={e => { e.stopPropagation(); handleDelete(wf); }}
-                              aria-label={`Delete workflow ${wf.name}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
+                          <AccordionContent className="px-3">
+                            {isSelected && selectedWorkflow && (
+                              <div className="space-y-4 pt-2 border-t">
+                                <div className="flex items-start justify-between gap-3 flex-wrap pt-3">
+                                  <div className="min-w-0">
+                                    <CardDescription>
+                                      {getWorkflowTypeLabel(selectedWorkflow.entity_type, workflowTypeConfigs)} ·
+                                      {' '}{steps.length} step{steps.length === 1 ? '' : 's'} · Anyone in the chosen role can approve
+                                      {isEditingSteps && (
+                                        <span className="ml-2 text-warning font-medium">· Editing — changes save automatically</span>
+                                      )}
+                                    </CardDescription>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
+                                      {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>
+                                      <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
+                                    </Button>
+                                    {!isEditingSteps ? (
+                                      <Button size="sm" onClick={() => setIsEditingSteps(true)}>
+                                        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
+                                      </Button>
+                                    ) : (
+                                      <>
+                                        <Button size="sm" variant="outline" onClick={handleAddStep}>
+                                          <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
+                                        </Button>
+                                        <Button size="sm" onClick={() => setIsEditingSteps(false)}>
+                                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Done
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <WorkflowVersionPanel workflowId={selectedWorkflow.id} workflowName={selectedWorkflow.name} />
+                                {stepsLoading ? (
+                                  <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
+                                ) : (
+                                  <TimelineBuilder
+                                    steps={steps}
+                                    dynamicRoles={dynamicRoles}
+                                    roleLabel={roleLabel}
+                                    stepRoleLabel={stepRoleLabel}
+                                    isEditing={isEditingSteps}
+                                    onUpdate={(id, u) => updateStep.mutateAsync({ id, ...u } as any).then(() => undefined)}
+                                    onDelete={(id) => deleteStep.mutate(id)}
+                                    onMove={handleMove}
+                                    onAdd={handleAddStep}
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
                 )}
 
 
@@ -821,99 +875,6 @@ export default function WorkflowList() {
             </Card>
           </div>
 
-          {/* Detail / Editor — full width, stacked below the list */}
-          {selectedWorkflow && !showDetails && (
-            <div className="w-full">
-              <Card>
-                <CardContent className="py-3 flex items-center justify-between gap-3">
-                  <div className="text-sm text-muted-foreground">
-                    Details hidden for <span className="font-medium text-foreground">{selectedWorkflow.name}</span>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
-                    <ChevronDown className="h-3.5 w-3.5 mr-1" /> Show Details
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Builder */}
-          {selectedWorkflow && showDetails && (
-          <div className="w-full">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <CardTitle className="text-base">
-                      {selectedWorkflow ? selectedWorkflow.name : 'Select a Workflow'}
-                    </CardTitle>
-                    {selectedWorkflow && (
-                      <CardDescription className="mt-1">
-                        {getWorkflowTypeLabel(selectedWorkflow.entity_type, workflowTypeConfigs)} ·
-                        {' '}{steps.length} step{steps.length === 1 ? '' : 's'} · Anyone in the chosen role can approve
-                        {isEditingSteps && (
-                          <span className="ml-2 text-warning font-medium">· Editing — changes save automatically</span>
-                        )}
-                      </CardDescription>
-                    )}
-                  </div>
-                  {selectedWorkflow && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Button variant="outline" size="sm" onClick={() => handleToggleActive(selectedWorkflow)}>
-                        {selectedWorkflow.is_active ? 'Turn Off' : 'Turn On'}
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleSaveAsTemplate}>
-                        <BookmarkPlus className="h-3.5 w-3.5 mr-1" /> Save as Template
-                      </Button>
-                      {!isEditingSteps ? (
-                        <Button size="sm" onClick={() => setIsEditingSteps(true)}>
-                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit Steps
-                        </Button>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="outline" onClick={handleAddStep}>
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Step
-                          </Button>
-                          <Button size="sm" onClick={() => setIsEditingSteps(false)}>
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Done
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowDetails(false)}
-                        aria-label="Hide workflow details"
-                      >
-                        <ChevronUp className="h-3.5 w-3.5 mr-1" /> Hide Details
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedWorkflow && (
-                  <WorkflowVersionPanel workflowId={selectedWorkflow.id} workflowName={selectedWorkflow.name} />
-                )}
-                {stepsLoading ? (
-                  <p className="text-muted-foreground text-center py-8 text-sm">Loading...</p>
-                ) : (
-                  <TimelineBuilder
-                    steps={steps}
-                    dynamicRoles={dynamicRoles}
-                    roleLabel={roleLabel}
-                    stepRoleLabel={stepRoleLabel}
-                    isEditing={isEditingSteps}
-                    onUpdate={(id, u) => updateStep.mutateAsync({ id, ...u } as any).then(() => undefined)}
-                    onDelete={(id) => deleteStep.mutate(id)}
-                    onMove={handleMove}
-                    onAdd={handleAddStep}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          )}
         </div>
       </div>
 
