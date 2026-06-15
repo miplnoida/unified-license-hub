@@ -1263,9 +1263,11 @@ interface StepCardProps {
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
   onDelete: (id: string) => void;
   onMove: (idx: number, dir: -1 | 1) => void;
+  /** Workflow entity_type — drives entity-aware default event keys in the notifications editor. */
+  entityType?: string;
 }
 
-function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove }: StepCardProps) {
+function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, stepRoleLabel, isDuplicate, isEditing, onUpdate, onDelete, onMove, entityType }: StepCardProps) {
   const [roleSearch, setRoleSearch] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
   // Optimistic local override so the selected highlight + badge update
