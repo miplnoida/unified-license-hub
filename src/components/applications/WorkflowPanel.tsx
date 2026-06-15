@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
+import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 
 interface CanActResult {
   can_act: boolean;
