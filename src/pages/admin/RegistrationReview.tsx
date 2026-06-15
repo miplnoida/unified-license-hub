@@ -184,15 +184,28 @@ export default function RegistrationReview() {
                 </SheetDescription>
               </SheetHeader>
               {reviewing.workflow_id ? (
-                <WorkflowPanel
-                  entityType="registration"
-                  entityNoun="registration"
-                  applicationId={reviewing.id}
-                  workflowId={reviewing.workflow_id}
-                  workflowEnabled={true}
-                  applicationStatus={reviewing.status}
-                  onStatusChange={refreshReviewing}
-                />
+                <ErrorBoundary
+                  context="RegistrationReview · WorkflowPanel"
+                  fallback={
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+                      <p className="font-medium text-destructive">Unable to load workflow details</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        An unexpected error occurred while rendering this registration's workflow.
+                        Please refresh the page or contact an administrator.
+                      </p>
+                    </div>
+                  }
+                >
+                  <WorkflowPanel
+                    entityType="registration"
+                    entityNoun="registration"
+                    applicationId={reviewing.id}
+                    workflowId={reviewing.workflow_id}
+                    workflowEnabled={true}
+                    applicationStatus={reviewing.status}
+                    onStatusChange={refreshReviewing}
+                  />
+                </ErrorBoundary>
               ) : (
                 <div className="rounded-md border border-warning/40 bg-warning/5 p-4 text-sm">
                   <p className="font-medium">No Registration workflow attached</p>
