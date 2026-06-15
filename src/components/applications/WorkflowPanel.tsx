@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
+import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 
 interface CanActResult {
   can_act: boolean;
