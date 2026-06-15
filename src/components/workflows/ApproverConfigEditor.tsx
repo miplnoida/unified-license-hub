@@ -230,13 +230,16 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
                       <Checkbox
                         checked={checked}
                         onCheckedChange={v => toggleUser(u.id, !!v)}
-                        aria-label={`Toggle user ${u.full_name || u.email}`}
+                        aria-label={`Toggle employee ${u.full_name || u.email}`}
                       />
                     )}
-                    <span className="font-medium flex-1 truncate">{u.full_name || u.email || u.id}</span>
-                    {u.email && u.full_name && (
-                      <span className="text-muted-foreground truncate">{u.email}</span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{u.full_name || u.email || u.id}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
+                        {u.email && u.full_name && <span className="truncate">{u.email}</span>}
+                        {u.department && <span>· {u.department}</span>}
+                      </div>
+                    </div>
                     {u.primary_role && (
                       <Badge variant="outline" className="text-[10px]">{u.primary_role}</Badge>
                     )}
