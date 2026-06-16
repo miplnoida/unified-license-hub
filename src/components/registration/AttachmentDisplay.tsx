@@ -12,6 +12,9 @@ export type NormalizedAttachment = {
   downloadUrl?: string;
   type?: string;
   size?: number;
+  version?: number;
+  groupId?: string;
+  versionId?: string;
 };
 
 export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
