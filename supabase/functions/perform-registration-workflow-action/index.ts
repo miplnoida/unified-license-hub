@@ -174,12 +174,8 @@ export async function handler(req: Request): Promise<Response> {
                 entity_type: "registration",
                 entity_id: registration_id,
                 payload: {
-                  registration_id,
-                  action_type: raw_action,
-                  comments,
-                  actor_id: caller.id,
+                  ...sharedPayload,
                   step_id,
-                  new_status: (result as any).new_status,
                   action_notification_override: true,
                   template_id: (row as any).template_id,
                   recipient_type: (row as any).recipient_type,
