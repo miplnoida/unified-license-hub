@@ -192,7 +192,8 @@ export async function uploadVersionedDocument(args: {
 
   const physical = await uploadPhysicalFile({
     file: args.file,
-    userId: args.userId,
+    userId: effectiveUserId,
+
     entityType: args.entityType,
     entityId: args.entityId || null,
     documentType: args.documentType,
