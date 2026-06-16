@@ -80,7 +80,7 @@ export default function Login() {
   }, [showMfaScreen, pendingEmail, pendingUserId]);
 
   if (isFullyAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTarget} replace />;
   }
 
   const handleVerifyOtp = async () => {
