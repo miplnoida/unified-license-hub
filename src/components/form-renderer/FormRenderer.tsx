@@ -694,7 +694,7 @@ export function FormRenderer({
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      handleFileUpload(field.fieldName, file);
+                      handleFileUpload(field, file);
                     }
                     // Reset input so same file can be re-selected
                     if (e.target) e.target.value = '';
