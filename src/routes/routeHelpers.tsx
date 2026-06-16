@@ -40,8 +40,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) return <AuthLoadingScreen />;
 
-  // No session = not logged in
-  if (!session) return <Navigate to="/" replace />;
+  // No session = not logged in. Preserve the intended URL (including search
+  // params like ?registration=&submission=) so resubmission email links survive
+  // a logout/login roundtrip.
+  if (!session) {
+    const intended = `${location.pathname}${location.search}${location.hash}`;
+    const isSafe = intended.startsWith('/') && !intended.startsWith('//');
+    const redirect = isSafe && intended !== '/' ? `?redirect=${encodeURIComponent(intended)}` : '';
+    return <Navigate to={`/login${redirect}`} replace state={{ from: location }} />;
+  }
 
   // Session exists but user profile not yet hydrated — keep showing skeleton
   if (!user) return <AuthLoadingScreen />;
