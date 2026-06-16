@@ -173,7 +173,7 @@ export async function uploadVersionedDocument(args: {
       .select('id')
       .eq('entity_type', args.entityType)
       .eq('document_type', args.documentType)
-      .eq('owner_id', args.userId)
+      .eq('owner_id', effectiveUserId)
       .eq('form_id', args.formId || '')
       .eq('field_id', args.fieldId || '')
       .maybeSingle();
