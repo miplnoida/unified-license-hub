@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LandingNav } from '@/components/landing/LandingNav';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +13,13 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucid
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Preserve resubmission email deep-links (e.g. /registration/portal?registration=…&submission=…)
+  // through the login roundtrip. Only same-origin paths are honoured.
+  const rawRedirect = searchParams.get('redirect') || '';
+  const redirectTarget = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+    ? rawRedirect
+    : '/dashboard';
   const { session, user, isAuthenticated, isFullyAuthenticated, mfaStatus, login, logout, mark2FAVerified, clear2FAState } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -73,7 +80,7 @@ export default function Login() {
   }, [showMfaScreen, pendingEmail, pendingUserId]);
 
   if (isFullyAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={redirectTarget} replace />;
   }
 
   const handleVerifyOtp = async () => {
@@ -91,7 +98,7 @@ export default function Login() {
     mark2FAVerified(pendingUserId);
     sessionStorage.removeItem('login_2fa_otp_sent_for');
     toast.success('Verification successful');
-    navigate('/dashboard');
+    navigate(redirectTarget);
   };
 
   const handleCancelMfa = async () => {

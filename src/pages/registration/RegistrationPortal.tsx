@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,12 @@ interface FormSubmission {
 
 export default function RegistrationPortal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Email/resubmission links may carry exact identifiers. We honour them when
+  // present and ALWAYS verify the row belongs to the logged-in user before
+  // loading any data (defence against tampered links).
+  const registrationParam = searchParams.get('registration');
+  const submissionParam = searchParams.get('submission');
   const { user, logout, session, loading: authLoading } = useAuth();
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [forms, setForms] = useState<MatchedForm[]>([]);
@@ -53,19 +59,38 @@ export default function RegistrationPortal() {
       return;
     }
     loadData();
-  }, [session, authLoading]);
+  }, [session, authLoading, registrationParam, submissionParam]);
 
   async function loadData() {
     setLoading(true);
     try {
-      // Fetch registration
-      const { data: regData } = await supabase
-        .from('registrations')
-        .select('*')
-        .eq('user_id', session!.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const userId = session!.user.id;
+      let regData: Registration | null = null;
+
+      // 1. Honour explicit registration id from the email/resubmission link,
+      //    but verify ownership before trusting it.
+      if (registrationParam) {
+        const { data } = await supabase
+          .from('registrations')
+          .select('*')
+          .eq('id', registrationParam)
+          .maybeSingle();
+        if (data && (data as any).user_id === userId) {
+          regData = data as Registration;
+        }
+      }
+
+      // 2. Fallback to the user's most recent registration.
+      if (!regData) {
+        const { data } = await supabase
+          .from('registrations')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data) regData = data as Registration;
+      }
 
       if (!regData) {
         toast.error('No registration found. Please register first.');
@@ -74,6 +99,7 @@ export default function RegistrationPortal() {
       }
 
       setRegistration(regData as Registration);
+
 
       // Fetch published pre-license form_templates matching the registration
       const { data: templatesData } = await supabase
@@ -141,29 +167,37 @@ export default function RegistrationPortal() {
   async function handleOpenForm(formId: string) {
     if (!registration) return;
 
-    const existing = getSubmissionForForm(formId);
+    // Honour an explicit ?submission=<id> from the email link first — but only
+    // if it belongs to this form & this user (verified via the loaded list).
+    const linkSubmission = submissionParam
+      ? submissions.find(s => s.id === submissionParam && s.form_id === formId)
+      : undefined;
+    const existing = linkSubmission ?? getSubmissionForForm(formId);
+    const baseQuery = `registration=${registration.id}`;
+
     if (existing) {
-      navigate(`/registration/portal/form/${formId}?submission=${existing.id}`);
-    } else {
-      const { data, error } = await supabase
-        .from('registration_form_submissions')
-        .insert({
-          registration_id: registration.id,
-          user_id: session!.user.id,
-          form_id: formId,
-          form_data: {},
-          status: 'draft',
-        })
-        .select()
-        .single();
-
-      if (error) {
-        toast.error('Failed to start form. Please try again.');
-        return;
-      }
-
-      navigate(`/registration/portal/form/${formId}?submission=${data.id}`);
+      navigate(`/registration/portal/form/${formId}?${baseQuery}&submission=${existing.id}`);
+      return;
     }
+
+    const { data, error } = await supabase
+      .from('registration_form_submissions')
+      .insert({
+        registration_id: registration.id,
+        user_id: session!.user.id,
+        form_id: formId,
+        form_data: {},
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to start form. Please try again.');
+      return;
+    }
+
+    navigate(`/registration/portal/form/${formId}?${baseQuery}&submission=${data.id}`);
   }
 
   async function handleLogout() {
