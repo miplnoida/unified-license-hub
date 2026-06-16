@@ -143,9 +143,9 @@ export async function uploadNewDocument(args: {
     groupId,
     version: 1,
   });
-  if (!physical.ok) {
+  if (physical.ok !== true) {
     await supabase.from('document_groups' as any).delete().eq('id', groupId);
-    return { success: false, error: physical.error };
+    return { success: false, error: (physical as { ok: false; error: string }).error };
   }
 
   // 3) Atomically create version row + bump pointer + log action
@@ -217,7 +217,7 @@ export async function uploadNewVersion(args: {
     groupId: args.groupId,
     version: provisional,
   });
-  if (!physical.ok) return { success: false, error: physical.error };
+  if (physical.ok !== true) return { success: false, error: (physical as { ok: false; error: string }).error };
 
   const { data: rpcData, error: rpcErr } = await supabase.rpc(
     'create_document_version' as any,
@@ -267,9 +267,9 @@ export async function batchUploadDocuments(args: {
           changeNote: item.changeNote,
         });
         results.push(
-          r.success
-            ? { fileName: item.file.name, success: true, ...r.data }
-            : { fileName: item.file.name, success: false, error: r.error },
+          r.success === true
+            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
+            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
         );
       } else {
         const r = await uploadNewDocument({
@@ -282,9 +282,9 @@ export async function batchUploadDocuments(args: {
           changeNote: item.changeNote,
         });
         results.push(
-          r.success
-            ? { fileName: item.file.name, success: true, ...r.data }
-            : { fileName: item.file.name, success: false, error: r.error },
+          r.success === true
+            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
+            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
         );
       }
     } catch (err: any) {
