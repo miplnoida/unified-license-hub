@@ -11,6 +11,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const RegistrationSuccess = lazy(() => import('@/pages/registration/RegistrationSuccess'));
 const RegistrationPortal = lazy(() => import('@/pages/registration/RegistrationPortal'));
 const RegistrationFormFill = lazy(() => import('@/pages/registration/RegistrationFormFill'));
+const UpdateRegistrationRedirect = lazy(() => import('@/routes/UpdateRegistrationRedirect'));
 
 export const publicRoutes = (
   <>
