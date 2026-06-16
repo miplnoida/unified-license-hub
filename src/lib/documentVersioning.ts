@@ -311,7 +311,6 @@ export async function batchUploadDocuments(args: {
   }
   return results;
 }
-}
 
 // -------- Query helpers --------
 
