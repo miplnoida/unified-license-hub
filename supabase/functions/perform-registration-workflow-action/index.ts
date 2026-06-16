@@ -104,27 +104,56 @@ export async function handler(req: Request): Promise<Response> {
 
     // Best-effort notification dispatch
     try {
+      const isFinalApprove = raw_action === "approve" && (result as any).new_status === "approved";
+      const isFinalReject = raw_action === "reject";
       const eventForAction =
-        raw_action === "reject" ? "registration.rejected" :
+        isFinalReject ? "registration.final_rejected" :
         raw_action === "request_resubmission" ? "registration.resubmission_requested" :
         raw_action === "return_for_correction" ? "registration.returned_for_correction" :
         raw_action === "request_more_info" ? "registration.more_info_requested" :
         raw_action === "send_back" ? "registration.send_back" :
+        isFinalApprove ? "registration.final_approved" :
         raw_action === "approve" ? "registration.approved_step" :
-        "registration.workflow_action_taken";
+        raw_action === "escalate" ? "registration.escalated" :
+        "registration.action_taken";
+
+      // Look up reviewer (current caller) display name for template rendering.
+      let reviewer_name = "Reviewer";
+      const { data: reviewerProfile } = await admin
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", caller.id)
+        .maybeSingle();
+      if (reviewerProfile?.full_name) reviewer_name = String(reviewerProfile.full_name);
+      else if (reviewerProfile?.email) reviewer_name = String(reviewerProfile.email);
+
+      const origin =
+        req.headers.get("origin") ||
+        req.headers.get("referer")?.replace(/\/[^/]*$/, "") ||
+        Deno.env.get("APP_BASE_URL") ||
+        "";
+
+      const sharedPayload = {
+        registration_id,
+        action_type: raw_action,
+        comments,
+        reviewer_comments: comments,
+        reviewer_name,
+        actor_id: caller.id,
+        step_id: (result as any).new_step_id,
+        new_status: (result as any).new_status,
+        portal_url: origin,
+        app_url: origin,
+        cta_url: origin ? `${origin}/registration/update/${registration_id}` : "",
+        cta_label: "Update Registration",
+      };
+
       await admin.functions.invoke("dispatch-notification-event", {
         body: {
           event_key: eventForAction,
           entity_type: "registration",
           entity_id: registration_id,
-          payload: {
-            registration_id,
-            action_type: raw_action,
-            comments,
-            actor_id: caller.id,
-            step_id: (result as any).new_step_id,
-            new_status: (result as any).new_status,
-          },
+          payload: sharedPayload,
         },
       });
 
