@@ -458,14 +458,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     actionType: WorkflowActionType,
     overrides: ActionNotificationOverride[] = [],
   ) => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     setProcessingAction(actionType);
     try {
       const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
       const body: Record<string, unknown> = entityType === 'registration'
         ? {
             registration_id: applicationId,
-            instance_id: activeInstance.id,
+            instance_id: liveInstance.id,
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
@@ -473,7 +473,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           }
         : {
             application_id: applicationId,
-            instance_id: activeInstance.id,
+            instance_id: liveInstance.id,
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
@@ -521,7 +521,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
 
   const handleAction = (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
     if (requiresRemarks && !comment.trim()) {
       toast.error(remarksRequiredMessage(actionType, entityNoun));
@@ -539,13 +539,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
 
   const handleAddRemark = async () => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     const trimmed = comment.trim();
     if (!trimmed) { toast.error('Please enter a remark.'); return; }
     setProcessingAction('__remark__');
     try {
       const { data, error } = await supabase.functions.invoke('add-application-remark', {
-        body: { application_id: applicationId, instance_id: activeInstance.id, step_id: currentStep.id, comments: trimmed },
+        body: { application_id: applicationId, instance_id: liveInstance.id, step_id: currentStep.id, comments: trimmed },
       });
       if (error) {
         let msg = error.message || 'Failed to add remark';
