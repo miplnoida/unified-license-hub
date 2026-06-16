@@ -353,6 +353,43 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
 
+  // Dev-only diagnostic. MUST be declared before the early-returns below so
+  // hook order stays stable across renders (otherwise React throws #310 and
+  // the outer ErrorBoundary renders "Unable to load workflow details").
+  useEffect(() => {
+    if (!import.meta.env.DEV || !currentStep) return;
+    const rows = (configuredStepActions as StepAction[]) || [];
+    const localCanBy: Record<string, boolean> = {
+      approve: (!!canActResult?.can_approve || !!canActResult?.can_forward) && !isPaused,
+      reject: !!canActResult?.can_reject && !isPaused,
+      send_back: !!canActResult?.can_send_back && !isPaused,
+      escalate: !!canActResult?.can_escalate && !isPaused,
+      request_resubmission: !!canActResult?.can_request_resubmission && !isPaused,
+      return_for_correction: !!canActResult?.can_return_for_correction && !isPaused,
+      request_more_info: !!canActResult?.can_request_more_info && !isPaused,
+    };
+    const configuredTypes = rows.map(r => `${r.action_type}${r.is_enabled ? '' : '(disabled)'}${r.label ? `[label="${r.label}"]` : ''}`);
+    const hiddenReasons: Record<string, string> = {};
+    rows.filter(r => r.is_enabled).forEach(r => {
+      const type = r.action_type as string;
+      if (localCanBy[type]) return;
+      hiddenReasons[type] = !canActResult
+        ? 'permissions-unknown'
+        : !canActResult.can_act
+          ? `not-authorized (reason=${canActResult.reason})`
+          : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
+    });
+    // eslint-disable-next-line no-console
+    console.debug('[WorkflowPanel] action diagnostic', {
+      stepId: currentStep.id,
+      stepName: currentStep.name,
+      configured: configuredTypes,
+      backendAllowed: canActResult?.allowed_actions,
+      canByType: localCanBy,
+      hidden: hiddenReasons,
+    });
+  }, [currentStep, configuredStepActions, canActResult, isPaused]);
+
   // ─── Early-return guards (after ALL hooks above) ───
   if (!workflowId) {
     return (
