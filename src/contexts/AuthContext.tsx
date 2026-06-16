@@ -176,10 +176,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     clear2FAState();
+    // Clear per-user registration approval cache so another user signing in
+    // on this browser doesn't inherit the previous user's status.
+    try {
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith('registration_approval_cache:'))
+        .forEach((k) => sessionStorage.removeItem(k));
+    } catch {
+      /* ignore */
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
   }, [clear2FAState]);
+
 
   const requires2FA = !!session && !!user?.twoFactorEnabled;
   const isFullyAuthenticated = !!session && (mfaStatus === 'not_required' || mfaStatus === 'verified');

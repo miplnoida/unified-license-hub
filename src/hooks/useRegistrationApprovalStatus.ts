@@ -34,10 +34,44 @@ export interface RegistrationApprovalState {
   } | null;
 }
 
+type CachedStatus = {
+  reg: RegistrationApprovalState['registration'];
+  remarks: string | null;
+};
+
+/**
+ * Session-storage cache keyed by user id. Used as React Query's `initialData`
+ * so returning pre-licensee users get an immediate render (no visible
+ * "checking registration" loader on every navigation/login) while the query
+ * silently refetches in the background. Scoping by user id prevents leakage
+ * across accounts on a shared browser.
+ */
+const cacheKey = (userId: string) => `registration_approval_cache:${userId}`;
+
+function readCache(userId: string): CachedStatus | undefined {
+  try {
+    const raw = sessionStorage.getItem(cacheKey(userId));
+    if (!raw) return undefined;
+    return JSON.parse(raw) as CachedStatus;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCache(userId: string, value: CachedStatus) {
+  try {
+    sessionStorage.setItem(cacheKey(userId), JSON.stringify(value));
+  } catch {
+    /* ignore quota / disabled storage */
+  }
+}
+
 export function useRegistrationApprovalStatus(): RegistrationApprovalState {
   const { user } = useAuth();
   const isPreLicensee = user?.role === 'pre_licensee';
   const userId = user?.id;
+
+  const initialData = userId ? readCache(userId) : undefined;
 
   const query = useQuery({
     enabled: !!userId && isPreLicensee,
@@ -51,9 +85,12 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      if (!reg) return { reg: null, remarks: null as string | null };
+      if (!reg) {
+        const result = { reg: null, remarks: null as string | null };
+        if (userId) writeCache(userId, result as CachedStatus);
+        return result;
+      }
 
-      // Pull the most recent reviewer remark for this registration, if any.
       let remarks: string | null = null;
       try {
         const { data: actions } = await supabase
@@ -67,9 +104,12 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
       } catch {
         /* ignore — remarks are best-effort */
       }
-      return { reg, remarks };
+      const result = { reg, remarks };
+      if (userId) writeCache(userId, result as CachedStatus);
+      return result;
     },
     staleTime: 30_000,
+    initialData: initialData as any,
   });
 
   if (!isPreLicensee) {
@@ -85,11 +125,17 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
   const reg = query.data?.reg ?? null;
   const category = categorizeRegistrationStatus(reg?.status);
 
+  // Only treat as "loading" when we have nothing at all to render. With
+  // cached initialData this is false on every visit after the first, so the
+  // gate/status page no longer flashes a "checking…" screen on each login.
+  const loading = query.isLoading && !query.data && !initialData;
+
   return {
     enforced: true,
     isApproved: !!reg && isApprovedCategory(category),
-    loading: query.isLoading,
+    loading,
     category,
+
     registration: reg
       ? {
           id: reg.id,
