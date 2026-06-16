@@ -118,7 +118,13 @@ async function downloadFile(att: NormalizedAttachment): Promise<void> {
 
 function AttachmentRow({ att }: { att: NormalizedAttachment }) {
   const [busy, setBusy] = useState<'view' | 'download' | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const canAct = !!(att.path || att.viewUrl || att.downloadUrl);
+  const sizeLabel = att.size
+    ? att.size < 1024 * 1024
+      ? `${(att.size / 1024).toFixed(1)} KB`
+      : `${(att.size / (1024 * 1024)).toFixed(1)} MB`
+    : null;
 
   const handleView = async () => {
     setBusy('view');
@@ -151,6 +157,17 @@ function AttachmentRow({ att }: { att: NormalizedAttachment }) {
     <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5">
       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
       <span className="text-sm truncate flex-1 min-w-0" title={att.name}>{att.name}</span>
+      {sizeLabel && (
+        <span className="text-[10px] text-muted-foreground shrink-0">{sizeLabel}</span>
+      )}
+      {att.version != null && (
+        <span
+          className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0"
+          title={`Current version v${att.version}`}
+        >
+          v{att.version}
+        </span>
+      )}
       <Button
         type="button"
         variant="ghost"
@@ -175,6 +192,28 @@ function AttachmentRow({ att }: { att: NormalizedAttachment }) {
       >
         {busy === 'download' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
       </Button>
+      {att.groupId && (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setHistoryOpen(true)}
+            aria-label={`Version history for ${att.name}`}
+            title="Version history"
+          >
+            <History className="h-3.5 w-3.5" />
+          </Button>
+          <DocumentVersionHistoryDialog
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            groupId={att.groupId}
+            groupName={att.name}
+            currentVersionId={att.versionId || null}
+          />
+        </>
+      )}
     </div>
   );
 }
