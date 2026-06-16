@@ -1070,39 +1070,54 @@ export type Database = {
           created_at: string
           current_version_id: string | null
           display_name: string | null
+          document_label: string | null
           document_type: string
           entity_id: string | null
           entity_type: string
+          field_id: string | null
+          form_id: string | null
           id: string
           is_deleted: boolean
           metadata: Json | null
           owner_id: string
+          status: string
+          submission_id: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           current_version_id?: string | null
           display_name?: string | null
+          document_label?: string | null
           document_type: string
           entity_id?: string | null
           entity_type: string
+          field_id?: string | null
+          form_id?: string | null
           id?: string
           is_deleted?: boolean
           metadata?: Json | null
           owner_id: string
+          status?: string
+          submission_id?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           current_version_id?: string | null
           display_name?: string | null
+          document_label?: string | null
           document_type?: string
           entity_id?: string | null
           entity_type?: string
+          field_id?: string | null
+          form_id?: string | null
           id?: string
           is_deleted?: boolean
           metadata?: Json | null
           owner_id?: string
+          status?: string
+          submission_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1117,32 +1132,62 @@ export type Database = {
       }
       document_versions: {
         Row: {
+          bucket: string | null
           change_note: string | null
+          checksum: string | null
           created_at: string
+          extension: string | null
+          file_size: number | null
           file_upload_id: string
           group_id: string
           id: string
           is_deleted: boolean
+          metadata: Json
+          mime_type: string | null
+          original_file_name: string | null
+          safe_file_name: string | null
+          status: string
+          storage_path: string | null
           uploaded_by: string
           version: number
         }
         Insert: {
+          bucket?: string | null
           change_note?: string | null
+          checksum?: string | null
           created_at?: string
+          extension?: string | null
+          file_size?: number | null
           file_upload_id: string
           group_id: string
           id?: string
           is_deleted?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          original_file_name?: string | null
+          safe_file_name?: string | null
+          status?: string
+          storage_path?: string | null
           uploaded_by: string
           version: number
         }
         Update: {
+          bucket?: string | null
           change_note?: string | null
+          checksum?: string | null
           created_at?: string
+          extension?: string | null
+          file_size?: number | null
           file_upload_id?: string
           group_id?: string
           id?: string
           is_deleted?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          original_file_name?: string | null
+          safe_file_name?: string | null
+          status?: string
+          storage_path?: string | null
           uploaded_by?: string
           version?: number
         }
@@ -6463,6 +6508,35 @@ export type Database = {
           version_id: string
         }[]
       }
+      create_document_version_metadata: {
+        Args: {
+          _bucket: string
+          _change_note?: string
+          _checksum: string
+          _document_label: string
+          _document_type: string
+          _entity_id: string
+          _entity_type: string
+          _extension: string
+          _field_id: string
+          _file_size: number
+          _file_upload_id: string
+          _form_id: string
+          _group_id?: string
+          _metadata?: Json
+          _mime_type: string
+          _original_file_name: string
+          _safe_file_name: string
+          _storage_path: string
+          _submission_id: string
+        }
+        Returns: {
+          current_version_id: string
+          document_upload_id: string
+          document_version_id: string
+          version_number: number
+        }[]
+      }
       create_notification: {
         Args: {
           _entity_id?: string
@@ -6683,6 +6757,10 @@ export type Database = {
       licensee_ids_for_license: {
         Args: { _license_id: string }
         Returns: string[]
+      }
+      log_document_batch_action: {
+        Args: { _action: string; _details?: Json; _group_id: string }
+        Returns: undefined
       }
       log_self_audit: {
         Args: {

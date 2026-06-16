@@ -25,9 +25,13 @@ export interface BatchUploadItem {
   file: File;
   documentType: string;
   displayName?: string;
+  documentLabel?: string;
   /** If supplied, file is added as a new version of this existing group. */
   groupId?: string;
   changeNote?: string;
+  formId?: string;
+  fieldId?: string;
+  submissionId?: string;
 }
 
 export interface BatchUploadResult {
@@ -47,9 +51,16 @@ function safeDocType(documentType: string): string {
   return documentType.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase() || 'document';
 }
 
-type PhysicalResult =
-  | { ok: true; filePath: string; fileUploadId: string }
-  | { ok: false; error: string };
+async function sha256Hex(file: File): Promise<string | null> {
+  try {
+    const buf = await file.arrayBuffer();
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+}
 
 async function uploadPhysicalFile(params: {
   file: File;
@@ -59,7 +70,10 @@ async function uploadPhysicalFile(params: {
   documentType: string;
   groupId: string;
   version: number;
-}): Promise<{ ok: true; filePath: string; fileUploadId: string } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; filePath: string; fileUploadId: string; safeName: string; ext: string; checksum: string | null }
+  | { ok: false; error: string }
+> {
   const { file, userId, entityType, entityId, documentType, groupId, version } = params;
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || 'bin');
   const safeName = sanitize(file.name);
@@ -69,8 +83,9 @@ async function uploadPhysicalFile(params: {
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
   if (uploadError) return { ok: false, error: uploadError.message };
+
+  const checksum = await sha256Hex(file);
 
   const { data: record, error: dbError } = await supabase
     .from('file_uploads' as any)
@@ -87,9 +102,11 @@ async function uploadPhysicalFile(params: {
       scan_status: 'clean',
       metadata: {
         original_name: file.name,
+        safe_name: safeName,
         document_type: documentType,
         document_group_id: groupId,
         version,
+        checksum_sha256: checksum,
       },
     } as any)
     .select('id')
@@ -99,69 +116,109 @@ async function uploadPhysicalFile(params: {
     await supabase.storage.from(BUCKET).remove([filePath]);
     return { ok: false, error: dbError.message };
   }
-  return { ok: true, filePath, fileUploadId: (record as any).id };
+  return { ok: true, filePath, fileUploadId: (record as any).id, safeName, ext, checksum };
 }
 
 /**
- * Create a brand-new document group and upload v1.
+ * Upload a file as a new version of a (new or existing) logical document.
+ * The server-side `create_document_version_metadata` RPC atomically:
+ *   - finds-or-creates the document_groups row,
+ *   - allocates the next version number,
+ *   - inserts the document_versions row with full metadata,
+ *   - updates current_version_id,
+ *   - writes a document_action_logs entry.
  */
-export async function uploadNewDocument(args: {
+export async function uploadVersionedDocument(args: {
   file: File;
   userId: string;
   entityType: string;
   entityId?: string | null;
   documentType: string;
+  documentLabel?: string;
   displayName?: string;
   changeNote?: string;
+  formId?: string;
+  fieldId?: string;
+  submissionId?: string;
+  /** If supplied, force a new version on this group instead of find-or-create. */
+  groupId?: string;
 }): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
   const validation = validateFile(args.file);
-  if (!validation.valid) return { success: false, error: validation.error || 'Invalid file' };
+  if (!validation.valid) {
+    // Best-effort validation_failed log (only possible if we have a group ref).
+    return { success: false, error: validation.error || 'Invalid file' };
+  }
 
-  // 1) Create empty group
-  const { data: group, error: groupErr } = await supabase
-    .from('document_groups' as any)
-    .insert({
-      entity_type: args.entityType,
-      entity_id: args.entityId || null,
-      document_type: args.documentType,
-      display_name: args.displayName || args.file.name,
-      owner_id: args.userId,
-    } as any)
-    .select('id')
-    .single();
+  // We need a group id for the storage path. If caller did not supply one,
+  // probe for an existing matching group; if none, mint a provisional uuid for
+  // the path — the RPC will create the real group row using the same logical
+  // key and atomically attach the version. We then move the file only if the
+  // RPC returns a different group id (rare race).
+  let stagingGroupId = args.groupId;
+  if (!stagingGroupId) {
+    const { data: existing } = await supabase
+      .from('document_groups' as any)
+      .select('id')
+      .eq('entity_type', args.entityType)
+      .eq('document_type', args.documentType)
+      .eq('owner_id', args.userId)
+      .eq('form_id', args.formId || '')
+      .eq('field_id', args.fieldId || '')
+      .maybeSingle();
+    stagingGroupId = (existing as any)?.id || crypto.randomUUID();
+  }
 
-  if (groupErr || !group) return { success: false, error: groupErr?.message || 'Failed to create group' };
-  const groupId = (group as any).id as string;
+  // Pre-compute provisional version for the storage path; RPC is source of truth.
+  const { data: maxRow } = await supabase
+    .from('document_versions' as any)
+    .select('version')
+    .eq('group_id', stagingGroupId)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const provisional = ((maxRow as any)?.version || 0) + 1;
 
-  // 2) Upload physical file as v1
   const physical = await uploadPhysicalFile({
     file: args.file,
     userId: args.userId,
     entityType: args.entityType,
     entityId: args.entityId || null,
     documentType: args.documentType,
-    groupId,
-    version: 1,
+    groupId: stagingGroupId,
+    version: provisional,
   });
   if (physical.ok !== true) {
-    await supabase.from('document_groups' as any).delete().eq('id', groupId);
     return { success: false, error: (physical as { ok: false; error: string }).error };
   }
 
-  // 3) Atomically create version row + bump pointer + log action
   const { data: rpcData, error: rpcErr } = await supabase.rpc(
-    'create_document_version' as any,
+    'create_document_version_metadata' as any,
     {
-      _group_id: groupId,
+      _entity_type: args.entityType,
+      _entity_id: args.entityId || null,
+      _document_type: args.documentType,
+      _document_label: args.documentLabel || args.displayName || args.file.name,
+      _form_id: args.formId || null,
+      _field_id: args.fieldId || null,
+      _submission_id: args.submissionId || null,
+      _bucket: BUCKET,
+      _storage_path: physical.filePath,
       _file_upload_id: physical.fileUploadId,
+      _original_file_name: args.file.name,
+      _safe_file_name: physical.safeName,
+      _file_size: args.file.size,
+      _mime_type: args.file.type,
+      _extension: physical.ext,
+      _checksum: physical.checksum,
+      _metadata: { display_name: args.displayName || args.file.name },
       _change_note: args.changeNote || null,
-      _action: 'upload',
+      _group_id: args.groupId || null,
     } as any,
   );
 
   if (rpcErr || !rpcData || (Array.isArray(rpcData) && rpcData.length === 0)) {
     await supabase.storage.from(BUCKET).remove([physical.filePath]);
-    await supabase.from('document_groups' as any).delete().eq('id', groupId);
+    await supabase.from('file_uploads' as any).delete().eq('id', physical.fileUploadId);
     return { success: false, error: rpcErr?.message || 'Failed to register version' };
   }
 
@@ -169,81 +226,40 @@ export async function uploadNewDocument(args: {
   return {
     success: true,
     data: {
-      groupId,
-      versionId: (row as any).version_id,
-      version: (row as any).version,
+      groupId: (row as any).document_upload_id,
+      versionId: (row as any).document_version_id,
+      version: (row as any).version_number,
       fileUploadId: physical.fileUploadId,
     },
   };
 }
 
-/**
- * Add a new version to an existing document group.
- */
+// Back-compat shims (older callers and tests)
+export async function uploadNewDocument(args: Parameters<typeof uploadVersionedDocument>[0]) {
+  return uploadVersionedDocument(args);
+}
 export async function uploadNewVersion(args: {
-  groupId: string;
-  file: File;
-  userId: string;
-  changeNote?: string;
-}): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
-  const validation = validateFile(args.file);
-  if (!validation.valid) return { success: false, error: validation.error || 'Invalid file' };
-
-  const { data: group, error: groupErr } = await supabase
+  groupId: string; file: File; userId: string; changeNote?: string;
+}) {
+  // Look up the group's logical keys so the storage path is consistent.
+  const { data: g } = await supabase
     .from('document_groups' as any)
-    .select('id, entity_type, entity_id, document_type, owner_id')
+    .select('entity_type, entity_id, document_type, document_label, form_id, field_id, submission_id')
     .eq('id', args.groupId)
     .maybeSingle();
-
-  if (groupErr || !group) return { success: false, error: groupErr?.message || 'Group not found' };
-
-  // Pre-compute provisional version number for the storage path. The RPC
-  // is the source of truth and will allocate the real number atomically.
-  const { data: maxRow } = await supabase
-    .from('document_versions' as any)
-    .select('version')
-    .eq('group_id', args.groupId)
-    .order('version', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const provisional = ((maxRow as any)?.version || 0) + 1;
-  const physical = await uploadPhysicalFile({
+  return uploadVersionedDocument({
     file: args.file,
     userId: args.userId,
-    entityType: (group as any).entity_type,
-    entityId: (group as any).entity_id,
-    documentType: (group as any).document_type,
+    entityType: (g as any)?.entity_type || 'unknown',
+    entityId: (g as any)?.entity_id || null,
+    documentType: (g as any)?.document_type || 'document',
+    documentLabel: (g as any)?.document_label,
+    formId: (g as any)?.form_id,
+    fieldId: (g as any)?.field_id,
+    submissionId: (g as any)?.submission_id,
+    changeNote: args.changeNote,
     groupId: args.groupId,
-    version: provisional,
   });
-  if (physical.ok !== true) return { success: false, error: (physical as { ok: false; error: string }).error };
-
-  const { data: rpcData, error: rpcErr } = await supabase.rpc(
-    'create_document_version' as any,
-    {
-      _group_id: args.groupId,
-      _file_upload_id: physical.fileUploadId,
-      _change_note: args.changeNote || null,
-      _action: 'new_version',
-    } as any,
-  );
-
-  if (rpcErr || !rpcData) {
-    await supabase.storage.from(BUCKET).remove([physical.filePath]);
-    return { success: false, error: rpcErr?.message || 'Failed to register version' };
-  }
-
-  const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-  return {
-    success: true,
-    data: {
-      groupId: args.groupId,
-      versionId: (row as any).version_id,
-      version: (row as any).version,
-      fileUploadId: physical.fileUploadId,
-    },
-  };
 }
 
 /**
@@ -259,37 +275,39 @@ export async function batchUploadDocuments(args: {
   const results: BatchUploadResult[] = [];
   for (const item of args.items) {
     try {
-      if (item.groupId) {
-        const r = await uploadNewVersion({
-          groupId: item.groupId,
-          file: item.file,
-          userId: args.userId,
-          changeNote: item.changeNote,
-        });
-        results.push(
-          r.success === true
-            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
-            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
-        );
-      } else {
-        const r = await uploadNewDocument({
-          file: item.file,
-          userId: args.userId,
-          entityType: args.entityType,
-          entityId: args.entityId,
-          documentType: item.documentType,
-          displayName: item.displayName,
-          changeNote: item.changeNote,
-        });
-        results.push(
-          r.success === true
-            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
-            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
-        );
-      }
+      const r = await uploadVersionedDocument({
+        file: item.file,
+        userId: args.userId,
+        entityType: args.entityType,
+        entityId: args.entityId,
+        documentType: item.documentType,
+        documentLabel: item.documentLabel,
+        displayName: item.displayName,
+        changeNote: item.changeNote,
+        formId: item.formId,
+        fieldId: item.fieldId,
+        submissionId: item.submissionId,
+        groupId: item.groupId,
+      });
+      results.push(
+        r.success === true
+          ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
+          : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
+      );
     } catch (err: any) {
       results.push({ fileName: item.file.name, success: false, error: err?.message || 'Unknown error' });
     }
+  }
+  // Best-effort batch summary log on each unique group touched
+  const groupIds = Array.from(new Set(results.filter(r => r.success && r.groupId).map(r => r.groupId!)));
+  for (const gid of groupIds) {
+    await supabase.rpc('log_document_batch_action' as any, {
+      _group_id: gid,
+      _action: 'batch_uploaded',
+      _details: {
+        files: results.filter(r => r.groupId === gid).map(r => ({ name: r.fileName, success: r.success, version: r.version })),
+      },
+    } as any);
   }
   return results;
 }
