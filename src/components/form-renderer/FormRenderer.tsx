@@ -447,10 +447,60 @@ export function FormRenderer({
     onSubmit(getMergedData());
   };
 
-  // Handle file upload to storage
-  const handleFileUpload = async (fieldName: string, file: File) => {
+  // Handle file upload to storage.
+  // When formId is provided (Form Management context), uses versioned upload:
+  // uploading another file for the same field creates a new version of the same
+  // logical document group. Otherwise falls back to the legacy uploadFormFile.
+  const handleFileUpload = async (field: FormField, file: File) => {
     if (!user) { toast.error('You must be logged in to upload files'); return; }
+    const fieldName = field.fieldName;
     setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
+
+    const existing = formData[fieldName] as (FormFileData & { groupId?: string; versionId?: string; version?: number }) | undefined;
+
+    if (formId) {
+      const docType = (field as any).documentType || fieldName;
+      const res = await uploadVersionedDocument({
+        file,
+        userId: user.id,
+        entityType: entityType || 'form_submission',
+        entityId: entityId || applicationId || submissionId || null,
+        documentType: docType,
+        documentLabel: field.label || fieldName,
+        displayName: file.name,
+        formId,
+        fieldId: field.id,
+        submissionId: submissionId || applicationId || undefined,
+        groupId: existing?.groupId,
+      });
+      setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
+      if (res.success) {
+        const { data } = res;
+        // Refresh signed URL for inline preview
+        const url = await refreshFormFileUrl(
+          // storage path is derivable via listVersions; for immediate preview use group fetch
+          existing?.filePath || '',
+        ).catch(() => '');
+        const value: FormFileData & { groupId: string; versionId: string; version: number; documentType: string } = {
+          name: file.name,
+          url: url || '',
+          type: file.type,
+          size: file.size,
+          filePath: existing?.filePath || '',
+          uploadId: data.fileUploadId,
+          groupId: data.groupId,
+          versionId: data.versionId,
+          version: data.version,
+          documentType: docType,
+        };
+        updateField(fieldName, value);
+        toast.success(`${file.name} uploaded (v${data.version})`);
+      } else {
+        toast.error(res.error || 'Upload failed');
+      }
+      return;
+    }
+
     const result = await uploadFormFile(file, user.id, applicationId);
     setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
     if (result.success && result.data) {
