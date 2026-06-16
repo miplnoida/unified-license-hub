@@ -78,11 +78,47 @@ export function isAttachmentValue(v: unknown): boolean {
   return false;
 }
 
+async function resolveVersionedFilePath(att: NormalizedAttachment): Promise<string | null> {
+  // Versioned uploads store only groupId/versionId in form data. Resolve the
+  // actual storage path via document_versions -> file_uploads so admin
+  // reviewers can preview/download the current version inline.
+  if (!att.groupId && !att.versionId) return null;
+  try {
+    let versionId = att.versionId || null;
+    if (!versionId && att.groupId) {
+      const { data: g } = await supabase
+        .from('document_groups' as any)
+        .select('current_version_id')
+        .eq('id', att.groupId)
+        .maybeSingle();
+      versionId = (g as any)?.current_version_id || null;
+    }
+    if (!versionId) return null;
+    const { data: v } = await supabase
+      .from('document_versions' as any)
+      .select('file_upload_id')
+      .eq('id', versionId)
+      .maybeSingle();
+    const uploadId = (v as any)?.file_upload_id;
+    if (!uploadId) return null;
+    const { data: f } = await supabase
+      .from('file_uploads' as any)
+      .select('file_path')
+      .eq('id', uploadId)
+      .maybeSingle();
+    return (f as any)?.file_path || null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveSignedUrl(att: NormalizedAttachment): Promise<string | null> {
   if (att.viewUrl) return att.viewUrl;
-  if (!att.path) return null;
+  let path = att.path || null;
+  if (!path) path = await resolveVersionedFilePath(att);
+  if (!path) return null;
   for (const bucket of ['secure-documents', 'documents']) {
-    const { data } = await supabase.storage.from(bucket).createSignedUrl(att.path, 300);
+    const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
     if (data?.signedUrl) return data.signedUrl;
   }
   return null;
