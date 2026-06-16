@@ -458,7 +458,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     actionType: WorkflowActionType,
     overrides: ActionNotificationOverride[] = [],
   ) => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     setProcessingAction(actionType);
     try {
       const fnName = entityType === 'registration' ? 'perform-registration-workflow-action' : 'perform-workflow-action';
