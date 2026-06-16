@@ -110,3 +110,12 @@ await dispatchNotificationEvent({
 ```
 
 This call is fire-and-forget; it never throws to the UI.
+
+## Debugging missing workflow emails
+
+If workflow approval actions (approve/reject/correction/resubmission) are not generating emails while OTP and applicant-submit emails work:
+
+1. Confirm an `approval_actions` row was written for the action.
+2. Query `notification_dispatch_log` filtered by the expected `event_key` (e.g. `registration.resubmission_requested`). If there is **no row at all** (not even `failed`), the dispatch was never invoked — the edge function (`perform-registration-workflow-action` / `perform-workflow-action`) needs to be redeployed.
+3. Check `supabase--edge_function_logs perform-registration-workflow-action` for `[perform-registration-workflow-action] dispatch...` lines.
+4. SMTP working + `notification_event_configs` populated does NOT prove dispatch is working. Always check the dispatch log first.
