@@ -265,7 +265,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const isLastLevel = currentStepIdx >= 0 && currentStepIdx === steps.length - 1;
   const isPaused = !activeInstance && !!pausedInstance && !treatPausedAsActive;
 
-  const { data: canActResult } = useCanActOnStep(user?.id, activeInstance ? currentStep?.id : undefined);
+  const { data: canActResult } = useCanActOnStep(user?.id, (activeInstance || treatPausedAsActive) ? currentStep?.id : undefined);
   const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 
