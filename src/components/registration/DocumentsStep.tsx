@@ -88,13 +88,13 @@ export function DocumentsStep({ documents, onAddDocument, onRemoveDocument, erro
     const effectiveMaxSizeMB = selectedConfig?.maxSizeMB ?? maxSizeMB;
     const effectiveMaxSizeBytes = effectiveMaxSizeMB * 1024 * 1024;
 
-    if (!effectiveAllowedTypes.includes(file.type)) {
-      toast.error(`Invalid file type. Allowed: ${allowedExtensions.join(', ')}`);
-      return;
-    }
-
-    if (file.size > effectiveMaxSizeBytes) {
-      toast.error(`File too large. Maximum size: ${effectiveMaxSizeMB}MB`);
+    const validation = isAllowedFile(file, {
+      allowedTypes: effectiveAllowedTypes,
+      maxSizeBytes: effectiveMaxSizeBytes,
+    });
+    if (!validation.valid) {
+      toast.error(validation.error || `Invalid file type. Allowed: ${allowedExtensions.join(', ')}`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
