@@ -712,9 +712,25 @@ export function FormRenderer({
                 <span className="text-xs text-muted-foreground shrink-0">
                   {val.size ? `${(val.size / 1024).toFixed(1)} KB` : ''}
                 </span>
+                {val.version && (
+                  <span className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">
+                    v{val.version}
+                  </span>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(val)}>
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
+                {val.groupId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Version history"
+                    onClick={() => setHistoryGroup({ groupId: val.groupId, name: val.name })}
+                  >
+                    <History className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 {!readOnly && (
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleFileRemove(field.fieldName)}>
                     <X className="h-3.5 w-3.5" />
