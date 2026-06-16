@@ -6658,6 +6658,14 @@ export type Database = {
         Args: { _actor_id: string; _comments: string; _return_id: string }
         Returns: Json
       }
+      resume_registration_workflow: {
+        Args: {
+          _actor_id: string
+          _comments?: string
+          _registration_id: string
+        }
+        Returns: Json
+      }
       save_ppoc_mapping: {
         Args: {
           _licensee_id: string
