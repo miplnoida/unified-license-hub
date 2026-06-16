@@ -1043,6 +1043,12 @@ export function FormRenderer({
           </div>
         </DialogContent>
       </Dialog>
+      <DocumentVersionHistoryDialog
+        open={!!historyGroup}
+        onOpenChange={(o) => { if (!o) setHistoryGroup(null); }}
+        groupId={historyGroup?.groupId || null}
+        groupName={historyGroup?.name}
+      />
     </div>
   );
 }
