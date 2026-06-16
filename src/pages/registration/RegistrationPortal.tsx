@@ -167,29 +167,37 @@ export default function RegistrationPortal() {
   async function handleOpenForm(formId: string) {
     if (!registration) return;
 
-    const existing = getSubmissionForForm(formId);
+    // Honour an explicit ?submission=<id> from the email link first — but only
+    // if it belongs to this form & this user (verified via the loaded list).
+    const linkSubmission = submissionParam
+      ? submissions.find(s => s.id === submissionParam && s.form_id === formId)
+      : undefined;
+    const existing = linkSubmission ?? getSubmissionForForm(formId);
+    const baseQuery = `registration=${registration.id}`;
+
     if (existing) {
-      navigate(`/registration/portal/form/${formId}?submission=${existing.id}`);
-    } else {
-      const { data, error } = await supabase
-        .from('registration_form_submissions')
-        .insert({
-          registration_id: registration.id,
-          user_id: session!.user.id,
-          form_id: formId,
-          form_data: {},
-          status: 'draft',
-        })
-        .select()
-        .single();
-
-      if (error) {
-        toast.error('Failed to start form. Please try again.');
-        return;
-      }
-
-      navigate(`/registration/portal/form/${formId}?submission=${data.id}`);
+      navigate(`/registration/portal/form/${formId}?${baseQuery}&submission=${existing.id}`);
+      return;
     }
+
+    const { data, error } = await supabase
+      .from('registration_form_submissions')
+      .insert({
+        registration_id: registration.id,
+        user_id: session!.user.id,
+        form_id: formId,
+        form_data: {},
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to start form. Please try again.');
+      return;
+    }
+
+    navigate(`/registration/portal/form/${formId}?${baseQuery}&submission=${data.id}`);
   }
 
   async function handleLogout() {
