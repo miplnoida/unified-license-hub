@@ -745,6 +745,68 @@ export function FormRenderer({
         }
         break;
       case 'file':
+        if (field.allowMultiple) {
+          const multiList: any[] = Array.isArray(val) ? val : [];
+          input = (
+            <div className="space-y-2">
+              {!readOnly && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    multiple
+                    ref={el => { fileInputRefs.current[field.fieldName] = el; }}
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length) handleMultiFileUpload(field, files);
+                      if (e.target) e.target.value = '';
+                    }}
+                    className="flex-1"
+                    disabled={isUploading}
+                  />
+                  {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+              )}
+              {multiList.length > 0 && (
+                <div className="space-y-1.5">
+                  {multiList.map((item: any, idx: number) => (
+                    <div key={`${item.uploadId || item.groupId || item.name}-${idx}`} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm truncate flex-1">{item.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {item.size ? `${(item.size / 1024).toFixed(1)} KB` : ''}
+                      </span>
+                      {item.version && (
+                        <span className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">
+                          v{item.version}
+                        </span>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(item)}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {item.groupId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Version history"
+                          onClick={() => setHistoryGroup({ groupId: item.groupId, name: item.name })}
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!readOnly && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleMultiFileRemoveAt(field.fieldName, idx)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+          break;
+        }
         input = (
           <div className="space-y-2">
             {!readOnly && (
