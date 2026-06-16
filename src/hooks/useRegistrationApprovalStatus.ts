@@ -93,24 +93,15 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
 
       let remarks: string | null = null;
       try {
-        // Exclude the applicant's own resubmit audit row (and any other
-        // self-authored action) so the status page surfaces the latest
-        // *reviewer* remark, not "Applicant resubmitted registration".
-        const { data: actions } = await supabase
-          .from('approval_actions')
-          .select('comments, created_at, actor_id, action, action_type')
-          .eq('entity_type', 'registration')
-          .eq('entity_id', reg.id)
-          .neq('actor_id', userId!)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        const reviewerAction = (actions ?? []).find(
-          (a) =>
-            (a as any).action !== 'resubmit' &&
-            (a as any).action_type !== 'resubmit' &&
-            !!(a as any).comments,
+        // Use security-definer RPC: applicant cannot read reviewer rows of
+        // approval_actions directly (RLS limits SELECT to actor_id), so the
+        // RPC returns the latest reviewer comment and explicitly excludes
+        // the applicant's own resubmit audit row.
+        const { data: remarkData } = await supabase.rpc(
+          'get_registration_reviewer_remarks' as any,
+          { _registration_id: reg.id } as any,
         );
-        remarks = (reviewerAction as any)?.comments ?? null;
+        remarks = (remarkData as string | null) ?? null;
       } catch {
         /* ignore — remarks are best-effort */
       }
@@ -118,7 +109,7 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
       if (userId) writeCache(userId, result as CachedStatus);
       return result;
     },
-    staleTime: 30_000,
+    staleTime: 0,
     initialData: initialData as any,
   });
 
