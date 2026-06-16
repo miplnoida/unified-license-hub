@@ -521,7 +521,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
 
   const handleAction = (actionType: WorkflowActionType, requireCommentsOverride?: boolean) => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     const requiresRemarks = requireCommentsOverride ?? isRemarksRequired(actionType);
     if (requiresRemarks && !comment.trim()) {
       toast.error(remarksRequiredMessage(actionType, entityNoun));
