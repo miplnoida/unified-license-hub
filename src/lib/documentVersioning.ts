@@ -150,6 +150,17 @@ export async function uploadVersionedDocument(args: {
     return { success: false, error: validation.error || 'Invalid file' };
   }
 
+  // CRITICAL: file_uploads / document_groups RLS require auth.uid().
+  // The caller's userId (app profile id) may not equal the backend session id
+  // in every portal context, so resolve it from the live session.
+  const { data: authData } = await supabase.auth.getUser();
+  const authUid = authData?.user?.id;
+  if (!authUid) {
+    return { success: false, error: 'You must be signed in to upload documents' };
+  }
+  const effectiveUserId = authUid;
+
+
   // We need a group id for the storage path. If caller did not supply one,
   // probe for an existing matching group; if none, mint a provisional uuid for
   // the path — the RPC will create the real group row using the same logical
