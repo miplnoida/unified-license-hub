@@ -551,8 +551,19 @@ export default function NewApplication() {
   // (previously only the "Proceed to payment" button triggered this).
   useEffect(() => {
     if (!applicationId || currentStep !== 'payment') return;
-    void loadFees();
-  }, [applicationId, currentStep, loadFees]);
+    resolveApplicationFeeBreakdown(applicationId)
+      .then((lines) => {
+        if (lines.length > 0) {
+          const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+          setFeeBreakdown(breakdown);
+          setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+        } else {
+          setFeeBreakdown([]);
+          setFeeAmount(0);
+        }
+      })
+      .catch((err) => console.warn('[NewApplication] fee resolution failed:', err));
+  }, [applicationId, currentStep]);
 
   useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
