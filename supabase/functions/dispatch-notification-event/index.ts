@@ -55,6 +55,15 @@ async function loadApplication(admin: SupabaseClient, id: string) {
   return data || null;
 }
 
+async function loadRegistration(admin: SupabaseClient, id: string) {
+  const { data } = await admin
+    .from("registrations")
+    .select("id, user_id, registration_reference, applicant_name, email, sector_id, category_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  return data || null;
+}
+
 async function loadReturn(admin: SupabaseClient, id: string) {
   const { data } = await admin
     .from("returns_filed")
@@ -398,6 +407,8 @@ async function resolveRecipients(
         case "applicant": {
           if (ctx.app?.applicant_id) out.add(ctx.app.applicant_id);
           else if (ctx.payload?.applicant_id) out.add(String(ctx.payload.applicant_id));
+          else if ((ctx as any).registration?.user_id) out.add(String((ctx as any).registration.user_id));
+          else if ((ctx as any).registration?.email) out.add(`email:${String((ctx as any).registration.email).trim().toLowerCase()}`);
           break;
         }
         case "entity_primary_users":
@@ -562,6 +573,7 @@ Deno.serve(async (req) => {
 
     let app: any = null;
     let ret: any = null;
+    let registration: any = null;
     if (entity_type === "application" && entity_id) {
       app = await loadApplication(admin, entity_id);
       if (app) {
@@ -569,6 +581,19 @@ Deno.serve(async (req) => {
         vars.applicant_id = vars.applicant_id || app.applicant_id;
         vars.sector_id = vars.sector_id || app.data?.sector_id;
         vars.licensee_id = vars.licensee_id || app.data?.licensee_id;
+      }
+    }
+    if (entity_type === "registration" && entity_id) {
+      registration = await loadRegistration(admin, entity_id);
+      if (registration) {
+        vars.registration_id = vars.registration_id || registration.id;
+        vars.registration_reference = vars.registration_reference || registration.registration_reference;
+        vars.registration_number = vars.registration_number || registration.registration_reference;
+        vars.applicant_id = vars.applicant_id || registration.user_id;
+        vars.applicant_name = vars.applicant_name || registration.applicant_name;
+        vars.applicant_email = vars.applicant_email || registration.email;
+        vars.sector_id = vars.sector_id || registration.sector_id;
+        vars.category_id = vars.category_id || registration.category_id;
       }
     }
     if (entity_type === "return" && entity_id) {
@@ -613,6 +638,7 @@ Deno.serve(async (req) => {
         payload: vars,
         app,
         ret,
+        registration,
       } as any);
       summary.recipients += recipients.length;
       console.log("dispatch-notification-event", { event_key: dispatchCfg.eventKey, entity_type, entity_id, recipient_count: recipients.length });

@@ -9,6 +9,7 @@ interface Props {
   form: RegistrationFormData;
   errors: Record<string, string>;
   setField: (field: string, value: string | boolean) => void;
+  updateMode?: boolean;
 }
 
 const PASSWORD_RULES = [
@@ -19,13 +20,13 @@ const PASSWORD_RULES = [
   { label: 'Special character (!@#$...)', test: (p: string) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(p) },
 ];
 
-export function PrimaryUserStep({ form, errors, setField }: Props) {
+export function PrimaryUserStep({ form, errors, setField, updateMode = false }: Props) {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
 
   useEffect(() => {
     const v = form.email.trim().toLowerCase();
-    if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+    if (updateMode || !v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
       setEmailStatus('idle');
       return;
     }
@@ -40,10 +41,10 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [form.email]);
+  }, [form.email, updateMode]);
 
   useEffect(() => {
-    if (!form.username.trim() || form.username.trim().length < 3) {
+    if (updateMode || !form.username.trim() || form.username.trim().length < 3) {
       setUsernameStatus('idle');
       return;
     }
@@ -61,7 +62,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [form.username]);
+  }, [form.username, updateMode]);
 
   const emailValid = form.email ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) : null;
   const phoneValid = form.telephone ? /^[+]?[\d\s\-()]{7,20}$/.test(form.telephone.trim()) : null;
@@ -186,7 +187,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
+        {!updateMode && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-4">
           <div className="space-y-2">
             <Label htmlFor="password">Password *</Label>
             <div className="relative">
@@ -244,7 +245,7 @@ export function PrimaryUserStep({ form, errors, setField }: Props) {
             </div>
             {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

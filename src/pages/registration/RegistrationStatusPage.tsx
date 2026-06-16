@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
+import { buildUpdateRegistrationUrl } from '@/lib/registrationUpdateFlow';
 import { REGISTRATION_STATUS_MESSAGES } from '@/lib/registrationStatus';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ export default function RegistrationStatusPage() {
                   {/* Resubmission must open the update portal so existing
                       registration data and uploaded documents are prefilled.
                       Never link to `/register` (blank new registration). */}
-                  <Link to="/registration/portal">
+                  <Link to={buildUpdateRegistrationUrl(registration?.id)}>
                     <FileEdit className="h-4 w-4 mr-2" /> Update & Resubmit Registration
                   </Link>
                 </Button>

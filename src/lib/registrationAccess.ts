@@ -14,6 +14,7 @@
  *  - tests verifying workflow → frontend access integration
  */
 import { supabase } from '@/integrations/supabase/client';
+import { REGISTRATION_UPDATE_PATH } from '@/lib/registrationUpdateFlow';
 import { INTERNAL_ROLES, type AppRole } from '@/types/platform';
 import {
   categorizeRegistrationStatus,
@@ -61,7 +62,7 @@ const CATEGORY_ACTIONS: Partial<Record<RegistrationCategory, { actionLabel: stri
   // user's existing registration + form data). It must NEVER point to
   // `/register`, which is reserved for brand-new registrations and renders a
   // blank form — that would cause data-loss for existing applicants.
-  correction: { actionLabel: 'Update & Resubmit', actionUrl: '/registration/portal' },
+  correction: { actionLabel: 'Update & Resubmit', actionUrl: REGISTRATION_UPDATE_PATH },
   unverified: { actionLabel: 'Continue Verification', actionUrl: '/register' },
 };
 

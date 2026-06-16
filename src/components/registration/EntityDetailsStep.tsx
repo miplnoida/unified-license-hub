@@ -18,6 +18,7 @@ interface Props {
   setPhysicalField: (field: keyof AddressData, value: string) => void;
   setSectorId: (value: string) => void;
   setSubSectorId: (value: string) => void;
+  updateMode?: boolean;
 }
 
 // Conditional fields based on category type
@@ -50,6 +51,7 @@ function getConditionalFields(categoryId: string, categoryName: string): { key: 
 
 export function EntityDetailsStep({
   form, errors, setField, setEntityField, setMailingField, setPhysicalField, setSectorId, setSubSectorId,
+  updateMode = false,
 }: Props) {
   const { data: allCategories = [] } = useCategories();
   const selectedCategory = allCategories.find(c => c.id === form.categoryId);
@@ -60,7 +62,7 @@ export function EntityDetailsStep({
 
   // Check applicant name uniqueness
   useEffect(() => {
-    if (!form.applicantName.trim()) {
+    if (updateMode || !form.applicantName.trim()) {
       setApplicantNameStatus('idle');
       return;
     }
@@ -77,11 +79,11 @@ export function EntityDetailsStep({
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [form.applicantName]);
+  }, [form.applicantName, updateMode]);
 
   // Check registration number uniqueness
   useEffect(() => {
-    if (!form.registrationNumber.trim()) {
+    if (updateMode || !form.registrationNumber.trim()) {
       setRegNumStatus('idle');
       return;
     }
@@ -99,7 +101,7 @@ export function EntityDetailsStep({
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [form.registrationNumber]);
+  }, [form.registrationNumber, updateMode]);
 
   return (
     <div className="space-y-6">
