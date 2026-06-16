@@ -645,36 +645,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
 
 
-  // Dev-only diagnostic so admins can see exactly why an action is/isn't
-  // visible. Logs configured rows, backend allowed_actions, per-type can_*
-  // flags, and the final rendered button labels.
-  useEffect(() => {
-    if (!import.meta.env.DEV || !currentStep) return;
-    const configuredTypes = (configuredStepActions as StepAction[])
-      .map(r => `${r.action_type}${r.is_enabled ? '' : '(disabled)'}${r.label ? `[label="${r.label}"]` : ''}`);
-    const rendered = actionButtonsList.map(a => `${a.type}="${a.label}"`);
-    const hiddenReasons: Record<string, string> = {};
-    (configuredStepActions as StepAction[]).filter(r => r.is_enabled).forEach(r => {
-      const type = r.action_type as WorkflowActionType;
-      if (canByType[type]) return;
-      const reason = !canActResult
-        ? 'permissions-unknown'
-        : !canActResult.can_act
-          ? `not-authorized (reason=${canActResult.reason})`
-          : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
-      hiddenReasons[type] = reason;
-    });
-    // eslint-disable-next-line no-console
-    console.debug('[WorkflowPanel] action diagnostic', {
-      stepId: currentStep.id,
-      stepName: currentStep.name,
-      configured: configuredTypes,
-      backendAllowed: canActResult?.allowed_actions,
-      canByType,
-      rendered,
-      hidden: hiddenReasons,
-    });
-  }, [currentStep?.id, configuredStepActions, canActResult, actionButtonsList.length]);
+  // (Diagnostic useEffect was hoisted above the early-returns to keep hook order stable.)
+
 
 
   const remarksBlock = !isPaused && (canAddRemark || !noWorkflowActions) && (
