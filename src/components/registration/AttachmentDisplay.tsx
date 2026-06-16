@@ -157,7 +157,7 @@ async function downloadFile(att: NormalizedAttachment): Promise<void> {
 function AttachmentRow({ att }: { att: NormalizedAttachment }) {
   const [busy, setBusy] = useState<'view' | 'download' | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const canAct = !!(att.path || att.viewUrl || att.downloadUrl);
+  const canAct = !!(att.path || att.viewUrl || att.downloadUrl || att.groupId || att.versionId);
   const sizeLabel = att.size
     ? att.size < 1024 * 1024
       ? `${(att.size / 1024).toFixed(1)} KB`
