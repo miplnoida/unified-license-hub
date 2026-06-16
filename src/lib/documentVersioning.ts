@@ -77,8 +77,9 @@ async function uploadPhysicalFile(params: {
   const { file, userId, entityType, entityId, documentType, groupId, version } = params;
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || 'bin');
   const safeName = sanitize(file.name);
+  // NOTE: storage policy requires the first folder segment to match auth.uid().
   const filePath =
-    `form-management/${entityType}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
+    `${userId}/form-management/${entityType}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -149,6 +150,17 @@ export async function uploadVersionedDocument(args: {
     return { success: false, error: validation.error || 'Invalid file' };
   }
 
+  // CRITICAL: file_uploads / document_groups RLS require auth.uid().
+  // The caller's userId (app profile id) may not equal the backend session id
+  // in every portal context, so resolve it from the live session.
+  const { data: authData } = await supabase.auth.getUser();
+  const authUid = authData?.user?.id;
+  if (!authUid) {
+    return { success: false, error: 'You must be signed in to upload documents' };
+  }
+  const effectiveUserId = authUid;
+
+
   // We need a group id for the storage path. If caller did not supply one,
   // probe for an existing matching group; if none, mint a provisional uuid for
   // the path — the RPC will create the real group row using the same logical
@@ -161,7 +173,7 @@ export async function uploadVersionedDocument(args: {
       .select('id')
       .eq('entity_type', args.entityType)
       .eq('document_type', args.documentType)
-      .eq('owner_id', args.userId)
+      .eq('owner_id', effectiveUserId)
       .eq('form_id', args.formId || '')
       .eq('field_id', args.fieldId || '')
       .maybeSingle();
@@ -180,7 +192,8 @@ export async function uploadVersionedDocument(args: {
 
   const physical = await uploadPhysicalFile({
     file: args.file,
-    userId: args.userId,
+    userId: effectiveUserId,
+
     entityType: args.entityType,
     entityId: args.entityId || null,
     documentType: args.documentType,
