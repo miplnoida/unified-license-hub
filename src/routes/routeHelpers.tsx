@@ -16,6 +16,8 @@ const REGISTRATION_GATE_ALLOWLIST = [
   '/register',
   '/registration/success',
   '/registration/portal',
+  '/update-registration-form',
+  '/registration/update',
 ];
 
 function isRegistrationGateAllowed(pathname: string): boolean {

@@ -148,6 +148,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    const dedupedDocuments = Array.isArray(documents_metadata)
+      ? Object.values(documents_metadata.reduce((acc: Record<string, any>, doc: any) => {
+          const key = String(doc?.documentKey || doc?.label || doc?.name || "document").trim().toLowerCase().replace(/\s+/g, "_");
+          acc[key] = { ...doc, documentKey: key };
+          return acc;
+        }, {}))
+      : [];
+
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: normalizedEmail,
@@ -194,7 +202,7 @@ Deno.serve(async (req) => {
       username: username || null,
       registration_number: registration_number || null,
       entity_specific_data: entity_specific_data || {},
-      documents_metadata: documents_metadata || [],
+      documents_metadata: dedupedDocuments,
       email_verified: true,
       terms_accepted: terms_accepted || false,
       status: "pending_review",

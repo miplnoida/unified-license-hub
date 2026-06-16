@@ -70,13 +70,17 @@ function schemaToSections(schema: RegFormSchema): FormSection[] {
  * Fetches the registration form config matching the given sector/category,
  * falling back to the default config.
  */
-export function useRegistrationConfig(sectorId?: string, subSectorId?: string, categoryId?: string) {
+export function useRegistrationConfig(sectorId?: string, subSectorId?: string, categoryId?: string, enabled = true) {
   const [config, setConfig] = useState<RegistrationConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
+    if (!enabled) {
+      setLoading(true);
+      return;
+    }
     // Only show full-page loading on initial load. Subsequent reloads
     // (e.g. when sector/sub-sector/category changes) happen silently to
     // avoid flickering the entire registration page.
@@ -160,7 +164,7 @@ export function useRegistrationConfig(sectorId?: string, subSectorId?: string, c
       setLoading(false);
       setHasLoadedOnce(true);
     }
-  }, [sectorId, subSectorId, categoryId, hasLoadedOnce]);
+  }, [sectorId, subSectorId, categoryId, hasLoadedOnce, enabled]);
 
   useEffect(() => {
     loadConfig();

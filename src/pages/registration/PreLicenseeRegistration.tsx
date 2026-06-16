@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +25,19 @@ import { useApplicantNameUniqueness } from '@/components/registration/useApplica
 import { usePrimaryUserEmailUniqueness } from '@/components/registration/usePrimaryUserEmailUniqueness';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 import { isPrimaryEmailField, isValidEmail, normalizeEmailValue } from '@/lib/primaryEmailValidation';
+import { AlertCircle } from 'lucide-react';
+import type { Json } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  buildUpdateRegistrationUrl,
+  deepMergeRegistrationData,
+  guardAgainstBlankOverwrite,
+  isEffectivelyEmpty,
+  registrationToFormData,
+  resolveCurrentRegistrationForUser,
+  resolveRegistrationSubmission,
+  type ResolvedRegistrationUpdate,
+} from '@/lib/registrationUpdateFlow';
 
 const STEP_KEY = 'preLicenseRegistrationCurrentStep';
 const DYNAMIC_DATA_KEY = 'preLicenseRegistrationDynamicData';
@@ -49,13 +62,23 @@ function declFieldKey(label: string, idx: number): string {
   return slug || `declaration_${idx}`;
 }
 
-export default function PreLicenseeRegistration() {
+interface PreLicenseeRegistrationProps {
+  mode?: 'new' | 'update';
+}
+
+export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeRegistrationProps) {
   const navigate = useNavigate();
+  const { registrationId: routeRegistrationId } = useParams<{ registrationId?: string }>();
+  const [searchParams] = useSearchParams();
+  const isUpdateMode = mode === 'update';
+  const updateRegistrationParam = routeRegistrationId || searchParams.get('registration');
+  const updateSubmissionParam = searchParams.get('submission');
   const {
     form, errors, setField, setEntityField, setMailingField, setPhysicalField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
-    validateDeclarations, reset,
-  } = useRegistrationForm();
+    validateDeclarations, hydrate, reset,
+  } = useRegistrationForm({ updateMode: isUpdateMode });
+  const { session, loading: authLoading } = useAuth();
 
   const { data: reviewSettings } = useReviewSettings();
   const reviewEnabled = reviewSettings?.registration_review_enabled ?? true;
@@ -64,6 +87,7 @@ export default function PreLicenseeRegistration() {
     form.sectorId || undefined,
     form.subSectorId || undefined,
     form.categoryId || undefined,
+    !isUpdateMode || !!form.sectorId,
   );
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
@@ -75,8 +99,53 @@ export default function PreLicenseeRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+  const [updateContext, setUpdateContext] = useState<ResolvedRegistrationUpdate | null>(null);
+  const [updateLoading, setUpdateLoading] = useState(isUpdateMode);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [documentsTouched, setDocumentsTouched] = useState(false);
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!isUpdateMode) return;
+    if (authLoading) return;
+    if (!session) {
+      const intended = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      navigate(`/login?redirect=${encodeURIComponent(intended)}`, { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    async function loadUpdateContext() {
+      setUpdateLoading(true);
+      setUpdateError(null);
+      try {
+        const resolved = await resolveCurrentRegistrationForUser(session!.user.id, {
+          registrationId: updateRegistrationParam,
+          submissionId: updateSubmissionParam,
+        });
+        if (cancelled) return;
+        if (!resolved) {
+          setUpdateError('We could not find a registration owned by this account.');
+          return;
+        }
+        const staticData = registrationToFormData(resolved.registration);
+        hydrate(staticData);
+        setDynamicFormData(deepMergeRegistrationData(
+          (resolved.registration.entity_specific_data as Record<string, unknown>) || {},
+          (resolved.submission?.form_data as Record<string, unknown>) || {},
+        ));
+        setUpdateContext(resolved);
+      } catch (err) {
+        console.error('[registration] Failed to load update context', err);
+        setUpdateError('Unable to load your existing registration data. Please refresh and try again.');
+      } finally {
+        if (!cancelled) setUpdateLoading(false);
+      }
+    }
+    void loadUpdateContext();
+    return () => { cancelled = true; };
+  }, [isUpdateMode, authLoading, session, updateRegistrationParam, updateSubmissionParam, hydrate, navigate]);
 
   const clearPersistedStep = useCallback(() => {
     try {
@@ -96,15 +165,17 @@ export default function PreLicenseeRegistration() {
 
   // Persist current step across page refreshes (cleared on submit/reset)
   useEffect(() => {
+    if (isUpdateMode) return;
     sessionStorage.setItem(STEP_KEY, String(currentStep));
-  }, [currentStep]);
+  }, [currentStep, isUpdateMode]);
 
   // Persist dynamic step data so going back to previous steps preserves entries
   useEffect(() => {
+    if (isUpdateMode) return;
     try {
       sessionStorage.setItem(DYNAMIC_DATA_KEY, JSON.stringify(dynamicFormData));
     } catch {}
-  }, [dynamicFormData]);
+  }, [dynamicFormData, isUpdateMode]);
 
   // Resolve the effective verification email across static + dynamic schemas.
   // Single source of truth used by DeclarationsStep / OTP verification UI.
@@ -121,14 +192,14 @@ export default function PreLicenseeRegistration() {
   const primaryEmailFieldName = emailUniquenessPreview.fieldName;
   const dynamicErrorsWithUniqueness = useMemo(() => {
     const next = { ...dynamicErrors };
-    if (applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
+    if (!isUpdateMode && applicantNameCheck.status === 'taken' && applicantNameCheck.fieldName) {
       next[applicantNameCheck.fieldName] = 'This applicant name is already registered';
     }
-    if (emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
+    if (!isUpdateMode && emailUniquenessPreview.status === 'taken' && emailUniquenessPreview.fieldName) {
       next[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
     }
     return next;
-  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName]);
+  }, [dynamicErrors, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, isUpdateMode]);
 
   const getPrimaryEmailFieldsForStep = useCallback((stepData: RegStep) => {
     return stepData.rows.flatMap(row =>
@@ -281,7 +352,7 @@ export default function PreLicenseeRegistration() {
       }
     }
     // Applicant Name uniqueness — block step until check resolves to 'available'
-    if (applicantNameCheck.fieldName) {
+    if (!isUpdateMode && applicantNameCheck.fieldName) {
       const stepHasField = stepData.rows.some(r =>
         r.columns.some(c => c.field?.fieldName === applicantNameCheck.fieldName)
       );
@@ -294,7 +365,7 @@ export default function PreLicenseeRegistration() {
       }
     }
     // Primary email uniqueness — block step until check resolves to 'available'
-    if (emailUniquenessPreview.fieldName) {
+    if (!isUpdateMode && emailUniquenessPreview.fieldName) {
       const stepHasField = stepData.rows.some(r =>
         r.columns.some(c => c.field?.fieldName === emailUniquenessPreview.fieldName)
       );
@@ -323,7 +394,7 @@ export default function PreLicenseeRegistration() {
     }
     setDynamicErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors]);
+  }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
 
   // Build declaration keys for validation
   const effectiveDeclarations = useMemo(() => {
@@ -398,7 +469,7 @@ export default function PreLicenseeRegistration() {
   const handleNext = () => {
     const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
     const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
-    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+    if (!isUpdateMode && (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking')) {
       toast.error('Please wait — verifying email availability…');
       return;
     }
@@ -408,7 +479,7 @@ export default function PreLicenseeRegistration() {
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+    if (!isUpdateMode && (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken')) {
       toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
@@ -436,10 +507,125 @@ export default function PreLicenseeRegistration() {
     latestPrimaryEmailCheckRef.current[fieldName] = (latestPrimaryEmailCheckRef.current[fieldName] || 0) + 1;
   }, []);
 
+  const handleAddDocument = useCallback((doc: Parameters<typeof addDocument>[0]) => {
+    setDocumentsTouched(true);
+    addDocument(doc);
+  }, [addDocument]);
+
+  const handleRemoveDocument = useCallback((docId: string) => {
+    setDocumentsTouched(true);
+    removeDocument(docId);
+  }, [removeDocument]);
+
+  const saveRegistrationUpdate = async () => {
+    if (!updateContext || !session) {
+      toast.error('Existing registration could not be resolved. Please refresh and try again.');
+      return;
+    }
+
+    const existingRegistration = updateContext.registration;
+    const existingDocuments = (existingRegistration.documents_metadata as unknown[]) || [];
+    try {
+      guardAgainstBlankOverwrite(existingRegistration.applicant_name, form.applicantName, 'registration applicant name');
+      guardAgainstBlankOverwrite(existingRegistration.entity_specific_data, { ...form.entitySpecificData, ...dynamicFormData }, 'registration dynamic data');
+      if (existingDocuments.length > 0 && form.documents.length === 0 && !documentsTouched) {
+        console.warn('[registration] Refusing to remove all existing documents from update payload', { existingDocuments });
+        toast.error('Existing documents were not loaded. Refresh before changing documents.');
+        return;
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Refusing to save blank registration data.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const mergedEntityData = deepMergeRegistrationData(
+        (existingRegistration.entity_specific_data as Record<string, unknown>) || {},
+        { ...form.entitySpecificData, ...dynamicFormData },
+      );
+      const mergedDocuments = documentsTouched || form.documents.length > 0 ? form.documents : (existingRegistration.documents_metadata as Json);
+
+      const { error: regError } = await supabase
+        .from('registrations')
+        .update({
+          sector_id: form.sectorId,
+          sub_sector_id: form.subSectorId,
+          category_id: form.categoryId,
+          applicant_name: form.applicantName,
+          applicant_name_alt: form.applicantNameAlt || null,
+          registration_number: form.registrationNumber || null,
+          mailing_address: form.mailingAddress as unknown as Json,
+          physical_address: (form.sameAsMailing ? form.mailingAddress : form.physicalAddress) as unknown as Json,
+          same_as_mailing: form.sameAsMailing,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          telephone: form.telephone,
+          email: form.email,
+          username: form.username || null,
+          entity_specific_data: mergedEntityData as Json,
+          documents_metadata: mergedDocuments as Json,
+          terms_accepted: true,
+          status: 'pending_review',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingRegistration.id)
+        .eq('user_id', session.user.id);
+      if (regError) throw regError;
+
+      const resolvedSubmission = updateContext.submission || await resolveRegistrationSubmission({
+        userId: session.user.id,
+        registrationId: existingRegistration.id,
+        formId: updateContext.formId,
+      });
+      if (resolvedSubmission) {
+        const existingFormData = (resolvedSubmission.form_data as Record<string, unknown>) || {};
+        guardAgainstBlankOverwrite(existingFormData, dynamicFormData, 'registration form data');
+        const mergedFormData = deepMergeRegistrationData(existingFormData, dynamicFormData);
+        const { error: subError } = await supabase
+          .from('registration_form_submissions')
+          .update({
+            form_data: mergedFormData as Json,
+            status: 'submitted',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', resolvedSubmission.id)
+          .eq('user_id', session.user.id);
+        if (subError) throw subError;
+      }
+
+      await supabase.functions.invoke('dispatch-notification-event', {
+        body: {
+          event_key: 'registration.resubmitted',
+          entity_type: 'registration',
+          entity_id: existingRegistration.id,
+          payload: {
+            registration_id: existingRegistration.id,
+            applicant_id: session.user.id,
+            applicant_name: form.applicantName,
+            applicant_email: form.email,
+            registration_reference: existingRegistration.registration_reference,
+            registration_number: existingRegistration.registration_reference,
+            portal_url: window.location.origin,
+          },
+        },
+      });
+
+      clearPersistedStep();
+      toast.success('Registration updated and resubmitted.');
+      navigate('/registration-status', { replace: true });
+    } catch (err) {
+      console.error('[registration] Update submit failed', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to resubmit registration.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
     const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
-    if (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking') {
+    if (!isUpdateMode && (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking')) {
       toast.error('Please wait — verifying email availability…');
       return;
     }
@@ -449,8 +635,13 @@ export default function PreLicenseeRegistration() {
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken') {
+    if (!isUpdateMode && (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken')) {
       toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
+      return;
+    }
+
+    if (isUpdateMode) {
+      await saveRegistrationUpdate();
       return;
     }
 
@@ -543,10 +734,11 @@ export default function PreLicenseeRegistration() {
               setEntityField={setEntityField} setMailingField={setMailingField}
               setPhysicalField={setPhysicalField} setSectorId={setSectorId}
               setSubSectorId={setSubSectorId}
+              updateMode={isUpdateMode}
             />
           );
         }
-        return <PrimaryUserStep form={form} errors={errors} setField={setField} />;
+        return <PrimaryUserStep form={form} errors={errors} setField={setField} updateMode={isUpdateMode} />;
 
       case 'dynamic':
         if (step.stepData) {
@@ -566,8 +758,8 @@ export default function PreLicenseeRegistration() {
         return (
           <DocumentsStep
             documents={form.documents}
-            onAddDocument={addDocument}
-            onRemoveDocument={removeDocument}
+            onAddDocument={handleAddDocument}
+            onRemoveDocument={handleRemoveDocument}
             errors={errors}
             documentTypes={config?.documentTypes}
           />
@@ -584,6 +776,7 @@ export default function PreLicenseeRegistration() {
             dataProtectionUrl={config?.dataProtectionUrl}
             requireOtp={config?.requireOtp ?? true}
             requireCaptcha={config?.requireCaptcha ?? true}
+            updateMode={isUpdateMode}
           />
         );
 
@@ -695,6 +888,31 @@ export default function PreLicenseeRegistration() {
     return v;
   }
 
+  if (isUpdateMode && (authLoading || updateLoading)) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LandingNav />
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <Skeleton className="h-8 w-72 mb-6" />
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full mb-4" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (isUpdateMode && updateError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LandingNav />
+        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-2">Unable to load registration update</h2>
+          <p className="text-sm text-muted-foreground mb-6">{updateError}</p>
+          <Button onClick={() => window.location.reload()}>Try again</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (configLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -744,13 +962,35 @@ export default function PreLicenseeRegistration() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
             <FileText className="h-6 w-6 sm:h-8 sm:w-8" />
-            <h1 className="text-xl sm:text-2xl font-bold">Pre-Licensee Registration</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{isUpdateMode ? 'Update & Resubmit Registration' : 'Pre-Licensee Registration'}</h1>
           </div>
           <p className="text-sm sm:text-base text-primary-foreground/80">
-            Complete the registration form below. All fields marked with * are required.
+            {isUpdateMode ? 'Review the requested changes, update your existing information, and resubmit.' : 'Complete the registration form below. All fields marked with * are required.'}
           </p>
         </div>
       </div>
+
+      {isUpdateMode && updateContext && (
+        <div className="max-w-4xl mx-auto px-4 pt-6">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-foreground">Changes Requested</p>
+                <p className="text-muted-foreground">
+                  Reference: <span className="font-mono text-foreground">{updateContext.registration.registration_reference || updateContext.registration.id}</span>
+                  {' '}• Last submitted: {updateContext.registration.updated_at ? new Date(updateContext.registration.updated_at).toLocaleString() : '—'}
+                </p>
+                {updateContext.remarks && (
+                  <div className="mt-2 rounded-md border bg-background p-3 whitespace-pre-wrap text-foreground">
+                    {updateContext.remarks}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dynamic Stepper */}
       <div className="max-w-4xl mx-auto px-4 pt-6 sm:pt-8 pb-4">
@@ -814,21 +1054,20 @@ export default function PreLicenseeRegistration() {
               {submitting ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
               ) : (
-                <>Submit Registration<Send className="h-4 w-4 ml-2" /></>
+                <>{isUpdateMode ? 'Update & Resubmit Registration' : 'Submit Registration'}<Send className="h-4 w-4 ml-2" /></>
               )}
             </Button>
           )}
         </div>
 
-        {/* Login link */}
-        <div className="text-center border-t border-border pt-6 mt-6">
+        {!isUpdateMode && <div className="text-center border-t border-border pt-6 mt-6">
           <p className="text-sm text-muted-foreground">
             Already registered?{' '}
             <button onClick={() => navigate('/')} className="font-medium text-primary hover:underline">
               Sign in here
             </button>
           </p>
-        </div>
+        </div>}
       </div>
     </div>
   );

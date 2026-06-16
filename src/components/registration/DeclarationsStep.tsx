@@ -28,6 +28,7 @@ interface Props {
   dataProtectionUrl?: string;
   requireOtp?: boolean;
   requireCaptcha?: boolean;
+  updateMode?: boolean;
 }
 
 /** Converts a declaration label into a stable field key */
@@ -64,6 +65,7 @@ export function DeclarationsStep({
   dataProtectionUrl,
   requireOtp = true,
   requireCaptcha = true,
+  updateMode = false,
 }: Props) {
   // Build effective declarations: use config if available, else hardcoded fallbacks
   const effectiveDeclarations: DeclarationConfig[] =
@@ -93,7 +95,7 @@ export function DeclarationsStep({
   return (
     <div className="space-y-6">
       {/* Email OTP Verification */}
-      {requireOtp && <OtpVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />}
+      {requireOtp && !updateMode && <OtpVerificationSection form={form} errors={errors} setField={setField} verificationEmail={verificationEmail} />}
 
       {/* Dynamic Declarations */}
       <div className="form-section">

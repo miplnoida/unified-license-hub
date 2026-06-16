@@ -10,6 +10,7 @@ export interface DocumentMeta {
   type: string;
   path: string;
   label: string;
+  documentKey?: string;
 }
 
 export interface RegistrationFormData {
@@ -89,14 +90,15 @@ function loadFromStorage(): RegistrationFormData {
   return { ...initialState };
 }
 
-export function useRegistrationForm() {
-  const [form, setForm] = useState<RegistrationFormData>(loadFromStorage);
+export function useRegistrationForm(options?: { updateMode?: boolean }) {
+  const [form, setForm] = useState<RegistrationFormData>(() => options?.updateMode ? { ...initialState } : loadFromStorage());
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (options?.updateMode) return;
     const { password, confirmPassword, ...safe } = form;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
-  }, [form]);
+  }, [form, options?.updateMode]);
 
   const setField = useCallback((field: string, value: string | boolean) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -144,13 +146,19 @@ export function useRegistrationForm() {
   }, []);
 
   const setSectorId = useCallback((value: string) => {
-    setForm(prev => ({ ...prev, sectorId: value, subSectorId: '', categoryId: '', entitySpecificData: {} }));
+    setForm(prev => ({
+      ...prev,
+      sectorId: value,
+      subSectorId: '',
+      categoryId: '',
+      entitySpecificData: options?.updateMode ? prev.entitySpecificData : {},
+    }));
     setErrors(prev => {
       const next = { ...prev };
       delete next.sectorId;
       return next;
     });
-  }, []);
+  }, [options?.updateMode]);
 
   const setSubSectorId = useCallback((value: string) => {
     setForm(prev => ({ ...prev, subSectorId: value, categoryId: '' }));
@@ -161,8 +169,18 @@ export function useRegistrationForm() {
     });
   }, []);
 
+  const getDocumentKey = (doc: Pick<DocumentMeta, 'label' | 'name'> & { documentKey?: string }) => (
+    doc.documentKey || doc.label || doc.name || 'document'
+  ).trim().toLowerCase().replace(/\s+/g, '_');
+
   const addDocument = useCallback((doc: DocumentMeta) => {
-    setForm(prev => ({ ...prev, documents: [...prev.documents, doc] }));
+    setForm(prev => {
+      const nextKey = getDocumentKey(doc);
+      return {
+        ...prev,
+        documents: [...prev.documents.filter(d => getDocumentKey(d) !== nextKey), { ...doc, documentKey: nextKey }],
+      };
+    });
   }, []);
 
   const removeDocument = useCallback((docId: string) => {
@@ -200,14 +218,14 @@ export function useRegistrationForm() {
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
         errs.email = 'Invalid email address';
       }
-      if (!form.password) {
+      if (!options?.updateMode && !form.password) {
         errs.password = 'Password is required';
-      } else if (!PASSWORD_REGEX.test(form.password)) {
+      } else if (!options?.updateMode && !PASSWORD_REGEX.test(form.password)) {
         errs.password = 'Password must be 8+ characters with uppercase, lowercase, number, and special character';
       }
-      if (!form.confirmPassword) {
+      if (!options?.updateMode && !form.confirmPassword) {
         errs.confirmPassword = 'Please confirm your password';
-      } else if (form.password !== form.confirmPassword) {
+      } else if (!options?.updateMode && form.password !== form.confirmPassword) {
         errs.confirmPassword = 'Passwords do not match';
       }
     } else if (step === 2) {
@@ -218,12 +236,12 @@ export function useRegistrationForm() {
       if (!form.privacyAccepted) errs.privacyAccepted = 'You must accept the Privacy Policy';
       if (!form.dataProtectionAccepted) errs.dataProtectionAccepted = 'You must accept the Data Protection Notice';
       if (!form.captchaChecked) errs.captcha = 'Please verify the captcha';
-      if (!form.emailVerified) errs.emailVerified = 'Email verification is required';
+      if (!options?.updateMode && !form.emailVerified) errs.emailVerified = 'Email verification is required';
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [form]);
+  }, [form, options?.updateMode]);
 
   /**
    * Validate dynamic declarations by their computed field keys.
@@ -245,13 +263,13 @@ export function useRegistrationForm() {
     if (requireCaptcha && !form.captchaChecked) {
       errs.captcha = 'Please verify the captcha';
     }
-    if (requireOtp && !form.emailVerified) {
+    if (!options?.updateMode && requireOtp && !form.emailVerified) {
       errs.emailVerified = 'Email verification is required';
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }, [form]);
+  }, [form, options?.updateMode]);
 
   const validate = useCallback((): boolean => {
     for (let i = 0; i < 4; i++) {
@@ -264,6 +282,11 @@ export function useRegistrationForm() {
     setForm({ ...initialState });
     setErrors({});
     sessionStorage.removeItem(STORAGE_KEY);
+  }, []);
+
+  const hydrate = useCallback((data: Partial<RegistrationFormData>) => {
+    setForm({ ...initialState, ...data, password: '', confirmPassword: '' });
+    setErrors({});
   }, []);
 
   return {
@@ -280,6 +303,7 @@ export function useRegistrationForm() {
     validate,
     validateStep,
     validateDeclarations,
+    hydrate,
     reset,
   };
 }

@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   FileText, CheckCircle2, Clock, Layers, LogOut, Save,
 } from 'lucide-react';
+import { buildUpdateRegistrationUrl, getPreferredSubmission } from '@/lib/registrationUpdateFlow';
 
 interface Registration {
   id: string;
@@ -94,7 +95,7 @@ export default function RegistrationPortal() {
 
       if (!regData) {
         toast.error('No registration found. Please register first.');
-        navigate('/register');
+        navigate('/registration-status', { replace: true });
         return;
       }
 
@@ -134,6 +135,11 @@ export default function RegistrationPortal() {
         .order('updated_at', { ascending: false });
 
       setSubmissions((subsData || []) as FormSubmission[]);
+
+      const preferred = submissionParam
+        ? (subsData || []).find(s => s.id === submissionParam)
+        : getPreferredSubmission((subsData || []) as FormSubmission[]);
+      navigate(buildUpdateRegistrationUrl(regData.id, preferred?.id), { replace: true });
     } catch (err) {
       console.error('Load error:', err);
     } finally {

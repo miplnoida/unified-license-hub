@@ -10,7 +10,7 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const RegistrationSuccess = lazy(() => import('@/pages/registration/RegistrationSuccess'));
 const RegistrationPortal = lazy(() => import('@/pages/registration/RegistrationPortal'));
-const RegistrationFormFill = lazy(() => import('@/pages/registration/RegistrationFormFill'));
+const PreLicenseeRegistration = lazy(() => import('@/pages/registration/PreLicenseeRegistration'));
 const UpdateRegistrationRedirect = lazy(() => import('@/routes/UpdateRegistrationRedirect'));
 
 export const publicRoutes = (
@@ -23,14 +23,14 @@ export const publicRoutes = (
     {/* Backward compatibility: legacy nested route redirects to canonical /register */}
     <Route path="/registration/pre-licensee" element={<Navigate to="/register" replace />} />
     <Route path="/registration/success" element={<RegistrationSuccess />} />
-    {/* Update/Edit/Resubmission flow for an authenticated pre-licensee.
-        Loads the user's existing registration + form submissions and prefills data. */}
+    {/* Legacy portal resolves immediately to the update form; it must not show
+        generic pre-licensee form cards during resubmission. */}
     <Route path="/registration/portal" element={<P><RegistrationPortal /></P>} />
-    <Route path="/registration/portal/form/:formId" element={<P><RegistrationFormFill /></P>} />
-    {/* Friendly alias used in resubmission email links — preserves
-        ?registration=&submission= identifiers when redirecting to the portal. */}
-    <Route path="/update-registration-form" element={<UpdateRegistrationRedirect />} />
-    <Route path="/update-registration-form/:registrationId" element={<UpdateRegistrationRedirect />} />
+    <Route path="/registration/portal/form/:formId" element={<P><UpdateRegistrationRedirect /></P>} />
+    {/* Canonical update/edit/resubmission flow. */}
+    <Route path="/update-registration-form" element={<P><PreLicenseeRegistration mode="update" /></P>} />
+    <Route path="/update-registration-form/:registrationId" element={<P><UpdateRegistrationRedirect /></P>} />
+    <Route path="/registration/update/:registrationId" element={<P><PreLicenseeRegistration mode="update" /></P>} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
