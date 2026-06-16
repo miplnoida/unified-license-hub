@@ -1,128 +1,80 @@
-## Scope
+# Allow Multiple Files on Form File Fields
 
-Add a clean, reusable **versioned document upload** capability for the Form Management module (form renderer file fields, form builder attachments, registration supporting documents, and the generic DocumentUpload component). Built on the existing `secure-documents` bucket and `file_uploads` table. No changes to registration approval workflow, notifications, or emails.
+Enable bulk upload + per-file versioning on `file` fields in the Form Builder, so applicants can upload many documents into a single field (e.g., "Supporting Documents") with full version history per document.
 
-## Goals
+## 1. Field config: add `allowMultiple` flag
 
-- Accept PDF, DOCX, XLSX, and images (jpg/png/webp), validated per-file.
-- Persist metadata: file name, size, uploader, upload date, MIME, extension, document type.
-- Maintain **multiple versions of the same document** with full history and action logs.
-- Allow batch upload in a single operation with per-file success/failure reporting.
-- Reuse existing security model: private bucket, RLS, signed URLs, no service-role on client.
+**`src/types/formBuilder.ts`** — extend `FormField` with optional `allowMultiple?: boolean` (default `false`, so existing forms behave exactly as today).
 
-## Architecture
+**`src/components/form-builder/FieldProperties.tsx`** (file-field block, ~line 412–443) — add a `Switch` row above "Allowed File Types":
 
-### 1. Storage (no bucket changes)
-
-Keep using the existing private `secure-documents` bucket. New object path convention for versioned form-management uploads:
-
-```text
-form-management/{entityType}/{entityId}/{documentType}/{documentGroupId}/v{version}/{timestamp}-{safeFileName}
+```
+[ Switch ] Allow multiple files
+          When on, applicants can upload many files into this field, each with its own version history.
 ```
 
-- `documentGroupId` is the stable identifier shared by all versions of the same logical document.
-- `version` is a monotonically increasing integer per group.
-- Legacy paths (`{userId}/form-field/...`, `{userId}/{entityType}/...`) keep working — new code only writes to the new path.
+Bound to `f.allowMultiple`; updated via `onUpdateField(f.id, { allowMultiple: v })`.
 
-### 2. Database
+No changes to validation, allowed types, or size limits — they continue to apply per file.
 
-Two new tables in `public` (with grants + RLS + service_role), reusing `file_uploads` for the underlying physical file row.
+## 2. FormRenderer: branch on `allowMultiple`
 
-**`document_groups`** — one row per logical document.
-- `id`, `entity_type`, `entity_id`, `document_type`, `display_name`, `owner_id`, `current_version_id` (FK → `document_versions`), `created_at`, `updated_at`.
+**`src/components/form-renderer/FormRenderer.tsx`** — in the `case 'file':` branch (~line 686):
 
-**`document_versions`** — one row per uploaded version.
-- `id`, `group_id` (FK), `version` (int), `file_upload_id` (FK → `file_uploads.id`), `uploaded_by`, `change_note`, `created_at`.
-- Unique `(group_id, version)`.
+- **When `field.allowMultiple === true` AND `formId` prop is present**, render `<VersionedDocumentUploader>` instead of the single-file `<Input type="file">`. Pass:
+  - `entityType` (already on FormRenderer props)
+  - `entityId` (already on FormRenderer props)
+  - `defaultDocumentType={field.fieldName}`
+  - `documentLabel={field.label}`
+  - `formId`, `formVersionId`, `submissionId`, `fieldId={field.id}` (extend the uploader's props to forward these to `batchUploadDocuments`)
+  - `onUploaded={(results) => onChange(field.fieldName, mergeResults(val, results))}`
 
-**`document_action_logs`** — append-only history.
-- `id`, `group_id`, `version_id` (nullable), `actor_id`, `action` (`upload` | `new_version` | `replace` | `delete` | `restore` | `download`), `details` jsonb, `created_at`.
+- **When `allowMultiple === false`** or `formId` is absent → keep the existing single-file input and version-aware row exactly as today. No regression to current behavior.
 
-**RLS**
-- Group/version read: owner OR internal staff (`super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst`) OR users with access to the parent `entity_type/entity_id` via existing helpers (e.g. `entity_user_access`).
-- Insert/update: owner of the group, or staff. New version inserts must reference an existing group the user can write to.
-- Action logs: insert via SECURITY DEFINER RPC (`log_document_action`) so the row is always attributed to `auth.uid()`.
-
-Per project rules, every `CREATE TABLE public.x` is followed by `GRANT ... TO authenticated; GRANT ALL ... TO service_role;` then `ENABLE RLS` then policies.
-
-### 3. Service layer — `src/lib/documentVersioning.ts` (new)
-
-Single entry point for versioned uploads. Wraps `secureFileUpload` for the physical write and the new tables for metadata.
+The stored field value shape changes only when `allowMultiple` is true:
 
 ```ts
-uploadNewDocument({ file, entityType, entityId, documentType, displayName?, changeNote? })
-  -> { success, groupId, versionId, version, fileUploadId } | { success: false, error }
+// single (today, unchanged)
+{ name, size, path, groupId?, currentVersionId?, version? }
 
-uploadNewVersion({ groupId, file, changeNote? })
-  -> same shape; increments version atomically (RPC `create_document_version`)
-
-batchUploadDocuments({ entityType, entityId, items: Array<{file, documentType, displayName?, groupId?}> })
-  -> { results: Array<{ file: string, success: boolean, version?: number, error?: string }> }
-
-listDocumentVersions(groupId) -> versions + uploader profile + action logs
-getVersionSignedUrl(versionId) -> 5-min signed URL (logs `download` action)
-deleteVersion(versionId) / restoreVersion(versionId) (soft via action log; physical file kept)
+// multiple (new)
+Array<{ name, size, path, groupId, currentVersionId, version, mimeType }>
 ```
 
-Per-file validation runs through existing `validateFile()` so MIME/extension/size rules stay consistent. Batch upload validates each file individually and never aborts the whole batch on a single failure.
+Render the saved multi-file value as a stacked list reusing the same row UI (filename, size, `v{n}` badge, Eye preview, History dialog, X remove). Remove only the clicked row from the array; History opens the existing `DocumentVersionHistoryDialog` for that row's `groupId`.
 
-Atomicity for `uploadNewVersion`: use a SECURITY DEFINER RPC `create_document_version(_group_id, _file_upload_id, _change_note)` that:
-1. Locks the group row.
-2. Computes `next_version = coalesce(max(version),0)+1`.
-3. Inserts `document_versions` + updates `current_version_id`.
-4. Inserts a `document_action_logs` row.
-5. Returns `(version_id, version)`.
+## 3. Uploader prop forwarding
 
-### 4. UI components (new, under `src/components/documents/versioned/`)
+**`src/components/documents/versioned/VersionedDocumentUploader.tsx`** — accept and forward optional `formId`, `formVersionId`, `submissionId`, `fieldId`, `documentLabel` into each `BatchUploadItem`. No behavioral change when absent (registration/standalone use stays identical).
 
-- **`VersionedDocumentUploader`** — replaces single-file `DocumentUpload` for new flows. Staged-files list (reusing UX from existing `DocumentUpload.tsx`), per-file inline status (Pending / Uploading / Success / Failed + error), "Add more / Upload N files" actions, drag-and-drop. Props: `entityType`, `entityId`, `documentType` (or selector), `onUploaded`.
-- **`DocumentGroupList`** — replaces `DocumentList` for new flows. Groups files by `documentGroupId`, shows current version with badges (`v3`, size, uploader, date), expandable history.
-- **`DocumentVersionHistoryDialog`** — full version timeline: each version with uploader, date, change note, download, "Make current", plus the action log feed.
-- **`DocumentTypeSelect`** — small shadcn `<Select>` driven by a `master_data_items` document-type list (with `'other'` free-text fallback per project Select rules; no empty `""` values).
+**`src/lib/documentVersioning.ts`** — `BatchUploadItem` / `uploadVersionedDocument` already accept form context; just thread the new fields through to the existing `create_document_version_metadata` RPC payload. No DB migration needed.
 
-### 5. Integration points (minimal, opt-in)
+## 4. Submission + completion gating
 
-Wire the new uploader into Form Management surfaces without breaking existing behaviour:
+- Treat a multi-file field as "filled" when the stored array length ≥ 1 (or ≥ `validation.min` if set).
+- `required` validation: array length ≥ 1.
+- No change to step-completion logic beyond reading the array form.
 
-- **Form renderer file fields** (`src/components/form-renderer/FormRenderer.tsx`): when a field is marked `versioned: true` in its config, route through `documentVersioning` instead of `uploadFormFile`. Default fields keep `uploadFormFile` for back-compat.
-- **Form builder** field properties: add a "Enable versioning" toggle + "Document type" picker for file fields.
-- **Registration `DocumentsStep`**: swap its uploader for `VersionedDocumentUploader` scoped to `entity_type='registration'`, `entity_id=registrationId`. Each step-required document gets a fixed `documentType` so re-uploads create new versions instead of duplicates. No change to the approval workflow, submission gating, or emails.
-- **Existing generic `DocumentUpload` / `DocumentList`**: leave in place; mark as legacy in comments. New screens use the versioned components.
+## 5. Read-only / review rendering
 
-### 6. Action logging & audit
+In `readOnly` mode for a multi-file field, render the same stacked row list without the upload control and without the remove button. History + preview remain available.
 
-Every meaningful action (`upload`, `new_version`, `replace`, `delete`, `restore`, `download`) writes a `document_action_logs` row via the SECURITY DEFINER RPC. The existing global audit (`log_self_audit`) is also called for `upload` and `new_version` so the global audit trail stays complete.
+## 6. Tests
 
-### 7. Non-goals (out of scope, do not touch)
+- Extend `src/test/formRendererStepPersistence.test.tsx` with one case: an `allowMultiple` file field with two files saved; rerender preserves both rows.
+- Extend `src/test/documentVersioning.test.ts` to assert `fieldId` / `formId` are forwarded into the RPC payload for batch uploads.
 
-- Registration approval workflow, reviewer remarks, notifications, or emails.
-- The `documents` legacy table (read-only merge in `DocumentList` stays as-is).
-- Bucket policy / public access — bucket remains private.
-- Service-role exposure on the client.
+## What stays untouched
 
-## Verification
+- Registration approval, login, notifications, licensing, dashboard, payment workflow.
+- Default behavior of every existing file field (toggle defaults off).
+- DB schema, RLS, storage bucket, edge functions.
+- Single-file rendering path, including the existing version-history clock button.
 
-1. Migration applies cleanly; `supabase--linter` clean.
-2. Unit tests:
-   - `documentVersioning.batchUpload` returns per-file results, including mixed success/failure.
-   - `create_document_version` RPC increments monotonically under concurrent inserts (simulated).
-   - RLS: a non-owner cannot read another user's group/versions; staff can.
-3. Manual smoke in preview:
-   - Upload 3 mixed files (PDF + DOCX + bad .exe) in one batch → 2 success, 1 failure reported inline.
-   - Re-upload same logical document → new version appears, history shows v1 + v2 with uploader/date/change note.
-   - Download from history → signed URL works, action log gets a `download` row.
-   - Registration documents step → uploads persist, versions visible, no impact on approval flow.
+## Verification (manual)
 
-## Files changed (planned)
-
-- New: `supabase/migrations/<timestamp>_document_versioning.sql`
-- New: `src/lib/documentVersioning.ts`
-- New: `src/components/documents/versioned/VersionedDocumentUploader.tsx`
-- New: `src/components/documents/versioned/DocumentGroupList.tsx`
-- New: `src/components/documents/versioned/DocumentVersionHistoryDialog.tsx`
-- New: `src/components/documents/versioned/DocumentTypeSelect.tsx`
-- New: `src/test/documentVersioning.test.ts`
-- Edited: `src/components/form-renderer/FormRenderer.tsx` (opt-in versioned path)
-- Edited: `src/components/registration/DocumentsStep.tsx` (swap uploader, same data contract)
-- Edited: `src/components/form-builder/FieldProperties.tsx` (versioning toggle + document type)
-- Edited: `docs/FEATURE_DEVELOPMENT_TRACKER.md` (note the new capability)
+1. `/admin/forms/create` → add a File field → toggle **Allow multiple files** on → save & publish.
+2. As an applicant, open the form → select 3 PDFs in that field → Upload → three rows appear, each `v1`.
+3. Re-upload one of them with the same filename → its row flips to `v2`; History dialog shows v1 + v2.
+4. DB check: `document_groups` has 3 rows (one per file), `document_versions` has 4 rows (3×v1 + 1×v2), `document_action_logs` has matching `version_created` entries.
+5. Toggle off on another field → field renders the original single-file input unchanged.

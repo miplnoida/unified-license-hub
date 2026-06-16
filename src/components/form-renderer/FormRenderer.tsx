@@ -367,7 +367,7 @@ export function FormRenderer({
       const val = formData[field.fieldName];
       const required = isFieldRequired(field, formData, allFields);
 
-      if (required && (val === undefined || val === null || val === '')) {
+      if (required && (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0))) {
         stepErrors[field.fieldName] = `${field.label} is required`;
         continue;
       }
@@ -513,6 +513,67 @@ export function FormRenderer({
       await deleteFormFile(fileData.filePath, fileData.uploadId);
     }
     updateField(fieldName, '');
+  };
+
+  // Multi-file upload: append each successful upload to the field's array value.
+  // Each file becomes its own document group (no groupId passed), so re-uploading a
+  // different file does NOT replace prior rows. To re-version a specific row, that
+  // row's group is targeted via the History dialog.
+  const handleMultiFileUpload = async (field: FormField, files: File[]) => {
+    if (!user) { toast.error('You must be logged in to upload files'); return; }
+    if (!files.length) return;
+    const fieldName = field.fieldName;
+    setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
+    const docType = (field as any).documentType || fieldName;
+    const existing: any[] = Array.isArray(formData[fieldName]) ? [...formData[fieldName]] : [];
+    let okCount = 0;
+    let failCount = 0;
+    for (const file of files) {
+      const res = await uploadVersionedDocument({
+        file,
+        userId: user.id,
+        entityType: entityType || 'form_submission',
+        entityId: entityId || applicationId || submissionId || null,
+        documentType: docType,
+        documentLabel: field.label || fieldName,
+        displayName: file.name,
+        formId,
+        fieldId: field.id,
+        submissionId: submissionId || applicationId || undefined,
+      });
+      if (res.success === true) {
+        okCount += 1;
+        existing.push({
+          name: file.name,
+          url: '',
+          type: file.type,
+          size: file.size,
+          filePath: '',
+          uploadId: res.data.fileUploadId,
+          groupId: res.data.groupId,
+          versionId: res.data.versionId,
+          version: res.data.version,
+          documentType: docType,
+        });
+      } else {
+        failCount += 1;
+        toast.error(`${file.name}: ${(res as { success: false; error: string }).error || 'Upload failed'}`);
+      }
+    }
+    setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
+    if (okCount > 0) {
+      updateField(fieldName, existing);
+      toast.success(`${okCount} file${okCount > 1 ? 's' : ''} uploaded`);
+    }
+    if (failCount > 0 && okCount === 0) {
+      // already toasted per failure
+    }
+  };
+
+  const handleMultiFileRemoveAt = (fieldName: string, idx: number) => {
+    const list = Array.isArray(formData[fieldName]) ? [...formData[fieldName]] : [];
+    list.splice(idx, 1);
+    updateField(fieldName, list);
   };
 
   // Handle file preview with fresh signed URL
@@ -684,6 +745,68 @@ export function FormRenderer({
         }
         break;
       case 'file':
+        if (field.allowMultiple) {
+          const multiList: any[] = Array.isArray(val) ? val : [];
+          input = (
+            <div className="space-y-2">
+              {!readOnly && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    multiple
+                    ref={el => { fileInputRefs.current[field.fieldName] = el; }}
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length) handleMultiFileUpload(field, files);
+                      if (e.target) e.target.value = '';
+                    }}
+                    className="flex-1"
+                    disabled={isUploading}
+                  />
+                  {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+              )}
+              {multiList.length > 0 && (
+                <div className="space-y-1.5">
+                  {multiList.map((item: any, idx: number) => (
+                    <div key={`${item.uploadId || item.groupId || item.name}-${idx}`} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm truncate flex-1">{item.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {item.size ? `${(item.size / 1024).toFixed(1)} KB` : ''}
+                      </span>
+                      {item.version && (
+                        <span className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">
+                          v{item.version}
+                        </span>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(item)}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                      {item.groupId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Version history"
+                          onClick={() => setHistoryGroup({ groupId: item.groupId, name: item.name })}
+                        >
+                          <History className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!readOnly && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleMultiFileRemoveAt(field.fieldName, idx)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+          break;
+        }
         input = (
           <div className="space-y-2">
             {!readOnly && (
