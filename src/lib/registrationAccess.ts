@@ -57,7 +57,11 @@ export function isInternalUser(role: AppRole | string | null | undefined): boole
 /** Per-category next action shown on the status page / login messaging. */
 const CATEGORY_ACTIONS: Partial<Record<RegistrationCategory, { actionLabel: string; actionUrl: string }>> = {
   approved: { actionLabel: 'Continue to Dashboard', actionUrl: '/dashboard' },
-  correction: { actionLabel: 'Update & Resubmit', actionUrl: '/register' },
+  // Correction/resubmission MUST route to the update portal (which loads the
+  // user's existing registration + form data). It must NEVER point to
+  // `/register`, which is reserved for brand-new registrations and renders a
+  // blank form — that would cause data-loss for existing applicants.
+  correction: { actionLabel: 'Update & Resubmit', actionUrl: '/registration/portal' },
   unverified: { actionLabel: 'Continue Verification', actionUrl: '/register' },
 };
 
