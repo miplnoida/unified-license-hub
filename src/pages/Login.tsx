@@ -13,6 +13,13 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldCheck, Loader2 } from 'lucid
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Preserve resubmission email deep-links (e.g. /registration/portal?registration=…&submission=…)
+  // through the login roundtrip. Only same-origin paths are honoured.
+  const rawRedirect = searchParams.get('redirect') || '';
+  const redirectTarget = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+    ? rawRedirect
+    : '/dashboard';
   const { session, user, isAuthenticated, isFullyAuthenticated, mfaStatus, login, logout, mark2FAVerified, clear2FAState } = useAuth();
 
   const [email, setEmail] = useState('');
