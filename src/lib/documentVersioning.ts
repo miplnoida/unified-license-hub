@@ -275,39 +275,42 @@ export async function batchUploadDocuments(args: {
   const results: BatchUploadResult[] = [];
   for (const item of args.items) {
     try {
-      if (item.groupId) {
-        const r = await uploadNewVersion({
-          groupId: item.groupId,
-          file: item.file,
-          userId: args.userId,
-          changeNote: item.changeNote,
-        });
-        results.push(
-          r.success === true
-            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
-            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
-        );
-      } else {
-        const r = await uploadNewDocument({
-          file: item.file,
-          userId: args.userId,
-          entityType: args.entityType,
-          entityId: args.entityId,
-          documentType: item.documentType,
-          displayName: item.displayName,
-          changeNote: item.changeNote,
-        });
-        results.push(
-          r.success === true
-            ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
-            : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
-        );
-      }
+      const r = await uploadVersionedDocument({
+        file: item.file,
+        userId: args.userId,
+        entityType: args.entityType,
+        entityId: args.entityId,
+        documentType: item.documentType,
+        documentLabel: item.documentLabel,
+        displayName: item.displayName,
+        changeNote: item.changeNote,
+        formId: item.formId,
+        fieldId: item.fieldId,
+        submissionId: item.submissionId,
+        groupId: item.groupId,
+      });
+      results.push(
+        r.success === true
+          ? { fileName: item.file.name, success: true, ...(r as { success: true; data: DocGroupRef }).data }
+          : { fileName: item.file.name, success: false, error: (r as { success: false; error: string }).error },
+      );
     } catch (err: any) {
       results.push({ fileName: item.file.name, success: false, error: err?.message || 'Unknown error' });
     }
   }
+  // Best-effort batch summary log on each unique group touched
+  const groupIds = Array.from(new Set(results.filter(r => r.success && r.groupId).map(r => r.groupId!)));
+  for (const gid of groupIds) {
+    await supabase.rpc('log_document_batch_action' as any, {
+      _group_id: gid,
+      _action: 'batch_uploaded',
+      _details: {
+        files: results.filter(r => r.groupId === gid).map(r => ({ name: r.fileName, success: r.success, version: r.version })),
+      },
+    } as any);
+  }
   return results;
+}
 }
 
 // -------- Query helpers --------
