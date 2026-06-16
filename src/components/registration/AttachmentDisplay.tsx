@@ -125,9 +125,11 @@ async function resolveSignedUrl(att: NormalizedAttachment): Promise<string | nul
 }
 
 async function downloadFile(att: NormalizedAttachment): Promise<void> {
-  if (att.path) {
+  let path = att.path || null;
+  if (!path) path = await resolveVersionedFilePath(att);
+  if (path) {
     for (const bucket of ['secure-documents', 'documents']) {
-      const { data } = await supabase.storage.from(bucket).download(att.path);
+      const { data } = await supabase.storage.from(bucket).download(path);
       if (data) {
         const url = URL.createObjectURL(data);
         const a = document.createElement('a');
