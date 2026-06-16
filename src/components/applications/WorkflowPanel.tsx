@@ -473,7 +473,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           }
         : {
             application_id: applicationId,
-            instance_id: activeInstance.id,
+            instance_id: liveInstance.id,
             step_id: currentStep.id,
             action_type: actionType,
             comments: comment,
