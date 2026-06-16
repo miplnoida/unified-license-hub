@@ -122,14 +122,13 @@ export async function getRegistrationAccessStatus(
 
   let remarks: string | null = null;
   try {
-    const { data: actions } = await supabase
-      .from('approval_actions')
-      .select('comments, created_at')
-      .eq('entity_type', 'registration')
-      .eq('entity_id', reg.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    remarks = actions?.[0]?.comments ?? null;
+    // Secure RPC: applicants cannot read reviewer approval_actions rows,
+    // and the helper also strips the applicant's own resubmit audit row.
+    const { data } = await supabase.rpc(
+      'get_registration_reviewer_remarks' as any,
+      { _registration_id: reg.id } as any,
+    );
+    remarks = (data as string | null) ?? null;
   } catch {
     /* remarks best-effort */
   }

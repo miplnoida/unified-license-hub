@@ -198,14 +198,14 @@ async function resolveRegistration(userId: string, registrationId?: string | nul
 }
 
 async function fetchLatestRemarks(registrationId: string): Promise<string | null> {
-  const { data } = await supabase
-    .from('approval_actions')
-    .select('comments, created_at')
-    .eq('entity_type', 'registration')
-    .eq('entity_id', registrationId)
-    .order('created_at', { ascending: false })
-    .limit(1);
-  return data?.[0]?.comments ?? null;
+  // Use the secure RPC: applicants can't SELECT reviewer rows of
+  // approval_actions (RLS), and we must never display the applicant's own
+  // "Applicant resubmitted registration" audit row as reviewer remarks.
+  const { data } = await supabase.rpc(
+    'get_registration_reviewer_remarks' as any,
+    { _registration_id: registrationId } as any,
+  );
+  return (data as string | null) ?? null;
 }
 
 export async function resolveRegistrationSubmission({
