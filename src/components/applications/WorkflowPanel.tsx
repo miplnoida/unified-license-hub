@@ -539,13 +539,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   };
 
   const handleAddRemark = async () => {
-    if (!user || !activeInstance || !currentStep) return;
+    if (!user || !liveInstance || !currentStep) return;
     const trimmed = comment.trim();
     if (!trimmed) { toast.error('Please enter a remark.'); return; }
     setProcessingAction('__remark__');
     try {
       const { data, error } = await supabase.functions.invoke('add-application-remark', {
-        body: { application_id: applicationId, instance_id: activeInstance.id, step_id: currentStep.id, comments: trimmed },
+        body: { application_id: applicationId, instance_id: liveInstance.id, step_id: currentStep.id, comments: trimmed },
       });
       if (error) {
         let msg = error.message || 'Failed to add remark';
