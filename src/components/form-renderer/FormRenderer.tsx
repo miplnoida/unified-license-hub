@@ -206,8 +206,10 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
+  formId, formVersionId, submissionId, entityType, entityId,
 }: Props) {
   const { user } = useAuth();
+  const [historyGroup, setHistoryGroup] = useState<{ groupId: string; name: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(() => {
     if (!stepStorageKey) return 0;
     try {
