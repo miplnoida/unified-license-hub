@@ -367,7 +367,7 @@ export function FormRenderer({
       const val = formData[field.fieldName];
       const required = isFieldRequired(field, formData, allFields);
 
-      if (required && (val === undefined || val === null || val === '')) {
+      if (required && (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0))) {
         stepErrors[field.fieldName] = `${field.label} is required`;
         continue;
       }
