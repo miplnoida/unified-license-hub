@@ -24,7 +24,6 @@ export const publicRoutes = (
     <Route path="/registration/success" element={<RegistrationSuccess />} />
     {/* Update/Edit/Resubmission flow for an authenticated pre-licensee.
         Loads the user's existing registration + form submissions and prefills data. */}
-    <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/registration/portal" element={<P><RegistrationPortal /></P>} />
     <Route path="/registration/portal/form/:formId" element={<P><RegistrationFormFill /></P>} />
     {/* Friendly alias used in resubmission email links */}
