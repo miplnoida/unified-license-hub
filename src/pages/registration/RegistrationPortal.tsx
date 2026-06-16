@@ -100,11 +100,12 @@ export default function RegistrationPortal() {
 
       setForms(matched);
 
-      // Fetch existing submissions
+      // Fetch existing submissions (newest first so we always continue the latest row)
       const { data: subsData } = await supabase
         .from('registration_form_submissions')
         .select('*')
-        .eq('registration_id', regData.id);
+        .eq('registration_id', regData.id)
+        .order('updated_at', { ascending: false });
 
       setSubmissions((subsData || []) as FormSubmission[]);
     } catch (err) {
@@ -114,9 +115,28 @@ export default function RegistrationPortal() {
     }
   }
 
+  // Pick the latest submission for a form, preferring statuses that indicate
+  // an active edit cycle (resubmission requested, draft, etc.) over completed ones.
+  const STATUS_PRIORITY: Record<string, number> = {
+    resubmission_requested: 0,
+    needs_changes: 0,
+    rejected: 1,
+    draft: 2,
+    submitted: 3,
+    under_review: 3,
+    completed: 4,
+  };
   function getSubmissionForForm(formId: string) {
-    return submissions.find(s => s.form_id === formId);
+    const matches = submissions.filter(s => s.form_id === formId);
+    if (matches.length === 0) return undefined;
+    return [...matches].sort((a, b) => {
+      const pa = STATUS_PRIORITY[a.status] ?? 5;
+      const pb = STATUS_PRIORITY[b.status] ?? 5;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    })[0];
   }
+
 
   async function handleOpenForm(formId: string) {
     if (!registration) return;

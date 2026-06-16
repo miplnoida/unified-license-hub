@@ -22,21 +22,61 @@ export default function RegistrationFormFill() {
   const navigate = useNavigate();
   const { formId } = useParams<{ formId: string }>();
   const [searchParams] = useSearchParams();
-  const submissionId = searchParams.get('submission');
+  const submissionIdParam = searchParams.get('submission');
   const { session, loading: authLoading } = useAuth();
 
   const [formDef, setFormDef] = useState<{ name: string; sections: FormSection[] } | null>(null);
-  const [initialData, setInitialData] = useState<Record<string, any>>({});
+  const [initialData, setInitialData] = useState<Record<string, any> | null>(null);
+  const [resolvedSubmissionId, setResolvedSubmissionId] = useState<string | null>(submissionIdParam);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pendingData, setPendingData] = useState<Record<string, any> | null>(null);
-  const stepStorageKey = buildStepStorageKey(formId, submissionId);
+  const stepStorageKey = buildStepStorageKey(formId, resolvedSubmissionId);
+
+  // Status priority used when multiple submissions exist for the same form/user.
+  // Lower number = preferred row to continue editing.
+  const STATUS_PRIORITY: Record<string, number> = {
+    resubmission_requested: 0,
+    needs_changes: 0,
+    rejected: 1,
+    draft: 2,
+    submitted: 3,
+    under_review: 3,
+    completed: 4,
+  };
 
   useEffect(() => {
     if (authLoading) return;
     if (!session) { navigate('/'); return; }
     loadFormAndData();
-  }, [session, authLoading, formId, submissionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, authLoading, formId, submissionIdParam]);
+
+  async function resolveSubmissionId(): Promise<string | null> {
+    // If URL provides a submission id, verify it belongs to this user
+    if (submissionIdParam) {
+      const { data } = await supabase
+        .from('registration_form_submissions')
+        .select('id, user_id')
+        .eq('id', submissionIdParam)
+        .maybeSingle();
+      if (data && data.user_id === session!.user.id) return data.id;
+    }
+    // Fall back: find latest existing submission for current user + form
+    const { data: rows } = await supabase
+      .from('registration_form_submissions')
+      .select('id, status, updated_at')
+      .eq('user_id', session!.user.id)
+      .eq('form_id', formId!);
+    if (!rows || rows.length === 0) return null;
+    const sorted = [...rows].sort((a, b) => {
+      const pa = STATUS_PRIORITY[a.status] ?? 5;
+      const pb = STATUS_PRIORITY[b.status] ?? 5;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+    return sorted[0].id;
+  }
 
   async function loadFormAndData() {
     setLoading(true);
@@ -128,35 +168,56 @@ export default function RegistrationFormFill() {
         }
       }
 
-      // Load saved data
-      if (submissionId) {
+      // Resolve the submission row (URL param, or latest existing for resubmission)
+      const subId = await resolveSubmissionId();
+      setResolvedSubmissionId(subId);
+
+      if (subId) {
         const { data: sub } = await supabase
           .from('registration_form_submissions')
           .select('form_data')
-          .eq('id', submissionId)
+          .eq('id', subId)
           .single();
 
         if (sub?.form_data && typeof sub.form_data === 'object') {
           setInitialData(sub.form_data as Record<string, any>);
+        } else {
+          setInitialData({});
         }
+      } else {
+        setInitialData({});
       }
     } catch (err) {
       console.error('Load error:', err);
+      setInitialData({});
     } finally {
       setLoading(false);
     }
   }
 
+  // Defensive guard: refuse to overwrite existing non-empty form_data with empty data.
+  function isEmptyData(d: Record<string, any> | null | undefined): boolean {
+    if (!d) return true;
+    return Object.keys(d).length === 0;
+  }
+
   async function handleSave(data: Record<string, any>) {
-    if (!submissionId) return;
+    if (!resolvedSubmissionId) return;
+    if (isEmptyData(data) && !isEmptyData(initialData)) {
+      console.warn('[registration] Refusing to overwrite existing form_data with empty data');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from('registration_form_submissions')
       .update({ form_data: data as unknown as Json, updated_at: new Date().toISOString() })
-      .eq('id', submissionId);
+      .eq('id', resolvedSubmissionId);
     setSaving(false);
     if (error) toast.error('Failed to save.');
-    else toast.success('Progress saved!');
+    else {
+      setInitialData(data);
+      toast.success('Progress saved!');
+    }
   }
 
   // Step 1: collect data from form, then show review/ack
@@ -166,7 +227,11 @@ export default function RegistrationFormFill() {
 
   // Step 2: persist after acknowledgement
   async function handleConfirm() {
-    if (!submissionId || !pendingData) return;
+    if (!resolvedSubmissionId || !pendingData) return;
+    if (isEmptyData(pendingData) && !isEmptyData(initialData)) {
+      toast.error('Cannot submit empty data over existing submission.');
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from('registration_form_submissions')
@@ -175,7 +240,7 @@ export default function RegistrationFormFill() {
         status: 'completed',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', submissionId);
+      .eq('id', resolvedSubmissionId);
     setSaving(false);
     if (error) toast.error('Failed to submit.');
     else {
@@ -185,7 +250,7 @@ export default function RegistrationFormFill() {
     }
   }
 
-  if (authLoading || loading) {
+  if (authLoading || loading || initialData === null) {
     return (
       <div className="min-h-screen bg-background p-8">
         <Skeleton className="h-8 w-64 mb-6" />
