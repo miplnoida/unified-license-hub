@@ -228,21 +228,61 @@ export default function RegistrationFormFill() {
     return Object.keys(d).length === 0;
   }
 
+  function isPlainObject(v: any): v is Record<string, any> {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  // Deep-merge incoming form data into existing form data without losing untouched fields.
+  // Arrays and primitives in `incoming` REPLACE the existing value (so users can clear/edit).
+  // Undefined values in `incoming` keep the existing value. Plain objects merge recursively.
+  function deepMergeFormData(
+    existing: Record<string, any> | null | undefined,
+    incoming: Record<string, any> | null | undefined,
+  ): Record<string, any> {
+    const base: Record<string, any> = { ...(existing || {}) };
+    if (!incoming) return base;
+    for (const key of Object.keys(incoming)) {
+      const next = incoming[key];
+      if (next === undefined) continue;
+      const prev = base[key];
+      if (isPlainObject(prev) && isPlainObject(next)) {
+        base[key] = deepMergeFormData(prev, next);
+      } else {
+        base[key] = next;
+      }
+    }
+    return base;
+  }
+
+  async function fetchCurrentFormData(id: string): Promise<Record<string, any>> {
+    const { data } = await supabase
+      .from('registration_form_submissions')
+      .select('form_data')
+      .eq('id', id)
+      .maybeSingle();
+    if (data?.form_data && typeof data.form_data === 'object') {
+      return data.form_data as Record<string, any>;
+    }
+    return {};
+  }
+
   async function handleSave(data: Record<string, any>) {
     if (!resolvedSubmissionId) return;
-    if (isEmptyData(data) && !isEmptyData(initialData)) {
-      console.warn('[registration] Refusing to overwrite existing form_data with empty data');
+    const current = await fetchCurrentFormData(resolvedSubmissionId);
+    const merged = deepMergeFormData(current, data);
+    if (isEmptyData(merged) && !isEmptyData(current)) {
+      console.warn('[registration] Refusing to overwrite existing form_data with empty merged data');
       return;
     }
     setSaving(true);
     const { error } = await supabase
       .from('registration_form_submissions')
-      .update({ form_data: data as unknown as Json, updated_at: new Date().toISOString() })
+      .update({ form_data: merged as unknown as Json, updated_at: new Date().toISOString() })
       .eq('id', resolvedSubmissionId);
     setSaving(false);
     if (error) toast.error('Failed to save.');
     else {
-      setInitialData(data);
+      setInitialData(merged);
       toast.success('Progress saved!');
     }
   }
@@ -255,7 +295,9 @@ export default function RegistrationFormFill() {
   // Step 2: persist after acknowledgement
   async function handleConfirm() {
     if (!resolvedSubmissionId || !pendingData) return;
-    if (isEmptyData(pendingData) && !isEmptyData(initialData)) {
+    const current = await fetchCurrentFormData(resolvedSubmissionId);
+    const merged = deepMergeFormData(current, pendingData);
+    if (isEmptyData(merged) && !isEmptyData(current)) {
       toast.error('Cannot submit empty data over existing submission.');
       return;
     }
@@ -263,7 +305,7 @@ export default function RegistrationFormFill() {
     const { error } = await supabase
       .from('registration_form_submissions')
       .update({
-        form_data: pendingData as unknown as Json,
+        form_data: merged as unknown as Json,
         status: 'completed',
         updated_at: new Date().toISOString(),
       })
@@ -276,6 +318,7 @@ export default function RegistrationFormFill() {
       navigate('/registration/portal');
     }
   }
+
 
   if (authLoading || loading || initialData === null) {
     return (
