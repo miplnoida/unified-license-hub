@@ -237,6 +237,16 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
+  // If the applicant has already resubmitted, the entity status flips back to a
+  // forward-moving state (e.g. pending_review/in_progress/submitted). In that
+  // case the workflow must NOT render the "paused — awaiting applicant" UI,
+  // even if the workflow_instances row is briefly still paused (legacy data /
+  // race between resubmit and workflow resume).
+  const RESUMED_STATUSES = new Set([
+    'pending_review', 'in_progress', 'submitted', 'in_review', 'under_review',
+  ]);
+  const applicantHasResubmitted = !!applicationStatus && RESUMED_STATUSES.has(applicationStatus);
+  const treatPausedAsActive = !activeInstance && !!pausedInstance && applicantHasResubmitted;
   const liveInstance = activeInstance || pausedInstance;
 
   // Resolve current step: prefer approval_steps.id match, then snapshot key (registrations).
@@ -253,9 +263,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   }, [liveInstance, steps]);
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isLastLevel = currentStepIdx >= 0 && currentStepIdx === steps.length - 1;
-  const isPaused = !activeInstance && !!pausedInstance;
+  const isPaused = !activeInstance && !!pausedInstance && !treatPausedAsActive;
 
-  const { data: canActResult } = useCanActOnStep(user?.id, activeInstance ? currentStep?.id : undefined);
+  const { data: canActResult } = useCanActOnStep(user?.id, (activeInstance || treatPausedAsActive) ? currentStep?.id : undefined);
   const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 

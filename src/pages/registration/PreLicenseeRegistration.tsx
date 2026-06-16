@@ -594,6 +594,24 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         if (subError) throw subError;
       }
 
+      // Resume the approval workflow so approvers see the pending step again
+      // (instead of "Workflow paused — awaiting applicant").
+      try {
+        const { error: resumeError } = await supabase.rpc(
+          'resume_registration_workflow' as any,
+          {
+            _registration_id: existingRegistration.id,
+            _actor_id: session.user.id,
+            _comments: 'Applicant resubmitted registration',
+          } as any,
+        );
+        if (resumeError) {
+          console.warn('[registration] resume_registration_workflow failed', resumeError);
+        }
+      } catch (resumeErr) {
+        console.warn('[registration] resume_registration_workflow threw', resumeErr);
+      }
+
       await supabase.functions.invoke('dispatch-notification-event', {
         body: {
           event_key: 'registration.resubmitted',
