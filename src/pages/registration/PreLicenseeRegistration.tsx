@@ -87,6 +87,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     form.sectorId || undefined,
     form.subSectorId || undefined,
     form.categoryId || undefined,
+    !isUpdateMode || !!form.sectorId,
   );
 
   const [currentStep, setCurrentStep] = useState<number>(() => {
