@@ -23,6 +23,9 @@ import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/f
 import { migrateSectionsToRows } from '@/lib/formRows';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
+import { uploadVersionedDocument } from '@/lib/documentVersioning';
+import { DocumentVersionHistoryDialog } from '@/components/documents/versioned/DocumentVersionHistoryDialog';
+import { History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
