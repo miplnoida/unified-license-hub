@@ -46,6 +46,9 @@ export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
           downloadUrl: f.downloadUrl || url,
           type: f.type || f.mimeType || f.mime_type,
           size: f.size || f.sizeBytes || f.size_bytes,
+          version: typeof f.version === 'number' ? f.version : (typeof f.version === 'string' ? Number(f.version) || undefined : undefined),
+          groupId: f.groupId || f.group_id || f.documentGroupId || f.document_group_id,
+          versionId: f.versionId || f.version_id || f.currentVersionId || f.current_version_id,
         };
       }
       return null;
