@@ -81,7 +81,10 @@ export default function RegistrationStatusPage() {
 
               {category === 'correction' && (
                 <Button asChild className="w-full">
-                  <Link to="/register">
+                  {/* Resubmission must open the update portal so existing
+                      registration data and uploaded documents are prefilled.
+                      Never link to `/register` (blank new registration). */}
+                  <Link to="/registration/portal">
                     <FileEdit className="h-4 w-4 mr-2" /> Update & Resubmit Registration
                   </Link>
                 </Button>
