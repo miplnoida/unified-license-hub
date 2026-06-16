@@ -1,19 +1,27 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-// Mock supabase client
-const storage = { upload: vi.fn(), remove: vi.fn(), createSignedUrl: vi.fn() };
-const from = vi.fn();
-const rpc = vi.fn();
-const auth = { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } } })) };
+vi.mock('@/integrations/supabase/client', () => {
+  const storage = { upload: vi.fn(), remove: vi.fn(), createSignedUrl: vi.fn() };
+  const from = vi.fn();
+  const rpc = vi.fn();
+  const auth = { getUser: vi.fn(async () => ({ data: { user: { id: 'u1' } } })) };
+  (globalThis as any).__sb = { storage, from, rpc, auth };
+  return {
+    supabase: {
+      storage: { from: () => storage },
+      from: (...args: any[]) => from(...args),
+      rpc: (...args: any[]) => rpc(...args),
+      auth,
+    },
+  };
+});
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    storage: { from: () => storage },
-    from: (...args: any[]) => from(...args),
-    rpc: (...args: any[]) => rpc(...args),
-    auth,
-  },
-}));
+const sb = () => (globalThis as any).__sb as {
+  storage: { upload: any; remove: any; createSignedUrl: any };
+  from: any;
+  rpc: any;
+  auth: any;
+};
 
 import { batchUploadDocuments } from '@/lib/documentVersioning';
 
