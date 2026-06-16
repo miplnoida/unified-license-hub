@@ -60,6 +60,12 @@ interface Props {
   stepStorageKey?: string;
   /** When true, section tabs show full title instead of letter-prefixed labels */
   showFullTabTitles?: boolean;
+  /** Form Management context for versioned document uploads. */
+  formId?: string;
+  formVersionId?: string | null;
+  submissionId?: string | null;
+  entityType?: string;
+  entityId?: string | null;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
