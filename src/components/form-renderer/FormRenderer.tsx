@@ -23,6 +23,9 @@ import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/f
 import { migrateSectionsToRows } from '@/lib/formRows';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
+import { uploadVersionedDocument } from '@/lib/documentVersioning';
+import { DocumentVersionHistoryDialog } from '@/components/documents/versioned/DocumentVersionHistoryDialog';
+import { History } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
@@ -57,6 +60,12 @@ interface Props {
   stepStorageKey?: string;
   /** When true, section tabs show full title instead of letter-prefixed labels */
   showFullTabTitles?: boolean;
+  /** Form Management context for versioned document uploads. */
+  formId?: string;
+  formVersionId?: string | null;
+  submissionId?: string | null;
+  entityType?: string;
+  entityId?: string | null;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
@@ -197,8 +206,10 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
+  formId, formVersionId, submissionId, entityType, entityId,
 }: Props) {
   const { user } = useAuth();
+  const [historyGroup, setHistoryGroup] = useState<{ groupId: string; name: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(() => {
     if (!stepStorageKey) return 0;
     try {
@@ -436,10 +447,55 @@ export function FormRenderer({
     onSubmit(getMergedData());
   };
 
-  // Handle file upload to storage
-  const handleFileUpload = async (fieldName: string, file: File) => {
+  // Handle file upload to storage.
+  // When formId is provided (Form Management context), uses versioned upload:
+  // uploading another file for the same field creates a new version of the same
+  // logical document group. Otherwise falls back to the legacy uploadFormFile.
+  const handleFileUpload = async (field: FormField, file: File) => {
     if (!user) { toast.error('You must be logged in to upload files'); return; }
+    const fieldName = field.fieldName;
     setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
+
+    const existing = formData[fieldName] as (FormFileData & { groupId?: string; versionId?: string; version?: number }) | undefined;
+
+    if (formId) {
+      const docType = (field as any).documentType || fieldName;
+      const res = await uploadVersionedDocument({
+        file,
+        userId: user.id,
+        entityType: entityType || 'form_submission',
+        entityId: entityId || applicationId || submissionId || null,
+        documentType: docType,
+        documentLabel: field.label || fieldName,
+        displayName: file.name,
+        formId,
+        fieldId: field.id,
+        submissionId: submissionId || applicationId || undefined,
+        groupId: existing?.groupId,
+      });
+      setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
+      if (res.success === true) {
+        const data = res.data;
+        const value: FormFileData & { groupId: string; versionId: string; version: number; documentType: string } = {
+          name: file.name,
+          url: '',
+          type: file.type,
+          size: file.size,
+          filePath: existing?.filePath || '',
+          uploadId: data.fileUploadId,
+          groupId: data.groupId,
+          versionId: data.versionId,
+          version: data.version,
+          documentType: docType,
+        };
+        updateField(fieldName, value);
+        toast.success(`${file.name} uploaded (v${data.version})`);
+      } else {
+        toast.error((res as { success: false; error: string }).error || 'Upload failed');
+      }
+      return;
+    }
+
     const result = await uploadFormFile(file, user.id, applicationId);
     setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
     if (result.success && result.data) {
@@ -638,7 +694,7 @@ export function FormRenderer({
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      handleFileUpload(field.fieldName, file);
+                      handleFileUpload(field, file);
                     }
                     // Reset input so same file can be re-selected
                     if (e.target) e.target.value = '';
@@ -656,9 +712,25 @@ export function FormRenderer({
                 <span className="text-xs text-muted-foreground shrink-0">
                   {val.size ? `${(val.size / 1024).toFixed(1)} KB` : ''}
                 </span>
+                {val.version && (
+                  <span className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0">
+                    v{val.version}
+                  </span>
+                )}
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleFilePreview(val)}>
                   <Eye className="h-3.5 w-3.5" />
                 </Button>
+                {val.groupId && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    title="Version history"
+                    onClick={() => setHistoryGroup({ groupId: val.groupId, name: val.name })}
+                  >
+                    <History className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 {!readOnly && (
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleFileRemove(field.fieldName)}>
                     <X className="h-3.5 w-3.5" />
@@ -971,6 +1043,12 @@ export function FormRenderer({
           </div>
         </DialogContent>
       </Dialog>
+      <DocumentVersionHistoryDialog
+        open={!!historyGroup}
+        onOpenChange={(o) => { if (!o) setHistoryGroup(null); }}
+        groupId={historyGroup?.groupId || null}
+        groupName={historyGroup?.name}
+      />
     </div>
   );
 }

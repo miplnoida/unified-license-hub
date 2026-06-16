@@ -2038,7 +2038,13 @@ export default function NewApplication() {
                   onSubmit={handleFormSubmit}
                   saving={saving}
                   applicationId={applicationId || undefined}
+                  formId={activeTemplate.id}
+                  formVersionId={effectiveVersionId || null}
+                  submissionId={applicationId || null}
+                  entityType="application"
+                  entityId={applicationId || null}
                 />
+
               )}
               {!showRenderer && !resolverMessage && stillLoadingVersion && (
                 <Card>

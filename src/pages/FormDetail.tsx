@@ -84,6 +84,10 @@ export default function FormDetail() {
         <FormRenderer
           formName={template.name}
           sections={sections}
+          formId={template.id}
+          formVersionId={activeVersion?.id || null}
+          entityType="form_response"
+          entityId={null}
           onSaveDraft={async (data) => {
             if (!userId || !activeVersion) {
               toast.success('Draft saved locally!');
