@@ -1020,6 +1020,142 @@ export type Database = {
         }
         Relationships: []
       }
+      document_action_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          details: Json | null
+          group_id: string
+          id: string
+          version_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          details?: Json | null
+          group_id: string
+          id?: string
+          version_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json | null
+          group_id?: string
+          id?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_action_logs_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "document_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_action_logs_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_groups: {
+        Row: {
+          created_at: string
+          current_version_id: string | null
+          display_name: string | null
+          document_type: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          is_deleted: boolean
+          metadata: Json | null
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_version_id?: string | null
+          display_name?: string | null
+          document_type: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          is_deleted?: boolean
+          metadata?: Json | null
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_version_id?: string | null
+          display_name?: string | null
+          document_type?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          is_deleted?: boolean
+          metadata?: Json | null
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_groups_current_version_fk"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          change_note: string | null
+          created_at: string
+          file_upload_id: string
+          group_id: string
+          id: string
+          is_deleted: boolean
+          uploaded_by: string
+          version: number
+        }
+        Insert: {
+          change_note?: string | null
+          created_at?: string
+          file_upload_id: string
+          group_id: string
+          id?: string
+          is_deleted?: boolean
+          uploaded_by: string
+          version: number
+        }
+        Update: {
+          change_note?: string | null
+          created_at?: string
+          file_upload_id?: string
+          group_id?: string
+          id?: string
+          is_deleted?: boolean
+          uploaded_by?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "document_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
@@ -6315,6 +6451,18 @@ export type Database = {
         }
         Returns: string
       }
+      create_document_version: {
+        Args: {
+          _action?: string
+          _change_note?: string
+          _file_upload_id: string
+          _group_id: string
+        }
+        Returns: {
+          version: number
+          version_id: string
+        }[]
+      }
       create_notification: {
         Args: {
           _entity_id?: string
@@ -6511,6 +6659,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_doc_staff: { Args: { _user_id: string }; Returns: boolean }
       is_eligible_ppoc_user: {
         Args: { _existing_mapping_id?: string; _user_id: string }
         Returns: boolean
