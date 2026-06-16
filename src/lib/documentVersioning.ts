@@ -77,8 +77,9 @@ async function uploadPhysicalFile(params: {
   const { file, userId, entityType, entityId, documentType, groupId, version } = params;
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || 'bin');
   const safeName = sanitize(file.name);
+  // NOTE: storage policy requires the first folder segment to match auth.uid().
   const filePath =
-    `form-management/${entityType}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
+    `${userId}/form-management/${entityType}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
