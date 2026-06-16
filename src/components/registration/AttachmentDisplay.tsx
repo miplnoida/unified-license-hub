@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, FileText, Loader2 } from 'lucide-react';
+import { Eye, Download, FileText, History, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { DocumentVersionHistoryDialog } from '@/components/documents/versioned/DocumentVersionHistoryDialog';
 
 export type NormalizedAttachment = {
   name: string;
@@ -11,6 +12,9 @@ export type NormalizedAttachment = {
   downloadUrl?: string;
   type?: string;
   size?: number;
+  version?: number;
+  groupId?: string;
+  versionId?: string;
 };
 
 export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
@@ -42,6 +46,9 @@ export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
           downloadUrl: f.downloadUrl || url,
           type: f.type || f.mimeType || f.mime_type,
           size: f.size || f.sizeBytes || f.size_bytes,
+          version: typeof f.version === 'number' ? f.version : (typeof f.version === 'string' ? Number(f.version) || undefined : undefined),
+          groupId: f.groupId || f.group_id || f.documentGroupId || f.document_group_id,
+          versionId: f.versionId || f.version_id || f.currentVersionId || f.current_version_id,
         };
       }
       return null;
@@ -71,20 +78,58 @@ export function isAttachmentValue(v: unknown): boolean {
   return false;
 }
 
+async function resolveVersionedFilePath(att: NormalizedAttachment): Promise<string | null> {
+  // Versioned uploads store only groupId/versionId in form data. Resolve the
+  // actual storage path via document_versions -> file_uploads so admin
+  // reviewers can preview/download the current version inline.
+  if (!att.groupId && !att.versionId) return null;
+  try {
+    let versionId = att.versionId || null;
+    if (!versionId && att.groupId) {
+      const { data: g } = await supabase
+        .from('document_groups' as any)
+        .select('current_version_id')
+        .eq('id', att.groupId)
+        .maybeSingle();
+      versionId = (g as any)?.current_version_id || null;
+    }
+    if (!versionId) return null;
+    const { data: v } = await supabase
+      .from('document_versions' as any)
+      .select('file_upload_id')
+      .eq('id', versionId)
+      .maybeSingle();
+    const uploadId = (v as any)?.file_upload_id;
+    if (!uploadId) return null;
+    const { data: f } = await supabase
+      .from('file_uploads' as any)
+      .select('file_path')
+      .eq('id', uploadId)
+      .maybeSingle();
+    return (f as any)?.file_path || null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveSignedUrl(att: NormalizedAttachment): Promise<string | null> {
   if (att.viewUrl) return att.viewUrl;
-  if (!att.path) return null;
+  let path = att.path || null;
+  if (!path) path = await resolveVersionedFilePath(att);
+  if (!path) return null;
   for (const bucket of ['secure-documents', 'documents']) {
-    const { data } = await supabase.storage.from(bucket).createSignedUrl(att.path, 300);
+    const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
     if (data?.signedUrl) return data.signedUrl;
   }
   return null;
 }
 
 async function downloadFile(att: NormalizedAttachment): Promise<void> {
-  if (att.path) {
+  let path = att.path || null;
+  if (!path) path = await resolveVersionedFilePath(att);
+  if (path) {
     for (const bucket of ['secure-documents', 'documents']) {
-      const { data } = await supabase.storage.from(bucket).download(att.path);
+      const { data } = await supabase.storage.from(bucket).download(path);
       if (data) {
         const url = URL.createObjectURL(data);
         const a = document.createElement('a');
@@ -111,7 +156,13 @@ async function downloadFile(att: NormalizedAttachment): Promise<void> {
 
 function AttachmentRow({ att }: { att: NormalizedAttachment }) {
   const [busy, setBusy] = useState<'view' | 'download' | null>(null);
-  const canAct = !!(att.path || att.viewUrl || att.downloadUrl);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const canAct = !!(att.path || att.viewUrl || att.downloadUrl || att.groupId || att.versionId);
+  const sizeLabel = att.size
+    ? att.size < 1024 * 1024
+      ? `${(att.size / 1024).toFixed(1)} KB`
+      : `${(att.size / (1024 * 1024)).toFixed(1)} MB`
+    : null;
 
   const handleView = async () => {
     setBusy('view');
@@ -144,6 +195,17 @@ function AttachmentRow({ att }: { att: NormalizedAttachment }) {
     <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5">
       <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
       <span className="text-sm truncate flex-1 min-w-0" title={att.name}>{att.name}</span>
+      {sizeLabel && (
+        <span className="text-[10px] text-muted-foreground shrink-0">{sizeLabel}</span>
+      )}
+      {att.version != null && (
+        <span
+          className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground border rounded px-1.5 py-0.5 shrink-0"
+          title={`Current version v${att.version}`}
+        >
+          v{att.version}
+        </span>
+      )}
       <Button
         type="button"
         variant="ghost"
@@ -168,6 +230,28 @@ function AttachmentRow({ att }: { att: NormalizedAttachment }) {
       >
         {busy === 'download' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
       </Button>
+      {att.groupId && (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setHistoryOpen(true)}
+            aria-label={`Version history for ${att.name}`}
+            title="Version history"
+          >
+            <History className="h-3.5 w-3.5" />
+          </Button>
+          <DocumentVersionHistoryDialog
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+            groupId={att.groupId}
+            groupName={att.name}
+            currentVersionId={att.versionId || null}
+          />
+        </>
+      )}
     </div>
   );
 }
