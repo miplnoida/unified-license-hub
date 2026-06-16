@@ -515,6 +515,67 @@ export function FormRenderer({
     updateField(fieldName, '');
   };
 
+  // Multi-file upload: append each successful upload to the field's array value.
+  // Each file becomes its own document group (no groupId passed), so re-uploading a
+  // different file does NOT replace prior rows. To re-version a specific row, that
+  // row's group is targeted via the History dialog.
+  const handleMultiFileUpload = async (field: FormField, files: File[]) => {
+    if (!user) { toast.error('You must be logged in to upload files'); return; }
+    if (!files.length) return;
+    const fieldName = field.fieldName;
+    setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
+    const docType = (field as any).documentType || fieldName;
+    const existing: any[] = Array.isArray(formData[fieldName]) ? [...formData[fieldName]] : [];
+    let okCount = 0;
+    let failCount = 0;
+    for (const file of files) {
+      const res = await uploadVersionedDocument({
+        file,
+        userId: user.id,
+        entityType: entityType || 'form_submission',
+        entityId: entityId || applicationId || submissionId || null,
+        documentType: docType,
+        documentLabel: field.label || fieldName,
+        displayName: file.name,
+        formId,
+        fieldId: field.id,
+        submissionId: submissionId || applicationId || undefined,
+      });
+      if (res.success === true) {
+        okCount += 1;
+        existing.push({
+          name: file.name,
+          url: '',
+          type: file.type,
+          size: file.size,
+          filePath: '',
+          uploadId: res.data.fileUploadId,
+          groupId: res.data.groupId,
+          versionId: res.data.versionId,
+          version: res.data.version,
+          documentType: docType,
+        });
+      } else {
+        failCount += 1;
+        toast.error(`${file.name}: ${(res as { success: false; error: string }).error || 'Upload failed'}`);
+      }
+    }
+    setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
+    if (okCount > 0) {
+      updateField(fieldName, existing);
+      toast.success(`${okCount} file${okCount > 1 ? 's' : ''} uploaded`);
+    }
+    if (failCount > 0 && okCount === 0) {
+      // already toasted per failure
+    }
+  };
+
+  const handleMultiFileRemoveAt = (fieldName: string, idx: number) => {
+    const list = Array.isArray(formData[fieldName]) ? [...formData[fieldName]] : [];
+    list.splice(idx, 1);
+    updateField(fieldName, list);
+  };
+
   // Handle file preview with fresh signed URL
   const handleFilePreview = async (fileData: FormFileData) => {
     if (fileData.filePath) {
