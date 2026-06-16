@@ -546,6 +546,14 @@ export default function NewApplication() {
     });
   }, [applicationId, currentStep, hydratePaymentState]);
 
+  // Whenever the user is on the payment step, refresh the fee breakdown from
+  // Fee Management so reloads / draft resumption show the configured fees
+  // (previously only the "Proceed to payment" button triggered this).
+  useEffect(() => {
+    if (!applicationId || currentStep !== 'payment') return;
+    void loadFees();
+  }, [applicationId, currentStep, loadFees]);
+
   useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
     setAssignedVersionByTemplate(prev => (
