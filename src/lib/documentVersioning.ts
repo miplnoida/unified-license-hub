@@ -71,15 +71,17 @@ async function uploadPhysicalFile(params: {
   groupId: string;
   version: number;
 }): Promise<
-  | { ok: true; filePath: string; fileUploadId: string; safeName: string; ext: string; checksum: string | null }
+  | { ok: true; filePath: string; safeName: string; ext: string; checksum: string | null }
   | { ok: false; error: string }
 > {
   const { file, userId, entityType, entityId, documentType, groupId, version } = params;
   const ext = '.' + (file.name.split('.').pop()?.toLowerCase() || 'bin');
   const safeName = sanitize(file.name);
-  // NOTE: storage policy requires the first folder segment to match auth.uid().
+  // Storage RLS requires the first folder segment to match auth.uid().
+  // The second segment locks this workflow to Form Management uploads so the
+  // server-side RPC can validate the path before inserting metadata.
   const filePath =
-    `${userId}/form-management/${entityType}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
+    `${userId}/form-management/${safeDocType(entityType)}/${entityId || 'general'}/${safeDocType(documentType)}/${groupId}/v${version}/${Date.now()}-${safeName}`;
 
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
@@ -87,43 +89,17 @@ async function uploadPhysicalFile(params: {
   if (uploadError) return { ok: false, error: uploadError.message };
 
   const checksum = await sha256Hex(file);
-
-  const { data: record, error: dbError } = await supabase
-    .from('file_uploads' as any)
-    .insert({
-      file_name: file.name,
-      file_path: filePath,
-      file_size: file.size,
-      mime_type: file.type,
-      file_extension: ext,
-      uploaded_by: userId,
-      entity_type: 'document_version',
-      entity_id: groupId,
-      bucket_name: BUCKET,
-      scan_status: 'clean',
-      metadata: {
-        original_name: file.name,
-        safe_name: safeName,
-        document_type: documentType,
-        document_group_id: groupId,
-        version,
-        checksum_sha256: checksum,
-      },
-    } as any)
-    .select('id')
-    .single();
-
-  if (dbError) {
-    await supabase.storage.from(BUCKET).remove([filePath]);
-    return { ok: false, error: dbError.message };
-  }
-  return { ok: true, filePath, fileUploadId: (record as any).id, safeName, ext, checksum };
+  return { ok: true, filePath, safeName, ext, checksum };
 }
 
 /**
  * Upload a file as a new version of a (new or existing) logical document.
- * The server-side `create_document_version_metadata` RPC atomically:
- *   - finds-or-creates the document_groups row,
+ * The SECURITY DEFINER RPC `create_document_version_metadata` atomically:
+ *   - validates the caller is signed in,
+ *   - validates the storage object exists under `{auth.uid()}/form-management/…`,
+ *   - finds-or-creates the document_groups row (RLS-aware),
+ *   - records a `file_uploads` row stamped with `auth.uid()` (bypassing the
+ *     direct INSERT path so we never bump into the per-row RLS check),
  *   - allocates the next version number,
  *   - inserts the document_versions row with full metadata,
  *   - updates current_version_id,
@@ -146,13 +122,12 @@ export async function uploadVersionedDocument(args: {
 }): Promise<{ success: true; data: DocGroupRef } | { success: false; error: string }> {
   const validation = validateFile(args.file);
   if (!validation.valid) {
-    // Best-effort validation_failed log (only possible if we have a group ref).
     return { success: false, error: validation.error || 'Invalid file' };
   }
 
-  // CRITICAL: file_uploads / document_groups RLS require auth.uid().
-  // The caller's userId (app profile id) may not equal the backend session id
-  // in every portal context, so resolve it from the live session.
+  // The storage object + every metadata row must be stamped with the live
+  // backend session id (auth.uid()), not the caller's profile id. The two
+  // diverge in some portal contexts (e.g. pre-licensee profiles).
   const { data: authData } = await supabase.auth.getUser();
   const authUid = authData?.user?.id;
   if (!authUid) {
@@ -160,12 +135,9 @@ export async function uploadVersionedDocument(args: {
   }
   const effectiveUserId = authUid;
 
-
-  // We need a group id for the storage path. If caller did not supply one,
-  // probe for an existing matching group; if none, mint a provisional uuid for
-  // the path — the RPC will create the real group row using the same logical
-  // key and atomically attach the version. We then move the file only if the
-  // RPC returns a different group id (rare race).
+  // Probe for an existing matching group so the storage path uses a stable id;
+  // if none exists yet we mint a provisional uuid for the path and the RPC
+  // creates the real group row atomically using the same logical key.
   let stagingGroupId = args.groupId;
   if (!stagingGroupId) {
     const { data: existing } = await supabase
@@ -180,7 +152,8 @@ export async function uploadVersionedDocument(args: {
     stagingGroupId = (existing as any)?.id || crypto.randomUUID();
   }
 
-  // Pre-compute provisional version for the storage path; RPC is source of truth.
+  // Provisional version number for the storage path; the RPC is the source
+  // of truth for the persisted version.
   const { data: maxRow } = await supabase
     .from('document_versions' as any)
     .select('version')
@@ -193,7 +166,6 @@ export async function uploadVersionedDocument(args: {
   const physical = await uploadPhysicalFile({
     file: args.file,
     userId: effectiveUserId,
-
     entityType: args.entityType,
     entityId: args.entityId || null,
     documentType: args.documentType,
@@ -216,7 +188,10 @@ export async function uploadVersionedDocument(args: {
       _submission_id: args.submissionId || null,
       _bucket: BUCKET,
       _storage_path: physical.filePath,
-      _file_upload_id: physical.fileUploadId,
+      // null lets the RPC mint the file_uploads id under SECURITY DEFINER so
+      // we never hit the per-row "auth.uid() = uploaded_by" RLS check from
+      // the client.
+      _file_upload_id: null,
       _original_file_name: args.file.name,
       _safe_file_name: physical.safeName,
       _file_size: args.file.size,
@@ -231,7 +206,6 @@ export async function uploadVersionedDocument(args: {
 
   if (rpcErr || !rpcData || (Array.isArray(rpcData) && rpcData.length === 0)) {
     await supabase.storage.from(BUCKET).remove([physical.filePath]);
-    await supabase.from('file_uploads' as any).delete().eq('id', physical.fileUploadId);
     return { success: false, error: rpcErr?.message || 'Failed to register version' };
   }
 
@@ -242,10 +216,11 @@ export async function uploadVersionedDocument(args: {
       groupId: (row as any).document_upload_id,
       versionId: (row as any).document_version_id,
       version: (row as any).version_number,
-      fileUploadId: physical.fileUploadId,
+      fileUploadId: (row as any).document_version_id, // back-compat: callers only need a stable id
     },
   };
 }
+
 
 // Back-compat shims (older callers and tests)
 export async function uploadNewDocument(args: Parameters<typeof uploadVersionedDocument>[0]) {
