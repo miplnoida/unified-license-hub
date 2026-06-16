@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { LandingNav } from '@/components/landing/LandingNav';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
