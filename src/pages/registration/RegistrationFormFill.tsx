@@ -53,29 +53,56 @@ export default function RegistrationFormFill() {
   }, [session, authLoading, formId, submissionIdParam]);
 
   async function resolveSubmissionId(): Promise<string | null> {
-    // If URL provides a submission id, verify it belongs to this user
+    const userId = session!.user.id;
+
+    // 1. URL-provided submission id (must belong to current user)
     if (submissionIdParam) {
       const { data } = await supabase
         .from('registration_form_submissions')
         .select('id, user_id')
         .eq('id', submissionIdParam)
         .maybeSingle();
-      if (data && data.user_id === session!.user.id) return data.id;
+      if (data && data.user_id === userId) return data.id;
     }
-    // Fall back: find latest existing submission for current user + form
+
+    const pickLatest = (rows: Array<{ id: string; status: string; updated_at: string }>) => {
+      return [...rows].sort((a, b) => {
+        const pa = STATUS_PRIORITY[a.status] ?? 5;
+        const pb = STATUS_PRIORITY[b.status] ?? 5;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      })[0]?.id ?? null;
+    };
+
+    // 2. Resolve current user's registration record, then look up by registration_id + form_id
+    const { data: reg } = await supabase
+      .from('registrations')
+      .select('id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (reg?.id) {
+      const { data: rows } = await supabase
+        .from('registration_form_submissions')
+        .select('id, status, updated_at')
+        .eq('registration_id', reg.id)
+        .eq('form_id', formId!);
+      if (rows && rows.length > 0) {
+        const picked = pickLatest(rows);
+        if (picked) return picked;
+      }
+    }
+
+    // 3. Fallback: user_id + form_id
     const { data: rows } = await supabase
       .from('registration_form_submissions')
       .select('id, status, updated_at')
-      .eq('user_id', session!.user.id)
+      .eq('user_id', userId)
       .eq('form_id', formId!);
     if (!rows || rows.length === 0) return null;
-    const sorted = [...rows].sort((a, b) => {
-      const pa = STATUS_PRIORITY[a.status] ?? 5;
-      const pb = STATUS_PRIORITY[b.status] ?? 5;
-      if (pa !== pb) return pa - pb;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-    });
-    return sorted[0].id;
+    return pickLatest(rows);
   }
 
   async function loadFormAndData() {
