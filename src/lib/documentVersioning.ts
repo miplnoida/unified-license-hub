@@ -25,9 +25,13 @@ export interface BatchUploadItem {
   file: File;
   documentType: string;
   displayName?: string;
+  documentLabel?: string;
   /** If supplied, file is added as a new version of this existing group. */
   groupId?: string;
   changeNote?: string;
+  formId?: string;
+  fieldId?: string;
+  submissionId?: string;
 }
 
 export interface BatchUploadResult {
