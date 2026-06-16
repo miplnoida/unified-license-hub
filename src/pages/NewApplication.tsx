@@ -32,6 +32,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePpoc } from '@/contexts/PpocContext';
+import { resolveApplicationFeeBreakdown } from '@/lib/applicationFeeBreakdown';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
@@ -544,6 +545,25 @@ export default function NewApplication() {
       console.warn('[NewApplication] payment-step hydration failed:', err);
     });
   }, [applicationId, currentStep, hydratePaymentState]);
+
+  // Whenever the user is on the payment step, refresh the fee breakdown from
+  // Fee Management so reloads / draft resumption show the configured fees
+  // (previously only the "Proceed to payment" button triggered this).
+  useEffect(() => {
+    if (!applicationId || currentStep !== 'payment') return;
+    resolveApplicationFeeBreakdown(applicationId)
+      .then((lines) => {
+        if (lines.length > 0) {
+          const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+          setFeeBreakdown(breakdown);
+          setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+        } else {
+          setFeeBreakdown([]);
+          setFeeAmount(0);
+        }
+      })
+      .catch((err) => console.warn('[NewApplication] fee resolution failed:', err));
+  }, [applicationId, currentStep]);
 
   useEffect(() => {
     if (!activeTemplate?.id || !resolvedVersionId) return;
@@ -1326,71 +1346,25 @@ export default function NewApplication() {
     await goToStep('forms', { last_active_form_template_id: null });
   };
 
-  // Load applicable fees dynamically from Fee Management (single source of truth)
-  const loadFees = async () => {
-    if (!selectedSector) return;
-
-    // Build precise filter: match sector + optional sub-sector/category, plus global (null sector) fees
-    let query = supabase
-      .from('fee_configurations')
-      .select('*')
-      .eq('is_active', true)
-      .order('fee_type')
-      .order('name');
-
-    // Fetch fees that match the selected hierarchy or are global
-    const filters: string[] = [`sector_id.eq.${selectedSector}`, 'sector_id.is.null'];
-    query = query.or(filters.join(','));
-
-    const { data: fees } = await query;
-
-    if (fees && fees.length > 0) {
-      // Prefer most specific match: category > sub_sector > sector > global
-      const ranked = fees
-        .map(f => ({
-          ...f,
-          specificity:
-            (f.category_id === selectedCategory ? 4 : 0) +
-            (f.sub_sector_id === selectedSubSector ? 2 : 0) +
-            (f.sector_id === selectedSector ? 1 : 0),
-        }))
-        .filter(f =>
-          // Exclude fees scoped to a different sub-sector or category
-          (!f.sub_sector_id || f.sub_sector_id === selectedSubSector) &&
-          (!f.category_id || f.category_id === selectedCategory)
-        )
-        .sort((a, b) => b.specificity - a.specificity);
-
-      // De-duplicate by fee_type (case-insensitive) – keep the most specific
-      const seen = new Set<string>();
-      const deduped = ranked.filter(f => {
-        const key = (f.fee_type || '').trim().toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-
-      // Display the fee TYPE (e.g. "Application Fee", "Processing Fee") as the line label,
-      // not the configuration's internal name (e.g. "Insurance Pre MLRO").
-      const formatFeeType = (t: string) => {
-        if (!t) return 'Fee';
-        const cleaned = t.replace(/[_-]+/g, ' ').trim();
-        const titled = cleaned.replace(/\b\w/g, c => c.toUpperCase());
-        return /fee$/i.test(titled) ? titled : `${titled} Fee`;
-      };
-      const breakdown = deduped.map(f => ({
-        name: formatFeeType(f.fee_type),
-        amount: Number(f.amount),
-        currency: f.currency,
-      }));
-      setFeeBreakdown(breakdown);
-      setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
-    } else {
-      // No fees configured – allow free submission
-      setFeeBreakdown([]);
-      setFeeAmount(0);
+  // Load applicable fees dynamically from Fee Management (single source of truth).
+  // Uses the shared resolver so pre-licensee (no service_id) vs post-licensee
+  // (with service_id) scoping is handled identically with the admin Fee Breakdown.
+  const loadFees = useCallback(async () => {
+    if (!applicationId) return;
+    try {
+      const lines = await resolveApplicationFeeBreakdown(applicationId);
+      if (lines.length > 0) {
+        const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+        setFeeBreakdown(breakdown);
+        setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+      } else {
+        setFeeBreakdown([]);
+        setFeeAmount(0);
+      }
+    } catch (err) {
+      console.warn('[NewApplication] fee resolution failed:', err);
     }
-  };
+  }, [applicationId]);
 
   const handleProceedToPayment = async () => {
     await loadFees();
