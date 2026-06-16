@@ -91,12 +91,20 @@ function RegistrationApprovalGate({
   pathname: string;
   children: React.ReactNode;
 }) {
-  const { loading, isApproved } = useRegistrationApprovalStatus();
+  const { loading, isApproved, category, registration } = useRegistrationApprovalStatus();
 
+  // Only block with a loader on the very first lookup (no cached data). On
+  // subsequent navigations/logins the status comes from sessionStorage and
+  // renders instantly — no visible "checking registration" flash.
   if (loading) return <AuthLoadingScreen />;
 
   if (!isApproved) {
     if (isRegistrationGateAllowed(pathname)) return <>{children}</>;
+    // Correction requested → send the applicant straight to the update form
+    // (prefilled) instead of an intermediate status page.
+    if (category === 'correction' && registration?.id) {
+      return <Navigate to={`/registration/update/${registration.id}`} replace />;
+    }
     return <Navigate to="/registration-status" replace />;
   }
 
@@ -106,6 +114,7 @@ function RegistrationApprovalGate({
   }
   return <>{children}</>;
 }
+
 
 /** Shorthand wrapper — also isolates per-route render errors. */
 export function P({ children }: { children: React.ReactNode }) {
