@@ -30,11 +30,11 @@ function makeFile(name: string, type = 'application/pdf', size = 100) {
 }
 
 function setupHappyPath() {
-  storage.upload.mockResolvedValue({ error: null });
-  storage.remove.mockResolvedValue({ error: null });
+  sb().storage.upload.mockResolvedValue({ error: null });
+  sb().storage.remove.mockResolvedValue({ error: null });
 
   // chained `.from().insert().select().single()` for both document_groups and file_uploads
-  from.mockImplementation((table: string) => {
+  sb().from.mockImplementation((table: string) => {
     if (table === 'document_groups') {
       return {
         insert: () => ({
@@ -62,7 +62,7 @@ function setupHappyPath() {
     return {} as any;
   });
 
-  rpc.mockResolvedValue({ data: [{ version_id: 'v-1', version: 1 }], error: null });
+  sb().rpc.mockResolvedValue({ data: [{ version_id: 'v-1', version: 1 }], error: null });
 }
 
 describe('batchUploadDocuments', () => {
@@ -98,7 +98,7 @@ describe('batchUploadDocuments', () => {
     setupHappyPath();
     // Make the second upload fail
     let call = 0;
-    storage.upload.mockImplementation(async () => {
+    sb().storage.upload.mockImplementation(async () => {
       call += 1;
       return call === 2 ? { error: { message: 'disk full' } } : { error: null };
     });
