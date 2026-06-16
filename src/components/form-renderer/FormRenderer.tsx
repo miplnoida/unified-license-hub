@@ -474,16 +474,11 @@ export function FormRenderer({
         groupId: existing?.groupId,
       });
       setUploadingFields(prev => ({ ...prev, [fieldName]: false }));
-      if (res.success) {
-        const { data } = res;
-        // Refresh signed URL for inline preview
-        const url = await refreshFormFileUrl(
-          // storage path is derivable via listVersions; for immediate preview use group fetch
-          existing?.filePath || '',
-        ).catch(() => '');
+      if (res.success === true) {
+        const data = res.data;
         const value: FormFileData & { groupId: string; versionId: string; version: number; documentType: string } = {
           name: file.name,
-          url: url || '',
+          url: '',
           type: file.type,
           size: file.size,
           filePath: existing?.filePath || '',
@@ -496,7 +491,7 @@ export function FormRenderer({
         updateField(fieldName, value);
         toast.success(`${file.name} uploaded (v${data.version})`);
       } else {
-        toast.error(res.error || 'Upload failed');
+        toast.error((res as { success: false; error: string }).error || 'Upload failed');
       }
       return;
     }
