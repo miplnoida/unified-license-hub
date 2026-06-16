@@ -411,6 +411,18 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
             )}
             {isFile && (
               <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2 rounded-md border bg-muted/30 p-2">
+                  <div className="space-y-0.5">
+                    <Label className="text-xs">Allow multiple files</Label>
+                    <p className="text-[10px] text-muted-foreground leading-snug">
+                      When on, applicants can upload many files in this field. Each file is stored with its own version history.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!f.allowMultiple}
+                    onCheckedChange={(v) => onUpdateField(f.id, { allowMultiple: v })}
+                  />
+                </div>
                 <Label className="text-[10px] text-muted-foreground">Allowed File Types</Label>
                 <div className="space-y-1">
                   {COMMON_FILE_TYPES.map(ft => {
