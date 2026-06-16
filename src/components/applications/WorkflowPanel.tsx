@@ -353,6 +353,43 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
 
+  // Dev-only diagnostic. MUST be declared before the early-returns below so
+  // hook order stays stable across renders (otherwise React throws #310 and
+  // the outer ErrorBoundary renders "Unable to load workflow details").
+  useEffect(() => {
+    if (!import.meta.env.DEV || !currentStep) return;
+    const rows = (configuredStepActions as StepAction[]) || [];
+    const localCanBy: Record<string, boolean> = {
+      approve: (!!canActResult?.can_approve || !!canActResult?.can_forward) && !isPaused,
+      reject: !!canActResult?.can_reject && !isPaused,
+      send_back: !!canActResult?.can_send_back && !isPaused,
+      escalate: !!canActResult?.can_escalate && !isPaused,
+      request_resubmission: !!canActResult?.can_request_resubmission && !isPaused,
+      return_for_correction: !!canActResult?.can_return_for_correction && !isPaused,
+      request_more_info: !!canActResult?.can_request_more_info && !isPaused,
+    };
+    const configuredTypes = rows.map(r => `${r.action_type}${r.is_enabled ? '' : '(disabled)'}${r.label ? `[label="${r.label}"]` : ''}`);
+    const hiddenReasons: Record<string, string> = {};
+    rows.filter(r => r.is_enabled).forEach(r => {
+      const type = r.action_type as string;
+      if (localCanBy[type]) return;
+      hiddenReasons[type] = !canActResult
+        ? 'permissions-unknown'
+        : !canActResult.can_act
+          ? `not-authorized (reason=${canActResult.reason})`
+          : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
+    });
+    // eslint-disable-next-line no-console
+    console.debug('[WorkflowPanel] action diagnostic', {
+      stepId: currentStep.id,
+      stepName: currentStep.name,
+      configured: configuredTypes,
+      backendAllowed: canActResult?.allowed_actions,
+      canByType: localCanBy,
+      hidden: hiddenReasons,
+    });
+  }, [currentStep, configuredStepActions, canActResult, isPaused]);
+
   // ─── Early-return guards (after ALL hooks above) ───
   if (!workflowId) {
     return (
@@ -608,36 +645,8 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const remarksRequiredLabels = actionButtonsList.filter(a => a.requireComments).map(a => a.label);
 
 
-  // Dev-only diagnostic so admins can see exactly why an action is/isn't
-  // visible. Logs configured rows, backend allowed_actions, per-type can_*
-  // flags, and the final rendered button labels.
-  useEffect(() => {
-    if (!import.meta.env.DEV || !currentStep) return;
-    const configuredTypes = (configuredStepActions as StepAction[])
-      .map(r => `${r.action_type}${r.is_enabled ? '' : '(disabled)'}${r.label ? `[label="${r.label}"]` : ''}`);
-    const rendered = actionButtonsList.map(a => `${a.type}="${a.label}"`);
-    const hiddenReasons: Record<string, string> = {};
-    (configuredStepActions as StepAction[]).filter(r => r.is_enabled).forEach(r => {
-      const type = r.action_type as WorkflowActionType;
-      if (canByType[type]) return;
-      const reason = !canActResult
-        ? 'permissions-unknown'
-        : !canActResult.can_act
-          ? `not-authorized (reason=${canActResult.reason})`
-          : `backend can_${type}=false (allowed_actions=${JSON.stringify(canActResult.allowed_actions)})`;
-      hiddenReasons[type] = reason;
-    });
-    // eslint-disable-next-line no-console
-    console.debug('[WorkflowPanel] action diagnostic', {
-      stepId: currentStep.id,
-      stepName: currentStep.name,
-      configured: configuredTypes,
-      backendAllowed: canActResult?.allowed_actions,
-      canByType,
-      rendered,
-      hidden: hiddenReasons,
-    });
-  }, [currentStep?.id, configuredStepActions, canActResult, actionButtonsList.length]);
+  // (Diagnostic useEffect was hoisted above the early-returns to keep hook order stable.)
+
 
 
   const remarksBlock = !isPaused && (canAddRemark || !noWorkflowActions) && (
