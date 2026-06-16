@@ -98,7 +98,7 @@ export default function Login() {
     mark2FAVerified(pendingUserId);
     sessionStorage.removeItem('login_2fa_otp_sent_for');
     toast.success('Verification successful');
-    navigate('/dashboard');
+    navigate(redirectTarget);
   };
 
   const handleCancelMfa = async () => {
