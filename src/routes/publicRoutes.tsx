@@ -27,8 +27,10 @@ export const publicRoutes = (
         Loads the user's existing registration + form submissions and prefills data. */}
     <Route path="/registration/portal" element={<P><RegistrationPortal /></P>} />
     <Route path="/registration/portal/form/:formId" element={<P><RegistrationFormFill /></P>} />
-    {/* Friendly alias used in resubmission email links */}
-    <Route path="/update-registration-form" element={<Navigate to="/registration/portal" replace />} />
+    {/* Friendly alias used in resubmission email links — preserves
+        ?registration=&submission= identifiers when redirecting to the portal. */}
+    <Route path="/update-registration-form" element={<UpdateRegistrationRedirect />} />
+    <Route path="/update-registration-form/:registrationId" element={<UpdateRegistrationRedirect />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="*" element={<NotFound />} />
