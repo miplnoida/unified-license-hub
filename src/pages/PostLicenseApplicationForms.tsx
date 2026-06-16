@@ -101,6 +101,11 @@ function ActiveFormFiller({
         saving={saving}
         applicationId={applicationId}
         showFullTabTitles
+        formId={templateId}
+        formVersionId={resolvedVersionId}
+        submissionId={applicationId || null}
+        entityType="post_license_application"
+        entityId={applicationId || null}
       />
     </div>
   );
