@@ -77,7 +77,7 @@ describe('workflow action → frontend access (integration mapping)', () => {
     expect(access.allowed).toBe(false);
     expect(access.category).toBe('correction');
     expect(access.actionLabel).toBe('Update & Resubmit');
-    expect(access.actionUrl).toBe('/register');
+    expect(access.actionUrl).toBe('/registration/portal');
   });
 
   it('send_back / escalate keep access blocked', () => {
