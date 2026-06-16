@@ -50,6 +50,10 @@ export interface FormField {
   colSpan?: 1 | 2 | 3 | 4;
   // When true, this field starts a new row regardless of remaining space in the previous row.
   newRow?: boolean;
+  // File fields only: when true, the field accepts many files (bulk upload) and stores an array.
+  // Each file becomes its own versioned document group. Default (undefined/false) keeps the
+  // existing single-file behavior unchanged.
+  allowMultiple?: boolean;
 }
 
 export type FieldType =
