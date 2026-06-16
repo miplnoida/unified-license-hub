@@ -47,6 +47,10 @@ function safeDocType(documentType: string): string {
   return documentType.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase() || 'document';
 }
 
+type PhysicalResult =
+  | { ok: true; filePath: string; fileUploadId: string }
+  | { ok: false; error: string };
+
 async function uploadPhysicalFile(params: {
   file: File;
   userId: string;
