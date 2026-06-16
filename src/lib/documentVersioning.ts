@@ -138,6 +138,13 @@ export async function uploadVersionedDocument(args: {
   // Probe for an existing matching group so the storage path uses a stable id;
   // if none exists yet we mint a provisional uuid for the path and the RPC
   // creates the real group row atomically using the same logical key.
+  // IMPORTANT: for a multi-file form field, the logical-document key MUST
+  // include the original file name. Without it, distinct files uploaded into
+  // the same field collapse into one shared group, and re-uploading any single
+  // file versions every file in the field. Matching display_name = file.name
+  // keeps each file as its own document (image-1.png -> group A,
+  // image-2.png -> group B), while re-uploading a same-named file appends a
+  // new version to that file's group only.
   let stagingGroupId = args.groupId;
   if (!stagingGroupId) {
     const { data: existing } = await supabase
@@ -148,6 +155,7 @@ export async function uploadVersionedDocument(args: {
       .eq('owner_id', effectiveUserId)
       .eq('form_id', args.formId || '')
       .eq('field_id', args.fieldId || '')
+      .eq('display_name', args.file.name)
       .maybeSingle();
     stagingGroupId = (existing as any)?.id || crypto.randomUUID();
   }
