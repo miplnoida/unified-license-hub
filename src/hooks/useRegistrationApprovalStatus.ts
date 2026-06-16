@@ -93,14 +93,24 @@ export function useRegistrationApprovalStatus(): RegistrationApprovalState {
 
       let remarks: string | null = null;
       try {
+        // Exclude the applicant's own resubmit audit row (and any other
+        // self-authored action) so the status page surfaces the latest
+        // *reviewer* remark, not "Applicant resubmitted registration".
         const { data: actions } = await supabase
           .from('approval_actions')
-          .select('comments, created_at')
+          .select('comments, created_at, actor_id, action, action_type')
           .eq('entity_type', 'registration')
           .eq('entity_id', reg.id)
+          .neq('actor_id', userId!)
           .order('created_at', { ascending: false })
-          .limit(1);
-        remarks = actions?.[0]?.comments ?? null;
+          .limit(5);
+        const reviewerAction = (actions ?? []).find(
+          (a) =>
+            (a as any).action !== 'resubmit' &&
+            (a as any).action_type !== 'resubmit' &&
+            !!(a as any).comments,
+        );
+        remarks = (reviewerAction as any)?.comments ?? null;
       } catch {
         /* ignore — remarks are best-effort */
       }
