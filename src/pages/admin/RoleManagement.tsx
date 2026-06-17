@@ -382,7 +382,7 @@ export default function RoleManagement() {
                             <div className="flex flex-wrap gap-1">
                               {grantedActions.map(a => (
                                 <Badge key={a} variant="secondary" className="gap-1">
-                                  <CheckCircle className="h-3 w-3" />{ACTION_LABELS[a]}
+                                  <CheckCircle className="h-3 w-3" />{entry.actionLabels[a] || a}
                                 </Badge>
                               ))}
                             </div>
