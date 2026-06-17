@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
   Menu as MenuIcon, Route as RouteIcon, Info, ExternalLink,
@@ -32,9 +33,9 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission,
 } from '@/hooks/useRoles';
 import {
-  ACTION_LABELS, ACTION_DESCRIPTIONS, getAllModuleEntries, getModuleEntry,
-  validateModuleSelection, PermissionAction,
-} from '@/lib/permissionRegistry';
+  useCatalogModules, useCatalogActions, useCatalogRoutes,
+} from '@/hooks/usePermissionCatalog';
+import PermissionCatalogTab from './PermissionCatalogTab';
 import type { PermissionModule } from '@/lib/permissionModules';
 
 /**
@@ -44,6 +45,16 @@ import type { PermissionModule } from '@/lib/permissionModules';
  * are NOT managed here. Their entity-scoped portal capabilities live in
  * /admin/external-portal-access (see src/pages/admin/ExternalPortalAccess.tsx).
  */
+
+interface DynamicModuleEntry {
+  module: string;
+  label: string;
+  description: string;
+  actions: string[];          // action keys
+  actionLabels: Record<string, string>;
+  menus: string[];
+  routes: string[];
+}
 
 /** Reject role names that look like external portal users — they must be configured via External Portal Access. */
 const EXTERNAL_ROLE_NAME_PATTERNS: RegExp[] = [
