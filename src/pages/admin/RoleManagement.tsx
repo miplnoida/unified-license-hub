@@ -166,6 +166,8 @@ export default function RoleManagement() {
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Role name is required'); return; }
+    const externalErr = getExternalRoleNameError(formName);
+    if (externalErr) { toast.error(externalErr); return; }
     if (formPerms.length === 0) {
       toast.error('Select at least one permission — a role with no permissions grants no access.');
       return;
