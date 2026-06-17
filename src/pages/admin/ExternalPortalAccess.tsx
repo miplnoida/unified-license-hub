@@ -201,7 +201,7 @@ export default function ExternalPortalAccessPage() {
       <PageHeader
         title="External Portal Access"
         description="Manage entity-scoped portal capabilities for applicants, pre-licensees and licensee users. Separate from internal employee module permissions."
-        action={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Grant Access</Button>}
+        actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Grant Access</Button>}
       />
 
       <Card>
