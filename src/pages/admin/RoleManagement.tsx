@@ -273,18 +273,30 @@ export default function RoleManagement() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Role Management</h1>
             <p className="mt-1 text-muted-foreground">
-              Create and manage internal employee roles with admin/module permissions. Each module shows the menus and routes it unlocks so you can audit access at a glance.
+              Manage the permission catalog (modules, sub-modules, actions, routes) and the roles that grant them.
             </p>
+          </div>
+        </div>
+
+        <Tabs defaultValue="roles" className="w-full">
+          <TabsList>
+            <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="catalog" className="pt-6">
+            <PermissionCatalogTab />
+          </TabsContent>
+
+          <TabsContent value="roles" className="pt-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search roles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />Create Role
           </Button>
-        </div>
-
-
-        <div className="relative max-w-md animate-slide-up delay-100">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search roles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
