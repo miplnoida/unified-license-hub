@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,17 +22,26 @@ import {
   PORTAL_AREAS, PORTAL_AREA_LABEL, CAPABILITY_LABEL,
 } from '@/lib/portalAccess';
 
-interface ProfileLite { id: string; full_name: string | null; email: string | null; role: string | null; }
+interface ProfileLite { id: string; full_name: string | null; email: string | null; role: string | null; licensee_id: string | null; }
 interface LicenseeLite { id: string; name: string; }
+interface EntityAccessLite { user_id: string; entity_id: string; is_active: boolean | null; }
 
 const CAPS: PortalCapability[] = [
   'can_submit', 'can_upload_documents', 'can_view_status', 'can_respond_rfi',
   'can_submit_returns', 'can_submit_complaints', 'can_submit_fp_declarations',
 ];
+const EXTERNAL_ROLES = ['applicant', 'pre_licensee', 'licensee_primary', 'licensee_secondary'];
+const AREA_CAPS: Record<PortalArea, PortalCapability[]> = {
+  licensing: ['can_submit', 'can_upload_documents', 'can_view_status', 'can_respond_rfi'],
+  returns: ['can_submit_returns', 'can_upload_documents', 'can_view_status', 'can_respond_rfi'],
+  complaints: ['can_submit_complaints', 'can_upload_documents', 'can_view_status'],
+  fp_declarations: ['can_submit_fp_declarations', 'can_upload_documents', 'can_view_status'],
+};
 
 export default function ExternalPortalAccessPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editRow, setEditRow] = useState<ExternalPortalAccessRow | null>(null);
@@ -62,8 +72,8 @@ export default function ExternalPortalAccessPage() {
     queryFn: async (): Promise<ProfileLite[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role')
-        .in('role', ['applicant', 'pre_licensee', 'licensee_primary', 'licensee_secondary'])
+        .select('id, full_name, email, role, licensee_id')
+        .in('role', EXTERNAL_ROLES)
         .order('full_name');
       if (error) throw error;
       return (data || []) as ProfileLite[];
@@ -82,6 +92,18 @@ export default function ExternalPortalAccessPage() {
     },
   });
 
+  const entityAccessQuery = useQuery({
+    queryKey: ['external_user_entity_links'],
+    queryFn: async (): Promise<EntityAccessLite[]> => {
+      const { data, error } = await (supabase as any)
+        .from('entity_user_access')
+        .select('user_id, entity_id, is_active')
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as EntityAccessLite[];
+    },
+  });
+
   const profileById = useMemo(() => {
     const map = new Map<string, ProfileLite>();
     (profilesQuery.data || []).forEach(p => map.set(p.id, p));
@@ -93,6 +115,24 @@ export default function ExternalPortalAccessPage() {
     (licenseesQuery.data || []).forEach(l => map.set(l.id, l));
     return map;
   }, [licenseesQuery.data]);
+
+  const linkedEntityIdsByUser = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    (profilesQuery.data || []).forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, new Set());
+      if (p.licensee_id) map.get(p.id)!.add(p.licensee_id);
+    });
+    (entityAccessQuery.data || []).forEach(link => {
+      if (!map.has(link.user_id)) map.set(link.user_id, new Set());
+      if (link.entity_id) map.get(link.user_id)!.add(link.entity_id);
+    });
+    return map;
+  }, [profilesQuery.data, entityAccessQuery.data]);
+
+  const allowedCaps = AREA_CAPS[formArea];
+  const selectedProfile = formUserId ? profileById.get(formUserId) : null;
+  const selectedLinkedEntityIds = selectedProfile ? linkedEntityIdsByUser.get(selectedProfile.id) || new Set<string>() : new Set<string>();
+  const selectedEntityIsLinked = formEntityId === 'none' || selectedLinkedEntityIds.has(formEntityId);
 
   const filteredRows = useMemo(() => {
     const rows = accessQuery.data || [];
