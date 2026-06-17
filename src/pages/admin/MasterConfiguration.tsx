@@ -101,6 +101,22 @@ export default function MasterConfiguration() {
   };
 
   const handleDelete = async (entity: EntityType, id: string) => {
+    const singular: Record<EntityType, string> = {
+      'sectors': 'sector', 'sub-sectors': 'sub-sector', 'categories': 'category', 'services': 'service',
+    };
+    const list: any[] = entity === 'sectors' ? sectors : entity === 'sub-sectors' ? subSectors : entity === 'categories' ? categories : services;
+    const name = list.find((r: any) => r.id === id)?.name ?? `this ${singular[entity]}`;
+    const res = await Swal.fire({
+      title: `Delete ${singular[entity]}?`,
+      html: `<div style="text-align:left"><b>${name}</b> will be permanently removed.<br/><br/>This action cannot be undone.</div>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'hsl(0 84% 60%)',
+      focusCancel: true,
+    });
+    if (!res.isConfirmed) return;
     try {
       if (entity === 'sectors') await mutations.deleteSector.mutateAsync(id);
       else if (entity === 'sub-sectors') await mutations.deleteSubSector.mutateAsync(id);
