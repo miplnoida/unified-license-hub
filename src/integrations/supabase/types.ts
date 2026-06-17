@@ -718,6 +718,80 @@ export type Database = {
         }
         Relationships: []
       }
+      business_calendar_holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          id: string
+          name: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          id?: string
+          name: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          id?: string
+          name?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_calendar_holidays_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_calendar_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_calendar_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          name: string
+          timezone: string
+          updated_at: string
+          working_days: number[]
+          working_end_time: string
+          working_start_time: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          timezone?: string
+          updated_at?: string
+          working_days?: number[]
+          working_end_time?: string
+          working_start_time?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          timezone?: string
+          updated_at?: string
+          working_days?: number[]
+          working_end_time?: string
+          working_start_time?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -5823,6 +5897,95 @@ export type Database = {
           key?: string
           updated_at?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      sla_configurations: {
+        Row: {
+          active: boolean
+          calendar_profile_id: string | null
+          created_at: string
+          created_by: string | null
+          escalation_recipient: string | null
+          id: string
+          pause_conditions: string | null
+          process_type: string
+          sla_duration: number
+          sla_unit: string
+          stage_name: string
+          updated_at: string
+          warning_threshold_pct: number
+        }
+        Insert: {
+          active?: boolean
+          calendar_profile_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          escalation_recipient?: string | null
+          id?: string
+          pause_conditions?: string | null
+          process_type: string
+          sla_duration: number
+          sla_unit?: string
+          stage_name: string
+          updated_at?: string
+          warning_threshold_pct?: number
+        }
+        Update: {
+          active?: boolean
+          calendar_profile_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          escalation_recipient?: string | null
+          id?: string
+          pause_conditions?: string | null
+          process_type?: string
+          sla_duration?: number
+          sla_unit?: string
+          stage_name?: string
+          updated_at?: string
+          warning_threshold_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_configurations_calendar_profile_id_fkey"
+            columns: ["calendar_profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_calendar_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_escalation_tiers: {
+        Row: {
+          created_at: string
+          delay_days: number
+          id: string
+          notify_roles: string | null
+          process_type: string
+          recipients: string
+          tier: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delay_days?: number
+          id?: string
+          notify_roles?: string | null
+          process_type: string
+          recipients: string
+          tier: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delay_days?: number
+          id?: string
+          notify_roles?: string | null
+          process_type?: string
+          recipients?: string
+          tier?: number
+          updated_at?: string
         }
         Relationships: []
       }
