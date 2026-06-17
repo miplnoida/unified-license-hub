@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
-  Menu as MenuIcon, Route as RouteIcon, Info, ExternalLink,
+  Menu as MenuIcon, Route as RouteIcon, Info,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
