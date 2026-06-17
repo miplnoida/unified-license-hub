@@ -534,7 +534,49 @@ export default function RoleManagement() {
                             <div className="flex items-start gap-1 break-all">
                               <RouteIcon className="h-3 w-3 mt-0.5 shrink-0" />
                               <span><span className="font-medium">Routes:</span> {entry.routes.join(', ')}</span>
+              {(() => {
+                const catalogued = new Set<string>();
+                for (const entry of moduleEntries) {
+                  for (const a of entry.actions) {
+                    const perm = permissionsByModule[entry.module]?.[a];
+                    if (perm) catalogued.add(perm.id);
+                  }
+                }
+                const orphan = permissions.filter(p => !catalogued.has(p.id));
+                if (orphan.length === 0) return null;
+                const byModule: Record<string, Permission[]> = {};
+                for (const p of orphan) (byModule[p.module] ??= []).push(p);
+                return (
+                  <Card className="overflow-hidden border-dashed">
+                    <div className="px-4 py-3 bg-muted/30 border-b">
+                      <p className="text-sm font-semibold">Uncatalogued permissions</p>
+                      <p className="text-xs text-muted-foreground">
+                        These permissions exist in the system but aren't registered in the permission catalog yet.
+                        Add a matching module + action under "Permission Catalog" to surface them in their own group.
+                      </p>
+                    </div>
+                    {Object.entries(byModule).map(([mod, perms]) => (
+                      <div key={`orphan-edit-${mod}`} className="p-4 border-b last:border-b-0">
+                        <p className="text-xs font-medium mb-2"><code>{mod}</code></p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {perms.map(perm => (
+                            <div key={perm.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`perm-${perm.id}`}
+                                checked={formPerms.includes(perm.id)}
+                                onCheckedChange={() => togglePerm(perm.id)}
+                              />
+                              <label htmlFor={`perm-${perm.id}`} className="text-sm cursor-pointer">{perm.name}</label>
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </Card>
+                );
+              })()}
+            </div>
+
                           )}
                           {entry.menus.length === 0 && entry.routes.length === 0 && (
                             <span className="italic">No menus mapped — used for feature-level checks only.</span>
