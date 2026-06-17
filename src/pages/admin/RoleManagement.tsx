@@ -445,19 +445,26 @@ export default function RoleManagement() {
                             })}
 
                             {detailOrphanPerms.length > 0 && (
-                              <div className="rounded-md border border-dashed p-3 space-y-2">
-                                <p className="text-sm font-semibold">
-                                  Other permissions
-                                  <span className="ml-2 text-xs font-normal text-muted-foreground">(outside role-type tabs)</span>
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {detailOrphanPerms.map(p => (
-                                    <Badge key={p.id} variant="outline" className="gap-1">
-                                      <CheckCircle className="h-3 w-3" />{p.module}.{p.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
+                              <Alert className="border-amber-500/50 bg-amber-500/5">
+                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <AlertTitle className="text-sm">
+                                  Uncategorised / Legacy Permissions
+                                  <Badge variant="outline" className="ml-2">{detailOrphanPerms.length}</Badge>
+                                </AlertTitle>
+                                <AlertDescription className="space-y-2">
+                                  <p className="text-xs">
+                                    These permissions are not mapped to any permission category yet.
+                                    They are shown to prevent existing assignments from being hidden or lost.
+                                  </p>
+                                  <div className="flex flex-wrap gap-1 pt-1">
+                                    {detailOrphanPerms.map(p => (
+                                      <Badge key={p.id} variant="outline" className="gap-1">
+                                        <CheckCircle className="h-3 w-3" />{p.module}.{p.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
                             )}
 
                             {selectedRolePerms.length === 0 && (
