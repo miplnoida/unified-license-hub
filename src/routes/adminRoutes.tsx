@@ -28,6 +28,7 @@ const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFor
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
+const ExternalPortalAccess = lazy(() => import('@/pages/admin/ExternalPortalAccess'));
 
 
 // Returns Management - Admin
@@ -82,6 +83,8 @@ export const adminRoutes = (
     <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
+    <Route path="/admin/external-portal-access" element={<M module="user_management"><ExternalPortalAccess /></M>} />
+    
     
 
 
