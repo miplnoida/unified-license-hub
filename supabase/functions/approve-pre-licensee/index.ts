@@ -155,6 +155,14 @@ export async function handler(req: Request): Promise<Response> {
               await admin.from("user_roles").upsert({
                 user_id: existingAuth[0].id, role: "licensee_primary",
               }, { onConflict: "user_id,role" });
+              try {
+                await admin.rpc("seed_external_portal_defaults", {
+                  _user_id: existingAuth[0].id,
+                  _entity_id: licensee.id,
+                  _role: "licensee_primary",
+                  _actor: null,
+                });
+              } catch (seedErr) { console.error("seed_external_portal_defaults failed:", seedErr); }
               webUserCreated = true;
             }
           } else {
@@ -165,6 +173,16 @@ export async function handler(req: Request): Promise<Response> {
             licensee_id: licensee.id,
             force_password_change: true,
           }).eq("id", newUser.user.id);
+
+          try {
+            await admin.rpc("seed_external_portal_defaults", {
+              _user_id: newUser.user.id,
+              _entity_id: licensee.id,
+              _role: "licensee_primary",
+              _actor: null,
+            });
+          } catch (seedErr) { console.error("seed_external_portal_defaults failed:", seedErr); }
+
 
           try {
             const { data: linkData } = await admin.auth.admin.generateLink({
