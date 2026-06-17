@@ -39,40 +39,11 @@ import PermissionCatalogTab from './PermissionCatalogTab';
 import type { PermissionModule } from '@/lib/permissionModules';
 
 /**
- * Role Management — INTERNAL ONLY.
- * Manages dynamic roles + module permissions for employees/admin/internal staff.
- * External users (applicant, pre_licensee, licensee_primary, licensee_secondary)
- * are NOT managed here. Their entity-scoped portal capabilities live in
- * /admin/external-portal-access (see src/pages/admin/ExternalPortalAccess.tsx).
+ * Role Management — unified RBAC.
+ * Manages dynamic roles + module permissions for ALL users (internal staff and
+ * external portal users). System roles like Applicant and Regulated Entity User
+ * are auto-assigned during registration/approval and can be edited here.
  */
-
-interface DynamicModuleEntry {
-  module: string;
-  label: string;
-  description: string;
-  actions: string[];          // action keys
-  actionLabels: Record<string, string>;
-  menus: string[];
-  routes: string[];
-}
-
-/** Reject role names that look like external portal users — they must be configured via External Portal Access. */
-const EXTERNAL_ROLE_NAME_PATTERNS: RegExp[] = [
-  /applicant/i,
-  /pre[-\s]?licensee/i,
-  /licensee/i,
-  /external\s*portal/i,
-  /returns?\s*portal/i,
-  /complaint\s*portal/i,
-  /f\s*&?\s*p\s*declaration|fp\s*declaration/i,
-];
-
-function getExternalRoleNameError(name: string): string | null {
-  if (EXTERNAL_ROLE_NAME_PATTERNS.some((re) => re.test(name))) {
-    return 'External portal users are not managed here. Use External Portal Access for applicant/licensee capabilities.';
-  }
-  return null;
-}
 
 
 export default function RoleManagement() {

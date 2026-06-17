@@ -62,14 +62,6 @@ export const mainNavSections: NavSection[] = [
     ],
   },
   {
-    // External User Access = entity-scoped portal capabilities for applicant / pre-licensee / licensee users.
-    // These users never receive internal module permissions.
-    label: 'External User Access',
-    items: [
-      { label: 'External Portal Access', href: '/admin/external-portal-access', icon: <KeyRound className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
-    ],
-  },
-  {
     label: 'Licenses',
     items: [
       { label: 'My Licenses', href: '/licenses', icon: <Shield className="h-5 w-5" />, roles: LICENSEE_ALL },
