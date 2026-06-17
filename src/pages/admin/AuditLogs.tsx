@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
-import { ScrollText, Search, ExternalLink, Loader2 } from 'lucide-react';
+import { Activity, Search, ExternalLink, Loader2 } from 'lucide-react';
 import {
   getAuditDescriptor, AUDIT_CATEGORIES, CATEGORY_CLASSES, type AuditCategory,
 } from '@/lib/auditLabels';
@@ -138,8 +138,8 @@ export default function AuditLogs() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ScrollText className="h-6 w-6 text-primary" />
-            Audit Logs
+            <Activity className="h-6 w-6 text-primary" />
+            Activity Logs
           </h1>
           <p className="text-muted-foreground">Searchable history of recorded platform actions.</p>
         </div>

@@ -980,6 +980,54 @@ export type Database = {
           },
         ]
       }
+      compliance_audit_logs: {
+        Row: {
+          action_type: Database["public"]["Enums"]["compliance_audit_action"]
+          after_value: Json | null
+          ai_model_version: string | null
+          before_value: Json | null
+          created_at: string
+          entry_id: string
+          ip_address: unknown
+          justification: string | null
+          object_id: string | null
+          object_type: string
+          timestamp: string
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["compliance_audit_action"]
+          after_value?: Json | null
+          ai_model_version?: string | null
+          before_value?: Json | null
+          created_at?: string
+          entry_id?: string
+          ip_address?: unknown
+          justification?: string | null
+          object_id?: string | null
+          object_type: string
+          timestamp?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["compliance_audit_action"]
+          after_value?: Json | null
+          ai_model_version?: string | null
+          before_value?: Json | null
+          created_at?: string
+          entry_id?: string
+          ip_address?: unknown
+          justification?: string | null
+          object_id?: string | null
+          object_type?: string
+          timestamp?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       compliance_returns: {
         Row: {
           ack_at: string | null
@@ -5887,6 +5935,42 @@ export type Database = {
           },
         ]
       }
+      security_event_logs: {
+        Row: {
+          created_at: string
+          detail: Json | null
+          event_time: string
+          event_type: Database["public"]["Enums"]["security_event_type"]
+          id: string
+          ip_address: unknown
+          target_resource: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json | null
+          event_time?: string
+          event_type: Database["public"]["Enums"]["security_event_type"]
+          id?: string
+          ip_address?: unknown
+          target_resource?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: Json | null
+          event_time?: string
+          event_type?: Database["public"]["Enums"]["security_event_type"]
+          id?: string
+          ip_address?: unknown
+          target_resource?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           created_at: string
@@ -7004,9 +7088,32 @@ export type Database = {
         Args: { _license_id: string }
         Returns: string[]
       }
+      log_compliance_audit: {
+        Args: {
+          _action_type: Database["public"]["Enums"]["compliance_audit_action"]
+          _after_value?: Json
+          _ai_model_version?: string
+          _before_value?: Json
+          _ip_address?: string
+          _justification?: string
+          _object_id?: string
+          _object_type: string
+        }
+        Returns: string
+      }
       log_document_batch_action: {
         Args: { _action: string; _details?: Json; _group_id: string }
         Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          _detail?: Json
+          _event_type: Database["public"]["Enums"]["security_event_type"]
+          _ip_address?: string
+          _target_resource?: string
+          _user_agent?: string
+        }
+        Returns: string
       }
       log_self_audit: {
         Args: {
@@ -7208,6 +7315,20 @@ export type Database = {
         | "pre_licensee"
         | "licensee_primary"
         | "licensee_secondary"
+      compliance_audit_action:
+        | "CREATE"
+        | "UPDATE"
+        | "DELETE"
+        | "APPROVE"
+        | "REJECT"
+        | "OVERRIDE"
+        | "EXPORT"
+        | "ACCESS_DENIED"
+        | "WORKFLOW_TRANSITION"
+        | "NOTIFICATION_SENT"
+        | "INTEGRATION_EVENT"
+        | "LOGIN"
+        | "LOGOUT"
       cutoff_unit_enum: "days" | "weeks" | "months"
       entity_access_type: "primary_user" | "employee" | "secondary_contact"
       notification_status_enum: "pending" | "sent" | "failed"
@@ -7224,6 +7345,11 @@ export type Database = {
         | "comment_deleted"
       return_request_status: "active" | "resolved"
       return_workflow_status: "TEMP" | "WIP" | "SUB" | "VAL" | "TBR" | "REJ"
+      security_event_type:
+        | "ACCESS_DENIED"
+        | "AUTH_FAILED"
+        | "PERMISSION_ESCALATION"
+        | "INTEGRATION_FAILURE"
       user_type: "primary" | "secondary" | "employee"
       workflow_notification_recipient:
         | "applicant"
@@ -7371,6 +7497,21 @@ export const Constants = {
         "licensee_primary",
         "licensee_secondary",
       ],
+      compliance_audit_action: [
+        "CREATE",
+        "UPDATE",
+        "DELETE",
+        "APPROVE",
+        "REJECT",
+        "OVERRIDE",
+        "EXPORT",
+        "ACCESS_DENIED",
+        "WORKFLOW_TRANSITION",
+        "NOTIFICATION_SENT",
+        "INTEGRATION_EVENT",
+        "LOGIN",
+        "LOGOUT",
+      ],
       cutoff_unit_enum: ["days", "weeks", "months"],
       entity_access_type: ["primary_user", "employee", "secondary_contact"],
       notification_status_enum: ["pending", "sent", "failed"],
@@ -7388,6 +7529,12 @@ export const Constants = {
       ],
       return_request_status: ["active", "resolved"],
       return_workflow_status: ["TEMP", "WIP", "SUB", "VAL", "TBR", "REJ"],
+      security_event_type: [
+        "ACCESS_DENIED",
+        "AUTH_FAILED",
+        "PERMISSION_ESCALATION",
+        "INTEGRATION_FAILURE",
+      ],
       user_type: ["primary", "secondary", "employee"],
       workflow_notification_recipient: [
         "applicant",
