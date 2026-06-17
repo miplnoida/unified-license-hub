@@ -3404,8 +3404,135 @@ export type Database = {
           },
         ]
       }
+      permission_actions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          label: string
+          module_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          label: string
+          module_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          label?: string
+          module_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_actions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "permission_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_module_routes: {
+        Row: {
+          created_at: string
+          id: string
+          menu_label: string | null
+          module_id: string
+          route_prefix: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_label?: string | null
+          module_id: string
+          route_prefix: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_label?: string | null
+          module_id?: string
+          route_prefix?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_module_routes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "permission_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      permission_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          key: string
+          label: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key: string
+          label: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string
+          label?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "permission_modules_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "permission_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
+          action_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -3413,6 +3540,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          action_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -3420,13 +3548,22 @@ export type Database = {
           name: string
         }
         Update: {
+          action_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           module?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "permissions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "permission_actions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ppoc_entity_mappings: {
         Row: {
