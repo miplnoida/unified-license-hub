@@ -1656,6 +1656,149 @@ export type Database = {
           },
         ]
       }
+      external_portal_role_capabilities: {
+        Row: {
+          can_respond_rfi: boolean
+          can_submit: boolean
+          can_submit_complaints: boolean
+          can_submit_fp_declarations: boolean
+          can_submit_returns: boolean
+          can_upload_documents: boolean
+          can_view_status: boolean
+          created_at: string
+          external_role_id: string
+          id: string
+          portal_area: Database["public"]["Enums"]["portal_area"]
+          updated_at: string
+        }
+        Insert: {
+          can_respond_rfi?: boolean
+          can_submit?: boolean
+          can_submit_complaints?: boolean
+          can_submit_fp_declarations?: boolean
+          can_submit_returns?: boolean
+          can_upload_documents?: boolean
+          can_view_status?: boolean
+          created_at?: string
+          external_role_id: string
+          id?: string
+          portal_area: Database["public"]["Enums"]["portal_area"]
+          updated_at?: string
+        }
+        Update: {
+          can_respond_rfi?: boolean
+          can_submit?: boolean
+          can_submit_complaints?: boolean
+          can_submit_fp_declarations?: boolean
+          can_submit_returns?: boolean
+          can_upload_documents?: boolean
+          can_view_status?: boolean
+          created_at?: string
+          external_role_id?: string
+          id?: string
+          portal_area?: Database["public"]["Enums"]["portal_area"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_portal_role_capabilities_external_role_id_fkey"
+            columns: ["external_role_id"]
+            isOneToOne: false
+            referencedRelation: "external_portal_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_portal_roles: {
+        Row: {
+          applies_to_roles: string[]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name: string
+          role_key: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to_roles?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name: string
+          role_key: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to_roles?: string[]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name?: string
+          role_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      external_user_portal_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          created_at: string
+          entity_id: string | null
+          external_role_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          external_role_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          entity_id?: string | null
+          external_role_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_user_portal_roles_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_user_portal_roles_external_role_id_fkey"
+            columns: ["external_role_id"]
+            isOneToOne: false
+            referencedRelation: "external_portal_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_components: {
         Row: {
           amount: number
