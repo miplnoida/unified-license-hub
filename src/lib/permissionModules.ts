@@ -14,19 +14,28 @@
  */
 
 
-export type PermissionModule =
-  | 'application_management'
-  | 'license_management'
-  | 'registration_management'
-  | 'returns_management'
-  | 'complaint_management'
-  | 'user_management'
-  | 'role_management'
-  | 'report_management'
-  | 'fee_management'
-  | 'form_management'
-  | 'workflow_management'
-  | 'settings';
+/**
+ * Permission module key. Historically a fixed union of 12 internal modules,
+ * now widened to `string` because the catalog (permission_modules table) is
+ * admin-managed and admins may create new modules at runtime. The known keys
+ * remain enumerated in `KNOWN_PERMISSION_MODULES` for callers that need them.
+ */
+export type PermissionModule = string;
+
+export const KNOWN_PERMISSION_MODULES = [
+  'application_management',
+  'license_management',
+  'registration_management',
+  'returns_management',
+  'complaint_management',
+  'user_management',
+  'role_management',
+  'report_management',
+  'fee_management',
+  'form_management',
+  'workflow_management',
+  'settings',
+] as const;
 
 /**
  * Route prefix → required permission module.

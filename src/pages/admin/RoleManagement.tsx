@@ -20,6 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
   Menu as MenuIcon, Route as RouteIcon, Info, ExternalLink,
@@ -32,9 +33,9 @@ import {
   useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission,
 } from '@/hooks/useRoles';
 import {
-  ACTION_LABELS, ACTION_DESCRIPTIONS, getAllModuleEntries, getModuleEntry,
-  validateModuleSelection, PermissionAction,
-} from '@/lib/permissionRegistry';
+  useCatalogModules, useCatalogActions, useCatalogRoutes,
+} from '@/hooks/usePermissionCatalog';
+import PermissionCatalogTab from './PermissionCatalogTab';
 import type { PermissionModule } from '@/lib/permissionModules';
 
 /**
@@ -44,6 +45,16 @@ import type { PermissionModule } from '@/lib/permissionModules';
  * are NOT managed here. Their entity-scoped portal capabilities live in
  * /admin/external-portal-access (see src/pages/admin/ExternalPortalAccess.tsx).
  */
+
+interface DynamicModuleEntry {
+  module: string;
+  label: string;
+  description: string;
+  actions: string[];          // action keys
+  actionLabels: Record<string, string>;
+  menus: string[];
+  routes: string[];
+}
 
 /** Reject role names that look like external portal users — they must be configured via External Portal Access. */
 const EXTERNAL_ROLE_NAME_PATTERNS: RegExp[] = [
@@ -78,11 +89,31 @@ export default function RoleManagement() {
   const { data: permissions = [] } = usePermissions();
   const { data: allRolePerms = [] } = useAllRolePermissions();
   const { data: userCounts = {} } = useRoleUserCounts();
+  const { data: catModules = [] } = useCatalogModules();
+  const { data: catActions = [] } = useCatalogActions();
+  const { data: catRoutes = [] } = useCatalogRoutes();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
 
-  const moduleEntries = useMemo(() => getAllModuleEntries(), []);
+  /** Build module entries dynamically from the DB catalog (modules + actions + routes). */
+  const moduleEntries = useMemo<DynamicModuleEntry[]>(() => {
+    return catModules.map(m => {
+      const acts = catActions.filter(a => a.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
+      const rts = catRoutes.filter(r => r.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
+      const actionLabels: Record<string, string> = {};
+      for (const a of acts) actionLabels[a.key] = a.label;
+      return {
+        module: m.key,
+        label: m.label,
+        description: m.description || '',
+        actions: acts.map(a => a.key),
+        actionLabels,
+        menus: rts.map(r => r.menu_label || r.route_prefix),
+        routes: rts.map(r => r.route_prefix),
+      };
+    });
+  }, [catModules, catActions, catRoutes]);
 
   /** Index permissions by module → action → row (id, name). */
   const permissionsByModule = useMemo(() => {
@@ -131,11 +162,11 @@ export default function RoleManagement() {
     }
   };
 
-  /** Selected actions per module — used for validation + effect preview. */
+  /** Selected action keys per module. */
   const selectedByModule = useMemo(() => {
-    const result: Record<string, PermissionAction[]> = {};
+    const result: Record<string, string[]> = {};
     for (const entry of moduleEntries) {
-      const actions: PermissionAction[] = [];
+      const actions: string[] = [];
       for (const action of entry.actions) {
         const perm = permissionsByModule[entry.module]?.[action];
         if (perm && formPerms.includes(perm.id)) actions.push(action);
@@ -148,7 +179,12 @@ export default function RoleManagement() {
   const validationWarnings = useMemo(() => {
     const all: string[] = [];
     for (const entry of moduleEntries) {
-      all.push(...validateModuleSelection(entry.module, selectedByModule[entry.module] || []));
+      const sel = selectedByModule[entry.module] || [];
+      const hasView = sel.includes('view');
+      const others = sel.filter(a => a !== 'view');
+      if (others.length > 0 && !hasView && entry.actions.includes('view')) {
+        all.push(`${entry.label}: "View" is recommended when ${others.join(', ')} ${others.length === 1 ? 'is' : 'are'} selected.`);
+      }
     }
     return all;
   }, [moduleEntries, selectedByModule]);
@@ -237,18 +273,30 @@ export default function RoleManagement() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Role Management</h1>
             <p className="mt-1 text-muted-foreground">
-              Create and manage internal employee roles with admin/module permissions. Each module shows the menus and routes it unlocks so you can audit access at a glance.
+              Manage the permission catalog (modules, sub-modules, actions, routes) and the roles that grant them.
             </p>
+          </div>
+        </div>
+
+        <Tabs defaultValue="roles" className="w-full">
+          <TabsList>
+            <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="catalog" className="pt-6">
+            <PermissionCatalogTab />
+          </TabsContent>
+
+          <TabsContent value="roles" className="pt-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Search roles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />Create Role
           </Button>
-        </div>
-
-
-        <div className="relative max-w-md animate-slide-up delay-100">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search roles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
@@ -346,7 +394,7 @@ export default function RoleManagement() {
                             <div className="flex flex-wrap gap-1">
                               {grantedActions.map(a => (
                                 <Badge key={a} variant="secondary" className="gap-1">
-                                  <CheckCircle className="h-3 w-3" />{ACTION_LABELS[a]}
+                                  <CheckCircle className="h-3 w-3" />{entry.actionLabels[a] || a}
                                 </Badge>
                               ))}
                             </div>
@@ -401,6 +449,8 @@ export default function RoleManagement() {
             </Card>
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create / Edit Dialog */}
@@ -497,13 +547,13 @@ export default function RoleManagement() {
                             onCheckedChange={() => togglePerm(perm.id)}
                           />
                           <label htmlFor={`perm-${perm.id}`} className="text-sm capitalize cursor-pointer flex items-center gap-1">
-                            {ACTION_LABELS[perm.name as PermissionAction] || perm.name}
+                            {entry.actionLabels[perm.name] || perm.name}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="h-3 w-3 text-muted-foreground" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                {ACTION_DESCRIPTIONS[perm.name as PermissionAction] || perm.name}
+                                {perm.description || entry.actionLabels[perm.name] || perm.name}
                               </TooltipContent>
                             </Tooltip>
                           </label>

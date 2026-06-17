@@ -1,100 +1,56 @@
 
-# External Portal Access — Entity-Scoped Capabilities
+# Dynamic Roles & Permissions
 
-Adds a new capability layer for external users (applicant, pre_licensee, licensee_primary, licensee_secondary) that is **completely separate** from the internal employee module-permission system. Internal `AdminRoute` / `ModuleRoute` / `permissionModules.ts` flow is left untouched.
+Today only **roles** are dynamic. The **module list** (12 keys) and **action list** (view/create/edit/approve/reject) are hardcoded in `src/lib/permissionModules.ts` and `src/lib/permissionRegistry.ts`, and routes/menus are tied to those fixed keys. We will move the catalog into the database so admins can add modules, sub-modules and actions, while keeping route/menu *declarations* in code (admin-selectable, not admin-invented — so no orphan routes).
 
-The existing `entity_user_access` table (primary/secondary linkage between user ↔ licensee) is kept as-is. A new sibling table `external_portal_access` stores per-portal-area capability toggles, so we don't disturb existing licensee-switching/PPoC logic.
+## Outcome
+- Admins manage a tree of **Modules → Sub-modules → Actions** in Admin → Role Management.
+- For each module/sub-module, admins pick from a developer-declared list of routes and sidebar menu items to attach.
+- Roles (already dynamic) grant any combination of these actions; the Role editor renders the live catalog.
+- Sidebar, route guards, and `useUserDynamicPermissions` switch from the hardcoded registry to DB-driven data.
+- BRD roles R-01…R-14 (Bank of Jamaica & FSC SupTech BRD v3.0) are seeded as editable non-system roles with the modules/sub-modules/actions implied by the doc.
 
----
+## Data model (new tables)
+- `permission_modules` — `key`, `label`, `description`, `parent_id` (nullable, self-FK → sub-modules), `sort_order`, `is_system`.
+- `permission_actions` — `module_id` FK, `key` (e.g. `view`, `override_ai`, `sign_enforcement_order`), `label`, `description`, `sort_order`. Unique on (`module_id`, `key`).
+- `permission_module_routes` — `module_id` FK, `route_prefix` (string from a code-declared registry), `menu_label` (nullable). Lets admins attach/detach dev-declared routes/menus.
+- `permissions` (existing) — repurpose: each row links to one `permission_actions` row (add `action_id` FK; keep legacy `module`+`name` columns populated from the catalog for backward compat during transition).
+- `roles` / `role_permissions` / `user_dynamic_roles` — unchanged.
 
-## 1. Database (one additive migration)
+All new tables: `GRANT` + RLS (read for `authenticated`, write only via `has_role(auth.uid(),'super_admin'|'admin')`).
 
-**New table `public.external_portal_access`**
+## Code changes
+- **`src/lib/permissionModules.ts`**: remove the static `PermissionModule` union and `ROUTE_MODULE_MAP`. Replace with:
+  - `DECLARED_ROUTES`: dev-curated array of `{ route_prefix, default_label }` covering every gated admin/internal route (extracted from current map + missing ones). This is the *menu* admins choose from.
+  - `getModuleForPath(pathname)` becomes async/cached → resolves via `permission_module_routes` (TanStack query).
+- **`src/lib/permissionRegistry.ts`**: delete the hardcoded `MODULE_REGISTRY`. Export hooks `useModuleCatalog()` and `useModuleEntry(moduleId)` that read from DB and return the same `ModuleRegistryEntry` shape (label, description, actions, menus, routes) so existing UI keeps working.
+- **`src/hooks/useRoles.ts`**: add `useModules`, `useActions`, `useModuleRoutes`, plus `useUpsertModule`, `useDeleteModule`, `useUpsertAction`, `useDeleteAction`, `useSetModuleRoutes` mutations.
+- **`src/hooks/usePermissions.ts`** (`useUserDynamicPermissions`): swap `getModuleForPath` for the async DB-backed resolver; cache resolved (path → module_id) map in the same query.
+- **`src/pages/admin/RoleManagement.tsx`**: add a top-level **"Catalog"** tab alongside **"Roles"**:
+  - *Catalog tab*: tree of modules → sub-modules, with inline add/edit/delete; right pane shows action list editor and route/menu attachment picker (multi-select from `DECLARED_ROUTES`).
+  - *Roles tab*: existing UI, now rendered from `useModuleCatalog()`. Keep the external-role-name guard.
+- **`src/config/navigation.tsx`**: unchanged structurally; each leaf `item.module` becomes a *suggested* default that the catalog migration uses for seeding — runtime menu visibility is then driven by `permission_module_routes`.
+- **Route guards** (`RouteGuards.tsx`): use the new async resolver; while loading, render existing auth-loading screen.
 
-Columns: `id`, `user_id` (auth.users), `entity_id` (licensees, nullable for pre-license applicants), `portal_area` (enum: `licensing | returns | complaints | fp_declarations`), capability booleans (`can_submit`, `can_upload_documents`, `can_view_status`, `can_respond_rfi`, `can_submit_returns`, `can_submit_complaints`, `can_submit_fp_declarations`), `status` (`active|inactive`), `created_by`, `created_at`, `updated_at`.
-Unique: `(user_id, entity_id, portal_area)` (entity_id treated via coalesce for null).
+## Migrations
+1. Create the 4 catalog tables with grants, RLS, and `updated_at` triggers.
+2. Seed catalog from current hardcoded data so nothing regresses:
+   - 12 existing modules → `permission_modules` (is_system=false so admins can edit; key preserved).
+   - Existing `permissions` rows → backfill `action_id` by matching `(module, name)` against newly-seeded actions.
+   - Current `ROUTE_MODULE_MAP` entries → `permission_module_routes`.
+3. Seed BRD roles R-01…R-14 as non-system rows in `roles`, with `role_permissions` linking to the seeded actions. New modules/sub-modules and actions implied by the BRD are added in the same migration:
+   - Modules: *Licensing (Module 1)*, *Fit & Proper (Module 2)* with sub-modules *Initiation*, *Screening*, *Committee*; *Prudential Supervision (Module 3)* with sub-module *Payment Systems*; *Market Conduct (Module 4)* with sub-module *Investigation*; *Public Complaint Portal*.
+   - Actions added: `flag_concern`, `recommend_conditions`, `override_ai_recommendation`, `sign_enforcement_order`, `cast_weighted_vote`, `record_camels_assessment`, `set_ewi_rules`, `initiate_thematic_review`, `access_investigation_workspace`, `submit_complaint_public`, etc. (one row per capability column in the BRD tables).
 
-**Helper functions (SECURITY DEFINER, `search_path=public`)**
-- `public.has_portal_capability(_user uuid, _entity uuid, _area text, _capability text) returns boolean` — single source of truth used by RLS and the client RPC.
-- `public.user_entity_ids(_user uuid) returns setof uuid` — active entity_ids the user is linked to (via existing `entity_user_access` + `external_portal_access`).
+## Acceptance
+- Admin can create a new module ("Inspection Workspace"), give it an action ("conduct_onsite_examination"), attach `/inspections` route, and assign it to a role — that role's users immediately get the sidebar item and route access.
+- Admin can rename or delete admin-created modules/actions (system rows protected).
+- Existing roles and permissions keep working (no menu disappears post-migration).
+- External Portal Access remains separate; external role-name guard still blocks creating `Applicant`/`Licensee` here.
+- All 14 BRD roles appear in the Roles list, each pre-populated with the capabilities described.
+- Build, lint, and existing tests pass; `useUserDynamicPermissions` tests updated for async resolver.
 
-**RLS on `external_portal_access`**
-- SELECT: row's `user_id = auth.uid()` AND `status='active'`, OR `has_role(auth.uid(),'admin'|'super_admin')`.
-- ALL (write): admin/super_admin only. (Internal employees with the existing `user_management` module are allowed via the same `enforce_dynamic` pattern already used elsewhere — reusing `usePermissions` server-side function if present.)
-
-**Tighten RLS on existing portal-data tables** (additive policies only — do not drop existing ones, just add restrictive `FOR SELECT TO authenticated USING …` clauses scoped to external roles using `has_role`):
-- `applications`, `file_uploads`, `documents`, `compliance_returns`, `complaints`, `licenses`, `registrations`, `payments` — external roles can read only rows where:
-  - `submitted_by = auth.uid()` (owner), OR
-  - `licensee_id IN (select public.user_entity_ids(auth.uid()))`.
-- Internal tables explicitly denied to external roles (add `... AND NOT has_external_role(auth.uid())` to SELECT, or a restrictive policy): `workflow_instances`, `approval_actions` (non-applicant rows), `return_audit_log`, `audit_logs`, `compliance_audit_logs`, `report_*`, `inspections`, `enforcement_actions`, `risk_ratings`, `delegation_rules`.
-
-A new SECURITY DEFINER helper `public.has_external_role(_user uuid) returns boolean` checks the four external roles.
-
-**Audit events** logged into existing `audit_logs` via trigger on `external_portal_access`: `EXTERNAL_PORTAL_ACCESS_GRANTED` (INSERT), `EXTERNAL_PORTAL_ACCESS_UPDATED` (UPDATE), `EXTERNAL_PORTAL_ACCESS_REVOKED` (status→inactive or DELETE).
-
-GRANTs:
-```
-GRANT SELECT ON public.external_portal_access TO authenticated;
-GRANT ALL    ON public.external_portal_access TO service_role;
-```
-
----
-
-## 2. Registration approval hook
-
-Edit edge function `supabase/functions/perform-registration-workflow-action` (and `approve-pre-licensee`) so that, after the existing role assignment on final approval, it also inserts default capability rows into `external_portal_access`. No admin/module permissions are ever granted to external users.
-
-Defaults:
-- `pre_licensee` / `applicant` → `licensing` portal: `can_submit`, `can_upload_documents`, `can_view_status`, `can_respond_rfi`.
-- `licensee_primary` → `licensing` + `returns` (`can_submit_returns`) + `complaints` (`can_submit_complaints`) + `fp_declarations` (`can_submit_fp_declarations`), all with view/upload/RFI.
-- `licensee_secondary` → no defaults; capabilities granted explicitly by admin or primary.
-
-`entity_id` is populated from the approved licensee. Idempotent via `ON CONFLICT (user_id, entity_id, portal_area) DO UPDATE`.
-
----
-
-## 3. Frontend — portal guard
-
-New file `src/components/auth/PortalRoute.tsx` exporting:
-- `<PortalRoute area="returns" capability="can_submit_returns">…</PortalRoute>`
-- `canAccessPortal(userId, entityId, area, capability)` helper backed by a new hook `useExternalPortalAccess()` (TanStack Query against `external_portal_access` filtered by `auth.uid()`).
-
-Wire `PortalRoute` around external-facing dashboard routes only (returns submission, complaints submit, F&P declarations, licensing application start). Existing `AdminRoute`/`ModuleRoute`/`InternalRoute` are untouched.
-
----
-
-## 4. Frontend — external dashboard cards
-
-Update the external user dashboard (the licensee/applicant dashboard pages — not the admin hub) to render portal cards (Licensing, Returns, Complaints, F&P, My Licenses, My RFIs) only when the corresponding capability row is `status='active'`. Cards remain hidden otherwise; RLS is the hard gate.
-
-No change to admin dashboard or sidebar.
-
----
-
-## 5. Admin management UI
-
-New page `src/pages/admin/ExternalPortalAccess.tsx` (route `/admin/external-portal-access`, behind existing `AdminRoute` + appropriate module key in `permissionModules.ts`):
-- Search by user email or entity name.
-- Table listing access rows grouped by user.
-- Edit dialog: select portal area, toggle capability booleans, activate/deactivate.
-- All writes call existing audit logger; triggers fire `EXTERNAL_PORTAL_ACCESS_*` events.
-
-Add a sidebar/Admin Hub entry under the existing "Access Control" group.
-
----
-
-## 6. Out of scope (explicitly unchanged)
-
-- Internal employee dynamic roles, `permissionModules.ts`, `useUserDynamicPermissions`.
-- Existing `entity_user_access` table and PPoC/licensee-switching flow.
-- Existing approval workflow, SLA, audit log module, master data flows.
-- No change to internal data routes/queues — only additive RLS restricting external roles further.
-
----
-
-## Technical notes
-
-- New table is sibling to `entity_user_access`; we don't repurpose access_type because the existing enum is primary/secondary, not portal-area.
-- All RLS uses SECURITY DEFINER helpers to avoid recursion.
-- Migration is fully additive; no destructive ALTER on existing policies — new policies are added with descriptive names (`*_external_scope`) so they can be reverted in isolation.
-- Tests: add vitest cases for `canAccessPortal` + a SQL smoke script under `scripts/` checking that an applicant cannot SELECT workflow_instances.
+## Out of scope
+- External portal capabilities (kept in `external_portal_access`).
+- Field-level permissions inside a page.
+- Per-record (row-level) overrides beyond what RLS already enforces.
