@@ -3,8 +3,16 @@
  * dynamic Role Management system. Used by both the sidebar and route
  * guards so menu visibility and route access stay in sync.
  *
+ * INTERNAL ONLY. These modules control admin/employee access to admin routes
+ * and menus. Do NOT add external portal capabilities (applicant / pre_licensee /
+ * licensee_primary / licensee_secondary portal areas) here — those are managed
+ * via the separate `external_portal_access` table and surfaced in
+ * /admin/external-portal-access. Mixing the two would let external users gain
+ * admin module access, which is forbidden.
+ *
  * The module names below MUST match rows in the `permissions.module` column.
  */
+
 
 export type PermissionModule =
   | 'application_management'

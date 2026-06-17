@@ -22,8 +22,9 @@ import {
 } from '@/components/ui/tooltip';
 import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
-  Menu as MenuIcon, Route as RouteIcon, Info,
+  Menu as MenuIcon, Route as RouteIcon, Info, ExternalLink,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import {
@@ -35,6 +36,33 @@ import {
   validateModuleSelection, PermissionAction,
 } from '@/lib/permissionRegistry';
 import type { PermissionModule } from '@/lib/permissionModules';
+
+/**
+ * Role Management — INTERNAL ONLY.
+ * Manages dynamic roles + module permissions for employees/admin/internal staff.
+ * External users (applicant, pre_licensee, licensee_primary, licensee_secondary)
+ * are NOT managed here. Their entity-scoped portal capabilities live in
+ * /admin/external-portal-access (see src/pages/admin/ExternalPortalAccess.tsx).
+ */
+
+/** Reject role names that look like external portal users — they must be configured via External Portal Access. */
+const EXTERNAL_ROLE_NAME_PATTERNS: RegExp[] = [
+  /applicant/i,
+  /pre[-\s]?licensee/i,
+  /licensee/i,
+  /external\s*portal/i,
+  /returns?\s*portal/i,
+  /complaint\s*portal/i,
+  /f\s*&?\s*p\s*declaration|fp\s*declaration/i,
+];
+
+function getExternalRoleNameError(name: string): string | null {
+  if (EXTERNAL_ROLE_NAME_PATTERNS.some((re) => re.test(name))) {
+    return 'External portal users are not managed here. Use External Portal Access for applicant/licensee capabilities.';
+  }
+  return null;
+}
+
 
 export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,6 +166,8 @@ export default function RoleManagement() {
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Role name is required'); return; }
+    const externalErr = getExternalRoleNameError(formName);
+    if (externalErr) { toast.error(externalErr); return; }
     if (formPerms.length === 0) {
       toast.error('Select at least one permission — a role with no permissions grants no access.');
       return;
@@ -186,17 +216,35 @@ export default function RoleManagement() {
     <DashboardLayout>
       <TooltipProvider delayDuration={150}>
       <div className="space-y-8">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Internal employee/admin roles only</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>
+              This page manages internal employee/admin roles only. Applicant, pre-licensee and licensee primary/secondary
+              portal access is managed separately under External Portal Access.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/external-portal-access">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Manage External Portal Access
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+
         <div className="flex items-start justify-between animate-slide-up">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Role Management</h1>
             <p className="mt-1 text-muted-foreground">
-              Create and manage roles with granular permissions. Each module shows the menus and routes it unlocks so you can audit access at a glance.
+              Create and manage internal employee roles with admin/module permissions. Each module shows the menus and routes it unlocks so you can audit access at a glance.
             </p>
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />Create Role
           </Button>
         </div>
+
 
         <div className="relative max-w-md animate-slide-up delay-100">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -1,3 +1,13 @@
+/**
+ * External Portal Access — EXTERNAL USERS ONLY.
+ * Manages entity-scoped portal capabilities for applicant / pre_licensee /
+ * licensee_primary / licensee_secondary users. These rows control what an
+ * external user can do for their OWN linked entity (submit, upload, RFI, etc.)
+ * and do NOT grant any admin panel access or internal module permissions.
+ * Internal employee/admin module access is managed separately in
+ * /admin/roles (src/pages/admin/RoleManagement.tsx). Keep these two surfaces
+ * strictly separate — never mix internal modules with portal capabilities.
+ */
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
@@ -16,7 +26,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { Plus, Search, ShieldCheck, ShieldOff, Pencil } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Search, ShieldCheck, ShieldOff, Pencil, Info } from 'lucide-react';
 import {
   type ExternalPortalAccessRow, type PortalArea, type PortalCapability,
   PORTAL_AREAS, PORTAL_AREA_LABEL, CAPABILITY_LABEL,
@@ -266,6 +277,16 @@ export default function ExternalPortalAccessPage() {
         description="Manage entity-scoped portal capabilities for applicants, pre-licensees and licensee users. Separate from internal employee module permissions."
         actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Grant Access</Button>}
       />
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Portal capabilities only — not admin access</AlertTitle>
+        <AlertDescription>
+          This does not grant admin panel access. It only controls what an external user (applicant, pre-licensee or licensee)
+          can do for their own linked entity — submitting applications, uploading documents, filing returns, etc.
+          Internal employee/admin permissions are managed under Role Management.
+        </AlertDescription>
+      </Alert>
 
       <Card>
         <CardContent className="p-4 space-y-4">
