@@ -660,41 +660,51 @@ export default function RoleManagement() {
                   })}
                 </Tabs>
 
-                {editOrphanPerms.length > 0 && (
-                  <Card className="overflow-hidden border-dashed">
-                    <div className="px-4 py-3 bg-muted/30 border-b">
-                      <p className="text-sm font-semibold">Other permissions</p>
-                      <p className="text-xs text-muted-foreground">
-                        Not categorised under the {ROLE_TYPE_LABELS[formRoleType]} tabs. Shown so legacy
-                        assignments are not silently dropped.
-                      </p>
-                    </div>
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {editOrphanPerms
-                        .filter(p => {
-                          const search = permSearch.trim().toLowerCase();
-                          if (search && !p.name.toLowerCase().includes(search) &&
-                              !p.module.toLowerCase().includes(search)) return false;
-                          const isAssigned = formPerms.includes(p.id);
-                          if (assignedFilter === 'assigned' && !isAssigned) return false;
-                          if (assignedFilter === 'unassigned' && isAssigned) return false;
-                          return true;
-                        })
-                        .map(p => (
-                          <div key={p.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`perm-${p.id}`}
-                              checked={formPerms.includes(p.id)}
-                              onCheckedChange={() => togglePerm(p.id)}
-                            />
-                            <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer">
-                              <code className="text-[11px]">{p.module}.{p.name}</code>
-                            </label>
-                          </div>
-                        ))}
-                    </div>
-                  </Card>
-                )}
+                {(() => {
+                  const search = permSearch.trim().toLowerCase();
+                  const hasAssignedOrphans = editOrphanPerms.some(p => formPerms.includes(p.id));
+                  const searchMatchesOrphan = !!search && editOrphanPerms.some(p =>
+                    p.name.toLowerCase().includes(search) || p.module.toLowerCase().includes(search));
+                  if (!hasAssignedOrphans && !searchMatchesOrphan) return null;
+                  const visibleOrphans = editOrphanPerms.filter(p => {
+                    if (search && !p.name.toLowerCase().includes(search) &&
+                        !p.module.toLowerCase().includes(search)) return false;
+                    const isAssigned = formPerms.includes(p.id);
+                    if (assignedFilter === 'assigned' && !isAssigned) return false;
+                    if (assignedFilter === 'unassigned' && isAssigned) return false;
+                    return true;
+                  });
+                  if (visibleOrphans.length === 0) return null;
+                  return (
+                    <Alert className="border-amber-500/50 bg-amber-500/5">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-sm">
+                        Uncategorised / Legacy Permissions
+                        <Badge variant="outline" className="ml-2">{visibleOrphans.length}</Badge>
+                      </AlertTitle>
+                      <AlertDescription className="space-y-3">
+                        <p className="text-xs">
+                          These permissions are not mapped to any permission category yet.
+                          They are shown to prevent existing assignments from being hidden or lost.
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {visibleOrphans.map(p => (
+                            <div key={p.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`perm-${p.id}`}
+                                checked={formPerms.includes(p.id)}
+                                onCheckedChange={() => togglePerm(p.id)}
+                              />
+                              <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer">
+                                <code className="text-[11px]">{p.module}.{p.name}</code>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                })()}
               </div>
             </div>
             <DialogFooter>
