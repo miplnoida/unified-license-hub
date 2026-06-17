@@ -1153,7 +1153,12 @@ export function FormRenderer({
             </Button>
           ) : (
             !readOnly && (
-              <Button onClick={handleSubmit} disabled={saving} className="w-full sm:w-auto">
+              <Button
+                onClick={handleSubmit}
+                disabled={saving || !capSubmitAllowed}
+                title={!capSubmitAllowed ? "You don't have permission to submit in this portal" : undefined}
+                className="w-full sm:w-auto"
+              >
                 <CheckCircle2 className="h-4 w-4 mr-2" /> Submit
               </Button>
             )
