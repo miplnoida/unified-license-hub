@@ -449,6 +449,8 @@ export default function RoleManagement() {
             </Card>
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create / Edit Dialog */}
