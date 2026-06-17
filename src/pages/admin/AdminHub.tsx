@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit,
+  ClipboardEdit, Timer,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -40,6 +40,7 @@ export default function AdminHub() {
     { label: 'Sector & Service Config', desc: `${m?.totalSectors ?? '—'} sectors`, icon: <Layers className="h-5 w-5" />, href: '/admin/masters/sectors', module: 'settings' },
     { label: 'Form Builder', desc: `${m?.totalForms ?? '—'} templates`, icon: <FormInput className="h-5 w-5" />, href: '/admin/forms/pre-license', module: 'form_management' },
     { label: 'Workflow Configuration', desc: `${m?.totalWorkflows ?? '—'} workflows`, icon: <GitBranch className="h-5 w-5" />, href: '/workflows', module: 'workflow_management' },
+    { label: 'SLA Manager', desc: 'SLA timers, calendars & escalations', icon: <Timer className="h-5 w-5" />, href: '/admin/sla-manager', module: 'workflow_management' },
     { label: 'Fee Management', desc: `${m?.totalFeeConfigs ?? '—'} fee configs`, icon: <DollarSign className="h-5 w-5" />, href: '/admin/fees', module: 'fee_management' },
     { label: 'Return Configuration', desc: 'Compliance schedules & rules', icon: <CalendarCheck className="h-5 w-5" />, href: '/admin/return-config', module: 'returns_management' },
     { label: 'Reports & Analytics', desc: 'Dashboards & ad-hoc reports', icon: <BarChart3 className="h-5 w-5" />, href: '/reports', module: 'report_management' },
