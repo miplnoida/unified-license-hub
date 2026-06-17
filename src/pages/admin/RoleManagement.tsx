@@ -254,6 +254,21 @@ export default function RoleManagement() {
     return permissions.filter(p => !visible.has(p.id));
   }, [editTabs, permissions]);
 
+  /** Catalog health: permission is categorised if it appears under any tab
+   *  for either internal or external role types. */
+  const catalogHealth = useMemo(() => {
+    const categorised = new Set<string>();
+    for (const rt of ['internal', 'external'] as RoleType[]) {
+      const tabs = buildTabbedPermissions(rt);
+      for (const t of tabs) for (const m of t.modules)
+        for (const p of m.perms) categorised.add(p.permission.id);
+    }
+    const total = permissions.length;
+    const categorisedCount = permissions.filter(p => categorised.has(p.id)).length;
+    return { total, categorisedCount, uncategorisedCount: total - categorisedCount };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissions, moduleEntries, permissionsByModule, moduleLabelMap]);
+
   return (
     <DashboardLayout>
       <TooltipProvider delayDuration={150}>
@@ -288,15 +303,42 @@ export default function RoleManagement() {
             </TabsContent>
 
             <TabsContent value="roles" className="pt-6 space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="relative max-w-md flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input placeholder="Search roles..." value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
                 </div>
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-2" />Create Role
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-1.5 text-xs">
+                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium">Permission Catalog:</span>
+                        <Badge variant="secondary" className="gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          {catalogHealth.categorisedCount} categorised
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={catalogHealth.uncategorisedCount > 0
+                            ? 'gap-1 border-amber-500/50 text-amber-700' : 'gap-1'}
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          {catalogHealth.uncategorisedCount} uncategorised
+                        </Badge>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Uncategorised permissions exist in the database but are not yet mapped
+                      to any permission category tab. They remain assignable so legacy roles
+                      keep working.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Button onClick={openCreateDialog}>
+                    <Plus className="h-4 w-4 mr-2" />Create Role
+                  </Button>
+                </div>
               </div>
 
               <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
@@ -430,19 +472,26 @@ export default function RoleManagement() {
                             })}
 
                             {detailOrphanPerms.length > 0 && (
-                              <div className="rounded-md border border-dashed p-3 space-y-2">
-                                <p className="text-sm font-semibold">
-                                  Other permissions
-                                  <span className="ml-2 text-xs font-normal text-muted-foreground">(outside role-type tabs)</span>
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {detailOrphanPerms.map(p => (
-                                    <Badge key={p.id} variant="outline" className="gap-1">
-                                      <CheckCircle className="h-3 w-3" />{p.module}.{p.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
+                              <Alert className="border-amber-500/50 bg-amber-500/5">
+                                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                <AlertTitle className="text-sm">
+                                  Uncategorised / Legacy Permissions
+                                  <Badge variant="outline" className="ml-2">{detailOrphanPerms.length}</Badge>
+                                </AlertTitle>
+                                <AlertDescription className="space-y-2">
+                                  <p className="text-xs">
+                                    These permissions are not mapped to any permission category yet.
+                                    They are shown to prevent existing assignments from being hidden or lost.
+                                  </p>
+                                  <div className="flex flex-wrap gap-1 pt-1">
+                                    {detailOrphanPerms.map(p => (
+                                      <Badge key={p.id} variant="outline" className="gap-1">
+                                        <CheckCircle className="h-3 w-3" />{p.module}.{p.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </AlertDescription>
+                              </Alert>
                             )}
 
                             {selectedRolePerms.length === 0 && (
@@ -638,41 +687,51 @@ export default function RoleManagement() {
                   })}
                 </Tabs>
 
-                {editOrphanPerms.length > 0 && (
-                  <Card className="overflow-hidden border-dashed">
-                    <div className="px-4 py-3 bg-muted/30 border-b">
-                      <p className="text-sm font-semibold">Other permissions</p>
-                      <p className="text-xs text-muted-foreground">
-                        Not categorised under the {ROLE_TYPE_LABELS[formRoleType]} tabs. Shown so legacy
-                        assignments are not silently dropped.
-                      </p>
-                    </div>
-                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {editOrphanPerms
-                        .filter(p => {
-                          const search = permSearch.trim().toLowerCase();
-                          if (search && !p.name.toLowerCase().includes(search) &&
-                              !p.module.toLowerCase().includes(search)) return false;
-                          const isAssigned = formPerms.includes(p.id);
-                          if (assignedFilter === 'assigned' && !isAssigned) return false;
-                          if (assignedFilter === 'unassigned' && isAssigned) return false;
-                          return true;
-                        })
-                        .map(p => (
-                          <div key={p.id} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`perm-${p.id}`}
-                              checked={formPerms.includes(p.id)}
-                              onCheckedChange={() => togglePerm(p.id)}
-                            />
-                            <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer">
-                              <code className="text-[11px]">{p.module}.{p.name}</code>
-                            </label>
-                          </div>
-                        ))}
-                    </div>
-                  </Card>
-                )}
+                {(() => {
+                  const search = permSearch.trim().toLowerCase();
+                  const hasAssignedOrphans = editOrphanPerms.some(p => formPerms.includes(p.id));
+                  const searchMatchesOrphan = !!search && editOrphanPerms.some(p =>
+                    p.name.toLowerCase().includes(search) || p.module.toLowerCase().includes(search));
+                  if (!hasAssignedOrphans && !searchMatchesOrphan) return null;
+                  const visibleOrphans = editOrphanPerms.filter(p => {
+                    if (search && !p.name.toLowerCase().includes(search) &&
+                        !p.module.toLowerCase().includes(search)) return false;
+                    const isAssigned = formPerms.includes(p.id);
+                    if (assignedFilter === 'assigned' && !isAssigned) return false;
+                    if (assignedFilter === 'unassigned' && isAssigned) return false;
+                    return true;
+                  });
+                  if (visibleOrphans.length === 0) return null;
+                  return (
+                    <Alert className="border-amber-500/50 bg-amber-500/5">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-sm">
+                        Uncategorised / Legacy Permissions
+                        <Badge variant="outline" className="ml-2">{visibleOrphans.length}</Badge>
+                      </AlertTitle>
+                      <AlertDescription className="space-y-3">
+                        <p className="text-xs">
+                          These permissions are not mapped to any permission category yet.
+                          They are shown to prevent existing assignments from being hidden or lost.
+                        </p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {visibleOrphans.map(p => (
+                            <div key={p.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`perm-${p.id}`}
+                                checked={formPerms.includes(p.id)}
+                                onCheckedChange={() => togglePerm(p.id)}
+                              />
+                              <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer">
+                                <code className="text-[11px]">{p.module}.{p.name}</code>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                })()}
               </div>
             </div>
             <DialogFooter>
