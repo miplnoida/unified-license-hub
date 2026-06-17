@@ -115,8 +115,10 @@ export default function SlaManager() {
 function SlaConfigTab() {
   const [rows, setRows] = useState<SlaRow[]>([]);
   const [loading, setLoading] = useState(true);
-  // Mirror of rows keyed by id so onBlur reads the freshest value (no stale closure).
+  // Freshest row keyed by id so onBlur reads up-to-date values (no stale closure).
   const latestRef = useRef<Record<string, SlaRow>>({});
+  // JSON snapshot of last successfully-persisted row state — drives no-op detection.
+  const lastPersisted = useRef<Record<string, string>>({});
 
   const syncLatest = (list: SlaRow[]) => {
     latestRef.current = Object.fromEntries(list.map(r => [r.id, r]));
@@ -124,16 +126,18 @@ function SlaConfigTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('sla_configurations')
       .select('*')
       .order('process_type', { ascending: true })
       .order('stage_name', { ascending: true });
     if (error) toast({ title: 'Failed to load SLA configs', description: error.message, variant: 'destructive' });
     else {
-      const list = (data ?? []) as SlaRow[];
+      const list = (data ?? []) as unknown as SlaRow[];
       setRows(list);
       syncLatest(list);
+      // Initialise persisted snapshots so the first onBlur after load is a no-op.
+      lastPersisted.current = Object.fromEntries(list.map(r => [r.id, JSON.stringify(r)]));
     }
     setLoading(false);
   }, []);
@@ -143,26 +147,24 @@ function SlaConfigTab() {
   const validate = (r: Partial<SlaRow>): string | null => {
     if (!r.process_type?.trim()) return 'Process Type is required';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
-    if (!r.sla_duration || r.sla_duration < 1) return 'SLA duration must be at least 1';
+    if (!Number.isInteger(r.sla_duration) || (r.sla_duration ?? 0) < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
   };
 
-  // Tracks the last-persisted JSON so we don't save / notify on no-op blurs.
-  const lastPersisted = useRef<Record<string, string>>({});
-
   const saveRow = async (id: string) => {
     const row = latestRef.current[id];
     if (!row) return;
+    const snapshot = JSON.stringify(row);
+    // No-op guard — applies to onBlur from inputs/selects/checkboxes alike.
+    if (lastPersisted.current[id] === snapshot) return;
+
     const err = validate(row);
     if (err) { toast({ title: 'Invalid SLA', description: err, variant: 'destructive' }); return; }
 
-    const snapshot = JSON.stringify(row);
-    if (lastPersisted.current[id] === snapshot) return;
-
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from('sla_configurations').update({
+    const { error } = await supabase.from('sla_configurations').update({
       process_type: row.process_type,
       stage_name: row.stage_name,
       sla_duration: row.sla_duration,
@@ -206,20 +208,21 @@ function SlaConfigTab() {
       created_by: user?.id ?? null,
       updated_by: user?.id ?? null,
     };
-    const { data, error } = await (supabase as any).from('sla_configurations').insert(draft).select().single();
+    const { data, error } = await supabase.from('sla_configurations').insert(draft).select().single();
     if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
+    const newRow = data as unknown as SlaRow;
     setRows(prev => {
-      const next = [...prev, data as SlaRow];
+      const next = [...prev, newRow];
       syncLatest(next);
       return next;
     });
-    lastPersisted.current[(data as SlaRow).id] = JSON.stringify(data);
-    await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_configuration', entityId: (data as any).id, newValue: data, metadata: { created: true } });
+    lastPersisted.current[newRow.id] = JSON.stringify(newRow);
+    await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_configuration', entityId: newRow.id, newValue: newRow as unknown as Record<string, unknown>, metadata: { created: true } });
   };
 
   const deleteRow = async (id: string) => {
     if (!confirm('Delete this SLA configuration?')) return;
-    const { error } = await (supabase as any).from('sla_configurations').delete().eq('id', id);
+    const { error } = await supabase.from('sla_configurations').delete().eq('id', id);
     if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
     setRows(prev => {
       const next = prev.filter(r => r.id !== id);
@@ -230,12 +233,20 @@ function SlaConfigTab() {
     await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_configuration', entityId: id, metadata: { deleted: true } });
   };
 
-  const update = (id: string, patch: Partial<SlaRow>) => {
+  // Update local state and (when requested) immediately persist using latestRef
+  // so Select/Checkbox changes never read stale state.
+  const update = (id: string, patch: Partial<SlaRow>, persistNow = false) => {
     setRows(prev => {
       const next = prev.map(r => r.id === id ? { ...r, ...patch } : r);
       syncLatest(next);
       return next;
     });
+    if (persistNow) {
+      // latestRef updated synchronously inside syncLatest above
+      const merged = { ...(latestRef.current[id]) };
+      latestRef.current[id] = merged;
+      void saveRow(id);
+    }
   };
 
   return (
@@ -243,7 +254,7 @@ function SlaConfigTab() {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>SLA Configuration</CardTitle>
-          <CardDescription>Per process-type / stage. Edits save on blur.</CardDescription>
+          <CardDescription>Per process-type / stage. Edits save on blur; toggles save immediately.</CardDescription>
         </div>
         <Button onClick={addRow}><Plus className="h-4 w-4 mr-2" /> Add SLA</Button>
       </CardHeader>
@@ -275,7 +286,7 @@ function SlaConfigTab() {
                   <TableCell><Input value={row.stage_name} onChange={e => update(row.id, { stage_name: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell><Input type="number" min={1} value={row.sla_duration} onChange={e => update(row.id, { sla_duration: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell>
-                    <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => { update(row.id, { sla_unit: v }); setTimeout(() => saveRow(row.id), 0); }}>
+                    <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => update(row.id, { sla_unit: v }, true)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="hours">Hours</SelectItem>
@@ -286,7 +297,7 @@ function SlaConfigTab() {
                   <TableCell><Input type="number" min={1} max={100} value={row.warning_threshold_pct} onChange={e => update(row.id, { warning_threshold_pct: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell><Input value={row.pause_conditions ?? ''} placeholder="e.g. awaiting_applicant" onChange={e => update(row.id, { pause_conditions: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell><Input value={row.escalation_recipient ?? ''} placeholder="role / email" onChange={e => update(row.id, { escalation_recipient: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
-                  <TableCell><Checkbox checked={row.active} onCheckedChange={(v) => { update(row.id, { active: !!v }); setTimeout(() => saveRow(row.id), 0); }} /></TableCell>
+                  <TableCell><Checkbox checked={row.active} onCheckedChange={(v) => update(row.id, { active: !!v }, true)} /></TableCell>
                   <TableCell><Button size="icon" variant="ghost" onClick={() => deleteRow(row.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                 </TableRow>
               ))}
@@ -318,29 +329,40 @@ function CalendarTab() {
 
   const load = useCallback(async () => {
     const [{ data: profs }, { data: cfgs }, { data: asn }] = await Promise.all([
-      (supabase as any).from('business_calendar_profiles').select('*').order('name'),
-      (supabase as any).from('sla_configurations').select('process_type'),
-      (supabase as any).from('business_calendar_process_assignments').select('*'),
+      supabase.from('business_calendar_profiles').select('*').order('name'),
+      supabase.from('sla_configurations').select('process_type'),
+      supabase.from('business_calendar_process_assignments').select('*'),
     ]);
-    const list = (profs ?? []) as CalendarProfile[];
+    const list = (profs ?? []) as unknown as CalendarProfile[];
     setProfiles(list);
-    setAssignments((asn ?? []) as Assignment[]);
+    setAssignments((asn ?? []) as unknown as Assignment[]);
     setProcessOptions(Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
     setActiveId(prev => prev ?? list[0]?.id ?? null);
   }, []);
 
   const loadHolidays = useCallback(async (pid: string) => {
-    const { data } = await (supabase as any).from('business_calendar_holidays').select('*').eq('profile_id', pid).order('holiday_date');
-    setHolidays((data ?? []) as Holiday[]);
+    const { data } = await supabase.from('business_calendar_holidays').select('*').eq('profile_id', pid).order('holiday_date');
+    setHolidays((data ?? []) as unknown as Holiday[]);
   }, []);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (activeId) loadHolidays(activeId); }, [activeId, loadHolidays]);
 
+  const validateProfile = (p: CalendarProfile): string | null => {
+    if (!p.name.trim()) return 'Name is required';
+    if (!p.working_start_time || !p.working_end_time) return 'Working start and end times are required';
+    if (p.working_start_time >= p.working_end_time) return 'Working start time must be before end time';
+    if (!Array.isArray(p.working_days) || p.working_days.length < 1 || p.working_days.length > 7) return 'Working days must be 1-7 valid days';
+    if (p.working_days.some(d => d < 0 || d > 6)) return 'Working day values must be 0 (Sun) through 6 (Sat)';
+    return null;
+  };
+
   const saveProfile = async () => {
     if (!active) return;
+    const err = validateProfile(active);
+    if (err) { toast({ title: 'Invalid calendar', description: err, variant: 'destructive' }); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from('business_calendar_profiles').update({
+    const { error } = await supabase.from('business_calendar_profiles').update({
       name: active.name,
       description: active.description,
       working_days: active.working_days,
@@ -357,13 +379,13 @@ function CalendarTab() {
   const createProfile = async () => {
     if (!newProfileName.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await (supabase as any).from('business_calendar_profiles')
+    const { data, error } = await supabase.from('business_calendar_profiles')
       .insert({ name: newProfileName.trim(), created_by: user?.id ?? null }).select().single();
     if (error) { toast({ title: 'Create failed', description: error.message, variant: 'destructive' }); return; }
     setNewProfileName('');
     await load();
-    setActiveId((data as any).id);
-    await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_profile', entityId: (data as any).id, metadata: { created: true } });
+    setActiveId((data as { id: string }).id);
+    await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_profile', entityId: (data as { id: string }).id, metadata: { created: true } });
   };
 
   const toggleDay = (d: number) => {
@@ -377,7 +399,7 @@ function CalendarTab() {
     const d = new Date(newHolidayDate);
     if (isNaN(d.getTime())) { toast({ title: 'Invalid date', variant: 'destructive' }); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from('business_calendar_holidays')
+    const { error } = await supabase.from('business_calendar_holidays')
       .insert({ profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim(), created_by: user?.id ?? null });
     if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
     setNewHolidayDate(''); setNewHolidayName('');
@@ -386,7 +408,7 @@ function CalendarTab() {
   };
 
   const deleteHoliday = async (id: string) => {
-    await (supabase as any).from('business_calendar_holidays').delete().eq('id', id);
+    await supabase.from('business_calendar_holidays').delete().eq('id', id);
     if (active) loadHolidays(active.id);
   };
 
@@ -394,29 +416,54 @@ function CalendarTab() {
     if (!active) return;
     const text = await file.text();
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const rows: { profile_id: string; holiday_date: string; name: string }[] = [];
-    for (const line of lines) {
+    const valid: { profile_id: string; holiday_date: string; name: string }[] = [];
+    const invalid: { line: number; reason: string; raw: string }[] = [];
+    lines.forEach((line, idx) => {
+      const lineNo = idx + 1;
       const [date, ...nameParts] = line.split(',');
       const name = nameParts.join(',').trim();
-      if (!date || !name) continue;
+      if (!date || !name) { invalid.push({ line: lineNo, reason: 'missing date or name', raw: line }); return; }
       const d = new Date(date.trim());
-      if (isNaN(d.getTime())) continue;
-      rows.push({ profile_id: active.id, holiday_date: d.toISOString().slice(0, 10), name });
+      if (isNaN(d.getTime())) { invalid.push({ line: lineNo, reason: `unparseable date "${date.trim()}"`, raw: line }); return; }
+      valid.push({ profile_id: active.id, holiday_date: d.toISOString().slice(0, 10), name });
+    });
+    if (valid.length === 0) {
+      toast({
+        title: 'No valid rows in CSV',
+        description: invalid.length ? `All ${invalid.length} rows invalid. First: line ${invalid[0].line} — ${invalid[0].reason}` : 'File is empty',
+        variant: 'destructive',
+      });
+      return;
     }
-    if (!rows.length) { toast({ title: 'No valid rows in CSV', variant: 'destructive' }); return; }
-    const { error } = await (supabase as any).from('business_calendar_holidays').upsert(rows, { onConflict: 'profile_id,holiday_date' });
+    const { error } = await supabase.from('business_calendar_holidays').upsert(valid, { onConflict: 'profile_id,holiday_date' });
     if (error) { toast({ title: 'Import failed', description: error.message, variant: 'destructive' }); return; }
     loadHolidays(active.id);
-    toast({ title: 'Holidays imported', description: `${rows.length} entries` });
-    await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_holidays', entityId: active.id, metadata: { imported: rows.length } });
+    if (invalid.length) {
+      toast({
+        title: `Imported ${valid.length}, skipped ${invalid.length}`,
+        description: `First skipped: line ${invalid[0].line} — ${invalid[0].reason}`,
+      });
+    } else {
+      toast({ title: 'Holidays imported', description: `${valid.length} entries` });
+    }
+    await logAudit({
+      action: 'ADMIN_CALENDAR_UPDATED',
+      entityType: 'business_calendar_holidays',
+      entityId: active.id,
+      metadata: { imported: valid.length, skipped: invalid.length, invalid_lines: invalid.slice(0, 10) },
+    });
   };
 
   const toggleAssignment = async (processType: string, checked: boolean) => {
     if (!active) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (checked) {
-      // Upsert on process_type (one calendar per process)
-      const { error } = await (supabase as any)
+      const existing = assignments.find(a => a.process_type === processType && a.profile_id !== active.id);
+      if (existing) {
+        const otherName = profiles.find(p => p.id === existing.profile_id)?.name ?? 'another profile';
+        if (!confirm(`"${processType}" is currently assigned to "${otherName}". Move it to "${active.name}"?`)) return;
+      }
+      const { error } = await supabase
         .from('business_calendar_process_assignments')
         .upsert(
           { profile_id: active.id, process_type: processType, updated_by: user?.id ?? null, created_by: user?.id ?? null },
@@ -424,15 +471,15 @@ function CalendarTab() {
         );
       if (error) { toast({ title: 'Assign failed', description: error.message, variant: 'destructive' }); return; }
     } else {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('business_calendar_process_assignments')
         .delete()
         .eq('profile_id', active.id)
         .eq('process_type', processType);
       if (error) { toast({ title: 'Unassign failed', description: error.message, variant: 'destructive' }); return; }
     }
-    const { data: asn } = await (supabase as any).from('business_calendar_process_assignments').select('*');
-    setAssignments((asn ?? []) as Assignment[]);
+    const { data: asn } = await supabase.from('business_calendar_process_assignments').select('*');
+    setAssignments((asn ?? []) as unknown as Assignment[]);
     await logAudit({
       action: 'ADMIN_CALENDAR_UPDATED',
       entityType: 'business_calendar_process_assignments',
@@ -538,7 +585,7 @@ function CalendarTab() {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Each process type can be assigned to exactly one calendar; ticking here moves it.
+                  Each process type can be assigned to exactly one calendar. Moving an existing assignment prompts for confirmation.
                 </p>
               </div>
 
@@ -593,21 +640,23 @@ function EscalationTab() {
   const [processType, setProcessType] = useState('');
   const [processOptions, setProcessOptions] = useState<string[]>([]);
   const latestRef = useRef<Record<string, EscalationTier>>({});
+  const lastPersisted = useRef<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    const { data: cfgs } = await (supabase as any).from('sla_configurations').select('process_type');
+    const { data: cfgs } = await supabase.from('sla_configurations').select('process_type');
     const distinct = Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort();
     setProcessOptions(distinct);
     setProcessType(prev => prev || distinct[0] || '');
-    const { data } = await (supabase as any).from('sla_escalation_tiers').select('*').order('process_type').order('tier');
-    const list = (data ?? []) as EscalationTier[];
+    const { data } = await supabase.from('sla_escalation_tiers').select('*').order('process_type').order('tier');
+    const list = (data ?? []) as unknown as EscalationTier[];
     setTiers(list);
     latestRef.current = Object.fromEntries(list.map(t => [t.id, t]));
+    lastPersisted.current = Object.fromEntries(list.map(t => [t.id, JSON.stringify(t)]));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // Ensure Tier 1/2/3 rows exist for the selected process.
+  // Fallback auto-seed in case the migration seed didn't run (e.g. brand new process_type).
   useEffect(() => {
     if (!processType) return;
     const existing = tiers.filter(t => t.process_type === processType).map(t => t.tier);
@@ -624,12 +673,13 @@ function EscalationTab() {
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
       }));
-      const { data, error } = await (supabase as any).from('sla_escalation_tiers').insert(inserts).select();
+      const { data, error } = await supabase.from('sla_escalation_tiers').insert(inserts).select();
       if (error) { toast({ title: 'Failed to seed tiers', description: error.message, variant: 'destructive' }); return; }
-      const added = (data ?? []) as EscalationTier[];
+      const added = (data ?? []) as unknown as EscalationTier[];
       setTiers(prev => {
         const next = [...prev, ...added];
         latestRef.current = Object.fromEntries(next.map(t => [t.id, t]));
+        added.forEach(t => { lastPersisted.current[t.id] = JSON.stringify(t); });
         return next;
       });
     })();
@@ -648,14 +698,23 @@ function EscalationTab() {
   const saveTier = async (id: string) => {
     const t = latestRef.current[id];
     if (!t) return;
+    if (t.tier < 1 || t.tier > 3) { toast({ title: 'Invalid tier', description: 'Tier must be 1, 2 or 3', variant: 'destructive' }); return; }
+    if (!Number.isInteger(t.delay_days) || t.delay_days < 0) { toast({ title: 'Invalid delay', description: 'Delay must be a non-negative integer', variant: 'destructive' }); return; }
+    if (!t.recipients.trim()) { toast({ title: 'Recipients required', variant: 'destructive' }); return; }
+
+    const snapshot = JSON.stringify(t);
+    if (lastPersisted.current[id] === snapshot) return;
+
     const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await (supabase as any).from('sla_escalation_tiers').update({
+    const { error } = await supabase.from('sla_escalation_tiers').update({
       delay_days: t.delay_days,
       recipients: t.recipients,
       notify_roles: t.notify_roles,
       updated_by: user?.id ?? null,
     }).eq('id', id);
     if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    lastPersisted.current[id] = snapshot;
+
     await logAudit({
       action: 'ADMIN_SLA_UPDATED',
       entityType: 'sla_escalation_tier',
@@ -738,7 +797,7 @@ function SummaryTab() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await (supabase as any).from('sla_configurations').select('process_type').eq('active', true);
+      const { data } = await supabase.from('sla_configurations').select('process_type').eq('active', true);
       setProcessTypes(Array.from(new Set(((data ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
       setLoading(false);
     })();
