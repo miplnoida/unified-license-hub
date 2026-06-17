@@ -56,7 +56,7 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   // Workflows
   ['/workflows', 'workflow_management'],
   ['/delegation-rules', 'workflow_management'],
-  ['/admin/sla-manager', 'workflow_management'],
+  
 
   // Complaints
   ['/admin/complaint-types', 'complaint_management'],

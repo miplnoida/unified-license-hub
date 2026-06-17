@@ -27,7 +27,7 @@ const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFor
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
-const SlaManager = lazy(() => import('@/pages/admin/SlaManager'));
+
 
 // Returns Management - Admin
 const ReturnTypesPage = lazy(() => import('@/pages/admin/returns/ReturnTypesPage'));
@@ -80,7 +80,7 @@ export const adminRoutes = (
     <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
-    <Route path="/admin/sla-manager" element={<M module="workflow_management"><SlaManager /></M>} />
+    
 
 
     {/* Returns Management - Admin */}
