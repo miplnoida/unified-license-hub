@@ -1580,6 +1580,82 @@ export type Database = {
           },
         ]
       }
+      external_portal_access: {
+        Row: {
+          can_respond_rfi: boolean
+          can_submit: boolean
+          can_submit_complaints: boolean
+          can_submit_fp_declarations: boolean
+          can_submit_returns: boolean
+          can_upload_documents: boolean
+          can_view_status: boolean
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          id: string
+          portal_area: Database["public"]["Enums"]["portal_area"]
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_respond_rfi?: boolean
+          can_submit?: boolean
+          can_submit_complaints?: boolean
+          can_submit_fp_declarations?: boolean
+          can_submit_returns?: boolean
+          can_upload_documents?: boolean
+          can_view_status?: boolean
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          id?: string
+          portal_area: Database["public"]["Enums"]["portal_area"]
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_respond_rfi?: boolean
+          can_submit?: boolean
+          can_submit_complaints?: boolean
+          can_submit_fp_declarations?: boolean
+          can_submit_returns?: boolean
+          can_upload_documents?: boolean
+          can_view_status?: boolean
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          id?: string
+          portal_area?: Database["public"]["Enums"]["portal_area"]
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_portal_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_portal_access_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_portal_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_components: {
         Row: {
           amount: number
@@ -6884,6 +6960,10 @@ export type Database = {
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       expire_delegation_rules: { Args: never; Returns: number }
+      external_user_entity_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       generate_application_number: { Args: never; Returns: string }
       generate_complaint_number: { Args: never; Returns: string }
       generate_license_number: { Args: never; Returns: string }
@@ -7055,6 +7135,16 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_external_role: { Args: { _user_id: string }; Returns: boolean }
+      has_portal_capability: {
+        Args: {
+          _area: Database["public"]["Enums"]["portal_area"]
+          _capability: string
+          _entity_id: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -7259,6 +7349,15 @@ export type Database = {
         }
         Returns: Json
       }
+      seed_external_portal_defaults: {
+        Args: {
+          _actor?: string
+          _entity_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
       start_registration_workflow: {
         Args: { _registration_id: string }
         Returns: string
@@ -7333,6 +7432,7 @@ export type Database = {
       entity_access_type: "primary_user" | "employee" | "secondary_contact"
       notification_status_enum: "pending" | "sent" | "failed"
       ontime_status_enum: "ON_TIME" | "LATE"
+      portal_area: "licensing" | "returns" | "complaints" | "fp_declarations"
       return_audit_action:
         | "created"
         | "draft_saved"
@@ -7516,6 +7616,7 @@ export const Constants = {
       entity_access_type: ["primary_user", "employee", "secondary_contact"],
       notification_status_enum: ["pending", "sent", "failed"],
       ontime_status_enum: ["ON_TIME", "LATE"],
+      portal_area: ["licensing", "returns", "complaints", "fp_declarations"],
       return_audit_action: [
         "created",
         "draft_saved",
