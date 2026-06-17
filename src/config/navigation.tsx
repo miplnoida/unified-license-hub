@@ -45,14 +45,28 @@ export const mainNavSections: NavSection[] = [
     label: 'Administration',
     items: [
       { label: 'Admin Control Panel', href: '/admin', icon: <LayoutGrid className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
-      { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
-      { label: 'External Portal Access', href: '/admin/external-portal-access', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
-      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
       { label: 'PPOC Mappings', href: '/admin/ppoc-mappings', icon: <UserCircle className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'license_management' },
       { label: 'Notification Templates', href: '/admin/notification-templates', icon: <Mail className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Activity Logs', href: '/admin/audit-logs', icon: <ScrollText className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Audit Logs', href: '/admin/compliance-audit-logs', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
       { label: 'Settings', href: '/settings', icon: <Settings className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'settings' },
+    ],
+  },
+  {
+    // Internal Access Control = employees + dynamic role/module permissions for admin/internal staff.
+    // Never add external portal items here — those live under "External User Access".
+    label: 'Internal Access Control',
+    items: [
+      { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
+      { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
+    ],
+  },
+  {
+    // External User Access = entity-scoped portal capabilities for applicant / pre-licensee / licensee users.
+    // These users never receive internal module permissions.
+    label: 'External User Access',
+    items: [
+      { label: 'External Portal Access', href: '/admin/external-portal-access', icon: <KeyRound className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
     ],
   },
   {
