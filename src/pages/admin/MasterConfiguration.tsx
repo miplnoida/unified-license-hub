@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Swal from 'sweetalert2';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import {
   useSectors, useSubSectors, useCategories, useServices, useMasterMutations,
