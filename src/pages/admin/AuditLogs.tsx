@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
-import { ScrollText, Search, ExternalLink, Loader2 } from 'lucide-react';
+import { Activity, Search, ExternalLink, Loader2 } from 'lucide-react';
 import {
   getAuditDescriptor, AUDIT_CATEGORIES, CATEGORY_CLASSES, type AuditCategory,
 } from '@/lib/auditLabels';

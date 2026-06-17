@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ShieldCheck, Download, Loader2, FileWarning, History } from 'lucide-react';
+import { Download, Loader2, FileWarning, History } from 'lucide-react';
 import { logExport, type ComplianceAuditAction } from '@/lib/complianceAudit';
 
 interface AuditRow {
