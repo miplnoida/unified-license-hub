@@ -1,16 +1,16 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { AccessDenied } from '@/components/shared/AccessDenied';
 import { INTERNAL_ROLES } from '@/types/platform';
-import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
-import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
+import { canAccessPortal, type PortalArea, type PortalCapability } from '@/lib/portalAccess';
 
 interface PortalRouteProps {
   children: React.ReactNode;
   area: PortalArea;
-  capability: PortalCapability;
+  capability: PortalCapability | PortalCapability[];
   /** Optional: scope check to a specific entity (defaults to any active row). */
   entityId?: string | null;
 }
@@ -23,8 +23,20 @@ interface PortalRouteProps {
  */
 export function PortalRoute({ children, area, capability, entityId = null }: PortalRouteProps) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
-  const { rows, isLoading: accessLoading } = useExternalPortalAccess();
   const location = useLocation();
+  const capabilities = Array.isArray(capability) ? capability : [capability];
+  const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
+
+  const accessQuery = useQuery({
+    queryKey: ['portal_route_access', user?.id, area, entityId, capabilities.join('|')],
+    enabled: !!user?.id && !!session && isFullyAuthenticated && !isInternal,
+    queryFn: async () => {
+      const checks = await Promise.all(
+        capabilities.map(cap => canAccessPortal(user!.id, entityId, area, cap)),
+      );
+      return checks.some(Boolean);
+    },
+  });
 
   if (loading) return <AuthLoadingScreen />;
   if (!session) return <Navigate to="/" replace state={{ from: location }} />;
@@ -36,17 +48,9 @@ export function PortalRoute({ children, area, capability, entityId = null }: Por
   }
 
   // Internal staff bypass the portal capability layer.
-  if (INTERNAL_ROLES.includes(user.role)) return <>{children}</>;
+  if (isInternal) return <>{children}</>;
 
-  if (accessLoading) return <AuthLoadingScreen />;
-
-  const match = rows.find(
-    r => r.portal_area === area
-      && r.status === 'active'
-      && (entityId ? r.entity_id === entityId : true)
-      && Boolean((r as any)[capability]),
-  );
-
-  if (!match) return <AccessDenied />;
+  if (accessQuery.isLoading) return <AuthLoadingScreen />;
+  if (!accessQuery.data) return <AccessDenied />;
   return <>{children}</>;
 }
