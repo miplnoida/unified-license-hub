@@ -90,7 +90,7 @@ export const dashboardRoutes = (
     <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'reviewer', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
-    <Route path="/documents" element={<P><DocumentStore /></P>} />
+    <Route path="/documents" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />
     <Route path="/notifications" element={<P><NotificationCenter /></P>} />
     <Route path="/analytics" element={<M module="report_management"><AnalyticsDashboard /></M>} />
     <Route path="/reports" element={<M module="report_management"><ReportsDashboard /></M>} />

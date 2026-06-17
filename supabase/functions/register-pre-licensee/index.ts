@@ -219,6 +219,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    try {
+      await supabaseAdmin.rpc("seed_external_portal_defaults", {
+        _user_id: authData.user.id,
+        _entity_id: null,
+        _role: "pre_licensee",
+        _actor: null,
+      });
+    } catch (seedErr) {
+      console.warn("seed_external_portal_defaults failed:", seedErr);
+    }
+
     let sectorName = "";
     let subSectorName = "";
     let categoryName = "";
