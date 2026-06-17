@@ -208,9 +208,14 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
-  formId, formVersionId, submissionId, entityType, entityId,
+  formId, formVersionId, submissionId, entityType, entityId, portalArea,
 }: Props) {
   const { user } = useAuth();
+  const { can } = useExternalPortalAccess();
+  const isInternal = useIsInternal();
+  const submitCap = portalArea ? submitCapabilityFor(portalArea) : null;
+  const capSubmitAllowed = !portalArea || isInternal || can(portalArea, submitCap!, entityId ?? null);
+  const capUploadAllowed = !portalArea || isInternal || can(portalArea, 'can_upload_documents', entityId ?? null);
   const [historyGroup, setHistoryGroup] = useState<{ groupId: string; name: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(() => {
     if (!stepStorageKey) return 0;
