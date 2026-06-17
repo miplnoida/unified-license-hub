@@ -32,7 +32,14 @@ import { useActiveMasterItems } from '@/hooks/useMasterData';
 import { isDisplayOnlyFieldType, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
 import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { useIsInternal } from '@/hooks/useUserPermissions';
-import { submitCapabilityFor } from '@/lib/portalAreaForContext';
+import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
+
+const SUBMIT_CAPABILITY_BY_AREA: Record<PortalArea, PortalCapability> = {
+  licensing: 'can_submit',
+  returns: 'can_submit_returns',
+  complaints: 'can_submit_complaints',
+  fp_declarations: 'can_submit_fp_declarations',
+};
 
 // Returns Tailwind col-span class for a field's row width.
 // Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
@@ -70,7 +77,7 @@ interface Props {
   entityType?: string;
   entityId?: string | null;
   /** External portal area for capability gating (Submit/Upload). Internal users bypass. */
-  portalArea?: import('@/lib/portalAccess').PortalArea;
+  portalArea?: PortalArea;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
@@ -216,7 +223,7 @@ export function FormRenderer({
   const { user } = useAuth();
   const { can } = useExternalPortalAccess();
   const isInternal = useIsInternal();
-  const submitCap = portalArea ? submitCapabilityFor(portalArea) : null;
+  const submitCap = portalArea ? SUBMIT_CAPABILITY_BY_AREA[portalArea] : null;
   const capSubmitAllowed = !portalArea || isInternal || can(portalArea, submitCap!, entityId ?? null);
   const capUploadAllowed = !portalArea || isInternal || can(portalArea, 'can_upload_documents', entityId ?? null);
   const [historyGroup, setHistoryGroup] = useState<{ groupId: string; name: string } | null>(null);
