@@ -1,11 +1,8 @@
 /**
- * External Portal Access — entity-scoped capability layer.
- *
- * Completely separate from the internal employee/admin module-permission
- * system. Used to gate licensing/returns/complaints/F&P portals for
- * external roles (applicant, pre_licensee, licensee_primary, licensee_secondary).
+ * Shared types for portal capability checks. The underlying engine is now the
+ * unified RBAC (`roles` + `permissions` + `user_dynamic_roles`). These types
+ * remain for backwards-compat with route guards and form-renderer props.
  */
-
 import { supabase } from '@/integrations/supabase/client';
 
 export type PortalArea = 'licensing' | 'returns' | 'complaints' | 'fp_declarations';
@@ -19,6 +16,7 @@ export type PortalCapability =
   | 'can_submit_complaints'
   | 'can_submit_fp_declarations';
 
+/** Legacy row shape — retained for type compatibility only. */
 export interface ExternalPortalAccessRow {
   id: string;
   user_id: string;
@@ -57,9 +55,8 @@ export const CAPABILITY_LABEL: Record<PortalCapability, string> = {
 };
 
 /**
- * Server-authoritative capability check. Frontend wrapper around the
- * `has_portal_capability` Postgres function. Always backed by RLS — UI
- * hiding is convenience, this is the source of truth for the client.
+ * Server-authoritative capability check. Wraps the unified `has_portal_capability`
+ * Postgres function, which now consults roles + permissions + user_dynamic_roles.
  */
 export async function canAccessPortal(
   userId: string,
@@ -80,7 +77,6 @@ export async function canAccessPortal(
   return Boolean(data);
 }
 
-/** Pure client check against an already-loaded row. */
 export function hasCapability(row: ExternalPortalAccessRow | null | undefined, cap: PortalCapability): boolean {
   if (!row || row.status !== 'active') return false;
   return Boolean(row[cap]);
