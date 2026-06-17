@@ -30,6 +30,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
 import { isDisplayOnlyFieldType, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
+import { useIsInternal } from '@/hooks/useUserPermissions';
+import { submitCapabilityFor } from '@/lib/portalAreaForContext';
 
 // Returns Tailwind col-span class for a field's row width.
 // Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
@@ -66,6 +69,8 @@ interface Props {
   submissionId?: string | null;
   entityType?: string;
   entityId?: string | null;
+  /** External portal area for capability gating (Submit/Upload). Internal users bypass. */
+  portalArea?: import('@/lib/portalAccess').PortalArea;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
@@ -206,9 +211,14 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
-  formId, formVersionId, submissionId, entityType, entityId,
+  formId, formVersionId, submissionId, entityType, entityId, portalArea,
 }: Props) {
   const { user } = useAuth();
+  const { can } = useExternalPortalAccess();
+  const isInternal = useIsInternal();
+  const submitCap = portalArea ? submitCapabilityFor(portalArea) : null;
+  const capSubmitAllowed = !portalArea || isInternal || can(portalArea, submitCap!, entityId ?? null);
+  const capUploadAllowed = !portalArea || isInternal || can(portalArea, 'can_upload_documents', entityId ?? null);
   const [historyGroup, setHistoryGroup] = useState<{ groupId: string; name: string } | null>(null);
   const [currentStep, setCurrentStep] = useState(() => {
     if (!stepStorageKey) return 0;
@@ -761,7 +771,8 @@ export function FormRenderer({
                       if (e.target) e.target.value = '';
                     }}
                     className="flex-1"
-                    disabled={isUploading}
+                    disabled={isUploading || !capUploadAllowed}
+                    title={!capUploadAllowed ? "You don't have permission to upload documents in this portal" : undefined}
                   />
                   {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                 </div>
@@ -823,7 +834,8 @@ export function FormRenderer({
                     if (e.target) e.target.value = '';
                   }}
                   className="flex-1"
-                  disabled={isUploading}
+                  disabled={isUploading || !capUploadAllowed}
+                  title={!capUploadAllowed ? "You don't have permission to upload documents in this portal" : undefined}
                 />
                 {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
@@ -1141,7 +1153,12 @@ export function FormRenderer({
             </Button>
           ) : (
             !readOnly && (
-              <Button onClick={handleSubmit} disabled={saving} className="w-full sm:w-auto">
+              <Button
+                onClick={handleSubmit}
+                disabled={saving || !capSubmitAllowed}
+                title={!capSubmitAllowed ? "You don't have permission to submit in this portal" : undefined}
+                className="w-full sm:w-auto"
+              >
                 <CheckCircle2 className="h-4 w-4 mr-2" /> Submit
               </Button>
             )
