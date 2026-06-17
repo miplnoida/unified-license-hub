@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,17 +22,26 @@ import {
   PORTAL_AREAS, PORTAL_AREA_LABEL, CAPABILITY_LABEL,
 } from '@/lib/portalAccess';
 
-interface ProfileLite { id: string; full_name: string | null; email: string | null; role: string | null; }
+interface ProfileLite { id: string; full_name: string | null; email: string | null; role: string | null; licensee_id: string | null; }
 interface LicenseeLite { id: string; name: string; }
+interface EntityAccessLite { user_id: string; entity_id: string; is_active: boolean | null; }
 
 const CAPS: PortalCapability[] = [
   'can_submit', 'can_upload_documents', 'can_view_status', 'can_respond_rfi',
   'can_submit_returns', 'can_submit_complaints', 'can_submit_fp_declarations',
 ];
+const EXTERNAL_ROLES = ['applicant', 'pre_licensee', 'licensee_primary', 'licensee_secondary'];
+const AREA_CAPS: Record<PortalArea, PortalCapability[]> = {
+  licensing: ['can_submit', 'can_upload_documents', 'can_view_status', 'can_respond_rfi'],
+  returns: ['can_submit_returns', 'can_upload_documents', 'can_view_status', 'can_respond_rfi'],
+  complaints: ['can_submit_complaints', 'can_upload_documents', 'can_view_status'],
+  fp_declarations: ['can_submit_fp_declarations', 'can_upload_documents', 'can_view_status'],
+};
 
 export default function ExternalPortalAccessPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editRow, setEditRow] = useState<ExternalPortalAccessRow | null>(null);
@@ -62,8 +72,8 @@ export default function ExternalPortalAccessPage() {
     queryFn: async (): Promise<ProfileLite[]> => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role')
-        .in('role', ['applicant', 'pre_licensee', 'licensee_primary', 'licensee_secondary'])
+        .select('id, full_name, email, role, licensee_id')
+        .in('role', EXTERNAL_ROLES)
         .order('full_name');
       if (error) throw error;
       return (data || []) as ProfileLite[];
@@ -82,6 +92,18 @@ export default function ExternalPortalAccessPage() {
     },
   });
 
+  const entityAccessQuery = useQuery({
+    queryKey: ['external_user_entity_links'],
+    queryFn: async (): Promise<EntityAccessLite[]> => {
+      const { data, error } = await (supabase as any)
+        .from('entity_user_access')
+        .select('user_id, entity_id, is_active')
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data || []) as EntityAccessLite[];
+    },
+  });
+
   const profileById = useMemo(() => {
     const map = new Map<string, ProfileLite>();
     (profilesQuery.data || []).forEach(p => map.set(p.id, p));
@@ -93,6 +115,24 @@ export default function ExternalPortalAccessPage() {
     (licenseesQuery.data || []).forEach(l => map.set(l.id, l));
     return map;
   }, [licenseesQuery.data]);
+
+  const linkedEntityIdsByUser = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    (profilesQuery.data || []).forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, new Set());
+      if (p.licensee_id) map.get(p.id)!.add(p.licensee_id);
+    });
+    (entityAccessQuery.data || []).forEach(link => {
+      if (!map.has(link.user_id)) map.set(link.user_id, new Set());
+      if (link.entity_id) map.get(link.user_id)!.add(link.entity_id);
+    });
+    return map;
+  }, [profilesQuery.data, entityAccessQuery.data]);
+
+  const allowedCaps = AREA_CAPS[formArea];
+  const selectedProfile = formUserId ? profileById.get(formUserId) : null;
+  const selectedLinkedEntityIds = selectedProfile ? linkedEntityIdsByUser.get(selectedProfile.id) || new Set<string>() : new Set<string>();
+  const selectedEntityIsLinked = formEntityId === 'none' || selectedLinkedEntityIds.has(formEntityId);
 
   const filteredRows = useMemo(() => {
     const rows = accessQuery.data || [];
@@ -142,16 +182,36 @@ export default function ExternalPortalAccessPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!formUserId) throw new Error('User is required');
+      const selected = profileById.get(formUserId);
+      if (!selected || !EXTERNAL_ROLES.includes(String(selected.role || ''))) {
+        throw new Error('Portal access can only be granted to external portal users.');
+      }
+      if (formEntityId !== 'none' && !selectedLinkedEntityIds.has(formEntityId)) {
+        const res = await Swal.fire({
+          title: 'Entity is not linked to this user',
+          text: 'This user is not currently linked to the selected entity. Continue only if this assignment is intentional.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Grant anyway',
+          focusCancel: true,
+        });
+        if (!res.isConfirmed) throw new Error('Save cancelled');
+      }
+      const sanitizedCaps = CAPS.reduce((acc, cap) => ({
+        ...acc,
+        [cap]: AREA_CAPS[formArea].includes(cap) ? formCaps[cap] : false,
+      }), {} as Record<PortalCapability, boolean>);
       const payload: any = {
         user_id: formUserId,
         entity_id: formEntityId === 'none' ? null : formEntityId,
         portal_area: formArea,
         status: formStatus,
-        ...formCaps,
+        created_by: user?.id ?? null,
+        ...sanitizedCaps,
       };
       if (editRow) {
         const { error } = await (supabase as any)
-          .from('external_portal_access').update(payload).eq('id', editRow.id);
+          .from('external_portal_access').update({ ...payload, created_by: editRow.created_by ?? user?.id ?? null }).eq('id', editRow.id);
         if (error) throw error;
       } else {
         const { error } = await (supabase as any).from('external_portal_access').insert(payload);
@@ -164,7 +224,10 @@ export default function ExternalPortalAccessPage() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (e: any) => toast({ title: 'Save failed', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => {
+      if (e.message === 'Save cancelled') return;
+      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
+    },
   });
 
   const toggleStatus = useMutation({
@@ -237,7 +300,9 @@ export default function ExternalPortalAccessPage() {
                 ) : filteredRows.map(row => {
                   const p = profileById.get(row.user_id);
                   const l = row.entity_id ? licenseeById.get(row.entity_id) : null;
-                  const enabledCaps = CAPS.filter(c => (row as any)[c]);
+                  const linkedIds = linkedEntityIdsByUser.get(row.user_id) || new Set<string>();
+                  const linked = !row.entity_id || linkedIds.has(row.entity_id);
+                  const enabledCaps = CAPS.filter(c => row[c]);
                   return (
                     <TableRow key={row.id}>
                       <TableCell>
@@ -245,7 +310,10 @@ export default function ExternalPortalAccessPage() {
                         <div className="text-xs text-muted-foreground">{p?.email || row.user_id.slice(0, 8)}</div>
                       </TableCell>
                       <TableCell><Badge variant="outline">{p?.role || '—'}</Badge></TableCell>
-                      <TableCell>{l?.name || <span className="text-muted-foreground italic">none</span>}</TableCell>
+                      <TableCell>
+                        <div>{l?.name || <span className="text-muted-foreground italic">none</span>}</div>
+                        {row.entity_id && !linked && <div className="text-xs text-destructive">not linked to user</div>}
+                      </TableCell>
                       <TableCell><Badge>{PORTAL_AREA_LABEL[row.portal_area]}</Badge></TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -308,10 +376,15 @@ export default function ExternalPortalAccessPage() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">— No entity (pre-license) —</SelectItem>
                   {(licenseesQuery.data || []).map(l => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}{formUserId && !selectedLinkedEntityIds.has(l.id) ? ' · not linked' : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formUserId && formEntityId !== 'none' && !selectedEntityIsLinked && (
+                <p className="text-xs text-destructive">Selected entity is not linked to this user.</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -329,15 +402,19 @@ export default function ExternalPortalAccessPage() {
             <div className="col-span-2 space-y-2 border rounded-md p-3">
               <Label className="text-sm font-semibold">Capabilities</Label>
               <div className="grid grid-cols-2 gap-3">
-                {CAPS.map(cap => (
+                {CAPS.map(cap => {
+                  const enabledForArea = allowedCaps.includes(cap);
+                  return (
                   <div key={cap} className="flex items-center justify-between gap-2">
-                    <span className="text-sm">{CAPABILITY_LABEL[cap]}</span>
+                    <span className={enabledForArea ? 'text-sm' : 'text-sm text-muted-foreground'}>{CAPABILITY_LABEL[cap]}</span>
                     <Switch
-                      checked={formCaps[cap]}
+                      checked={enabledForArea && formCaps[cap]}
+                      disabled={!enabledForArea}
                       onCheckedChange={(v) => setFormCaps(prev => ({ ...prev, [cap]: v }))}
                     />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

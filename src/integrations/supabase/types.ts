@@ -6960,6 +6960,90 @@ export type Database = {
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
       expire_delegation_rules: { Args: never; Returns: number }
+      external_can_access_application: {
+        Args: { _application_id: string; _capability: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_application_values: {
+        Args: {
+          _applicant_id: string
+          _capability: string
+          _data: Json
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_access_complaint: {
+        Args: { _capability: string; _complaint_id: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_complaint_values: {
+        Args: {
+          _capability: string
+          _complainant_id: string
+          _license_holder_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_access_compliance_return: {
+        Args: { _capability: string; _return_id: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_compliance_return_values: {
+        Args: {
+          _capability: string
+          _license_id: string
+          _on_behalf_of_licensee_id: string
+          _submitter_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_access_document_ref: {
+        Args: {
+          _capability: string
+          _entity_id: string
+          _entity_type: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_access_license: {
+        Args: { _capability: string; _license_id: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_payment: {
+        Args: { _capability: string; _payment_id: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_payment_values: {
+        Args: {
+          _application_id: string
+          _capability: string
+          _payment_user_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_access_return_filed: {
+        Args: { _capability: string; _return_id: string; _user_id: string }
+        Returns: boolean
+      }
+      external_can_access_return_filed_values: {
+        Args: {
+          _capability: string
+          _created_by: string
+          _entity_id: string
+          _on_behalf_of_licensee_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      external_can_upload_document_ref: {
+        Args: { _entity_id: string; _entity_type: string; _user_id: string }
+        Returns: boolean
+      }
       external_user_entity_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -7267,6 +7351,14 @@ export type Database = {
         }
         Returns: Json
       }
+      portal_application_entity_ids: {
+        Args: { _application_id: string }
+        Returns: string[]
+      }
+      portal_license_entity_ids: {
+        Args: { _license_id: string }
+        Returns: string[]
+      }
       ppoc_accessible_license_ids: {
         Args: { _user_id: string }
         Returns: string[]
@@ -7340,6 +7432,7 @@ export type Database = {
         }
         Returns: Json
       }
+      safe_uuid: { Args: { _value: string }; Returns: string }
       save_ppoc_mapping: {
         Args: {
           _licensee_id: string
