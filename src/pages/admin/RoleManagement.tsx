@@ -233,18 +233,11 @@ export default function RoleManagement() {
       <div className="space-y-8">
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Internal employee/admin roles only</AlertTitle>
-          <AlertDescription className="space-y-2">
-            <p>
-              This page manages internal employee/admin roles only. Applicant, pre-licensee and licensee primary/secondary
-              portal access is managed separately under External Portal Access.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/admin/external-portal-access">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Manage External Portal Access
-              </Link>
-            </Button>
+          <AlertTitle>Unified roles &amp; permissions</AlertTitle>
+          <AlertDescription>
+            One framework covers internal staff and external portal users. Applicants and Regulated Entity Users
+            are auto-assigned during registration / licence approval — edit the system roles below to change
+            what those users can do.
           </AlertDescription>
         </Alert>
 
