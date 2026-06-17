@@ -721,28 +721,75 @@ export type Database = {
       business_calendar_holidays: {
         Row: {
           created_at: string
+          created_by: string | null
           holiday_date: string
           id: string
           name: string
           profile_id: string
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           holiday_date: string
           id?: string
           name: string
           profile_id: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           holiday_date?: string
           id?: string
           name?: string
           profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "business_calendar_holidays_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "business_calendar_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_calendar_process_assignments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          process_type: string
+          profile_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          process_type: string
+          profile_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          process_type?: string
+          profile_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_calendar_process_assignments_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "business_calendar_profiles"
@@ -760,6 +807,7 @@ export type Database = {
           name: string
           timezone: string
           updated_at: string
+          updated_by: string | null
           working_days: number[]
           working_end_time: string
           working_start_time: string
@@ -773,6 +821,7 @@ export type Database = {
           name: string
           timezone?: string
           updated_at?: string
+          updated_by?: string | null
           working_days?: number[]
           working_end_time?: string
           working_start_time?: string
@@ -786,6 +835,7 @@ export type Database = {
           name?: string
           timezone?: string
           updated_at?: string
+          updated_by?: string | null
           working_days?: number[]
           working_end_time?: string
           working_start_time?: string
@@ -5914,6 +5964,7 @@ export type Database = {
           sla_unit: string
           stage_name: string
           updated_at: string
+          updated_by: string | null
           warning_threshold_pct: number
         }
         Insert: {
@@ -5929,6 +5980,7 @@ export type Database = {
           sla_unit?: string
           stage_name: string
           updated_at?: string
+          updated_by?: string | null
           warning_threshold_pct?: number
         }
         Update: {
@@ -5944,6 +5996,7 @@ export type Database = {
           sla_unit?: string
           stage_name?: string
           updated_at?: string
+          updated_by?: string | null
           warning_threshold_pct?: number
         }
         Relationships: [
@@ -5959,6 +6012,7 @@ export type Database = {
       sla_escalation_tiers: {
         Row: {
           created_at: string
+          created_by: string | null
           delay_days: number
           id: string
           notify_roles: string | null
@@ -5966,9 +6020,11 @@ export type Database = {
           recipients: string
           tier: number
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           delay_days?: number
           id?: string
           notify_roles?: string | null
@@ -5976,9 +6032,11 @@ export type Database = {
           recipients: string
           tier: number
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           delay_days?: number
           id?: string
           notify_roles?: string | null
@@ -5986,6 +6044,7 @@ export type Database = {
           recipients?: string
           tier?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
