@@ -1,42 +1,49 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { AccessDenied } from '@/components/shared/AccessDenied';
 import { INTERNAL_ROLES } from '@/types/platform';
-import { canAccessPortal, type PortalArea, type PortalCapability } from '@/lib/portalAccess';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
 interface PortalRouteProps {
   children: React.ReactNode;
   area: PortalArea;
   capability: PortalCapability | PortalCapability[];
-  /** Optional: scope check to a specific entity (defaults to any active row). */
+  /** Kept for API compat — RLS performs the final per-row check. */
   entityId?: string | null;
 }
 
 /**
- * Guard for external portal routes. Distinct from AdminRoute / ModuleRoute,
- * which gate internal employee modules. Internal staff (admins, supervisors,
- * licensing officers, analysts) are always allowed through — their access is
- * governed by the module-permission system, not external portal capabilities.
+ * Unified portal route guard. Internally uses `useUserDynamicPermissions`,
+ * the same hook that gates internal modules — there is no separate external
+ * permission engine on the frontend. Object-level checks (which entity a row
+ * belongs to) remain RLS-enforced server-side.
  */
-export function PortalRoute({ children, area, capability, entityId = null }: PortalRouteProps) {
+const AREA_MODULE: Record<PortalArea, string> = {
+  licensing: 'licensing',
+  returns: 'returns_management',
+  complaints: 'complaint_management',
+  fp_declarations: 'fit_and_proper',
+};
+
+const CAPABILITY_ACTION: Record<PortalCapability, string> = {
+  can_submit: 'submit',
+  can_submit_returns: 'submit',
+  can_submit_complaints: 'submit',
+  can_submit_fp_declarations: 'submit',
+  can_upload_documents: 'upload_documents',
+  can_view_status: 'view_status',
+  can_respond_rfi: 'respond_rfi',
+};
+
+export function PortalRoute({ children, area, capability }: PortalRouteProps) {
   const { user, session, loading, isFullyAuthenticated, mfaStatus } = useAuth();
   const location = useLocation();
   const capabilities = Array.isArray(capability) ? capability : [capability];
   const isInternal = !!user && INTERNAL_ROLES.includes(user.role);
-
-  const accessQuery = useQuery({
-    queryKey: ['portal_route_access', user?.id, area, entityId, capabilities.join('|')],
-    enabled: !!user?.id && !!session && isFullyAuthenticated && !isInternal,
-    queryFn: async () => {
-      const checks = await Promise.all(
-        capabilities.map(cap => canAccessPortal(user!.id, entityId, area, cap)),
-      );
-      return checks.some(Boolean);
-    },
-  });
+  const { hasPermission, enforceDynamic, isLoading: permsLoading } = useUserDynamicPermissions();
 
   if (loading) return <AuthLoadingScreen />;
   if (!session) return <Navigate to="/" replace state={{ from: location }} />;
@@ -47,10 +54,17 @@ export function PortalRoute({ children, area, capability, entityId = null }: Por
       : <AuthLoadingScreen />;
   }
 
-  // Internal staff bypass the portal capability layer.
+  // Internal staff: their access is governed by the module-permission system,
+  // not by external portal area/capability mapping.
   if (isInternal) return <>{children}</>;
 
-  if (accessQuery.isLoading) return <AuthLoadingScreen />;
-  if (!accessQuery.data) return <AccessDenied />;
+  if (permsLoading) return <AuthLoadingScreen />;
+
+  // External users with no dynamic role mapping fall back to legacy allow.
+  if (!enforceDynamic) return <>{children}</>;
+
+  const moduleKey = AREA_MODULE[area];
+  const allowed = capabilities.some((cap) => hasPermission(moduleKey, CAPABILITY_ACTION[cap]));
+  if (!allowed) return <AccessDenied />;
   return <>{children}</>;
 }

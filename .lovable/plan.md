@@ -88,3 +88,10 @@ This only **adds** missing rows; nothing is removed.
 - Edit: `src/hooks/useRoles.ts` (include `role_type` in select/insert/update).
 - Edit: `src/hooks/usePermissionCatalog.ts` (expose `audience` on modules/actions).
 - Data: `INSERT ON CONFLICT DO NOTHING` for Applicant / Regulated Entity User defaults.
+
+---
+
+## Unified RBAC enforcement (frontend)
+- `PortalRoute` now delegates to `useUserDynamicPermissions` (no more `has_portal_capability` RPC engine). External capability/area maps directly to permission module/action.
+- New `<PermissionGate module action>` and `<ModuleGate module>` components in `src/components/auth/PermissionGate.tsx` for action-level button gating. Use these instead of `user.role === 'admin'` style checks.
+- Sidebar / `ModuleRoute` / `PermissionGate` all read from the same `useUserDynamicPermissions` source of truth. Object-level isolation remains RLS-enforced.
