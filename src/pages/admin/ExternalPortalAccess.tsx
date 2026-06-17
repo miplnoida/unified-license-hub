@@ -182,16 +182,36 @@ export default function ExternalPortalAccessPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!formUserId) throw new Error('User is required');
+      const selected = profileById.get(formUserId);
+      if (!selected || !EXTERNAL_ROLES.includes(String(selected.role || ''))) {
+        throw new Error('Portal access can only be granted to external portal users.');
+      }
+      if (formEntityId !== 'none' && !selectedLinkedEntityIds.has(formEntityId)) {
+        const res = await Swal.fire({
+          title: 'Entity is not linked to this user',
+          text: 'This user is not currently linked to the selected entity. Continue only if this assignment is intentional.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Grant anyway',
+          focusCancel: true,
+        });
+        if (!res.isConfirmed) throw new Error('Save cancelled');
+      }
+      const sanitizedCaps = CAPS.reduce((acc, cap) => ({
+        ...acc,
+        [cap]: AREA_CAPS[formArea].includes(cap) ? formCaps[cap] : false,
+      }), {} as Record<PortalCapability, boolean>);
       const payload: any = {
         user_id: formUserId,
         entity_id: formEntityId === 'none' ? null : formEntityId,
         portal_area: formArea,
         status: formStatus,
-        ...formCaps,
+        created_by: user?.id ?? null,
+        ...sanitizedCaps,
       };
       if (editRow) {
         const { error } = await (supabase as any)
-          .from('external_portal_access').update(payload).eq('id', editRow.id);
+          .from('external_portal_access').update({ ...payload, created_by: editRow.created_by ?? user?.id ?? null }).eq('id', editRow.id);
         if (error) throw error;
       } else {
         const { error } = await (supabase as any).from('external_portal_access').insert(payload);
@@ -204,7 +224,10 @@ export default function ExternalPortalAccessPage() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: (e: any) => toast({ title: 'Save failed', description: e.message, variant: 'destructive' }),
+    onError: (e: any) => {
+      if (e.message === 'Save cancelled') return;
+      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
+    },
   });
 
   const toggleStatus = useMutation({
@@ -277,7 +300,9 @@ export default function ExternalPortalAccessPage() {
                 ) : filteredRows.map(row => {
                   const p = profileById.get(row.user_id);
                   const l = row.entity_id ? licenseeById.get(row.entity_id) : null;
-                  const enabledCaps = CAPS.filter(c => (row as any)[c]);
+                  const linkedIds = linkedEntityIdsByUser.get(row.user_id) || new Set<string>();
+                  const linked = !row.entity_id || linkedIds.has(row.entity_id);
+                  const enabledCaps = CAPS.filter(c => row[c]);
                   return (
                     <TableRow key={row.id}>
                       <TableCell>
@@ -285,7 +310,10 @@ export default function ExternalPortalAccessPage() {
                         <div className="text-xs text-muted-foreground">{p?.email || row.user_id.slice(0, 8)}</div>
                       </TableCell>
                       <TableCell><Badge variant="outline">{p?.role || '—'}</Badge></TableCell>
-                      <TableCell>{l?.name || <span className="text-muted-foreground italic">none</span>}</TableCell>
+                      <TableCell>
+                        <div>{l?.name || <span className="text-muted-foreground italic">none</span>}</div>
+                        {row.entity_id && !linked && <div className="text-xs text-destructive">not linked to user</div>}
+                      </TableCell>
                       <TableCell><Badge>{PORTAL_AREA_LABEL[row.portal_area]}</Badge></TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -348,10 +376,15 @@ export default function ExternalPortalAccessPage() {
                 <SelectContent className="max-h-72">
                   <SelectItem value="none">— No entity (pre-license) —</SelectItem>
                   {(licenseesQuery.data || []).map(l => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}{formUserId && !selectedLinkedEntityIds.has(l.id) ? ' · not linked' : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {formUserId && formEntityId !== 'none' && !selectedEntityIsLinked && (
+                <p className="text-xs text-destructive">Selected entity is not linked to this user.</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -369,15 +402,19 @@ export default function ExternalPortalAccessPage() {
             <div className="col-span-2 space-y-2 border rounded-md p-3">
               <Label className="text-sm font-semibold">Capabilities</Label>
               <div className="grid grid-cols-2 gap-3">
-                {CAPS.map(cap => (
+                {CAPS.map(cap => {
+                  const enabledForArea = allowedCaps.includes(cap);
+                  return (
                   <div key={cap} className="flex items-center justify-between gap-2">
-                    <span className="text-sm">{CAPABILITY_LABEL[cap]}</span>
+                    <span className={enabledForArea ? 'text-sm' : 'text-sm text-muted-foreground'}>{CAPABILITY_LABEL[cap]}</span>
                     <Switch
-                      checked={formCaps[cap]}
+                      checked={enabledForArea && formCaps[cap]}
+                      disabled={!enabledForArea}
                       onCheckedChange={(v) => setFormCaps(prev => ({ ...prev, [cap]: v }))}
                     />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
