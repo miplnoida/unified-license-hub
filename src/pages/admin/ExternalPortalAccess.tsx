@@ -278,6 +278,16 @@ export default function ExternalPortalAccessPage() {
         actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Grant Access</Button>}
       />
 
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Portal capabilities only — not admin access</AlertTitle>
+        <AlertDescription>
+          This does not grant admin panel access. It only controls what an external user (applicant, pre-licensee or licensee)
+          can do for their own linked entity — submitting applications, uploading documents, filing returns, etc.
+          Internal employee/admin permissions are managed under Role Management.
+        </AlertDescription>
+      </Alert>
+
       <Card>
         <CardContent className="p-4 space-y-4">
           <div className="relative max-w-md">
