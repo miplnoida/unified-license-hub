@@ -199,7 +199,6 @@ export default function ComplianceAuditLogs() {
         <PageHeader
           title="Audit Logs"
           description="Immutable, tamper-proof legal evidence log. All entries are permanently retained and read-only."
-          icon={<ShieldCheck className="h-6 w-6" />}
         />
 
         <Tabs value={tab} onValueChange={setTab}>

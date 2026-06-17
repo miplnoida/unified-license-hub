@@ -1,9 +1,22 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
+import { logSecurityEvent, logComplianceAudit } from '@/lib/complianceAudit';
 
 export function AccessDenied({ message }: { message?: string }) {
+  const location = useLocation();
+  useEffect(() => {
+    // Fire-and-forget: log access denial both as a security event and in the compliance audit log.
+    logSecurityEvent('ACCESS_DENIED', { target_resource: location.pathname, detail: { message } });
+    logComplianceAudit({
+      action_type: 'ACCESS_DENIED',
+      object_type: 'route',
+      object_id: location.pathname,
+      after_value: { message: message ?? null },
+    });
+  }, [location.pathname, message]);
   return (
     <DashboardLayout>
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
