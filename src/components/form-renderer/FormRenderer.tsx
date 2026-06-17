@@ -834,7 +834,8 @@ export function FormRenderer({
                     if (e.target) e.target.value = '';
                   }}
                   className="flex-1"
-                  disabled={isUploading}
+                  disabled={isUploading || !capUploadAllowed}
+                  title={!capUploadAllowed ? "You don't have permission to upload documents in this portal" : undefined}
                 />
                 {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
