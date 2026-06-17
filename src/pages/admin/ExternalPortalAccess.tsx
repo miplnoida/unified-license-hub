@@ -463,6 +463,7 @@ export default function ExternalPortalAccessPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
