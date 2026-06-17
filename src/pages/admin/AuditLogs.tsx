@@ -138,8 +138,8 @@ export default function AuditLogs() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ScrollText className="h-6 w-6 text-primary" />
-            Audit Logs
+            <Activity className="h-6 w-6 text-primary" />
+            Activity Logs
           </h1>
           <p className="text-muted-foreground">Searchable history of recorded platform actions.</p>
         </div>
