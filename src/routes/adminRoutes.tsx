@@ -27,6 +27,7 @@ const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFor
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
+const SlaManager = lazy(() => import('@/pages/admin/SlaManager'));
 
 // Returns Management - Admin
 const ReturnTypesPage = lazy(() => import('@/pages/admin/returns/ReturnTypesPage'));
