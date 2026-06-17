@@ -399,6 +399,17 @@ async function resolveRecipients(
           if (v) out.add(String(v));
           break;
         }
+        case "sla_process_team_leads": {
+          const pt = ctx.payload?.process_type;
+          if (pt) {
+            const { data } = await admin
+              .from("sla_process_team_leads")
+              .select("user_id")
+              .eq("process_type", String(pt));
+            (data || []).forEach((r: any) => r.user_id && out.add(String(r.user_id)));
+          }
+          break;
+        }
         case "direct_email": {
           const email = typeof rule.email === "string" ? rule.email.trim().toLowerCase() : "";
           if (email) out.add(`email:${email}`);
