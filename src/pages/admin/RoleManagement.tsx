@@ -89,11 +89,31 @@ export default function RoleManagement() {
   const { data: permissions = [] } = usePermissions();
   const { data: allRolePerms = [] } = useAllRolePermissions();
   const { data: userCounts = {} } = useRoleUserCounts();
+  const { data: catModules = [] } = useCatalogModules();
+  const { data: catActions = [] } = useCatalogActions();
+  const { data: catRoutes = [] } = useCatalogRoutes();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
 
-  const moduleEntries = useMemo(() => getAllModuleEntries(), []);
+  /** Build module entries dynamically from the DB catalog (modules + actions + routes). */
+  const moduleEntries = useMemo<DynamicModuleEntry[]>(() => {
+    return catModules.map(m => {
+      const acts = catActions.filter(a => a.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
+      const rts = catRoutes.filter(r => r.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
+      const actionLabels: Record<string, string> = {};
+      for (const a of acts) actionLabels[a.key] = a.label;
+      return {
+        module: m.key,
+        label: m.label,
+        description: m.description || '',
+        actions: acts.map(a => a.key),
+        actionLabels,
+        menus: rts.map(r => r.menu_label || r.route_prefix),
+        routes: rts.map(r => r.route_prefix),
+      };
+    });
+  }, [catModules, catActions, catRoutes]);
 
   /** Index permissions by module → action → row (id, name). */
   const permissionsByModule = useMemo(() => {
@@ -142,11 +162,11 @@ export default function RoleManagement() {
     }
   };
 
-  /** Selected actions per module — used for validation + effect preview. */
+  /** Selected action keys per module. */
   const selectedByModule = useMemo(() => {
-    const result: Record<string, PermissionAction[]> = {};
+    const result: Record<string, string[]> = {};
     for (const entry of moduleEntries) {
-      const actions: PermissionAction[] = [];
+      const actions: string[] = [];
       for (const action of entry.actions) {
         const perm = permissionsByModule[entry.module]?.[action];
         if (perm && formPerms.includes(perm.id)) actions.push(action);
@@ -159,7 +179,12 @@ export default function RoleManagement() {
   const validationWarnings = useMemo(() => {
     const all: string[] = [];
     for (const entry of moduleEntries) {
-      all.push(...validateModuleSelection(entry.module, selectedByModule[entry.module] || []));
+      const sel = selectedByModule[entry.module] || [];
+      const hasView = sel.includes('view');
+      const others = sel.filter(a => a !== 'view');
+      if (others.length > 0 && !hasView && entry.actions.includes('view')) {
+        all.push(`${entry.label}: "View" is recommended when ${others.join(', ')} ${others.length === 1 ? 'is' : 'are'} selected.`);
+      }
     }
     return all;
   }, [moduleEntries, selectedByModule]);
