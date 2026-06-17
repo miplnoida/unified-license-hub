@@ -136,6 +136,19 @@ export default function MasterDataManagement() {
     } catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
   const handleDeleteItem = async (id: string) => {
+    const it = items.find(x => x.id === id);
+    const childCount = it ? items.filter(i => i.parent_item_id === id).length : 0;
+    const res = await Swal.fire({
+      title: 'Delete master data item?',
+      html: `<div style="text-align:left">You are about to permanently delete <b>${it?.name ?? 'this item'}</b>.${childCount ? `<br/><br/>This item has <b>${childCount}</b> child item(s) which may also be affected.` : ''}<br/><br/>This action cannot be undone.</div>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'hsl(0 84% 60%)',
+      focusCancel: true,
+    });
+    if (!res.isConfirmed) return;
     try { await mutations.deleteItem.mutateAsync(id); toast({ title: 'Deleted' }); }
     catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
