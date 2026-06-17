@@ -66,6 +66,8 @@ interface Props {
   submissionId?: string | null;
   entityType?: string;
   entityId?: string | null;
+  /** External portal area for capability gating (Submit/Upload). Internal users bypass. */
+  portalArea?: import('@/lib/portalAccess').PortalArea;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
