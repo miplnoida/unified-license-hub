@@ -254,6 +254,21 @@ export default function RoleManagement() {
     return permissions.filter(p => !visible.has(p.id));
   }, [editTabs, permissions]);
 
+  /** Catalog health: permission is categorised if it appears under any tab
+   *  for either internal or external role types. */
+  const catalogHealth = useMemo(() => {
+    const categorised = new Set<string>();
+    for (const rt of ['internal', 'external'] as RoleType[]) {
+      const tabs = buildTabbedPermissions(rt);
+      for (const t of tabs) for (const m of t.modules)
+        for (const p of m.perms) categorised.add(p.permission.id);
+    }
+    const total = permissions.length;
+    const categorisedCount = permissions.filter(p => categorised.has(p.id)).length;
+    return { total, categorisedCount, uncategorisedCount: total - categorisedCount };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissions, moduleEntries, permissionsByModule, moduleLabelMap]);
+
   return (
     <DashboardLayout>
       <TooltipProvider delayDuration={150}>
