@@ -22,39 +22,42 @@ import {
 } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
-  Menu as MenuIcon, Route as RouteIcon, Info,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle, Info,
 } from 'lucide-react';
 
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import {
   useRoles, usePermissions, useAllRolePermissions, useRoleUserCounts,
-  useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission,
+  useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission, RoleType,
 } from '@/hooks/useRoles';
 import {
-  useCatalogModules, useCatalogActions, useCatalogRoutes,
+  useCatalogModules, useCatalogActions,
 } from '@/hooks/usePermissionCatalog';
 import PermissionCatalogTab from './PermissionCatalogTab';
-import type { PermissionModule } from '@/lib/permissionModules';
+import {
+  getTabsForRoleType, matchesTab, ROLE_TYPE_LABELS, type PermissionTab,
+} from '@/lib/permissionTabs';
 
 /**
- * Role Management — unified RBAC.
- * Manages dynamic roles + module permissions for ALL users (internal staff and
- * external portal users). System roles like Applicant and Regulated Entity User
- * are auto-assigned during registration/approval and can be edited here.
+ * Role Management — unified RBAC with role-type-aware permission tabs.
+ * One roles table, one permissions table. Tab grouping is pure UI filtering
+ * so external portal users (Applicant, Regulated Entity User) only see
+ * submitter-facing permissions while internal staff see review/approval ones.
  */
 
-interface DynamicModuleEntry {
+interface ModuleEntry {
   module: string;
   label: string;
   description: string;
-  actions: string[];
+  actions: { key: string; label: string }[];
   actionLabels: Record<string, string>;
-  menus: string[];
-  routes: string[];
 }
 
+type AssignedFilter = 'all' | 'assigned' | 'unassigned';
 
 export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,7 +66,11 @@ export default function RoleManagement() {
   const [editingRole, setEditingRole] = useState<DynamicRole | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
+  const [formRoleType, setFormRoleType] = useState<RoleType>('internal');
   const [formPerms, setFormPerms] = useState<string[]>([]);
+  const [permSearch, setPermSearch] = useState('');
+  const [assignedFilter, setAssignedFilter] = useState<AssignedFilter>('all');
+  const [activeTabKey, setActiveTabKey] = useState<string>('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
@@ -72,31 +79,29 @@ export default function RoleManagement() {
   const { data: userCounts = {} } = useRoleUserCounts();
   const { data: catModules = [] } = useCatalogModules();
   const { data: catActions = [] } = useCatalogActions();
-  const { data: catRoutes = [] } = useCatalogRoutes();
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
 
-  /** Build module entries dynamically from the DB catalog (modules + actions + routes). */
-  const moduleEntries = useMemo<DynamicModuleEntry[]>(() => {
+  /** Module entries derived from DB catalog. */
+  const moduleEntries = useMemo<ModuleEntry[]>(() => {
     return catModules.map(m => {
-      const acts = catActions.filter(a => a.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
-      const rts = catRoutes.filter(r => r.module_id === m.id).sort((x, y) => x.sort_order - y.sort_order);
+      const acts = catActions
+        .filter(a => a.module_id === m.id)
+        .sort((x, y) => x.sort_order - y.sort_order);
       const actionLabels: Record<string, string> = {};
       for (const a of acts) actionLabels[a.key] = a.label;
       return {
         module: m.key,
         label: m.label,
         description: m.description || '',
-        actions: acts.map(a => a.key),
+        actions: acts.map(a => ({ key: a.key, label: a.label })),
         actionLabels,
-        menus: rts.map(r => r.menu_label || r.route_prefix),
-        routes: rts.map(r => r.route_prefix),
       };
     });
-  }, [catModules, catActions, catRoutes]);
+  }, [catModules, catActions]);
 
-  /** Index permissions by module → action → row (id, name). */
+  /** Lookup: module -> action -> Permission row. */
   const permissionsByModule = useMemo(() => {
     const map: Record<string, Record<string, Permission>> = {};
     for (const p of permissions) {
@@ -105,6 +110,12 @@ export default function RoleManagement() {
     }
     return map;
   }, [permissions]);
+
+  const moduleLabelMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const e of moduleEntries) m[e.module] = e.label;
+    return m;
+  }, [moduleEntries]);
 
   const getPermIdsForRole = (roleId: string) =>
     allRolePerms.filter(rp => rp.role_id === roleId).map(rp => rp.permission_id);
@@ -117,6 +128,9 @@ export default function RoleManagement() {
   const openCreateDialog = () => {
     setEditingRole(null);
     setFormName(''); setFormDesc(''); setFormPerms([]);
+    setFormRoleType('internal');
+    setPermSearch(''); setAssignedFilter('all');
+    setActiveTabKey('');
     setDialogOpen(true);
   };
 
@@ -125,7 +139,10 @@ export default function RoleManagement() {
     setEditingRole(role);
     setFormName(role.name);
     setFormDesc(role.description || '');
+    setFormRoleType((role.role_type || 'internal') as RoleType);
     setFormPerms(getPermIdsForRole(role.id));
+    setPermSearch(''); setAssignedFilter('all');
+    setActiveTabKey('');
     setDialogOpen(true);
   };
 
@@ -133,53 +150,60 @@ export default function RoleManagement() {
     setFormPerms(prev => prev.includes(permId) ? prev.filter(p => p !== permId) : [...prev, permId]);
   };
 
-  const toggleModule = (module: PermissionModule) => {
-    const modulePermIds = Object.values(permissionsByModule[module] || {}).map(p => p.id);
-    const allSelected = modulePermIds.every(id => formPerms.includes(id));
-    if (allSelected) {
-      setFormPerms(prev => prev.filter(id => !modulePermIds.includes(id)));
-    } else {
-      setFormPerms(prev => [...new Set([...prev, ...modulePermIds])]);
-    }
+  /**
+   * Build the {tab -> module -> [permissions]} structure for a given role type.
+   * Uses moduleEntries (catalog) when available, falling back to permissions
+   * table for actions that aren't in the catalog yet.
+   */
+  const buildTabbedPermissions = (roleType: RoleType): Array<{
+    tab: PermissionTab;
+    modules: Array<{
+      moduleKey: string;
+      moduleLabel: string;
+      perms: Array<{ permission: Permission; label: string }>;
+    }>;
+  }> => {
+    const tabs = getTabsForRoleType(roleType);
+    return tabs.map(tab => {
+      const modules = tab.modules.map(moduleKey => {
+        const entry = moduleEntries.find(e => e.module === moduleKey);
+        // Candidate actions: from catalog if available, else from permissions table
+        const candidateActions: { key: string; label: string }[] = entry
+          ? entry.actions
+          : Object.keys(permissionsByModule[moduleKey] || {}).map(k => ({ key: k, label: k }));
+
+        const perms = candidateActions
+          .filter(a => matchesTab(tab, moduleKey, a.key))
+          .map(a => {
+            const permission = permissionsByModule[moduleKey]?.[a.key];
+            return permission ? { permission, label: a.label } : null;
+          })
+          .filter((x): x is { permission: Permission; label: string } => x !== null);
+
+        return {
+          moduleKey,
+          moduleLabel: entry?.label || moduleLabelMap[moduleKey] || moduleKey,
+          perms,
+        };
+      }).filter(m => m.perms.length > 0);
+
+      return { tab, modules };
+    });
   };
 
-  /** Selected action keys per module. */
-  const selectedByModule = useMemo(() => {
-    const result: Record<string, string[]> = {};
-    for (const entry of moduleEntries) {
-      const actions: string[] = [];
-      for (const action of entry.actions) {
-        const perm = permissionsByModule[entry.module]?.[action];
-        if (perm && formPerms.includes(perm.id)) actions.push(action);
-      }
-      result[entry.module] = actions;
-    }
-    return result;
-  }, [formPerms, moduleEntries, permissionsByModule]);
+  const editTabs = useMemo(() => buildTabbedPermissions(formRoleType),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [formRoleType, moduleEntries, permissionsByModule, moduleLabelMap]);
 
-  const validationWarnings = useMemo(() => {
-    const all: string[] = [];
-    for (const entry of moduleEntries) {
-      const sel = selectedByModule[entry.module] || [];
-      const hasView = sel.includes('view');
-      const others = sel.filter(a => a !== 'view');
-      if (others.length > 0 && !hasView && entry.actions.includes('view')) {
-        all.push(`${entry.label}: "View" is recommended when ${others.join(', ')} ${others.length === 1 ? 'is' : 'are'} selected.`);
-      }
+  // Pick the first available tab when role type changes
+  useMemo(() => {
+    if (!dialogOpen) return;
+    const firstKey = editTabs.find(t => t.modules.length > 0)?.tab.key || editTabs[0]?.tab.key || '';
+    if (!activeTabKey || !editTabs.some(t => t.tab.key === activeTabKey)) {
+      setActiveTabKey(firstKey);
     }
-    return all;
-  }, [moduleEntries, selectedByModule]);
-
-  const effectPreview = useMemo(() => {
-    const menus = new Set<string>();
-    const routes = new Set<string>();
-    for (const entry of moduleEntries) {
-      if ((selectedByModule[entry.module] || []).length === 0) continue;
-      entry.menus.forEach(m => menus.add(m));
-      entry.routes.forEach(r => routes.add(r));
-    }
-    return { menus: [...menus], routes: [...routes] };
-  }, [moduleEntries, selectedByModule]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialogOpen, formRoleType, editTabs.length]);
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Role name is required'); return; }
@@ -187,9 +211,9 @@ export default function RoleManagement() {
       toast.error('Select at least one permission — a role with no permissions grants no access.');
       return;
     }
-
     const payload = {
-      name: formName, description: formDesc, system_role: 'analyst', permissionIds: formPerms,
+      name: formName, description: formDesc, system_role: 'analyst',
+      role_type: formRoleType, permissionIds: formPerms,
     };
     if (editingRole) {
       await updateRole.mutateAsync({ id: editingRole.id, ...payload });
@@ -208,465 +232,477 @@ export default function RoleManagement() {
 
   const selectedRolePerms = selectedRole ? getPermIdsForRole(selectedRole.id) : [];
 
-  /** Compute effect preview for the currently *selected* (read-only) role card. */
-  const selectedRoleEffect = useMemo(() => {
-    if (!selectedRole) return { menus: [], routes: [], modules: [] as string[] };
-    const menus = new Set<string>();
-    const routes = new Set<string>();
-    const modules = new Set<string>();
-    for (const entry of moduleEntries) {
-      const hasAny = entry.actions.some(a => {
-        const perm = permissionsByModule[entry.module]?.[a];
-        return perm && selectedRolePerms.includes(perm.id);
-      });
-      if (!hasAny) continue;
-      modules.add(entry.label);
-      entry.menus.forEach(m => menus.add(m));
-      entry.routes.forEach(r => routes.add(r));
-    }
-    return { menus: [...menus], routes: [...routes], modules: [...modules] };
-  }, [selectedRole, selectedRolePerms, moduleEntries, permissionsByModule]);
+  const detailTabs = useMemo(() => {
+    if (!selectedRole) return [] as ReturnType<typeof buildTabbedPermissions>;
+    return buildTabbedPermissions((selectedRole.role_type || 'internal') as RoleType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRole, moduleEntries, permissionsByModule, moduleLabelMap]);
+
+  /** Permissions on the selected role that don't appear under any visible tab. */
+  const detailOrphanPerms = useMemo(() => {
+    if (!selectedRole) return [] as Permission[];
+    const visible = new Set<string>();
+    for (const t of detailTabs) for (const m of t.modules)
+      for (const p of m.perms) visible.add(p.permission.id);
+    return permissions.filter(p => selectedRolePerms.includes(p.id) && !visible.has(p.id));
+  }, [selectedRole, selectedRolePerms, detailTabs, permissions]);
+
+  const editOrphanPerms = useMemo(() => {
+    const visible = new Set<string>();
+    for (const t of editTabs) for (const m of t.modules)
+      for (const p of m.perms) visible.add(p.permission.id);
+    return permissions.filter(p => !visible.has(p.id));
+  }, [editTabs, permissions]);
 
   return (
     <DashboardLayout>
       <TooltipProvider delayDuration={150}>
-      <div className="space-y-8">
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Unified roles &amp; permissions</AlertTitle>
-          <AlertDescription>
-            One framework covers internal staff and external portal users. Applicants and Regulated Entity Users
-            are auto-assigned during registration / licence approval — edit the system roles below to change
-            what those users can do.
-          </AlertDescription>
-        </Alert>
+        <div className="space-y-8">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>Unified roles &amp; permissions</AlertTitle>
+            <AlertDescription>
+              One framework covers internal regulatory staff and external portal users.
+              Choose <strong>Role Type</strong> when editing — the permission list filters to
+              only show actions relevant to that audience.
+            </AlertDescription>
+          </Alert>
 
-        <div className="flex items-start justify-between animate-slide-up">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Role Management</h1>
-            <p className="mt-1 text-muted-foreground">
-              Manage the permission catalog (modules, sub-modules, actions, routes) and the roles that grant them.
-            </p>
-          </div>
-        </div>
-
-        <Tabs defaultValue="roles" className="w-full">
-          <TabsList>
-            <TabsTrigger value="roles">Roles</TabsTrigger>
-            <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="catalog" className="pt-6">
-            <PermissionCatalogTab />
-          </TabsContent>
-
-          <TabsContent value="roles" className="pt-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search roles..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
-          </div>
-          <Button onClick={openCreateDialog}>
-            <Plus className="h-4 w-4 mr-2" />Create Role
-          </Button>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Roles</CardTitle>
-                <CardDescription>Click a role to view what it unlocks</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {rolesLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading roles...</div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Users</TableHead>
-                        <TableHead>Permissions</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRoles.map(role => (
-                        <TableRow
-                          key={role.id}
-                          className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-muted/50' : ''}`}
-                          onClick={() => setSelectedRole(role)}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                                <Shield className="h-4 w-4 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{role.name}</p>
-                                <p className="text-sm text-muted-foreground">{role.description}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span>{userCounts[role.id] || 0}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{getPermIdsForRole(role.id).length} permissions</Badge>
-                          </TableCell>
-                          <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                            <RowActionsMenu actions={[
-                              { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
-                              { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
-                            ]} />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {filteredRoles.length === 0 && (
-                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Role detail / audit panel */}
-          <div>
-            <Card className="sticky top-6">
-              <CardHeader>
-                <CardTitle className="text-lg">{selectedRole ? selectedRole.name : 'Role Details'}</CardTitle>
-                <CardDescription>{selectedRole ? selectedRole.description : 'Select a role to audit access'}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedRole ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{userCounts[selectedRole.id] || 0} users assigned</span>
-                    </div>
-                    {selectedRole.is_system && <Badge variant="secondary">System Role</Badge>}
-
-                    <div className="space-y-3 pt-4 border-t">
-                      <p className="text-sm font-medium text-muted-foreground">Permissions by module</p>
-                      {moduleEntries.map(entry => {
-                        const grantedActions = entry.actions.filter(a => {
-                          const perm = permissionsByModule[entry.module]?.[a];
-                          return perm && selectedRolePerms.includes(perm.id);
-                        });
-                        if (grantedActions.length === 0) return null;
-                        return (
-                          <div key={entry.module} className="rounded-md border p-3 space-y-2">
-                            <p className="text-sm font-semibold">{entry.label}</p>
-                            <div className="flex flex-wrap gap-1">
-                              {grantedActions.map(a => (
-                                <Badge key={a} variant="secondary" className="gap-1">
-                                  <CheckCircle className="h-3 w-3" />{entry.actionLabels[a] || a}
-                                </Badge>
-                              ))}
-                            </div>
-                            {entry.menus.length > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                <span className="font-medium">Menus:</span> {entry.menus.join(', ')}
-                              </div>
-                            )}
-                            {entry.routes.length > 0 && (
-                              <div className="text-xs text-muted-foreground break-all">
-                                <span className="font-medium">Routes:</span> {entry.routes.join(', ')}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {(() => {
-                        // Fallback: surface permissions that exist on the role but
-                        // aren't represented in the catalog (missing module or action).
-                        const catalogued = new Set<string>();
-                        for (const entry of moduleEntries) {
-                          for (const a of entry.actions) {
-                            const perm = permissionsByModule[entry.module]?.[a];
-                            if (perm) catalogued.add(perm.id);
-                          }
-                        }
-                        const orphan = permissions.filter(
-                          p => selectedRolePerms.includes(p.id) && !catalogued.has(p.id)
-                        );
-                        if (orphan.length === 0) return null;
-                        const byModule: Record<string, Permission[]> = {};
-                        for (const p of orphan) (byModule[p.module] ??= []).push(p);
-                        return Object.entries(byModule).map(([mod, perms]) => (
-                          <div key={`orphan-${mod}`} className="rounded-md border border-dashed p-3 space-y-2">
-                            <p className="text-sm font-semibold">
-                              {mod} <span className="text-xs font-normal text-muted-foreground">(uncatalogued)</span>
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {perms.map(p => (
-                                <Badge key={p.id} variant="outline" className="gap-1">
-                                  <CheckCircle className="h-3 w-3" />{p.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        ));
-                      })()}
-                      {selectedRolePerms.length === 0 && (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertTitle>No permissions assigned</AlertTitle>
-                          <AlertDescription>
-                            Users with this role will not see any admin/internal menu items or routes.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                    </div>
-
-                    {selectedRolePerms.length > 0 && (
-                      <div className="pt-3 border-t space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">Effective access</p>
-                        <div className="flex items-start gap-2 text-xs">
-                          <MenuIcon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground" />
-                          <span>{selectedRoleEffect.menus.length} menu items unlocked</span>
-                        </div>
-                        <div className="flex items-start gap-2 text-xs">
-                          <RouteIcon className="h-3.5 w-3.5 mt-0.5 text-muted-foreground" />
-                          <span>{selectedRoleEffect.routes.length} routes unlocked</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground italic pt-1">
-                          Changes apply on the user's next page load (permissions are cached for ~60s).
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Shield className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">Click on a role to view permissions</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Create / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
-            <DialogDescription>
-              Each module shows the menus &amp; routes it unlocks. Select actions per module — "View" is recommended whenever Create/Edit/Approve/Reject is chosen.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role Name <span className="text-destructive">*</span></Label>
-                <Input placeholder="e.g. Insurance Regulator" value={formName} onChange={e => setFormName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Input placeholder="Short description" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
-              </div>
+          <div className="flex items-start justify-between animate-slide-up">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Role Management</h1>
+              <p className="mt-1 text-muted-foreground">
+                Manage roles, role types, and the permissions they grant.
+              </p>
             </div>
-            {formDesc.length > 80 && (
-              <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} />
-            )}
+          </div>
 
-            <Separator />
+          <Tabs defaultValue="roles" className="w-full">
+            <TabsList>
+              <TabsTrigger value="roles">Roles</TabsTrigger>
+              <TabsTrigger value="catalog">Permission Catalog</TabsTrigger>
+            </TabsList>
 
-            {validationWarnings.length > 0 && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Check your selection</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc pl-5 space-y-1 text-sm">
-                    {validationWarnings.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
+            <TabsContent value="catalog" className="pt-6">
+              <PermissionCatalogTab />
+            </TabsContent>
 
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Permissions</Label>
+            <TabsContent value="roles" className="pt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="relative max-w-md flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Search roles..." value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                </div>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />Create Role
+                </Button>
+              </div>
 
-              {moduleEntries.map(entry => {
-                const modulePerms = entry.actions
-                  .map(a => permissionsByModule[entry.module]?.[a])
-                  .filter(Boolean) as Permission[];
-                const modulePermIds = modulePerms.map(p => p.id);
-                const checkedCount = modulePermIds.filter(id => formPerms.includes(id)).length;
-                const allChecked = modulePermIds.length > 0 && checkedCount === modulePermIds.length;
-                const someChecked = checkedCount > 0 && !allChecked;
+              <div className="grid lg:grid-cols-3 gap-6 animate-slide-up delay-200">
+                <div className="lg:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Roles</CardTitle>
+                      <CardDescription>Click a role to view what it unlocks</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {rolesLoading ? (
+                        <div className="text-center py-8 text-muted-foreground">Loading roles...</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Role</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Users</TableHead>
+                              <TableHead>Permissions</TableHead>
+                              <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredRoles.map(role => {
+                              const rt = (role.role_type || 'internal') as RoleType;
+                              return (
+                                <TableRow
+                                  key={role.id}
+                                  className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-muted/50' : ''}`}
+                                  onClick={() => setSelectedRole(role)}
+                                >
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                        <Shield className="h-4 w-4 text-primary" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium">{role.name}</p>
+                                        <p className="text-sm text-muted-foreground">{role.description}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={rt === 'external' ? 'outline' : 'secondary'}>
+                                      {rt === 'external' ? 'External' : 'Internal'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1">
+                                      <Users className="h-4 w-4 text-muted-foreground" />
+                                      <span>{userCounts[role.id] || 0}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="secondary">{getPermIdsForRole(role.id).length} permissions</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right" onClick={e => e.stopPropagation()}>
+                                    <RowActionsMenu actions={[
+                                      { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
+                                      { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
+                                    ]} />
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                            {filteredRoles.length === 0 && (
+                              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No roles found</TableCell></TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
 
-                return (
-                  <Card key={entry.module} className="overflow-hidden">
-                    <div className="flex items-start gap-3 px-4 py-3 bg-muted/50 border-b">
-                      <Checkbox
-                        className="mt-1"
-                        checked={allChecked}
-                        ref={el => { if (el) (el as any).indeterminate = someChecked; }}
-                        onCheckedChange={() => toggleModule(entry.module)}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold">{entry.label}</span>
-                          <Badge variant="secondary" className="text-xs">{checkedCount}/{modulePermIds.length}</Badge>
-                          <code className="text-[10px] text-muted-foreground">{entry.module}</code>
+                {/* Role detail panel */}
+                <div>
+                  <Card className="sticky top-6">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{selectedRole ? selectedRole.name : 'Role Details'}</CardTitle>
+                      <CardDescription>
+                        {selectedRole ? selectedRole.description : 'Select a role to audit access'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedRole ? (
+                        <div className="space-y-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={(selectedRole.role_type || 'internal') === 'external' ? 'outline' : 'secondary'}>
+                              Role Type: {ROLE_TYPE_LABELS[(selectedRole.role_type || 'internal') as RoleType]}
+                            </Badge>
+                            {selectedRole.is_system && <Badge variant="secondary">System Role</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{userCounts[selectedRole.id] || 0} users assigned</span>
+                          </div>
+
+                          <div className="space-y-3 pt-4 border-t">
+                            <p className="text-sm font-medium text-muted-foreground">Permissions</p>
+                            {detailTabs.map(({ tab, modules }) => {
+                              const grantedInTab: Array<{ moduleLabel: string; perms: string[] }> = [];
+                              for (const m of modules) {
+                                const granted = m.perms.filter(p => selectedRolePerms.includes(p.permission.id));
+                                if (granted.length > 0) {
+                                  grantedInTab.push({ moduleLabel: m.moduleLabel, perms: granted.map(g => g.label) });
+                                }
+                              }
+                              return (
+                                <div key={tab.key} className="rounded-md border p-3 space-y-2">
+                                  <p className="text-sm font-semibold">{tab.label}</p>
+                                  {grantedInTab.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic">No permissions</p>
+                                  ) : (
+                                    grantedInTab.map(g => (
+                                      <div key={g.moduleLabel} className="space-y-1">
+                                        <p className="text-xs font-medium text-muted-foreground">{g.moduleLabel}</p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {g.perms.map(label => (
+                                            <Badge key={label} variant="secondary" className="gap-1">
+                                              <CheckCircle className="h-3 w-3" />{label}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {detailOrphanPerms.length > 0 && (
+                              <div className="rounded-md border border-dashed p-3 space-y-2">
+                                <p className="text-sm font-semibold">
+                                  Other permissions
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground">(outside role-type tabs)</span>
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {detailOrphanPerms.map(p => (
+                                    <Badge key={p.id} variant="outline" className="gap-1">
+                                      <CheckCircle className="h-3 w-3" />{p.module}.{p.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {selectedRolePerms.length === 0 && (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>No permissions assigned</AlertTitle>
+                                <AlertDescription>
+                                  Users with this role will not see any menus or routes.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>
-                        <div className="mt-2 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                          {entry.menus.length > 0 && (
-                            <div className="flex items-start gap-1">
-                              <MenuIcon className="h-3 w-3 mt-0.5 shrink-0" />
-                              <span><span className="font-medium">Menus:</span> {entry.menus.join(', ')}</span>
-                            </div>
-                          )}
-                          {entry.routes.length > 0 && (
-                            <div className="flex items-start gap-1 break-all">
-                              <RouteIcon className="h-3 w-3 mt-0.5 shrink-0" />
-                              <span><span className="font-medium">Routes:</span> {entry.routes.join(', ')}</span>
-              {(() => {
-                const catalogued = new Set<string>();
-                for (const entry of moduleEntries) {
-                  for (const a of entry.actions) {
-                    const perm = permissionsByModule[entry.module]?.[a];
-                    if (perm) catalogued.add(perm.id);
-                  }
-                }
-                const orphan = permissions.filter(p => !catalogued.has(p.id));
-                if (orphan.length === 0) return null;
-                const byModule: Record<string, Permission[]> = {};
-                for (const p of orphan) (byModule[p.module] ??= []).push(p);
-                return (
+                      ) : (
+                        <div className="text-center py-8">
+                          <Shield className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">Click on a role to view permissions</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Create / Edit Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+              <DialogDescription>
+                Choose a Role Type, then pick permissions grouped by tab. Only permissions
+                relevant to the selected audience are shown.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Role Name <span className="text-destructive">*</span></Label>
+                  <Input placeholder="e.g. Insurance Regulator" value={formName}
+                    onChange={e => setFormName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Input placeholder="Short description" value={formDesc}
+                    onChange={e => setFormDesc(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Role Type <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formRoleType}
+                    onValueChange={(v) => setFormRoleType(v as RoleType)}
+                    disabled={!!editingRole?.is_system}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="internal">Internal Regulatory User</SelectItem>
+                      <SelectItem value="external">External Portal User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {editingRole?.is_system && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Role type is locked for system roles.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {formDesc.length > 80 && (
+                <Textarea value={formDesc} onChange={e => setFormDesc(e.target.value)} />
+              )}
+
+              <Separator />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <Label className="text-base font-semibold">Permissions</Label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Search permissions"
+                        value={permSearch}
+                        onChange={e => setPermSearch(e.target.value)}
+                        className="pl-7 h-8 w-56"
+                      />
+                    </div>
+                    <Select value={assignedFilter} onValueChange={(v) => setAssignedFilter(v as AssignedFilter)}>
+                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="assigned">Assigned</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Tabs value={activeTabKey} onValueChange={setActiveTabKey} className="w-full">
+                  <TabsList className="flex flex-wrap h-auto">
+                    {editTabs.map(({ tab, modules }) => {
+                      const totalPerms = modules.reduce((s, m) => s + m.perms.length, 0);
+                      const assigned = modules.reduce(
+                        (s, m) => s + m.perms.filter(p => formPerms.includes(p.permission.id)).length, 0,
+                      );
+                      return (
+                        <TabsTrigger key={tab.key} value={tab.key} className="gap-2">
+                          {tab.label}
+                          <Badge variant="secondary" className="text-[10px]">
+                            {assigned}/{totalPerms}
+                          </Badge>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+
+                  {editTabs.map(({ tab, modules }) => {
+                    const search = permSearch.trim().toLowerCase();
+                    return (
+                      <TabsContent key={tab.key} value={tab.key} className="space-y-3 pt-4">
+                        {modules.length === 0 && (
+                          <p className="text-sm text-muted-foreground italic py-6 text-center">
+                            No permissions available for this tab.
+                          </p>
+                        )}
+                        {modules.map(m => {
+                          const filteredPerms = m.perms.filter(({ permission, label }) => {
+                            if (search && !label.toLowerCase().includes(search) &&
+                                !permission.name.toLowerCase().includes(search)) return false;
+                            const isAssigned = formPerms.includes(permission.id);
+                            if (assignedFilter === 'assigned' && !isAssigned) return false;
+                            if (assignedFilter === 'unassigned' && isAssigned) return false;
+                            return true;
+                          });
+                          if (filteredPerms.length === 0) return null;
+                          const allChecked = filteredPerms.every(p => formPerms.includes(p.permission.id));
+                          const someChecked = filteredPerms.some(p => formPerms.includes(p.permission.id)) && !allChecked;
+                          const toggleAll = () => {
+                            const ids = filteredPerms.map(p => p.permission.id);
+                            if (allChecked) {
+                              setFormPerms(prev => prev.filter(id => !ids.includes(id)));
+                            } else {
+                              setFormPerms(prev => [...new Set([...prev, ...ids])]);
+                            }
+                          };
+                          return (
+                            <Card key={m.moduleKey} className="overflow-hidden">
+                              <div className="flex items-start gap-3 px-4 py-2 bg-muted/50 border-b">
+                                <Checkbox
+                                  className="mt-1"
+                                  checked={allChecked}
+                                  ref={el => { if (el) (el as any).indeterminate = someChecked; }}
+                                  onCheckedChange={toggleAll}
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold">{m.moduleLabel}</span>
+                                    <code className="text-[10px] text-muted-foreground">{m.moduleKey}</code>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+                                {filteredPerms.map(({ permission, label }) => (
+                                  <div key={permission.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`perm-${permission.id}`}
+                                      checked={formPerms.includes(permission.id)}
+                                      onCheckedChange={() => togglePerm(permission.id)}
+                                    />
+                                    <label
+                                      htmlFor={`perm-${permission.id}`}
+                                      className="text-sm cursor-pointer flex items-center gap-1"
+                                    >
+                                      {label}
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Info className="h-3 w-3 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          {permission.description || `${permission.module}.${permission.name}`}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+
+                {editOrphanPerms.length > 0 && (
                   <Card className="overflow-hidden border-dashed">
                     <div className="px-4 py-3 bg-muted/30 border-b">
-                      <p className="text-sm font-semibold">Uncatalogued permissions</p>
+                      <p className="text-sm font-semibold">Other permissions</p>
                       <p className="text-xs text-muted-foreground">
-                        These permissions exist in the system but aren't registered in the permission catalog yet.
-                        Add a matching module + action under "Permission Catalog" to surface them in their own group.
+                        Not categorised under the {ROLE_TYPE_LABELS[formRoleType]} tabs. Shown so legacy
+                        assignments are not silently dropped.
                       </p>
                     </div>
-                    {Object.entries(byModule).map(([mod, perms]) => (
-                      <div key={`orphan-edit-${mod}`} className="p-4 border-b last:border-b-0">
-                        <p className="text-xs font-medium mb-2"><code>{mod}</code></p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                          {perms.map(perm => (
-                            <div key={perm.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`perm-${perm.id}`}
-                                checked={formPerms.includes(perm.id)}
-                                onCheckedChange={() => togglePerm(perm.id)}
-                              />
-                              <label htmlFor={`perm-${perm.id}`} className="text-sm cursor-pointer">{perm.name}</label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </Card>
-                );
-              })()}
-            </div>
-
-                          )}
-                          {entry.menus.length === 0 && entry.routes.length === 0 && (
-                            <span className="italic">No menus mapped — used for feature-level checks only.</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4">
-                      {modulePerms.map(perm => (
-                        <div key={perm.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`perm-${perm.id}`}
-                            checked={formPerms.includes(perm.id)}
-                            onCheckedChange={() => togglePerm(perm.id)}
-                          />
-                          <label htmlFor={`perm-${perm.id}`} className="text-sm capitalize cursor-pointer flex items-center gap-1">
-                            {entry.actionLabels[perm.name] || perm.name}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                {perm.description || entry.actionLabels[perm.name] || perm.name}
-                              </TooltipContent>
-                            </Tooltip>
-                          </label>
-                        </div>
-                      ))}
+                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {editOrphanPerms
+                        .filter(p => {
+                          const search = permSearch.trim().toLowerCase();
+                          if (search && !p.name.toLowerCase().includes(search) &&
+                              !p.module.toLowerCase().includes(search)) return false;
+                          const isAssigned = formPerms.includes(p.id);
+                          if (assignedFilter === 'assigned' && !isAssigned) return false;
+                          if (assignedFilter === 'unassigned' && isAssigned) return false;
+                          return true;
+                        })
+                        .map(p => (
+                          <div key={p.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`perm-${p.id}`}
+                              checked={formPerms.includes(p.id)}
+                              onCheckedChange={() => togglePerm(p.id)}
+                            />
+                            <label htmlFor={`perm-${p.id}`} className="text-sm cursor-pointer">
+                              <code className="text-[11px]">{p.module}.{p.name}</code>
+                            </label>
+                          </div>
+                        ))}
                     </div>
                   </Card>
-                );
-              })}
+                )}
+              </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={createRole.isPending || updateRole.isPending}>
+                {(createRole.isPending || updateRole.isPending) ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-            {/* Effect preview */}
-            <Card className="border-primary/40 bg-primary/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" /> Effect preview
-                </CardTitle>
-                <CardDescription>What users with this role will see after their next page load.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div>
-                  <p className="font-medium mb-1">Menus unlocked ({effectPreview.menus.length})</p>
-                  {effectPreview.menus.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {effectPreview.menus.map(m => <Badge key={m} variant="secondary">{m}</Badge>)}
-                    </div>
-                  ) : <p className="text-muted-foreground text-xs italic">No menus — role grants no sidebar access.</p>}
-                </div>
-                <div>
-                  <p className="font-medium mb-1">Routes unlocked ({effectPreview.routes.length})</p>
-                  {effectPreview.routes.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {effectPreview.routes.map(r => <code key={r} className="text-[11px] bg-background border rounded px-1.5 py-0.5">{r}</code>)}
-                    </div>
-                  ) : <p className="text-muted-foreground text-xs italic">No routes — role grants no page access.</p>}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={createRole.isPending || updateRole.isPending}>
-              {(createRole.isPending || updateRole.isPending) ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" /> Delete Role
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This action cannot be undone. Users assigned to this role will need to be reassigned.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteRole.isPending}>
-              {deleteRole.isPending ? 'Deleting...' : 'Delete Role'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* Delete Confirmation */}
+        <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" /> Delete Role
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This action cannot be undone. Users assigned to this role will need to be reassigned.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteRole.isPending}>
+                {deleteRole.isPending ? 'Deleting...' : 'Delete Role'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TooltipProvider>
     </DashboardLayout>
   );
