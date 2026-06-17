@@ -30,6 +30,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
 import { isDisplayOnlyFieldType, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
+import { useIsInternal } from '@/hooks/useUserPermissions';
+import { submitCapabilityFor } from '@/lib/portalAreaForContext';
 
 // Returns Tailwind col-span class for a field's row width.
 // Default: full-width for content blocks (paragraph/heading/table/calculated), half-width otherwise.
