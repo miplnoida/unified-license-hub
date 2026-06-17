@@ -3330,6 +3330,7 @@ export type Database = {
       }
       permission_actions: {
         Row: {
+          audience: string
           created_at: string
           description: string | null
           id: string
@@ -3341,6 +3342,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -3352,6 +3354,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -3412,6 +3415,7 @@ export type Database = {
       }
       permission_modules: {
         Row: {
+          audience: string
           created_at: string
           description: string | null
           id: string
@@ -3423,6 +3427,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -3434,6 +3439,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -6017,6 +6023,7 @@ export type Database = {
           id: string
           is_system: boolean
           name: string
+          role_type: string
           system_role: string | null
           updated_at: string
         }
@@ -6026,6 +6033,7 @@ export type Database = {
           id?: string
           is_system?: boolean
           name: string
+          role_type?: string
           system_role?: string | null
           updated_at?: string
         }
@@ -6035,6 +6043,7 @@ export type Database = {
           id?: string
           is_system?: boolean
           name?: string
+          role_type?: string
           system_role?: string | null
           updated_at?: string
         }

@@ -2,12 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type RoleType = 'internal' | 'external';
+
 export interface DynamicRole {
   id: string;
   name: string;
   description: string | null;
   system_role: string;
   is_system: boolean;
+  role_type: RoleType;
   created_at: string;
   updated_at: string;
 }
@@ -83,10 +86,13 @@ export function useAllRolePermissions() {
 export function useCreateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description: string; system_role: string; permissionIds: string[] }) => {
+    mutationFn: async (input: { name: string; description: string; system_role: string; role_type: RoleType; permissionIds: string[] }) => {
       const { data: role, error } = await supabase
         .from('roles' as any)
-        .insert({ name: input.name, description: input.description, system_role: input.system_role, is_system: false })
+        .insert({
+          name: input.name, description: input.description,
+          system_role: input.system_role, role_type: input.role_type, is_system: false,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -110,10 +116,14 @@ export function useCreateRole() {
 export function useUpdateRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string; name: string; description: string; system_role: string; permissionIds: string[] }) => {
+    mutationFn: async (input: { id: string; name: string; description: string; system_role: string; role_type: RoleType; permissionIds: string[] }) => {
       const { error } = await supabase
         .from('roles' as any)
-        .update({ name: input.name, description: input.description, system_role: input.system_role, updated_at: new Date().toISOString() })
+        .update({
+          name: input.name, description: input.description,
+          system_role: input.system_role, role_type: input.role_type,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', input.id);
       if (error) throw error;
 
