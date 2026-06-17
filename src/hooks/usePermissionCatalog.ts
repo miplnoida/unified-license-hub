@@ -203,7 +203,7 @@ export const DECLARED_ROUTES: DeclaredRoute[] = [
   { route_prefix: '/admin/users', default_label: 'Employee Management' },
   { route_prefix: '/admin/web-users', default_label: 'Web Users' },
   { route_prefix: '/admin/employees', default_label: 'Employees' },
-  { route_prefix: '/admin/external-portal-access', default_label: 'External Portal Access' },
+  
   { route_prefix: '/admin/roles', default_label: 'Role Management' },
   { route_prefix: '/admin/licensees', default_label: 'Licensee Entities' },
   { route_prefix: '/admin/approved-licensees', default_label: 'Approved Licensees' },

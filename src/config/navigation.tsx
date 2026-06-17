@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, Shield, Users, Building2, FormInput, GitBranch,
   Bell, Settings, BarChart3, ClipboardList, AlertTriangle, FolderOpen,
-  UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
+  UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
   ClipboardEdit, Database,
@@ -59,14 +59,6 @@ export const mainNavSections: NavSection[] = [
     items: [
       { label: 'Employee Management', href: '/admin/users', icon: <Users className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
       { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'role_management' },
-    ],
-  },
-  {
-    // External User Access = entity-scoped portal capabilities for applicant / pre-licensee / licensee users.
-    // These users never receive internal module permissions.
-    label: 'External User Access',
-    items: [
-      { label: 'External Portal Access', href: '/admin/external-portal-access', icon: <KeyRound className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'user_management' },
     ],
   },
   {

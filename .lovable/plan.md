@@ -1,54 +1,84 @@
-## Scope
+# Unified RBAC: Single Permission Framework
 
-Tighten the External Portal Access admin page and make the role capabilities actually gate dynamic forms on the frontend. No changes to internal Role Management or other workflows.
+Replace the parallel "external portal access" system with the existing dynamic Role Management engine. All users (internal and external) get roles from one table, permissions from one catalog, and one runtime check.
 
-## 1. Admin UI — `src/pages/admin/ExternalPortalAccess.tsx`
+## Target Roles (seeded as system roles)
 
-- Remove the `Tabs` wrapper. Show only the **External Portal Roles** content (current `RolesTab`). Delete the `User Assignments` and `Effective Access` tabs and their helper components (`AssignmentsTab`, `EffectiveTab`) from this file. The underlying tables and hooks stay (used by registration/approval auto-assignment).
-- Replace every user-facing occurrence of "template" with "role":
-  - Page description, card title ("Role Templates" → "External Portal Roles"), dialog titles ("New role template" / "Edit role template" → "New role" / "Edit role"), delete confirm ("Delete role template?" → "Delete role?"), save button ("Create role" stays, "Save changes" stays).
-- Remove the **Applies to external roles** field entirely:
-  - Drop the checkbox group from the dialog.
-  - Drop the "Applies to" column from the table.
-  - Stop sending `applies_to_roles` from `upsertRole` payload in `useExternalPortalRoles` (keep the DB column, just always send `[]`).
+1. Applicant
+2. Regulated Entity User
+3. Licensing Officer
+4. Analyst
+5. Legal/Compliance Reviewer
+6. Approver/Decision-Maker
+7. Prudential Supervisor
+8. Market Conduct Supervisor
+9. Committee Member
+10. Executive Supervisor
+11. System Administrator
 
-## 2. Frontend capability enforcement — dynamic forms
+Auto-assignment:
+- Registration (pre-license) → Applicant
+- Approved licensee user (primary/secondary) → Regulated Entity User
+- Internal users → assigned by System Administrator via /admin/roles
 
-Currently `useExternalPortalAccess` exists but `FormRenderer` and submit/upload controls don't consult it. Wire it in so admin-toggled capabilities take effect live for external users (`applicant`, `pre_licensee`, `licensee_primary`, `licensee_secondary`). Internal users keep current behavior.
+## Permission Model
 
-- **Portal area resolution**: add a small helper `src/lib/portalAreaForContext.ts` exporting `resolvePortalArea(ctx)` that maps the active context to one of `licensing | returns | complaints | fp_declarations` (based on the form template's `module`/`type` or the calling component; default `licensing`).
-- **`FormRenderer`** (`src/components/form-renderer/FormRenderer.tsx`):
-  - Accept optional `portalArea?: PortalArea` and `entityId?: string | null` props (callers in `SubmittedForms`, `ReturnReviewPanel`, application forms, complaints, F&P forms pass the appropriate value; internal admin renders pass nothing → behaviour unchanged).
-  - Use `useExternalPortalAccess()` + `useIsInternal()`. For external users:
-    - If `!can(area, 'can_submit*' for that area)` → disable Submit button with tooltip "You don't have permission to submit in this portal".
-    - If `!can(area, 'can_upload_documents')` → disable all file/document inputs with tooltip.
-    - If `!can(area, 'can_view_status')` → hide status/workflow read-only banners inside the renderer.
-    - If `!can(area, 'can_respond_rfi')` (licensing/returns only) → hide RFI response controls.
-  - Internal users bypass all checks.
-- **Submit edge functions stay authoritative**: no server changes — capability already enforced by `has_portal_capability` RPC + RLS.
+One catalog (`permissions` table, existing). Permissions are `module.action` pairs, granular and object-level when combined with RLS. Examples:
 
-## 3. Hook tidy
+- `licensing.submit`, `licensing.view_status`, `licensing.upload_documents`, `licensing.respond_rfi`
+- `returns.submit`, `returns.view`, `returns.upload_documents`, `returns.respond_rfi`
+- `complaints.submit`, `complaints.view`, `complaints.upload_documents`
+- `fp_declarations.submit`, `fp_declarations.view`
+- existing internal modules untouched (`form_management`, `workflow_management`, etc.)
 
-- `useExternalPortalRoles.upsertRole`: drop `applies_to_roles` from the form-driven payload (always `[]`).
-- Keep `useExternalUserPortalRoles` intact (used by auto-assignment).
+Object-level scoping (which entity/application a user can see) stays in RLS — RBAC says *what action*, RLS says *which rows*.
 
-## 4. Verification (must pass before claiming done)
+## DB Migration
 
-- Seed dummy data via a one-off SQL script: insert a custom role `dummy_licensee_view_only` with only `can_view_status=true` on `licensing`, assign it to an existing test external user, log in as that user, confirm Submit + Upload are disabled in a licensing form, then toggle `can_submit=true` in the admin UI and confirm the Submit button enables on reload without a code change.
-- Run `bunx vitest run` + project build.
-- Open `/admin/external-portal-access` and confirm: no tabs, no "template" wording, no "Applies to" field, dialog saves successfully.
+1. Seed `permissions` with the new portal-area actions (idempotent insert).
+2. Seed/upsert the 11 system roles into `roles` (is_system=true) with their default permission sets via `role_permissions`.
+3. Backfill `user_dynamic_roles` for existing external users:
+   - pre_license_users + applicants → "Applicant" role
+   - licensee_primary / licensee_secondary profiles → "Regulated Entity User" role
+4. Update `seed_external_portal_defaults` (and the two edge functions that call it) to insert into `user_dynamic_roles` instead of `external_portal_access`.
+5. Drop dependencies on the legacy tables:
+   - `external_portal_access`
+   - `external_portal_roles`
+   - `external_portal_role_capabilities`
+   - `external_user_portal_roles`
+   - function `has_portal_capability`
+   Tables are dropped after backfill in the same migration.
 
-## Files touched
+## Frontend Changes
 
-- `src/pages/admin/ExternalPortalAccess.tsx` (remove tabs, rename, drop applies_to field)
-- `src/hooks/useExternalPortalRoles.ts` (always send `applies_to_roles: []`)
-- `src/lib/portalAreaForContext.ts` (new)
-- `src/components/form-renderer/FormRenderer.tsx` (capability gating)
-- Callers passing `portalArea` to `FormRenderer`: `SubmittedForms.tsx`, `ReturnReviewPanel.tsx`, and the registration/complaints/F&P form entry points
-- `scripts/external-portal-access-smoke.sql` (extend with dummy role + assignment for verification)
+- `src/types/platform.ts`: keep `AppRole` (system role grouping) but treat the dynamic role as the source of truth for permissions. Add `regulated_entity_user` mapping for licensee_primary/secondary at the display layer only.
+- `src/hooks/useUserDynamicPermissions`: already the single check engine — extend `enforceDynamic` so it also applies to external users (currently only `super_admin` bypass + internal admins). All users with at least one dynamic role get gated by permissions.
+- `FormRenderer.tsx`: replace `useExternalPortalAccess` / `submitCapabilityFor` with `hasPermission('licensing','submit')` etc., parameterised by `portalArea`.
+- `SubmittedForms.tsx`, `LicenseeDashboard.tsx`, `ApplicantDashboard.tsx`: swap `can(...)` calls for `hasPermission(...)`.
+- Delete:
+  - `src/pages/admin/ExternalPortalAccess.tsx`
+  - `src/hooks/useExternalPortalAccess.ts`
+  - `src/hooks/useExternalPortalRoles.ts`
+  - `src/hooks/useExternalUserPortalRoles.ts`
+  - `src/lib/externalPortalRoles.ts`
+  - `src/lib/portalAccess.ts`
+  - `src/lib/portalAreaForContext.ts`
+  - route `/admin/external-portal-access` and its sidebar/Admin Hub entry
+- `RoleManagement` page: surface the new portal modules in its existing module-grouped permission picker so admins can edit them like any other permission.
 
-## Out of scope
+## Route & Menu Gating
 
-- Internal Role Management page
-- DB schema (columns kept for compatibility)
-- Auto-assignment flow in `register-pre-licensee` / `approve-pre-licensee`
+No change to the engine — `ModuleRoute` + `getModuleForPath` already drives both sidebar visibility and route access via `hasModuleAccess`. New portal modules (`licensing`, `returns`, `complaints`, `fp_declarations`) join the existing `ROUTE_MODULE_MAP` for the licensee/applicant portal paths.
+
+## Verification
+
+- `bunx vitest run` (RouteGuards, registrationApprovalGate, workflow tests).
+- Manual: log in as a backfilled licensee_primary, confirm Submit/Upload still work on a licensing form, and that disabling the `licensing.submit` permission on the "Regulated Entity User" role disables Submit live (no code change).
+- Manual: register a new applicant; confirm the "Applicant" role is auto-assigned and they reach the application form.
+- `supabase--linter` after migration; fix any RLS warnings introduced.
+
+## Out of Scope
+
+- Restructuring RLS policies on business tables (kept as-is; they already isolate by user/entity).
+- Internal Role Management UI redesign (additive only — same UI, more modules visible).
+- Workflow/notification engine changes.
