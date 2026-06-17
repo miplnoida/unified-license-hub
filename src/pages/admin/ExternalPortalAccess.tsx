@@ -272,10 +272,13 @@ export default function ExternalPortalAccessPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <DashboardLayout>
+      <div className="space-y-6">
       <PageHeader
         title="External Portal Access"
         description="Manage entity-scoped portal capabilities for applicants, pre-licensees and licensee users. Separate from internal employee module permissions."
+        backHref="/admin/roles"
+        backLabel="Back"
         actions={<Button onClick={openAdd}><Plus className="h-4 w-4 mr-2" />Grant Access</Button>}
       />
 
