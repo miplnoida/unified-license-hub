@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplicantMetrics } from '@/hooks/useApplicantMetrics';
+import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
@@ -15,7 +16,10 @@ const fmtMoney = (v: number) =>
 
 export function ApplicantDashboard() {
   const { user } = useAuth();
+  const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useApplicantMetrics(user?.id);
+  const canUseLicensing = portalAccess.hasAreaAccess('licensing') && portalAccess.can('licensing', 'can_view_status');
+  const canStartApplication = portalAccess.can('licensing', 'can_submit');
 
   const actionRequired =
     (data?.applications.clarification_requested ?? 0) +
@@ -36,47 +40,11 @@ export function ApplicantDashboard() {
     <div className="space-y-6">
       {/* Top metric strip — applicant-relevant only */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetricCard
-          title="Drafts"
-          value={data?.applications.draft ?? 0}
-          icon={FileText}
-          tone="default"
-          loading={isLoading}
-          to="/applications?status=draft"
-        />
-        <MetricCard
-          title="Submitted"
-          value={data?.applications.submitted ?? 0}
-          icon={FileText}
-          tone="primary"
-          loading={isLoading}
-          to="/applications"
-        />
-        <MetricCard
-          title="Under review"
-          value={data?.applications.under_review ?? 0}
-          icon={Clock}
-          tone="warning"
-          loading={isLoading}
-          to="/applications"
-        />
-        <MetricCard
-          title="Approved"
-          value={data?.applications.approved ?? 0}
-          icon={CheckCircle2}
-          tone="success"
-          loading={isLoading}
-          to="/applications"
-        />
-        <MetricCard
-          title="Action required"
-          value={actionRequired}
-          icon={AlertCircle}
-          tone={actionRequired > 0 ? 'destructive' : 'muted'}
-          loading={isLoading}
-          to="/applications"
-          hint="Clarification or resubmission"
-        />
+        {canUseLicensing && <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to="/applications?status=draft" />}
+        {canUseLicensing && <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications" />}
+        {canUseLicensing && <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={Clock} tone="warning" loading={isLoading} to="/applications" />}
+        {canUseLicensing && <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={CheckCircle2} tone="success" loading={isLoading} to="/applications" />}
+        {canUseLicensing && <MetricCard title="Action required" value={actionRequired} icon={AlertCircle} tone={actionRequired > 0 ? 'destructive' : 'muted'} loading={isLoading} to="/applications" hint="Clarification or resubmission" />}
         <MetricCard
           title="Pending payment"
           value={data?.payments.outstanding_amount ?? 0}
@@ -89,7 +57,7 @@ export function ApplicantDashboard() {
       </div>
 
       {/* Primary CTA — directly under the metrics */}
-      <div className="rounded-lg border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {canStartApplication && <div className="rounded-lg border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <p className="font-medium text-sm">Start a new licence application</p>
           <p className="text-xs text-muted-foreground">
@@ -101,7 +69,7 @@ export function ApplicantDashboard() {
             <PlusCircle className="h-4 w-4 mr-1.5" /> New application
           </Link>
         </Button>
-      </div>
+      </div>}
 
       {/* Notifications strip */}
       {(data?.notifications.unread ?? 0) > 0 && (
@@ -126,7 +94,7 @@ export function ApplicantDashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatusBreakdownCard
+        {canUseLicensing && <StatusBreakdownCard
           title="My applications"
           loading={isLoading}
           items={[
@@ -138,8 +106,8 @@ export function ApplicantDashboard() {
             { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success' },
             { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive' },
           ]}
-        />
-        <PriorityListCard
+        />}
+        {canUseLicensing && <PriorityListCard
           title="Recent applications"
           loading={isLoading}
           viewAll={{ label: 'All', to: '/applications' }}
@@ -150,7 +118,7 @@ export function ApplicantDashboard() {
             badge: { label: a.status, tone: 'default' },
             to: `/applications/${a.id}`,
           }))}
-        />
+        />}
         <PriorityListCard
           title="Pending payments"
           loading={isLoading}

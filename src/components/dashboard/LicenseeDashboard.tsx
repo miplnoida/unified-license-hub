@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
+import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
@@ -17,7 +18,10 @@ const fmtMoney = (v: number) =>
 export function LicenseeDashboard() {
   const { user } = useAuth();
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
+  const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
+  const canViewLicensing = portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
+  const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -42,11 +46,11 @@ export function LicenseeDashboard() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <MetricCard title="Active licences" value={data?.licenses.active ?? 0} icon={Shield} tone="success" loading={isLoading} to={licenseeDrilldownTo('licensesActive')} />
-        <MetricCard title="Expiring ≤30d" value={data?.licenses.expiring_30d ?? 0} icon={AlertTriangle} tone="warning" loading={isLoading} to={licenseeDrilldownTo('licensesExpiring')} />
-        <MetricCard title="Returns due" value={data?.returns.due_soon ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to={licenseeDrilldownTo('returnsDueSoon')} />
-        <MetricCard title="Overdue returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="destructive" loading={isLoading} to={licenseeDrilldownTo('returnsOverdue')} />
-        <MetricCard title="Outstanding fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to={licenseeDrilldownTo('paymentsPending')} />
+        {canViewLicensing && <MetricCard title="Active licences" value={data?.licenses.active ?? 0} icon={Shield} tone="success" loading={isLoading} to={licenseeDrilldownTo('licensesActive')} />}
+        {canViewLicensing && <MetricCard title="Expiring ≤30d" value={data?.licenses.expiring_30d ?? 0} icon={AlertTriangle} tone="warning" loading={isLoading} to={licenseeDrilldownTo('licensesExpiring')} />}
+        {canViewReturns && <MetricCard title="Returns due" value={data?.returns.due_soon ?? 0} icon={ClipboardList} tone="warning" loading={isLoading} to={licenseeDrilldownTo('returnsDueSoon')} />}
+        {canViewReturns && <MetricCard title="Overdue returns" value={data?.returns.overdue ?? 0} icon={ClipboardList} tone="destructive" loading={isLoading} to={licenseeDrilldownTo('returnsOverdue')} />}
+        {canViewLicensing && <MetricCard title="Outstanding fees" value={data?.payments.outstanding_amount ?? 0} format={fmtMoney} icon={DollarSign} tone="warning" loading={isLoading} to={licenseeDrilldownTo('paymentsPending')} />}
         <MetricCard title="Unread notifications" value={data?.notifications.unread ?? 0} icon={Bell} tone="primary" loading={isLoading} to={licenseeDrilldownTo('notificationsUnread')} />
       </div>
 
@@ -57,7 +61,7 @@ export function LicenseeDashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatusBreakdownCard
+        {canViewLicensing && <StatusBreakdownCard
           title="My applications"
           loading={isLoading}
           items={[
@@ -66,8 +70,8 @@ export function LicenseeDashboard() {
             { label: 'Approved', value: data?.applications.approved ?? 0, tone: 'success', to: licenseeDrilldownTo('appsApproved') },
             { label: 'Rejected', value: data?.applications.rejected ?? 0, tone: 'destructive', to: licenseeDrilldownTo('appsRejected') },
           ]}
-        />
-        <StatusBreakdownCard
+        />}
+        {canViewReturns && <StatusBreakdownCard
           title="My returns"
           loading={isLoading}
           items={[
@@ -76,16 +80,16 @@ export function LicenseeDashboard() {
             { label: 'Submitted', value: data?.returns.submitted ?? 0, tone: 'success', to: licenseeDrilldownTo('returnsSubmitted') },
             { label: 'Pending review', value: data?.returns.pending_review ?? 0, tone: 'primary', to: licenseeDrilldownTo('returnsPendingReview') },
           ]}
-        />
-        <StatusBreakdownCard
+        />}
+        {canViewLicensing && <StatusBreakdownCard
           title="My payments"
           loading={isLoading}
           items={[
             { label: 'Pending', value: data?.payments.pending ?? 0, tone: 'warning', to: licenseeDrilldownTo('paymentsPending') },
             { label: 'Paid', value: data?.payments.paid ?? 0, tone: 'success', to: licenseeDrilldownTo('paymentsPaid') },
           ]}
-        />
-        <PriorityListCard
+        />}
+        {canViewReturns && <PriorityListCard
           title="Upcoming returns"
           loading={isLoading}
           viewAll={{ label: 'All', to: licenseeDrilldownTo('returnsDueSoon') }}
@@ -97,8 +101,8 @@ export function LicenseeDashboard() {
             badge: { label: r.status, tone: 'warning' },
             to: recordPath.return(r.id),
           }))}
-        />
-        <PriorityListCard
+        />}
+        {canViewLicensing && <PriorityListCard
           title="Expiring licences"
           loading={isLoading}
           viewAll={{ label: 'All', to: licenseeDrilldownTo('licensesExpiring') }}
@@ -110,8 +114,8 @@ export function LicenseeDashboard() {
             badge: { label: 'expiring', tone: 'warning' },
             to: recordPath.license(l.id),
           }))}
-        />
-        <PriorityListCard
+        />}
+        {canViewLicensing && <PriorityListCard
           title="Pending payments"
           loading={isLoading}
           viewAll={{ label: 'All', to: licenseeDrilldownTo('paymentsPending') }}
@@ -123,7 +127,7 @@ export function LicenseeDashboard() {
             badge: { label: p.status, tone: 'warning' },
             to: recordPath.payment(p.id),
           }))}
-        />
+        />}
       </div>
     </div>
   );
