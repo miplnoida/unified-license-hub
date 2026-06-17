@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Database, Upload, FileSpreadsheet } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -94,6 +95,19 @@ export default function MasterDataManagement() {
     } catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
   const handleDeleteType = async (id: string) => {
+    const t = types.find(x => x.id === id);
+    const itemCount = t ? items.filter(i => i.type_id === id).length : 0;
+    const res = await Swal.fire({
+      title: 'Delete master data type?',
+      html: `<div style="text-align:left">You are about to permanently delete <b>${t?.name ?? 'this type'}</b>.${itemCount ? `<br/><br/>This may also affect <b>${itemCount}</b> related item(s).` : ''}<br/><br/>This action cannot be undone.</div>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'hsl(0 84% 60%)',
+      focusCancel: true,
+    });
+    if (!res.isConfirmed) return;
     try { await mutations.deleteType.mutateAsync(id); toast({ title: 'Deleted' }); }
     catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
@@ -122,6 +136,19 @@ export default function MasterDataManagement() {
     } catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
   const handleDeleteItem = async (id: string) => {
+    const it = items.find(x => x.id === id);
+    const childCount = it ? items.filter(i => i.parent_item_id === id).length : 0;
+    const res = await Swal.fire({
+      title: 'Delete master data item?',
+      html: `<div style="text-align:left">You are about to permanently delete <b>${it?.name ?? 'this item'}</b>.${childCount ? `<br/><br/>This item has <b>${childCount}</b> child item(s) which may also be affected.` : ''}<br/><br/>This action cannot be undone.</div>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: 'hsl(0 84% 60%)',
+      focusCancel: true,
+    });
+    if (!res.isConfirmed) return;
     try { await mutations.deleteItem.mutateAsync(id); toast({ title: 'Deleted' }); }
     catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
   };
