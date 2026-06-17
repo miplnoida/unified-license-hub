@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FileText, Shield, Users, Building2, FormInput, GitBranch,
   Bell, Settings, BarChart3, ClipboardList, AlertTriangle, FolderOpen,
-  UserCircle, KeyRound, ScrollText, Layers, Boxes, ListOrdered,
+  UserCircle, ScrollText, Layers, Boxes, ListOrdered,
   SlidersHorizontal, DollarSign, CreditCard, BookOpen, Briefcase,
   CalendarCheck, LayoutGrid, Mail, CalendarDays, Clock, Timer, FileBarChart,
   ClipboardEdit, Database,
