@@ -80,6 +80,8 @@ export const adminRoutes = (
     <Route path="/admin/registration-forms/preview" element={<M module="form_management"><RegistrationFormPreviewPage /></M>} />
     <Route path="/admin/ppoc-mappings" element={<M module="license_management"><PpocManagement /></M>} />
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
+    <Route path="/admin/sla-manager" element={<M module="workflow_management"><SlaManager /></M>} />
+
 
     {/* Returns Management - Admin */}
     <Route path="/admin/returns/queue" element={<M module="returns_management"><ViewReturns /></M>} />
