@@ -108,6 +108,7 @@ export const mainNavSections: NavSection[] = [
     label: 'Workflows',
     items: [
       { label: 'Approval Workflows', href: '/workflows', icon: <GitBranch className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },
+      { label: 'SLA Manager', href: '/admin/sla-manager', icon: <Timer className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },
       { label: 'Delegation Rules', href: '/delegation-rules', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'workflow_management' },
     ],
   },
