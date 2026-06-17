@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -11,10 +11,14 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { logAudit } from '@/hooks/useAuditLog';
-import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle } from 'lucide-react';
+import { notifySlaChange } from '@/lib/slaNotifications';
+import { Trash2, Plus, Upload, GitBranch, ExternalLink, AlertTriangle, Info } from 'lucide-react';
+
+/* -------------------- Types -------------------- */
 
 type SlaRow = {
   id: string;
@@ -50,7 +54,28 @@ type EscalationTier = {
   notify_roles: string | null;
 };
 
+type Assignment = { id: string; profile_id: string; process_type: string };
+
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const TIER_DEFAULTS: Array<{ tier: number; label: string; delay_days: number; recipients: string }> = [
+  { tier: 1, label: 'Tier 1 — immediate', delay_days: 0, recipients: 'assigned_officer, team_lead' },
+  { tier: 2, label: 'Tier 2 — escalation', delay_days: 3, recipients: 'deputy_director' },
+  { tier: 3, label: 'Tier 3 — senior escalation', delay_days: 7, recipients: 'director' },
+];
+
+const RetroNotice = () => (
+  <Alert className="mb-4">
+    <Info className="h-4 w-4" />
+    <AlertTitle>Forward-only</AlertTitle>
+    <AlertDescription>
+      SLA, calendar and escalation changes apply only to new cases and newly entered workflow
+      stages. In-progress timers are not retroactively recalculated.
+    </AlertDescription>
+  </Alert>
+);
+
+/* -------------------- Page -------------------- */
 
 export default function SlaManager() {
   const navigate = useNavigate();
@@ -62,7 +87,7 @@ export default function SlaManager() {
           description="Configure SLA timers, business calendars, and escalation chains across workflow stages."
           actions={
             <Button variant="outline" onClick={() => navigate('/workflows')}>
-              <GitBranch className="h-4 w-4 mr-2" /> Workflow Designer (ADM-WF-001)
+              <GitBranch className="h-4 w-4 mr-2" /> Workflow Designer
             </Button>
           }
         />
@@ -90,6 +115,12 @@ export default function SlaManager() {
 function SlaConfigTab() {
   const [rows, setRows] = useState<SlaRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Mirror of rows keyed by id so onBlur reads the freshest value (no stale closure).
+  const latestRef = useRef<Record<string, SlaRow>>({});
+
+  const syncLatest = (list: SlaRow[]) => {
+    latestRef.current = Object.fromEntries(list.map(r => [r.id, r]));
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,7 +130,11 @@ function SlaConfigTab() {
       .order('process_type', { ascending: true })
       .order('stage_name', { ascending: true });
     if (error) toast({ title: 'Failed to load SLA configs', description: error.message, variant: 'destructive' });
-    else setRows((data ?? []) as SlaRow[]);
+    else {
+      const list = (data ?? []) as SlaRow[];
+      setRows(list);
+      syncLatest(list);
+    }
     setLoading(false);
   }, []);
 
@@ -108,16 +143,25 @@ function SlaConfigTab() {
   const validate = (r: Partial<SlaRow>): string | null => {
     if (!r.process_type?.trim()) return 'Process Type is required';
     if (!r.stage_name?.trim()) return 'Stage Name is required';
-    if (!r.sla_duration || r.sla_duration < 1) return 'SLA duration must be a positive integer (min 1 business hour)';
-    if (r.sla_unit === 'hours' && r.sla_duration < 1) return 'Minimum SLA is 1 business hour';
+    if (!r.sla_duration || r.sla_duration < 1) return 'SLA duration must be at least 1';
     if (r.warning_threshold_pct == null || r.warning_threshold_pct < 1 || r.warning_threshold_pct > 100)
       return 'Warning threshold must be 1-100%';
     return null;
   };
 
-  const saveRow = async (row: SlaRow) => {
+  // Tracks the last-persisted JSON so we don't save / notify on no-op blurs.
+  const lastPersisted = useRef<Record<string, string>>({});
+
+  const saveRow = async (id: string) => {
+    const row = latestRef.current[id];
+    if (!row) return;
     const err = validate(row);
     if (err) { toast({ title: 'Invalid SLA', description: err, variant: 'destructive' }); return; }
+
+    const snapshot = JSON.stringify(row);
+    if (lastPersisted.current[id] === snapshot) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await (supabase as any).from('sla_configurations').update({
       process_type: row.process_type,
       stage_name: row.stage_name,
@@ -127,8 +171,12 @@ function SlaConfigTab() {
       pause_conditions: row.pause_conditions,
       escalation_recipient: row.escalation_recipient,
       active: row.active,
+      updated_by: user?.id ?? null,
     }).eq('id', row.id);
+
     if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    lastPersisted.current[id] = snapshot;
+
     await logAudit({
       action: 'ADMIN_SLA_UPDATED',
       entityType: 'sla_configuration',
@@ -136,6 +184,13 @@ function SlaConfigTab() {
       newValue: row as unknown as Record<string, unknown>,
       metadata: { process_type: row.process_type, stage_name: row.stage_name },
     });
+
+    void notifySlaChange({
+      process_type: row.process_type,
+      entity_id: row.id,
+      change_summary: `${row.stage_name}: ${row.sla_duration} ${row.sla_unit}, warn ${row.warning_threshold_pct}%, active=${row.active}`,
+    });
+
     toast({ title: 'SLA updated', description: `${row.process_type} • ${row.stage_name}` });
   };
 
@@ -149,10 +204,16 @@ function SlaConfigTab() {
       warning_threshold_pct: 75,
       active: true,
       created_by: user?.id ?? null,
+      updated_by: user?.id ?? null,
     };
     const { data, error } = await (supabase as any).from('sla_configurations').insert(draft).select().single();
     if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
-    setRows(prev => [...prev, data as SlaRow]);
+    setRows(prev => {
+      const next = [...prev, data as SlaRow];
+      syncLatest(next);
+      return next;
+    });
+    lastPersisted.current[(data as SlaRow).id] = JSON.stringify(data);
     await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_configuration', entityId: (data as any).id, newValue: data, metadata: { created: true } });
   };
 
@@ -160,25 +221,34 @@ function SlaConfigTab() {
     if (!confirm('Delete this SLA configuration?')) return;
     const { error } = await (supabase as any).from('sla_configurations').delete().eq('id', id);
     if (error) { toast({ title: 'Delete failed', description: error.message, variant: 'destructive' }); return; }
-    setRows(prev => prev.filter(r => r.id !== id));
+    setRows(prev => {
+      const next = prev.filter(r => r.id !== id);
+      syncLatest(next);
+      return next;
+    });
+    delete lastPersisted.current[id];
     await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_configuration', entityId: id, metadata: { deleted: true } });
   };
 
-  const update = (id: string, patch: Partial<SlaRow>) =>
-    setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+  const update = (id: string, patch: Partial<SlaRow>) => {
+    setRows(prev => {
+      const next = prev.map(r => r.id === id ? { ...r, ...patch } : r);
+      syncLatest(next);
+      return next;
+    });
+  };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>SLA Configuration</CardTitle>
-          <CardDescription>
-            Changes apply only to new cases / stages entered after save. In-progress timers are unaffected.
-          </CardDescription>
+          <CardDescription>Per process-type / stage. Edits save on blur.</CardDescription>
         </div>
         <Button onClick={addRow}><Plus className="h-4 w-4 mr-2" /> Add SLA</Button>
       </CardHeader>
       <CardContent>
+        <RetroNotice />
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -201,11 +271,11 @@ function SlaConfigTab() {
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">No SLA configurations yet. Click "Add SLA" to begin.</TableCell></TableRow>
               ) : rows.map(row => (
                 <TableRow key={row.id}>
-                  <TableCell><Input value={row.process_type} onChange={e => update(row.id, { process_type: e.target.value })} onBlur={() => saveRow(row)} /></TableCell>
-                  <TableCell><Input value={row.stage_name} onChange={e => update(row.id, { stage_name: e.target.value })} onBlur={() => saveRow(row)} /></TableCell>
-                  <TableCell><Input type="number" min={1} value={row.sla_duration} onChange={e => update(row.id, { sla_duration: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row)} /></TableCell>
+                  <TableCell><Input value={row.process_type} onChange={e => update(row.id, { process_type: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell><Input value={row.stage_name} onChange={e => update(row.id, { stage_name: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell><Input type="number" min={1} value={row.sla_duration} onChange={e => update(row.id, { sla_duration: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
                   <TableCell>
-                    <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => { update(row.id, { sla_unit: v }); setTimeout(() => saveRow({ ...row, sla_unit: v }), 0); }}>
+                    <Select value={row.sla_unit} onValueChange={(v: 'hours' | 'days') => { update(row.id, { sla_unit: v }); setTimeout(() => saveRow(row.id), 0); }}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="hours">Hours</SelectItem>
@@ -213,10 +283,10 @@ function SlaConfigTab() {
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell><Input type="number" min={1} max={100} value={row.warning_threshold_pct} onChange={e => update(row.id, { warning_threshold_pct: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row)} /></TableCell>
-                  <TableCell><Input value={row.pause_conditions ?? ''} placeholder="e.g. awaiting_applicant" onChange={e => update(row.id, { pause_conditions: e.target.value })} onBlur={() => saveRow(row)} /></TableCell>
-                  <TableCell><Input value={row.escalation_recipient ?? ''} placeholder="role / email" onChange={e => update(row.id, { escalation_recipient: e.target.value })} onBlur={() => saveRow(row)} /></TableCell>
-                  <TableCell><Checkbox checked={row.active} onCheckedChange={(v) => { update(row.id, { active: !!v }); setTimeout(() => saveRow({ ...row, active: !!v }), 0); }} /></TableCell>
+                  <TableCell><Input type="number" min={1} max={100} value={row.warning_threshold_pct} onChange={e => update(row.id, { warning_threshold_pct: parseInt(e.target.value) || 0 })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell><Input value={row.pause_conditions ?? ''} placeholder="e.g. awaiting_applicant" onChange={e => update(row.id, { pause_conditions: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell><Input value={row.escalation_recipient ?? ''} placeholder="role / email" onChange={e => update(row.id, { escalation_recipient: e.target.value })} onBlur={() => saveRow(row.id)} /></TableCell>
+                  <TableCell><Checkbox checked={row.active} onCheckedChange={(v) => { update(row.id, { active: !!v }); setTimeout(() => saveRow(row.id), 0); }} /></TableCell>
                   <TableCell><Button size="icon" variant="ghost" onClick={() => deleteRow(row.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
                 </TableRow>
               ))}
@@ -233,19 +303,31 @@ function SlaConfigTab() {
 function CalendarTab() {
   const [profiles, setProfiles] = useState<CalendarProfile[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [processOptions, setProcessOptions] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayName, setNewHolidayName] = useState('');
   const [newProfileName, setNewProfileName] = useState('');
 
   const active = useMemo(() => profiles.find(p => p.id === activeId) ?? null, [profiles, activeId]);
+  const assignedHere = useMemo(
+    () => assignments.filter(a => a.profile_id === activeId).map(a => a.process_type),
+    [assignments, activeId],
+  );
 
   const load = useCallback(async () => {
-    const { data: profs } = await (supabase as any).from('business_calendar_profiles').select('*').order('name');
+    const [{ data: profs }, { data: cfgs }, { data: asn }] = await Promise.all([
+      (supabase as any).from('business_calendar_profiles').select('*').order('name'),
+      (supabase as any).from('sla_configurations').select('process_type'),
+      (supabase as any).from('business_calendar_process_assignments').select('*'),
+    ]);
     const list = (profs ?? []) as CalendarProfile[];
     setProfiles(list);
-    if (list.length && !activeId) setActiveId(list[0].id);
-  }, [activeId]);
+    setAssignments((asn ?? []) as Assignment[]);
+    setProcessOptions(Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
+    setActiveId(prev => prev ?? list[0]?.id ?? null);
+  }, []);
 
   const loadHolidays = useCallback(async (pid: string) => {
     const { data } = await (supabase as any).from('business_calendar_holidays').select('*').eq('profile_id', pid).order('holiday_date');
@@ -257,6 +339,7 @@ function CalendarTab() {
 
   const saveProfile = async () => {
     if (!active) return;
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await (supabase as any).from('business_calendar_profiles').update({
       name: active.name,
       description: active.description,
@@ -264,6 +347,7 @@ function CalendarTab() {
       working_start_time: active.working_start_time,
       working_end_time: active.working_end_time,
       timezone: active.timezone,
+      updated_by: user?.id ?? null,
     }).eq('id', active.id);
     if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
     await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_profile', entityId: active.id, newValue: active as unknown as Record<string, unknown> });
@@ -292,8 +376,9 @@ function CalendarTab() {
     if (!active || !newHolidayDate || !newHolidayName.trim()) return;
     const d = new Date(newHolidayDate);
     if (isNaN(d.getTime())) { toast({ title: 'Invalid date', variant: 'destructive' }); return; }
+    const { data: { user } } = await supabase.auth.getUser();
     const { error } = await (supabase as any).from('business_calendar_holidays')
-      .insert({ profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim() });
+      .insert({ profile_id: active.id, holiday_date: newHolidayDate, name: newHolidayName.trim(), created_by: user?.id ?? null });
     if (error) { toast({ title: 'Add failed', description: error.message, variant: 'destructive' }); return; }
     setNewHolidayDate(''); setNewHolidayName('');
     loadHolidays(active.id);
@@ -326,194 +411,312 @@ function CalendarTab() {
     await logAudit({ action: 'ADMIN_CALENDAR_UPDATED', entityType: 'business_calendar_holidays', entityId: active.id, metadata: { imported: rows.length } });
   };
 
+  const toggleAssignment = async (processType: string, checked: boolean) => {
+    if (!active) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (checked) {
+      // Upsert on process_type (one calendar per process)
+      const { error } = await (supabase as any)
+        .from('business_calendar_process_assignments')
+        .upsert(
+          { profile_id: active.id, process_type: processType, updated_by: user?.id ?? null, created_by: user?.id ?? null },
+          { onConflict: 'process_type' },
+        );
+      if (error) { toast({ title: 'Assign failed', description: error.message, variant: 'destructive' }); return; }
+    } else {
+      const { error } = await (supabase as any)
+        .from('business_calendar_process_assignments')
+        .delete()
+        .eq('profile_id', active.id)
+        .eq('process_type', processType);
+      if (error) { toast({ title: 'Unassign failed', description: error.message, variant: 'destructive' }); return; }
+    }
+    const { data: asn } = await (supabase as any).from('business_calendar_process_assignments').select('*');
+    setAssignments((asn ?? []) as Assignment[]);
+    await logAudit({
+      action: 'ADMIN_CALENDAR_UPDATED',
+      entityType: 'business_calendar_process_assignments',
+      entityId: active.id,
+      metadata: { process_type: processType, assigned: checked },
+    });
+    toast({ title: checked ? 'Process assigned' : 'Process unassigned', description: `${processType} ↔ ${active.name}` });
+  };
+
+  const assignmentsByProfile = (pid: string) =>
+    assignments.filter(a => a.profile_id === pid).map(a => a.process_type);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <Card className="lg:col-span-1">
-        <CardHeader>
-          <CardTitle>Calendar Profiles</CardTitle>
-          <CardDescription>e.g. BOJ Calendar, FSC Calendar</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {profiles.map(p => (
-            <div key={p.id} onClick={() => setActiveId(p.id)}
-              className={`p-2 rounded border cursor-pointer ${activeId === p.id ? 'border-primary bg-primary/5' : 'border-border'}`}>
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">{p.name}</span>
-                {p.is_default && <Badge variant="secondary">Default</Badge>}
-              </div>
-            </div>
-          ))}
-          <div className="flex gap-2 pt-2">
-            <Input placeholder="New profile name" value={newProfileName} onChange={e => setNewProfileName(e.target.value)} />
-            <Button onClick={createProfile}><Plus className="h-4 w-4" /></Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <CardTitle>{active?.name ?? 'Select a profile'}</CardTitle>
-          <CardDescription className="flex items-center gap-2 text-warning">
-            <AlertTriangle className="h-4 w-4" /> Calendar changes do not affect in-progress SLA timers.
-          </CardDescription>
-        </CardHeader>
-        {active && (
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Name</Label>
-                <Input value={active.name} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, name: e.target.value } : p))} />
-              </div>
-              <div>
-                <Label>Timezone</Label>
-                <Input value={active.timezone} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, timezone: e.target.value } : p))} />
-              </div>
-              <div>
-                <Label>Working Start</Label>
-                <Input type="time" value={active.working_start_time?.slice(0, 5)} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, working_start_time: e.target.value } : p))} />
-              </div>
-              <div>
-                <Label>Working End</Label>
-                <Input type="time" value={active.working_end_time?.slice(0, 5)} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, working_end_time: e.target.value } : p))} />
-              </div>
-            </div>
-            <div>
-              <Label>Working Days</Label>
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {DAY_LABELS.map((lbl, i) => (
-                  <Button key={i} type="button" size="sm" variant={active.working_days.includes(i) ? 'default' : 'outline'} onClick={() => toggleDay(i)}>{lbl}</Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Public Holidays</Label>
-                <div>
-                  <input id="hcsv" type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.currentTarget.value = ''; }} />
-                  <Button variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
-                    <Upload className="h-4 w-4 mr-2" /> Import CSV
-                  </Button>
+    <div>
+      <RetroNotice />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Calendar Profiles</CardTitle>
+            <CardDescription>e.g. BOJ Calendar, FSC Calendar</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {profiles.map(p => {
+              const assigned = assignmentsByProfile(p.id);
+              return (
+                <div key={p.id} onClick={() => setActiveId(p.id)}
+                  className={`p-2 rounded border cursor-pointer ${activeId === p.id ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{p.name}</span>
+                    {p.is_default && <Badge variant="secondary">Default</Badge>}
+                  </div>
+                  {assigned.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {assigned.map(pt => <Badge key={pt} variant="outline" className="text-[10px]">{pt}</Badge>)}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="flex gap-2 mb-2">
-                <Input type="date" value={newHolidayDate} onChange={e => setNewHolidayDate(e.target.value)} />
-                <Input placeholder="Holiday name" value={newHolidayName} onChange={e => setNewHolidayName(e.target.value)} />
-                <Button onClick={addHoliday}><Plus className="h-4 w-4" /></Button>
-              </div>
-              <div className="border rounded max-h-64 overflow-y-auto">
-                <Table>
-                  <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Name</TableHead><TableHead className="w-12" /></TableRow></TableHeader>
-                  <TableBody>
-                    {holidays.length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No holidays yet</TableCell></TableRow>
-                    ) : holidays.map(h => (
-                      <TableRow key={h.id}>
-                        <TableCell>{h.holiday_date}</TableCell>
-                        <TableCell>{h.name}</TableCell>
-                        <TableCell><Button size="icon" variant="ghost" onClick={() => deleteHoliday(h.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={saveProfile}>Save Calendar</Button>
+              );
+            })}
+            <div className="flex gap-2 pt-2">
+              <Input placeholder="New profile name" value={newProfileName} onChange={e => setNewProfileName(e.target.value)} />
+              <Button onClick={createProfile}><Plus className="h-4 w-4" /></Button>
             </div>
           </CardContent>
-        )}
-      </Card>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>{active?.name ?? 'Select a profile'}</CardTitle>
+            <CardDescription className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="h-4 w-4" /> Calendar changes do not affect in-progress SLA timers.
+            </CardDescription>
+          </CardHeader>
+          {active && (
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={active.name} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, name: e.target.value } : p))} />
+                </div>
+                <div>
+                  <Label>Timezone</Label>
+                  <Input value={active.timezone} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, timezone: e.target.value } : p))} />
+                </div>
+                <div>
+                  <Label>Working Start</Label>
+                  <Input type="time" value={active.working_start_time?.slice(0, 5)} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, working_start_time: e.target.value } : p))} />
+                </div>
+                <div>
+                  <Label>Working End</Label>
+                  <Input type="time" value={active.working_end_time?.slice(0, 5)} onChange={e => setProfiles(prev => prev.map(p => p.id === active.id ? { ...p, working_end_time: e.target.value } : p))} />
+                </div>
+              </div>
+              <div>
+                <Label>Working Days</Label>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {DAY_LABELS.map((lbl, i) => (
+                    <Button key={i} type="button" size="sm" variant={active.working_days.includes(i) ? 'default' : 'outline'} onClick={() => toggleDay(i)}>{lbl}</Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>Assigned Process Types</Label>
+                {processOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    No process types yet — add SLA configurations first.
+                  </p>
+                ) : (
+                  <div className="mt-2 grid grid-cols-2 gap-2 border rounded p-3">
+                    {processOptions.map(pt => {
+                      const here = assignedHere.includes(pt);
+                      const elsewhere = assignments.find(a => a.process_type === pt && a.profile_id !== active.id);
+                      const otherName = elsewhere ? profiles.find(p => p.id === elsewhere.profile_id)?.name : null;
+                      return (
+                        <label key={pt} className="flex items-center gap-2 text-sm">
+                          <Checkbox checked={here} onCheckedChange={(v) => toggleAssignment(pt, !!v)} />
+                          <span>{pt}</span>
+                          {otherName && <Badge variant="outline" className="text-[10px]">on {otherName}</Badge>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Each process type can be assigned to exactly one calendar; ticking here moves it.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Public Holidays</Label>
+                  <div>
+                    <input id="hcsv" type="file" accept=".csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) importCsv(f); e.currentTarget.value = ''; }} />
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById('hcsv')?.click()}>
+                      <Upload className="h-4 w-4 mr-2" /> Import CSV
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-2 mb-2">
+                  <Input type="date" value={newHolidayDate} onChange={e => setNewHolidayDate(e.target.value)} />
+                  <Input placeholder="Holiday name" value={newHolidayName} onChange={e => setNewHolidayName(e.target.value)} />
+                  <Button onClick={addHoliday}><Plus className="h-4 w-4" /></Button>
+                </div>
+                <div className="border rounded max-h-64 overflow-y-auto">
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Name</TableHead><TableHead className="w-12" /></TableRow></TableHeader>
+                    <TableBody>
+                      {holidays.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">No holidays yet</TableCell></TableRow>
+                      ) : holidays.map(h => (
+                        <TableRow key={h.id}>
+                          <TableCell>{h.holiday_date}</TableCell>
+                          <TableCell>{h.name}</TableCell>
+                          <TableCell><Button size="icon" variant="ghost" onClick={() => deleteHoliday(h.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={saveProfile}>Save Calendar</Button>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
 
 /* -------------------- Escalation Chains -------------------- */
 
-const TIER_DEFAULTS = [
-  { tier: 1, label: 'Tier 1 — immediate breach', recipients: 'Assigned officer, Team lead' },
-  { tier: 2, label: 'Tier 2 — breach + N days', recipients: 'Deputy Director' },
-  { tier: 3, label: 'Tier 3 — escalation', recipients: 'Director' },
-];
-
 function EscalationTab() {
   const [tiers, setTiers] = useState<EscalationTier[]>([]);
   const [processType, setProcessType] = useState('');
   const [processOptions, setProcessOptions] = useState<string[]>([]);
+  const latestRef = useRef<Record<string, EscalationTier>>({});
 
   const load = useCallback(async () => {
     const { data: cfgs } = await (supabase as any).from('sla_configurations').select('process_type');
     const distinct = Array.from(new Set(((cfgs ?? []) as { process_type: string }[]).map(r => r.process_type))).sort();
     setProcessOptions(distinct);
-    if (!processType && distinct.length) setProcessType(distinct[0]);
+    setProcessType(prev => prev || distinct[0] || '');
     const { data } = await (supabase as any).from('sla_escalation_tiers').select('*').order('process_type').order('tier');
-    setTiers((data ?? []) as EscalationTier[]);
-  }, [processType]);
+    const list = (data ?? []) as EscalationTier[];
+    setTiers(list);
+    latestRef.current = Object.fromEntries(list.map(t => [t.id, t]));
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const tiersForProcess = tiers.filter(t => t.process_type === processType);
+  // Ensure Tier 1/2/3 rows exist for the selected process.
+  useEffect(() => {
+    if (!processType) return;
+    const existing = tiers.filter(t => t.process_type === processType).map(t => t.tier);
+    const missing = TIER_DEFAULTS.filter(d => !existing.includes(d.tier));
+    if (missing.length === 0) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const inserts = missing.map(d => ({
+        process_type: processType,
+        tier: d.tier,
+        delay_days: d.delay_days,
+        recipients: d.recipients,
+        notify_roles: null,
+        created_by: user?.id ?? null,
+        updated_by: user?.id ?? null,
+      }));
+      const { data, error } = await (supabase as any).from('sla_escalation_tiers').insert(inserts).select();
+      if (error) { toast({ title: 'Failed to seed tiers', description: error.message, variant: 'destructive' }); return; }
+      const added = (data ?? []) as EscalationTier[];
+      setTiers(prev => {
+        const next = [...prev, ...added];
+        latestRef.current = Object.fromEntries(next.map(t => [t.id, t]));
+        return next;
+      });
+    })();
+  }, [processType, tiers]);
 
-  const upsertTier = async (tier: number, patch: Partial<EscalationTier>) => {
-    const existing = tiersForProcess.find(t => t.tier === tier);
-    if (existing) {
-      const merged = { ...existing, ...patch };
-      const { error } = await (supabase as any).from('sla_escalation_tiers').update({
-        delay_days: merged.delay_days, recipients: merged.recipients, notify_roles: merged.notify_roles,
-      }).eq('id', existing.id);
-      if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
-      setTiers(prev => prev.map(t => t.id === existing.id ? merged : t));
-    } else {
-      const insert = {
-        process_type: processType, tier, delay_days: patch.delay_days ?? 0,
-        recipients: patch.recipients ?? TIER_DEFAULTS.find(d => d.tier === tier)?.recipients ?? '',
-        notify_roles: patch.notify_roles ?? null,
-      };
-      const { data, error } = await (supabase as any).from('sla_escalation_tiers').insert(insert).select().single();
-      if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
-      setTiers(prev => [...prev, data as EscalationTier]);
-    }
-    await logAudit({ action: 'ADMIN_SLA_UPDATED', entityType: 'sla_escalation_tier', metadata: { process_type: processType, tier } });
+  const tiersForProcess = tiers.filter(t => t.process_type === processType).sort((a, b) => a.tier - b.tier);
+
+  const update = (id: string, patch: Partial<EscalationTier>) => {
+    setTiers(prev => {
+      const next = prev.map(t => t.id === id ? { ...t, ...patch } : t);
+      latestRef.current = Object.fromEntries(next.map(t => [t.id, t]));
+      return next;
+    });
+  };
+
+  const saveTier = async (id: string) => {
+    const t = latestRef.current[id];
+    if (!t) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await (supabase as any).from('sla_escalation_tiers').update({
+      delay_days: t.delay_days,
+      recipients: t.recipients,
+      notify_roles: t.notify_roles,
+      updated_by: user?.id ?? null,
+    }).eq('id', id);
+    if (error) { toast({ title: 'Save failed', description: error.message, variant: 'destructive' }); return; }
+    await logAudit({
+      action: 'ADMIN_SLA_UPDATED',
+      entityType: 'sla_escalation_tier',
+      entityId: id,
+      newValue: t as unknown as Record<string, unknown>,
+      metadata: { process_type: t.process_type, tier: t.tier },
+    });
+    void notifySlaChange({
+      process_type: t.process_type,
+      entity_id: id,
+      change_summary: `Escalation Tier ${t.tier}: delay ${t.delay_days}d → ${t.recipients}`,
+    });
+    toast({ title: 'Tier saved', description: `${t.process_type} • Tier ${t.tier}` });
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Escalation Chains</CardTitle>
-        <CardDescription>Per process type — define tier delays and recipients.</CardDescription>
+        <CardDescription>Per process type — Tier 1 fires on breach, Tiers 2 and 3 follow after the configured delay.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <RetroNotice />
         <div className="flex items-center gap-3">
           <Label>Process Type</Label>
           <Select value={processType || 'none'} onValueChange={v => setProcessType(v === 'none' ? '' : v)}>
             <SelectTrigger className="w-64"><SelectValue placeholder="Select process type" /></SelectTrigger>
             <SelectContent>
-              {processOptions.length === 0 ? <SelectItem value="none" disabled>No SLA configs yet</SelectItem> :
-                processOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              {processOptions.length === 0
+                ? <SelectItem value="none" disabled>No SLA configs yet</SelectItem>
+                : processOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
 
-        {processType && (
+        {processType && tiersForProcess.length > 0 && (
           <div className="space-y-3">
-            {TIER_DEFAULTS.map(td => {
-              const current = tiersForProcess.find(t => t.tier === td.tier);
+            {tiersForProcess.map(t => {
+              const def = TIER_DEFAULTS.find(d => d.tier === t.tier);
               return (
-                <Card key={td.tier} className="border-l-4 border-l-primary">
+                <Card key={t.id} className="border-l-4 border-l-primary">
                   <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="md:col-span-1">
-                      <Badge variant="outline">{td.label}</Badge>
+                      <Badge variant="outline">{def?.label ?? `Tier ${t.tier}`}</Badge>
                     </div>
                     <div>
                       <Label className="text-xs">Delay (days after breach)</Label>
-                      <Input type="number" min={0} defaultValue={current?.delay_days ?? (td.tier === 1 ? 0 : td.tier)}
-                        onBlur={e => upsertTier(td.tier, { delay_days: parseInt(e.target.value) || 0 })} />
+                      <Input
+                        type="number" min={0}
+                        value={t.delay_days}
+                        onChange={e => update(t.id, { delay_days: parseInt(e.target.value) || 0 })}
+                        onBlur={() => saveTier(t.id)}
+                      />
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-xs">Recipients (comma-separated emails or roles)</Label>
-                      <Input defaultValue={current?.recipients ?? td.recipients}
-                        onBlur={e => upsertTier(td.tier, { recipients: e.target.value })} />
+                      <Label className="text-xs">Recipients (comma-separated emails or role keys)</Label>
+                      <Input
+                        value={t.recipients}
+                        onChange={e => update(t.id, { recipients: e.target.value })}
+                        onBlur={() => saveTier(t.id)}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -530,44 +733,51 @@ function EscalationTab() {
 
 function SummaryTab() {
   const navigate = useNavigate();
-  // Placeholder read-only widget. Real metrics live in DASH-OPS.
-  const sample = [
-    { process: 'License Application', onTime: 82, nearBreach: 11, breached: 7 },
-    { process: 'Compliance Return', onTime: 76, nearBreach: 14, breached: 10 },
-    { process: 'Complaint', onTime: 91, nearBreach: 5, breached: 4 },
-  ];
+  const [processTypes, setProcessTypes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any).from('sla_configurations').select('process_type').eq('active', true);
+      setProcessTypes(Array.from(new Set(((data ?? []) as { process_type: string }[]).map(r => r.process_type))).sort());
+      setLoading(false);
+    })();
+  }, []);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>SLA Performance Summary</CardTitle>
-          <CardDescription>Read-only snapshot. Open DASH-OPS for full analytics.</CardDescription>
+          <CardDescription>Live SLA on-time / breach metrics are published in DASH-OPS.</CardDescription>
         </div>
         <Button variant="outline" onClick={() => navigate('/dashboard')}>
           <ExternalLink className="h-4 w-4 mr-2" /> Open DASH-OPS
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Process Type</TableHead>
-              <TableHead>% On-time</TableHead>
-              <TableHead>Near-breach</TableHead>
-              <TableHead>Breached</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sample.map(r => (
-              <TableRow key={r.process}>
-                <TableCell>{r.process}</TableCell>
-                <TableCell><Badge className="bg-success/15 text-success border-success/30" variant="outline">{r.onTime}%</Badge></TableCell>
-                <TableCell><Badge className="bg-warning/15 text-warning border-warning/30" variant="outline">{r.nearBreach}%</Badge></TableCell>
-                <TableCell><Badge className="bg-destructive/15 text-destructive border-destructive/30" variant="outline">{r.breached}%</Badge></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Performance metrics live in DASH-OPS</AlertTitle>
+          <AlertDescription>
+            This module configures SLA, calendar and escalation rules. Real-time on-time, near-breach
+            and breached counts are computed by the operations dashboard and are not duplicated here
+            to avoid showing stale or fabricated figures.
+          </AlertDescription>
+        </Alert>
+
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2">Configured process types</h4>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : processTypes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active SLA configurations yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {processTypes.map(p => <Badge key={p} variant="outline">{p}</Badge>)}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
