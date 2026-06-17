@@ -383,6 +383,37 @@ export default function RoleManagement() {
                           </div>
                         );
                       })}
+                      {(() => {
+                        // Fallback: surface permissions that exist on the role but
+                        // aren't represented in the catalog (missing module or action).
+                        const catalogued = new Set<string>();
+                        for (const entry of moduleEntries) {
+                          for (const a of entry.actions) {
+                            const perm = permissionsByModule[entry.module]?.[a];
+                            if (perm) catalogued.add(perm.id);
+                          }
+                        }
+                        const orphan = permissions.filter(
+                          p => selectedRolePerms.includes(p.id) && !catalogued.has(p.id)
+                        );
+                        if (orphan.length === 0) return null;
+                        const byModule: Record<string, Permission[]> = {};
+                        for (const p of orphan) (byModule[p.module] ??= []).push(p);
+                        return Object.entries(byModule).map(([mod, perms]) => (
+                          <div key={`orphan-${mod}`} className="rounded-md border border-dashed p-3 space-y-2">
+                            <p className="text-sm font-semibold">
+                              {mod} <span className="text-xs font-normal text-muted-foreground">(uncatalogued)</span>
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {perms.map(p => (
+                                <Badge key={p.id} variant="outline" className="gap-1">
+                                  <CheckCircle className="h-3 w-3" />{p.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ));
+                      })()}
                       {selectedRolePerms.length === 0 && (
                         <Alert variant="destructive">
                           <AlertTriangle className="h-4 w-4" />
@@ -392,6 +423,7 @@ export default function RoleManagement() {
                           </AlertDescription>
                         </Alert>
                       )}
+
                     </div>
 
                     {selectedRolePerms.length > 0 && (
