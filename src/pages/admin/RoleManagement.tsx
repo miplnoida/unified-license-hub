@@ -533,13 +533,13 @@ export default function RoleManagement() {
                             onCheckedChange={() => togglePerm(perm.id)}
                           />
                           <label htmlFor={`perm-${perm.id}`} className="text-sm capitalize cursor-pointer flex items-center gap-1">
-                            {ACTION_LABELS[perm.name as PermissionAction] || perm.name}
+                            {entry.actionLabels[perm.name] || perm.name}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="h-3 w-3 text-muted-foreground" />
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
-                                {ACTION_DESCRIPTIONS[perm.name as PermissionAction] || perm.name}
+                                {perm.description || entry.actionLabels[perm.name] || perm.name}
                               </TooltipContent>
                             </Tooltip>
                           </label>
