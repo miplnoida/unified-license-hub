@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Database, Upload, FileSpreadsheet } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { useToast } from '@/hooks/use-toast';
 import {
