@@ -45,6 +45,16 @@ import type { PermissionModule } from '@/lib/permissionModules';
  * are auto-assigned during registration/approval and can be edited here.
  */
 
+interface DynamicModuleEntry {
+  module: string;
+  label: string;
+  description: string;
+  actions: string[];
+  actionLabels: Record<string, string>;
+  menus: string[];
+  routes: string[];
+}
+
 
 export default function RoleManagement() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,8 +183,6 @@ export default function RoleManagement() {
 
   const handleSave = async () => {
     if (!formName.trim()) { toast.error('Role name is required'); return; }
-    const externalErr = getExternalRoleNameError(formName);
-    if (externalErr) { toast.error(externalErr); return; }
     if (formPerms.length === 0) {
       toast.error('Select at least one permission — a role with no permissions grants no access.');
       return;
