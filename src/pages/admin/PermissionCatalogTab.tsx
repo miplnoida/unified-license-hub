@@ -76,9 +76,10 @@ export default function PermissionCatalogTab() {
         <Info className="h-4 w-4" />
         <AlertTitle>Permission catalog</AlertTitle>
         <AlertDescription>
-          Define the tree of modules and sub-modules, the actions inside each, and the application routes each module unlocks.
-          Roles in the next tab pick from this catalog. Routes are limited to a developer-declared list so they always map to real pages.
+          Define the tree of modules and sub-modules and the actions inside each.
+          Roles in the next tab pick from this catalog.
         </AlertDescription>
+
       </Alert>
 
       <div className="grid lg:grid-cols-3 gap-6">
