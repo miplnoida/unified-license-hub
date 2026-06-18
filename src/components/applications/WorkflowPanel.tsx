@@ -878,7 +878,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
-                      {(status === 'current' || status === 'paused' || status === 'completed' || status === 'returned') && s.sla_hours ? (
+                      {(status === 'current' || status === 'paused') && s.sla_hours ? (
                         <StepSlaBadge
                           startedAt={stepStartedAt[idx]}
                           slaHours={s.sla_hours}
@@ -912,23 +912,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           title={`SLA · ${s.name}`}
                         />
                       )}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  {isCurrent && !isPaused ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{s.name}</span>
-                        <Badge variant="outline" className="text-xs">
-                          Pending: {stepRoleLabel(s)}
-                        </Badge>
-                      </div>
-                      {s.sla_hours && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          SLA: {s.sla_hours}h
-                        </div>
-                      )}
+
 
                       {(actionsByStep.get(s.id)?.length ?? 0) > 0 && (
                         <>
