@@ -564,7 +564,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
-                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); }}>
+                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]); }}>
                           <SelectTrigger><SelectValue placeholder="All sectors" /></SelectTrigger>
                           <SelectContent>
                             {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -573,7 +573,7 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Sub-Sector</Label>
-                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); }} disabled={!sectorId}>
+                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); setFormIds([]); }} disabled={!sectorId}>
                           <SelectTrigger><SelectValue placeholder="All sub-sectors" /></SelectTrigger>
                           <SelectContent>
                             {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -584,7 +584,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Category</Label>
-                        <Select value={categoryId} onValueChange={setCategoryId} disabled={!subSectorId}>
+                        <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
                           <SelectTrigger><SelectValue placeholder="All categories" /></SelectTrigger>
                           <SelectContent>
                             {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -596,7 +596,7 @@ export default function FeeManagement() {
                         <MultiSelect
                           options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
                           selected={serviceIds}
-                          onChange={setServiceIds}
+                          onChange={selected => { setServiceIds(selected); setFormIds([]); }}
                           placeholder="None (applies to pre-licensee)"
                           withinDialog
                         />
