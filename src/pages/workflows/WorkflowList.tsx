@@ -1832,7 +1832,7 @@ function SlaExtendedConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-xs">— use default —</SelectItem>
-            {emailTemplates.map(t => (
+            {warningTemplateOptions.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
             ))}
           </SelectContent>
