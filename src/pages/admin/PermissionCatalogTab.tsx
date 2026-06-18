@@ -59,7 +59,7 @@ export default function PermissionCatalogTab() {
 
   const handleDeleteModule = (m: CatalogModule) => {
     if (m.is_system) { toast.error('System modules cannot be deleted'); return; }
-    if (!confirm(`Delete module "${m.label}"? This removes all sub-modules, actions and route attachments.`)) return;
+    if (!confirm(`Delete module "${m.label}"? This removes all sub-modules and actions.`)) return;
     deleteModule.mutate(m.id);
     if (selectedModuleId === m.id) setSelectedModuleId(null);
   };
