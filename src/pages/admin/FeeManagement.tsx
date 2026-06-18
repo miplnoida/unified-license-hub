@@ -371,6 +371,7 @@ export default function FeeManagement() {
     if (sectorId && f.sector_id && f.sector_id !== sectorId) return false;
     if (subSectorId && f.sub_sector_id && f.sub_sector_id !== subSectorId) return false;
     if (categoryId && f.category_id && f.category_id !== categoryId) return false;
+    if (serviceIds.length > 0 && f.service_id && !serviceIds.includes(f.service_id)) return false;
     return true;
   });
 
