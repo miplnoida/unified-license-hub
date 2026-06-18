@@ -637,13 +637,39 @@ export default function ApplicationsList() {
     return list;
   }, [applications, versions, versionSort]);
 
+  // Centralized workflow-instance SLA map for the currently visible apps.
+  // Same hook powers the dashboard widget — guarantees identical status logic.
+  const visibleAppIds = useMemo(() => filtered.map(a => a.id), [filtered]);
+  const { byEntityId: slaByApp } = useWorkflowSlaInstances({
+    entityType: 'application',
+    entityIds: visibleAppIds,
+  });
+
+  const getSlaForApp = (appId: string) => {
+    const entry = slaByApp.get(appId);
+    if (!entry) return null;
+    return computeWorkflowSLA(entry.slaInput);
+  };
+
   // Always sort by created_at DESC so newest applications show first.
-  const sortedFiltered = useMemo(
-    () => [...filtered].sort(
+  const sortedFiltered = useMemo(() => {
+    let list = [...filtered].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    ),
-    [filtered]
-  );
+    );
+    if (workflowSlaFilter) {
+      list = list.filter(a => slaByApp.get(a.id)?.status === workflowSlaFilter);
+    }
+    if (slaSort !== 'none') {
+      const score = (a: any) => {
+        const e = slaByApp.get(a.id);
+        if (!e) return slaSort === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        // Higher consumption / breach = "worse". Sort asc => healthiest first.
+        return e.percentConsumed;
+      };
+      list.sort((a, b) => slaSort === 'asc' ? score(a) - score(b) : score(b) - score(a));
+    }
+    return list;
+  }, [filtered, slaByApp, slaSort, workflowSlaFilter]);
 
   // Server-driven pagination: totalCount comes from the .range() count.
   const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
