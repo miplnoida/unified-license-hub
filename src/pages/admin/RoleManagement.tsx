@@ -681,8 +681,6 @@ export default function RoleManagement() {
                               setFormPerms(prev => [...new Set([...prev, ...ids])]);
                             }
                           };
-                          return (
-                            <Card key={m.moduleKey} className="overflow-hidden">
                           const assignedCount = filteredPerms.filter(p => formPerms.includes(p.permission.id)).length;
                           const clearAll = () => {
                             const ids = new Set(filteredPerms.map(p => p.permission.id));
