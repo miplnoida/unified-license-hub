@@ -370,9 +370,9 @@ export default function FeeManagement() {
   const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
     if (!sectorId && !subSectorId && !categoryId && serviceIds.length === 0) return false;
     if (sectorId && f.sector_id !== sectorId) return false;
-    if (subSectorId ? f.sub_sector_id !== subSectorId : f.sub_sector_id) return false;
-    if (categoryId ? f.category_id !== categoryId : f.category_id) return false;
-    if (serviceIds.length > 0 ? !serviceIds.includes(f.service_id || '') : f.service_id) return false;
+    if (subSectorId && f.sub_sector_id !== subSectorId) return false;
+    if (categoryId && f.category_id !== categoryId) return false;
+    if (serviceIds.length > 0 && !serviceIds.includes(f.service_id || '')) return false;
     return true;
   }), [formTemplates, sectorId, subSectorId, categoryId, serviceIds]);
 
