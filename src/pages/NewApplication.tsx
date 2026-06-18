@@ -717,6 +717,38 @@ export default function NewApplication() {
     })();
   }, [user?.id, continuedApplicationId, draftIdParam, stepParam, continueIdFromPath, hydrateFormProgress, hydratePaymentState, loadDraftTemplatesByIds, formTemplates, matchedTemplates, navigate, location.pathname]);
 
+  // Pre-fill sector/sub-sector/category from the user's most recent registration
+  // when starting a brand new application (no draft being hydrated and no
+  // selection yet). Restores prior behaviour where registration data flowed
+  // into the new-application wizard automatically.
+  const hasPrefilledFromRegistrationRef = useRef(false);
+  useEffect(() => {
+    if (hasPrefilledFromRegistrationRef.current) return;
+    if (!user) return;
+    if (continuedApplicationId || draftIdParam) return;
+    if (applicationId) return;
+    if (selectedSector || selectedSubSector || selectedCategory) return;
+    hasPrefilledFromRegistrationRef.current = true;
+    (async () => {
+      try {
+        const { data: regs } = await supabase
+          .from('registrations')
+          .select('sector_id, sub_sector_id, category_id, status, created_at')
+          .eq('user_id', user.id)
+          .in('status', ['approved', 'in_progress', 'pending_review'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const reg = regs?.[0] as any;
+        if (!reg) return;
+        if (reg.sector_id) setSelectedSector(reg.sector_id);
+        if (reg.sub_sector_id) setSelectedSubSector(reg.sub_sector_id);
+        if (reg.category_id) setSelectedCategory(reg.category_id);
+      } catch (err) {
+        console.warn('[NewApplication] registration prefill failed:', err);
+      }
+    })();
+  }, [user?.id, continuedApplicationId, draftIdParam, applicationId, selectedSector, selectedSubSector, selectedCategory]);
+
   const handleSectorChange = useCallback((val: string) => {
     setSelectedSector(prev => {
       if (val === prev) return prev;
