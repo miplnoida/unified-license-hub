@@ -130,6 +130,21 @@ export default function RoleManagement() {
   const [permSearch, setPermSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
+  // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
+  // the dropdown may leave `pointer-events: none` on <body> after the dialog closes,
+  // making the whole page unclickable. Clear it whenever no dialog is open.
+  useEffect(() => {
+    if (!dialogOpen && !deleteConfirm) {
+      const t = setTimeout(() => {
+        if (document.body.style.pointerEvents === 'none') {
+          document.body.style.pointerEvents = '';
+        }
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [dialogOpen, deleteConfirm]);
+
+
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
   const { data: permissions = [] } = usePermissions();
   const { data: allRolePerms = [] } = useAllRolePermissions();
