@@ -683,6 +683,17 @@ export default function RoleManagement() {
                           };
                           return (
                             <Card key={m.moduleKey} className="overflow-hidden">
+                          const assignedCount = filteredPerms.filter(p => formPerms.includes(p.permission.id)).length;
+                          const clearAll = () => {
+                            const ids = new Set(filteredPerms.map(p => p.permission.id));
+                            setFormPerms(prev => prev.filter(id => !ids.has(id)));
+                          };
+                          const selectAll = () => {
+                            const ids = filteredPerms.map(p => p.permission.id);
+                            setFormPerms(prev => [...new Set([...prev, ...ids])]);
+                          };
+                          return (
+                            <Card key={m.moduleKey} className="overflow-hidden">
                               <div className="flex items-start gap-3 px-4 py-2 bg-muted/50 border-b">
                                 <Checkbox
                                   className="mt-1"
@@ -690,10 +701,24 @@ export default function RoleManagement() {
                                   ref={el => { if (el) (el as any).indeterminate = someChecked; }}
                                   onCheckedChange={toggleAll}
                                 />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <span className="text-sm font-semibold">{m.moduleLabel}</span>
-                                    <code className="text-[10px] text-muted-foreground">{m.moduleKey}</code>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] text-muted-foreground">
+                                        {assignedCount === 0
+                                          ? 'No permissions selected'
+                                          : assignedCount === filteredPerms.length
+                                            ? 'All selected'
+                                            : `${assignedCount} selected`}
+                                      </span>
+                                      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={selectAll}>
+                                        Select all
+                                      </Button>
+                                      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={clearAll}>
+                                        Clear
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -707,17 +732,9 @@ export default function RoleManagement() {
                                     />
                                     <label
                                       htmlFor={`perm-${permission.id}`}
-                                      className="text-sm cursor-pointer flex items-center gap-1"
+                                      className="text-sm cursor-pointer"
                                     >
                                       {label}
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Info className="h-3 w-3 text-muted-foreground" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          {permission.description || `${permission.module}.${permission.name}`}
-                                        </TooltipContent>
-                                      </Tooltip>
                                     </label>
                                   </div>
                                 ))}
