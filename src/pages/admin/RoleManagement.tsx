@@ -485,7 +485,7 @@ export default function RoleManagement() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                                    <RowActionsMenu actions={[
+                                    <RowActionsMenu dropdownModal={false} actions={[
                                       { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
                                       {
                                         label: 'Reset to defaults',
