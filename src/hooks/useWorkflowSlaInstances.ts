@@ -15,7 +15,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { computeWorkflowSLA, type UseWorkflowSLAInput, type SlaStatus } from './useWorkflowSLA';
+import { computeWorkflowSLA, type UseWorkflowSLAInput, type SlaStatus } from '@/hooks/useWorkflowSLA';
 import { resolveSlaInputFromInstance, type WorkflowInstanceRow } from '@/lib/workflowSlaResolver';
 
 export interface WorkflowSlaEntry {
