@@ -1678,9 +1678,13 @@ function SlaExtendedConfig({
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
 }) {
   const { data: templates = [] } = useNotificationTemplates();
-  const emailTemplates = useMemo(
-    () => templates.filter(t => t.channel === 'email' || t.channel === 'in_app'),
-    [templates],
+  const warningTemplateOptions = useMemo(
+    () => templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.warning' || t.id === step.sla_warning_template_id)),
+    [templates, step.sla_warning_template_id],
+  );
+  const breachTemplateOptions = useMemo(
+    () => templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.breach' || t.id === step.sla_breach_template_id)),
+    [templates, step.sla_breach_template_id],
   );
 
   const [warningDraft, setWarningDraft] = useState<string>(
@@ -1828,7 +1832,7 @@ function SlaExtendedConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-xs">— use default —</SelectItem>
-            {emailTemplates.map(t => (
+            {warningTemplateOptions.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
             ))}
           </SelectContent>
@@ -1847,7 +1851,7 @@ function SlaExtendedConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-xs">— use default —</SelectItem>
-            {emailTemplates.map(t => (
+            {breachTemplateOptions.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
             ))}
           </SelectContent>
@@ -1855,8 +1859,8 @@ function SlaExtendedConfig({
       </div>
 
       <p className="text-[10px] text-muted-foreground">
-        Templates feed the SLA notification dispatcher; warning fires at the threshold % of SLA elapsed,
-        breach fires when SLA is exceeded (and again after escalation hours if a recipient is set).
+        Pick the email template for each SLA event. The matching in-app notification is sent automatically using the same event key.
+        Warning fires at the threshold % of SLA elapsed; breach fires when SLA is exceeded (and again after escalation hours if a recipient is set).
       </p>
     </div>
   );
