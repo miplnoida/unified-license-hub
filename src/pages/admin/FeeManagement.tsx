@@ -225,9 +225,12 @@ export default function FeeManagement() {
     setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
-    setServiceIds(fee.service_id ? [fee.service_id] : []); setIsActive(fee.is_active);
+    setServiceIds(fee.service_id ? [fee.service_id] : []);
+    setFormIds(fee.form_id ? [fee.form_id] : []);
+    setIsActive(fee.is_active);
     setDialogOpen(true);
   };
+
 
   const openEditRule = (rule: FeeRule) => {
     setEditingRule(rule);
