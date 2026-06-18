@@ -519,7 +519,7 @@ export default function RoleManagement() {
                                 <AlertTriangle className="h-4 w-4" />
                                 <AlertTitle>No permissions assigned</AlertTitle>
                                 <AlertDescription>
-                                  Users with this role will not see any menus or routes.
+                                  Users with this role will not see any menus.
                                 </AlertDescription>
                               </Alert>
                             )}
