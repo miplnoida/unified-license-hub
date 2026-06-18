@@ -119,6 +119,8 @@ export default function FeeManagement() {
   const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
   const { data: categories = [] } = useCategories(activeRegulatorId);
   const { data: services = [] } = useServices(activeRegulatorId);
+  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulatorId);
+
 
   const loadFees = async () => {
     setLoading(true);
