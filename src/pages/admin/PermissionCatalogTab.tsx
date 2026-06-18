@@ -243,7 +243,7 @@ function ModuleRow({
             {m.label}
             {m.is_system && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />system</Badge>}
           </div>
-          <div className="text-xs font-mono text-muted-foreground truncate">{m.key}</div>
+          {m.description && <div className="text-xs text-muted-foreground truncate">{m.description}</div>}
         </button>
         <div className="flex gap-0.5">
           {onAddChild && (
