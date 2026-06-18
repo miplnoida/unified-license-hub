@@ -1194,12 +1194,15 @@ export default function ApplicationsList() {
           }
         />
 
-        {(slaFilter || statusGroupFilter) && (
+        {(slaFilter || statusGroupFilter || workflowSlaFilter) && (
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-xs">
               {slaFilter === 'breached' && 'SLA: Breached'}
               {slaFilter === 'due_soon' && 'SLA: Nearing breach'}
               {slaFilter === 'pending' && 'SLA: Pending'}
+              {workflowSlaFilter === 'healthy' && 'Workflow SLA: Within SLA'}
+              {workflowSlaFilter === 'warning' && 'Workflow SLA: Approaching Breach'}
+              {workflowSlaFilter === 'breached' && 'Workflow SLA: Breached'}
               {statusGroupFilter === 'returned' && 'Status: Returned'}
               {statusGroupFilter === 'approved' && 'Status: Approved'}
               {statusGroupFilter === 'rejected' && 'Status: Rejected'}
