@@ -120,7 +120,7 @@ function RegistrationApprovalGate({
   // permission module the user has been granted, allow it. The route's own
   // guard (PortalRoute / ModuleRoute) performs the final capability check.
   if (permsLoading) return <AuthLoadingScreen />;
-  const { getModuleForPath } = require('@/lib/permissionModules') as typeof import('@/lib/permissionModules');
+  
   const mod = getModuleForPath(pathname);
   if (mod && hasModuleAccess(mod)) return <>{children}</>;
 
