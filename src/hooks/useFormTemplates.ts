@@ -1131,11 +1131,18 @@ export function classifySchemaChange(
 
   // Build field maps keyed by fieldName (stable identifier).
   // Skip fields without a fieldName as unidentifiable.
+  // Fallback to row-derived fields when section.fields is missing (legacy/seeded schemas).
   const collect = (sections: FormSection[]) => {
     const map = new Map<string, { field: FormField; sectionId: string; index: number }>();
-    sections.forEach(s => s.fields.forEach((f, idx) => {
-      if (f.fieldName) map.set(f.fieldName, { field: f, sectionId: s.id, index: idx });
-    }));
+    sections.forEach((s) => {
+      let fields: FormField[] = Array.isArray((s as any).fields) ? (s as any).fields : [];
+      if (fields.length === 0 && Array.isArray((s as any).rows)) {
+        fields = (s as any).rows.flatMap((r: any) => Array.isArray(r?.fields) ? r.fields : []);
+      }
+      fields.forEach((f, idx) => {
+        if (f && f.fieldName) map.set(f.fieldName, { field: f, sectionId: s.id, index: idx });
+      });
+    });
     return map;
   };
   const oldMap = collect(oldSections);
