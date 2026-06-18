@@ -642,9 +642,11 @@ export default function RoleManagement() {
                       return (
                         <TabsTrigger key={tab.key} value={tab.key} className="gap-2">
                           {tab.label}
-                          <Badge variant="secondary" className="text-[10px]">
-                            {assigned}/{totalPerms}
-                          </Badge>
+                          {assigned > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {assigned === totalPerms ? 'All' : assigned}
+                            </Badge>
+                          )}
                         </TabsTrigger>
                       );
                     })}
