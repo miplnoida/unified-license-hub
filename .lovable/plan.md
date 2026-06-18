@@ -1,31 +1,23 @@
-## Root causes
+## Root cause
 
-1. **RLS insert blocked** — Policy `external_applications_insert_capability_gate` requires the user to have the dynamic "Applicant" role mapped through `user_dynamic_roles → role_permissions(module='licensing', name='submit')`. User `817…` (Anisha) has the static `pre_licensee` role but no row in `user_dynamic_roles`. `seed_external_portal_defaults` was supposed to grant the dynamic role at signup but didn't run/succeed for this user, so `has_portal_capability(..., 'can_submit')` returns false and the insert is rejected.
+The built-in "Applicant" dynamic role row in `public.roles` has `system_role = 'analyst'`. When a pre-licensee account is created, `seed_external_portal_defaults` inserts the Applicant dynamic role, and the existing trigger `trg_sync_user_roles_from_dynamic` mirrors that role's `system_role` into `public.user_roles`. Result: every pre-licensee/applicant ends up with both `pre_licensee` and `analyst` static roles, so the UI labels them "Analyst" and they inherit internal-analyst privileges.
 
-2. **Draft / registration data not visible in new application** — `NewApplication.tsx` only hydrates an existing draft when the URL contains `?draft=<id>` or `/continue`. Clicking "New Application" always starts blank with no sector/sub-sector/category. There is no logic that pre-fills these from the user's approved registration, so the wizard appears empty even though the registration already has them.
+(Regulated Entity User is correctly mapped to `licensee_primary`; only Applicant — and similarly Consumer/Complainant — were left with the catch-all `analyst` default from migration `20260618142619`.)
 
 ## Plan
 
-### 1. Make the RLS gate resilient (database migration)
-Update `external_can_access_application_values` so a user inserting their own application passes the gate when **either**:
-- they already have the dynamic capability (current check), **or**
-- they hold a relevant static role (`applicant`, `pre_licensee`, `licensee_primary`, `licensee_secondary`) — these built-in roles inherently imply "can submit my own application".
+Single database migration:
 
-This keeps the dynamic-RBAC system in place but stops it from silently locking out external users when their dynamic role row is missing.
+1. **Re-map external built-in roles** in `public.roles`:
+   - `Applicant` → `system_role = 'applicant'`
+   - `Consumer / Complainant` → `system_role = 'applicant'` (also an external submitter, same bug)
+2. **Clean up wrongly-granted `analyst` rows** in `public.user_roles`: delete `(user_id, 'analyst')` for every user whose only source of `analyst` was one of the re-mapped dynamic roles and who has no other dynamic role currently mapped to `system_role = 'analyst'`.
+3. **Re-run the sync** for affected users by touching their `user_dynamic_roles` rows so `trg_sync_user_roles_from_dynamic` inserts the correct `applicant` static role.
+4. **Tighten the create-user default** in `supabase/functions/create-web-user/index.ts` so it does not silently fall back to `'analyst'` when the caller passes a dynamic role whose `system_role` resolves to an external value — use that resolved value instead of the hard-coded `'analyst'`. (Defence in depth; the sync trigger already does the right thing once the role table is correct.)
 
-### 2. Self-heal dynamic role on first use (same migration)
-- Backfill: for every user in `user_roles` with role in (`applicant`, `pre_licensee`, `licensee_primary`, `licensee_secondary`) that has no `user_dynamic_roles` row, insert the matching dynamic role (Applicant / Regulated Entity User).
-- Add a trigger on `user_roles` that calls `seed_external_portal_defaults` after insert, so any future user can't end up in this broken state.
+## Verification
 
-### 3. Pre-fill sector / sub-sector / category from the approved registration
-In `src/pages/NewApplication.tsx`, after the user is loaded and only when no draft is being hydrated and the wizard is on the `selection` step with empty values:
-- Look up the latest `registrations` row for `user_id = user.id` with `status = 'approved'` (fallback to `in_progress` if none approved).
-- Pre-populate `selectedSector`, `selectedSubSector`, `selectedCategory` (and surface a small "from your registration" hint).
-- Do not silently create a draft — the user still clicks "Proceed to Forms" to confirm, matching today's behaviour.
-
-### 4. Verify
-- Re-test insert as user 817… → should succeed.
-- Visit `/applications/new` with an approved registration → sector / sub-sector / category should already be selected.
-- Existing draft listed on Pre-Licensee Dashboard remains continuable via its own "Continue" button (unchanged).
-
-No other workflow or notification logic is touched.
+- Re-check `user_roles` for `anisha.k2@yopmail.com`: should be `{pre_licensee, applicant}` only, no `analyst`.
+- New pre-licensee signup → `user_roles` has `pre_licensee` + `applicant`, never `analyst`.
+- Internal staff (Analyst, Licensing Analyst, etc.) keep their `analyst` static role because their dynamic roles still resolve to `system_role='analyst'`.
+- The previous fix (RLS gate + dynamic-role backfill + registration prefill) is unchanged.
