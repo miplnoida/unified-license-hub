@@ -204,7 +204,15 @@ export default function ApplicationsList() {
   const rawSlaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
   const slaFilter: ApplicationQueueSlaBucket | null = rawSlaFilter === 'pending' || rawSlaFilter === 'breached' || rawSlaFilter === 'due_soon'
     ? rawSlaFilter
-    : null;
+      : null;
+  // Workflow-instance SLA bucket — set when drilling from the dashboard
+  // SLA widget. Values: 'healthy' | 'warning' | 'breached'.
+  const rawWorkflowSla = searchParamsRaw.get('workflowSla');
+  const workflowSlaFilter: SlaStatus | null =
+    rawWorkflowSla === 'healthy' || rawWorkflowSla === 'warning' || rawWorkflowSla === 'breached'
+      ? rawWorkflowSla
+      : null;
+  const [slaSort, setSlaSort] = useState<'none' | 'asc' | 'desc'>('none');
   const rawStatusGroup = searchParamsRaw.get('statusGroup');
   const statusGroupFilter: ApplicationQueueStatusGroup | null =
     rawStatusGroup === 'pending' || rawStatusGroup === 'returned' || rawStatusGroup === 'approved' || rawStatusGroup === 'rejected'
