@@ -167,43 +167,13 @@ export default function PermissionCatalogTab() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2"><RouteIcon className="h-4 w-4" /> Routes attached to {selectedModule.label}</CardTitle>
-                  <CardDescription>Pages this module unlocks — pick from the developer-declared list</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                    {DECLARED_ROUTES.map(dr => {
-                      const attached = routesFor(selectedModule.id).find(r => r.route_prefix === dr.route_prefix);
-                      return (
-                        <label key={dr.route_prefix} className="flex items-start gap-2 border rounded-md p-2 cursor-pointer hover:bg-muted/50">
-                          <Checkbox
-                            checked={!!attached}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                upsertRoute.mutate({ module_id: selectedModule.id, route_prefix: dr.route_prefix, menu_label: dr.default_label });
-                              } else if (attached) {
-                                deleteRoute.mutate(attached.id);
-                              }
-                            }}
-                          />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">{dr.default_label}</div>
-                            <div className="text-xs font-mono text-muted-foreground truncate">{dr.route_prefix}</div>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
             </>
           ) : (
-            <Card><CardContent className="py-10 text-center text-muted-foreground">Select a module to edit its actions and routes</CardContent></Card>
+            <Card><CardContent className="py-10 text-center text-muted-foreground">Select a module to edit its actions</CardContent></Card>
           )}
         </div>
       </div>
+
 
       {/* Module dialog */}
       <Dialog open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
