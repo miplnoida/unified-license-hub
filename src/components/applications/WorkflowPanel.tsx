@@ -22,6 +22,32 @@ import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
+import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
+import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
+
+function StepSlaBadge({
+  startedAt,
+  slaHours,
+  warningPct,
+  escalationAfterHours,
+  paused,
+}: {
+  startedAt: string | null;
+  slaHours: number | null;
+  warningPct: number | null;
+  escalationAfterHours: number | null;
+  paused: boolean;
+}) {
+  const sla = useWorkflowSLA({
+    startedAt,
+    slaHours,
+    warningThresholdPercent: warningPct,
+    escalationAfterHours,
+    paused,
+  });
+  if (sla.status === 'unknown') return null;
+  return <SlaStatusBadge sla={sla} />;
+}
 
 interface CanActResult {
   can_act: boolean;
@@ -302,6 +328,26 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       return 'upcoming';
     });
   }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused]);
+
+  // Per-step SLA start time: step N starts at the prior step's decisive action,
+  // step 0 starts at the workflow instance start. Returns null for upcoming steps
+  // that have not begun yet.
+  const stepStartedAt = useMemo<Array<string | null>>(() => {
+    const decisiveSet = new Set([
+      'approve', 'reject', 'send_back', 'escalate',
+      'request_resubmission', 'return_for_correction', 'request_more_info',
+    ]);
+    const instanceStart = (liveInstance as any)?.started_at ?? (liveInstance as any)?.created_at ?? null;
+    return steps.map((s, idx) => {
+      const status = stepStatuses[idx];
+      if (status === 'upcoming') return null;
+      if (idx === 0) return instanceStart;
+      const prev = steps[idx - 1];
+      const prevHistory = actionsByStep.get(prev.id) || [];
+      const prevDecisive = [...prevHistory].reverse().find(a => decisiveSet.has(a.action_type));
+      return prevDecisive?.created_at ?? instanceStart;
+    });
+  }, [steps, stepStatuses, actionsByStep, liveInstance]);
 
   // Collect approver user_ids across all steps (specific_users mode) so we can
   // resolve their display names without a query-per-step.
@@ -856,6 +902,15 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
+                      {(status === 'current' || status === 'paused') && s.sla_hours ? (
+                        <StepSlaBadge
+                          startedAt={stepStartedAt[idx]}
+                          slaHours={s.sla_hours}
+                          warningPct={s.sla_warning_threshold_percent}
+                          escalationAfterHours={s.escalation_after_hours}
+                          paused={status === 'paused'}
+                        />
+                      ) : null}
                       {renderStatusBadge(status)}
                     </div>
                   </div>
@@ -870,11 +925,18 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         </Badge>
                       </div>
                       {s.sla_hours && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          SLA: {s.sla_hours}h
-                        </div>
+                        <SlaProgressPanel
+                          input={{
+                            startedAt: stepStartedAt[idx],
+                            slaHours: s.sla_hours,
+                            warningThresholdPercent: s.sla_warning_threshold_percent,
+                            escalationAfterHours: s.escalation_after_hours,
+                            paused: false,
+                          }}
+                          title={`SLA · ${s.name}`}
+                        />
                       )}
+
 
                       {(actionsByStep.get(s.id)?.length ?? 0) > 0 && (
                         <>

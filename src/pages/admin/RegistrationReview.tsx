@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Eye } from 'lucide-react';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
 
 interface PendingRegistration {
   id: string;
@@ -24,6 +25,9 @@ interface PendingRegistration {
   workflow_name?: string | null;
   current_step_name?: string | null;
   sla_hours?: number | null;
+  sla_warning_threshold_percent?: number | null;
+  escalation_after_hours?: number | null;
+  step_started_at?: string | null;
 }
 
 export default function RegistrationReview() {
@@ -63,7 +67,7 @@ export default function RegistrationReview() {
     const ids = base.map(r => r.id);
     const { data: instances } = await supabase
       .from('workflow_instances')
-      .select('entity_id, workflow_id, workflow_version_id, current_step_id, current_step_key, version_snapshot')
+      .select('entity_id, workflow_id, workflow_version_id, current_step_id, current_step_key, version_snapshot, started_at')
       .eq('entity_type', 'registration')
       .in('entity_id', ids);
 
@@ -86,7 +90,15 @@ export default function RegistrationReview() {
     const hydrated = base.map(r => {
       const inst = instByEntity.get(r.id);
       if (!inst) return r;
-      const snap = inst.version_snapshot as { steps?: Array<{ local_id: string; name: string; sla_hours: number | null }> } | null;
+      const snap = inst.version_snapshot as {
+        steps?: Array<{
+          local_id: string;
+          name: string;
+          sla_hours: number | null;
+          sla_warning_threshold_percent?: number | null;
+          escalation_after_hours?: number | null;
+        }>;
+      } | null;
       const stepKey = inst.current_step_key ?? (inst.current_step_id ? String(inst.current_step_id) : null);
       const step = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
       return {
@@ -96,6 +108,11 @@ export default function RegistrationReview() {
         workflow_name: inst.workflow_id ? wfMap.get(inst.workflow_id) ?? null : null,
         current_step_name: step?.name ?? null,
         sla_hours: step?.sla_hours ?? null,
+        sla_warning_threshold_percent: step?.sla_warning_threshold_percent ?? null,
+        escalation_after_hours: step?.escalation_after_hours ?? null,
+        // Best-effort step start: instance start (first step) is the safest
+        // signal here without re-querying per-row approval_actions.
+        step_started_at: inst.started_at ?? null,
       };
     });
     setRows(hydrated);
@@ -138,12 +155,18 @@ export default function RegistrationReview() {
                       <TableHead>Status</TableHead>
                       <TableHead>Workflow</TableHead>
                       <TableHead>Current Step</TableHead>
+                      <TableHead>SLA</TableHead>
+                      <TableHead>Deadline</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map(r => (
+                    {rows.map(r => {
+                      const deadline = r.sla_hours && r.step_started_at
+                        ? new Date(new Date(r.step_started_at).getTime() + r.sla_hours * 3600_000)
+                        : null;
+                      return (
                       <TableRow key={r.id}>
                         <TableCell className="font-mono text-sm">{r.registration_reference}</TableCell>
                         <TableCell className="font-medium">{r.applicant_name}</TableCell>
@@ -155,7 +178,20 @@ export default function RegistrationReview() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {r.current_step_name ?? '—'}
-                          {r.sla_hours ? <span className="text-muted-foreground"> · SLA {r.sla_hours}h</span> : null}
+                          {r.sla_hours ? <span className="text-muted-foreground"> · {r.sla_hours}h</span> : null}
+                        </TableCell>
+                        <TableCell>
+                          <SlaInlineIndicator
+                            input={{
+                              startedAt: r.step_started_at,
+                              slaHours: r.sla_hours,
+                              warningThresholdPercent: r.sla_warning_threshold_percent,
+                              escalationAfterHours: r.escalation_after_hours,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {deadline ? deadline.toLocaleString() : '—'}
                         </TableCell>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
@@ -164,7 +200,8 @@ export default function RegistrationReview() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
