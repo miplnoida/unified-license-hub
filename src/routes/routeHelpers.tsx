@@ -5,6 +5,10 @@ import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { getModuleForPath } from '@/lib/permissionModules';
+
+
 
 /**
  * Routes a non-approved pre-licensee is still allowed to visit so they can
@@ -92,6 +96,7 @@ function RegistrationApprovalGate({
   children: React.ReactNode;
 }) {
   const { loading, isApproved, category, registration } = useRegistrationApprovalStatus();
+  const { hasModuleAccess, isLoading: permsLoading } = useUserDynamicPermissions();
 
   // Only block with a loader on the very first lookup (no cached data). On
   // subsequent navigations/logins the status comes from sessionStorage and
@@ -108,12 +113,20 @@ function RegistrationApprovalGate({
     return <Navigate to="/registration-status" replace />;
   }
 
-  // Approved → fall back to legacy pre-licensee allow-list behaviour.
-  if (!isPreLicenseeAllowedRoute(pathname)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return <>{children}</>;
+  // Approved → baseline pre-licensee whitelist always allowed.
+  if (isPreLicenseeAllowedRoute(pathname)) return <>{children}</>;
+
+  // Honor admin-granted dynamic permissions: if the route maps to a
+  // permission module the user has been granted, allow it. The route's own
+  // guard (PortalRoute / ModuleRoute) performs the final capability check.
+  if (permsLoading) return <AuthLoadingScreen />;
+  
+  const mod = getModuleForPath(pathname);
+  if (mod && hasModuleAccess(mod)) return <>{children}</>;
+
+  return <Navigate to="/dashboard" replace />;
 }
+
 
 
 /** Shorthand wrapper — also isolates per-route render errors. */
