@@ -25,6 +25,30 @@ import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
 
+function StepSlaBadge({
+  startedAt,
+  slaHours,
+  warningPct,
+  escalationAfterHours,
+  paused,
+}: {
+  startedAt: string | null;
+  slaHours: number | null;
+  warningPct: number | null;
+  escalationAfterHours: number | null;
+  paused: boolean;
+}) {
+  const sla = useWorkflowSLA({
+    startedAt,
+    slaHours,
+    warningThresholdPercent: warningPct,
+    escalationAfterHours,
+    paused,
+  });
+  if (sla.status === 'unknown') return null;
+  return <SlaStatusBadge sla={sla} />;
+}
+
 interface CanActResult {
   can_act: boolean;
   reason: string;
