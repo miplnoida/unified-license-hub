@@ -1627,6 +1627,9 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               )}
             </div>
 
+            {/* Extended SLA configuration */}
+            <SlaExtendedConfig step={step} dynamicRoles={dynamicRoles} onUpdate={onUpdate} />
+
             {/* Auto-approve on timeout */}
             <div className="flex items-start gap-3">
               <Switch
@@ -1649,6 +1652,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
                 </p>
               </div>
             </div>
+
 
             {/* Step entry notifications */}
             <StepEntryNotificationsEditor stepId={step.id} />
