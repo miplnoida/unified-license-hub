@@ -162,6 +162,27 @@ export function useDeleteRole() {
 }
 
 /**
+ * Reset a system role's permissions back to the curated default matrix
+ * (defined in the database via `reset_system_role_permissions`).
+ */
+export function useResetSystemRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (roleName: string) => {
+      const { error } = await supabase.rpc('reset_system_role_permissions' as any, { p_role_name: roleName });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['dynamic-roles'] });
+      qc.invalidateQueries({ queryKey: ['all-role-permissions'] });
+      qc.invalidateQueries({ queryKey: ['role-permissions'] });
+      toast.success('Role reset to default permissions');
+    },
+    onError: (e: any) => toast.error(e.message || 'Failed to reset role'),
+  });
+}
+
+/**
  * Count users per dynamic role using user_dynamic_roles as source of truth.
  * Falls back to profiles.role_id (legacy) only for roles that have zero
  * dynamic-role assignments, so existing data is not lost.

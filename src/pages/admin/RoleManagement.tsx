@@ -32,7 +32,8 @@ import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import {
   useRoles, usePermissions, useAllRolePermissions, useRoleUserCounts,
-  useCreateRole, useUpdateRole, useDeleteRole, DynamicRole, Permission, RoleType,
+  useCreateRole, useUpdateRole, useDeleteRole, useResetSystemRole,
+  DynamicRole, Permission, RoleType,
 } from '@/hooks/useRoles';
 import {
   useCatalogModules, useCatalogActions,
@@ -82,6 +83,7 @@ export default function RoleManagement() {
   const createRole = useCreateRole();
   const updateRole = useUpdateRole();
   const deleteRole = useDeleteRole();
+  const resetSystemRole = useResetSystemRole();
 
   /** Module entries derived from DB catalog. */
   const moduleEntries = useMemo<ModuleEntry[]>(() => {
@@ -377,7 +379,14 @@ export default function RoleManagement() {
                                         <Shield className="h-4 w-4 text-primary" />
                                       </div>
                                       <div>
-                                        <p className="font-medium">{role.name}</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className="font-medium">{role.name}</p>
+                                          {role.is_system && (
+                                            <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+                                              System Role
+                                            </Badge>
+                                          )}
+                                        </div>
                                         <p className="text-sm text-muted-foreground">{role.description}</p>
                                       </div>
                                     </div>
@@ -399,6 +408,17 @@ export default function RoleManagement() {
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                     <RowActionsMenu actions={[
                                       { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
+                                      {
+                                        label: 'Reset to defaults',
+                                        icon: Shield,
+                                        onClick: () => {
+                                          if (confirm(`Reset "${role.name}" to its default permissions? Any custom changes will be lost.`)) {
+                                            resetSystemRole.mutate(role.name);
+                                          }
+                                        },
+                                        hidden: !role.is_system,
+                                        separator: true,
+                                      },
                                       { label: 'Delete', icon: Trash2, onClick: () => setDeleteConfirm(role), destructive: true, hidden: role.is_system, separator: true },
                                     ]} />
                                   </TableCell>
@@ -534,7 +554,13 @@ export default function RoleManagement() {
                 <div className="space-y-2">
                   <Label>Role Name <span className="text-destructive">*</span></Label>
                   <Input placeholder="e.g. Insurance Regulator" value={formName}
-                    onChange={e => setFormName(e.target.value)} />
+                    onChange={e => setFormName(e.target.value)}
+                    disabled={!!editingRole?.is_system} />
+                  {editingRole?.is_system && (
+                    <p className="text-[11px] text-muted-foreground">
+                      System role name cannot be changed.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
