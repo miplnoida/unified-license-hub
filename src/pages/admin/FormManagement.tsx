@@ -311,12 +311,16 @@ export default function FormManagement() {
           : null,
       },
       {
-        onSuccess: () => toast.success(`Form status changed to "${newStatus}".`),
-        onError: () => toast.error('Failed to update status.'),
+        onSuccess: () => {
+          toast.success(`Form status changed to "${newStatus}".`);
+          setPublishEffectiveFrom('');
+          setStatusDialog((prev) => ({ ...prev, open: false }));
+        },
+        onError: (err: any) => {
+          toast.error(err?.message ? `Failed to update status: ${err.message}` : 'Failed to update status.');
+        },
       }
     );
-    setPublishEffectiveFrom('');
-    setStatusDialog((prev) => ({ ...prev, open: false }));
   };
 
   const handleSectorFilterChange = (val: string) => {
