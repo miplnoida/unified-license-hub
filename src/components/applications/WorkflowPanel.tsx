@@ -305,6 +305,26 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     });
   }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused]);
 
+  // Per-step SLA start time: step N starts at the prior step's decisive action,
+  // step 0 starts at the workflow instance start. Returns null for upcoming steps
+  // that have not begun yet.
+  const stepStartedAt = useMemo<Array<string | null>>(() => {
+    const decisiveSet = new Set([
+      'approve', 'reject', 'send_back', 'escalate',
+      'request_resubmission', 'return_for_correction', 'request_more_info',
+    ]);
+    const instanceStart = (liveInstance as any)?.started_at ?? (liveInstance as any)?.created_at ?? null;
+    return steps.map((s, idx) => {
+      const status = stepStatuses[idx];
+      if (status === 'upcoming') return null;
+      if (idx === 0) return instanceStart;
+      const prev = steps[idx - 1];
+      const prevHistory = actionsByStep.get(prev.id) || [];
+      const prevDecisive = [...prevHistory].reverse().find(a => decisiveSet.has(a.action_type));
+      return prevDecisive?.created_at ?? instanceStart;
+    });
+  }, [steps, stepStatuses, actionsByStep, liveInstance]);
+
   // Collect approver user_ids across all steps (specific_users mode) so we can
   // resolve their display names without a query-per-step.
   const specificApproverIds = useMemo(() => {
