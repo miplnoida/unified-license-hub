@@ -17,6 +17,12 @@ export interface NavItem {
   roles: AppRole[];
   /** If set, item is also gated by the dynamic role having access to this module */
   module?: PermissionModule;
+  /**
+   * Admin-panel items (e.g. /admin/*). When true, the sidebar keeps enforcing
+   * the static `roles` audience even in dynamic-permission mode so an external
+   * user who is granted the same module does not see internal admin screens.
+   */
+  adminOnly?: boolean;
   children?: NavItem[];
 }
 
