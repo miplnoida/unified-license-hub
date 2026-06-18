@@ -67,7 +67,7 @@ export default function RegistrationReview() {
     const ids = base.map(r => r.id);
     const { data: instances } = await supabase
       .from('workflow_instances')
-      .select('entity_id, workflow_id, workflow_version_id, current_step_id, current_step_key, version_snapshot')
+      .select('entity_id, workflow_id, workflow_version_id, current_step_id, current_step_key, version_snapshot, started_at')
       .eq('entity_type', 'registration')
       .in('entity_id', ids);
 
@@ -90,7 +90,15 @@ export default function RegistrationReview() {
     const hydrated = base.map(r => {
       const inst = instByEntity.get(r.id);
       if (!inst) return r;
-      const snap = inst.version_snapshot as { steps?: Array<{ local_id: string; name: string; sla_hours: number | null }> } | null;
+      const snap = inst.version_snapshot as {
+        steps?: Array<{
+          local_id: string;
+          name: string;
+          sla_hours: number | null;
+          sla_warning_threshold_percent?: number | null;
+          escalation_after_hours?: number | null;
+        }>;
+      } | null;
       const stepKey = inst.current_step_key ?? (inst.current_step_id ? String(inst.current_step_id) : null);
       const step = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
       return {
@@ -100,6 +108,11 @@ export default function RegistrationReview() {
         workflow_name: inst.workflow_id ? wfMap.get(inst.workflow_id) ?? null : null,
         current_step_name: step?.name ?? null,
         sla_hours: step?.sla_hours ?? null,
+        sla_warning_threshold_percent: step?.sla_warning_threshold_percent ?? null,
+        escalation_after_hours: step?.escalation_after_hours ?? null,
+        // Best-effort step start: instance start (first step) is the safest
+        // signal here without re-querying per-row approval_actions.
+        step_started_at: inst.started_at ?? null,
       };
     });
     setRows(hydrated);
