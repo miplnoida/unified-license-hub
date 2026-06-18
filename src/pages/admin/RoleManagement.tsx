@@ -25,7 +25,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
+  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle, Info,
 } from 'lucide-react';
 
 /** Strip developer-style "Module N - " prefixes from catalog labels. */
