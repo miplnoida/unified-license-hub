@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Eye } from 'lucide-react';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { SlaInlineIndicator } from '@/components/workflows/SlaIndicator';
 
 interface PendingRegistration {
   id: string;
