@@ -363,9 +363,17 @@ export default function FeeManagement() {
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getServiceName = (id: string | null) => services.find(s => s.id === id)?.name || '—';
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
+  const getFormName = (id: string | null) => (formTemplates as any[]).find((f: any) => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
   const filteredServices = services.filter(s => s.sub_sector_id === subSectorId);
+  const filteredForms = (formTemplates as any[]).filter((f: any) => {
+    if (sectorId && f.sector_id && f.sector_id !== sectorId) return false;
+    if (subSectorId && f.sub_sector_id && f.sub_sector_id !== subSectorId) return false;
+    if (categoryId && f.category_id && f.category_id !== categoryId) return false;
+    return true;
+  });
+
 
   const ruleTypeIcon = (type: string) => {
     switch (type) {
