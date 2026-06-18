@@ -634,10 +634,11 @@ Deno.serve(async (req) => {
       if (nextStepId) stepIdsToLoad.add(nextStepId);
       if (prevStepId) stepIdsToLoad.add(prevStepId);
       if (stepIdsToLoad.size > 0) {
-        const { data: stepRows } = await admin
+        const { data: stepRows, error: stepErr } = await admin
           .from("approval_steps")
-          .select("id, name, step_key, step_level, workflow_id")
+          .select("id, name, step_order, workflow_id")
           .in("id", Array.from(stepIdsToLoad));
+        if (stepErr) console.error("step lookup error:", stepErr.message);
         const stepMap = new Map<string, any>();
         (stepRows || []).forEach((s: any) => stepMap.set(String(s.id), s));
         const workflowIds = Array.from(new Set((stepRows || []).map((s: any) => s.workflow_id).filter(Boolean))) as string[];
@@ -652,23 +653,23 @@ Deno.serve(async (req) => {
         const cur = currentStepId ? stepMap.get(currentStepId) : null;
         if (cur) {
           vars.step_name = vars.step_name || cur.name || "";
-          vars.step_key = vars.step_key || cur.step_key || "";
-          vars.step_level = vars.step_level ?? cur.step_level ?? "";
+          vars.step_order = vars.step_order ?? cur.step_order ?? "";
+          vars.step_level = vars.step_level ?? cur.step_order ?? "";
           if (cur.workflow_id) vars.workflow_name = vars.workflow_name || wfMap.get(String(cur.workflow_id)) || "";
         }
         const nxt = nextStepId && nextStepId !== currentStepId ? stepMap.get(nextStepId) : null;
         if (nxt) {
           vars.next_step_name = vars.next_step_name || nxt.name || "";
-          vars.next_step_key = vars.next_step_key || nxt.step_key || "";
+          vars.next_step_order = vars.next_step_order ?? nxt.step_order ?? "";
         }
         const prv = prevStepId ? stepMap.get(prevStepId) : null;
         if (prv) {
           vars.previous_step_name = vars.previous_step_name || prv.name || "";
-          vars.previous_step_key = vars.previous_step_key || prv.step_key || "";
+          vars.previous_step_order = vars.previous_step_order ?? prv.step_order ?? "";
         }
       }
     } catch (stepLookupErr) {
-      console.warn("step/workflow name lookup failed:", (stepLookupErr as any)?.message || stepLookupErr);
+      console.error("step/workflow name lookup failed:", (stepLookupErr as any)?.message || stepLookupErr);
     }
 
     const shouldUseActionOverrides = vars.action_notification_override === true;
