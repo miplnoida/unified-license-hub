@@ -804,7 +804,7 @@ export default function RoleManagement() {
 
                 {/* Live role summary */}
                 <div>
-                  <Card className="lg:sticky lg:top-2 flex flex-col max-h-[70vh]">
+                  <Card className="lg:sticky lg:top-2 flex flex-col h-auto lg:h-[70vh] max-h-[70vh]">
                     <CardHeader className="shrink-0">
                       <CardTitle className="text-base">This role will be able to</CardTitle>
                       <CardDescription>
@@ -813,8 +813,9 @@ export default function RoleManagement() {
                           : `${formPerms.length} permission${formPerms.length === 1 ? '' : 's'} selected`}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 min-h-0 overflow-hidden">
-                      <ScrollArea className="h-full max-h-[60vh] pr-3">
+                    <CardContent className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
+                      <ScrollArea className="h-full pr-3">
+
                         <div className="space-y-4">
                           <div>
                             <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
