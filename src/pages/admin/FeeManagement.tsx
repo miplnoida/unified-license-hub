@@ -366,12 +366,13 @@ export default function FeeManagement() {
   const getFormName = (id: string | null) => formTemplates.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
-  const filteredServices = services.filter(s => !subSectorId || s.sub_sector_id === subSectorId);
+  const filteredServices = services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
   const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
-    if (sectorId ? f.sector_id !== sectorId : f.sector_id) return false;
-    if (subSectorId ? f.sub_sector_id !== subSectorId : f.sub_sector_id) return false;
-    if (categoryId ? f.category_id !== categoryId : f.category_id) return false;
-    if (serviceIds.length > 0 ? !serviceIds.includes(f.service_id) : f.service_id) return false;
+    if (!sectorId && !subSectorId && !categoryId && serviceIds.length === 0) return false;
+    if (sectorId && f.sector_id !== sectorId) return false;
+    if (subSectorId && f.sub_sector_id !== subSectorId) return false;
+    if (categoryId && f.category_id !== categoryId) return false;
+    if (serviceIds.length > 0 && !serviceIds.includes(f.service_id || '')) return false;
     return true;
   }), [formTemplates, sectorId, subSectorId, categoryId, serviceIds]);
 
