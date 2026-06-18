@@ -55,6 +55,9 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
   const selectedSubSector = appData.sub_sector_id as string | undefined;
   const selectedCategory = appData.category_id as string | undefined;
   const selectedService = appData.service_id as string | undefined;
+  const selectedFormIds: string[] = Array.isArray(appData.form_template_ids)
+    ? (appData.form_template_ids as string[])
+    : (appData.form_template_id ? [appData.form_template_id as string] : []);
 
   if (!selectedSector) return [];
 
@@ -70,6 +73,7 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     .map((f: any) => ({
       ...f,
       specificity:
+        (f.form_id && selectedFormIds.includes(f.form_id) ? 16 : 0) +
         (f.service_id && f.service_id === selectedService ? 8 : 0) +
         (f.category_id && f.category_id === selectedCategory ? 4 : 0) +
         (f.sub_sector_id && f.sub_sector_id === selectedSubSector ? 2 : 0) +
@@ -78,6 +82,10 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     .filter((f: any) =>
       (!f.sub_sector_id || !selectedSubSector || f.sub_sector_id === selectedSubSector) &&
       (!f.category_id || !selectedCategory || f.category_id === selectedCategory) &&
+      // Form-scoped distinction: a fee with form_id only applies if that form
+      // is part of the application; a fee without form_id applies to all forms.
+      (!f.form_id || selectedFormIds.includes(f.form_id)) &&
+
       // Service-scoped distinction between post-licensee (service selected)
       // and pre-licensee (no service). Fee configs with a service_id apply
       // ONLY when that same service is selected; fee configs without a
