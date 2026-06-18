@@ -1,33 +1,34 @@
-## Problem
+# Why "Applicant" shows in the header
 
-The SLA step config currently shows two dropdowns ("SLA warning template" and "SLA breach template") that both list every template whose channel is `email` or `in_app`. Because the seeded SLA templates exist as separate rows per channel (e.g. `SLA Warning` for in-app and `SLA Warning (Email)` for email, same `event_type = sla.warning`), each dropdown shows duplicate entries for the same event.
+The user `superadmin@yopmail.com` is correctly set up in the backend:
 
-Step-action notifications (`ActionNotificationsEditor`) avoid this by:
-- filtering templates to `channel === 'email'` only, and
-- scoping options to the chosen `event_key`.
+- `user_roles` → `super_admin` ✅
+- `profiles.role` → `applicant` (legacy column, no longer authoritative)
+- `user_dynamic_roles` → mapped to a dynamic role named **"Applicant"** ❌
 
-The in-app counterpart is resolved automatically by the dispatcher using the event key.
+The header label is rendered in `src/components/layout/Header.tsx` as:
 
-## Fix (UI only, `src/pages/workflows/WorkflowList.tsx`, `SlaExtendedConfig`)
+```ts
+user.dynamicRoleName || effectiveRoleLabel
+```
 
-1. Remove the shared `emailTemplates` list that mixes `email` + `in_app`.
-2. Build two scoped lists matching the step-action pattern:
-   - `warningTemplateOptions = templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.warning' || t.id === step.sla_warning_template_id))`
-   - `breachTemplateOptions = templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.breach' || t.id === step.sla_breach_template_id))`
-   (The `id ===` clause preserves any legacy value already saved on the step.)
-3. Render each dropdown from its scoped list so only one entry per event appears.
-4. Update the helper text under the two dropdowns to clarify: "Pick the email template for the SLA event. The matching in-app notification is sent automatically using the same event key."
+`fetchPlatformUser` (in `src/lib/authHelpers.ts`) joins `user_dynamic_roles → roles.name` and puts the result into `dynamicRoleName`. Because that mapping points at a role literally called "Applicant", it wins over the correct effective label ("Super Admin"), even though every permission check that uses `user.role` already resolves to `super_admin`.
 
-No changes to:
-- Step-actions editor
-- Notification Templates admin page
-- `notification_event_configs`, `notification_templates`, or the dispatcher
-- Save/persist logic for `sla_warning_template_id` / `sla_breach_template_id`
+So this is purely a **stale data row**, not a code bug. Major actions are not blocked by the label — but if they appear to be, that's a separate dynamic-permissions issue we can look at after cleaning this up.
 
-## Verification
+## Fix
 
-- Open a workflow step → SLA Pause, Warning & Escalation panel.
-- "SLA warning template" dropdown shows only `SLA Warning (Email)` (one entry).
-- "SLA breach template" dropdown shows only `SLA Breached (Email)` (one entry).
-- Saving still persists `sla_warning_template_id` / `sla_breach_template_id` on the step (no schema change).
-- Runtime SLA dispatch still produces both email + in-app notifications because the dispatcher resolves channels by `event_key`.
+Delete the incorrect dynamic-role assignment so the header falls back to the effective role label:
+
+```sql
+DELETE FROM public.user_dynamic_roles
+WHERE user_id = '6d4f5483-b81b-47bb-9e4d-265f9c1b0f25'
+  AND role_id = 'b9b48b7d-8ace-4257-b62e-06b58b3c6442'; -- "Applicant" dynamic role
+```
+
+After this, on next login (or after the 5-minute auto re-hydrate) the header will display **"Super Admin"**.
+
+## Out of scope (ask if you want them)
+
+- Cleaning up the legacy `profiles.role = 'applicant'` value for this user.
+- Hardening `Header.tsx` to ignore `dynamicRoleName` when it duplicates / contradicts an internal `user.role` like `super_admin` (prevents this class of mislabeling in future).
