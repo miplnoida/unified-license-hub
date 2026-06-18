@@ -1667,6 +1667,7 @@ export type Database = {
           created_at: string
           currency: string
           fee_type: string
+          form_id: string | null
           group_id: string
           id: string
           is_active: boolean
@@ -1687,6 +1688,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fee_type?: string
+          form_id?: string | null
           group_id?: string
           id?: string
           is_active?: boolean
@@ -1707,6 +1709,7 @@ export type Database = {
           created_at?: string
           currency?: string
           fee_type?: string
+          form_id?: string | null
           group_id?: string
           id?: string
           is_active?: boolean
@@ -1725,6 +1728,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_configurations_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
             referencedColumns: ["id"]
           },
           {
