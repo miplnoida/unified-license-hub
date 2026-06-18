@@ -1829,7 +1829,7 @@ function SlaExtendedConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-xs">— use default —</SelectItem>
-            {warningTemplateOptions.map(t => (
+            {emailTemplateOptions.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
             ))}
           </SelectContent>
@@ -1848,7 +1848,7 @@ function SlaExtendedConfig({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-xs">— use default —</SelectItem>
-            {breachTemplateOptions.map(t => (
+            {emailTemplateOptions.map(t => (
               <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
             ))}
           </SelectContent>
