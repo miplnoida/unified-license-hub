@@ -28,6 +28,7 @@ interface FeeConfig {
   sub_sector_id: string | null;
   category_id: string | null;
   service_id: string | null;
+  form_id: string | null;
   fee_type: string;
   name: string;
   amount: number;
@@ -39,6 +40,7 @@ interface FeeConfig {
   max_amount: number | null;
   created_at: string;
 }
+
 
 interface FeeRule {
   id: string;
