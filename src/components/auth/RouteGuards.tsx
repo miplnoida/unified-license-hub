@@ -66,9 +66,18 @@ export function ModuleRoute({
   // Wait for permissions to resolve before deciding
   if (permsLoading) return <AuthLoadingScreen />;
 
-  // Dynamic-role users: module permission is the sole source of truth.
+  // Dynamic-role users: module permission gates access, but if the route's
+  // declared audience is internal-only, external users (even with the same
+  // module granted via a dynamic role) must still be blocked. This prevents
+  // e.g. an applicant with complaint_management:submit from reaching
+  // /admin/complaint-types by typing the URL directly.
   if (enforceDynamic) {
     if (!hasModuleAccess(module)) return <AccessDenied />;
+    const audienceIsInternalOnly = allowedRoles.length > 0
+      && allowedRoles.every((r) => INTERNAL_ROLES.includes(r));
+    if (audienceIsInternalOnly && !INTERNAL_ROLES.includes(user.role)) {
+      return <AccessDenied />;
+    }
     return <>{children}</>;
   }
 
