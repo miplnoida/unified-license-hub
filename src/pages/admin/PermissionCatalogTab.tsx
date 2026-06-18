@@ -330,7 +330,7 @@ function ActionForm({
   onCancel: () => void;
   onSave: (v: { key: string; label: string; description?: string | null; sort_order?: number }) => Promise<void>;
 }) {
-  const [key, setKey] = useState(a?.key || '');
+  const [key] = useState(a?.key || '');
   const [label, setLabel] = useState(a?.label || '');
   const [description, setDescription] = useState(a?.description || '');
   const [sortOrder, setSortOrder] = useState(a?.sort_order ?? 100);
