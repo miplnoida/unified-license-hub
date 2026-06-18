@@ -1678,9 +1678,13 @@ function SlaExtendedConfig({
   onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
 }) {
   const { data: templates = [] } = useNotificationTemplates();
-  const emailTemplates = useMemo(
-    () => templates.filter(t => t.channel === 'email' || t.channel === 'in_app'),
-    [templates],
+  const warningTemplateOptions = useMemo(
+    () => templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.warning' || t.id === step.sla_warning_template_id)),
+    [templates, step.sla_warning_template_id],
+  );
+  const breachTemplateOptions = useMemo(
+    () => templates.filter(t => t.channel === 'email' && (t.event_type === 'sla.breach' || t.id === step.sla_breach_template_id)),
+    [templates, step.sla_breach_template_id],
   );
 
   const [warningDraft, setWarningDraft] = useState<string>(
