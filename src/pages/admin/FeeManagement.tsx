@@ -97,7 +97,9 @@ export default function FeeManagement() {
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [formIds, setFormIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
+
 
   // Rule form state
   const [ruleName, setRuleName] = useState('');
