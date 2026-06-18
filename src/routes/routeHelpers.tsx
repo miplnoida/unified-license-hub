@@ -6,6 +6,8 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+import { getModuleForPath } from '@/lib/permissionModules';
+
 
 
 /**
