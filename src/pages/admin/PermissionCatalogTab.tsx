@@ -146,7 +146,7 @@ export default function PermissionCatalogTab() {
                             {a.label}
                             {a.is_system && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />system</Badge>}
                           </div>
-                          <div className="text-xs text-muted-foreground font-mono">{a.key}</div>
+                          {a.description && <div className="text-xs text-muted-foreground">{a.description}</div>}
                         </div>
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => { setEditingAction(a); setActionDialogOpen(true); }}>
