@@ -73,18 +73,23 @@ export default function RegistrationReview() {
 
     const verIds = Array.from(new Set((instances || []).map((i: any) => i.workflow_version_id).filter(Boolean))) as string[];
     const wfIds = Array.from(new Set((instances || []).map((i: any) => i.workflow_id).filter(Boolean))) as string[];
+    const stepIds = Array.from(new Set((instances || []).map((i: any) => i.current_step_id).filter(Boolean))) as string[];
 
-    const [versions, workflows] = await Promise.all([
+    const [versions, workflows, liveSteps] = await Promise.all([
       verIds.length
         ? supabase.from('approval_workflow_versions' as any).select('id, version_number').in('id', verIds)
         : Promise.resolve({ data: [] as any[] }),
       wfIds.length
         ? supabase.from('approval_workflows').select('id, name').in('id', wfIds)
         : Promise.resolve({ data: [] as any[] }),
+      stepIds.length
+        ? supabase.from('approval_steps').select('id, name, sla_hours, sla_warning_threshold_percent, escalation_after_hours').in('id', stepIds)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const verMap = new Map<string, number>((versions.data || []).map((v: any) => [v.id, v.version_number]));
     const wfMap = new Map<string, string>((workflows.data || []).map((w: any) => [w.id, w.name]));
+    const liveStepMap = new Map<string, any>((liveSteps.data || []).map((s: any) => [s.id, s]));
     const instByEntity = new Map<string, any>((instances || []).map((i: any) => [i.entity_id, i]));
 
     const hydrated = base.map(r => {
@@ -100,21 +105,25 @@ export default function RegistrationReview() {
         }>;
       } | null;
       const stepKey = inst.current_step_key ?? (inst.current_step_id ? String(inst.current_step_id) : null);
-      const step = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
+      const snapStep = snap?.steps?.find(s => s.local_id === stepKey) ?? null;
+      const liveStep = inst.current_step_id ? liveStepMap.get(inst.current_step_id) : null;
+      const pick = <K extends string>(key: K): any =>
+        (liveStep && liveStep[key] != null ? liveStep[key] : (snapStep as any)?.[key]) ?? null;
       return {
         ...r,
         workflow_id: inst.workflow_id ?? null,
         workflow_version_number: inst.workflow_version_id ? verMap.get(inst.workflow_version_id) ?? null : null,
         workflow_name: inst.workflow_id ? wfMap.get(inst.workflow_id) ?? null : null,
-        current_step_name: step?.name ?? null,
-        sla_hours: step?.sla_hours ?? null,
-        sla_warning_threshold_percent: step?.sla_warning_threshold_percent ?? null,
-        escalation_after_hours: step?.escalation_after_hours ?? null,
+        current_step_name: pick('name'),
+        sla_hours: pick('sla_hours'),
+        sla_warning_threshold_percent: pick('sla_warning_threshold_percent'),
+        escalation_after_hours: pick('escalation_after_hours'),
         // Best-effort step start: instance start (first step) is the safest
         // signal here without re-querying per-row approval_actions.
         step_started_at: inst.started_at ?? null,
       };
     });
+
     setRows(hydrated);
     setLoading(false);
   }, []);
