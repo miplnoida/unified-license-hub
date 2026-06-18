@@ -100,19 +100,19 @@ export default function RoleManagement() {
   const deleteRole = useDeleteRole();
   const resetSystemRole = useResetSystemRole();
 
-  /** Module entries derived from DB catalog. */
+  /** Module entries derived from DB catalog. Labels normalized for non-technical display. */
   const moduleEntries = useMemo<ModuleEntry[]>(() => {
     return catModules.map(m => {
       const acts = catActions
         .filter(a => a.module_id === m.id)
         .sort((x, y) => x.sort_order - y.sort_order);
       const actionLabels: Record<string, string> = {};
-      for (const a of acts) actionLabels[a.key] = a.label;
+      for (const a of acts) actionLabels[a.key] = humanizeActionLabel(a.label, a.key);
       return {
         module: m.key,
-        label: m.label,
+        label: cleanModuleLabel(m.label, m.key),
         description: m.description || '',
-        actions: acts.map(a => ({ key: a.key, label: a.label })),
+        actions: acts.map(a => ({ key: a.key, label: humanizeActionLabel(a.label, a.key) })),
         actionLabels,
       };
     });
