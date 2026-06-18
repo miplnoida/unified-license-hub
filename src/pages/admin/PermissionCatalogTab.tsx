@@ -280,10 +280,12 @@ function ModuleForm({
   const parentOptions = modules.filter(x => !x.parent_id && x.id !== m?.id);
 
   const submit = async () => {
-    if (!KEY_PATTERN.test(key)) { toast.error('Key must be lowercase letters/numbers/underscores'); return; }
-    if (!label.trim()) { toast.error('Label is required'); return; }
+    if (!label.trim()) { toast.error('Name is required'); return; }
+    const finalKey = (key || label).toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!KEY_PATTERN.test(finalKey)) { toast.error('Could not derive a valid key from the name'); return; }
     await onSave({
-      key, label, description: description || null,
+      key: finalKey, label, description: description || null,
       parent_id: parent === 'none' ? null : parent,
       sort_order: sortOrder,
     });
@@ -292,11 +294,7 @@ function ModuleForm({
   return (
     <div className="space-y-3">
       <div>
-        <Label>Key</Label>
-        <Input value={key} onChange={e => setKey(e.target.value)} placeholder="fit_and_proper" disabled={!!m?.is_system} className="font-mono" />
-      </div>
-      <div>
-        <Label>Label</Label>
+        <Label>Name</Label>
         <Input value={label} onChange={e => setLabel(e.target.value)} placeholder="Fit & Proper" />
       </div>
       <div>
