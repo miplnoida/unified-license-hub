@@ -1859,8 +1859,8 @@ function SlaExtendedConfig({
       </div>
 
       <p className="text-[10px] text-muted-foreground">
-        Templates feed the SLA notification dispatcher; warning fires at the threshold % of SLA elapsed,
-        breach fires when SLA is exceeded (and again after escalation hours if a recipient is set).
+        Pick the email template for each SLA event. The matching in-app notification is sent automatically using the same event key.
+        Warning fires at the threshold % of SLA elapsed; breach fires when SLA is exceeded (and again after escalation hours if a recipient is set).
       </p>
     </div>
   );
