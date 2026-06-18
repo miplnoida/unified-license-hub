@@ -271,7 +271,7 @@ function ModuleForm({
   onCancel: () => void;
   onSave: (v: { key: string; label: string; description?: string | null; parent_id?: string | null; sort_order?: number }) => Promise<void>;
 }) {
-  const [key, setKey] = useState(m?.key || '');
+  const [key] = useState(m?.key || '');
   const [label, setLabel] = useState(m?.label || '');
   const [description, setDescription] = useState(m?.description || '');
   const [parent, setParent] = useState<string>(m?.parent_id || parentId || 'none');
