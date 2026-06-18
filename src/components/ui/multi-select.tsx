@@ -27,6 +27,7 @@ interface MultiSelectProps {
   selected: string[];
   onChange: (selected: string[]) => void;
   placeholder?: string;
+  emptyMessage?: string;
   className?: string;
   withinDialog?: boolean;
 }
@@ -36,6 +37,7 @@ export function MultiSelect({
   selected,
   onChange,
   placeholder = "Select...",
+  emptyMessage = "No results found.",
   className,
   withinDialog = false,
 }: MultiSelectProps) {
@@ -101,7 +103,7 @@ export function MultiSelect({
         <Command>
           <CommandInput placeholder="Search..." />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

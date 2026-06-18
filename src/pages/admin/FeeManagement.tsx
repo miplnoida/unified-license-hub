@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
-import { useFormTemplates } from '@/hooks/useFormTemplates';
+import { useFormTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 
 import { toast } from 'sonner';
@@ -363,17 +363,23 @@ export default function FeeManagement() {
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getServiceName = (id: string | null) => services.find(s => s.id === id)?.name || '—';
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
-  const getFormName = (id: string | null) => (formTemplates as any[]).find((f: any) => f.id === id)?.name || '—';
+  const getFormName = (id: string | null) => formTemplates.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
-  const filteredServices = services.filter(s => s.sub_sector_id === subSectorId);
-  const filteredForms = (formTemplates as any[]).filter((f: any) => {
-    if (sectorId && f.sector_id && f.sector_id !== sectorId) return false;
-    if (subSectorId && f.sub_sector_id && f.sub_sector_id !== subSectorId) return false;
-    if (categoryId && f.category_id && f.category_id !== categoryId) return false;
-    if (serviceIds.length > 0 && f.service_id && !serviceIds.includes(f.service_id)) return false;
+  const filteredServices = services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
+  const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
+    if (!sectorId && !subSectorId && !categoryId && serviceIds.length === 0) return false;
+    if (sectorId && f.sector_id !== sectorId) return false;
+    if (subSectorId && f.sub_sector_id !== subSectorId) return false;
+    if (categoryId && f.category_id !== categoryId) return false;
+    if (serviceIds.length > 0 && !serviceIds.includes(f.service_id || '')) return false;
     return true;
-  });
+  }), [formTemplates, sectorId, subSectorId, categoryId, serviceIds]);
+
+  useEffect(() => {
+    const availableFormIds = new Set(filteredForms.map(f => f.id));
+    setFormIds(prev => prev.filter(id => availableFormIds.has(id)));
+  }, [filteredForms]);
 
 
   const ruleTypeIcon = (type: string) => {
@@ -558,7 +564,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
-                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); }}>
+                        <Select value={sectorId} onValueChange={v => { setSectorId(v); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]); }}>
                           <SelectTrigger><SelectValue placeholder="All sectors" /></SelectTrigger>
                           <SelectContent>
                             {sectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -567,7 +573,7 @@ export default function FeeManagement() {
                       </div>
                       <div className="space-y-2">
                         <Label>Sub-Sector</Label>
-                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); }} disabled={!sectorId}>
+                        <Select value={subSectorId} onValueChange={v => { setSubSectorId(v); setCategoryId(''); setServiceIds([]); setFormIds([]); }} disabled={!sectorId}>
                           <SelectTrigger><SelectValue placeholder="All sub-sectors" /></SelectTrigger>
                           <SelectContent>
                             {filteredSubSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -578,7 +584,7 @@ export default function FeeManagement() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Category</Label>
-                        <Select value={categoryId} onValueChange={setCategoryId} disabled={!subSectorId}>
+                        <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
                           <SelectTrigger><SelectValue placeholder="All categories" /></SelectTrigger>
                           <SelectContent>
                             {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -588,9 +594,9 @@ export default function FeeManagement() {
                       <div className="space-y-2">
                         <Label>Services</Label>
                         <MultiSelect
-                          options={services.map(s => ({ value: s.id, label: s.name }))}
+                          options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
                           selected={serviceIds}
-                          onChange={setServiceIds}
+                          onChange={selected => { setServiceIds(selected); setFormIds([]); }}
                           placeholder="None (applies to pre-licensee)"
                           withinDialog
                         />
@@ -600,10 +606,11 @@ export default function FeeManagement() {
                       <div className="space-y-2">
                         <Label>Form (optional)</Label>
                         <MultiSelect
-                          options={filteredForms.map((f: any) => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                          options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
                           selected={formIds}
                           onChange={setFormIds}
-                          placeholder="All forms (no specific form)"
+                          placeholder={filteredForms.length === 0 ? "No form present" : "All forms (no specific form)"}
+                          emptyMessage="No form present"
                           withinDialog
                         />
                         <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
