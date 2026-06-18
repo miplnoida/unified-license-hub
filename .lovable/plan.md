@@ -1,34 +1,41 @@
-# Why "Applicant" shows in the header
+## Problem
 
-The user `superadmin@yopmail.com` is correctly set up in the backend:
+When a pre-licensee (applicant) is granted the Complaints permission via Role Management, the **Complaints** menu correctly appears in the sidebar, but clicking it redirects to `/dashboard` instead of opening the Complaints page.
 
-- `user_roles` → `super_admin` ✅
-- `profiles.role` → `applicant` (legacy column, no longer authoritative)
-- `user_dynamic_roles` → mapped to a dynamic role named **"Applicant"** ❌
+## Root cause
 
-The header label is rendered in `src/components/layout/Header.tsx` as:
+`src/routes/routeHelpers.tsx` → `RegistrationApprovalGate` enforces a static whitelist (`PRE_LICENSEE_ALLOWED_ROUTES` in `src/hooks/useUserPermissions.ts`) for approved pre-licensees:
 
-```ts
-user.dynamicRoleName || effectiveRoleLabel
+```
+/dashboard, /applications, /payments, /profile, /change-password, /notifications, /registration-status
 ```
 
-`fetchPlatformUser` (in `src/lib/authHelpers.ts`) joins `user_dynamic_roles → roles.name` and puts the result into `dynamicRoleName`. Because that mapping points at a role literally called "Applicant", it wins over the correct effective label ("Super Admin"), even though every permission check that uses `user.role` already resolves to `super_admin`.
+`/complaints` is not in the list, so the gate forces `Navigate to="/dashboard"` even though:
+- the route guard (`ExternalPortalOrModule` → `PortalRoute`) would allow access via the user's dynamic permission
+- the sidebar already shows the link because that same dynamic permission resolves true
 
-So this is purely a **stale data row**, not a code bug. Major actions are not blocked by the label — but if they appear to be, that's a separate dynamic-permissions issue we can look at after cleaning this up.
+The whitelist and the dynamic-permission system are out of sync.
 
 ## Fix
 
-Delete the incorrect dynamic-role assignment so the header falls back to the effective role label:
+Make the pre-licensee gate respect dynamically-granted permissions in addition to the baseline whitelist. Concretely:
 
-```sql
-DELETE FROM public.user_dynamic_roles
-WHERE user_id = '6d4f5483-b81b-47bb-9e4d-265f9c1b0f25'
-  AND role_id = 'b9b48b7d-8ace-4257-b62e-06b58b3c6442'; -- "Applicant" dynamic role
-```
+1. **`src/routes/routeHelpers.tsx`** — in `RegistrationApprovalGate`, before the `Navigate to="/dashboard"` fallback, also allow the path when the user's dynamic permissions grant access to the module that owns it. Use the existing `getModuleForPath` (from `src/lib/permissionModules.ts`) + `useUserDynamicPermissions().hasPermission(module, 'view')` (with a fallback to `'submit'` for portal-only capabilities like Complaints). If allowed, render children instead of redirecting.
 
-After this, on next login (or after the 5-minute auto re-hydrate) the header will display **"Super Admin"**.
+2. **No change** to the static `PRE_LICENSEE_ALLOWED_ROUTES` baseline — those remain always-on for the minimum pre-licensee portal (dashboard, applications, payments, profile, change-password, notifications, registration-status).
 
-## Out of scope (ask if you want them)
+3. **No change** to:
+   - `PortalRoute` / `ExternalPortalOrModule` route guards (already correct)
+   - Sidebar visibility (already correct)
+   - The `/complaints` route definition in `dashboardRoutes.tsx` (already lists `pre_licensee` in `allowedRoles`)
+   - Any other module or business logic
 
-- Cleaning up the legacy `profiles.role = 'applicant'` value for this user.
-- Hardening `Header.tsx` to ignore `dynamicRoleName` when it duplicates / contradicts an internal `user.role` like `super_admin` (prevents this class of mislabeling in future).
+## Result
+
+- Granting any module (e.g. Complaint Handling) to a pre-licensee role in Role Management makes that route navigable, not just visible.
+- Revoking the permission hides the menu and blocks the route again, exactly as today.
+- All existing pre-licensee restrictions for routes the admin has NOT explicitly granted (e.g. `/workflows`, `/admin/*`) remain enforced via their own module/role guards plus the unchanged baseline whitelist.
+
+## Files to edit
+
+- `src/routes/routeHelpers.tsx` — extend `RegistrationApprovalGate` with the dynamic-permission check described above.
