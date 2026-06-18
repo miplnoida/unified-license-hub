@@ -1,3 +1,5 @@
+import { useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Select,
   SelectContent,
@@ -27,12 +29,40 @@ export function SectorSelectionSection({
   onCategoryChange,
   errors,
 }: Props) {
+  const qc = useQueryClient();
   const { data: sectors = [] } = useSectors();
   const { data: allSubSectors = [] } = useSubSectors();
   const { data: allCategories = [] } = useCategories();
 
-  const subSectors = sectorId ? allSubSectors.filter(s => s.sector_id === sectorId) : [];
-  const categories = subSectorId ? allCategories.filter(c => c.sub_sector_id === subSectorId) : [];
+  // Ensure freshly opened registration page fetches latest taxonomy
+  useEffect(() => {
+    qc.invalidateQueries({ queryKey: ['sectors'] });
+    qc.invalidateQueries({ queryKey: ['sub_sectors'] });
+    qc.invalidateQueries({ queryKey: ['categories'] });
+  }, [qc]);
+
+  const activeSectors = useMemo(
+    () => (sectors || []).filter((s: any) => s.status === 'active'),
+    [sectors]
+  );
+  const subSectors = useMemo(
+    () =>
+      sectorId
+        ? (allSubSectors || []).filter(
+            (s: any) => s.sector_id === sectorId && s.status === 'active'
+          )
+        : [],
+    [allSubSectors, sectorId]
+  );
+  const categories = useMemo(
+    () =>
+      subSectorId
+        ? (allCategories || []).filter(
+            (c: any) => c.sub_sector_id === subSectorId && c.status === 'active'
+          )
+        : [],
+    [allCategories, subSectorId]
+  );
 
   return (
     <div className="form-section">
@@ -47,9 +77,13 @@ export function SectorSelectionSection({
               <SelectValue placeholder="Select sector..." />
             </SelectTrigger>
             <SelectContent>
-              {sectors.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
+              {activeSectors.length === 0 ? (
+                <SelectItem value="__none__" disabled>No active sectors</SelectItem>
+              ) : (
+                activeSectors.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           {errors.sectorId && <p className="text-sm text-destructive">{errors.sectorId}</p>}
@@ -62,9 +96,13 @@ export function SectorSelectionSection({
               <SelectValue placeholder="Select sub-sector..." />
             </SelectTrigger>
             <SelectContent>
-              {subSectors.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
+              {subSectors.length === 0 ? (
+                <SelectItem value="__none__" disabled>No active sub-sectors</SelectItem>
+              ) : (
+                subSectors.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           {errors.subSectorId && <p className="text-sm text-destructive">{errors.subSectorId}</p>}
@@ -77,9 +115,13 @@ export function SectorSelectionSection({
               <SelectValue placeholder="Select category..." />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
+              {categories.length === 0 ? (
+                <SelectItem value="__none__" disabled>No active categories</SelectItem>
+              ) : (
+                categories.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           {errors.categoryId && <p className="text-sm text-destructive">{errors.categoryId}</p>}
