@@ -878,8 +878,40 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
+                      {(status === 'current' || status === 'paused' || status === 'completed' || status === 'returned') && s.sla_hours ? (
+                        <StepSlaBadge
+                          startedAt={stepStartedAt[idx]}
+                          slaHours={s.sla_hours}
+                          warningPct={s.sla_warning_threshold_percent}
+                          escalationAfterHours={s.escalation_after_hours}
+                          paused={status === 'paused'}
+                        />
+                      ) : null}
                       {renderStatusBadge(status)}
                     </div>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-4">
+                  {isCurrent && !isPaused ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{s.name}</span>
+                        <Badge variant="outline" className="text-xs">
+                          Pending: {stepRoleLabel(s)}
+                        </Badge>
+                      </div>
+                      {s.sla_hours && (
+                        <SlaProgressPanel
+                          input={{
+                            startedAt: stepStartedAt[idx],
+                            slaHours: s.sla_hours,
+                            warningThresholdPercent: s.sla_warning_threshold_percent,
+                            escalationAfterHours: s.escalation_after_hours,
+                            paused: false,
+                          }}
+                          title={`SLA · ${s.name}`}
+                        />
+                      )}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-4">
