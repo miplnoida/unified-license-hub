@@ -130,18 +130,36 @@ export default function RoleManagement() {
   const [deleteConfirm, setDeleteConfirm] = useState<DynamicRole | null>(null);
 
   // Radix bug workaround: when a Dialog is opened from a DropdownMenu (RowActionsMenu),
-  // the dropdown may leave `pointer-events: none` on <body> after the dialog closes,
-  // making the whole page unclickable. Clear it whenever no dialog is open.
+  // Radix can leave `pointer-events: none` on <body> and orphaned closed overlays in the
+  // DOM after the dialog closes, making the page unclickable. A single microtask cleanup
+  // races with Radix teardown, so we clear repeatedly over a short bounded window.
   useEffect(() => {
-    if (!dialogOpen && !deleteConfirm) {
-      const t = setTimeout(() => {
-        if (document.body.style.pointerEvents === 'none') {
-          document.body.style.pointerEvents = '';
-        }
-      }, 0);
-      return () => clearTimeout(t);
-    }
+    if (dialogOpen || deleteConfirm) return;
+    let cancelled = false;
+    const timers: number[] = [];
+    const cleanup = () => {
+      if (cancelled) return;
+      if (document.body.style.pointerEvents === 'none') {
+        document.body.style.pointerEvents = '';
+      }
+      document
+        .querySelectorAll('[data-radix-dialog-overlay][data-state="closed"]')
+        .forEach((el) => el.parentElement?.removeChild(el));
+    };
+    // Run on next frame, then a few follow-ups within ~250ms to outlast Radix teardown.
+    timers.push(window.requestAnimationFrame(cleanup));
+    [0, 50, 120, 250].forEach((d) => {
+      timers.push(window.setTimeout(cleanup, d));
+    });
+    return () => {
+      cancelled = true;
+      timers.forEach((id) => {
+        window.clearTimeout(id);
+        window.cancelAnimationFrame(id);
+      });
+    };
   }, [dialogOpen, deleteConfirm]);
+
 
 
   const { data: roles = [], isLoading: rolesLoading } = useRoles();
@@ -485,7 +503,7 @@ export default function RoleManagement() {
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                                    <RowActionsMenu actions={[
+                                    <RowActionsMenu dropdownModal={false} actions={[
                                       { label: 'Edit', icon: Edit, onClick: (e) => openEditDialog(role, e as any) },
                                       {
                                         label: 'Reset to defaults',
