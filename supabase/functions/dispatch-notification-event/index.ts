@@ -718,8 +718,12 @@ Deno.serve(async (req) => {
       const message = stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.message_template, vars) || "");
       // Reviewer-supplied subject/body overrides take precedence when the
       // workflow action was confirmed through the Email Preview dialog.
-      const subjectOverride = typeof vars.subject_override === "string" && vars.subject_override.length > 0 ? vars.subject_override : null;
-      const bodyOverride = typeof vars.body_override === "string" && vars.body_override.length > 0 ? vars.body_override : null;
+      const subjectOverride = typeof vars.subject_override === "string" && vars.subject_override.length > 0
+        ? stripUnresolvedTemplateTokens(render(vars.subject_override, vars))
+        : null;
+      const bodyOverride = typeof vars.body_override === "string" && vars.body_override.length > 0
+        ? stripUnresolvedTemplateTokens(render(vars.body_override, vars))
+        : null;
       const emailSubject = subjectOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_subject_template, vars) || title);
       const emailBody = bodyOverride ?? stripUnresolvedTemplateTokens(render(dispatchCfg.cfg.email_body_template, vars) || message);
       const emailHtml = renderBrandedEmail({
