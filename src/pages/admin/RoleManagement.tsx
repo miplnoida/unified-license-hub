@@ -517,55 +517,55 @@ export default function RoleManagement() {
 
                 {/* Role summary panel */}
                 <div>
-                  <Card className="sticky top-6">
-                    <CardHeader>
+                  <Card className="sticky top-6 flex flex-col max-h-[calc(100vh-8rem)]">
+                    <CardHeader className="shrink-0">
                       <CardTitle className="text-lg">{selectedRole ? selectedRole.name : 'Role Summary'}</CardTitle>
                       <CardDescription>
                         {selectedRole ? (selectedRole.description || 'What users with this role can and cannot do') : 'Select a role to see what it can do'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      {selectedRole ? (
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={(selectedRole.role_type || 'internal') === 'external' ? 'outline' : 'secondary'}>
-                              {ROLE_TYPE_LABELS[(selectedRole.role_type || 'internal') as RoleType]}
-                            </Badge>
-                            {selectedRole.is_system && <Badge variant="secondary">System Role</Badge>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{userCounts[selectedRole.id] || 0} users assigned</span>
-                          </div>
+                    <CardContent className="flex-1 min-h-0 overflow-hidden p-6 pt-0">
+                      <ScrollArea className="h-full pr-3">
+                        {selectedRole ? (
+                          <div className="space-y-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant={(selectedRole.role_type || 'internal') === 'external' ? 'outline' : 'secondary'}>
+                                {ROLE_TYPE_LABELS[(selectedRole.role_type || 'internal') as RoleType]}
+                              </Badge>
+                              {selectedRole.is_system && <Badge variant="secondary">System Role</Badge>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{userCounts[selectedRole.id] || 0} users assigned</span>
+                            </div>
 
-                          <Separator />
+                            <Separator />
 
-                          <div>
-                            <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                              <CheckCircle className="h-4 w-4 text-emerald-600" /> Can
-                            </p>
-                            {detailSummary.can.length === 0 ? (
-                              <p className="text-xs text-muted-foreground italic">Nothing yet</p>
-                            ) : (
-                              <ul className="space-y-1">
-                                {detailSummary.can.map(line => (
-                                  <li key={line} className="text-sm flex gap-2">
-                                    <span className="text-emerald-600">✓</span>
-                                    <span>{line}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
+                            <div>
+                              <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                <CheckCircle className="h-4 w-4 text-emerald-600" /> Can
+                              </p>
+                              {detailSummary.can.length === 0 ? (
+                                <p className="text-xs text-muted-foreground italic">Nothing yet</p>
+                              ) : (
+                                <ul className="space-y-1">
+                                  {detailSummary.can.map(line => (
+                                    <li key={line} className="text-sm flex gap-2">
+                                      <span className="text-emerald-600">✓</span>
+                                      <span>{line}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
 
-                          <div>
-                            <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                              <XCircle className="h-4 w-4 text-muted-foreground" /> Cannot
-                            </p>
-                            {detailSummary.cannot.length === 0 ? (
-                              <p className="text-xs text-muted-foreground italic">Full access</p>
-                            ) : (
-                              <ScrollArea className="max-h-[260px] pr-2">
+                            <div>
+                              <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                                <XCircle className="h-4 w-4 text-muted-foreground" /> Cannot
+                              </p>
+                              {detailSummary.cannot.length === 0 ? (
+                                <p className="text-xs text-muted-foreground italic">Full access</p>
+                              ) : (
                                 <ul className="space-y-1">
                                   {detailSummary.cannot.map(line => (
                                     <li key={line} className="text-sm flex gap-2 text-muted-foreground">
@@ -574,19 +574,19 @@ export default function RoleManagement() {
                                     </li>
                                   ))}
                                 </ul>
-                              </ScrollArea>
-                            )}
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Shield className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                          <p className="text-sm text-muted-foreground">Click on a role to view its capabilities</p>
-                        </div>
-                      )}
-
+                        ) : (
+                          <div className="text-center py-8">
+                            <Shield className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground">Click on a role to view its capabilities</p>
+                          </div>
+                        )}
+                      </ScrollArea>
                     </CardContent>
                   </Card>
+
                 </div>
               </div>
             </TabsContent>
