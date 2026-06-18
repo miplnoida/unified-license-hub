@@ -605,7 +605,7 @@ export default function FeeManagement() {
                       <div className="space-y-2">
                         <Label>Form (optional)</Label>
                         <MultiSelect
-                          options={filteredForms.map((f: any) => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                          options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
                           selected={formIds}
                           onChange={setFormIds}
                           placeholder={filteredForms.length === 0 ? "No form present" : "All forms (no specific form)"}
