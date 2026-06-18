@@ -149,6 +149,10 @@ export interface WorkflowStep {
   allowed_actions: WorkflowActionType[];
   escalation_role: string | null;
   escalation_after_hours: number | null;
+  sla_warning_threshold_percent: number | null;
+  sla_pause_on_rfi: boolean;
+  sla_warning_template_id: string | null;
+  sla_breach_template_id: string | null;
   condition: any | null;
   created_at: string;
 }

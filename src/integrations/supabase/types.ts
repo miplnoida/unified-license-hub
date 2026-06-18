@@ -452,7 +452,11 @@ export type Database = {
           id: string
           is_required: boolean
           name: string
+          sla_breach_template_id: string | null
           sla_hours: number | null
+          sla_pause_on_rfi: boolean
+          sla_warning_template_id: string | null
+          sla_warning_threshold_percent: number | null
           step_entry_notifications_enabled: boolean
           step_order: number
           step_type: string
@@ -473,7 +477,11 @@ export type Database = {
           id?: string
           is_required?: boolean
           name: string
+          sla_breach_template_id?: string | null
           sla_hours?: number | null
+          sla_pause_on_rfi?: boolean
+          sla_warning_template_id?: string | null
+          sla_warning_threshold_percent?: number | null
           step_entry_notifications_enabled?: boolean
           step_order: number
           step_type?: string
@@ -494,7 +502,11 @@ export type Database = {
           id?: string
           is_required?: boolean
           name?: string
+          sla_breach_template_id?: string | null
           sla_hours?: number | null
+          sla_pause_on_rfi?: boolean
+          sla_warning_template_id?: string | null
+          sla_warning_threshold_percent?: number | null
           step_entry_notifications_enabled?: boolean
           step_order?: number
           step_type?: string
@@ -506,6 +518,20 @@ export type Database = {
             columns: ["approver_role_id"]
             isOneToOne: false
             referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_steps_sla_breach_template_id_fkey"
+            columns: ["sla_breach_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_steps_sla_warning_template_id_fkey"
+            columns: ["sla_warning_template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
             referencedColumns: ["id"]
           },
           {

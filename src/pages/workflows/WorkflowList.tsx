@@ -46,6 +46,7 @@ import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEdito
 import { StepActionsEditor } from '@/components/workflows/StepActionsEditor';
 import { StepEntryNotificationsEditor } from '@/components/workflows/StepEntryNotificationsEditor';
 import { Switch } from '@/components/ui/switch';
+import { useNotificationTemplates } from '@/hooks/useActionNotifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
@@ -1626,6 +1627,9 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               )}
             </div>
 
+            {/* Extended SLA configuration */}
+            <SlaExtendedConfig step={step} dynamicRoles={dynamicRoles} onUpdate={onUpdate} />
+
             {/* Auto-approve on timeout */}
             <div className="flex items-start gap-3">
               <Switch
@@ -1649,6 +1653,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               </div>
             </div>
 
+
             {/* Step entry notifications */}
             <StepEntryNotificationsEditor stepId={step.id} />
 
@@ -1658,6 +1663,201 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
         )}
 
       </div>
+    </div>
+  );
+}
+
+// ─── Extended SLA Config (pause/warning/escalation/templates) ───
+function SlaExtendedConfig({
+  step,
+  dynamicRoles,
+  onUpdate,
+}: {
+  step: WorkflowStep;
+  dynamicRoles: { id: string; name: string; system_role: string }[];
+  onUpdate: (id: string, updates: Partial<WorkflowStep>) => Promise<void> | void;
+}) {
+  const { data: templates = [] } = useNotificationTemplates();
+  const emailTemplates = useMemo(
+    () => templates.filter(t => t.channel === 'email' || t.channel === 'in_app'),
+    [templates],
+  );
+
+  const [warningDraft, setWarningDraft] = useState<string>(
+    step.sla_warning_threshold_percent != null ? String(step.sla_warning_threshold_percent) : '80',
+  );
+  const [escHoursDraft, setEscHoursDraft] = useState<string>(
+    step.escalation_after_hours != null ? String(step.escalation_after_hours) : '',
+  );
+
+  useEffect(() => {
+    setWarningDraft(step.sla_warning_threshold_percent != null ? String(step.sla_warning_threshold_percent) : '80');
+  }, [step.id, step.sla_warning_threshold_percent]);
+  useEffect(() => {
+    setEscHoursDraft(step.escalation_after_hours != null ? String(step.escalation_after_hours) : '');
+  }, [step.id, step.escalation_after_hours]);
+
+  const safeUpdate = (updates: Partial<WorkflowStep>) =>
+    Promise.resolve(onUpdate(step.id, updates)).catch((e: any) =>
+      toast.error(e?.message || 'Failed to update SLA setting'),
+    );
+
+  const commitWarning = () => {
+    const cleaned = warningDraft.replace(/[^0-9]/g, '');
+    if (cleaned === '') {
+      safeUpdate({ sla_warning_threshold_percent: null } as any);
+      return;
+    }
+    const n = parseInt(cleaned, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 100) {
+      toast.error('Warning threshold must be between 1 and 100');
+      setWarningDraft(step.sla_warning_threshold_percent != null ? String(step.sla_warning_threshold_percent) : '80');
+      return;
+    }
+    if (n === step.sla_warning_threshold_percent) return;
+    safeUpdate({ sla_warning_threshold_percent: n } as any);
+  };
+
+  const commitEscHours = () => {
+    const cleaned = escHoursDraft.replace(/[^0-9]/g, '');
+    if (cleaned === '') {
+      if (step.escalation_after_hours == null) return;
+      safeUpdate({ escalation_after_hours: null } as any);
+      return;
+    }
+    const n = parseInt(cleaned, 10);
+    if (!Number.isFinite(n) || n < 1) return;
+    if (n === step.escalation_after_hours) return;
+    safeUpdate({ escalation_after_hours: n } as any);
+  };
+
+  return (
+    <div className="space-y-3 rounded-md border bg-background/60 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        SLA Pause, Warning & Escalation
+      </p>
+
+      {/* Pause on RFI */}
+      <div className="flex items-start gap-3">
+        <Switch
+          id={`sla-pause-${step.id}`}
+          checked={!!step.sla_pause_on_rfi}
+          onCheckedChange={v => safeUpdate({ sla_pause_on_rfi: !!v } as any)}
+          aria-label="Pause SLA while waiting for applicant response"
+        />
+        <div className="flex-1">
+          <Label htmlFor={`sla-pause-${step.id}`} className="text-xs cursor-pointer">
+            Pause SLA while waiting for applicant response (RFI)
+          </Label>
+          <p className="text-[10px] text-muted-foreground">
+            SLA timer pauses when this step requests more info / resubmission, and resumes when the applicant replies.
+          </p>
+        </div>
+      </div>
+
+      {/* Warning threshold */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground min-w-[140px]" htmlFor={`sla-warn-${step.id}`}>
+          Warning threshold
+        </Label>
+        <Input
+          id={`sla-warn-${step.id}`}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={100}
+          step={1}
+          className="h-8 w-20 text-xs"
+          value={warningDraft}
+          onChange={e => setWarningDraft(e.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commitWarning}
+          onKeyDown={e => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
+        />
+        <span className="text-xs text-muted-foreground">% of SLA elapsed</span>
+      </div>
+
+      {/* Escalation after hours */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground min-w-[140px]" htmlFor={`sla-esc-hrs-${step.id}`}>
+          Escalate after
+        </Label>
+        <Input
+          id={`sla-esc-hrs-${step.id}`}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          step={1}
+          className="h-8 w-24 text-xs"
+          value={escHoursDraft}
+          placeholder="e.g. 24"
+          onChange={e => setEscHoursDraft(e.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commitEscHours}
+          onKeyDown={e => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur(); }}
+        />
+        <span className="text-xs text-muted-foreground">hours past SLA</span>
+      </div>
+
+      {/* Escalation recipient */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground min-w-[140px]">Escalation recipient</Label>
+        <Select
+          value={step.escalation_role ?? 'none'}
+          onValueChange={v => safeUpdate({ escalation_role: v === 'none' ? null : v } as any)}
+        >
+          <SelectTrigger className="h-8 w-[240px] text-xs">
+            <SelectValue placeholder="Choose role to notify on breach" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none" className="text-xs">— none —</SelectItem>
+            {dynamicRoles.map(r => (
+              <SelectItem key={r.id} value={r.id} className="text-xs">{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* SLA Warning template */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground min-w-[140px]">SLA warning template</Label>
+        <Select
+          value={step.sla_warning_template_id ?? 'none'}
+          onValueChange={v => safeUpdate({ sla_warning_template_id: v === 'none' ? null : v } as any)}
+        >
+          <SelectTrigger className="h-8 w-[240px] text-xs">
+            <SelectValue placeholder="Choose template" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none" className="text-xs">— use default —</SelectItem>
+            {emailTemplates.map(t => (
+              <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* SLA Breach template */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Label className="text-xs text-muted-foreground min-w-[140px]">SLA breach template</Label>
+        <Select
+          value={step.sla_breach_template_id ?? 'none'}
+          onValueChange={v => safeUpdate({ sla_breach_template_id: v === 'none' ? null : v } as any)}
+        >
+          <SelectTrigger className="h-8 w-[240px] text-xs">
+            <SelectValue placeholder="Choose template" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none" className="text-xs">— use default —</SelectItem>
+            {emailTemplates.map(t => (
+              <SelectItem key={t.id} value={t.id} className="text-xs">{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <p className="text-[10px] text-muted-foreground">
+        Templates feed the SLA notification dispatcher; warning fires at the threshold % of SLA elapsed,
+        breach fires when SLA is exceeded (and again after escalation hours if a recipient is set).
+      </p>
     </div>
   );
 }

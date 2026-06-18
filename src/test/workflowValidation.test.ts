@@ -27,6 +27,10 @@ const step = (over: Partial<WorkflowStep> = {}): WorkflowStep => ({
   allowed_actions: over.allowed_actions ?? ['approve'],
   escalation_role: null,
   escalation_after_hours: null,
+  sla_warning_threshold_percent: null,
+  sla_pause_on_rfi: false,
+  sla_warning_template_id: null,
+  sla_breach_template_id: null,
   condition: null,
   created_at: '',
 });
