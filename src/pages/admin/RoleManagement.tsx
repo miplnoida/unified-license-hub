@@ -523,7 +523,7 @@ export default function RoleManagement() {
                         {selectedRole ? (selectedRole.description || 'What users with this role can and cannot do') : 'Select a role to see what it can do'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-6 pt-0 pr-3">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-6 pt-0 pr-3 thin-scrollbar">
                         {selectedRole ? (
                           <div className="space-y-4">
                             <div className="flex flex-wrap items-center gap-2">
@@ -810,7 +810,7 @@ export default function RoleManagement() {
                           : `${formPerms.length} permission${formPerms.length === 1 ? '' : 's'} selected`}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 pt-0 pr-3">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 pt-0 pr-3 thin-scrollbar">
 
                         <div className="space-y-4">
                           <div>
