@@ -638,13 +638,15 @@ export default function FeeManagement() {
                           <TableHead>Sub-Sector</TableHead>
                           <TableHead>Category</TableHead>
                           <TableHead>Service</TableHead>
+                          <TableHead>Form</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fees.length === 0 ? (
-                          <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
+
                         ) : fees.map(fee => (
                           <TableRow key={fee.id}>
                             <TableCell className="font-medium">{fee.name}</TableCell>
