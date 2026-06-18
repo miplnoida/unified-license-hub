@@ -1,17 +1,25 @@
-## Root Cause
+## Cause
 
-The `/admin/forms` page (`FormManagement.tsx`) reads from the `form_templates` table via `useFormTemplates(formType, activeRegulatorId)`, which filters with `.eq('regulator_id', activeRegulatorId)`.
+`SectorSelectionSection` (used by the registration page) calls `useSectors()`, `useSubSectors()`, `useCategories()` with no arguments, so the queries:
 
-A seeded row exists in `form_templates` for "Commercial Bank License Application", but its `regulator_id` is `NULL`, so the active-regulator filter excludes it. (A second, unused row was also seeded into the legacy `forms` table — not read by this page.)
+1. Return rows of **all statuses** — sectors marked Inactive in `/admin/masters/sectors` still appear.
+2. Do **not** filter by regulator — sectors from other regulators also show.
 
-## Fix
+In addition, the admin "Delete" action and the registration page run in separate sessions/caches, so a deletion in admin is only reflected in the registration tab after its TanStack query cache is invalidated/refetched. The registration page never invalidates these caches and has no `staleTime` set on the public side.
 
-1. Update the existing `form_templates` row for "Commercial Bank License Application" to set `regulator_id = '8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3'` (the same regulator used in the prior `forms` seed and the project's default).
-2. Delete the duplicate row from the legacy `forms` table to prevent confusion (that table is not what /admin/forms renders).
+## Fix (frontend only, no schema change)
 
-No code changes — purely a data fix via the insert/update tool.
+Edit `src/components/registration/SectorSelectionSection.tsx`:
+
+- Filter `sectors`, `subSectors`, `categories` to `status === 'active'` before rendering.
+- When the active regulator is known on the public registration flow, pass it into `useSectors(regulatorId)` (and rely on the existing inner-join filter for sub-sectors/categories) so only that regulator's taxonomy shows. If no regulator context exists on the public page, keep the unfiltered call but still apply the active-status filter.
+- Show an empty-state `SelectItem disabled` "No active sectors / sub-sectors / categories" when the filtered list is empty, instead of an empty dropdown.
+- On mount, call `queryClient.invalidateQueries({ queryKey: ['sectors'] })` (and sub_sectors/categories) so a freshly opened registration page always fetches the latest list rather than serving a stale cache from another tab.
+
+No backend/migration changes. No changes to admin delete logic. No other pages touched.
 
 ## Verification
 
-- Reload `/admin/forms` with the Commercial Bank/default regulator active; the form should appear under the Pre-License tab with status Published.
-- If it still doesn't appear, confirm the active regulator in the header matches the assigned `regulator_id`.
+1. In `/admin/masters/sectors`, mark a sector Inactive → open registration page → it no longer appears in the Sector dropdown.
+2. Delete a sector in admin → reload registration → dropdown updates immediately.
+3. If all sectors for a regulator are inactive, dropdown shows the disabled "No active sectors" entry.
