@@ -28,6 +28,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
 import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
+import { useWorkflowSlaInstances } from '@/hooks/useWorkflowSlaInstances';
+import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
+import { computeWorkflowSLA, type SlaStatus } from '@/hooks/useWorkflowSLA';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
@@ -201,7 +204,15 @@ export default function ApplicationsList() {
   const rawSlaFilter = searchParamsRaw.get('sla'); // re-evaluates on URL change
   const slaFilter: ApplicationQueueSlaBucket | null = rawSlaFilter === 'pending' || rawSlaFilter === 'breached' || rawSlaFilter === 'due_soon'
     ? rawSlaFilter
-    : null;
+      : null;
+  // Workflow-instance SLA bucket — set when drilling from the dashboard
+  // SLA widget. Values: 'healthy' | 'warning' | 'breached'.
+  const rawWorkflowSla = searchParamsRaw.get('workflowSla');
+  const workflowSlaFilter: SlaStatus | null =
+    rawWorkflowSla === 'healthy' || rawWorkflowSla === 'warning' || rawWorkflowSla === 'breached'
+      ? rawWorkflowSla
+      : null;
+  const [slaSort, setSlaSort] = useState<'none' | 'asc' | 'desc'>('none');
   const rawStatusGroup = searchParamsRaw.get('statusGroup');
   const statusGroupFilter: ApplicationQueueStatusGroup | null =
     rawStatusGroup === 'pending' || rawStatusGroup === 'returned' || rawStatusGroup === 'approved' || rawStatusGroup === 'rejected'
@@ -626,13 +637,39 @@ export default function ApplicationsList() {
     return list;
   }, [applications, versions, versionSort]);
 
+  // Centralized workflow-instance SLA map for the currently visible apps.
+  // Same hook powers the dashboard widget — guarantees identical status logic.
+  const visibleAppIds = useMemo(() => filtered.map(a => a.id), [filtered]);
+  const { byEntityId: slaByApp } = useWorkflowSlaInstances({
+    entityType: 'application',
+    entityIds: visibleAppIds,
+  });
+
+  const getSlaForApp = (appId: string) => {
+    const entry = slaByApp.get(appId);
+    if (!entry) return null;
+    return computeWorkflowSLA(entry.slaInput);
+  };
+
   // Always sort by created_at DESC so newest applications show first.
-  const sortedFiltered = useMemo(
-    () => [...filtered].sort(
+  const sortedFiltered = useMemo(() => {
+    let list = [...filtered].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    ),
-    [filtered]
-  );
+    );
+    if (workflowSlaFilter) {
+      list = list.filter(a => slaByApp.get(a.id)?.status === workflowSlaFilter);
+    }
+    if (slaSort !== 'none') {
+      const score = (a: any) => {
+        const e = slaByApp.get(a.id);
+        if (!e) return slaSort === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        // Higher consumption / breach = "worse". Sort asc => healthiest first.
+        return e.percentConsumed;
+      };
+      list.sort((a, b) => slaSort === 'asc' ? score(a) - score(b) : score(b) - score(a));
+    }
+    return list;
+  }, [filtered, slaByApp, slaSort, workflowSlaFilter]);
 
   // Server-driven pagination: totalCount comes from the .range() count.
   const totalPages = groupingEnabled ? 0 : Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -888,6 +925,15 @@ export default function ApplicationsList() {
               <span className="text-xs text-muted-foreground">—</span>
             )}
           </TableCell>
+          <TableCell>
+            {(() => {
+              const sla = getSlaForApp(app.id);
+              if (!sla) {
+                return <span className="text-[10px] text-muted-foreground">—</span>;
+              }
+              return <SlaStatusBadge sla={sla} />;
+            })()}
+          </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
           </TableCell>
@@ -1033,6 +1079,7 @@ export default function ApplicationsList() {
                           <TableHead>Payment</TableHead>
                           <TableHead>Application Status</TableHead>
                           <TableHead>Licensee Status</TableHead>
+                          <TableHead>SLA</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>History</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
@@ -1087,6 +1134,13 @@ export default function ApplicationsList() {
                   <TableHead>Payment</TableHead>
                   <TableHead>Application Status</TableHead>
                   <TableHead>Licensee Status</TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none"
+                    onClick={() => setSlaSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
+                    title="Sort by SLA consumption"
+                  >
+                    SLA {slaSort === 'asc' ? '▲' : slaSort === 'desc' ? '▼' : ''}
+                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -1140,12 +1194,15 @@ export default function ApplicationsList() {
           }
         />
 
-        {(slaFilter || statusGroupFilter) && (
+        {(slaFilter || statusGroupFilter || workflowSlaFilter) && (
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary" className="text-xs">
               {slaFilter === 'breached' && 'SLA: Breached'}
               {slaFilter === 'due_soon' && 'SLA: Nearing breach'}
               {slaFilter === 'pending' && 'SLA: Pending'}
+              {workflowSlaFilter === 'healthy' && 'Workflow SLA: Within SLA'}
+              {workflowSlaFilter === 'warning' && 'Workflow SLA: Approaching Breach'}
+              {workflowSlaFilter === 'breached' && 'Workflow SLA: Breached'}
               {statusGroupFilter === 'returned' && 'Status: Returned'}
               {statusGroupFilter === 'approved' && 'Status: Approved'}
               {statusGroupFilter === 'rejected' && 'Status: Rejected'}

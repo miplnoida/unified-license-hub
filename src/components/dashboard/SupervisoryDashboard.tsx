@@ -6,6 +6,7 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
+import { WorkflowSlaOverviewWidget } from './widgets/WorkflowSlaOverviewWidget';
 import { APPLICATION_DRILLDOWNS, RETURN_DRILLDOWNS, drilldownTo, returnDrilldownTo } from '@/lib/dashboardDrilldowns';
 import {
   AlertTriangle, FileText, ClipboardList, DollarSign, AlertOctagon,
@@ -82,6 +83,9 @@ export function SupervisoryDashboard() {
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
         )}
       </div>
+
+      {/* Workflow SLA Overview — same calculation as Applications list + WorkflowPanel */}
+      {(can.applications || can.workflows) && <WorkflowSlaOverviewWidget />}
 
       {/* Insights */}
       <Card>
