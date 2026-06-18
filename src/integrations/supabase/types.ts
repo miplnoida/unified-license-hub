@@ -7477,6 +7477,10 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      reset_system_role_permissions: {
+        Args: { p_role_name: string }
+        Returns: number
+      }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
