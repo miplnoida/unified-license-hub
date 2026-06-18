@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
-import { useFormTemplates } from '@/hooks/useFormTemplates';
+import { useFormTemplates, type FormTemplate } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 
 import { toast } from 'sonner';
@@ -363,22 +363,22 @@ export default function FeeManagement() {
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getServiceName = (id: string | null) => services.find(s => s.id === id)?.name || '—';
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
-  const getFormName = (id: string | null) => (formTemplates as any[]).find((f: any) => f.id === id)?.name || '—';
+  const getFormName = (id: string | null) => formTemplates.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
   const filteredServices = services.filter(s => !subSectorId || s.sub_sector_id === subSectorId);
-  const filteredForms = (formTemplates as any[]).filter((f: any) => {
+  const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
     if (sectorId ? f.sector_id !== sectorId : f.sector_id) return false;
     if (subSectorId ? f.sub_sector_id !== subSectorId : f.sub_sector_id) return false;
     if (categoryId ? f.category_id !== categoryId : f.category_id) return false;
     if (serviceIds.length > 0 ? !serviceIds.includes(f.service_id) : f.service_id) return false;
     return true;
-  });
+  }), [formTemplates, sectorId, subSectorId, categoryId, serviceIds]);
 
   useEffect(() => {
-    const availableFormIds = new Set(filteredForms.map((f: any) => f.id));
+    const availableFormIds = new Set(filteredForms.map(f => f.id));
     setFormIds(prev => prev.filter(id => availableFormIds.has(id)));
-  }, [sectorId, subSectorId, categoryId, serviceIds, formTemplates]);
+  }, [filteredForms]);
 
 
   const ruleTypeIcon = (type: string) => {
