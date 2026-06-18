@@ -28,6 +28,21 @@ import {
   Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle, Info,
 } from 'lucide-react';
 
+/** Strip developer-style "Module N - " prefixes from catalog labels. */
+const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
+  const cleaned = String(label || '').replace(/^\s*Module\s*\d+\s*[-–:]\s*/i, '').trim();
+  if (cleaned) return cleaned;
+  const k = String(fallbackKey || '');
+  return k ? k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ') : '';
+};
+/** Humanize an action key like "issue_digital_license" -> "Issue Digital License". */
+const humanizeActionLabel = (label?: string | null, key?: string) => {
+  const cleaned = String(label || '').trim();
+  if (cleaned && cleaned.toLowerCase() !== String(key || '').toLowerCase()) return cleaned;
+  const k = String(key || cleaned);
+  return k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
+};
+
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
 import {
@@ -85,19 +100,19 @@ export default function RoleManagement() {
   const deleteRole = useDeleteRole();
   const resetSystemRole = useResetSystemRole();
 
-  /** Module entries derived from DB catalog. */
+  /** Module entries derived from DB catalog. Labels normalized for non-technical display. */
   const moduleEntries = useMemo<ModuleEntry[]>(() => {
     return catModules.map(m => {
       const acts = catActions
         .filter(a => a.module_id === m.id)
         .sort((x, y) => x.sort_order - y.sort_order);
       const actionLabels: Record<string, string> = {};
-      for (const a of acts) actionLabels[a.key] = a.label;
+      for (const a of acts) actionLabels[a.key] = humanizeActionLabel(a.label, a.key);
       return {
         module: m.key,
-        label: m.label,
+        label: cleanModuleLabel(m.label, m.key),
         description: m.description || '',
-        actions: acts.map(a => ({ key: a.key, label: a.label })),
+        actions: acts.map(a => ({ key: a.key, label: humanizeActionLabel(a.label, a.key) })),
         actionLabels,
       };
     });
@@ -627,9 +642,11 @@ export default function RoleManagement() {
                       return (
                         <TabsTrigger key={tab.key} value={tab.key} className="gap-2">
                           {tab.label}
-                          <Badge variant="secondary" className="text-[10px]">
-                            {assigned}/{totalPerms}
-                          </Badge>
+                          {assigned > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {assigned === totalPerms ? 'All' : assigned}
+                            </Badge>
+                          )}
                         </TabsTrigger>
                       );
                     })}
@@ -664,6 +681,15 @@ export default function RoleManagement() {
                               setFormPerms(prev => [...new Set([...prev, ...ids])]);
                             }
                           };
+                          const assignedCount = filteredPerms.filter(p => formPerms.includes(p.permission.id)).length;
+                          const clearAll = () => {
+                            const ids = new Set(filteredPerms.map(p => p.permission.id));
+                            setFormPerms(prev => prev.filter(id => !ids.has(id)));
+                          };
+                          const selectAll = () => {
+                            const ids = filteredPerms.map(p => p.permission.id);
+                            setFormPerms(prev => [...new Set([...prev, ...ids])]);
+                          };
                           return (
                             <Card key={m.moduleKey} className="overflow-hidden">
                               <div className="flex items-start gap-3 px-4 py-2 bg-muted/50 border-b">
@@ -673,10 +699,24 @@ export default function RoleManagement() {
                                   ref={el => { if (el) (el as any).indeterminate = someChecked; }}
                                   onCheckedChange={toggleAll}
                                 />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
                                     <span className="text-sm font-semibold">{m.moduleLabel}</span>
-                                    <code className="text-[10px] text-muted-foreground">{m.moduleKey}</code>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] text-muted-foreground">
+                                        {assignedCount === 0
+                                          ? 'No permissions selected'
+                                          : assignedCount === filteredPerms.length
+                                            ? 'All selected'
+                                            : `${assignedCount} selected`}
+                                      </span>
+                                      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={selectAll}>
+                                        Select all
+                                      </Button>
+                                      <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={clearAll}>
+                                        Clear
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -690,17 +730,9 @@ export default function RoleManagement() {
                                     />
                                     <label
                                       htmlFor={`perm-${permission.id}`}
-                                      className="text-sm cursor-pointer flex items-center gap-1"
+                                      className="text-sm cursor-pointer"
                                     >
                                       {label}
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Info className="h-3 w-3 text-muted-foreground" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          {permission.description || `${permission.module}.${permission.name}`}
-                                        </TooltipContent>
-                                      </Tooltip>
                                     </label>
                                   </div>
                                 ))}

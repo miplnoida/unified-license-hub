@@ -146,7 +146,7 @@ export default function PermissionCatalogTab() {
                             {a.label}
                             {a.is_system && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />system</Badge>}
                           </div>
-                          <div className="text-xs text-muted-foreground font-mono">{a.key}</div>
+                          {a.description && <div className="text-xs text-muted-foreground">{a.description}</div>}
                         </div>
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => { setEditingAction(a); setActionDialogOpen(true); }}>
@@ -243,7 +243,7 @@ function ModuleRow({
             {m.label}
             {m.is_system && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" />system</Badge>}
           </div>
-          <div className="text-xs font-mono text-muted-foreground truncate">{m.key}</div>
+          {m.description && <div className="text-xs text-muted-foreground truncate">{m.description}</div>}
         </button>
         <div className="flex gap-0.5">
           {onAddChild && (
@@ -271,7 +271,7 @@ function ModuleForm({
   onCancel: () => void;
   onSave: (v: { key: string; label: string; description?: string | null; parent_id?: string | null; sort_order?: number }) => Promise<void>;
 }) {
-  const [key, setKey] = useState(m?.key || '');
+  const [key] = useState(m?.key || '');
   const [label, setLabel] = useState(m?.label || '');
   const [description, setDescription] = useState(m?.description || '');
   const [parent, setParent] = useState<string>(m?.parent_id || parentId || 'none');
@@ -280,10 +280,12 @@ function ModuleForm({
   const parentOptions = modules.filter(x => !x.parent_id && x.id !== m?.id);
 
   const submit = async () => {
-    if (!KEY_PATTERN.test(key)) { toast.error('Key must be lowercase letters/numbers/underscores'); return; }
-    if (!label.trim()) { toast.error('Label is required'); return; }
+    if (!label.trim()) { toast.error('Name is required'); return; }
+    const finalKey = (key || label).toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!KEY_PATTERN.test(finalKey)) { toast.error('Could not derive a valid key from the name'); return; }
     await onSave({
-      key, label, description: description || null,
+      key: finalKey, label, description: description || null,
       parent_id: parent === 'none' ? null : parent,
       sort_order: sortOrder,
     });
@@ -292,11 +294,7 @@ function ModuleForm({
   return (
     <div className="space-y-3">
       <div>
-        <Label>Key</Label>
-        <Input value={key} onChange={e => setKey(e.target.value)} placeholder="fit_and_proper" disabled={!!m?.is_system} className="font-mono" />
-      </div>
-      <div>
-        <Label>Label</Label>
+        <Label>Name</Label>
         <Input value={label} onChange={e => setLabel(e.target.value)} placeholder="Fit & Proper" />
       </div>
       <div>
@@ -332,25 +330,23 @@ function ActionForm({
   onCancel: () => void;
   onSave: (v: { key: string; label: string; description?: string | null; sort_order?: number }) => Promise<void>;
 }) {
-  const [key, setKey] = useState(a?.key || '');
+  const [key] = useState(a?.key || '');
   const [label, setLabel] = useState(a?.label || '');
   const [description, setDescription] = useState(a?.description || '');
   const [sortOrder, setSortOrder] = useState(a?.sort_order ?? 100);
 
   const submit = async () => {
-    if (!KEY_PATTERN.test(key)) { toast.error('Key must be lowercase letters/numbers/underscores'); return; }
-    if (!label.trim()) { toast.error('Label is required'); return; }
-    await onSave({ key, label, description: description || null, sort_order: sortOrder });
+    if (!label.trim()) { toast.error('Name is required'); return; }
+    const finalKey = (key || label).toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (!KEY_PATTERN.test(finalKey)) { toast.error('Could not derive a valid key from the name'); return; }
+    await onSave({ key: finalKey, label, description: description || null, sort_order: sortOrder });
   };
 
   return (
     <div className="space-y-3">
       <div>
-        <Label>Key</Label>
-        <Input value={key} onChange={e => setKey(e.target.value)} placeholder="override_ai_recommendation" disabled={!!a?.is_system} className="font-mono" />
-      </div>
-      <div>
-        <Label>Label</Label>
+        <Label>Name</Label>
         <Input value={label} onChange={e => setLabel(e.target.value)} placeholder="Override AI Recommendation" />
       </div>
       <div>
