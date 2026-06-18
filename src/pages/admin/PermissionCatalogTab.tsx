@@ -12,28 +12,24 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, Trash2, FolderTree, Zap, Route as RouteIcon, Info, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, FolderTree, Zap, Info, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  useCatalogModules, useCatalogActions, useCatalogRoutes,
+  useCatalogModules, useCatalogActions,
   useUpsertModule, useDeleteModule,
   useUpsertAction, useDeleteAction,
-  useUpsertRoute, useDeleteRoute,
-  DECLARED_ROUTES, CatalogModule, CatalogAction,
+  CatalogModule, CatalogAction,
 } from '@/hooks/usePermissionCatalog';
 
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 /**
- * Catalog tab — admin-managed Modules → Sub-modules → Actions and route attachments.
- * Routes come from a developer-declared whitelist (DECLARED_ROUTES) so admins
- * cannot point a module at a non-existent route.
+ * Catalog tab — admin-managed Modules → Sub-modules → Actions.
+ * Route mapping is developer-owned and intentionally not exposed here.
  */
 export default function PermissionCatalogTab() {
   const { data: modules = [] } = useCatalogModules();
   const { data: actions = [] } = useCatalogActions();
-  const { data: routes = [] } = useCatalogRoutes();
 
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
@@ -46,13 +42,11 @@ export default function PermissionCatalogTab() {
   const deleteModule = useDeleteModule();
   const upsertAction = useUpsertAction();
   const deleteAction = useDeleteAction();
-  const upsertRoute = useUpsertRoute();
-  const deleteRoute = useDeleteRoute();
 
   const rootModules = useMemo(() => modules.filter(m => !m.parent_id), [modules]);
   const childrenOf = (id: string) => modules.filter(m => m.parent_id === id);
   const actionsFor = (mid: string) => actions.filter(a => a.module_id === mid);
-  const routesFor = (mid: string) => routes.filter(r => r.module_id === mid);
+
 
   const selectedModule = modules.find(m => m.id === selectedModuleId) || null;
 
