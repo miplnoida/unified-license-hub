@@ -5,6 +5,8 @@ import { AuthLoadingScreen } from '@/components/shared/AuthLoadingScreen';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
+
 
 /**
  * Routes a non-approved pre-licensee is still allowed to visit so they can
