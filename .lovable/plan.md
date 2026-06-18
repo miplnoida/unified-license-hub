@@ -1,41 +1,39 @@
 ## Problem
 
-When a pre-licensee (applicant) is granted the Complaints permission via Role Management, the **Complaints** menu correctly appears in the sidebar, but clicking it redirects to `/dashboard` instead of opening the Complaints page.
+After deleting a role on `/admin/roles`, the page becomes unclickable. The delete dialog and toast disappear visually, but `<body>` keeps `pointer-events: none` (and/or a residual overlay), so all clicks are swallowed.
 
 ## Root cause
 
-`src/routes/routeHelpers.tsx` → `RegistrationApprovalGate` enforces a static whitelist (`PRE_LICENSEE_ALLOWED_ROUTES` in `src/hooks/useUserPermissions.ts`) for approved pre-licensees:
+This is the well-known Radix interaction bug: the delete confirmation `Dialog` is opened from inside a modal `DropdownMenu` (`RowActionsMenu`). When the dialog closes, Radix's dropdown cleanup re-applies `pointer-events: none` to `<body>` after the dialog's own cleanup ran, so the existing workaround in `RoleManagement.tsx` (a single `setTimeout(..., 0)`) clears it too early and the style comes back.
 
-```
-/dashboard, /applications, /payments, /profile, /change-password, /notifications, /registration-status
-```
-
-`/complaints` is not in the list, so the gate forces `Navigate to="/dashboard"` even though:
-- the route guard (`ExternalPortalOrModule` → `PortalRoute`) would allow access via the user's dynamic permission
-- the sidebar already shows the link because that same dynamic permission resolves true
-
-The whitelist and the dynamic-permission system are out of sync.
+The same `RowActionsMenu` → `Dialog` pattern is used for Edit too, but Edit currently happens to close cleanly because its dialog stays open long enough for the dropdown teardown to finish first. Delete is faster (mutation + auto-close + toast), which exposes the race.
 
 ## Fix
 
-Make the pre-licensee gate respect dynamically-granted permissions in addition to the baseline whitelist. Concretely:
+Scope: `src/pages/admin/RoleManagement.tsx` and the row-actions menu used on that page only. No business logic, no other pages, no styling changes.
 
-1. **`src/routes/routeHelpers.tsx`** — in `RegistrationApprovalGate`, before the `Navigate to="/dashboard"` fallback, also allow the path when the user's dynamic permissions grant access to the module that owns it. Use the existing `getModuleForPath` (from `src/lib/permissionModules.ts`) + `useUserDynamicPermissions().hasPermission(module, 'view')` (with a fallback to `'submit'` for portal-only capabilities like Complaints). If allowed, render children instead of redirecting.
+1. **Stop the dropdown from re-locking the body.** Render the `RowActionsMenu` for role rows with `dropdownModal={false}`. The prop already exists on `RowActionsMenu`; passing `false` disables Radix's body-pointer-events lock for that dropdown, which removes the source of the race without affecting keyboard/focus behavior of the dialog itself.
 
-2. **No change** to the static `PRE_LICENSEE_ALLOWED_ROUTES` baseline — those remain always-on for the minimum pre-licensee portal (dashboard, applications, payments, profile, change-password, notifications, registration-status).
+2. **Harden the existing cleanup effect in `RoleManagement.tsx`.** Replace the single `setTimeout(0)` with a short, bounded poll (e.g. clear `document.body.style.pointerEvents` on `requestAnimationFrame` plus a couple of follow-up checks within ~250 ms, then stop) so that if any other Radix layer re-applies the lock during unmount, it still gets cleared. The effect must:
+   - only run when both `dialogOpen` and `deleteConfirm` are falsy,
+   - never run on an interval indefinitely (bounded retries),
+   - fully clean up its timers on unmount / re-run.
 
-3. **No change** to:
-   - `PortalRoute` / `ExternalPortalOrModule` route guards (already correct)
-   - Sidebar visibility (already correct)
-   - The `/complaints` route definition in `dashboardRoutes.tsx` (already lists `pre_licensee` in `allowedRoles`)
-   - Any other module or business logic
+3. **Also clear any orphaned Radix dialog overlay** belonging to a closed dialog in the same cleanup pass (defensive `querySelectorAll('[data-radix-dialog-overlay][data-state="closed"]')` removal) so a leftover backdrop element cannot intercept clicks either. Only closed overlays are touched; open dialogs are untouched.
 
-## Result
+## Files to change
 
-- Granting any module (e.g. Complaint Handling) to a pre-licensee role in Role Management makes that route navigable, not just visible.
-- Revoking the permission hides the menu and blocks the route again, exactly as today.
-- All existing pre-licensee restrictions for routes the admin has NOT explicitly granted (e.g. `/workflows`, `/admin/*`) remain enforced via their own module/role guards plus the unchanged baseline whitelist.
+- `src/pages/admin/RoleManagement.tsx`
+  - Pass `dropdownModal={false}` to the `RowActionsMenu` rendered for each role row (around line 489).
+  - Replace the `useEffect` workaround at lines 135–144 with the hardened version described above.
 
-## Files to edit
+## Out of scope
 
-- `src/routes/routeHelpers.tsx` — extend `RegistrationApprovalGate` with the dynamic-permission check described above.
+- `RowActionsMenu` itself (no API change; we only use its existing `dropdownModal` prop).
+- Other admin pages that use `RowActionsMenu` + `Dialog` (will be revisited only if the same symptom is reported there).
+- Delete flow logic, permissions, RLS, or the `useDeleteRole` mutation.
+
+## Verification
+
+- Open `/admin/roles`, open the row menu on any role, click Delete, confirm. After the toast disappears, the page must remain fully clickable (sidebar, buttons, other row menus). Repeat for Edit → Cancel and Edit → Save to confirm no regression.
+- Confirm `document.body.style.pointerEvents` is empty after the dialog closes (DevTools).
