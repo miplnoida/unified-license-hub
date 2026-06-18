@@ -49,8 +49,18 @@ Deno.serve(async (req) => {
 
     if (!effectiveRole) {
       if (primaryRoleId) {
-        // Dynamic role(s): assign safe baseline; real access controlled via user_dynamic_roles.
-        effectiveRole = 'analyst';
+        // Use the dynamic role's own system_role mapping (e.g. Applicant → 'applicant',
+        // Regulated Entity User → 'licensee_primary'). Only fall back to the safe
+        // 'analyst' baseline if the role row has no system_role configured.
+        const { data: primaryRoleRow } = await supabaseAdmin
+          .from("roles")
+          .select("system_role")
+          .eq("id", primaryRoleId)
+          .maybeSingle();
+        const mapped = (primaryRoleRow as any)?.system_role;
+        effectiveRole = (typeof mapped === 'string' && mapped.trim().length > 0)
+          ? mapped.trim()
+          : 'analyst';
       } else if (user_type === 'primary' || user_type === 'secondary') {
         // Licensee tenant users only.
         effectiveRole = user_type === 'primary' ? 'licensee_primary' : 'licensee_secondary';
