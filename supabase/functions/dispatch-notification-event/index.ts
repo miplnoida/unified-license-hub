@@ -617,6 +617,60 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Resolve step/workflow names from any step ids in the payload so templates
+    // using {{step_name}}, {{previous_step_name}}, {{next_step_name}},
+    // {{workflow_name}} render correctly even when callers don't pre-populate them.
+    try {
+      const stepIdsToLoad = new Set<string>();
+      const currentStepId =
+        (typeof vars.step_id === "string" && vars.step_id) ||
+        (typeof vars.current_step_id === "string" && vars.current_step_id) ||
+        (app?.current_step_id ? String(app.current_step_id) : "") ||
+        ((ret as any)?.current_step_id ? String((ret as any).current_step_id) : "") ||
+        "";
+      const nextStepId = typeof vars.new_step_id === "string" ? vars.new_step_id : (typeof vars.next_step_id === "string" ? vars.next_step_id : "");
+      const prevStepId = typeof vars.previous_step_id === "string" ? vars.previous_step_id : "";
+      if (currentStepId) stepIdsToLoad.add(currentStepId);
+      if (nextStepId) stepIdsToLoad.add(nextStepId);
+      if (prevStepId) stepIdsToLoad.add(prevStepId);
+      if (stepIdsToLoad.size > 0) {
+        const { data: stepRows } = await admin
+          .from("approval_steps")
+          .select("id, name, step_key, step_level, workflow_id")
+          .in("id", Array.from(stepIdsToLoad));
+        const stepMap = new Map<string, any>();
+        (stepRows || []).forEach((s: any) => stepMap.set(String(s.id), s));
+        const workflowIds = Array.from(new Set((stepRows || []).map((s: any) => s.workflow_id).filter(Boolean))) as string[];
+        const wfMap = new Map<string, string>();
+        if (workflowIds.length > 0) {
+          const { data: wfRows } = await admin
+            .from("approval_workflows")
+            .select("id, name")
+            .in("id", workflowIds);
+          (wfRows || []).forEach((w: any) => wfMap.set(String(w.id), String(w.name || "")));
+        }
+        const cur = currentStepId ? stepMap.get(currentStepId) : null;
+        if (cur) {
+          vars.step_name = vars.step_name || cur.name || "";
+          vars.step_key = vars.step_key || cur.step_key || "";
+          vars.step_level = vars.step_level ?? cur.step_level ?? "";
+          if (cur.workflow_id) vars.workflow_name = vars.workflow_name || wfMap.get(String(cur.workflow_id)) || "";
+        }
+        const nxt = nextStepId && nextStepId !== currentStepId ? stepMap.get(nextStepId) : null;
+        if (nxt) {
+          vars.next_step_name = vars.next_step_name || nxt.name || "";
+          vars.next_step_key = vars.next_step_key || nxt.step_key || "";
+        }
+        const prv = prevStepId ? stepMap.get(prevStepId) : null;
+        if (prv) {
+          vars.previous_step_name = vars.previous_step_name || prv.name || "";
+          vars.previous_step_key = vars.previous_step_key || prv.step_key || "";
+        }
+      }
+    } catch (stepLookupErr) {
+      console.warn("step/workflow name lookup failed:", (stepLookupErr as any)?.message || stepLookupErr);
+    }
+
     const shouldUseActionOverrides = vars.action_notification_override === true;
     const overrideStepId = shouldUseActionOverrides && typeof vars.step_id === "string" ? vars.step_id : null;
     const overrideActionType = shouldUseActionOverrides && typeof vars.action_type === "string" ? vars.action_type : null;
