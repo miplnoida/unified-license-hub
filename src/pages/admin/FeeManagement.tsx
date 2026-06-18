@@ -593,7 +593,7 @@ export default function FeeManagement() {
                       <div className="space-y-2">
                         <Label>Services</Label>
                         <MultiSelect
-                          options={services.map(s => ({ value: s.id, label: s.name }))}
+                          options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
                           selected={serviceIds}
                           onChange={setServiceIds}
                           placeholder="None (applies to pre-licensee)"
@@ -608,7 +608,8 @@ export default function FeeManagement() {
                           options={filteredForms.map((f: any) => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
                           selected={formIds}
                           onChange={setFormIds}
-                          placeholder="All forms (no specific form)"
+                          placeholder={filteredForms.length === 0 ? "No form present" : "All forms (no specific form)"}
+                          emptyMessage="No form present"
                           withinDialog
                         />
                         <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
