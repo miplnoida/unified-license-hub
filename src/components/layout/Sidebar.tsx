@@ -142,15 +142,20 @@ export function Sidebar() {
     const pathIsAdminPanel = !!item.href && (item.href.startsWith('/admin/') || item.href === '/admin' || item.href.startsWith('/settings'));
     const isInternalOnlyItem = !!item.adminOnly || audienceIsInternalOnly || pathIsAdminPanel;
 
+    // Internal-only items should be visible to ANY internal staff role when a
+    // dynamic role grants the module — not just users whose static role is in
+    // the item's declared audience. We still block non-internal users from
+    // seeing admin-panel screens even when they share a module key.
+    const userIsInternal = INTERNAL_ROLES.includes(user.role);
     if (enforceDynamic) {
       if (item.module) {
-        if (isInternalOnlyItem && !roleVisible) return false;
+        if (isInternalOnlyItem && !userIsInternal) return false;
         return hasModuleAccess(item.module);
       }
       if (item.href) {
         const mappedModule = getModuleForPath(item.href);
         if (mappedModule) {
-          if (isInternalOnlyItem && !roleVisible) return false;
+          if (isInternalOnlyItem && !userIsInternal) return false;
           return hasModuleAccess(mappedModule);
         }
       }
