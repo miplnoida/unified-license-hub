@@ -212,7 +212,7 @@ function useStepPreviewData(stepId: string) {
     queryFn: async (): Promise<Record<string, any>> => {
       const { data: step } = await supabase
         .from('approval_steps')
-        .select('id, name, step_key, step_level, workflow_id')
+        .select('id, name, step_order, workflow_id')
         .eq('id', stepId)
         .maybeSingle();
       let workflow_name = '';
@@ -226,8 +226,8 @@ function useStepPreviewData(stepId: string) {
       }
       return {
         step_name: (step as any)?.name || '',
-        step_key: (step as any)?.step_key || '',
-        step_level: (step as any)?.step_level ?? '',
+        step_order: (step as any)?.step_order ?? '',
+        step_level: (step as any)?.step_order ?? '',
         workflow_name,
       };
     },
