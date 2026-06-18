@@ -15,7 +15,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
+import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
+
 import { toast } from 'sonner';
 import { CALCULATION_TYPE_LABELS, CalculationType, FEE_RULE_TYPE_LABELS, FeeRuleType } from '@/types/platform';
 import { PlusCircle, Pencil, Trash2, Loader2, Calculator, ShieldOff, Percent, DollarSign, Info } from 'lucide-react';
@@ -28,6 +30,7 @@ interface FeeConfig {
   sub_sector_id: string | null;
   category_id: string | null;
   service_id: string | null;
+  form_id: string | null;
   fee_type: string;
   name: string;
   amount: number;
@@ -39,6 +42,7 @@ interface FeeConfig {
   max_amount: number | null;
   created_at: string;
 }
+
 
 interface FeeRule {
   id: string;
@@ -93,7 +97,9 @@ export default function FeeManagement() {
   const [subSectorId, setSubSectorId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [formIds, setFormIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
+
 
   // Rule form state
   const [ruleName, setRuleName] = useState('');
@@ -113,6 +119,8 @@ export default function FeeManagement() {
   const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
   const { data: categories = [] } = useCategories(activeRegulatorId);
   const { data: services = [] } = useServices(activeRegulatorId);
+  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulatorId);
+
 
   const loadFees = async () => {
     setLoading(true);
@@ -165,9 +173,10 @@ export default function FeeManagement() {
 
   const resetForm = () => {
     setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
-    setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]);
+    setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]);
     setIsActive(true); setEditing(null); setLegacyNote(false);
   };
+
 
   const handleFeeTypesChange = useCallback((selected: string[]) => {
     setFeeTypesSelected(selected);
@@ -216,9 +225,12 @@ export default function FeeManagement() {
     setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
-    setServiceIds(fee.service_id ? [fee.service_id] : []); setIsActive(fee.is_active);
+    setServiceIds(fee.service_id ? [fee.service_id] : []);
+    setFormIds(fee.form_id ? [fee.form_id] : []);
+    setIsActive(fee.is_active);
     setDialogOpen(true);
   };
+
 
   const openEditRule = (rule: FeeRule) => {
     setEditingRule(rule);
@@ -270,23 +282,27 @@ export default function FeeManagement() {
       calculation_expression: null,
     };
 
-    const buildRow = (ft: string, svcId: string | null) => {
+    const buildRow = (ft: string, svcId: string | null, formId: string | null) => {
       const row = feeTypeAmounts[ft];
       return {
-        ...basePayload, name: name.trim(), fee_type: ft, service_id: svcId,
+        ...basePayload, name: name.trim(), fee_type: ft, service_id: svcId, form_id: formId,
         amount: parseFloat(row.amount), calculation_type: row.calculationType,
         min_amount: parseFloat(row.minAmount) || 0,
         max_amount: row.maxAmount ? parseFloat(row.maxAmount) : null,
       };
     };
 
-    // Expand fee types × services. When no service is selected, write a single
-    // row per fee type with service_id=null (pre-licensee scope).
+    // Expand fee types × services × forms. When none selected, write a single
+    // row with the corresponding id=null (applies to all in that dimension).
     const serviceTargets: (string | null)[] = serviceIds.length > 0 ? serviceIds : [null];
+    const formTargets: (string | null)[] = formIds.length > 0 ? formIds : [null];
     const allRows: any[] = [];
     feeTypes.forEach(ft => {
-      serviceTargets.forEach(svc => allRows.push(buildRow(ft, svc)));
+      serviceTargets.forEach(svc => {
+        formTargets.forEach(fid => allRows.push(buildRow(ft, svc, fid)));
+      });
     });
+
 
     if (editing) {
       // Update the existing row with the first (fee type, service) combo
@@ -347,9 +363,17 @@ export default function FeeManagement() {
   const getCategoryName = (id: string | null) => categories.find(c => c.id === id)?.name || '—';
   const getServiceName = (id: string | null) => services.find(s => s.id === id)?.name || '—';
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
+  const getFormName = (id: string | null) => (formTemplates as any[]).find((f: any) => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
   const filteredServices = services.filter(s => s.sub_sector_id === subSectorId);
+  const filteredForms = (formTemplates as any[]).filter((f: any) => {
+    if (sectorId && f.sector_id && f.sector_id !== sectorId) return false;
+    if (subSectorId && f.sub_sector_id && f.sub_sector_id !== subSectorId) return false;
+    if (categoryId && f.category_id && f.category_id !== categoryId) return false;
+    return true;
+  });
+
 
   const ruleTypeIcon = (type: string) => {
     switch (type) {
@@ -571,6 +595,20 @@ export default function FeeManagement() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Form (optional)</Label>
+                        <MultiSelect
+                          options={filteredForms.map((f: any) => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                          selected={formIds}
+                          onChange={setFormIds}
+                          placeholder="All forms (no specific form)"
+                          withinDialog
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <Switch checked={isActive} onCheckedChange={setIsActive} />
                       <Label>Active</Label>
@@ -600,13 +638,15 @@ export default function FeeManagement() {
                           <TableHead>Sub-Sector</TableHead>
                           <TableHead>Category</TableHead>
                           <TableHead>Service</TableHead>
+                          <TableHead>Form</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {fees.length === 0 ? (
-                          <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
+                          <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No fees configured</TableCell></TableRow>
+
                         ) : fees.map(fee => (
                           <TableRow key={fee.id}>
                             <TableCell className="font-medium">{fee.name}</TableCell>
@@ -619,7 +659,9 @@ export default function FeeManagement() {
                             <TableCell className="text-sm text-muted-foreground">{getSubSectorName(fee.sub_sector_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getCategoryName(fee.category_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getServiceName(fee.service_id)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getFormName(fee.form_id)}</TableCell>
                             <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+
                             <TableCell className="text-right">
                               <RowActionsMenu dropdownModal={false} actions={[
                                 { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },

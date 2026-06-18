@@ -1,39 +1,55 @@
-## Problem
+# Add Form scope to Fee Management
 
-After deleting a role on `/admin/roles`, the page becomes unclickable. The delete dialog and toast disappear visually, but `<body>` keeps `pointer-events: none` (and/or a residual overlay), so all clicks are swallowed.
+The Fee Management module already supports configuring fees by **Sector → Sub-Sector → Category → Service**. The missing dimension is **Form** — letting an admin tie a fee configuration to a specific form template (e.g. a particular pre/post-license application form or return form).
 
-## Root cause
+This plan adds Form as an optional scoping dimension without touching existing working logic (calculation types, rules, exemptions, discounts, fee types master, rule editor).
 
-This is the well-known Radix interaction bug: the delete confirmation `Dialog` is opened from inside a modal `DropdownMenu` (`RowActionsMenu`). When the dialog closes, Radix's dropdown cleanup re-applies `pointer-events: none` to `<body>` after the dialog's own cleanup ran, so the existing workaround in `RoleManagement.tsx` (a single `setTimeout(..., 0)`) clears it too early and the style comes back.
+## 1. Database (migration)
 
-The same `RowActionsMenu` → `Dialog` pattern is used for Edit too, but Edit currently happens to close cleanly because its dialog stays open long enough for the dropdown teardown to finish first. Delete is faster (mutation + auto-close + toast), which exposes the race.
+Add an optional `form_id` to `public.fee_configurations`:
 
-## Fix
+- `form_id uuid null references public.form_templates(id) on delete set null`
+- Index on `form_id` for resolver lookups
+- No change to existing rows (NULL = applies to all forms in scope, current behavior)
+- Keep all existing RLS/GRANT statements; the migration only adds a column + index
 
-Scope: `src/pages/admin/RoleManagement.tsx` and the row-actions menu used on that page only. No business logic, no other pages, no styling changes.
+## 2. Admin UI — `src/pages/admin/FeeManagement.tsx`
 
-1. **Stop the dropdown from re-locking the body.** Render the `RowActionsMenu` for role rows with `dropdownModal={false}`. The prop already exists on `RowActionsMenu`; passing `false` disables Radix's body-pointer-events lock for that dropdown, which removes the source of the race without affecting keyboard/focus behavior of the dialog itself.
+In the create/edit fee dialog, add a **Form (optional)** selector below Services:
 
-2. **Harden the existing cleanup effect in `RoleManagement.tsx`.** Replace the single `setTimeout(0)` with a short, bounded poll (e.g. clear `document.body.style.pointerEvents` on `requestAnimationFrame` plus a couple of follow-up checks within ~250 ms, then stop) so that if any other Radix layer re-applies the lock during unmount, it still gets cleared. The effect must:
-   - only run when both `dialogOpen` and `deleteConfirm` are falsy,
-   - never run on an interval indefinitely (bounded retries),
-   - fully clean up its timers on unmount / re-run.
+- Multi-select of form templates, filtered by the selected Sector / Sub-Sector / Category (using the same scoping fields `form_templates` already exposes; fall back to "All forms" when nothing matches)
+- Empty selection → `form_id = null` (current behavior, applies to all forms)
+- Like Services today, selecting multiple forms expands into one `fee_configurations` row per (fee type × service × form) combination in `handleSave`
+- Show the Form column in the configurations table and in the edit prefill
+- New state: `formIds: string[]`, included in `resetForm`, `openEdit`, payload `buildRow`
 
-3. **Also clear any orphaned Radix dialog overlay** belonging to a closed dialog in the same cleanup pass (defensive `querySelectorAll('[data-radix-dialog-overlay][data-state="closed"]')` removal) so a leftover backdrop element cannot intercept clicks either. Only closed overlays are touched; open dialogs are untouched.
+No changes to: fee types master tab, rules tab, calculation/min/max validation, currency, regulator scoping, RowActionsMenu wiring.
 
-## Files to change
+## 3. Fee resolver — `src/lib/applicationFeeBreakdown.ts`
 
-- `src/pages/admin/RoleManagement.tsx`
-  - Pass `dropdownModal={false}` to the `RowActionsMenu` rendered for each role row (around line 489).
-  - Replace the `useEffect` workaround at lines 135–144 with the hardened version described above.
+Extend the specificity ranking so a fee scoped to the application's form wins over a generic one:
 
-## Out of scope
+- Accept the form template id from the application (`appData.form_template_id` / equivalent already on `applications.data`)
+- Add `+16` specificity when `f.form_id === selectedForm`
+- Keep the existing service exclusivity rule (service-scoped vs no-service) and apply the same rule to `form_id`: if the application has a form, a row with `form_id = null` still matches (generic); a row with `form_id` only matches when it equals the application's form
+- No change to the `fee_components` path (already-stamped invoices)
 
-- `RowActionsMenu` itself (no API change; we only use its existing `dropdownModal` prop).
-- Other admin pages that use `RowActionsMenu` + `Dialog` (will be revisited only if the same symptom is reported there).
-- Delete flow logic, permissions, RLS, or the `useDeleteRole` mutation.
+## 4. Hooks / queries
 
-## Verification
+- Reuse `useFormTemplates` (already in the project) inside `FeeManagement.tsx` to populate the form dropdown
+- No new hook files
 
-- Open `/admin/roles`, open the row menu on any role, click Delete, confirm. After the toast disappears, the page must remain fully clickable (sidebar, buttons, other row menus). Repeat for Edit → Cancel and Edit → Save to confirm no regression.
-- Confirm `document.body.style.pointerEvents` is empty after the dialog closes (DevTools).
+## 5. Out of scope (do not touch)
+
+- Fee Rules editor, fee_rules table, discounts, exemptions
+- Payment Settings page, Stripe/Paddle wiring
+- Returns late-fee structures
+- RLS policies, fee_types master, regulator switching
+- Application submission / payment workflow logic
+
+## 6. Verification
+
+- Existing fee configs (with `form_id = null`) continue to resolve exactly as today for both pre-licensee and post-licensee flows
+- Creating a fee with a Form selected produces one row per (fee type × service × form)
+- An application whose form matches a form-scoped fee picks that fee over a generic one with the same sector/category
+- Editing an existing fee with no form keeps `form_id` null on save
