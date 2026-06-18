@@ -804,8 +804,8 @@ export default function RoleManagement() {
 
                 {/* Live role summary */}
                 <div>
-                  <Card className="sticky top-2">
-                    <CardHeader>
+                  <Card className="lg:sticky lg:top-2 flex flex-col max-h-[70vh]">
+                    <CardHeader className="shrink-0">
                       <CardTitle className="text-base">This role will be able to</CardTitle>
                       <CardDescription>
                         {formPerms.length === 0
@@ -813,58 +813,58 @@ export default function RoleManagement() {
                           : `${formPerms.length} permission${formPerms.length === 1 ? '' : 's'} selected`}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                          <CheckCircle className="h-4 w-4 text-emerald-600" /> Can
-                        </p>
-                        {editSummary.can.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">Nothing yet — tick some boxes on the left</p>
-                        ) : (
-                          <ul className="space-y-1">
-                            {editSummary.can.map(line => (
-                              <li key={line} className="text-sm flex gap-2">
-                                <span className="text-emerald-600">✓</span>
-                                <span>{line}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                          <XCircle className="h-4 w-4 text-muted-foreground" /> Cannot
-                        </p>
-                        {editSummary.cannot.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic">Full access</p>
-                        ) : (
-                          <ul className="space-y-1">
-                            {editSummary.cannot.slice(0, 8).map(line => (
-                              <li key={line} className="text-sm flex gap-2 text-muted-foreground">
-                                <span>✗</span>
-                                <span>{line}</span>
-                              </li>
-                            ))}
-                            {editSummary.cannot.length > 8 && (
-                              <li className="text-xs text-muted-foreground italic">
-                                +{editSummary.cannot.length - 8} more
-                              </li>
+                    <CardContent className="flex-1 min-h-0 overflow-hidden">
+                      <ScrollArea className="h-full max-h-[60vh] pr-3">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                              <CheckCircle className="h-4 w-4 text-emerald-600" /> Can
+                            </p>
+                            {editSummary.can.length === 0 ? (
+                              <p className="text-xs text-muted-foreground italic">Nothing yet — tick some boxes on the left</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {editSummary.can.map(line => (
+                                  <li key={line} className="text-sm flex gap-2">
+                                    <span className="text-emerald-600">✓</span>
+                                    <span>{line}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             )}
-                          </ul>
-                        )}
-                      </div>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                              <XCircle className="h-4 w-4 text-muted-foreground" /> Cannot
+                            </p>
+                            {editSummary.cannot.length === 0 ? (
+                              <p className="text-xs text-muted-foreground italic">Full access</p>
+                            ) : (
+                              <ul className="space-y-1">
+                                {editSummary.cannot.map(line => (
+                                  <li key={line} className="text-sm flex gap-2 text-muted-foreground">
+                                    <span>✗</span>
+                                    <span>{line}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </ScrollArea>
                     </CardContent>
                   </Card>
                 </div>
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-4 border-t shrink-0 bg-background">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={createRole.isPending || updateRole.isPending}>
                 {(createRole.isPending || updateRole.isPending) ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
               </Button>
             </DialogFooter>
+
           </DialogContent>
         </Dialog>
 
