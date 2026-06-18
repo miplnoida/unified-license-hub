@@ -925,6 +925,15 @@ export default function ApplicationsList() {
               <span className="text-xs text-muted-foreground">—</span>
             )}
           </TableCell>
+          <TableCell>
+            {(() => {
+              const sla = getSlaForApp(app.id);
+              if (!sla) {
+                return <span className="text-[10px] text-muted-foreground">—</span>;
+              }
+              return <SlaStatusBadge sla={sla} />;
+            })()}
+          </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
             {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : new Date(app.created_at).toLocaleDateString()}
           </TableCell>
