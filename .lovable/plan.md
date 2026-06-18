@@ -1,31 +1,39 @@
-Why it was not created: the last change added SLA fields and dropdowns to choose templates, but it did not seed any `notification_templates` records. I checked the database and there are currently 0 templates with SLA event types.
+## Problem
 
-Plan:
+The Admin → Notification Templates page only shows `sla.configuration_updated` (In-App + Email). There are no entries for **SLA Warning** or **SLA Breach**, even though templates were previously seeded into `notification_templates`.
 
-1. Add default SLA notification templates
-   - Create seed records in `notification_templates` for:
-     - `sla.warning` email template
-     - `sla.breach` email template
-     - `sla.warning` in-app template
-     - `sla.breach` in-app template
-   - Use consistent naming and variables like `workflow_name`, `step_name`, `sla_hours`, `elapsed_percent`, `entity_name`, `app_url`.
-   - Keep them active by default.
+**Root cause:** The admin list reads from `notification_event_configs`, but the prior SLA seeds were written to a different table (`notification_templates`). So the admin UI cannot see them.
 
-2. Keep existing workflow behavior unchanged
-   - Do not change action notifications, workflow routing, approval logic, or existing templates.
-   - Only add SLA-specific template records and improve SLA template selection.
+## Plan
 
-3. Improve the SLA template dropdowns
-   - Ensure the SLA warning dropdown shows the seeded `sla.warning` templates clearly.
-   - Ensure the SLA breach dropdown shows the seeded `sla.breach` templates clearly.
-   - Keep `— use default —` available so admins can leave the step unbound if needed.
+Seed two new rows in `notification_event_configs` so they appear in the Notification Templates admin list with both Email and In-App channels:
 
-4. Optionally auto-bind defaults when creating/selecting SLA config
-   - If a step has no warning/breach template selected, the UI can still show the matching default template as the effective default.
-   - Saving a manual selection will continue storing the selected template ID on the step.
+1. **SLA Warning** — `event_key = sla.warning`
+   - Description: "SLA Warning"
+   - Channels: `['email', 'in_app']`
+   - Email subject: `SLA warning: {{step_name}} at {{elapsed_percent}}% of SLA`
+   - Email/Message body: greeting + workflow, step, entity, elapsed %, remaining hours, link
+   - In-app title: `SLA warning on {{step_name}}`
+   - `notification_type`: `warning`, `is_active: true`
 
-5. Verify
-   - Confirm the new SLA templates appear in the template list.
-   - Confirm the step edit SLA warning/breach dropdowns show the new templates.
-   - Confirm existing workflow step save/load behavior is unchanged.
-   - Confirm no TypeScript errors.
+2. **SLA Breach** — `event_key = sla.breach`
+   - Description: "SLA Breached"
+   - Channels: `['email', 'in_app']`
+   - Email subject: `SLA BREACHED: {{step_name}} overdue by {{overdue_hours}}h`
+   - Email/Message body: workflow, step, entity, SLA hours, overdue hours, escalation role, link
+   - In-app title: `SLA breached on {{step_name}}`
+   - `notification_type`: `error`, `is_active: true`
+
+Use a safe upsert-style insert (skip if a row with the same `event_key` already exists) to avoid duplicating `sla.configuration_updated` or any prior seed.
+
+## Out of scope (unchanged)
+
+- Workflow step editor dropdowns continue to read from `notification_templates` (already populated).
+- No changes to dispatch logic, recipient rules, or `sla.configuration_updated` behavior (team-lead-only routing stays as-is).
+- No UI changes.
+
+## Verification
+
+- Open `/admin/notification-templates` → see new rows: "SLA Warning" (Email + In-App) and "SLA Breached" (Email + In-App) alongside existing `sla.configuration_updated`.
+- Stats cards reflect new counts.
+- Edit/duplicate/delete on the new rows works via the existing handlers.
