@@ -1,31 +1,44 @@
-## Goal
 
-Keep only the user-created `registration workflow` (2 steps). Remove the auto-seeded `Default Registration Workflow` and make sure every pending registration uses the user's workflow.
+## Problem
 
-## Plan
+Workflow action emails arrive with literal `{{step_name}}` in the body (e.g. *"Registration ACB12345678 approved at step {{step_name}}"*). The same applies to other step-derived tokens.
 
-1. **Replace `resolve_registration_workflow`** so it always returns the user's workflow:
-   - For `entity_type = 'registration'` and `is_active = true`, try in order:
-     1. exact `sector_id` match
-     2. same `regulator_id` (any sector), `ORDER BY updated_at DESC`
-     3. global active registration workflow, `ORDER BY updated_at DESC`
-   - This makes the 2-step `registration workflow` win for any sector under its regulator.
+## Root cause
 
-2. **Remove the seeded default**:
-   - Delete `approval_step_actions`, `approval_steps`, `approval_workflow_versions`, and the `approval_workflows` row for `Default Registration Workflow` (id `7441328c-…`). Safe because no completed actions reference its step (only currently-pending instances do, and those will be re-pinned in step 3).
-   - Drop the seed `DO $$ … 'Default Registration Workflow' … $$` block from future seeds by making it conditional on a non-existent flag (or just rely on the `IF NOT EXISTS` guard — since the user-created workflow now exists, it won't re-seed).
+Two paths feed `dispatch-notification-event`, and both fail to provide `step_name`:
 
-3. **Re-pin pending registration instances** that point to the deleted default:
-   - For each `workflow_instances` row with `entity_type='registration'` and `workflow_id = 7441328c-…` whose registration is still in a pending status, call `resolve_registration_workflow(sector_id)` and update the instance to the new workflow's id, current first step, version snapshot, and reset `started_at = now()`.
-   - Historical (approved/rejected) registrations: leave untouched.
+1. **Email Preview dialog override path** — `WorkflowActionPreviewDialog.tsx` builds a `vars` object that intentionally omits step info. Its local `render()` keeps unresolved tokens as literal `{{step_name}}` (line 85). The reviewer-edited body is then sent as `body_override`, and `dispatch-notification-event` writes `body_override` to the email **verbatim, without running render/strip** (lines 668–670). So `{{step_name}}` ships as plain text.
+2. **Direct dispatch path** — `perform-registration-workflow-action` / `perform-workflow-action` / `perform-return-workflow-action` build a `sharedPayload` that has `step_id` but no `step_name`. `dispatch-notification-event` never looks the step up by id, so `render()` produces an empty value and `stripUnresolvedTemplateTokens` removes the placeholder — leaving "approved at step " with a trailing blank.
 
-4. **Verification**:
-   - `SELECT id, name FROM approval_workflows WHERE entity_type='registration'` returns only `registration workflow`.
-   - Open Registration Review for the Banking pending registration → panel shows "Level 1 of 2" with both steps and their configured actions.
-   - Create a new registration under any sector under the regulator → instance is pinned to the 2-step workflow.
+Templates use `{{step_name}}` (and related tokens like `{{previous_step_name}}`, `{{next_step_name}}`), so the fix is to make those resolvable everywhere.
 
-### Technical notes
+## Fix (frontend + edge function only, no DB changes)
 
-- All work is in one SQL migration: function replacement + targeted deletes + targeted updates of `workflow_instances`. No client/UI changes — `WorkflowPanel` already renders steps and actions dynamically from `approval_steps` / `approval_step_actions` for whichever `workflow_id` the instance points to.
-- The resolver stays `SECURITY DEFINER` so `start_registration_workflow` keeps working.
-- If any pending instance has a `sector_id` whose regulator doesn't match the user's workflow regulator, the resolver returns NULL and the instance is left unchanged — flagged via a NOTICE in the migration so you can see it.
+### 1. `supabase/functions/dispatch-notification-event/index.ts`
+
+- After loading entity context but before rendering, look up the current step from `approval_steps` whenever any of these are present in `vars`/payload: `step_id`, `current_step_id`, `new_step_id`, `previous_step_id`. Inject:
+  - `step_name`, `step_key`, `step_level` from the resolved current step (`step_id` → fallback `current_step_id` → fallback `new_step_id`).
+  - `previous_step_name`, `previous_step_key` when `previous_step_id` is present.
+  - `next_step_name`, `next_step_key` when `new_step_id` differs from `step_id`.
+  - `workflow_name` from `approval_workflows` via the step's `workflow_id` (cheap join, single round trip).
+- Only set each var when not already provided by the caller so explicit values still win.
+- Apply `render(...)` + `stripUnresolvedTemplateTokens(...)` to `subject_override` / `body_override` too (currently used raw). This guarantees no literal `{{token}}` ever ships, even when the preview dialog leaves one in.
+
+### 2. `supabase/functions/perform-registration-workflow-action/index.ts`, `perform-workflow-action/index.ts`, `perform-return-workflow-action/index.ts`
+
+- Before dispatching, fetch the current step name/level for `result.new_step_id` (and the previous step for context) once, and add `step_name`, `step_level`, `previous_step_name`, `next_step_name`, `workflow_name` to `sharedPayload`. Keeps the in-app notification copy clean even when the override path isn't taken.
+
+### 3. `src/components/applications/WorkflowActionPreviewDialog.tsx`
+
+- Extend `useEntityPreviewData` (or add a sibling query) to fetch the step's `name`, `step_key`, `step_level`, and parent workflow name for `stepId`.
+- Add `step_name`, `step_level`, `workflow_name`, `previous_step_name`, `next_step_name` to the `vars` memo so the rendered preview shows the real values and the edited body the reviewer confirms no longer contains `{{step_name}}`.
+
+### 4. Verification
+
+- Trigger a registration approval on a step named *"Reviewer"*. Confirm:
+  - In-app message and email subject/body show *"approved at step Reviewer"* (not blank, not literal token).
+  - The Email Preview dialog renders *"Reviewer"* before sending.
+  - A template that uses `{{workflow_name}}` / `{{previous_step_name}}` resolves correctly.
+- Run the same on an application workflow and a return workflow to confirm both perform-*-workflow-action functions inject the new vars.
+
+No schema changes, no UI styling changes, no template content changes — purely making the existing tokens resolvable.
