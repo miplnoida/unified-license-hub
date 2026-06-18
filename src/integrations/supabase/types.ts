@@ -6060,7 +6060,7 @@ export type Database = {
           is_system: boolean
           name: string
           role_type: string
-          system_role: string | null
+          system_role: string
           updated_at: string
         }
         Insert: {
@@ -6070,7 +6070,7 @@ export type Database = {
           is_system?: boolean
           name: string
           role_type?: string
-          system_role?: string | null
+          system_role?: string
           updated_at?: string
         }
         Update: {
@@ -6080,7 +6080,7 @@ export type Database = {
           is_system?: boolean
           name?: string
           role_type?: string
-          system_role?: string | null
+          system_role?: string
           updated_at?: string
         }
         Relationships: []

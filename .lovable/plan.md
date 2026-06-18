@@ -1,37 +1,53 @@
-## Problem
+## Why this is happening
 
-Registration Review's SLA column ("1d / 24h") reflects the `version_snapshot` captured when each registration's workflow instance started, not the current value in `approval_steps`. The live `approval_steps` row for "Step 1" is now `sla_hours = 2`, but in-flight instances still carry the old snapshot (`72` / `48`), so the badge and the `· Xh` hint stay stale.
+The app is using two permission models at the same time:
 
-## Fix
+1. **Old static role checks** on menu items, like `admin` / `super_admin`.
+2. **New dynamic role permissions** from Role Management, like `registration_management`, `form_management`, `fee_management`, etc.
 
-Switch Registration Review to read SLA fields from the live `approval_steps` table for the instance's `current_step_id`, falling back to the snapshot only when the live row is missing (e.g. step deleted). No data migration; the 2h change takes effect immediately for all running registrations, and future SLA edits also reflect instantly.
+Because many sidebar menu entries still declare only `admin` / `super_admin`, an employee can be granted the correct dynamic permission but still be hidden or blocked by leftover static-role logic.
 
-### Changes
+I also checked the live backend data and found a data consistency issue: current users with dynamic roles are not consistently stored as employee/internal profiles. Some internal-looking users still have `user_type = primary`, and at least one custom internal role has a missing `system_role`. That means even if the UI grant looks correct, the app may not classify the user as internal everywhere.
 
-**`src/pages/admin/RegistrationReview.tsx`** (only file touched)
+## Plan
 
-1. After loading `workflow_instances`, collect distinct `current_step_id`s and fetch them in one query:
-   ```ts
-   supabase
-     .from('approval_steps')
-     .select('id, sla_hours, sla_warning_threshold_percent, escalation_after_hours, name')
-     .in('id', stepIds)
-   ```
-2. Build a `liveStepMap: Map<stepId, row>`.
-3. In the row hydration block, resolve SLA fields in this order:
-   - `liveStepMap.get(inst.current_step_id)` (live) →
-   - existing snapshot step lookup (fallback) →
-   - `null`.
-   Apply the same precedence to `sla_hours`, `sla_warning_threshold_percent`, `escalation_after_hours`, and `current_step_name`.
-4. Leave `step_started_at`, deadline math, and `SlaInlineIndicator` untouched — they recompute automatically once SLA hours are correct.
+1. **Centralize internal user detection**
+   - Create one shared helper for “is this user internal?” based on:
+     - app/system role: `super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst`, `developer`
+     - dynamic role type: `internal`
+     - employee profile type where available
+   - Use this helper in sidebar and route guards so all menus follow the same rule.
 
-### Out of scope
+2. **Make sidebar module permissions the source of truth**
+   - For menu items with a `module`, show the menu when the user has that module permission.
+   - Keep admin/internal pages protected from external users, but do not require the user to be statically `admin` just to see an admin-panel menu.
+   - Apply this to every sidebar item, including children, so we stop fixing menus one by one.
 
-- No change to `workflow_instances.version_snapshot` (history of "what SLA was in force when this instance started" stays intact for audit).
-- No change to Applications list, Returns review, Dashboard SLA widget, or the snapshot-based resolver in `src/lib/workflowSlaResolver.ts`. If you later want the same live behavior there, that's a separate request.
-- No backend migration.
+3. **Align route guards with sidebar visibility**
+   - Ensure `ModuleRoute` uses the same internal/dynamic permission logic as the sidebar.
+   - If a menu is visible because a dynamic module is granted, the route should also be accessible.
+   - If the route is internal-only, external portal users remain blocked even if a similarly named module exists.
 
-### Verification
+4. **Fix employee role assignment consistency**
+   - Update employee creation/editing so internal dynamic roles always store a valid internal baseline system role, defaulting safely to `analyst` when needed.
+   - Prevent roles with missing `system_role` from breaking employee classification.
 
-- Open `/admin/registration-review`: the SLA badge for in-flight registrations should now read against 2h (typically "Overdue …" since 2h has long passed), and the "Current Step" cell should show `· 2h` instead of `· 72h`.
-- Edit the workflow step SLA to a different value in admin → reload the page → badge updates without needing a new workflow version.
+5. **Normalize existing affected data**
+   - Add a backend migration to repair existing internal dynamic roles/users:
+     - set missing internal `system_role` values to `analyst`
+     - ensure users assigned internal dynamic roles have an internal baseline role in `user_roles`
+     - normalize misclassified internal employee profiles where safe
+
+6. **Verify globally**
+   - Test at least these modules as an employee with grants:
+     - Registration Review
+     - Form Management
+     - Fee Management
+     - Returns Management
+     - Workflows
+     - Role/User Management if granted
+   - Confirm hidden items stay hidden when not granted.
+
+## Expected result
+
+After this, granting a module permission in Role Management should consistently make the corresponding menu and page available for employees across the whole system, without needing separate fixes for each menu.
