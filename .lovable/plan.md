@@ -1,97 +1,85 @@
 ## Goal
-Improve Role Management UX so external vs internal roles only see relevant permissions, grouped into tabs. Keep one RBAC engine, one `roles` table, one `permissions` table. No changes to route guards, RLS, or existing assignments.
 
-## 1. Schema: add `role_type` to roles
-Migration:
-- Add column `roles.role_type text not null default 'internal'` with check `('internal','external')`.
-- Backfill: set `role_type='external'` for system roles named `Applicant` and `Regulated Entity User`. All other roles stay `internal`.
-- Add column `permission_modules.audience text not null default 'internal'` with check `('internal','external','both')`. Used to filter modules in the role editor.
-- Backfill `audience`:
-  - `external` → modules used by portal users: `licensing` (filtered by action, see below), `returns_management`, `complaint_management`, `fit_and_proper`, `public_complaint_portal`.
-  - `internal` → everything else (`application_management`, `license_management`, `registration_management`, `executive_oversight`, `market_conduct*`, `prudential_*`, `fit_and_proper_committee`, `fit_and_proper_initiation`, `fit_and_proper_screening`, `form_management`, `fee_management`, `report_management`, `user_management`, `role_management`, `workflow_management`, `settings`).
-- Add column `permission_actions.audience text not null default 'both'`. Backfill so that within shared modules (`licensing`, `returns_management`, `complaint_management`, `fit_and_proper`) only submitter-facing actions are external:
-  - external actions: `submit`, `view_status`, `upload_documents`, `respond_rfi`, `view` (only for `complaint_management`, `fit_and_proper`).
-  - All other actions (`approve`, `reject`, `edit`, `create`, `add_legal_notes`, etc.) stay `internal`.
+Replace the current complex role/permission UI with a **simple, opinionated RBAC** built around the 11 roles you listed. Permissions stay granular (per module × action), but admins no longer build roles from scratch — they pick a role and tweak.
 
-No data is deleted; `role_permissions` rows are untouched.
+No changes to: routes, sidebar wiring, workflow engine, RLS, edge functions, or how `useUserDynamicPermissions` resolves access at runtime. This is a **seed + UX** change only.
 
-## 2. Tab grouping (UI-only metadata)
-Add `src/lib/permissionTabs.ts` mapping module → tab label per audience:
+## The 11 Roles (seeded as system roles)
 
-Internal tabs:
-- Applications: `application_management`
-- Licensing: `licensing`, `license_management`, `registration_management`, `fee_management`
-- Workflow: `workflow_management`, `form_management`
-- Findings: `market_conduct`, `market_conduct_investigation`, `prudential_supervision`, `prudential_payment_systems`
-- Returns Review: `returns_management`
-- Complaints Review: `complaint_management`, `public_complaint_portal`
-- F&P Review: `fit_and_proper`, `fit_and_proper_committee`, `fit_and_proper_initiation`, `fit_and_proper_screening`
-- Reports & Analytics: `report_management`, `executive_oversight`
-- Administration: `user_management`, `role_management`, `settings`
+| Role | Scope |
+|---|---|
+| Applicant | External — submit & track own applications |
+| Regulated Entity User | External — licensee portal (returns, complaints, FP) |
+| Licensing Officer | Internal — intake & process applications |
+| Analyst | Internal — review & analyse submissions |
+| Legal/Compliance Reviewer | Internal — legal/compliance sign-off |
+| Approver / Decision-Maker | Internal — approve/reject applications & licenses |
+| Prudential Supervisor | Internal — prudential returns oversight |
+| Market Conduct Supervisor | Internal — complaints & conduct oversight |
+| Committee Member | Internal — read-only review + committee approve |
+| Executive Supervisor | Internal — cross-module read + approve |
+| System Administrator | Internal — full admin (users, roles, settings, forms, workflows) |
 
-External tabs:
-- Applications: `licensing` (submit/view_status only)
-- Documents: `licensing.upload_documents`
-- RFIs: `licensing.respond_rfi`
-- Returns Submission: `returns_management`
-- Complaints Submission: `complaint_management`
-- F&P Declarations: `fit_and_proper`
-- License Status: `licensing.view_status` (also surfaced under Applications; tab acts as a read-only summary if no other actions)
+Super Administrator stays as the built-in bypass (unchanged).
 
-The tab file is the single source of truth; it filters by both module audience and action audience.
+## What changes
 
-## 3. UI changes in `src/pages/admin/RoleManagement.tsx`
+### 1. Seed the 11 roles with sensible default permissions
+Migration inserts the 11 roles into `public.roles` (marked `is_system = true`, idempotent on name) and maps each to a curated set of rows in `role_permissions` using existing `permissions` rows. No new tables, no new columns beyond an `is_system boolean default false` flag on `roles` if not already present.
 
-Create/Edit dialog:
-- Add **Role Type** select (Internal Regulatory User / External Portal User). Defaults to Internal. Disabled for system roles.
-- Replace the flat permission list with a `Tabs` component whose tabs come from `permissionTabs.ts` filtered by selected `role_type`.
-- Each tab renders grouped checkboxes (one card per module within that tab, action checkboxes inside).
-- Add a search input (filters action labels within the current tab) and a filter chip (All / Assigned / Unassigned).
-- Persist the existing "Uncatalogued permissions" fallback so legacy data still appears.
+Default permission matrix (module → actions) per role — summary:
 
-Detail panel:
-- Show **Role Type** badge.
-- Render permissions grouped by tab → module → action, using the same tab definitions.
-- Show "No permissions" for empty tabs (per the spec example).
-- Permission count = sum of catalogued + uncatalogued rows, so the badge always matches the rendered list.
+```text
+                              app  lic  reg  ret  cmp  usr  rol  rpt  fee  frm  wf   set
+Applicant                     v,c,e .    .    .    .    .    .    .    .    .    .    .
+Regulated Entity User         v    v    .    v,c,e v,c,e .    .    .    .    .    .    .
+Licensing Officer             v,c,e v,e  v,e  .    .    .    .    v    .    .    .    .
+Analyst                       v,e  v    v    v    v    .    .    v    .    .    .    .
+Legal/Compliance Reviewer     v,e  v    v    v    v,e  .    .    v    .    .    .    .
+Approver / Decision-Maker     v,a,r v,a v,a,r v,a v,e  .    .    v    .    .    .    .
+Prudential Supervisor         v    v    .    v,e,a v   .    .    v    .    .    .    .
+Market Conduct Supervisor     v    v    .    .    v,e,a .    .    v    .    .    .    .
+Committee Member              v,a  v,a  v,a  v,a  v    .    .    v    .    .    .    .
+Executive Supervisor          v,a  v,a  v,a  v,a  v,a  .    .    v    v    .    .    v
+System Administrator          ALL across every module
+```
+(v=view, c=create, e=edit, a=approve, r=reject)
 
-Role list:
-- Add Role Type column / badge for quick scanning.
+### 2. Simplify Role Management UI (`src/pages/admin/RoleManagement.tsx`)
 
-## 4. Seeded defaults (no destructive changes)
-After the audience columns exist, run a one-time `INSERT ... ON CONFLICT DO NOTHING` to ensure:
-- Applicant role_permissions: `licensing.submit`, `licensing.view_status`, `licensing.upload_documents`, `licensing.respond_rfi`.
-- Regulated Entity User role_permissions: above + `returns_management.{submit,view_status}`, `complaint_management.{submit,view_status}`, `fit_and_proper.{submit,view_status}`.
+- New top-level layout: **left pane lists the 11 system roles + any custom roles; right pane shows that role's permissions grouped by module.**
+- System roles are clearly badged ("System role") and:
+  - cannot be renamed or deleted
+  - permissions are editable (so admins can fine-tune), with a "Reset to defaults" button per role
+- "Create custom role" button still available for org-specific roles (kept minimal — name, description, permissions).
+- Remove the "Uncategorised / Legacy Permissions" complexity from the primary view; collapse it behind a small "Show legacy permissions" toggle (kept for safety, hidden by default).
+- Health indicator stays but slimmed to: "11 system roles • N custom roles • M permissions mapped".
 
-This only **adds** missing rows; nothing is removed.
+### 3. Keep runtime behaviour identical
 
-## 5. Out of scope (explicitly unchanged)
-- `usePermissions` / `usePermissionCatalog` query shape (UI filters client-side).
-- `permissionRegistry.ts` route↔module mapping.
-- Route guards (`RouteGuards.tsx`), sidebar gating, RLS, edge functions.
-- Form gating hooks (`useExternalPortalAccess` facade stays as-is).
-- External Portal Access page — stays deleted.
+- `useUserDynamicPermissions`, `PermissionGate`, `ModuleRoute`, `PortalRoute`, sidebar visibility — **untouched**.
+- `user_dynamic_roles` mapping table — untouched. Assigning a user to one of the 11 roles uses the existing assignment flow in User Management.
+- Workflow engine, RLS, edge functions — untouched.
 
-## 6. Verification
-- `bunx vitest run`.
-- Open `/admin/roles`:
-  - Applicant → Role Type badge "External Portal User"; tabs Applications/Documents/RFIs/Returns Submission/Complaints Submission/F&P Declarations/License Status; 4 checked permissions surfaced under correct tabs; no admin/approve permissions visible.
-  - Licensing Officer → Role Type "Internal Regulatory User"; tabs Applications/Licensing/Workflow/Findings/Returns Review/Complaints Review/F&P Review/Reports & Analytics/Administration; no `submit`/`track_own` external actions visible.
-  - Create new role, toggle Role Type → tab set + visible permissions update live.
-  - Search + Assigned/Unassigned filter scope to current tab.
-- Confirm permission count badge equals rendered permissions for Applicant, Regulated Entity User, and an internal role.
+## Out of scope
 
-## Files
-- New migration: add `roles.role_type`, `permission_modules.audience`, `permission_actions.audience`, backfill.
-- New: `src/lib/permissionTabs.ts`.
-- Edit: `src/pages/admin/RoleManagement.tsx` (dialog + detail + list column).
-- Edit: `src/hooks/useRoles.ts` (include `role_type` in select/insert/update).
-- Edit: `src/hooks/usePermissionCatalog.ts` (expose `audience` on modules/actions).
-- Data: `INSERT ON CONFLICT DO NOTHING` for Applicant / Regulated Entity User defaults.
+- No new permission modules or actions.
+- No changes to how object-level (row-level) access is enforced — that stays in RLS/workflow rules.
+- No bulk reassignment of existing users; current assignments keep working.
 
----
+## Technical notes
 
-## Unified RBAC enforcement (frontend)
-- `PortalRoute` now delegates to `useUserDynamicPermissions` (no more `has_portal_capability` RPC engine). External capability/area maps directly to permission module/action.
-- New `<PermissionGate module action>` and `<ModuleGate module>` components in `src/components/auth/PermissionGate.tsx` for action-level button gating. Use these instead of `user.role === 'admin'` style checks.
-- Sidebar / `ModuleRoute` / `PermissionGate` all read from the same `useUserDynamicPermissions` source of truth. Object-level isolation remains RLS-enforced.
+- **Migration**: add `is_system boolean not null default false` to `public.roles` if missing; upsert the 11 roles by `name`; for each, delete+reinsert its `role_permissions` rows to match the matrix (only on first install — guarded by checking `is_system` was just set, so admin tweaks aren't wiped on re-run). Provide an explicit `reset_system_role_permissions(role_name text)` SQL function for the "Reset to defaults" button.
+- **Files touched**:
+  - `supabase/migrations/<new>.sql` — seed + reset function
+  - `src/pages/admin/RoleManagement.tsx` — UI rework
+  - `src/hooks/useRoles.ts` — expose `is_system` + `resetSystemRole` mutation
+  - (read-only references) `src/lib/permissionRegistry.ts`, `src/lib/permissionModules.ts`
+
+## Acceptance
+
+- Admin opens Role Management and immediately sees the 11 roles pre-configured.
+- Selecting a role shows its module×action grid; toggling and saving works; "Reset to defaults" restores the seeded matrix.
+- System roles cannot be renamed/deleted; custom roles fully editable.
+- Existing user→role assignments and all runtime gates continue to work unchanged.
+- Build and lint pass.
