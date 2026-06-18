@@ -595,6 +595,20 @@ export default function FeeManagement() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Form (optional)</Label>
+                        <MultiSelect
+                          options={filteredForms.map((f: any) => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                          selected={formIds}
+                          onChange={setFormIds}
+                          placeholder="All forms (no specific form)"
+                          withinDialog
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <Switch checked={isActive} onCheckedChange={setIsActive} />
                       <Label>Active</Label>
