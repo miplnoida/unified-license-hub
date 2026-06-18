@@ -1,45 +1,40 @@
-## Goal
+## Problem
 
-Simplify the admin-facing RBAC UI so business admins only manage **Modules, Actions, Roles, and Role-Permission assignments**. Remove every mention of routes, URLs, route prefixes, page paths, and developer-declared route lists from the admin UI. Keep route mapping alive internally for route guards, but treat it strictly as developer-owned configuration.
+In `src/pages/admin/RoleManagement.tsx` the right-hand "Role Summary" cards still don't scroll properly in two places:
 
-No DB changes, no rebuild — only UI/code adjustments to the two admin pages and the catalog hook surface.
+1. **Add/Edit Role dialog** (right column, ~line 805–857): the Card uses `max-h-[70vh]` but no definite height, and the inner `ScrollArea` uses `h-full max-h-[60vh]`. Inside a grid column whose row height is driven by the (tall) left column, Radix's `ScrollArea` viewport never gets a definite size in some cases, so the card just grows and the page/dialog scrolls instead of the card.
+2. **Roles list page** (right column, ~line 518–590): the "Role Summary" card has `sticky top-6` with **no height cap at all**. Only the "Cannot" list is wrapped in a `ScrollArea`; the "Can" list and the whole card can grow taller than the viewport, so the sticky card scrolls off-screen and feels unscrollable.
 
-## Scope of changes
+## Fix (UI-only, no logic changes)
 
-### 1. `src/pages/admin/PermissionCatalogTab.tsx`
-- Remove the entire "Routes attached to …" card (the `RouteIcon` block, ~lines 175–205).
-- Remove route-related imports: `Route as RouteIcon`, `Checkbox` (if no longer used), `useCatalogRoutes`, `useUpsertRoute`, `useDeleteRoute`, `DECLARED_ROUTES`.
-- Remove `routesFor`, `routes`, `upsertRoute`, `deleteRoute` from component body.
-- Update top-of-page Alert copy: drop the routes sentence — only describe Modules → Sub-modules → Actions.
-- Update delete-module confirm text: drop "and route attachments".
-- Empty-state copy: "Select a module to edit its actions" (drop "and routes").
-- Rename file-level JSDoc to drop route mentions.
+Edit only `src/pages/admin/RoleManagement.tsx`.
 
-### 2. `src/pages/admin/RoleManagement.tsx`
-- Line 522 helper text: replace "Users with this role will not see any menus or routes." with "Users with this role will not see any menus." (or similar — no "routes" word).
-- No structural change otherwise; role list + permission matrix grouped by module is already the pattern.
-- Quick polish to match the spec where cheap: make sure each module row in the matrix has "Select all" / "Clear" affordances and a module/action search box. If these already exist, leave them; if not, add minimally.
+### 1. Add/Edit dialog right summary card (line ~807)
 
-### 3. `src/hooks/usePermissionCatalog.ts`
-- Keep the file (other code may import types), but no longer used by the admin UI for routes.
-- Leave `useCatalogRoutes / useUpsertRoute / useDeleteRoute / DECLARED_ROUTES` exported for developer/internal use (route guards, navigation config). Add a short JSDoc note: "Internal/developer-only — do not surface in admin UI."
+- Give the Card a definite height instead of just `max-h`, so the inner ScrollArea has something to fill:
+  - `lg:sticky lg:top-2 flex flex-col h-[70vh]` (drop `max-h-[70vh]`).
+- Keep `CardHeader` as `shrink-0`.
+- `CardContent`: `flex-1 min-h-0 overflow-hidden p-4 pt-0`.
+- Replace the inner `ScrollArea className="h-full max-h-[60vh] pr-3"` with `ScrollArea className="h-full pr-3"` so it fills the now-definite CardContent.
+- On screens smaller than `lg` (where the grid collapses to one column), use `h-auto max-h-[60vh]` via responsive classes so the card doesn't force a 70vh block on mobile: `h-auto lg:h-[70vh] max-h-[70vh]`.
 
-### 4. Database / migrations
-- None. `permission_module_routes` table stays as-is for internal use.
-- No data migration; existing roles, permissions, and assignments are preserved.
+### 2. Roles list page right summary card (line ~520)
 
-### 5. Runtime authorization
-- Unchanged: `useUserDynamicPermissions`, `hasPermission(module, action)`, `hasModuleAccess(module)`, `PermissionGate`, `ModuleGate`, sidebar module-based visibility, and developer-owned route guards all continue to work exactly as today.
+- Change `<Card className="sticky top-6">` to a bounded, scroll-friendly card:
+  - `sticky top-6 flex flex-col max-h-[calc(100vh-8rem)]`.
+- Make `CardHeader` `shrink-0`.
+- Wrap the entire body (Badges + Users + Separator + Can + Cannot blocks) inside one `ScrollArea` with `className="flex-1 min-h-0 pr-3"` inside a `CardContent` that is `flex-1 min-h-0 overflow-hidden p-6 pt-0`.
+- Remove the inner `ScrollArea` around just the "Cannot" list (it becomes redundant — the outer one handles all overflow, including a long "Can" list).
+- When no role is selected, keep the existing empty state inside the same scroll container (it will simply not scroll).
 
-## Out of scope
+### 3. Sanity
 
-- No changes to the permission model, DB schema, or seeded system roles.
-- No changes to route-guard logic or navigation config.
-- No new modules/actions added by this change.
+- No changes to data hooks, permission logic, `PermissionGate`, `editSummary`, `detailSummary`, or any save/load behavior.
+- No new dependencies.
+- Verify with TypeScript build.
 
-## Acceptance check (manual)
+## Expected result
 
-1. `/admin/roles` → Permission Catalog tab shows only Modules list + Actions panel — no Routes card, no URL strings, no "route prefix" text anywhere.
-2. `/admin/roles` → Roles tab still lets admins assign module/action permissions via the matrix.
-3. Sidebar visibility and action-button gating continue to work for existing users.
-4. Build and lint pass.
+- Add/Edit Role: right "This role will be able to" card has a fixed visible height; both Can and Cannot lists scroll inside the card while header stays put.
+- Roles list page: right "Role Summary" card stays sticky, never exceeds viewport height, and the whole body (Can + Cannot + meta) scrolls internally.
+- No layout overflow, no page-level scroll caused by the summary card.
