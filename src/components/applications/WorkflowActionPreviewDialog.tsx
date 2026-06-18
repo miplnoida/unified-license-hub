@@ -205,6 +205,36 @@ function useEntityPreviewData(entityType: WorkflowEntityKind, entityId: string) 
   });
 }
 
+function useStepPreviewData(stepId: string) {
+  return useQuery({
+    queryKey: ['preview_step_vars', stepId],
+    enabled: !!stepId,
+    queryFn: async (): Promise<Record<string, any>> => {
+      const { data: step } = await supabase
+        .from('approval_steps')
+        .select('id, name, step_key, step_level, workflow_id')
+        .eq('id', stepId)
+        .maybeSingle();
+      let workflow_name = '';
+      if ((step as any)?.workflow_id) {
+        const { data: wf } = await supabase
+          .from('approval_workflows')
+          .select('name')
+          .eq('id', (step as any).workflow_id)
+          .maybeSingle();
+        workflow_name = (wf as any)?.name || '';
+      }
+      return {
+        step_name: (step as any)?.name || '',
+        step_key: (step as any)?.step_key || '',
+        step_level: (step as any)?.step_level ?? '',
+        workflow_name,
+      };
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function WorkflowActionPreviewDialog({
   open, onOpenChange, stepId, actionType, actionLabel, comments,
   entityType, entityId, actorName, processing, onConfirm,
@@ -222,16 +252,19 @@ export function WorkflowActionPreviewDialog({
     templateExistsAndActive: false,
   };
   const { data: entityVars = {} } = useEntityPreviewData(entityType, entityId);
+  const { data: stepVars = {} } = useStepPreviewData(stepId);
 
   const vars = useMemo(() => ({
     ...entityVars,
+    ...stepVars,
     action_type: actionType,
     action_label: actionLabel,
     comments: comments || '',
     remarks: comments || '',
     actor_name: actorName || 'Reviewer',
+    reviewer_name: actorName || 'Reviewer',
     app_name: 'Unified License Hub',
-  }), [entityVars, actionType, actionLabel, comments, actorName]);
+  }), [entityVars, stepVars, actionType, actionLabel, comments, actorName]);
 
   // Per-binding editable subject/body. Reset whenever the dialog opens or
   // bindings change so reviewers always see the freshly rendered template.
