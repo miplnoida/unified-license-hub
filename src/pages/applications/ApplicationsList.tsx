@@ -1079,6 +1079,7 @@ export default function ApplicationsList() {
                           <TableHead>Payment</TableHead>
                           <TableHead>Application Status</TableHead>
                           <TableHead>Licensee Status</TableHead>
+                          <TableHead>SLA</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>History</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
@@ -1133,6 +1134,13 @@ export default function ApplicationsList() {
                   <TableHead>Payment</TableHead>
                   <TableHead>Application Status</TableHead>
                   <TableHead>Licensee Status</TableHead>
+                  <TableHead
+                    className="cursor-pointer select-none"
+                    onClick={() => setSlaSort(s => s === 'none' ? 'asc' : s === 'asc' ? 'desc' : 'none')}
+                    title="Sort by SLA consumption"
+                  >
+                    SLA {slaSort === 'asc' ? '▲' : slaSort === 'desc' ? '▼' : ''}
+                  </TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>History</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
