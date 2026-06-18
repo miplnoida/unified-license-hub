@@ -869,7 +869,7 @@ export default function RoleManagement() {
         </Dialog>
 
         {/* Delete Confirmation */}
-        <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
