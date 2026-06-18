@@ -594,16 +594,32 @@ export default function RoleManagement() {
         </div>
 
         {/* Create / Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
-            <DialogHeader>
+        <Dialog
+          open={dialogOpen}
+          onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) {
+              setEditingRole(null);
+              setPermSearch('');
+              // Defensive cleanup for any lingering Radix pointer-events lock.
+              setTimeout(() => {
+                if (document.body.style.pointerEvents === 'none') {
+                  document.body.style.pointerEvents = '';
+                }
+              }, 0);
+            }
+          }}
+        >
+          <DialogContent className="max-w-5xl w-[calc(100%-1rem)] max-h-[90vh] p-0 flex flex-col gap-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
               <DialogTitle>{editingRole ? 'Edit Role' : 'Create New Role'}</DialogTitle>
               <DialogDescription>
                 Describe the role, then tick the things people with this role should be able to do.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-2">
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-6">
+
               {/* Top section: name / description / role type */}
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
