@@ -659,7 +659,9 @@ export default function FeeManagement() {
                             <TableCell className="text-sm text-muted-foreground">{getSubSectorName(fee.sub_sector_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getCategoryName(fee.category_id)}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{getServiceName(fee.service_id)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{getFormName(fee.form_id)}</TableCell>
                             <TableCell><Badge variant={fee.is_active ? 'default' : 'secondary'}>{fee.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+
                             <TableCell className="text-right">
                               <RowActionsMenu dropdownModal={false} actions={[
                                 { label: 'Edit', icon: Pencil, onClick: () => openEdit(fee) },
