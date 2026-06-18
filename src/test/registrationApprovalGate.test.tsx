@@ -57,6 +57,18 @@ vi.mock('@/hooks/useEffectivePortalContext', () => ({
 vi.mock('@/hooks/useRegistrationApprovalStatus', () => ({
   useRegistrationApprovalStatus: () => mockGate,
 }));
+vi.mock('@/hooks/usePermissions', () => ({
+  useUserDynamicPermissions: () => ({
+    roleIds: [],
+    permissions: [],
+    hasPermission: () => false,
+    hasModuleAccess: () => false,
+    hasAnyModuleAccess: () => false,
+    canAccessPath: () => true,
+    enforceDynamic: false,
+    isLoading: false,
+  }),
+}));
 
 import { P } from '@/routes/routeHelpers';
 

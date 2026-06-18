@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 import { getModuleForPath } from '@/lib/permissionModules';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
-import { LICENSEE_ROLES, PRE_LICENSEE_ROLES } from '@/types/platform';
+import { LICENSEE_ROLES, PRE_LICENSEE_ROLES, INTERNAL_ROLES } from '@/types/platform';
 
 const COLLAPSED_KEY = 'sidebar-collapsed';
 const EXPANDED_KEY = 'sidebar-expanded-groups';
@@ -130,11 +130,29 @@ export function Sidebar() {
       || (portalContext.isLicensee && hasLicenseeAudience)
       || (portalContext.isPreLicensee && hasPreLicenseeAudience);
 
+    // An item is treated as internal-only when its declared audience is
+    // exclusively internal staff roles (or it is explicitly flagged adminOnly,
+    // or it lives under an admin-panel path). Such items must always respect
+    // the static role check, even when the user has been granted the same
+    // permission module via a dynamic role — otherwise external users would
+    // see admin screens just because they share a module key (e.g. an
+    // applicant with complaint_management:submit seeing "Complaint Types").
+    const audienceIsInternalOnly = item.roles.length > 0
+      && item.roles.every((r) => INTERNAL_ROLES.includes(r));
+    const pathIsAdminPanel = !!item.href && (item.href.startsWith('/admin/') || item.href === '/admin' || item.href.startsWith('/settings'));
+    const isInternalOnlyItem = !!item.adminOnly || audienceIsInternalOnly || pathIsAdminPanel;
+
     if (enforceDynamic) {
-      if (item.module) return hasModuleAccess(item.module);
+      if (item.module) {
+        if (isInternalOnlyItem && !roleVisible) return false;
+        return hasModuleAccess(item.module);
+      }
       if (item.href) {
         const mappedModule = getModuleForPath(item.href);
-        if (mappedModule) return hasModuleAccess(mappedModule);
+        if (mappedModule) {
+          if (isInternalOnlyItem && !roleVisible) return false;
+          return hasModuleAccess(mappedModule);
+        }
       }
       if (item.children?.length) return item.children.some(isItemVisible);
       return effectiveVisible;

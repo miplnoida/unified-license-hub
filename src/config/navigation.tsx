@@ -17,6 +17,12 @@ export interface NavItem {
   roles: AppRole[];
   /** If set, item is also gated by the dynamic role having access to this module */
   module?: PermissionModule;
+  /**
+   * Admin-panel items (e.g. /admin/*). When true, the sidebar keeps enforcing
+   * the static `roles` audience even in dynamic-permission mode so an external
+   * user who is granted the same module does not see internal admin screens.
+   */
+  adminOnly?: boolean;
   children?: NavItem[];
 }
 
@@ -108,8 +114,8 @@ export const mainNavSections: NavSection[] = [
   {
     label: 'Complaints',
     items: [
-      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensee_primary'], module: 'complaint_management' },
-      { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management' },
+      { label: 'Complaints', href: '/complaints', icon: <AlertTriangle className="h-5 w-5" />, roles: ['super_admin', 'admin', 'supervisor', 'licensee_primary', 'licensee_secondary', 'pre_licensee', 'applicant'], module: 'complaint_management' },
+      { label: 'Complaint Types', href: '/admin/complaint-types', icon: <Layers className="h-5 w-5" />, roles: ADMIN_ROLES, module: 'complaint_management', adminOnly: true },
     ],
   },
   {
