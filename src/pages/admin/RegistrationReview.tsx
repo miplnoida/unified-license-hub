@@ -155,12 +155,18 @@ export default function RegistrationReview() {
                       <TableHead>Status</TableHead>
                       <TableHead>Workflow</TableHead>
                       <TableHead>Current Step</TableHead>
+                      <TableHead>SLA</TableHead>
+                      <TableHead>Deadline</TableHead>
                       <TableHead>Submitted</TableHead>
                       <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map(r => (
+                    {rows.map(r => {
+                      const deadline = r.sla_hours && r.step_started_at
+                        ? new Date(new Date(r.step_started_at).getTime() + r.sla_hours * 3600_000)
+                        : null;
+                      return (
                       <TableRow key={r.id}>
                         <TableCell className="font-mono text-sm">{r.registration_reference}</TableCell>
                         <TableCell className="font-medium">{r.applicant_name}</TableCell>
@@ -172,7 +178,20 @@ export default function RegistrationReview() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {r.current_step_name ?? '—'}
-                          {r.sla_hours ? <span className="text-muted-foreground"> · SLA {r.sla_hours}h</span> : null}
+                          {r.sla_hours ? <span className="text-muted-foreground"> · {r.sla_hours}h</span> : null}
+                        </TableCell>
+                        <TableCell>
+                          <SlaInlineIndicator
+                            input={{
+                              startedAt: r.step_started_at,
+                              slaHours: r.sla_hours,
+                              warningThresholdPercent: r.sla_warning_threshold_percent,
+                              escalationAfterHours: r.escalation_after_hours,
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {deadline ? deadline.toLocaleString() : '—'}
                         </TableCell>
                         <TableCell className="text-sm">{new Date(r.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
@@ -181,7 +200,8 @@ export default function RegistrationReview() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
