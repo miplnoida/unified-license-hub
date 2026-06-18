@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -517,15 +516,14 @@ export default function RoleManagement() {
 
                 {/* Role summary panel */}
                 <div>
-                  <Card className="sticky top-6 flex flex-col max-h-[calc(100vh-8rem)]">
+                  <Card className="sticky top-6 flex h-[calc(100vh-8rem)] flex-col overflow-hidden">
                     <CardHeader className="shrink-0">
                       <CardTitle className="text-lg">{selectedRole ? selectedRole.name : 'Role Summary'}</CardTitle>
                       <CardDescription>
                         {selectedRole ? (selectedRole.description || 'What users with this role can and cannot do') : 'Select a role to see what it can do'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 min-h-0 overflow-hidden p-6 pt-0">
-                      <ScrollArea className="h-full pr-3">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-6 pt-0 pr-3">
                         {selectedRole ? (
                           <div className="space-y-4">
                             <div className="flex flex-wrap items-center gap-2">
@@ -583,7 +581,6 @@ export default function RoleManagement() {
                             <p className="text-sm text-muted-foreground">Click on a role to view its capabilities</p>
                           </div>
                         )}
-                      </ScrollArea>
                     </CardContent>
                   </Card>
 
@@ -804,7 +801,7 @@ export default function RoleManagement() {
 
                 {/* Live role summary */}
                 <div>
-                  <Card className="lg:sticky lg:top-2 flex flex-col h-auto lg:h-[70vh] max-h-[70vh]">
+                  <Card className="flex max-h-[70vh] flex-col overflow-hidden lg:sticky lg:top-2 lg:h-[70vh]">
                     <CardHeader className="shrink-0">
                       <CardTitle className="text-base">This role will be able to</CardTitle>
                       <CardDescription>
@@ -813,8 +810,7 @@ export default function RoleManagement() {
                           : `${formPerms.length} permission${formPerms.length === 1 ? '' : 's'} selected`}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 min-h-0 overflow-hidden p-4 pt-0">
-                      <ScrollArea className="h-full pr-3">
+                    <CardContent className="flex-1 min-h-0 overflow-y-auto p-4 pt-0 pr-3">
 
                         <div className="space-y-4">
                           <div>
@@ -852,7 +848,6 @@ export default function RoleManagement() {
                             )}
                           </div>
                         </div>
-                      </ScrollArea>
                     </CardContent>
                   </Card>
                 </div>
