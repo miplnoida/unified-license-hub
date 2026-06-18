@@ -565,19 +565,16 @@ export default function RoleManagement() {
                             {detailSummary.cannot.length === 0 ? (
                               <p className="text-xs text-muted-foreground italic">Full access</p>
                             ) : (
-                              <ul className="space-y-1">
-                                {detailSummary.cannot.slice(0, 8).map(line => (
-                                  <li key={line} className="text-sm flex gap-2 text-muted-foreground">
-                                    <span>✗</span>
-                                    <span>{line}</span>
-                                  </li>
-                                ))}
-                                {detailSummary.cannot.length > 8 && (
-                                  <li className="text-xs text-muted-foreground italic">
-                                    +{detailSummary.cannot.length - 8} more
-                                  </li>
-                                )}
-                              </ul>
+                              <ScrollArea className="max-h-[260px] pr-2">
+                                <ul className="space-y-1">
+                                  {detailSummary.cannot.map(line => (
+                                    <li key={line} className="text-sm flex gap-2 text-muted-foreground">
+                                      <span>✗</span>
+                                      <span>{line}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </ScrollArea>
                             )}
                           </div>
                         </div>
@@ -587,6 +584,7 @@ export default function RoleManagement() {
                           <p className="text-sm text-muted-foreground">Click on a role to view its capabilities</p>
                         </div>
                       )}
+
                     </CardContent>
                   </Card>
                 </div>
