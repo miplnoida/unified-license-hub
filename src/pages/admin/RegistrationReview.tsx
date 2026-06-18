@@ -25,6 +25,9 @@ interface PendingRegistration {
   workflow_name?: string | null;
   current_step_name?: string | null;
   sla_hours?: number | null;
+  sla_warning_threshold_percent?: number | null;
+  escalation_after_hours?: number | null;
+  step_started_at?: string | null;
 }
 
 export default function RegistrationReview() {
