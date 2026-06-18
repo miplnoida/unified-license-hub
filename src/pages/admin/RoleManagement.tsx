@@ -25,8 +25,23 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle, Info,
+  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, AlertTriangle,
 } from 'lucide-react';
+
+/** Strip developer-style "Module N - " prefixes from catalog labels. */
+const cleanModuleLabel = (label?: string | null, fallbackKey?: string) => {
+  const cleaned = String(label || '').replace(/^\s*Module\s*\d+\s*[-–:]\s*/i, '').trim();
+  if (cleaned) return cleaned;
+  const k = String(fallbackKey || '');
+  return k ? k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ') : '';
+};
+/** Humanize an action key like "issue_digital_license" -> "Issue Digital License". */
+const humanizeActionLabel = (label?: string | null, key?: string) => {
+  const cleaned = String(label || '').trim();
+  if (cleaned && cleaned.toLowerCase() !== String(key || '').toLowerCase()) return cleaned;
+  const k = String(key || cleaned);
+  return k.split('_').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ');
+};
 
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
