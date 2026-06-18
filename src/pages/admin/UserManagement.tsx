@@ -229,7 +229,10 @@ export default function UserManagement() {
     // 2) Keep user_roles in sync with system_roles (for legacy has_role checks),
     //    de-duplicating since multiple dynamic roles may share the same system_role.
     await supabase.from('user_roles').delete().eq('user_id', editingUser.id);
-    const uniqueSystemRoles = Array.from(new Set(selectedDynamicRoles.map(r => r.system_role)));
+    const uniqueSystemRoles = Array.from(new Set(
+      selectedDynamicRoles
+        .map(r => (r.system_role && String(r.system_role).trim()) || 'analyst')
+    ));
     for (const sysRole of uniqueSystemRoles) {
       await supabase.from('user_roles').insert({
         user_id: editingUser.id, role: sysRole as any,
