@@ -46,6 +46,7 @@ import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEdito
 import { StepActionsEditor } from '@/components/workflows/StepActionsEditor';
 import { StepEntryNotificationsEditor } from '@/components/workflows/StepEntryNotificationsEditor';
 import { Switch } from '@/components/ui/switch';
+import { useNotificationTemplates } from '@/hooks/useActionNotifications';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import { findDuplicateWorkflow, DUPLICATE_WORKFLOW_MESSAGE } from '@/lib/workflowDuplicateCheck';
