@@ -23,7 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, XCircle, AlertTriangle, Info, Sparkles,
+  Shield, Plus, Edit, Trash2, Users, Search, CheckCircle, XCircle, AlertTriangle, Sparkles,
 } from 'lucide-react';
 import { RowActionsMenu } from '@/components/common/RowActionsMenu';
 import { toast } from 'sonner';
