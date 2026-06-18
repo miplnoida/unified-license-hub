@@ -28,6 +28,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
 import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
+import { useWorkflowSlaInstances } from '@/hooks/useWorkflowSlaInstances';
+import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
+import { computeWorkflowSLA, type SlaStatus } from '@/hooks/useWorkflowSLA';
 
 const statusBadgeVariant = (s: string) => {
   switch (s) {
