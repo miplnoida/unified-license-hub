@@ -366,14 +366,19 @@ export default function FeeManagement() {
   const getFormName = (id: string | null) => (formTemplates as any[]).find((f: any) => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
-  const filteredServices = services.filter(s => s.sub_sector_id === subSectorId);
+  const filteredServices = services.filter(s => !subSectorId || s.sub_sector_id === subSectorId);
   const filteredForms = (formTemplates as any[]).filter((f: any) => {
-    if (sectorId && f.sector_id && f.sector_id !== sectorId) return false;
-    if (subSectorId && f.sub_sector_id && f.sub_sector_id !== subSectorId) return false;
-    if (categoryId && f.category_id && f.category_id !== categoryId) return false;
-    if (serviceIds.length > 0 && f.service_id && !serviceIds.includes(f.service_id)) return false;
+    if (sectorId ? f.sector_id !== sectorId : f.sector_id) return false;
+    if (subSectorId ? f.sub_sector_id !== subSectorId : f.sub_sector_id) return false;
+    if (categoryId ? f.category_id !== categoryId : f.category_id) return false;
+    if (serviceIds.length > 0 ? !serviceIds.includes(f.service_id) : f.service_id) return false;
     return true;
   });
+
+  useEffect(() => {
+    const availableFormIds = new Set(filteredForms.map((f: any) => f.id));
+    setFormIds(prev => prev.filter(id => availableFormIds.has(id)));
+  }, [sectorId, subSectorId, categoryId, serviceIds, formTemplates]);
 
 
   const ruleTypeIcon = (type: string) => {
