@@ -951,11 +951,11 @@ export default function WorkflowList() {
               <Select
                 value={newEntityType || undefined}
                 onValueChange={v => setNewEntityType(v as WorkflowEntityType)}
-                disabled={activeWorkflowTypes.length === 0}
+                disabled={visibleWorkflowTypes.length === 0}
               >
                 <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
                 <SelectContent>
-                  {activeWorkflowTypes.map((workflowType) => (
+                  {visibleWorkflowTypes.map((workflowType) => (
                     <SelectItem key={workflowType.key} value={workflowType.key}>{workflowType.display_label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1037,14 +1037,14 @@ export default function WorkflowList() {
               <Select
                 value={editEntityType || undefined}
                 onValueChange={v => setEditEntityType(v as WorkflowEntityType)}
-                disabled={activeWorkflowTypes.length === 0}
+                disabled={visibleWorkflowTypes.length === 0}
               >
                 <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
                 <SelectContent>
-                  {activeWorkflowTypes.map((t) => (
+                  {visibleWorkflowTypes.map((t) => (
                     <SelectItem key={t.key} value={t.key}>{t.display_label}</SelectItem>
                   ))}
-                  {editTarget && !activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) && (
+                  {editTarget && (!activeTypeKeys.has(editTarget.entity_type as WorkflowEntityType) || editTarget.entity_type === 'inspection') && (
                     <SelectItem value={editTarget.entity_type} disabled>
                       {getWorkflowTypeLabel(editTarget.entity_type, workflowTypeConfigs)} (legacy)
                     </SelectItem>
