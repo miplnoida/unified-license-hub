@@ -303,8 +303,8 @@ export default function FeeManagement() {
 
     // Expand fee types × services × forms. When none selected, write a single
     // row with the corresponding id=null (applies to all in that dimension).
-    const serviceTargets: (string | null)[] = serviceIds.length > 0 ? serviceIds : [null];
-    const formTargets: (string | null)[] = formIds.length > 0 ? formIds : [null];
+    const serviceTargets: (string | null)[] = effectiveServiceIds.length > 0 ? effectiveServiceIds : [null];
+    const formTargets: (string | null)[] = effectiveFormIds.length > 0 ? effectiveFormIds : [null];
     const allRows: any[] = [];
     feeTypes.forEach(ft => {
       serviceTargets.forEach(svc => {
