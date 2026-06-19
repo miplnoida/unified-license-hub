@@ -98,6 +98,7 @@ export default function FeeManagement() {
   const [categoryId, setCategoryId] = useState('');
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [formIds, setFormIds] = useState<string[]>([]);
+  const [feeScope, setFeeScope] = useState<'category' | 'services' | 'form'>('category');
   const [isActive, setIsActive] = useState(true);
 
 
