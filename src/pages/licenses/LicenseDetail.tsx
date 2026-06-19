@@ -115,13 +115,18 @@ export default function LicenseDetail() {
   const submitRenewal = async () => {
     if (!license || !user || !renewDate) return;
     setRenewSubmitting(true);
+    const isPaid = expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0;
+    const renewalStatus = isPaid ? 'pending_payment' : 'submitted';
+    const feeNote = isPaid
+      ? `[Renewal fee: ${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} — awaiting payment] `
+      : '';
     const { error } = await supabase.from('license_renewals' as any).insert({
       license_id: license.id,
       initiated_by: user.id,
       previous_valid_until: license.valid_until,
       new_valid_until: new Date(renewDate).toISOString(),
-      notes: renewNotes || null,
-      status: 'submitted',
+      notes: (feeNote + (renewNotes || '')).trim() || null,
+      status: renewalStatus,
     } as any);
     if (error) {
       toast.error(error.message);
@@ -151,7 +156,7 @@ export default function LicenseDetail() {
         holder_user_id: license.holder_id,
       },
     });
-    toast.success('Renewal request submitted');
+    toast.success(isPaid ? 'Renewal submitted — pending payment confirmation' : 'Renewal request submitted');
     setRenewOpen(false);
     setRenewSubmitting(false);
     const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
