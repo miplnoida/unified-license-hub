@@ -93,6 +93,10 @@ function loadFromStorage(): RegistrationFormData {
 export function useRegistrationForm(options?: { updateMode?: boolean }) {
   const [form, setForm] = useState<RegistrationFormData>(() => options?.updateMode ? { ...initialState } : loadFromStorage());
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Mirrors the latest validator output synchronously so callers can build a
+  // summary toast immediately after validateStep/validateDeclarations runs
+  // (the `errors` state update is async and stale on the same tick).
+  const lastErrorsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (options?.updateMode) return;
