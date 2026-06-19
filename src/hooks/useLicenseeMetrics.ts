@@ -10,7 +10,21 @@ const daysFromNow = (n: number) => {
 };
 
 export interface LicenseeMetrics {
-  licenses: { total: number; active: number; expiring_30d: number; expired: number };
+  licenses: {
+    total: number;
+    active: number;
+    expiring_30d: number;
+    expired: number;
+    suspended: number;
+    revoked: number;
+    list: Array<{
+      id: string;
+      license_number: string | null;
+      status: string;
+      valid_until: string | null;
+      days_until_expiry: number | null;
+    }>;
+  };
   applications: { draft: number; submitted: number; approved: number; rejected: number };
   returns: { due_soon: number; overdue: number; submitted: number; pending_review: number };
   payments: { pending: number; paid: number; outstanding_amount: number };
@@ -28,7 +42,7 @@ interface ResolvedLicenseeScope {
 }
 
 const EMPTY_METRICS: LicenseeMetrics = {
-  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0 },
+  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0, suspended: 0, revoked: 0, list: [] },
   applications: { draft: 0, submitted: 0, approved: 0, rejected: 0 },
   returns: { due_soon: 0, overdue: 0, submitted: 0, pending_review: 0 },
   payments: { pending: 0, paid: 0, outstanding_amount: 0 },
@@ -39,6 +53,7 @@ const EMPTY_METRICS: LicenseeMetrics = {
     pending_payments: [],
   },
 };
+
 
 async function resolveLicenseeScope(
   activeLicenseeId: string | null | undefined,
