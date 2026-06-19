@@ -296,7 +296,7 @@ export default function FeeManagement() {
       if (editing?.id) dupQuery = dupQuery.neq('id', editing.id);
       const { data: existing, error: dupErr } = await dupQuery;
       if (dupErr) { toast.error(dupErr.message); setSaving(false); return; }
-      const rows = (existing || []) as Array<{ fee_type: string; category_id: string | null; service_id: string | null; form_id: string | null }>;
+      const rows = ((existing || []) as unknown) as Array<{ fee_type: string; category_id: string | null; service_id: string | null; form_id: string | null }>;
       for (const ft of feeTypes) {
         if (feeScope === 'category') {
           const hit = rows.find(r => r.fee_type === ft && r.category_id === effectiveCategoryId && !r.service_id && !r.form_id);
