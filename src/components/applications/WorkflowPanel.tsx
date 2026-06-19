@@ -263,6 +263,12 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
 
   const activeInstance = instances.find(i => i.status === 'active');
   const pausedInstance = instances.find(i => i.status === 'paused');
+  // Terminal instance = workflow already finished (approved/rejected/cancelled).
+  // We still render a read-only timeline for these instead of the misleading
+  // "No active workflow instance found" empty state.
+  const terminalInstance = instances.find(
+    i => i.status === 'completed' || i.status === 'cancelled',
+  );
   // If the applicant has already resubmitted, the entity status flips back to a
   // forward-moving state (e.g. pending_review/in_progress/submitted). In that
   // case the workflow must NOT render the "paused — awaiting applicant" UI,
@@ -273,7 +279,9 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   ]);
   const applicantHasResubmitted = !!applicationStatus && RESUMED_STATUSES.has(applicationStatus);
   const treatPausedAsActive = !activeInstance && !!pausedInstance && applicantHasResubmitted;
-  const liveInstance = activeInstance || pausedInstance;
+  const liveInstance = activeInstance || pausedInstance || terminalInstance;
+  const isTerminal = !activeInstance && !pausedInstance && !!terminalInstance;
+  const terminalKind = isTerminal ? (terminalInstance as any).status as 'completed' | 'cancelled' : null;
 
   // Resolve current step: prefer approval_steps.id match, then snapshot key (registrations).
   const currentStep = useMemo(() => {
@@ -289,9 +297,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   }, [liveInstance, steps]);
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
   const isLastLevel = currentStepIdx >= 0 && currentStepIdx === steps.length - 1;
-  const isPaused = !activeInstance && !!pausedInstance && !treatPausedAsActive;
+  const isPaused = !activeInstance && !!pausedInstance && !treatPausedAsActive && !isTerminal;
 
-  const { data: canActResult } = useCanActOnStep(user?.id, (activeInstance || treatPausedAsActive) ? currentStep?.id : undefined);
+  // Skip per-step authorization checks for terminal instances — no actions are
+  // possible on a completed/cancelled workflow.
+  const { data: canActResult } = useCanActOnStep(
+    user?.id,
+    !isTerminal && (activeInstance || treatPausedAsActive) ? currentStep?.id : undefined,
+  );
   const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 
@@ -316,6 +329,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       const decisive = [...history].reverse().find(a =>
         ['approve', 'reject', 'send_back', 'escalate', 'request_resubmission', 'return_for_correction', 'request_more_info'].includes(a.action_type),
       );
+      // Terminal instance: every step that has a decisive action is completed
+      // (or 'returned' if it was sent back). Steps without an action stay
+      // upcoming. The instance's resolved current step is treated as the
+      // outcome step and marked completed/returned based on its last action.
+      if (isTerminal) {
+        if (decisive) {
+          return decisive.action_type === 'send_back' ? 'returned' : 'completed';
+        }
+        if (currentStep && s.id === currentStep.id) {
+          return terminalKind === 'cancelled' ? 'returned' : 'completed';
+        }
+        return 'upcoming';
+      }
       if (currentStep && s.id === currentStep.id) {
         if (isPaused) return 'paused';
         return 'current';
@@ -327,7 +353,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       if (currentStepIdx >= 0 && idx < currentStepIdx) return 'completed';
       return 'upcoming';
     });
-  }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused]);
+  }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused, isTerminal, terminalKind]);
 
   // Per-step SLA start time: step N starts at the prior step's decisive action,
   // step 0 starts at the workflow instance start. Returns null for upcoming steps
@@ -473,6 +499,145 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       <Card><CardContent className="py-6 text-sm text-muted-foreground">
         No active workflow instance found for this {entityNoun}.
       </CardContent></Card>
+    );
+  }
+  // Terminal (completed/cancelled) instance → render a read-only timeline.
+  // No action UI, no live SLA timers. Bypasses the currentStep guard below
+  // because terminal workflows must still display their history even when the
+  // recorded current_step_id is no longer in the current workflow version.
+  if (isTerminal) {
+    const terminalAt = (liveInstance as any).completed_at
+      ?? (liveInstance as any).updated_at
+      ?? (liveInstance as any).ended_at
+      ?? null;
+    const terminalAtLabel = terminalAt ? new Date(terminalAt).toLocaleString() : null;
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {steps.length} of {steps.length}
+            <Badge
+              variant="outline"
+              className={cn(
+                'ml-2 text-[10px]',
+                terminalKind === 'cancelled' ? 'border-muted-foreground text-muted-foreground' : 'border-success text-success',
+              )}
+            >
+              {terminalKind === 'cancelled' ? 'Cancelled' : 'Completed'}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div
+            className={cn(
+              'rounded-md border p-3 text-sm space-y-1',
+              terminalKind === 'cancelled'
+                ? 'border-muted bg-muted/40'
+                : 'border-success/40 bg-success/5',
+            )}
+          >
+            <div
+              className={cn(
+                'flex items-center gap-2 font-medium',
+                terminalKind === 'cancelled' ? 'text-muted-foreground' : 'text-success',
+              )}
+            >
+              <CheckCircle className="h-4 w-4" />
+              {terminalKind === 'cancelled'
+                ? 'Workflow cancelled'
+                : `Workflow completed${terminalAtLabel ? ` on ${terminalAtLabel}` : ''}`}
+            </div>
+            {terminalKind !== 'cancelled' && (
+              <p className="text-xs text-muted-foreground">
+                Final outcome: <strong className="capitalize">{applicationStatus.replace(/_/g, ' ')}</strong>
+                {terminalAtLabel && terminalKind !== 'completed' ? null : null}
+              </p>
+            )}
+          </div>
+
+          <Accordion
+            type="single"
+            collapsible
+            value={openStepId}
+            onValueChange={(v) => setOpenStepId(v || undefined)}
+            className="w-full divide-y rounded-md border border-border/60"
+          >
+            {steps.map((s, idx) => {
+              const status = stepStatuses[idx];
+              const isDone = status === 'completed' || status === 'returned';
+              const StatusIcon = isDone ? CheckCircle : Circle;
+              return (
+                <AccordionItem key={s.id} value={s.id} className="border-0 px-3">
+                  <AccordionTrigger className="hover:no-underline py-3">
+                    <div className="flex flex-1 items-center gap-3 pr-3 text-left">
+                      <StatusIcon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isDone ? 'text-success' : 'text-muted-foreground/50',
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate font-medium">Step {idx + 1}: {s.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {s.sla_hours ? (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {s.sla_hours}h
+                          </span>
+                        ) : null}
+                        {status === 'completed' && <Badge variant="approved" className="text-[10px]">Completed</Badge>}
+                        {status === 'returned' && <Badge variant="outline" className="text-[10px] border-warning text-warning">Sent Back</Badge>}
+                        {status === 'upcoming' && <Badge variant="outline" className="text-[10px]">Not reached</Badge>}
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    {isDone ? (
+                      (() => {
+                        const list = actionsByStep.get(s.id) || [];
+                        if (list.length === 0) {
+                          return <p className="text-xs text-muted-foreground">No recorded actions for this step.</p>;
+                        }
+                        return (
+                          <div className="space-y-2">
+                            {list.map(a => {
+                              const actor = a.actor_id ? actorsMap[a.actor_id] : null;
+                              return (
+                                <div key={a.id} className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs space-y-1">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <span className="font-medium">{actionLabel(a.action_type)}</span>
+                                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <UserIcon className="h-3 w-3" />
+                                    <span>{actor?.name || (a.actor_id ? 'Unknown user' : 'System')}</span>
+                                    {actor?.email && <span className="text-muted-foreground/70">· {actor.email}</span>}
+                                  </div>
+                                  {a.comments && (
+                                    <p className="whitespace-pre-wrap text-foreground/80 border-l-2 border-border pl-2">{a.comments}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This step was never reached because the workflow ended earlier.
+                      </p>
+                    )}
+                  </AccordionContent>
+
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </CardContent>
+      </Card>
     );
   }
   if (!currentStep) {
