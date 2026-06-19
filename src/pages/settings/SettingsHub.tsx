@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigate } from 'react-router-dom';
 import {
   Settings, CreditCard, CalendarClock, Bell, Shield, Globe,
-  Database, Mail, Palette, FileText,
+  Database, Mail, Palette, FileText, RefreshCw,
 } from 'lucide-react';
 
 interface SettingsCard {
@@ -74,6 +74,12 @@ const settingsCards: SettingsCard[] = [
     description: 'Re-application policies, form versioning, and version notifications.',
     icon: <FileText className="h-6 w-6" />,
     href: '/settings/applications',
+  },
+  {
+    title: 'License Expiry & Renewal',
+    description: 'Validity cycle, expiry reminders, and renewal fee policy.',
+    icon: <RefreshCw className="h-6 w-6" />,
+    href: '/settings/license-expiry',
   },
 ];
 
