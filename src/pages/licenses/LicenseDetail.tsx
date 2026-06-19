@@ -20,6 +20,7 @@ import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/pl
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 interface License {
   id: string;
