@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AddressData } from '@/components/registration/AddressSection';
 
 const STORAGE_KEY = 'pre-licensee-registration-form';
@@ -93,6 +93,10 @@ function loadFromStorage(): RegistrationFormData {
 export function useRegistrationForm(options?: { updateMode?: boolean }) {
   const [form, setForm] = useState<RegistrationFormData>(() => options?.updateMode ? { ...initialState } : loadFromStorage());
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Mirrors the latest validator output synchronously so callers can build a
+  // summary toast immediately after validateStep/validateDeclarations runs
+  // (the `errors` state update is async and stale on the same tick).
+  const lastErrorsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (options?.updateMode) return;
@@ -240,6 +244,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
     }
 
     setErrors(errs);
+    lastErrorsRef.current = errs;
     return Object.keys(errs).length === 0;
   }, [form, options?.updateMode]);
 
@@ -268,6 +273,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
     }
 
     setErrors(errs);
+    lastErrorsRef.current = errs;
     return Object.keys(errs).length === 0;
   }, [form, options?.updateMode]);
 
@@ -292,6 +298,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
   return {
     form,
     errors,
+    lastErrorsRef,
     setField,
     setEntityField,
     setMailingField,

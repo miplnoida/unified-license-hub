@@ -74,7 +74,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const updateRegistrationParam = routeRegistrationId || searchParams.get('registration');
   const updateSubmissionParam = searchParams.get('submission');
   const {
-    form, errors, setField, setEntityField, setMailingField, setPhysicalField,
+    form, errors, lastErrorsRef, setField, setEntityField, setMailingField, setPhysicalField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
     validateDeclarations, hydrate, reset,
   } = useRegistrationForm({ updateMode: isUpdateMode });
@@ -105,6 +105,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const [documentsTouched, setDocumentsTouched] = useState(false);
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
+  // Captures the last dynamic-step validation result so handleNext/handleSubmit
+  // can show a summary toast naming the offending fields with their labels.
+  const lastDynamicErrorsRef = useRef<{ errs: Record<string, string>; step: RegStep | null }>({ errs: {}, step: null });
 
   useEffect(() => {
     if (!isUpdateMode) return;
@@ -393,6 +396,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       }
     }
     setDynamicErrors(errs);
+    lastDynamicErrorsRef.current = { errs, step: stepData };
     return Object.keys(errs).length === 0;
   }, [dynamicFormData, applicantNameCheck.status, applicantNameCheck.fieldName, emailUniquenessPreview.status, emailUniquenessPreview.fieldName, getPrimaryEmailBlockers, getPrimaryEmailFieldsForStep, pendingPrimaryEmailChecks, dynamicErrors, isUpdateMode]);
 
@@ -466,6 +470,65 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   const emailUniqueness = emailUniquenessPreview;
 
+  // Human-readable labels for static (hook-driven) step fields, used by the
+  // summary toast when validateStep/validateDeclarations fails.
+  const STATIC_FIELD_LABELS: Record<string, string> = {
+    sectorId: 'Sector',
+    subSectorId: 'Sub-sector',
+    categoryId: 'Category',
+    applicantName: 'Applicant Name',
+    'mailing.street': 'Mailing Street',
+    'mailing.city': 'Mailing City',
+    'mailing.state': 'Mailing State',
+    'mailing.country': 'Mailing Country',
+    'physical.street': 'Physical Street',
+    'physical.city': 'Physical City',
+    'physical.state': 'Physical State',
+    'physical.country': 'Physical Country',
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    telephone: 'Telephone',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    termsAccepted: 'Terms & Conditions',
+    privacyAccepted: 'Privacy Policy',
+    dataProtectionAccepted: 'Data Protection Notice',
+    captcha: 'Captcha',
+    emailVerified: 'Email Verification',
+  };
+
+  const reportValidationFailure = () => {
+    // Gather entries from whichever validator just ran.
+    const stepType = steps[currentStep]?.type;
+    const entries: Array<{ fieldName: string; label: string; message: string }> = [];
+
+    if (stepType === 'dynamic') {
+      const { errs, step } = lastDynamicErrorsRef.current;
+      const labelByName: Record<string, string> = {};
+      step?.rows.forEach(r => r.columns.forEach(c => {
+        if (c.field?.fieldName) labelByName[c.field.fieldName] = c.field.label || c.field.fieldName;
+      }));
+      Object.entries(errs).forEach(([fn, msg]) => {
+        entries.push({ fieldName: fn, label: labelByName[fn] || fn, message: msg });
+      });
+    } else if (stepType === 'static' || stepType === 'declarations') {
+      const errs = lastErrorsRef.current || {};
+      Object.entries(errs).forEach(([fn, msg]) => {
+        entries.push({ fieldName: fn, label: STATIC_FIELD_LABELS[fn] || fn, message: msg });
+      });
+    }
+
+    if (entries.length === 0) return; // documents path already toasts itself
+    const names = entries.slice(0, 3).map(e => e.label).join(', ');
+    const more = entries.length > 3 ? ` …and ${entries.length - 3} more` : '';
+    toast.error(
+      `Please fix ${entries.length} field${entries.length > 1 ? 's' : ''}: ${names}${more}`,
+      { description: entries[0]?.message }
+    );
+  };
+
+
   const handleNext = () => {
     const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
     const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
@@ -475,6 +538,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
+      reportValidationFailure();
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -649,6 +713,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
+      reportValidationFailure();
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
