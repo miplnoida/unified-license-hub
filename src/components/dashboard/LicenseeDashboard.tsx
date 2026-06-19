@@ -30,7 +30,7 @@ export function LicenseeDashboard() {
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
-  const canViewLicensing = portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
+  const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
   const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
 
   const insights = useMemo(() => {
