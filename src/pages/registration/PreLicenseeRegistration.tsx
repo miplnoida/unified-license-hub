@@ -538,6 +538,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
+      reportValidationFailure();
       const firstError = document.querySelector('.border-destructive, .text-destructive');
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
