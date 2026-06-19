@@ -1,58 +1,43 @@
-# Fix: completed workflow shows "No active workflow instance"
+# Reopen APP-2026-000079 to allow action on Step 2
 
-## Root cause
+The Commercial Bank workflow has 2 steps, but this application was finalized on Step 1 (anomaly previously diagnosed). To let the reviewer act on Step 2, we need a one-off data fix — not a frontend change.
 
-For `APP-2026-000079` (and any approved/rejected/cancelled application), the `workflow_instances` row exists but its `status` is `completed`. In `src/components/applications/WorkflowPanel.tsx`:
+## Current state (verified)
 
-```ts
-const activeInstance = instances.find(i => i.status === 'active');
-const pausedInstance = instances.find(i => i.status === 'paused');
-const liveInstance   = activeInstance || pausedInstance;   // null for completed
-...
-if (!liveInstance) {
-  ...
-  return <Card>… No active workflow instance found for this {entityNoun}. …</Card>;
-}
-```
+- `applications.status = 'approved'`
+- `workflow_instances` `5b75e854…`: status `completed`, `current_step_id = Step 1`, `completed_at = 2026-06-19 09:03`
+- `approval_actions`: one row `action = 'approve_final'` on Step 1 by actor `35da4b65…`
+- `licenses`: `LIC-2026-000013` issued to holder `817c85c1…`
+- Steps: Step 1 (`e1b3eb3a…`), Step 2 (`203778cb…`)
 
-`completed` and `cancelled` instances are never considered, so the panel renders the generic empty state instead of the read-only step timeline. SLA progress, prior approver activity, and the final outcome all disappear from view once the workflow ends. This affects every entity whose workflow has finished, not just Commercial Bank.
+## Plan — targeted data fix (this application only)
 
-The earlier suspicion that the RPC marked Step 1 as final was investigated and is **out of scope** — it's a one-off data anomaly on this specific application (an `approve_final` action got recorded while the step ordering was different from today). Per user direction, we do not touch that data or the server-side workflow engine.
-
-## Fix (frontend only, `src/components/applications/WorkflowPanel.tsx`)
-
-Scope: presentation only. No changes to edge functions, RPCs, other workflow types (registration, returns), or any data.
-
-1. Recognize terminal instances alongside live ones:
-   - `const terminalInstance = instances.find(i => i.status === 'completed' || i.status === 'cancelled');`
-   - `const liveInstance = activeInstance || pausedInstance || terminalInstance;`
-   - Derive `isTerminal = !activeInstance && !pausedInstance && !!terminalInstance` and `terminalKind = terminalInstance?.status` (`'completed' | 'cancelled' | undefined`).
-
-2. Suppress action UI when `isTerminal`:
-   - Skip `useCanActOnStep` (pass `undefined` so no RPC fires) and force `noWorkflowActions = true` so the existing render path produces no remarks textarea / action buttons.
-   - In `stepStatuses`, when `isTerminal` mark the resolved current step as `completed` (or `returned` if the last decisive action on it was `send_back`) instead of `current`, so the accordion shows the correct final state for every step.
-   - In the header, when `isTerminal` show `Level {steps.length} of {steps.length}` and replace the "Paused" badge with `Completed` / `Cancelled`.
-
-3. Replace the misleading early return:
-   - Keep the "Workflow has not started yet" branch only when `instances.length === 0` AND the entity is still in a pre/just-submitted status.
-   - Otherwise (including when only a terminal instance exists) fall through to the existing accordion timeline — `renderStepHistory` already handles `completed` / `returned` rows read-only.
-   - Add a single banner at the top of the card body when `isTerminal`:
-     - `completed` → success tone: "Workflow completed on {ended_at|updated_at}. Final outcome: {applicationStatus}."
-     - `cancelled` → muted tone: "Workflow cancelled on {ended_at|updated_at}."
-
-4. SLA indicators:
-   - Only render the live `StepSlaBadge` / `SlaProgressPanel` for steps whose computed status is still `current` or `paused`. Because step 2 marks the final step as `completed` when terminal, no live SLA timers render once the workflow ends. Per-step history (decisive action timestamps) remains visible via `renderStepHistory`.
+1. Delete the issued license tied to this application
+   - `DELETE FROM licenses WHERE application_id = '018a72cc-…';`
+   - (No `licensees` row created by this flow — holder mapping lives on the license; verify and clean up any downstream artifacts if present: `license_certificates`, `license_actions` for `LIC-2026-000013`.)
+2. Delete the premature final-approval action
+   - `DELETE FROM approval_actions WHERE id = '550284de-…';`
+3. Reopen the workflow instance to Step 2
+   - `UPDATE workflow_instances SET status='active', current_step_id='203778cb-…', current_step_key=<step2 key if used>, completed_at=NULL, updated_at=now() WHERE id='5b75e854-…';`
+4. Revert application status so the WorkflowPanel shows live actions
+   - `UPDATE applications SET status='in_progress', updated_at=now() WHERE id='018a72cc-…';`
+5. (Optional) Log the manual fix in `audit_logs` with a clear remark.
 
 ## Out of scope
 
-- No changes to `useWorkflowEngine`, `useWorkflowInstances`, `perform_workflow_transition`, `perform_final_workflow_approval`, or any edge function.
-- No data fix for `APP-2026-000079` — it stays approved + provisioned as it is today.
-- Registration and return workflow panels are not touched (separate components).
-- No new server-side guard against reordering steps under a running instance.
+- No frontend changes (the read-only "Not reached" timeline added previously stays).
+- No changes to `perform_final_workflow_approval`, workflow templates, or any other application.
+- No edits to the Commercial Bank workflow definition.
 
 ## Verification
 
-- `/applications/018a72cc-d46b-41ea-ba9a-6d0ac262ffa7`: panel renders the full Commercial Bank timeline with steps marked Completed, a green "Workflow completed" banner, no action buttons, and no "No active workflow instance" message.
-- A still-pending application: behavior unchanged — current step actionable, SLA badges live.
-- An application that was never submitted: still shows "Workflow has not started yet".
-- A rejected/cancelled application: shows the timeline plus the appropriate terminal banner.
+- Open `/applications/018a72cc-d46b-41ea-ba9a-6d0ac262ffa7`:
+  - WorkflowPanel renders Step 1 as Completed, Step 2 as Current.
+  - Action buttons appear for the Step 2 approver.
+  - No license listed for the app; licensee portal access for the previously provisioned holder is gone.
+- Other applications unaffected.
+
+## Confirmations needed
+
+- OK to permanently delete `LIC-2026-000013` and the `approve_final` action row?
+- Any licensee/user access already created from this license should be revoked too — confirm.
