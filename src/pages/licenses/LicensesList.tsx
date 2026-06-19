@@ -127,7 +127,40 @@ export default function LicensesList() {
         ((licensees || []) as any[]).forEach((l: any) => {
           if (l?.license_id && l?.name) nameByLicenseId[l.license_id] = l.name;
         });
-        rows.forEach((r: any) => { r.entity_name = nameByLicenseId[r.id] || null; });
+
+        // Safety net: if licensee.name equals the license_type fallback,
+        // resolve a better name from the holder's profile / pre_license_users / registration.
+        const needsHolderLookup = rows.filter((r: any) =>
+          r.holder_id && (!nameByLicenseId[r.id] || nameByLicenseId[r.id] === r.license_type)
+        );
+        const holderIds = Array.from(new Set(needsHolderLookup.map((r: any) => r.holder_id))) as string[];
+        const holderNameById: Record<string, string> = {};
+        if (holderIds.length > 0) {
+          const [profRes, pluRes, regRes] = await Promise.all([
+            supabase.from('profiles').select('id, entity_name, full_name').in('id', holderIds),
+            supabase.from('pre_license_users' as any).select('id, entity_name, full_name').in('id', holderIds),
+            supabase.from('registrations').select('user_id, applicant_name').in('user_id', holderIds),
+          ]);
+          ((profRes.data || []) as any[]).forEach((p: any) => {
+            const n = p.entity_name || p.full_name;
+            if (n && !holderNameById[p.id]) holderNameById[p.id] = n;
+          });
+          ((pluRes.data || []) as any[]).forEach((p: any) => {
+            const n = p.entity_name || p.full_name;
+            if (n && !holderNameById[p.id]) holderNameById[p.id] = n;
+          });
+          ((regRes.data || []) as any[]).forEach((r: any) => {
+            if (r.applicant_name && !holderNameById[r.user_id]) holderNameById[r.user_id] = r.applicant_name;
+          });
+        }
+
+        rows.forEach((r: any) => {
+          const fromLicensee = nameByLicenseId[r.id];
+          const looksLikeFallback = !fromLicensee || fromLicensee === r.license_type;
+          r.entity_name = looksLikeFallback
+            ? (holderNameById[r.holder_id] || fromLicensee || null)
+            : fromLicensee;
+        });
       }
 
       setLicenses(rows);
