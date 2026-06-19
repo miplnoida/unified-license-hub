@@ -179,6 +179,12 @@ export default function WorkflowList() {
     () => new Set(activeWorkflowTypes.map(t => t.key)),
     [activeWorkflowTypes],
   );
+  // Inspection workflows are managed elsewhere; hide the option from the
+  // add/edit workflow dialogs without removing the underlying type.
+  const visibleWorkflowTypes = useMemo(
+    () => activeWorkflowTypes.filter(t => t.key !== 'inspection'),
+    [activeWorkflowTypes],
+  );
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -201,13 +207,13 @@ export default function WorkflowList() {
   // Templates dialog
   const [templatesOpen, setTemplatesOpen] = useState(false);
 
-  // Default the create form's Used For to the first active type as soon as config loads.
+  // Default the create form's Used For to the first visible type as soon as config loads.
   useEffect(() => {
     if (!createOpen) return;
-    if (!newEntityType && activeWorkflowTypes.length > 0) {
-      setNewEntityType(activeWorkflowTypes[0].key);
+    if (!newEntityType && visibleWorkflowTypes.length > 0) {
+      setNewEntityType(visibleWorkflowTypes[0].key);
     }
-  }, [createOpen, activeWorkflowTypes, newEntityType]);
+  }, [createOpen, visibleWorkflowTypes, newEntityType]);
 
   const selectedWorkflow = workflows.find(w => w.id === selectedId) || null;
   const { data: steps = [], isLoading: stepsLoading } = useWorkflowSteps(selectedId);
@@ -235,7 +241,7 @@ export default function WorkflowList() {
   );
 
   // ── Gate flags ──
-  const noActiveTypes = !typesLoading && !typesError && activeWorkflowTypes.length === 0;
+  const noActiveTypes = !typesLoading && !typesError && visibleWorkflowTypes.length === 0;
   const noRoles = !rolesLoading && dynamicRoles.length === 0;
   const createDisabled =
     typesLoading || typesError || noActiveTypes || rolesLoading || noRoles;
@@ -378,7 +384,7 @@ export default function WorkflowList() {
       setSelectedId(workflowId);
       setCreateOpen(false);
       setNewName(''); setNewDesc('');
-      setNewEntityType(activeWorkflowTypes[0]?.key ?? '');
+      setNewEntityType(visibleWorkflowTypes[0]?.key ?? '');
       setNewSectorId('none'); setSeedFromTemplateId('blank');
     } catch (err: any) {
       // No client-side rollback needed — the RPC ran in a single transaction,
