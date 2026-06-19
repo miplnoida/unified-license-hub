@@ -55,6 +55,38 @@ export function LicenseeDashboard() {
         <p className="text-sm text-muted-foreground">Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>.</p>
       )}
 
+      {canViewLicensing && (data?.licenses.list?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">License status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data!.licenses.list.map((lic) => {
+              const days = lic.days_until_expiry;
+              const isExpiringSoon = lic.status === 'active' && days !== null && days >= 0 && days <= 30;
+              const variant = isExpiringSoon ? 'warning' : (LICENSE_BADGE_VARIANT[lic.status] || 'outline');
+              let badgeLabel: string = lic.status.charAt(0).toUpperCase() + lic.status.slice(1);
+              if (isExpiringSoon) badgeLabel = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`;
+              return (
+                <div key={lic.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm font-medium text-foreground truncate">{lic.license_number || lic.id.slice(0, 8)}</p>
+                    {lic.valid_until && (
+                      <p className="text-xs text-muted-foreground">
+                        Valid until {new Date(lic.valid_until).toLocaleDateString()}
+                        {lic.status === 'active' && days !== null && days < 0 ? ` · expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={variant as any}>{badgeLabel}</Badge>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {canViewLicensing && <MetricCard title="Active licences" value={data?.licenses.active ?? 0} icon={Shield} tone="success" loading={isLoading} to={licenseeDrilldownTo('licensesActive')} />}
         {canViewLicensing && <MetricCard title="Expiring ≤30d" value={data?.licenses.expiring_30d ?? 0} icon={AlertTriangle} tone="warning" loading={isLoading} to={licenseeDrilldownTo('licensesExpiring')} />}
