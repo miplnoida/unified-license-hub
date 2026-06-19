@@ -52,7 +52,10 @@ export function LicenseeDashboard() {
         </Card>
       )}
       {activeLicensee && (
-        <p className="text-sm text-muted-foreground">Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>.</p>
+        <p className="text-sm text-muted-foreground">
+          Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>
+          {activeLicensee.license_number ? <span> · Licence no. <span className="font-mono font-medium text-foreground">{activeLicensee.license_number}</span></span> : null}.
+        </p>
       )}
 
       {canViewLicensing && (data?.licenses.list?.length ?? 0) > 0 && (
