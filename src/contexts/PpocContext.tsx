@@ -224,6 +224,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             return {
               licensee_id: row.licensee_id,
               licensee_name: `${baseName}${suffix}`,
+              license_number: row.license_number ?? null,
               sector_id: row.sector_id ?? null,
               resolved_sector_id: row.resolved_sector_id ?? row.sector_id ?? null,
               created_at: row.created_at ?? null,
@@ -346,6 +347,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             return {
               licensee_id: licenseeId,
               licensee_name: `${baseName}${suffix}`,
+              license_number: licenseNumber ?? null,
               sector_id: enriched?.sector_id ?? raw?.sector_id ?? null,
               resolved_sector_id: enriched?.resolved_sector_id ?? raw?.sector_id ?? null,
               created_at: enriched?.created_at ?? raw?.created_at ?? null,
@@ -383,14 +385,15 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         setActiveLicenseeIdState(null);
       }
 
+      const ownResolvedLicenseeId = profileLicenseeId || Array.from(ownCandidateIds)[0] || null;
       setResolvedLicensees(resolvedList);
-      setDirectOwnLicenseeId(profileLicenseeId);
+      setDirectOwnLicenseeId(ownResolvedLicenseeId);
       if (import.meta.env.DEV) {
         console.log('licensee context', {
           userId: user.id,
           role: user.role,
           profileLicenseeId,
-          resolvedLicenseeId: profileLicenseeId || resolvedList[0]?.licensee_id || null,
+          resolvedLicenseeId: ownResolvedLicenseeId || resolvedList[0]?.licensee_id || null,
         });
       }
       setLoadedUserId(user.id);
@@ -421,7 +424,9 @@ export function PpocProvider({ children }: { children: ReactNode }) {
     return 'ppoc';
   })();
 
-  const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;
+  const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId)
+    || resolvedLicensees.find(l => l.licensee_id === (activeLicenseeId || ownLicenseeId))
+    || null;
   const resolvedLicenseeId = useMemo(() => {
     if (activeLicenseeId) return activeLicenseeId;
     return ownLicenseeId;
