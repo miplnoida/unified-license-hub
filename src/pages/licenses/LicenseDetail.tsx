@@ -361,10 +361,46 @@ export default function LicenseDetail() {
                         <Button variant="destructive" onClick={() => handleAction('cancellation', 'cancelled')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
                       </>
                     )}
+                    {license.status === 'expired' && (
+                      <Button variant="outline" onClick={openRenewDialog} disabled={processing}><RefreshCw className="h-4 w-4 mr-1" />Renew</Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             )}
+
+            {/* Renewal panel visible to license holder when expired / within reminder window */}
+            {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
+              const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
+              const maxRem = Math.max(0, ...((expiryConfig?.reminder_days) || [0]));
+              const expired = days < 0 || license.status === 'expired';
+              const inWindow = !expired && days <= maxRem;
+              const inGrace = expired && Math.abs(days) <= (expiryConfig?.grace_period_days || 0);
+              if (!(expired || inWindow)) return null;
+              const canRenew = inWindow || inGrace;
+              const fee = expiryConfig?.renewal_fee_mode === 'paid'
+                ? `${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} (paid renewal)`
+                : 'Free';
+              return (
+                <Card>
+                  <CardHeader><CardTitle>Renewal</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      {expired
+                        ? `This license expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago.`
+                        : `This license expires in ${days} day${days === 1 ? '' : 's'}.`}
+                    </p>
+                    <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
+                    {expired && !inGrace && (
+                      <p className="text-xs text-destructive">Grace period has elapsed. Please contact the regulator.</p>
+                    )}
+                    <Button onClick={openRenewDialog} disabled={!canRenew}>
+                      <RefreshCw className="h-4 w-4 mr-1" />Renew License
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
 
           <div>
@@ -397,6 +433,15 @@ export default function LicenseDetail() {
               <p className="text-sm text-muted-foreground">
                 Existing entity details will be reused. Specify the new validity end-date and any notes.
               </p>
+              {expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0 && (
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+                  <p className="font-medium">Renewal Fee Required</p>
+                  <p className="text-muted-foreground">
+                    A fee of <span className="font-medium text-foreground">{expiryConfig.renewal_fee_amount} {expiryConfig.renewal_fee_currency}</span> applies.
+                    Renewal will be marked <span className="font-medium">pending payment</span> until confirmed.
+                  </p>
+                </div>
+              )}
               <div>
                 <Label>Current Valid Until</Label>
                 <p className="text-sm">{license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}</p>
