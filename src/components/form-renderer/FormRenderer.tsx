@@ -977,7 +977,7 @@ export function FormRenderer({
     }
 
     return (
-      <div key={field.id} className="space-y-1.5">
+      <div key={field.id} className="space-y-1.5" data-field-name={field.fieldName}>
         {fieldLabel}
         {input}
         {field.helpText && <p className="text-[10px] text-muted-foreground">{field.helpText}</p>}
