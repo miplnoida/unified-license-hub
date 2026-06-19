@@ -1,35 +1,42 @@
 ## Problem
 
-On `/workflows` → **Templates** dialog → **Delete** on a template, the SweetAlert2 "Delete template?" confirmation appears but its **Delete / Cancel** buttons are not clickable.
+In dynamic forms rendered by `FormRenderer` (used across registration, applications, returns, compliance), clicking **Next** or **Submit** sets inline field errors but gives no top-level feedback. On long forms the user can't tell *why* the form didn't submit without manually scrolling to find a red helper text — poor UX.
 
-## Root cause
+## Goal
 
-`handleDeleteTemplate` (src/pages/workflows/WorkflowList.tsx:665) opens `Swal.fire(...)` while the Radix **Templates `<Dialog>`** (line 1077) is still open.
+When validation fails on **Next** / **Submit** (and **Save Draft** if/where it validates), surface the problem immediately:
 
-Radix Dialog sets `pointer-events: none` on `document.body` while it's open and only re-enables pointer events on its own portal content. SweetAlert2 renders its `.swal2-container` as a sibling on `<body>`, so it inherits `pointer-events: none` — the overlay/buttons receive no clicks. The same pattern works elsewhere in the app only because those Swal calls aren't fired from inside an open Radix Dialog.
+1. A summary **toast** naming what's wrong (e.g. *"3 fields need attention: Entity Name, Email, Phone"* — truncated after 3 names with "…and N more").
+2. **Auto-scroll** the page to the first invalid field and focus/highlight it, so the user lands directly on the issue.
 
-This affects every Swal call triggered from inside the Templates dialog (delete; potentially "Save as template" if reached from a dialog context).
+No change to validation rules, submit/save semantics, or any other working behavior.
 
-## Fix
+## Scope
 
-Add a global CSS escape hatch so SweetAlert2's container always accepts pointer events, regardless of Radix's body lock.
+Single file: `src/components/form-renderer/FormRenderer.tsx`. This is the shared renderer that powers every dynamic form, so the fix applies everywhere automatically. No backend, hook, route, or business-logic changes.
 
-In `src/index.css`, append:
+## Technical Details
 
-```css
-/* SweetAlert2 must remain interactive even when a Radix Dialog
-   has set pointer-events: none on <body>. */
-.swal2-container {
-  pointer-events: auto !important;
-}
-```
+Modify `validateCurrentStep()` and its two callers (`handleNext`, `handleSubmit`) in `FormRenderer.tsx`:
 
-That's a one-file, presentation-only change — no workflow logic, no handler refactor, no Dialog restructure. It fixes the Templates delete button and any future Swal-inside-Dialog usage.
+1. **Return richer info** — change validator to return `{ ok: boolean; errorEntries: Array<{ fieldName: string; label: string; message: string }> }` (or keep boolean and read from new state). Build entries in the existing loop using `field.label`.
+
+2. **Emit summary toast** on failure in the callers:
+   ```ts
+   const names = errorEntries.slice(0, 3).map(e => e.label).join(', ');
+   const more = errorEntries.length > 3 ? ` …and ${errorEntries.length - 3} more` : '';
+   toast.error(`Please fix ${errorEntries.length} field${errorEntries.length>1?'s':''}: ${names}${more}`);
+   ```
+   `toast` from `sonner` is already imported (line 30).
+
+3. **Scroll to first error** — tag each rendered field wrapper with `data-field-name={field.fieldName}` (renderField at ~line 633 and the variant at ~line 954). On validation failure, query `document.querySelector('[data-field-name="…"]')`, call `scrollIntoView({ behavior: 'smooth', block: 'center' })`, and attempt `.focus()` on the first focusable child (`input, select, textarea, [tabindex]`). Wrap in `requestAnimationFrame` so the DOM has the `setErrors` paint applied first.
+
+4. Apply the same toast + scroll in `handleSaveDraft` only if it currently validates — looking at line 453 it does **not** validate, so leave Save Draft untouched (user said "do not change other working functionality").
 
 ## Verification
 
-1. Go to `/workflows` → click **Templates**.
-2. Click **Delete** on any template → SweetAlert appears.
-3. **Cancel** and **Delete** buttons both respond to clicks.
-4. Confirm the row disappears and a success toast fires.
-5. Regression check: standalone Swal dialogs elsewhere (outside a Radix Dialog) still work normally.
+- Open a long dynamic form (e.g. Commercial Bank Pre Licensee registration), leave required fields blank, click **Submit** → toast lists missing fields, page scrolls to first one, field gets focus, existing inline red helper text still appears.
+- Single-error case shows singular wording.
+- Fill all fields → no toast, submit proceeds as before.
+- `Next` button behaves the same way on multi-step forms.
+- No regression to Save Draft (still saves without validation).
