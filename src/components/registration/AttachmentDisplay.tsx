@@ -113,14 +113,15 @@ async function resolveVersionedFilePath(att: NormalizedAttachment): Promise<stri
 }
 
 async function resolveSignedUrl(att: NormalizedAttachment): Promise<string | null> {
-  if (att.viewUrl) return att.viewUrl;
   let path = att.path || null;
   if (!path) path = await resolveVersionedFilePath(att);
-  if (!path) return null;
-  for (const bucket of ['secure-documents', 'documents']) {
-    const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
-    if (data?.signedUrl) return data.signedUrl;
+  if (path) {
+    for (const bucket of ['secure-documents', 'documents']) {
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 300);
+      if (data?.signedUrl) return data.signedUrl;
+    }
   }
+  if (att.viewUrl) return att.viewUrl;
   return null;
 }
 
