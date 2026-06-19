@@ -1,43 +1,45 @@
-# Fee Management – Scope Selector for Add/Edit Fee
+# Fix: "Preview not available" on Review Application attachments
 
-## Goal
-In the Add/Edit Fee dialog (`src/pages/admin/FeeManagement.tsx`), replace the always-visible Category + Services + Form fields with a single **Fee Scope** dropdown that controls which field is shown, and make that field mandatory. Sector and Sub-Sector remain as base filters (needed to scope the dependent dropdowns).
+## Problem
+On Review Application (and other read-only review surfaces), clicking the eye icon on an uploaded image/file shows the toast **"Preview not available"** instead of opening the file.
 
-## UI changes (dialog only)
+## Root Cause
+Form file uploads (`src/lib/formFileUpload.ts`) persist attachment metadata using the camelCase key **`filePath`** plus a short-lived signed `url` (5 min TTL).
 
-1. **New "Fee Scope" dropdown** (required), placed above Sector/Sub-Sector:
-   - `Category`
-   - `Services`
-   - `Individual Form`
+The attachment normalizer in `src/components/registration/AttachmentDisplay.tsx` → `normalizeAttachments()` only recognizes these path keys:
+```
+f.path || f.file_path || f.storagePath || f.storage_path
+```
+It does **not** pick up `filePath` (camelCase). Result for a stored form upload:
+- `att.path` → `undefined`
+- `att.viewUrl` → the original signed URL, which has expired by review time (or is `''` if signing failed at upload).
 
-2. **Conditional fields** based on Fee Scope:
-   - **Category selected** → show Sector → Sub-Sector → **Category** (Category is mandatory). Services and Form fields are hidden.
-   - **Services selected** → show Sector → Sub-Sector → **Services** multi-select (mandatory, at least 1). Category and Form fields are hidden.
-   - **Individual Form selected** → show Sector → Sub-Sector → **Form** multi-select listing all forms matching the selected sector/sub-sector (mandatory, at least 1). Category and Services hidden.
+In `resolveSignedUrl()`:
+1. Returns the stale `viewUrl` if present → browser opens an expired/forbidden URL.
+2. If `viewUrl` is empty and `path` is missing and there's no `groupId`/`versionId` → returns `null` → toast **"Preview not available"**.
 
-3. **Reset behavior**: switching the scope clears the now-hidden fields (`categoryId`, `serviceIds`, `formIds`) so stale values are not saved.
+## Fix (scope: read-only, no business logic changes)
 
-4. **Edit mode prefill**: when opening an existing fee, infer the scope from the saved record:
-   - `service_id` present → `Services`
-   - `form_id` present (and no service) → `Individual Form`
-   - else → `Category`
+Edit only `src/components/registration/AttachmentDisplay.tsx`:
 
-## Validation (in `handleSave`)
-Add scope-specific guards before the existing `validateRows()` check:
-- Scope = Category → require `categoryId`.
-- Scope = Services → require `serviceIds.length > 0`.
-- Scope = Individual Form → require `formIds.length > 0`.
-Show a `toast.error` on failure. Persisted payload stays the same shape; hidden dimensions are saved as `null` (preserving existing row-expansion logic).
+1. **Recognize `filePath` (and a couple of common variants) as a storage path** in `normalizeAttachments()`:
+   ```
+   const path = f.path || f.file_path || f.filePath || f.storagePath || f.storage_path || f.fullPath || f.full_path;
+   ```
+   This restores the persistent storage path for every form-uploaded file.
 
-## Out of scope (do not change)
-- Fee rules dialog, fee types table, list table, save/expand logic for rows, RLS, DB schema.
-- Sector/Sub-Sector cascading behavior and the rest of the page.
+2. **Always re-sign when a storage path is available** in `resolveSignedUrl()`:
+   - If `att.path` exists, generate a fresh signed URL from `secure-documents` (fallback `documents`) instead of returning the possibly-expired `att.viewUrl`.
+   - Only fall back to `att.viewUrl` when there is no storage path and no versioned reference.
 
-## Files touched
-- `src/pages/admin/FeeManagement.tsx` – add `feeScope` state, conditional rendering in the dialog, scope-based reset in `resetForm`/`openEdit`, and scope validation in `handleSave`.
+3. Keep existing versioned-document resolution (`groupId`/`versionId` → `document_versions` → `file_uploads`) untouched.
+
+## Out of Scope
+- No changes to upload logic, storage buckets, RLS, or form rendering.
+- No changes to versioned document flows.
+- No styling/UX changes beyond the toast no longer firing for valid uploads.
 
 ## Verification
-- Open Add Fee: Fee Scope defaults to Category; only Category field appears; submit blocked until a category is chosen.
-- Switch to Services: Category disappears, Services multi-select appears and is required.
-- Switch to Individual Form: Services disappears, Form multi-select shows forms filtered by sector/sub-sector and is required.
-- Edit an existing fee created with a service / form / category – dialog opens with the correct scope preselected and the right field visible.
+- Open an application in admin Review → click the eye icon on an attached image/PDF → a new tab opens with the file (fresh 5-minute signed URL).
+- Download icon already worked via path resolution; remains unchanged.
+- Attachments stored as plain strings, versioned documents, and external URLs continue to work via the existing branches.
