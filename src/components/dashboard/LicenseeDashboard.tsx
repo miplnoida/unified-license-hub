@@ -8,9 +8,19 @@ import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle } from 'lucide-react';
 import { licenseeDrilldownTo, recordPath } from '@/lib/licenseeDashboardDrilldowns';
+
+const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
+  active: 'approved',
+  expired: 'destructive',
+  suspended: 'destructive',
+  revoked: 'destructive',
+  cancelled: 'destructive',
+};
+
 
 const fmtMoney = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
