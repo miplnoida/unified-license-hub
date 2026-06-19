@@ -596,13 +596,42 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                   </AccordionTrigger>
                   <AccordionContent className="pb-4">
                     {isDone ? (
-                      renderStepHistory(s.id)
+                      (() => {
+                        const list = actionsByStep.get(s.id) || [];
+                        if (list.length === 0) {
+                          return <p className="text-xs text-muted-foreground">No recorded actions for this step.</p>;
+                        }
+                        return (
+                          <div className="space-y-2">
+                            {list.map(a => {
+                              const actor = a.actor_id ? actorsMap[a.actor_id] : null;
+                              return (
+                                <div key={a.id} className="rounded-md border border-border/60 bg-muted/30 p-2 text-xs space-y-1">
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <span className="font-medium">{actionLabel(a.action_type)}</span>
+                                    <span className="text-muted-foreground">{new Date(a.created_at).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                    <UserIcon className="h-3 w-3" />
+                                    <span>{actor?.name || (a.actor_id ? 'Unknown user' : 'System')}</span>
+                                    {actor?.email && <span className="text-muted-foreground/70">· {actor.email}</span>}
+                                  </div>
+                                  {a.comments && (
+                                    <p className="whitespace-pre-wrap text-foreground/80 border-l-2 border-border pl-2">{a.comments}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()
                     ) : (
                       <p className="text-xs text-muted-foreground">
                         This step was never reached because the workflow ended earlier.
                       </p>
                     )}
                   </AccordionContent>
+
                 </AccordionItem>
               );
             })}
