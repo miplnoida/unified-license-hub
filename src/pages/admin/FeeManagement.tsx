@@ -275,12 +275,18 @@ export default function FeeManagement() {
 
   const handleSave = async () => {
     if (!name.trim() || feeTypes.length === 0) { toast.error('Name and at least one fee type are required'); return; }
+    if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
+    if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
+    if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
     if (!validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
+    const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
+    const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
+    const effectiveFormIds = feeScope === 'form' ? formIds : [];
     const basePayload: any = {
       currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
-      category_id: categoryId || null, is_active: isActive,
+      category_id: effectiveCategoryId, is_active: isActive,
       regulator_id: activeRegulatorId || null,
       calculation_expression: null,
     };
