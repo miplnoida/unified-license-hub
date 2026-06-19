@@ -44,9 +44,31 @@ Deno.serve(async (req) => {
 
     let reqBody: any = {};
     try { reqBody = await req.json(); } catch { /* allow empty */ }
+
+    // Load admin-configured expiry policy (site_settings.license_expiry).
+    let reminderDays = DEFAULT_REMINDER_DAYS;
+    let notifyOfficer = true;
+    try {
+      const { data: cfgRow } = await admin
+        .from("site_settings")
+        .select("value")
+        .eq("key", "license_expiry")
+        .maybeSingle();
+      const cfg: any = cfgRow?.value;
+      if (cfg?.reminder_days && Array.isArray(cfg.reminder_days) && cfg.reminder_days.length) {
+        reminderDays = cfg.reminder_days;
+      }
+      if (typeof cfg?.auto_notify_officer === "boolean") {
+        notifyOfficer = cfg.auto_notify_officer;
+      }
+    } catch (e) {
+      console.warn("license_expiry config load failed, using defaults", e);
+    }
+
+    const allWindows = buildWindows(reminderDays);
     const windows = reqBody?.window
-      ? REMINDER_WINDOWS.filter((w) => w.label === reqBody.window)
-      : REMINDER_WINDOWS;
+      ? allWindows.filter((w) => w.label === reqBody.window)
+      : allWindows;
     const explicitLicenseId: string | undefined = reqBody?.license_id;
 
     const today = new Date();
