@@ -190,3 +190,9 @@
     scrollbar-color: hsl(var(--border)) transparent;
   }
 }
+
+/* SweetAlert2 must remain interactive even when a Radix Dialog
+   has set pointer-events: none on <body>. */
+.swal2-container {
+  pointer-events: auto !important;
+}
