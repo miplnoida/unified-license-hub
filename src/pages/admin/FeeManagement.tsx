@@ -229,6 +229,7 @@ export default function FeeManagement() {
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
     setServiceIds(fee.service_id ? [fee.service_id] : []);
     setFormIds(fee.form_id ? [fee.form_id] : []);
+    setFeeScope(fee.service_id ? 'services' : fee.form_id ? 'form' : 'category');
     setIsActive(fee.is_active);
     setDialogOpen(true);
   };
