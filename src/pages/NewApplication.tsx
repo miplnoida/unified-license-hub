@@ -623,12 +623,16 @@ export default function NewApplication() {
     setHydratingDraft(true);
     (async () => {
       try {
+        // Load the draft by id and let RLS gate access (so admins / reviewers
+        // continuing on behalf of an applicant can still hydrate the wizard,
+        // not just the original applicant).
         const { data: draft } = await supabase
           .from('applications')
           .select('*')
-          .eq('applicant_id', user.id)
           .eq('id', targetDraftId)
           .maybeSingle();
+
+
 
         if (draft) {
           const d = ((draft as any).data || {}) as Record<string, any>;
@@ -678,8 +682,13 @@ export default function NewApplication() {
           } else {
             hydratedStep = inferWizardStepFromDraft(d);
           }
-          if (hydratedStep === 'filling' && d.last_active_form_template_id) {
-            setActiveFormTemplateId(d.last_active_form_template_id);
+          if (hydratedStep === 'filling') {
+            // Prefer the explicitly remembered form; otherwise fall back to
+            // the first template on the draft so a /continue?step=filling URL
+            // never strands the user on the empty category screen.
+            const fallbackTid = d.last_active_form_template_id || tmplIds[0] || null;
+            if (fallbackTid) setActiveFormTemplateId(fallbackTid);
+            else hydratedStep = 'forms';
           }
           setCurrentStep(hydratedStep);
 
@@ -2049,6 +2058,7 @@ export default function NewApplication() {
                   submissionId={applicationId || null}
                   entityType="application"
                   entityId={applicationId || null}
+                  stepStorageKey={applicationId ? `app:${applicationId}:tpl:${activeTemplate.id}` : undefined}
                 />
 
               )}
