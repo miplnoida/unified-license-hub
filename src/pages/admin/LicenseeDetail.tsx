@@ -11,6 +11,7 @@ import {
   ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash, Target
 } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 // Lazy-load tab components
 const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
