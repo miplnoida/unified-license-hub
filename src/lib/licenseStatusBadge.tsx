@@ -20,8 +20,22 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
 };
 
-export function LicenseStatusBadge({ status }: { status?: string | null }) {
+/**
+ * Returns the effective license status, treating an `active` license whose
+ * `valid_until` is in the past as `expired`. UI safety net for when the daily
+ * `mark_expired_licenses()` job hasn't run yet.
+ */
+export function resolveLicenseStatus(status?: string | null, validUntil?: string | null): string {
   const key = (status || 'pending').toLowerCase();
+  if (key === 'active' && validUntil) {
+    const t = new Date(validUntil).getTime();
+    if (Number.isFinite(t) && t < Date.now()) return 'expired';
+  }
+  return key;
+}
+
+export function LicenseStatusBadge({ status, validUntil }: { status?: string | null; validUntil?: string | null }) {
+  const key = resolveLicenseStatus(status, validUntil);
   return (
     <Badge variant="outline" className={`capitalize ${STATUS_CLASSES[key] || ''}`}>
       {STATUS_LABELS[key] || key}
