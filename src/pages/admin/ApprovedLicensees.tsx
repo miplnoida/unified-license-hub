@@ -195,7 +195,7 @@ export default function ApprovedLicensees() {
                       <TableRow key={app.id}>
                         <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
                         <TableCell>{entityName}</TableCell>
-                        <TableCell>{app.license_type}</TableCell>
+                        <TableCell>{formatTaxonomyLabel(app.license_type)}</TableCell>
                         <TableCell>
                           {lic ? (
                             <div className="flex items-center gap-1.5">
