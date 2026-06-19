@@ -1,20 +1,13 @@
-## Plan: Restore file preview on the application review step
+## Plan: Prevent duplicate fee configurations
 
-1. **Fix attachment detection for persisted form files**
-   - Update the review attachment helper so objects with `filePath`, `fullPath`, `groupId`, or `versionId` are always treated as previewable attachments.
-   - This covers files saved from the form renderer and versioned file uploads.
+In `src/pages/admin/FeeManagement.tsx` `handleSave`, before insert/update, query existing `fee_configurations` rows scoped to the same `regulator_id`, `sector_id`, `sub_sector_id`, and check for any conflict on the chosen scope:
 
-2. **Resolve versioned files more reliably**
-   - When a review attachment only has `groupId` / `versionId`, resolve its current storage path from the version metadata.
-   - If the linked `file_uploads` row is not readable, fall back to the storage metadata already present on the document version row if available.
+- **Category scope**: conflict if any existing row matches `category_id` AND has the same `fee_type` (with `service_id` null and `form_id` null).
+- **Services scope**: conflict if any existing row matches any selected `service_id` AND same `fee_type`.
+- **Individual form scope**: conflict if any existing row matches any selected `form_id` AND same `fee_type`.
 
-3. **Generate fresh preview links**
-   - Keep using short-lived signed preview URLs, but generate them at click time from the persistent storage path.
-   - Avoid relying on the expired `url` saved during upload.
+When editing, exclude `editing.id` (and its sibling rows from the same logical fee, matched by name + regulator + sector + sub_sector) from the duplicate check.
 
-4. **Keep scope limited**
-   - Only edit `src/components/registration/AttachmentDisplay.tsx`.
-   - No changes to upload logic, fee management, payment, workflow, or application submission behavior.
+If a conflict is found, show a toast like "A fee already exists for this {category|service|form} and fee type" and abort — no insert/update. Otherwise proceed with the existing save flow unchanged.
 
-## Expected result
-On `/applications/.../continue?step=review`, clicking the eye icon for uploaded image/PDF/file fields should open the file instead of showing **Preview not available**.
+No schema changes, no other functionality touched.
