@@ -686,7 +686,7 @@ export function FormRenderer({
       }
 
       return (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-field-name={field.fieldName}>
           {input}
           {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
