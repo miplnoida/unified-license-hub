@@ -1,51 +1,71 @@
-## Problem
+# Fix "Entity Name" on License Management list
 
-License `LIC-2026-000005` has `valid_until = 2026-06-03` (past), but `status` is still `active`, so the UI shows it as Active everywhere (license detail, licensee Licenses tab, dashboards, status gate).
+## Why it changed
 
-The expiry-reminder edge function only dispatches notifications — nothing actually flips `licenses.status` from `active` to `expired` when the date passes. Today's status is computed from the stored column only.
+On `/licenses` the **Entity Name** column comes from `licensees.name`. That value is written by the approval RPC `provision_license_for_application` using this fallback chain:
+
+```
+data.entity_name → data.applicant_name → applications.license_type
+```
+
+For applications submitted through the newer registration flow, `data.entity_name` and `data.applicant_name` are **not stored**, so the RPC falls all the way through to `license_type`. Since `license_type` is now persisted as the concatenated taxonomy label ("Commercial Bank - Commercial Bank - Commercial Bank"), that string ends up in `licensees.name` and shows in the Entity Name column.
+
+Confirmed in DB: licensee `8e3ffcec…` (created 2026-06-19) has `name = "Commercial Bank - Commercial Bank - Commercial Bank"` because its application's `data->>'entity_name'` and `data->>'applicant_name'` are both NULL.
+
+Older records (e.g. "Test Insurance Corporation") still look correct because they were created when `entity_name` was captured.
 
 ## Fix
 
-Two coordinated changes so an expired license always reads as Expired, immediately and durably.
+### 1. New migration — better fallback + backfill
 
-### 1. Database — auto-expire stale licenses
+Replace `provision_license_for_application` so the entity name resolution order becomes:
 
-New migration:
+```
+data.entity_name
+  → data.applicant_name
+  → data.organization_name / data.company_name / data.business_name (common form keys)
+  → registrations.applicant_name (joined by applicant_id)
+  → pre_license_users.entity_name
+  → pre_license_users.full_name
+  → profiles.entity_name
+  → profiles.full_name
+  → license_type   (last resort, unchanged)
+```
 
-- Add SQL function `public.mark_expired_licenses()` that runs:
-  ```
-  UPDATE public.licenses
-     SET status = 'expired', updated_at = now()
-   WHERE status = 'active'
-     AND valid_until IS NOT NULL
-     AND valid_until < now();
-  ```
-  Returns count of rows updated. `SECURITY DEFINER`, `search_path = public`.
-- Run it once in the same migration to backfill (LIC-2026-000005 and any siblings flip to `expired`).
-- Schedule it daily at 00:05 UTC via `pg_cron` (extension already used by the project for other schedulers) so future licenses self-expire without waiting for a UI hit.
+Then backfill existing bad rows in the same migration:
 
-### 2. UI — derive "expired" at render time as a safety net
+```sql
+UPDATE public.licensees lic
+SET name = COALESCE(
+    NULLIF(a.data->>'entity_name',''),
+    NULLIF(a.data->>'applicant_name',''),
+    r.applicant_name,
+    plu.entity_name, plu.full_name,
+    p.entity_name,   p.full_name,
+    lic.name
+)
+FROM public.licenses l
+JOIN public.applications a ON a.id = l.application_id
+LEFT JOIN public.registrations r   ON r.user_id = a.applicant_id
+LEFT JOIN public.pre_license_users plu ON plu.id = a.applicant_id
+LEFT JOIN public.profiles p        ON p.id  = a.applicant_id
+WHERE lic.license_id = l.id
+  AND lic.name = a.license_type;   -- only the rows that fell through to license_type
+```
 
-So the user never sees a stale Active badge between cron runs:
+### 2. UI safety net — `src/pages/licenses/LicensesList.tsx`
 
-- `src/lib/licenseStatusBadge.tsx` — extend `LicenseStatusBadge` to accept an optional `validUntil` prop. If `status === 'active'` and `validUntil` is in the past, render as `expired` (label + red style).
-- Update the small set of call sites that already have `valid_until` in scope to pass it:
-  - `src/components/entity-detail/LicensesTab.tsx` (Type/Status row)
-  - `src/pages/licenses/LicenseDetail.tsx` (header badge)
-  - `src/pages/admin/ApprovedLicensees.tsx` (if it renders license status)
-  - `src/components/dashboard/LicenseExpiryBanner.tsx` already treats past `valid_until` as expired — no change.
-- `src/hooks/useLicenseStatusGate.ts` — after fetching the license, if `valid_until < now()` treat status as `expired` so the gate blocks new submissions even before cron runs.
+When enriching rows, if `licensees.name` equals the license's `license_type` (i.e. the bad fallback fired), look up a better name from `registrations` / `pre_license_users` / `profiles` by the license's `holder_id` and use that instead. This makes the column self-heal even for rows the backfill misses.
 
-### Out of scope
+Falls back to `licensees.name` if no better source is found.
 
-- No change to how `valid_until` is calculated at issuance (already fixed in prior migration).
-- No change to renewal flow, reminder windows, or notification dispatch.
-- No rename of `LIC-2026-000005`; only its `status` flips to `expired`.
+## Out of scope
+
+- The registration form not capturing `entity_name` in `application.data` — separate issue, will keep working through fallbacks above.
+- LicenseeDetail, ApprovedLicensees, LicensesTab — they already resolve entity name from multiple sources and aren't affected.
 
 ## Verification
 
-1. Reload `/licenses/01f80962-…` → badge reads **Expired** (red).
-2. Reload licensee detail → Licenses tab Status column reads **Expired**.
-3. Run `select status from licenses where id='01f80962-…'` → `expired`.
-4. Licensee dashboard expiry banner still surfaces the renew CTA.
-5. Attempting a new application as that licensee shows the blocked-license banner.
+1. Reload `/licenses` → row for `LIC-…` linked to APP-2026-000079 shows the applicant/entity name, not "Commercial Bank - Commercial Bank - Commercial Bank".
+2. `select name from licensees where id = '8e3ffcec-8270-478d-861e-da60f025e3b3';` returns the resolved name.
+3. Provision a brand-new approval where `data.entity_name` is missing → resulting `licensees.name` matches the registered applicant/entity, not the taxonomy string.
