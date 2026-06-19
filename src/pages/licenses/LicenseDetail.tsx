@@ -20,6 +20,7 @@ import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/pl
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
+import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
 interface License {
   id: string;
@@ -286,7 +287,7 @@ export default function LicenseDetail() {
                 {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
                 Signed Certificate
               </Button>
-              <Badge variant={statusVariant[license.status] || 'outline'} className="text-sm px-3 py-1 capitalize">{LICENSE_STATUS_LABELS[license.status]}</Badge>
+              <LicenseStatusBadge status={license.status} validUntil={license.valid_until} />
             </div>
           }
         />
