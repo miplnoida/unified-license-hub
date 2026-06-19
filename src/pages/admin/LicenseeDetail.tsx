@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Swal from 'sweetalert2';
 import {
   ArrowLeft, Loader2, Building2, Users, GitBranch, Shield, Gavel,
-  ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash
+  ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash, Target
 } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
 
