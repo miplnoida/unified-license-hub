@@ -1,50 +1,35 @@
-## Goal
+## Problem
 
-Add a new approval workflow named **Commercial Bank Pre Licensee** that is structurally identical to the existing "registration workflow", but scoped to pre-licensee applications for the Commercial Bank sector.
+On `/workflows` → **Templates** dialog → **Delete** on a template, the SweetAlert2 "Delete template?" confirmation appears but its **Delete / Cancel** buttons are not clickable.
 
-## Scope (data-only change)
+## Root cause
 
-No application code, components, hooks, edge functions, or RLS policies will be touched. The change is a single data insert into `approval_workflows` + `approval_steps`.
+`handleDeleteTemplate` (src/pages/workflows/WorkflowList.tsx:665) opens `Swal.fire(...)` while the Radix **Templates `<Dialog>`** (line 1077) is still open.
 
-## New workflow row (`approval_workflows`)
+Radix Dialog sets `pointer-events: none` on `document.body` while it's open and only re-enables pointer events on its own portal content. SweetAlert2 renders its `.swal2-container` as a sibling on `<body>`, so it inherits `pointer-events: none` — the overlay/buttons receive no clicks. The same pattern works elsewhere in the app only because those Swal calls aren't fired from inside an open Radix Dialog.
 
-| Field | Value |
-|---|---|
-| name | Commercial Bank Pre Licensee |
-| entity_type | `pre_application` |
-| license_type | `Commercial Bank` |
-| regulator_id | `8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3` (same as registration workflow) |
-| sector_id | `d90ffa53-709b-41e8-a6d9-efd1bbac69bc` (Commercial Bank) |
-| category_id | `36b7076c-182a-45cf-bbdd-7c3fab66b1ac` (Commercial Bank) |
-| is_active | true |
-| description | null |
+This affects every Swal call triggered from inside the Templates dialog (delete; potentially "Save as template" if reached from a dialog context).
 
-Uniqueness: `approval_workflows_unique_scope_used_for` is keyed on regulator + sector + entity_type (+ category). No existing `pre_application` workflow targets this sector, so the insert will not collide.
+## Fix
 
-## Steps (`approval_steps`) — copied verbatim from the registration workflow
+Add a global CSS escape hatch so SweetAlert2's container always accepts pointer events, regardless of Radix's body lock.
 
-**Step 1**
-- step_order: 1, name: "Step 1", step_type: sequential, is_required: true
-- approver_type: `specific_users`, approver_config: `{"user_ids":["35da4b65-baa5-426c-be83-3991b03132f0"]}`, approver_role: `admin`
-- sla_hours: 2, sla_warning_threshold_percent: 80, sla_pause_on_rfi: false
-- allowed_actions: `['send_back','approve','reject','request_resubmission']`
-- escalation_role: `cf425653-646c-4d8e-83b7-67fc07d4bb47`, escalation_after_hours: 3
-- step_entry_notifications_enabled: true, auto_approve_on_timeout: false
+In `src/index.css`, append:
 
-**Step 2**
-- step_order: 2, name: "Step 2", step_type: sequential, is_required: true
-- approver_type: `role_based_user`, approver_role: `super_admin`, approver_role_id: `670c341e-a6fe-44f0-831e-f464238473a4`, approver_config: `{"role_ids":["670c341e-a6fe-44f0-831e-f464238473a4"]}`
-- sla_hours: 72, sla_warning_threshold_percent: 80, sla_pause_on_rfi: false
-- allowed_actions: `['approve','reject','send_back']`
-- No escalation
-- step_entry_notifications_enabled: true, auto_approve_on_timeout: false
+```css
+/* SweetAlert2 must remain interactive even when a Radix Dialog
+   has set pointer-events: none on <body>. */
+.swal2-container {
+  pointer-events: auto !important;
+}
+```
 
-## Execution
-
-Single `INSERT` (workflow) + two `INSERT`s (steps) run via the data tool — no schema migration, no code edits.
+That's a one-file, presentation-only change — no workflow logic, no handler refactor, no Dialog restructure. It fixes the Templates delete button and any future Swal-inside-Dialog usage.
 
 ## Verification
 
-- `SELECT` the new workflow and its two steps to confirm they match the source.
-- Confirm it appears in Admin → Approval Workflows list filtered by Pre Application + Commercial Bank sector.
-- Existing "registration workflow" remains untouched and continues to handle licensee registrations.
+1. Go to `/workflows` → click **Templates**.
+2. Click **Delete** on any template → SweetAlert appears.
+3. **Cancel** and **Delete** buttons both respond to clicks.
+4. Confirm the row disappears and a success toast fires.
+5. Regression check: standalone Swal dialogs elsewhere (outside a Radix Dialog) still work normally.
