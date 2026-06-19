@@ -10,8 +10,11 @@ import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle, RefreshCw } from 'lucide-react';
 import { licenseeDrilldownTo, recordPath } from '@/lib/licenseeDashboardDrilldowns';
+
 
 const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
   active: 'approved',
