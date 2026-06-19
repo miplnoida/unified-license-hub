@@ -125,10 +125,34 @@ Deno.serve(async (req) => {
           } catch (e: any) {
             console.error("dispatch failed", lic.id, win.label, e?.message || e);
             summary.errors++;
+        }
+
+        // Also dispatch officer-targeted event (recipient rules resolve via sector_regulators / supervisor role).
+        if (win.event === "license.expiring_soon") {
+          try {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: "license.expiring_soon_officer",
+                entity_type: "license",
+                entity_id: lic.id,
+                reminder_window: `${win.label}-officer`,
+                payload: {
+                  license_id: lic.id,
+                  license_number: lic.license_number,
+                  license_type: lic.license_type,
+                  valid_until: dateOnly(lic.valid_until),
+                  days_until_expiry: win.days,
+                },
+              },
+            });
+          } catch (e: any) {
+            console.error("officer dispatch failed", lic.id, win.label, e?.message || e);
           }
         }
       }
     }
+
+
 
     return new Response(JSON.stringify({ ok: true, ...summary }), {
       status: 200,
