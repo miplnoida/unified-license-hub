@@ -140,7 +140,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             .order('created_at', { ascending: true }),
           supabase
             .from('licenses' as any)
-            .select('id')
+          .select('id, license_number')
             .eq('holder_id', user.id),
           supabase
             .from('applications' as any)
@@ -155,27 +155,43 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             .limit(1),
         ]);
 
-        ((directLicenseeRes.data || []) as any[]).forEach(addResolved);
+        ((directLicenseeRes.data || []) as any[]).forEach((licensee) => addResolved(licensee, true));
 
         const licenseIds = new Set<string>();
+        const holderLicenseNumberById = new Map<string, string | null>();
         ((holderLicenseRowsRes.data || []) as any[]).forEach((row: any) => {
           if (row?.id) licenseIds.add(row.id);
+          if (row?.id) holderLicenseNumberById.set(row.id, row.license_number ?? null);
         });
 
         if (licenseIds.size > 0) {
           const linkedLicensees = approvedLicensees.filter((licensee: any) => licensee.raw?.license_id && licenseIds.has(licensee.raw.license_id));
-          linkedLicensees.forEach(addResolved);
+          linkedLicensees.forEach((licensee) => addResolved(licensee, true));
+
+          const licenseeIdsFromLicenses = await Promise.all(
+            Array.from(licenseIds).map(async (licenseId) => {
+              const { data } = await (supabase as any).rpc('licensee_ids_for_license', { _license_id: licenseId });
+              return ((data || []) as string[]).map((licenseeId) => ({ licenseeId, licenseId }));
+            })
+          );
+          licenseeIdsFromLicenses.flat().forEach(({ licenseeId, licenseId }) => {
+            addResolved({
+              id: licenseeId,
+              display_name: user.entityName,
+              license_number: holderLicenseNumberById.get(licenseId) ?? null,
+            }, true);
+          });
         }
 
         const applicationIds = new Set<string>(((applicantRowsRes.data || []) as any[]).map((row: any) => row.id).filter(Boolean));
         const applicationLinkedLicensees = approvedLicensees.filter((licensee: any) => licensee.application_id && applicationIds.has(licensee.application_id));
-        applicationLinkedLicensees.forEach(addResolved);
+        applicationLinkedLicensees.forEach((licensee) => addResolved(licensee, true));
 
         const registrationSectorId = ((registrationRes.data || []) as any[])[0]?.sector_id ?? null;
         if (registrationSectorId) {
           approvedLicensees
             .filter((licensee: any) => (licensee.resolved_sector_id || licensee.sector_id) === registrationSectorId)
-            .forEach(addResolved);
+            .forEach((licensee) => addResolved(licensee));
         }
 
         if (resolvedMap.size === 0 && approvedLicensees.length === 1) {
