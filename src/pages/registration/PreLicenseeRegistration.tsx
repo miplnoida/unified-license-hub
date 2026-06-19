@@ -105,6 +105,9 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const [documentsTouched, setDocumentsTouched] = useState(false);
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
+  // Captures the last dynamic-step validation result so handleNext/handleSubmit
+  // can show a summary toast naming the offending fields with their labels.
+  const lastDynamicErrorsRef = useRef<{ errs: Record<string, string>; step: RegStep | null }>({ errs: {}, step: null });
 
   useEffect(() => {
     if (!isUpdateMode) return;
