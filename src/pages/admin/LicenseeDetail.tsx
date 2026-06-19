@@ -173,6 +173,7 @@ export default function LicenseeDetail() {
     { id: 'licenses', label: 'Licenses', icon: Shield },
     { id: 'enforcement', label: 'Enforcement', icon: Gavel },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
+    { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
     { id: 'returns', label: 'Returns', icon: FileText },
     { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
