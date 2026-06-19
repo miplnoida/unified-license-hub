@@ -21,13 +21,14 @@ const corsHeaders = {
 
 type Window = { label: string; days: number; event: "license.expiring_soon" | "license.expired" };
 
-const REMINDER_WINDOWS: Window[] = [
-  { label: "30d", days: 30, event: "license.expiring_soon" },
-  { label: "15d", days: 15, event: "license.expiring_soon" },
-  { label: "7d",  days: 7,  event: "license.expiring_soon" },
-  { label: "1d",  days: 1,  event: "license.expiring_soon" },
-  { label: "0d",  days: 0,  event: "license.expired" },
-];
+const DEFAULT_REMINDER_DAYS = [30, 15, 7, 1];
+
+function buildWindows(reminderDays: number[]): Window[] {
+  const uniq = Array.from(new Set(reminderDays.filter((d) => Number.isFinite(d) && d >= 0))).sort((a, b) => b - a);
+  const out: Window[] = uniq.map((d) => ({ label: `${d}d`, days: d, event: "license.expiring_soon" }));
+  out.push({ label: "0d", days: 0, event: "license.expired" });
+  return out;
+}
 
 function dateOnly(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
