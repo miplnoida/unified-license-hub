@@ -335,7 +335,11 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
           active: licActive,
           expiring_30d: licExpiring30,
           expired: licExpired,
+          suspended: licSuspended,
+          revoked: licRevoked,
+          list: licenseList,
         },
+
         applications: { draft: draftApps, submitted: submittedApps, approved: approvedApps, rejected: rejectedApps },
         returns: {
           due_soon: retDueSoon,
