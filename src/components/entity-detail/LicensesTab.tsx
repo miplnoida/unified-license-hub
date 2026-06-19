@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Shield, Eye } from 'lucide-react';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { useNavigate } from 'react-router-dom';
 
 interface LicensesTabProps {
