@@ -1,29 +1,28 @@
-## Goal
-Seed a new approval workflow named **"Complaint Management Workflow"** modeled after the existing registration workflow, so admins can use it immediately from `/workflows`.
+## Plan: Show license number and license status on the licensee dashboard
 
-## Data to insert
+### What we will build
+- Display the active licensee's **license number** on the dashboard header.
+- Add a new **License Status** card that lists every license for the active licensee with:
+  - status badge (active = green, expired/suspended/revoked = red, expiring soon = amber)
+  - "upcoming expiry in X days" countdown for active licenses nearing expiration
+- Keep all existing metric cards, charts, and drill-downs unchanged.
 
-**`approval_workflows` row**
-- name: `Complaint Management Workflow`
-- entity_type: `complaint`
-- license_type: `Domestic Insurance` (mirrors existing registration workflow)
-- regulator_id: `8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3`
-- sector_id: `1ea22781-fee7-4a26-b382-09f0477485d5`
-- category_id: null
-- is_active: true
+### Files to change
+1. `src/contexts/PpocContext.tsx`
+   - Add optional `license_number` field to `MappedLicensee`.
+   - Populate it from the existing license-number lookups already performed for the PPOC/licensee switcher.
 
-**Two `approval_steps` rows** (cloning the registration workflow's step config):
+2. `src/hooks/useLicenseeMetrics.ts`
+   - Add `suspended` and `revoked` counts to `licenses`.
+   - Add a new `licenses.list` array containing every scoped license: `id`, `license_number`, `status`, `valid_until`, and computed `days_until_expiry`.
+   - Update `EMPTY_METRICS` to match the new shape; existing calculations remain unchanged.
 
-| Order | Name | Approver type | Approver | SLA | Allowed actions | Escalation |
-|---|---|---|---|---|---|---|
-| 1 | Step 1 | specific_users | user `35da4b65-…3132f0` | 2h | send_back, approve, reject, request_resubmission | role `cf425653-…4bb47` after 3h |
-| 2 | Step 2 | role_based_user | role `670c341e-…473a4` (super_admin) | 72h | approve, reject, send_back | none |
+3. `src/components/dashboard/LicenseeDashboard.tsx`
+   - Show the active license number next to the existing licensee name line when available.
+   - Insert a new License Status card (between the welcome header and the metrics grid) that renders the `licenses.list` with status badges and expiry countdowns.
+   - Use the same badge variant mapping as `LicensesList.tsx` (active → approved/green, expired/suspended/revoked → destructive/red, expiring → warning/amber) so colors are consistent across the portal.
 
-Both steps: `step_type=sequential`, `is_required=true`, `step_entry_notifications_enabled=true`, `auto_approve_on_timeout=false`, `sla_pause_on_rfi=false`.
-
-## Method
-One `supabase--insert` call wrapped in a CTE: insert the workflow, capture its id, insert both steps referencing it. Idempotency guard: skip insert if a workflow with this name + regulator + sector already exists.
-
-## Out of scope
-- No schema/UI changes. `complaint` is already an active workflow type, so it appears in the "Used for" dropdown without code edits.
-- No notification template wiring beyond the step defaults already set.
+### Out of scope
+- No changes to `LicenseStatusBadge`, `LicenseStatusBanner`, routing, or the dashboard grid layout.
+- No backend schema changes; only additive queries.
+- No changes to other dashboards (Supervisory, Applicant, PostLicensee).

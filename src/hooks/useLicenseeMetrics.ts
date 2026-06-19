@@ -10,7 +10,21 @@ const daysFromNow = (n: number) => {
 };
 
 export interface LicenseeMetrics {
-  licenses: { total: number; active: number; expiring_30d: number; expired: number };
+  licenses: {
+    total: number;
+    active: number;
+    expiring_30d: number;
+    expired: number;
+    suspended: number;
+    revoked: number;
+    list: Array<{
+      id: string;
+      license_number: string | null;
+      status: string;
+      valid_until: string | null;
+      days_until_expiry: number | null;
+    }>;
+  };
   applications: { draft: number; submitted: number; approved: number; rejected: number };
   returns: { due_soon: number; overdue: number; submitted: number; pending_review: number };
   payments: { pending: number; paid: number; outstanding_amount: number };
@@ -28,7 +42,7 @@ interface ResolvedLicenseeScope {
 }
 
 const EMPTY_METRICS: LicenseeMetrics = {
-  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0 },
+  licenses: { total: 0, active: 0, expiring_30d: 0, expired: 0, suspended: 0, revoked: 0, list: [] },
   applications: { draft: 0, submitted: 0, approved: 0, rejected: 0 },
   returns: { due_soon: 0, overdue: 0, submitted: 0, pending_review: 0 },
   payments: { pending: 0, paid: 0, outstanding_amount: 0 },
@@ -39,6 +53,7 @@ const EMPTY_METRICS: LicenseeMetrics = {
     pending_payments: [],
   },
 };
+
 
 async function resolveLicenseeScope(
   activeLicenseeId: string | null | undefined,
@@ -218,7 +233,27 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const licTotal = normalizedLicenseRows.length;
       const licActive = normalizedLicenseRows.filter((row) => row.status === 'active').length;
       const licExpiring30 = normalizedLicenseRows.filter((row) => row.status === 'active' && !!row.valid_until && row.valid_until >= today && row.valid_until <= in30).length;
-      const licExpired = normalizedLicenseRows.filter((row) => row.status === 'expired').length;
+      const licExpired = normalizedLicenseRows.filter((row) => row.status === 'expired' || (row.status === 'active' && !!row.valid_until && row.valid_until < today)).length;
+      const licSuspended = normalizedLicenseRows.filter((row) => row.status === 'suspended').length;
+      const licRevoked = normalizedLicenseRows.filter((row) => row.status === 'revoked' || row.status === 'cancelled').length;
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const licenseList = normalizedLicenseRows.map((row) => {
+        let days: number | null = null;
+        if (row.valid_until) {
+          const t = new Date(row.valid_until).getTime();
+          if (Number.isFinite(t)) days = Math.ceil((t - startOfToday.getTime()) / 86_400_000);
+        }
+        const effectiveStatus = row.status === 'active' && days !== null && days < 0 ? 'expired' : row.status;
+        return {
+          id: row.id,
+          license_number: row.license_number,
+          status: effectiveStatus,
+          valid_until: row.valid_until,
+          days_until_expiry: days,
+        };
+      });
 
       const returnRows = ((returnsRes.data || []) as any[]).map((row) => ({
         ...row,
@@ -229,6 +264,7 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       const retOverdue = returnRows.filter((row) => UNFILED.includes(row.workflow_status) && !!row.due_date && row.due_date < today).length;
       const retSubmitted = returnRows.filter((row) => ['SUB', 'VAL', 'REJ'].includes(row.workflow_status)).length;
       const retPending = returnRows.filter((row) => row.workflow_status === 'SUB').length;
+
 
       // ── Payments (via visible applications) ────────────────────────────────
       const [payPendingRes, payPaidRes] = await Promise.all([
@@ -299,7 +335,11 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
           active: licActive,
           expiring_30d: licExpiring30,
           expired: licExpired,
+          suspended: licSuspended,
+          revoked: licRevoked,
+          list: licenseList,
         },
+
         applications: { draft: draftApps, submitted: submittedApps, approved: approvedApps, rejected: rejectedApps },
         returns: {
           due_soon: retDueSoon,
