@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,8 +61,10 @@ function addYears(iso: string | null, years: number): string {
 
 export default function LicenseDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
+  const { data: expiryConfig } = useLicenseExpiryConfig();
   const [license, setLicense] = useState<License | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,12 +89,28 @@ export default function LicenseDetail() {
     load();
   }, [id]);
 
+  const periodDays = expiryConfig?.cycle_type === 'periodic' ? (expiryConfig.period_days || 365) : 365;
+
   const openRenewDialog = () => {
     if (!license) return;
-    setRenewDate(addYears(license.valid_until, 1));
+    // Extend by configured period from current valid_until (or today if none).
+    const base = license.valid_until ? new Date(license.valid_until) : new Date();
+    base.setDate(base.getDate() + periodDays);
+    setRenewDate(base.toISOString().slice(0, 10));
     setRenewNotes('');
     setRenewOpen(true);
   };
+
+  // Auto-open dialog when ?action=renew is present
+  useEffect(() => {
+    if (license && searchParams.get('action') === 'renew' && !renewOpen) {
+      openRenewDialog();
+      const next = new URLSearchParams(searchParams);
+      next.delete('action');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [license]);
 
   const submitRenewal = async () => {
     if (!license || !user || !renewDate) return;
