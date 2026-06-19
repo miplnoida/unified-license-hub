@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 interface License {
   id: string;
