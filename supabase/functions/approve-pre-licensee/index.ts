@@ -200,6 +200,18 @@ export async function handler(req: Request): Promise<Response> {
       }
     }
 
+    // Fire-and-forget: bootstrap supervisory profile (risk rating + plan + actions)
+    try {
+      await admin.rpc("bootstrap_supervisory_profile", { _license_id: license.id });
+    } catch (e) { console.error("bootstrap_supervisory_profile failed:", e); }
+
+    // Fire-and-forget: generate signed license certificate
+    try {
+      await admin.functions.invoke("generate-license-certificate", {
+        body: { mode: "generate", license_id: license.id },
+      });
+    } catch (e) { console.error("generate-license-certificate failed:", e); }
+
     return jsonResponse(req, 200, {
       success: true,
       message: "Licensee provisioned",
