@@ -244,6 +244,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
     }
 
     setErrors(errs);
+    lastErrorsRef.current = errs;
     return Object.keys(errs).length === 0;
   }, [form, options?.updateMode]);
 
