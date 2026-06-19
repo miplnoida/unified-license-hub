@@ -2058,6 +2058,7 @@ export default function NewApplication() {
                   submissionId={applicationId || null}
                   entityType="application"
                   entityId={applicationId || null}
+                  stepStorageKey={applicationId ? `app:${applicationId}:tpl:${activeTemplate.id}` : undefined}
                 />
 
               )}
