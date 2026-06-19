@@ -74,7 +74,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const updateRegistrationParam = routeRegistrationId || searchParams.get('registration');
   const updateSubmissionParam = searchParams.get('submission');
   const {
-    form, errors, setField, setEntityField, setMailingField, setPhysicalField,
+    form, errors, lastErrorsRef, setField, setEntityField, setMailingField, setPhysicalField,
     setSectorId, setSubSectorId, addDocument, removeDocument, validateStep,
     validateDeclarations, hydrate, reset,
   } = useRegistrationForm({ updateMode: isUpdateMode });
