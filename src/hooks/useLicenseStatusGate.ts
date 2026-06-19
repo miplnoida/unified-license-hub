@@ -68,29 +68,37 @@ export function useLicenseStatusGate(): LicenseStatusGate {
         .maybeSingle();
 
       let licenseStatus: string | null = null;
+      let validUntil: string | null = null;
 
       if (licensee?.license_id) {
         const { data: lic } = await supabase
           .from('licenses')
-          .select('status')
+          .select('status, valid_until')
           .eq('id', licensee.license_id)
           .maybeSingle();
-        if (lic?.status) licenseStatus = lic.status;
+        if (lic?.status) { licenseStatus = lic.status; validUntil = lic.valid_until; }
       }
 
       if (!licenseStatus) {
         // Fallback: most recently-issued license held by this licensee
         const { data: held } = await supabase
           .from('licenses')
-          .select('status, issued_at')
+          .select('status, valid_until, issued_at')
           .eq('holder_id', activeLicenseeId!)
           .order('issued_at', { ascending: false })
           .limit(1);
-        if (held && held[0]?.status) licenseStatus = held[0].status;
+        if (held && held[0]?.status) { licenseStatus = held[0].status; validUntil = held[0].valid_until; }
       }
 
       if (!licenseStatus && licensee?.status) {
         licenseStatus = licensee.status;
+      }
+
+      // Safety net: if the license is still marked active but valid_until is
+      // in the past, treat as expired until the daily job flips it.
+      if (licenseStatus && normalize(licenseStatus) === 'active' && validUntil) {
+        const t = new Date(validUntil).getTime();
+        if (Number.isFinite(t) && t < Date.now()) licenseStatus = 'expired';
       }
 
       return { status: licenseStatus };
