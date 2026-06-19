@@ -570,6 +570,28 @@ export default function FeeManagement() {
                       )}
                     </div>
 
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Fee Scope *</Label>
+                        <Select
+                          value={feeScope}
+                          onValueChange={(v: 'category' | 'services' | 'form') => {
+                            setFeeScope(v);
+                            // Clear the now-hidden fields so stale values aren't saved
+                            if (v === 'category') { setServiceIds([]); setFormIds([]); }
+                            else if (v === 'services') { setCategoryId(''); setFormIds([]); }
+                            else { setCategoryId(''); setServiceIds([]); }
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="services">Services</SelectItem>
+                            <SelectItem value="form">Individual Form</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
@@ -590,41 +612,50 @@ export default function FeeManagement() {
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
-                          <SelectTrigger><SelectValue placeholder="All categories" /></SelectTrigger>
-                          <SelectContent>
-                            {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                    {feeScope === 'category' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Category *</Label>
+                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
+                            <SelectTrigger><SelectValue placeholder={subSectorId ? 'Select a category' : 'Select sub-sector first'} /></SelectTrigger>
+                            <SelectContent>
+                              {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Services</Label>
-                        <MultiSelect
-                          options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
-                          selected={serviceIds}
-                          onChange={selected => { setServiceIds(selected); setFormIds([]); }}
-                          placeholder="None (applies to pre-licensee)"
-                          withinDialog
-                        />
+                    )}
+                    {feeScope === 'services' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Services *</Label>
+                          <MultiSelect
+                            options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
+                            selected={serviceIds}
+                            onChange={selected => { setServiceIds(selected); setFormIds([]); }}
+                            placeholder="Select one or more services"
+                            withinDialog
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2">
-                        <Label>Form (optional)</Label>
-                        <MultiSelect
-                          options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
-                          selected={formIds}
-                          onChange={setFormIds}
-                          placeholder={filteredForms.length === 0 ? "No form present" : "All forms (no specific form)"}
-                          emptyMessage="No form present"
-                          withinDialog
-                        />
-                        <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
+                    )}
+                    {feeScope === 'form' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Form *</Label>
+                          <MultiSelect
+                            options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                            selected={formIds}
+                            onChange={setFormIds}
+                            placeholder={filteredForms.length === 0 ? "No form present for selected sector/sub-sector" : "Select one or more forms"}
+                            emptyMessage="No form present"
+                            withinDialog
+                          />
+                          <p className="text-xs text-muted-foreground">Forms are filtered by the selected sector and sub-sector.</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
 
                     <div className="flex items-center gap-2">
                       <Switch checked={isActive} onCheckedChange={setIsActive} />
