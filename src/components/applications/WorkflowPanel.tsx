@@ -329,6 +329,19 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       const decisive = [...history].reverse().find(a =>
         ['approve', 'reject', 'send_back', 'escalate', 'request_resubmission', 'return_for_correction', 'request_more_info'].includes(a.action_type),
       );
+      // Terminal instance: every step that has a decisive action is completed
+      // (or 'returned' if it was sent back). Steps without an action stay
+      // upcoming. The instance's resolved current step is treated as the
+      // outcome step and marked completed/returned based on its last action.
+      if (isTerminal) {
+        if (decisive) {
+          return decisive.action_type === 'send_back' ? 'returned' : 'completed';
+        }
+        if (currentStep && s.id === currentStep.id) {
+          return terminalKind === 'cancelled' ? 'returned' : 'completed';
+        }
+        return 'upcoming';
+      }
       if (currentStep && s.id === currentStep.id) {
         if (isPaused) return 'paused';
         return 'current';
@@ -340,7 +353,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       if (currentStepIdx >= 0 && idx < currentStepIdx) return 'completed';
       return 'upcoming';
     });
-  }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused]);
+  }, [steps, actionsByStep, currentStep, currentStepIdx, isPaused, isTerminal, terminalKind]);
 
   // Per-step SLA start time: step N starts at the prior step's decisive action,
   // step 0 starts at the workflow instance start. Returns null for upcoming steps
