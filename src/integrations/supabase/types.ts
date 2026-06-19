@@ -7658,6 +7658,7 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      mark_expired_licenses: { Args: never; Returns: number }
       notification_recipients_for_role: {
         Args: { _role: string }
         Returns: string[]
