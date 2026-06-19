@@ -277,7 +277,7 @@ export default function LicenseDetail() {
       <div className="space-y-6">
         <PageHeader
           title={`License ${license.license_number}`}
-          description={license.license_type}
+          description={formatTaxonomyLabel(license.license_type)}
           backHref="/licenses"
           backLabel="Back to Licenses"
           actions={
