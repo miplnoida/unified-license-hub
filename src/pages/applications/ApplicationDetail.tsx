@@ -544,7 +544,7 @@ export default function ApplicationDetail() {
       <div className="space-y-6">
         <PageHeader
           title={`Application ${app.application_number}`}
-          description={app.license_type}
+          description={formatTaxonomyLabel(app.license_type)}
           backHref={isInternal ? '/applications/queue' : '/applications'}
           backLabel="Back to Applications"
           actions={
