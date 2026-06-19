@@ -60,12 +60,12 @@ function isSingleAttachmentObject(v: unknown): boolean {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
   const f = v as Record<string, any>;
   return !!(
-    f.path || f.file_path || f.storagePath || f.storage_path ||
+    f.path || f.file_path || f.filePath || f.storagePath || f.storage_path || f.fullPath || f.full_path ||
     f.url || f.fileUrl || f.previewUrl || f.downloadUrl || f.signedUrl ||
     f.fileName || f.file_name || f.originalName || f.filename ||
-    // Treat any object with just a name/label as an attachment placeholder
-    // so dynamic file fields render with View/Download icons even when only
-    // a filename is stored.
+    f.groupId || f.group_id || f.documentGroupId || f.document_group_id ||
+    f.versionId || f.version_id || f.currentVersionId || f.current_version_id ||
+    f.uploadId || f.upload_id || f.fileUploadId || f.file_upload_id ||
     (typeof f.name === 'string' && f.name.length > 0) ||
     (typeof f.label === 'string' && f.label.length > 0)
   );
@@ -79,9 +79,9 @@ export function isAttachmentValue(v: unknown): boolean {
 }
 
 async function resolveVersionedFilePath(att: NormalizedAttachment): Promise<string | null> {
-  // Versioned uploads store only groupId/versionId in form data. Resolve the
-  // actual storage path via document_versions -> file_uploads so admin
-  // reviewers can preview/download the current version inline.
+  // Versioned uploads often store only groupId/versionId in form data.
+  // document_versions carries storage_path directly; fall back to
+  // file_uploads.file_path when needed.
   if (!att.groupId && !att.versionId) return null;
   try {
     let versionId = att.versionId || null;
@@ -96,9 +96,11 @@ async function resolveVersionedFilePath(att: NormalizedAttachment): Promise<stri
     if (!versionId) return null;
     const { data: v } = await supabase
       .from('document_versions' as any)
-      .select('file_upload_id')
+      .select('storage_path, file_upload_id')
       .eq('id', versionId)
       .maybeSingle();
+    const directPath = (v as any)?.storage_path;
+    if (directPath) return directPath;
     const uploadId = (v as any)?.file_upload_id;
     if (!uploadId) return null;
     const { data: f } = await supabase
