@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
@@ -14,7 +16,7 @@ import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
-import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban } from 'lucide-react';
+import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface License {
@@ -47,6 +49,15 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
   active: 'default', suspended: 'outline', revoked: 'destructive', expired: 'secondary', cancelled: 'destructive',
 };
 
+const MANDATORY_REASON_ACTIONS = new Set(['suspension', 'revocation', 'cancellation']);
+const MIN_REASON_LEN = 10;
+
+function addYears(iso: string | null, years: number): string {
+  const base = iso ? new Date(iso) : new Date();
+  base.setFullYear(base.getFullYear() + years);
+  return base.toISOString().slice(0, 10);
+}
+
 export default function LicenseDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -56,6 +67,11 @@ export default function LicenseDetail() {
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [renewOpen, setRenewOpen] = useState(false);
+  const [renewDate, setRenewDate] = useState('');
+  const [renewNotes, setRenewNotes] = useState('');
+  const [renewSubmitting, setRenewSubmitting] = useState(false);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
@@ -70,8 +86,92 @@ export default function LicenseDetail() {
     load();
   }, [id]);
 
+  const openRenewDialog = () => {
+    if (!license) return;
+    setRenewDate(addYears(license.valid_until, 1));
+    setRenewNotes('');
+    setRenewOpen(true);
+  };
+
+  const submitRenewal = async () => {
+    if (!license || !user || !renewDate) return;
+    setRenewSubmitting(true);
+    const { error } = await supabase.from('license_renewals' as any).insert({
+      license_id: license.id,
+      initiated_by: user.id,
+      previous_valid_until: license.valid_until,
+      new_valid_until: new Date(renewDate).toISOString(),
+      notes: renewNotes || null,
+      status: 'submitted',
+    } as any);
+    if (error) {
+      toast.error(error.message);
+      setRenewSubmitting(false);
+      return;
+    }
+    await supabase.from('license_actions' as any).insert({
+      license_id: license.id,
+      action_type: 'renewal_requested',
+      actor_id: user.id,
+      reason: renewNotes || null,
+      old_status: license.status,
+      new_status: license.status,
+    } as any);
+    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: renewDate } });
+    dispatchNotificationEvent({
+      event_key: 'license.renewal_requested',
+      entity_type: 'license',
+      entity_id: license.id,
+      payload: {
+        license_id: license.id,
+        license_number: license.license_number,
+        license_type: license.license_type,
+        new_valid_until: renewDate,
+        notes: renewNotes,
+        initiated_by_name: user.email || 'A user',
+        holder_user_id: license.holder_id,
+      },
+    });
+    toast.success('Renewal request submitted');
+    setRenewOpen(false);
+    setRenewSubmitting(false);
+    const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
+    if (acts) setActions(acts as any);
+  };
+
+  const downloadCertificate = async () => {
+    if (!license) return;
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-license-certificate', {
+        body: { mode: 'download', license_id: license.id },
+      });
+      if (error || (data as any)?.error) {
+        // Try generating then download
+        await supabase.functions.invoke('generate-license-certificate', {
+          body: { mode: 'generate', license_id: license.id },
+        });
+        const retry = await supabase.functions.invoke('generate-license-certificate', {
+          body: { mode: 'download', license_id: license.id },
+        });
+        const url = (retry.data as any)?.url;
+        if (!url) { toast.error('Failed to load certificate'); setDownloading(false); return; }
+        window.open(url, '_blank');
+      } else {
+        const url = (data as any).url;
+        window.open(url, '_blank');
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleAction = async (actionType: string, newStatus: LicenseStatus) => {
     if (!license || !user) return;
+    if (MANDATORY_REASON_ACTIONS.has(actionType) && reason.trim().length < MIN_REASON_LEN) {
+      toast.error(`Please provide a justification of at least ${MIN_REASON_LEN} characters.`);
+      return;
+    }
     setProcessing(true);
     const oldStatus = license.status;
 
@@ -81,9 +181,14 @@ export default function LicenseDetail() {
     } as any);
 
     await supabase.from('licenses' as any).update({ status: newStatus, updated_at: new Date().toISOString() } as any).eq('id', license.id);
+
+    // Mirror revocation/cancellation onto the linked licensee row
+    if (newStatus === 'revoked' || newStatus === 'cancelled') {
+      await supabase.from('licensees' as any).update({ status: newStatus } as any).eq('license_id', license.id);
+    }
+
     await logAudit({ action: `license_${actionType}`, entityType: 'license', entityId: license.id, oldValue: { status: oldStatus }, newValue: { status: newStatus, reason } });
 
-    // Fire-and-forget notification dispatch (never blocks UX). Maps action → event key.
     const eventKeyMap: Record<string, string> = {
       suspension: 'license.suspended',
       revocation: 'license.revoked',
@@ -117,9 +222,10 @@ export default function LicenseDetail() {
     if (acts) setActions(acts as any);
   };
 
-
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!license) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">License not found</div></DashboardLayout>;
+
+  const revokeDisabled = processing || reason.trim().length < MIN_REASON_LEN;
 
   return (
     <DashboardLayout>
@@ -129,7 +235,15 @@ export default function LicenseDetail() {
           description={license.license_type}
           backHref="/licenses"
           backLabel="Back to Licenses"
-          actions={<Badge variant={statusVariant[license.status] || 'outline'} className="text-sm px-3 py-1 capitalize">{LICENSE_STATUS_LABELS[license.status]}</Badge>}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={downloadCertificate} disabled={downloading}>
+                {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
+                Signed Certificate
+              </Button>
+              <Badge variant={statusVariant[license.status] || 'outline'} className="text-sm px-3 py-1 capitalize">{LICENSE_STATUS_LABELS[license.status]}</Badge>
+            </div>
+          }
         />
 
         {(() => {
@@ -150,7 +264,7 @@ export default function LicenseDetail() {
               {latest && (
                 <AlertDescription className="mt-1 space-y-1 text-sm">
                   <div>Effective: {new Date(latest.created_at).toLocaleString()}</div>
-                  {latest.reason && <div>Reason: {latest.reason}</div>}
+                  {latest.reason && <div>Justification: {latest.reason}</div>}
                 </AlertDescription>
               )}
             </Alert>
@@ -177,19 +291,30 @@ export default function LicenseDetail() {
               <Card>
                 <CardHeader><CardTitle>License Actions</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div><Label>Reason / Notes</Label><Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Enter reason..." rows={2} /></div>
+                  <div>
+                    <Label>Justification / Notes <span className="text-destructive">*</span></Label>
+                    <Textarea
+                      value={reason}
+                      onChange={e => setReason(e.target.value)}
+                      placeholder={`Required for revoke/suspend/cancel (min ${MIN_REASON_LEN} characters)...`}
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {reason.trim().length}/{MIN_REASON_LEN}+ characters
+                    </p>
+                  </div>
                   <div className="flex gap-2 flex-wrap">
                     {license.status === 'active' && (
                       <>
-                        <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
-                        <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
-                        <Button variant="outline" onClick={() => handleAction('renewal', 'active')} disabled={processing}><RefreshCw className="h-4 w-4 mr-1" />Renew</Button>
+                        <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
+                        <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
+                        <Button variant="outline" onClick={openRenewDialog} disabled={processing}><RefreshCw className="h-4 w-4 mr-1" />Renew</Button>
                       </>
                     )}
                     {license.status === 'suspended' && (
                       <>
                         <Button onClick={() => handleAction('reinstatement', 'active')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
-                        <Button variant="destructive" onClick={() => handleAction('cancellation', 'cancelled')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
+                        <Button variant="destructive" onClick={() => handleAction('cancellation', 'cancelled')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
                       </>
                     )}
                   </div>
@@ -206,7 +331,7 @@ export default function LicenseDetail() {
                   <div className="space-y-3">
                     {actions.map(a => (
                       <div key={a.id} className="border-l-2 border-border pl-3 py-1">
-                        <Badge variant="outline" className="text-xs capitalize mb-1">{a.action_type}</Badge>
+                        <Badge variant="outline" className="text-xs capitalize mb-1">{a.action_type.replace(/_/g, ' ')}</Badge>
                         <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</p>
                         <p className="text-xs">{a.old_status} → {a.new_status}</p>
                         {a.reason && <p className="text-xs text-muted-foreground italic mt-1">"{a.reason}"</p>}
@@ -218,6 +343,38 @@ export default function LicenseDetail() {
             </Card>
           </div>
         </div>
+
+        <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Renew License {license.license_number}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Existing entity details will be reused. Specify the new validity end-date and any notes.
+              </p>
+              <div>
+                <Label>Current Valid Until</Label>
+                <p className="text-sm">{license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}</p>
+              </div>
+              <div>
+                <Label htmlFor="renew-date">New Valid Until <span className="text-destructive">*</span></Label>
+                <Input id="renew-date" type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="renew-notes">Notes (optional)</Label>
+                <Textarea id="renew-notes" value={renewNotes} onChange={e => setRenewNotes(e.target.value)} rows={3} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRenewOpen(false)} disabled={renewSubmitting}>Cancel</Button>
+              <Button onClick={submitRenewal} disabled={!renewDate || renewSubmitting}>
+                {renewSubmitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Submit Renewal Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
