@@ -10,8 +10,11 @@ import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle, RefreshCw } from 'lucide-react';
 import { licenseeDrilldownTo, recordPath } from '@/lib/licenseeDashboardDrilldowns';
+
 
 const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
   active: 'approved',
@@ -53,10 +56,10 @@ export function LicenseeDashboard() {
       )}
       {activeLicensee && (
         <p className="text-sm text-muted-foreground">
-          Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>
-          {activeLicensee.license_number ? <span> · Licence no. <span className="font-mono font-medium text-foreground">{activeLicensee.license_number}</span></span> : null}.
+          Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>.
         </p>
       )}
+
 
       {canViewLicensing && (data?.licenses.list?.length ?? 0) > 0 && (
         <Card>
@@ -67,6 +70,8 @@ export function LicenseeDashboard() {
             {data!.licenses.list.map((lic) => {
               const days = lic.days_until_expiry;
               const isExpiringSoon = lic.status === 'active' && days !== null && days >= 0 && days <= 30;
+              const isExpired = lic.status === 'expired' || (lic.status === 'active' && days !== null && days < 0);
+              const canRenew = isExpired || isExpiringSoon;
               const variant = isExpiringSoon ? 'warning' : (LICENSE_BADGE_VARIANT[lic.status] || 'outline');
               let badgeLabel: string = lic.status.charAt(0).toUpperCase() + lic.status.slice(1);
               if (isExpiringSoon) badgeLabel = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`;
@@ -81,10 +86,20 @@ export function LicenseeDashboard() {
                       </p>
                     )}
                   </div>
-                  <Badge variant={variant as any}>{badgeLabel}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={variant as any}>{badgeLabel}</Badge>
+                    {canRenew && (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/licenses/${lic.id}?action=renew`}>
+                          <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })}
+
           </CardContent>
         </Card>
       )}

@@ -1,28 +1,22 @@
-## Plan: Show license number and license status on the licensee dashboard
+## Goal
+On the Licensee Dashboard, clean up the header line and surface a "Renew" action when a license is expired (or in the configured reminder/grace window), using the existing dynamic renewal config (period + fee) from the backend.
 
-### What we will build
-- Display the active licensee's **license number** on the dashboard header.
-- Add a new **License Status** card that lists every license for the active licensee with:
-  - status badge (active = green, expired/suspended/revoked = red, expiring soon = amber)
-  - "upcoming expiry in X days" countdown for active licenses nearing expiration
-- Keep all existing metric cards, charts, and drill-downs unchanged.
+## Changes
 
-### Files to change
-1. `src/contexts/PpocContext.tsx`
-   - Add optional `license_number` field to `MappedLicensee`.
-   - Populate it from the existing license-number lookups already performed for the PPOC/licensee switcher.
+### 1. `src/components/dashboard/LicenseeDashboard.tsx`
+- Header line: drop the `· Licence no. {license_number}` suffix. Keep `Showing metrics for <Entity Name>.`
+- Keep the existing "License status" card as-is (per-license rows with status badge, valid-until, days remaining).
+- In each license row inside that card, when the license is `expired` (or `active` but past valid_until), add a small **Renew** button on the right next to the badge.
+  - Suspended / revoked / cancelled → no Renew button.
+  - Active and not expiring soon → no button (current UI unchanged).
+  - Active but within the configured reminder window (`useLicenseExpiryConfig().reminder_days` max) → also show Renew (optional, matches LicenseDetail behavior).
+- Clicking **Renew** navigates to `/licenses/{id}?action=renew`, which `LicenseDetail` already handles: it auto-opens the existing Renew dialog, prefills the new validity using the dynamic `period_days` from `useLicenseExpiryConfig`, displays the dynamic renewal fee (`renewal_fee_mode`, `renewal_fee_amount`, `renewal_fee_currency`), and submits to `license_renewals` with `pending_payment` or `submitted` accordingly.
+- No business-logic changes — purely a navigation entry point reusing the existing renewal flow so it stays in sync with backend config.
 
-2. `src/hooks/useLicenseeMetrics.ts`
-   - Add `suspended` and `revoked` counts to `licenses`.
-   - Add a new `licenses.list` array containing every scoped license: `id`, `license_number`, `status`, `valid_until`, and computed `days_until_expiry`.
-   - Update `EMPTY_METRICS` to match the new shape; existing calculations remain unchanged.
+## Out of scope / unchanged
+- `useLicenseeMetrics`, `PpocContext`, renewal edge logic, fee config, and all other dashboard cards/metrics remain untouched.
+- No DB or backend changes.
 
-3. `src/components/dashboard/LicenseeDashboard.tsx`
-   - Show the active license number next to the existing licensee name line when available.
-   - Insert a new License Status card (between the welcome header and the metrics grid) that renders the `licenses.list` with status badges and expiry countdowns.
-   - Use the same badge variant mapping as `LicensesList.tsx` (active → approved/green, expired/suspended/revoked → destructive/red, expiring → warning/amber) so colors are consistent across the portal.
-
-### Out of scope
-- No changes to `LicenseStatusBadge`, `LicenseStatusBanner`, routing, or the dashboard grid layout.
-- No backend schema changes; only additive queries.
-- No changes to other dashboards (Supervisory, Applicant, PostLicensee).
+## Technical notes
+- Reuse `useLicenseExpiryConfig` only if needed to decide the "expiring soon" Renew button; for the minimal change, gating by `effectiveStatus === 'expired'` (already computed in `useLicenseeMetrics` via `days_until_expiry < 0`) is sufficient and avoids new hooks on the dashboard.
+- Use `react-router-dom`'s `Link` (or `useNavigate`) — already used elsewhere — to route to `/licenses/{id}?action=renew`.
