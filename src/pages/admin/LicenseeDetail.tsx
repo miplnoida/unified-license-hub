@@ -264,6 +264,11 @@ export default function LicenseeDetail() {
               {loadedTabs.has('risk') && <RiskRatingsTab entityId={id!} />}
             </TabsContent>
 
+            <TabsContent value="supervisory" className="mt-6">
+              {loadedTabs.has('supervisory') && <SupervisoryPlanTab entityId={id!} />}
+            </TabsContent>
+
+
             <TabsContent value="web-users" className="mt-6">
               {loadedTabs.has('web-users') && <WebUsersTab entityId={id!} entityName={displayName || licensee.name} />}
             </TabsContent>
