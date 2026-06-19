@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 interface License {
   id: string;
@@ -276,7 +277,7 @@ export default function LicenseDetail() {
       <div className="space-y-6">
         <PageHeader
           title={`License ${license.license_number}`}
-          description={license.license_type}
+          description={formatTaxonomyLabel(license.license_type)}
           backHref="/licenses"
           backLabel="Back to Licenses"
           actions={
@@ -322,7 +323,7 @@ export default function LicenseDetail() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div><p className="text-sm text-muted-foreground">License Number</p><p className="font-mono font-medium">{license.license_number}</p></div>
-                  <div><p className="text-sm text-muted-foreground">Type</p><p className="font-medium">{license.license_type}</p></div>
+                  <div><p className="text-sm text-muted-foreground">Type</p><p className="font-medium">{formatTaxonomyLabel(license.license_type)}</p></div>
                   <div><p className="text-sm text-muted-foreground">Issued</p><p>{new Date(license.issued_at).toLocaleDateString()}</p></div>
                   <div><p className="text-sm text-muted-foreground">Valid From</p><p>{new Date(license.valid_from).toLocaleDateString()}</p></div>
                   <div><p className="text-sm text-muted-foreground">Valid Until</p><p>{license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}</p></div>

@@ -12,6 +12,7 @@ import { ActivityTab } from '@/components/applications/ActivityTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
@@ -543,7 +544,7 @@ export default function ApplicationDetail() {
       <div className="space-y-6">
         <PageHeader
           title={`Application ${app.application_number}`}
-          description={app.license_type}
+          description={formatTaxonomyLabel(app.license_type)}
           backHref={isInternal ? '/applications/queue' : '/applications'}
           backLabel="Back to Applications"
           actions={
@@ -599,7 +600,7 @@ export default function ApplicationDetail() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">License Type</p>
-                          <p className="font-medium">{app.license_type}</p>
+                          <p className="font-medium">{formatTaxonomyLabel(app.license_type)}</p>
                         </div>
                         {appData.sector_name && (
                           <div className="flex items-start gap-2">

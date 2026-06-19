@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2, RefreshCw } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 interface ApprovedApp {
   id: string;
@@ -194,7 +195,7 @@ export default function ApprovedLicensees() {
                       <TableRow key={app.id}>
                         <TableCell className="font-mono font-medium text-sm">{app.application_number}</TableCell>
                         <TableCell>{entityName}</TableCell>
-                        <TableCell>{app.license_type}</TableCell>
+                        <TableCell>{formatTaxonomyLabel(app.license_type)}</TableCell>
                         <TableCell>
                           {lic ? (
                             <div className="flex items-center gap-1.5">

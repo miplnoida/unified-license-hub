@@ -1,73 +1,59 @@
-## Problem
+## Why it shows "Commercial Bank - Commercial Bank - Commercial Bank"
 
-When an application reaches its final approval step, a `licenses` row is created by the `provision_application_entity` Postgres function (called from `perform_final_workflow_approval` / `approve-pre-licensee`). That `INSERT` only sets `issued_at` and `valid_from` (column defaults) and **leaves `valid_until` NULL**.
+Application creation builds `license_type` by concatenating sector + sub-sector + category names:
 
-Verified against the latest license created today:
-
-```
-LIC-2026-000014 | issued_at 2026-06-19 | valid_until NULL ← bug
-LIC-2026-000012 | issued_at 2026-06-02 | valid_until 2026-07-02   (older flow, had 30-day expiry)
-```
-
-Because `valid_until` is null, the licensee entity shows no expiry date after final approval, the expiry reminders/banners/reports treat the license as "no expiry", and renewal can never trigger.
-
-The expiry duration is already configured globally in `site_settings.key = 'license_expiry'`:
-
-```
-{ cycle_type: 'annual', period_days: 365, grace_period_days: 30, ... }
+```ts
+// src/pages/NewApplication.tsx:996
+const licenseType = [sectorObj?.name, subSectorObj?.name, categoryObj?.name]
+  .filter(Boolean).join(' - ');
 ```
 
-…but `provision_application_entity` never reads it.
+That value is then stored verbatim on `applications.license_type`, copied onto `licenses.license_type`, and also used as the fallback `licensees.name`. For this licensee all three taxonomy levels are literally named "Commercial Bank", so the stored string is `"Commercial Bank - Commercial Bank - Commercial Bank"` — and that's what the Licenses tab and the entity header render.
 
-## Fix (backend only – data path)
+DB confirms it:
 
-Update the Postgres function `public.provision_application_entity(_application_id)` so that, when it inserts a new license, it computes and stores `valid_from` and `valid_until` from the global `license_expiry` site setting.
+```
+licenses.license_type = "Commercial Bank - Commercial Bank - Commercial Bank"
+licensees.name        = "Commercial Bank - Commercial Bank - Commercial Bank"
+sector / sub_sector / category names = "Commercial Bank" each
+```
 
-### Change in the `INSERT INTO public.licenses (...)` branch
+This isn't a workflow/approval bug — it's the slug format being too literal when neighbouring taxonomy levels share a name.
 
-1. Read the config (with safe fallback):
-   ```sql
-   v_cfg            jsonb := COALESCE(
-                       (SELECT value FROM public.site_settings WHERE key = 'license_expiry'),
-                       '{}'::jsonb);
-   v_period_days    int   := GREATEST(1, COALESCE((v_cfg->>'period_days')::int, 365));
-   v_valid_from     timestamptz := now();
-   v_valid_until    timestamptz := v_valid_from + make_interval(days => v_period_days);
+## Fix (frontend display only)
+
+Add a tiny helper that collapses consecutive duplicate segments in a `" - "`-joined label, then use it everywhere the slug is rendered.
+
+1. New helper `src/lib/formatTaxonomyLabel.ts`:
+   ```ts
+   export function formatTaxonomyLabel(value?: string | null): string {
+     if (!value) return '';
+     const parts = value.split(' - ').map(p => p.trim()).filter(Boolean);
+     const deduped: string[] = [];
+     for (const p of parts) {
+       if (deduped[deduped.length - 1]?.toLowerCase() !== p.toLowerCase()) deduped.push(p);
+     }
+     return deduped.join(' - ');
+   }
    ```
-2. Add `valid_from` and `valid_until` to the column list and `VALUES` clause of the existing `INSERT INTO public.licenses ...`.
-3. No change to the idempotency guard — if a license already exists for the application, leave its dates untouched (renewal is handled by the existing renewal flow).
-4. Include `valid_from` / `valid_until` in the `RETURNING` clause and in the JSON response so callers (and certificate generation) see them.
+   So `"Commercial Bank - Commercial Bank - Commercial Bank"` → `"Commercial Bank"`, while `"Banking - Commercial Bank - Foreign"` is left intact.
 
-No schema change is required — `valid_until` is already a nullable `timestamptz` and `valid_from` defaults to `now()`.
+2. Apply it at the render sites where the slug surfaces today:
+   - `src/components/entity-detail/LicensesTab.tsx` — wrap `{l.license_type}` (line 66).
+   - `src/pages/admin/LicenseeDetail.tsx` — wrap the header title so `displayName || licensee.name` is cleaned (line 198).
+   - `src/pages/admin/ApprovedLicensees.tsx` and `src/pages/licenses/LicensesList.tsx` / `LicenseDetail.tsx` — any column that prints `license_type` or licensee `name` directly.
+   - `src/pages/applications/ApplicationsList.tsx` and `ApplicationDetail.tsx` — same treatment for the application `license_type` cell/header.
 
-### One-off data repair (optional, only if you confirm)
-
-For the already-approved application that triggered this report, backfill the missing expiry so the licensee record shows the correct date:
-
-```sql
-UPDATE public.licenses
-   SET valid_from  = COALESCE(valid_from,  issued_at),
-       valid_until = issued_at + INTERVAL '365 days',
-       updated_at  = now()
- WHERE license_number = 'LIC-2026-000014'
-   AND valid_until IS NULL;
-```
-
-(Adjust `365` to match the currently configured `period_days` if you've changed it.)
+No change to data, edge functions, RPCs, or the creation flow. Existing rows keep their stored values; we only clean up the presentation.
 
 ## Out of scope
 
-- No change to `perform_final_workflow_approval`, `approve-pre-licensee`, the workflow templates, or any frontend code.
-- No change to renewal / late-fee / reminder logic — those already read `valid_until` correctly once it's populated.
-- No change to historical licenses other than the optional one-row backfill above.
+- Not changing how `license_type` is constructed at application creation (that would affect search, filters, reports, and historical rows).
+- Not renaming taxonomy entries or merging duplicate names — that's a data decision for the admin.
+- No DB migration.
 
 ## Verification
 
-1. Approve a new application end-to-end → new `licenses` row has `valid_until = issued_at + period_days` from `site_settings.license_expiry`.
-2. Licensee detail view, expiry banner, "License Expiry / Renewal Due" report, and SupervisoryDashboard expiry chart all show the populated date.
-3. `provision_application_entity` is still idempotent — re-running it on an already-approved application does not overwrite the existing `valid_until`.
-
-## Questions before I implement
-
-1. Should I also run the one-row backfill for `LIC-2026-000014` as part of this fix?
-2. Confirm the global `site_settings.license_expiry.period_days` (currently `365`) is the correct source of truth for every new license — i.e. you don't want per–license-type or per-sector overrides in this change.
+- Open `/admin/licensees/8e3ffcec-…` → header and Licenses tab Type column both read `Commercial Bank`.
+- Open a license whose levels differ (e.g. `"Banking - Commercial Bank - Foreign"`) → label stays `Banking - Commercial Bank - Foreign`.
+- Applications list / detail show the same cleaned label without losing information.

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Shield, Eye } from 'lucide-react';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { useNavigate } from 'react-router-dom';
 
 interface LicensesTabProps {
@@ -63,7 +64,7 @@ export default function LicensesTab({ entityId, licenseId }: LicensesTabProps) {
               {licenses.map(l => (
                 <TableRow key={l.id}>
                   <TableCell className="font-mono">{l.license_number}</TableCell>
-                  <TableCell>{l.license_type}</TableCell>
+                  <TableCell>{formatTaxonomyLabel(l.license_type)}</TableCell>
                   <TableCell>{new Date(l.issued_at).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(l.valid_from).toLocaleDateString()}</TableCell>
                   <TableCell>{l.valid_until ? new Date(l.valid_until).toLocaleDateString() : 'No expiry'}</TableCell>

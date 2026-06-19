@@ -11,6 +11,7 @@ import {
   ShieldAlert, Users2, FileText, ClipboardCheck, Umbrella, Hash, Target
 } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 // Lazy-load tab components
 const BackgroundInfoTab = lazy(() => import('@/components/entity-detail/BackgroundInfoTab'));
@@ -195,7 +196,7 @@ export default function LicenseeDetail() {
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">{displayName || licensee.name}</h1>
+                  <h1 className="text-xl font-bold text-foreground">{formatTaxonomyLabel(displayName || licensee.name)}</h1>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     {license?.license_number ? (
                       <span className="flex items-center gap-1 font-mono">
