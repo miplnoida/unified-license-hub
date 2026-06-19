@@ -139,6 +139,26 @@ export default function LicenseDetail() {
     if (acts) setActions(acts as any);
   };
 
+  const openSignedUrl = async (url: string) => {
+    // Fetch as blob and trigger a same-origin download to avoid Chrome blocking
+    // cross-origin PDF navigations from the preview iframe.
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `license-certificate-${license?.license_number || 'certificate'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch (e) {
+      // Fallback: try opening in a new tab
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const downloadCertificate = async () => {
     if (!license) return;
     setDownloading(true);
@@ -156,15 +176,15 @@ export default function LicenseDetail() {
         });
         const url = (retry.data as any)?.url;
         if (!url) { toast.error('Failed to load certificate'); setDownloading(false); return; }
-        window.open(url, '_blank');
+        await openSignedUrl(url);
       } else {
-        const url = (data as any).url;
-        window.open(url, '_blank');
+        await openSignedUrl((data as any).url);
       }
     } finally {
       setDownloading(false);
     }
   };
+
 
   const handleAction = async (actionType: string, newStatus: LicenseStatus) => {
     if (!license || !user) return;
