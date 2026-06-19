@@ -1,25 +1,43 @@
-## Plan
+# Fee Management – Scope Selector for Add/Edit Fee
 
-The URL is loading `src/pages/NewApplication.tsx`, not the standalone form detail page. It uses `FormRenderer`, but draft hydration can land on the selection step if the saved application data has no valid sector/sub-sector/category or no `last_active_form_template_id`, so the previous validation-summary fix may never be reached.
+## Goal
+In the Add/Edit Fee dialog (`src/pages/admin/FeeManagement.tsx`), replace the always-visible Category + Services + Form fields with a single **Fee Scope** dropdown that controls which field is shown, and make that field mandatory. Sector and Sub-Sector remain as base filters (needed to scope the dependent dropdowns).
 
-## What I will change
+## UI changes (dialog only)
 
-1. **Make application continue URLs resolve the intended form step reliably**
-   - In `NewApplication.tsx`, when `step=filling` is requested and no saved `last_active_form_template_id` exists, select the first hydrated/matched form template automatically instead of falling back to the category selection screen.
-   - Keep existing guards for invalid drafts and do not change submission/payment rules.
+1. **New "Fee Scope" dropdown** (required), placed above Sector/Sub-Sector:
+   - `Category`
+   - `Services`
+   - `Individual Form`
 
-2. **Make validation feedback visible inside the application flow**
-   - Pass a stable `stepStorageKey` to `FormRenderer` from `NewApplication.tsx` so long multi-section forms remember the exact internal section while continuing a draft.
-   - Ensure the existing `FormRenderer` toast + scroll-to-first-error runs on Continue/Submit for this application flow.
+2. **Conditional fields** based on Fee Scope:
+   - **Category selected** → show Sector → Sub-Sector → **Category** (Category is mandatory). Services and Form fields are hidden.
+   - **Services selected** → show Sector → Sub-Sector → **Services** multi-select (mandatory, at least 1). Category and Form fields are hidden.
+   - **Individual Form selected** → show Sector → Sub-Sector → **Form** multi-select listing all forms matching the selected sector/sub-sector (mandatory, at least 1). Category and Services hidden.
 
-3. **Harden the scroll target**
-   - Adjust the field selector escaping in `FormRenderer` so fields with generated/special names are still found reliably.
-   - No validation rules or save-draft behavior will be changed.
+3. **Reset behavior**: switching the scope clears the now-hidden fields (`categoryId`, `serviceIds`, `formIds`) so stale values are not saved.
+
+4. **Edit mode prefill**: when opening an existing fee, infer the scope from the saved record:
+   - `service_id` present → `Services`
+   - `form_id` present (and no service) → `Individual Form`
+   - else → `Category`
+
+## Validation (in `handleSave`)
+Add scope-specific guards before the existing `validateRows()` check:
+- Scope = Category → require `categoryId`.
+- Scope = Services → require `serviceIds.length > 0`.
+- Scope = Individual Form → require `formIds.length > 0`.
+Show a `toast.error` on failure. Persisted payload stays the same shape; hidden dimensions are saved as `null` (preserving existing row-expansion logic).
+
+## Out of scope (do not change)
+- Fee rules dialog, fee types table, list table, save/expand logic for rows, RLS, DB schema.
+- Sector/Sub-Sector cascading behavior and the rest of the page.
+
+## Files touched
+- `src/pages/admin/FeeManagement.tsx` – add `feeScope` state, conditional rendering in the dialog, scope-based reset in `resetForm`/`openEdit`, and scope validation in `handleSave`.
 
 ## Verification
-
-- Open the provided continue URL.
-- Confirm it lands on a form-filling view when a form template is available.
-- Leave required fields blank and click the form Continue/Submit button.
-- Confirm a top-level toast lists missing fields and the page scrolls/focuses the first invalid field.
-- Confirm Save Draft remains unchanged.
+- Open Add Fee: Fee Scope defaults to Category; only Category field appears; submit blocked until a category is chosen.
+- Switch to Services: Category disappears, Services multi-select appears and is required.
+- Switch to Individual Form: Services disappears, Form multi-select shows forms filtered by sector/sub-sector and is required.
+- Edit an existing fee created with a service / form / category – dialog opens with the correct scope preselected and the right field visible.
