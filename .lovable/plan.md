@@ -1,34 +1,30 @@
-## Update Approved Licensee Expiry to 30 Days from Registration
+## Backfill Registration Status to "approved" for Active Licensees
 
-Set `valid_until` on every license whose licensee is in `active`/`approved` status to **registration date + 30 days**, leaving all other fields untouched.
+Several registrations remain in `pending_review`/`pending_verification` even though the entity was later approved and a licensee row exists. This blocks sign-in because the login gate checks `registrations.status`. The "approved" status flow was added after these accounts were created.
 
 ### Scope
 
-- **Target rows:** rows in `public.licenses` whose linked `licensees.status = 'active'` (the "approved" state).
-- **Registration date source priority** (first non-null wins):
-  1. `licenses.issued_at` (issue date of the license)
-  2. `licenses.created_at` (fallback)
-- **Field updated:** `licenses.valid_until` only.
-- **Status:** not changed. If the new `valid_until` falls in the past, the existing expiry banner/renewal flow already handles "expired" UX — no status flip in this task.
+- **Update** `registrations.status = 'approved'` for every registration whose user owns an `active` licensee.
+- Resolution path: `licensees(status='active') → licenses → applications.applicant_id → registrations.user_id`.
+- Only `status` is touched. Names, emails, sectors, timestamps, and all other fields stay as-is.
 
-### What is NOT changed
+### Out of scope
 
-- Licensee records, certificates, renewals, notifications, audit logs.
-- License expiry **configuration** (`site_settings.license_expiry`) — cycle stays whatever admin set; this is a one-time data correction for existing approved entities.
-- Any future approvals — new licenses continue to use the configured cycle.
+- No changes to `licensees`, `licenses`, `applications`, `profiles`, or auth users.
+- No changes to login logic or approval workflow code.
+- Future approvals continue through the normal flow.
 
 ### Technical
 
-Single data update via the insert tool:
-
 ```sql
-UPDATE public.licenses l
-SET valid_until = (COALESCE(l.issued_at, l.created_at)::date + INTERVAL '30 days')
-FROM public.licensees e
-WHERE e.license_id = l.id
-  AND e.status = 'active';
+UPDATE public.registrations r
+SET status = 'approved'
+FROM public.licensees l
+JOIN public.licenses lic ON lic.id = l.license_id
+JOIN public.applications a ON a.id = lic.application_id
+WHERE r.user_id = a.applicant_id
+  AND l.status = 'active'
+  AND r.status <> 'approved';
 ```
 
-### Verification
-
-After update, run a `SELECT` sample of `license_number, issued_at, valid_until` to confirm the 30-day delta.
+Expected: ~5 distinct registrations updated (Anisha, Aditi Insurance Pvt Ltd, Naman Domestic Insurnce, Dolorem sunt magni e, Arya Deepti Insurance).
