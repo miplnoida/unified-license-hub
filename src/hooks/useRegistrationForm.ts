@@ -298,6 +298,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
   return {
     form,
     errors,
+    lastErrorsRef,
     setField,
     setEntityField,
     setMailingField,
