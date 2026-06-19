@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Search, Loader2, Download, Eye, ChevronLeft, ChevronRight, Shield, Building2, RefreshCw } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 interface ApprovedApp {
   id: string;
