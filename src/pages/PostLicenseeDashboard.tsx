@@ -13,6 +13,7 @@ import {
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { LicenseExpiryBanner } from '@/components/dashboard/LicenseExpiryBanner';
 
 const fmtMoney = (value: number) =>
   new Intl.NumberFormat('en-US', {
@@ -42,6 +43,9 @@ export default function PostLicenseeDashboard() {
             Manage your compliance, returns, and billing.
           </p>
         </div>
+
+        {/* License expiry / renewal alerts */}
+        <LicenseExpiryBanner userId={user.id} />
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up delay-100">

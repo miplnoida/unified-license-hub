@@ -21,13 +21,14 @@ const corsHeaders = {
 
 type Window = { label: string; days: number; event: "license.expiring_soon" | "license.expired" };
 
-const REMINDER_WINDOWS: Window[] = [
-  { label: "30d", days: 30, event: "license.expiring_soon" },
-  { label: "15d", days: 15, event: "license.expiring_soon" },
-  { label: "7d",  days: 7,  event: "license.expiring_soon" },
-  { label: "1d",  days: 1,  event: "license.expiring_soon" },
-  { label: "0d",  days: 0,  event: "license.expired" },
-];
+const DEFAULT_REMINDER_DAYS = [30, 15, 7, 1];
+
+function buildWindows(reminderDays: number[]): Window[] {
+  const uniq = Array.from(new Set(reminderDays.filter((d) => Number.isFinite(d) && d >= 0))).sort((a, b) => b - a);
+  const out: Window[] = uniq.map((d) => ({ label: `${d}d`, days: d, event: "license.expiring_soon" }));
+  out.push({ label: "0d", days: 0, event: "license.expired" });
+  return out;
+}
 
 function dateOnly(iso: string): string {
   return new Date(iso).toISOString().slice(0, 10);
@@ -43,9 +44,31 @@ Deno.serve(async (req) => {
 
     let reqBody: any = {};
     try { reqBody = await req.json(); } catch { /* allow empty */ }
+
+    // Load admin-configured expiry policy (site_settings.license_expiry).
+    let reminderDays = DEFAULT_REMINDER_DAYS;
+    let notifyOfficer = true;
+    try {
+      const { data: cfgRow } = await admin
+        .from("site_settings")
+        .select("value")
+        .eq("key", "license_expiry")
+        .maybeSingle();
+      const cfg: any = cfgRow?.value;
+      if (cfg?.reminder_days && Array.isArray(cfg.reminder_days) && cfg.reminder_days.length) {
+        reminderDays = cfg.reminder_days;
+      }
+      if (typeof cfg?.auto_notify_officer === "boolean") {
+        notifyOfficer = cfg.auto_notify_officer;
+      }
+    } catch (e) {
+      console.warn("license_expiry config load failed, using defaults", e);
+    }
+
+    const allWindows = buildWindows(reminderDays);
     const windows = reqBody?.window
-      ? REMINDER_WINDOWS.filter((w) => w.label === reqBody.window)
-      : REMINDER_WINDOWS;
+      ? allWindows.filter((w) => w.label === reqBody.window)
+      : allWindows;
     const explicitLicenseId: string | undefined = reqBody?.license_id;
 
     const today = new Date();
@@ -131,7 +154,7 @@ Deno.serve(async (req) => {
 
 
         // Also dispatch officer-targeted event (recipient rules resolve via sector_regulators / supervisor role).
-        if (win.event === "license.expiring_soon") {
+        if (notifyOfficer && win.event === "license.expiring_soon") {
           try {
             await admin.functions.invoke("dispatch-notification-event", {
               body: {
