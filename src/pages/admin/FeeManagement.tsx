@@ -283,6 +283,34 @@ export default function FeeManagement() {
     const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
     const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
     const effectiveFormIds = feeScope === 'form' ? formIds : [];
+
+    // Duplicate guard: no two fee configurations may share the same scope
+    // (regulator + sector + sub-sector + category/service/form) and fee type.
+    {
+      let dupQuery = supabase
+        .from('fee_configurations' as any)
+        .select('id, fee_type, category_id, service_id, form_id')
+        .eq('regulator_id', activeRegulatorId || null as any);
+      dupQuery = sectorId ? dupQuery.eq('sector_id', sectorId) : dupQuery.is('sector_id', null);
+      dupQuery = subSectorId ? dupQuery.eq('sub_sector_id', subSectorId) : dupQuery.is('sub_sector_id', null);
+      if (editing?.id) dupQuery = dupQuery.neq('id', editing.id);
+      const { data: existing, error: dupErr } = await dupQuery;
+      if (dupErr) { toast.error(dupErr.message); setSaving(false); return; }
+      const rows = (existing || []) as Array<{ fee_type: string; category_id: string | null; service_id: string | null; form_id: string | null }>;
+      for (const ft of feeTypes) {
+        if (feeScope === 'category') {
+          const hit = rows.find(r => r.fee_type === ft && r.category_id === effectiveCategoryId && !r.service_id && !r.form_id);
+          if (hit) { toast.error(`A fee already exists for this category and fee type "${ft}"`); setSaving(false); return; }
+        } else if (feeScope === 'services') {
+          const hit = rows.find(r => r.fee_type === ft && r.service_id && effectiveServiceIds.includes(r.service_id));
+          if (hit) { toast.error(`A fee already exists for one of the selected services and fee type "${ft}"`); setSaving(false); return; }
+        } else if (feeScope === 'form') {
+          const hit = rows.find(r => r.fee_type === ft && r.form_id && effectiveFormIds.includes(r.form_id));
+          if (hit) { toast.error(`A fee already exists for one of the selected forms and fee type "${ft}"`); setSaving(false); return; }
+        }
+      }
+    }
+
     const basePayload: any = {
       currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
