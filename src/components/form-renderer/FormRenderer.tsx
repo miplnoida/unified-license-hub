@@ -375,9 +375,15 @@ export function FormRenderer({
     onChangeRef.current(getMergedData());
   }, [formData, repeatableData, getMergedData]);
 
-  const validateCurrentStep = (): boolean => {
-    if (!currentSection) return true;
+  const validateCurrentStep = (): { ok: boolean; entries: Array<{ fieldName: string; label: string; message: string }> } => {
+    if (!currentSection) return { ok: true, entries: [] };
     const stepErrors: Record<string, string> = {};
+    const entries: Array<{ fieldName: string; label: string; message: string }> = [];
+    const pushErr = (field: FormField, message: string) => {
+      if (stepErrors[field.fieldName]) return;
+      stepErrors[field.fieldName] = message;
+      entries.push({ fieldName: field.fieldName, label: field.label || field.fieldName, message });
+    };
     const fieldsToCheck = currentSection.fields.filter(f => isFieldVisible(f, formData, allFields));
 
     for (const field of fieldsToCheck) {
@@ -385,37 +391,60 @@ export function FormRenderer({
       const required = isFieldRequired(field, formData, allFields);
 
       if (required && (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0))) {
-        stepErrors[field.fieldName] = `${field.label} is required`;
+        pushErr(field, `${field.label} is required`);
         continue;
       }
       if (val && field.validation) {
         const v = field.validation;
         const strVal = String(val);
-        if (v.minLength && strVal.length < v.minLength) stepErrors[field.fieldName] = `Minimum ${v.minLength} characters`;
-        if (v.maxLength && strVal.length > v.maxLength) stepErrors[field.fieldName] = `Maximum ${v.maxLength} characters`;
-        if (v.min !== undefined && Number(val) < v.min) stepErrors[field.fieldName] = `Minimum value is ${v.min}`;
-        if (v.max !== undefined && Number(val) > v.max) stepErrors[field.fieldName] = `Maximum value is ${v.max}`;
+        if (v.minLength && strVal.length < v.minLength) pushErr(field, `Minimum ${v.minLength} characters`);
+        if (v.maxLength && strVal.length > v.maxLength) pushErr(field, `Maximum ${v.maxLength} characters`);
+        if (v.min !== undefined && Number(val) < v.min) pushErr(field, `Minimum value is ${v.min}`);
+        if (v.max !== undefined && Number(val) > v.max) pushErr(field, `Maximum value is ${v.max}`);
       }
       if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
-        stepErrors[field.fieldName] = 'Invalid email address';
+        pushErr(field, 'Invalid email address');
       }
       if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
-        stepErrors[field.fieldName] = 'Invalid phone number';
+        pushErr(field, 'Invalid phone number');
       }
-      // Validate numeric fields store actual numbers
       if ((field.type === 'number' || field.type === 'decimal') && val !== undefined && val !== '' && val !== null) {
         const numVal = Number(val);
         if (isNaN(numVal)) {
-          stepErrors[field.fieldName] = 'Must be a valid number';
+          pushErr(field, 'Must be a valid number');
         }
       }
     }
     setErrors(stepErrors);
-    return Object.keys(stepErrors).length === 0;
+    return { ok: entries.length === 0, entries };
+  };
+
+  const reportValidationFailure = (entries: Array<{ fieldName: string; label: string; message: string }>) => {
+    if (entries.length === 0) return;
+    const names = entries.slice(0, 3).map(e => e.label).join(', ');
+    const more = entries.length > 3 ? ` …and ${entries.length - 3} more` : '';
+    toast.error(
+      `Please fix ${entries.length} field${entries.length > 1 ? 's' : ''}: ${names}${more}`,
+      { description: entries[0]?.message }
+    );
+    // Scroll to + focus first invalid field after errors paint
+    const first = entries[0];
+    if (typeof window !== 'undefined' && first) {
+      requestAnimationFrame(() => {
+        const selector = `[data-field-name="${(window as any).CSS?.escape ? CSS.escape(first.fieldName) : first.fieldName}"]`;
+        const el = document.querySelector<HTMLElement>(selector);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const focusable = el.querySelector<HTMLElement>('input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          focusable?.focus({ preventScroll: true });
+        }
+      });
+    }
   };
 
   const handleNext = () => {
-    if (!validateCurrentStep()) return;
+    const res = validateCurrentStep();
+    if (!res.ok) { reportValidationFailure(res.entries); return; }
     if (sectionGroups) {
       if (activeFormIdx < activeGroupForms.length - 1) {
         setActiveFormIdx(prev => prev + 1);
@@ -453,7 +482,8 @@ export function FormRenderer({
   const handleSaveDraft = () => onSaveDraft(getMergedData());
 
   const handleSubmit = () => {
-    if (!validateCurrentStep()) return;
+    const res = validateCurrentStep();
+    if (!res.ok) { reportValidationFailure(res.entries); return; }
     if (stepStorageKey) {
       try {
         sessionStorage.removeItem(stepStorageKey);
