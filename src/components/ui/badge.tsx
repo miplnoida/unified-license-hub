@@ -21,6 +21,7 @@ const badgeVariants = cva(
         rejected: "border-transparent bg-red-100 text-red-800",
         overdue: "border-transparent bg-red-100 text-red-800 animate-pulse",
         accepted: "border-transparent bg-emerald-100 text-emerald-800",
+        warning: "border-transparent bg-amber-100 text-amber-800",
         returned: "border-transparent bg-yellow-100 text-yellow-800",
         admin: "border-transparent bg-primary text-primary-foreground",
         reviewer: "border-transparent bg-blue-500 text-white",

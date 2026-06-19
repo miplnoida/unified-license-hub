@@ -15,7 +15,7 @@ import { useActiveSector } from '@/contexts/ActiveSectorContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Eye, Loader2, X } from 'lucide-react';
-import { describeLicensesFilter } from '@/lib/licenseeDashboardDrilldowns';
+import { resolveLicenseStatus } from '@/lib/licenseStatusBadge';
 
 interface License {
   id: string;
