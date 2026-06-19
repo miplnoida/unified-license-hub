@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
 
         // Also dispatch officer-targeted event (recipient rules resolve via sector_regulators / supervisor role).
-        if (win.event === "license.expiring_soon") {
+        if (notifyOfficer && win.event === "license.expiring_soon") {
           try {
             await admin.functions.invoke("dispatch-notification-event", {
               body: {
