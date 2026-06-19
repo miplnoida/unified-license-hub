@@ -125,7 +125,10 @@ Deno.serve(async (req) => {
           } catch (e: any) {
             console.error("dispatch failed", lic.id, win.label, e?.message || e);
             summary.errors++;
+          }
         }
+
+
 
         // Also dispatch officer-targeted event (recipient rules resolve via sector_regulators / supervisor role).
         if (win.event === "license.expiring_soon") {
