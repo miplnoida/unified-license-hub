@@ -16,6 +16,7 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { LICENSE_STATUS_LABELS, LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Search, Eye, Loader2, X } from 'lucide-react';
 import { resolveLicenseStatus } from '@/lib/licenseStatusBadge';
+import { describeLicensesFilter } from '@/lib/licenseeDashboardDrilldowns';
 
 interface License {
   id: string;
@@ -35,8 +36,13 @@ interface License {
   entity_name?: string | null;
 }
 
-const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  active: 'default', suspended: 'outline', revoked: 'destructive', expired: 'secondary', cancelled: 'destructive',
+const statusVariant: Record<string, 'approved' | 'warning' | 'destructive' | 'outline'> = {
+  active: 'approved',
+  expired: 'destructive',
+  suspended: 'destructive',
+  revoked: 'destructive',
+  cancelled: 'destructive',
+  expiring: 'warning',
 };
 
 export default function LicensesList() {
@@ -213,9 +219,19 @@ export default function LicensesList() {
                       <TableCell className="font-mono font-medium text-sm">{lic.license_number}</TableCell>
                       <TableCell className="text-sm">{lic.entity_name || <span className="text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
-                        <Badge variant={statusVariant[lic.status] || 'outline'} className="capitalize">
-                          {LICENSE_STATUS_LABELS[lic.status] || lic.status}
-                        </Badge>
+                        {(() => {
+                          const effective = resolveLicenseStatus(lic.status, lic.valid_until);
+                          let variant = statusVariant[effective] || 'outline';
+                          let label = LICENSE_STATUS_LABELS[effective] || effective;
+                          if (effective === 'active' && lic.valid_until) {
+                            const days = (new Date(lic.valid_until).getTime() - Date.now()) / 86400000;
+                            if (days <= 30) {
+                              variant = 'warning';
+                              label = 'Expiring Soon';
+                            }
+                          }
+                          return <Badge variant={variant} className="capitalize">{label}</Badge>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{new Date(lic.issued_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{lic.valid_until ? new Date(lic.valid_until).toLocaleDateString() : 'No expiry'}</TableCell>
