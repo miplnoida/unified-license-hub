@@ -8,6 +8,7 @@ const STORAGE_KEY = 'ppoc.activeLicenseeId';
 export interface MappedLicensee {
   licensee_id: string;
   licensee_name: string;
+  license_number?: string | null;
   sector_id?: string | null;
   resolved_sector_id?: string | null;
   created_at?: string | null;
@@ -98,21 +99,36 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       );
 
       const resolvedMap = new Map<string, MappedLicensee>();
-      const addResolved = (licensee: any) => {
-        if (!licensee?.id || resolvedMap.has(licensee.id)) return;
-        resolvedMap.set(licensee.id, {
-          licensee_id: licensee.id,
-          licensee_name: licensee.display_name || licensee.name || '—',
+      const ownCandidateIds = new Set<string>();
+      const addResolved = (licensee: any, markOwn = false) => {
+        const id = licensee?.id || licensee?.licensee_id;
+        if (!id) return;
+        if (markOwn) ownCandidateIds.add(id);
+
+        const next: MappedLicensee = {
+          licensee_id: id,
+          licensee_name: licensee.display_name || licensee.name || user.entityName || '—',
+          license_number: licensee.license_number ?? licensee.raw?.license_number ?? null,
           sector_id: licensee.sector_id ?? null,
           resolved_sector_id: licensee.resolved_sector_id ?? licensee.sector_id ?? null,
           created_at: licensee.created_at ?? null,
           application_id: licensee.application_id ?? null,
-        });
+        };
+
+        const existing = resolvedMap.get(id);
+        resolvedMap.set(id, existing ? {
+          ...existing,
+          license_number: existing.license_number ?? next.license_number,
+          sector_id: existing.sector_id ?? next.sector_id,
+          resolved_sector_id: existing.resolved_sector_id ?? next.resolved_sector_id,
+          created_at: existing.created_at ?? next.created_at,
+          application_id: existing.application_id ?? next.application_id,
+        } : next);
       };
 
       const profileLicenseeId = (profileRes.data as any)?.licensee_id ?? user.licenseeId ?? null;
       if (profileLicenseeId && approvedById.has(profileLicenseeId)) {
-        addResolved(approvedById.get(profileLicenseeId));
+        addResolved(approvedById.get(profileLicenseeId), true);
       }
 
       if (!profileLicenseeId) {
