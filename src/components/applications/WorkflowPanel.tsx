@@ -501,6 +501,116 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       </CardContent></Card>
     );
   }
+  // Terminal (completed/cancelled) instance → render a read-only timeline.
+  // No action UI, no live SLA timers. Bypasses the currentStep guard below
+  // because terminal workflows must still display their history even when the
+  // recorded current_step_id is no longer in the current workflow version.
+  if (isTerminal) {
+    const terminalAt = (liveInstance as any).completed_at
+      ?? (liveInstance as any).updated_at
+      ?? (liveInstance as any).ended_at
+      ?? null;
+    const terminalAtLabel = terminalAt ? new Date(terminalAt).toLocaleString() : null;
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Shield className="h-4 w-4 text-primary" />
+            {entityType === 'registration' ? 'Registration Workflow Review' : 'Workflow Review'} — Level {steps.length} of {steps.length}
+            <Badge
+              variant="outline"
+              className={cn(
+                'ml-2 text-[10px]',
+                terminalKind === 'cancelled' ? 'border-muted-foreground text-muted-foreground' : 'border-success text-success',
+              )}
+            >
+              {terminalKind === 'cancelled' ? 'Cancelled' : 'Completed'}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div
+            className={cn(
+              'rounded-md border p-3 text-sm space-y-1',
+              terminalKind === 'cancelled'
+                ? 'border-muted bg-muted/40'
+                : 'border-success/40 bg-success/5',
+            )}
+          >
+            <div
+              className={cn(
+                'flex items-center gap-2 font-medium',
+                terminalKind === 'cancelled' ? 'text-muted-foreground' : 'text-success',
+              )}
+            >
+              <CheckCircle className="h-4 w-4" />
+              {terminalKind === 'cancelled'
+                ? 'Workflow cancelled'
+                : `Workflow completed${terminalAtLabel ? ` on ${terminalAtLabel}` : ''}`}
+            </div>
+            {terminalKind !== 'cancelled' && (
+              <p className="text-xs text-muted-foreground">
+                Final outcome: <strong className="capitalize">{applicationStatus.replace(/_/g, ' ')}</strong>
+                {terminalAtLabel && terminalKind !== 'completed' ? null : null}
+              </p>
+            )}
+          </div>
+
+          <Accordion
+            type="single"
+            collapsible
+            value={openStepId}
+            onValueChange={(v) => setOpenStepId(v || undefined)}
+            className="w-full divide-y rounded-md border border-border/60"
+          >
+            {steps.map((s, idx) => {
+              const status = stepStatuses[idx];
+              const isDone = status === 'completed' || status === 'returned';
+              const StatusIcon = isDone ? CheckCircle : Circle;
+              return (
+                <AccordionItem key={s.id} value={s.id} className="border-0 px-3">
+                  <AccordionTrigger className="hover:no-underline py-3">
+                    <div className="flex flex-1 items-center gap-3 pr-3 text-left">
+                      <StatusIcon
+                        className={cn(
+                          'h-4 w-4 shrink-0',
+                          isDone ? 'text-success' : 'text-muted-foreground/50',
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm truncate font-medium">Step {idx + 1}: {s.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{stepRoleLabel(s)}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {s.sla_hours ? (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {s.sla_hours}h
+                          </span>
+                        ) : null}
+                        {status === 'completed' && <Badge variant="approved" className="text-[10px]">Completed</Badge>}
+                        {status === 'returned' && <Badge variant="outline" className="text-[10px] border-warning text-warning">Sent Back</Badge>}
+                        {status === 'upcoming' && <Badge variant="outline" className="text-[10px]">Not reached</Badge>}
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    {isDone ? (
+                      renderStepHistory(s.id)
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        This step was never reached because the workflow ended earlier.
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </CardContent>
+      </Card>
+    );
+  }
   if (!currentStep) {
     return (
       <Card><CardContent className="py-6 text-sm">
