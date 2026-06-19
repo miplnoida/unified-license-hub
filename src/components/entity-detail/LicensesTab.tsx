@@ -69,7 +69,7 @@ export default function LicensesTab({ entityId, licenseId }: LicensesTabProps) {
                   <TableCell>{new Date(l.issued_at).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(l.valid_from).toLocaleDateString()}</TableCell>
                   <TableCell>{l.valid_until ? new Date(l.valid_until).toLocaleDateString() : 'No expiry'}</TableCell>
-                  <TableCell><Badge variant="outline" className={`capitalize ${statusColor(l.status)}`}>{l.status}</Badge></TableCell>
+                  <TableCell><LicenseStatusBadge status={l.status} validUntil={l.valid_until} /></TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => navigate(`/licenses/${l.id}`)}>
                       <Eye className="h-4 w-4 mr-1" />View
