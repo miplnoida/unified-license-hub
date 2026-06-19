@@ -8,6 +8,7 @@ const STORAGE_KEY = 'ppoc.activeLicenseeId';
 export interface MappedLicensee {
   licensee_id: string;
   licensee_name: string;
+  license_number?: string | null;
   sector_id?: string | null;
   resolved_sector_id?: string | null;
   created_at?: string | null;
@@ -98,21 +99,36 @@ export function PpocProvider({ children }: { children: ReactNode }) {
       );
 
       const resolvedMap = new Map<string, MappedLicensee>();
-      const addResolved = (licensee: any) => {
-        if (!licensee?.id || resolvedMap.has(licensee.id)) return;
-        resolvedMap.set(licensee.id, {
-          licensee_id: licensee.id,
-          licensee_name: licensee.display_name || licensee.name || '—',
+      const ownCandidateIds = new Set<string>();
+      const addResolved = (licensee: any, markOwn = false) => {
+        const id = licensee?.id || licensee?.licensee_id;
+        if (!id) return;
+        if (markOwn) ownCandidateIds.add(id);
+
+        const next: MappedLicensee = {
+          licensee_id: id,
+          licensee_name: licensee.display_name || licensee.name || user.entityName || '—',
+          license_number: licensee.license_number ?? licensee.raw?.license_number ?? null,
           sector_id: licensee.sector_id ?? null,
           resolved_sector_id: licensee.resolved_sector_id ?? licensee.sector_id ?? null,
           created_at: licensee.created_at ?? null,
           application_id: licensee.application_id ?? null,
-        });
+        };
+
+        const existing = resolvedMap.get(id);
+        resolvedMap.set(id, existing ? {
+          ...existing,
+          license_number: existing.license_number ?? next.license_number,
+          sector_id: existing.sector_id ?? next.sector_id,
+          resolved_sector_id: existing.resolved_sector_id ?? next.resolved_sector_id,
+          created_at: existing.created_at ?? next.created_at,
+          application_id: existing.application_id ?? next.application_id,
+        } : next);
       };
 
       const profileLicenseeId = (profileRes.data as any)?.licensee_id ?? user.licenseeId ?? null;
       if (profileLicenseeId && approvedById.has(profileLicenseeId)) {
-        addResolved(approvedById.get(profileLicenseeId));
+        addResolved(approvedById.get(profileLicenseeId), true);
       }
 
       if (!profileLicenseeId) {
@@ -124,7 +140,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             .order('created_at', { ascending: true }),
           supabase
             .from('licenses' as any)
-            .select('id')
+          .select('id, license_number')
             .eq('holder_id', user.id),
           supabase
             .from('applications' as any)
@@ -139,27 +155,43 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             .limit(1),
         ]);
 
-        ((directLicenseeRes.data || []) as any[]).forEach(addResolved);
+        ((directLicenseeRes.data || []) as any[]).forEach((licensee) => addResolved(licensee, true));
 
         const licenseIds = new Set<string>();
+        const holderLicenseNumberById = new Map<string, string | null>();
         ((holderLicenseRowsRes.data || []) as any[]).forEach((row: any) => {
           if (row?.id) licenseIds.add(row.id);
+          if (row?.id) holderLicenseNumberById.set(row.id, row.license_number ?? null);
         });
 
         if (licenseIds.size > 0) {
           const linkedLicensees = approvedLicensees.filter((licensee: any) => licensee.raw?.license_id && licenseIds.has(licensee.raw.license_id));
-          linkedLicensees.forEach(addResolved);
+          linkedLicensees.forEach((licensee) => addResolved(licensee, true));
+
+          const licenseeIdsFromLicenses = await Promise.all(
+            Array.from(licenseIds).map(async (licenseId) => {
+              const { data } = await (supabase as any).rpc('licensee_ids_for_license', { _license_id: licenseId });
+              return ((data || []) as string[]).map((licenseeId) => ({ licenseeId, licenseId }));
+            })
+          );
+          licenseeIdsFromLicenses.flat().forEach(({ licenseeId, licenseId }) => {
+            addResolved({
+              id: licenseeId,
+              display_name: user.entityName,
+              license_number: holderLicenseNumberById.get(licenseId) ?? null,
+            }, true);
+          });
         }
 
         const applicationIds = new Set<string>(((applicantRowsRes.data || []) as any[]).map((row: any) => row.id).filter(Boolean));
         const applicationLinkedLicensees = approvedLicensees.filter((licensee: any) => licensee.application_id && applicationIds.has(licensee.application_id));
-        applicationLinkedLicensees.forEach(addResolved);
+        applicationLinkedLicensees.forEach((licensee) => addResolved(licensee, true));
 
         const registrationSectorId = ((registrationRes.data || []) as any[])[0]?.sector_id ?? null;
         if (registrationSectorId) {
           approvedLicensees
             .filter((licensee: any) => (licensee.resolved_sector_id || licensee.sector_id) === registrationSectorId)
-            .forEach(addResolved);
+            .forEach((licensee) => addResolved(licensee));
         }
 
         if (resolvedMap.size === 0 && approvedLicensees.length === 1) {
@@ -192,6 +224,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             return {
               licensee_id: row.licensee_id,
               licensee_name: `${baseName}${suffix}`,
+              license_number: row.license_number ?? null,
               sector_id: row.sector_id ?? null,
               resolved_sector_id: row.resolved_sector_id ?? row.sector_id ?? null,
               created_at: row.created_at ?? null,
@@ -314,6 +347,7 @@ export function PpocProvider({ children }: { children: ReactNode }) {
             return {
               licensee_id: licenseeId,
               licensee_name: `${baseName}${suffix}`,
+              license_number: licenseNumber ?? null,
               sector_id: enriched?.sector_id ?? raw?.sector_id ?? null,
               resolved_sector_id: enriched?.resolved_sector_id ?? raw?.sector_id ?? null,
               created_at: enriched?.created_at ?? raw?.created_at ?? null,
@@ -351,14 +385,15 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         setActiveLicenseeIdState(null);
       }
 
+      const ownResolvedLicenseeId = profileLicenseeId || Array.from(ownCandidateIds)[0] || null;
       setResolvedLicensees(resolvedList);
-      setDirectOwnLicenseeId(profileLicenseeId);
+      setDirectOwnLicenseeId(ownResolvedLicenseeId);
       if (import.meta.env.DEV) {
         console.log('licensee context', {
           userId: user.id,
           role: user.role,
           profileLicenseeId,
-          resolvedLicenseeId: profileLicenseeId || resolvedList[0]?.licensee_id || null,
+          resolvedLicenseeId: ownResolvedLicenseeId || resolvedList[0]?.licensee_id || null,
         });
       }
       setLoadedUserId(user.id);
@@ -389,7 +424,9 @@ export function PpocProvider({ children }: { children: ReactNode }) {
     return 'ppoc';
   })();
 
-  const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId) || null;
+  const activeLicensee = mappedLicensees.find(l => l.licensee_id === activeLicenseeId)
+    || resolvedLicensees.find(l => l.licensee_id === (activeLicenseeId || ownLicenseeId))
+    || null;
   const resolvedLicenseeId = useMemo(() => {
     if (activeLicenseeId) return activeLicenseeId;
     return ownLicenseeId;

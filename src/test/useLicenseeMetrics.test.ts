@@ -101,7 +101,11 @@ describe('useLicenseeMetrics queryFn', () => {
               return { eq: eqMock.mockResolvedValue({ data: [], error: null }) };
             }
             if (columns === 'id, license_number, status, valid_until') {
-              return { in: inMock.mockResolvedValue({ data: [{ id: 'license-1', license_number: 'LIC-001', status: 'active', valid_until: null }], error: null }) };
+              const data = [{ id: 'license-1', license_number: 'LIC-001', status: 'active', valid_until: null }];
+              return {
+                in: inMock.mockResolvedValue({ data, error: null }),
+                eq: eqMock.mockResolvedValue({ data, error: null }),
+              };
             }
             throw new Error(`Unexpected licenses select: ${columns}`);
           },

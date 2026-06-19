@@ -198,15 +198,14 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
       ]);
 
       if (entityLicenseLinksRes.error) {
-        console.error('[useLicenseeMetrics] Failed to resolve license links:', entityLicenseLinksRes.error);
-        throw entityLicenseLinksRes.error;
+        console.warn('[useLicenseeMetrics] Could not read licensee links; falling back to holder licenses:', entityLicenseLinksRes.error);
       }
       if (returnsRes.error) {
         console.error('[useLicenseeMetrics] Failed to resolve returns:', returnsRes.error);
         throw returnsRes.error;
       }
 
-      const linkedLicenseIds = ((entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
+      const linkedLicenseIds = ((entityLicenseLinksRes.error ? [] : entityLicenseLinksRes.data || []) as Array<{ license_id?: string | null }>)
         .map((row) => row.license_id)
         .filter(Boolean) as string[];
       const licenseIdSet = new Set<string>(linkedLicenseIds);
@@ -223,6 +222,25 @@ export async function fetchLicenseeMetrics(activeLicenseeId: string | null | und
           throw licensesRes.error;
         }
         licenseRows = (licensesRes.data || []) as any[];
+      }
+
+      if (userId) {
+        const holderLicensesRes = await supabase
+          .from('licenses')
+          .select('id, license_number, status, valid_until')
+          .eq('holder_id', userId);
+
+        if (holderLicensesRes.error) {
+          console.warn('[useLicenseeMetrics] Failed to load holder licenses:', holderLicensesRes.error);
+        } else {
+          const seenLicenseIds = new Set(licenseRows.map((row) => row.id));
+          ((holderLicensesRes.data || []) as any[]).forEach((row) => {
+            if (row?.id && !seenLicenseIds.has(row.id)) {
+              seenLicenseIds.add(row.id);
+              licenseRows.push(row);
+            }
+          });
+        }
       }
 
       const normalizedLicenseRows = licenseRows.map((row) => ({

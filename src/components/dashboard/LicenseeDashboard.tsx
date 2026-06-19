@@ -30,7 +30,7 @@ export function LicenseeDashboard() {
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
-  const canViewLicensing = portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
+  const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
   const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
 
   const insights = useMemo(() => {
@@ -52,7 +52,10 @@ export function LicenseeDashboard() {
         </Card>
       )}
       {activeLicensee && (
-        <p className="text-sm text-muted-foreground">Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>.</p>
+        <p className="text-sm text-muted-foreground">
+          Showing metrics for <span className="font-medium text-foreground">{activeLicensee.licensee_name}</span>
+          {activeLicensee.license_number ? <span> · Licence no. <span className="font-mono font-medium text-foreground">{activeLicensee.license_number}</span></span> : null}.
+        </p>
       )}
 
       {canViewLicensing && (data?.licenses.list?.length ?? 0) > 0 && (
