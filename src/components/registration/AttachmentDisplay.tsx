@@ -32,7 +32,7 @@ export function normalizeAttachments(value: unknown): NormalizedAttachment[] {
       }
       if (typeof item === 'object') {
         const f = item as Record<string, any>;
-        const path = f.path || f.file_path || f.storagePath || f.storage_path;
+        const path = f.path || f.file_path || f.filePath || f.storagePath || f.storage_path || f.fullPath || f.full_path;
         const url = f.url || f.fileUrl || f.previewUrl || f.downloadUrl || f.signedUrl;
         const name =
           f.label || f.name || f.fileName || f.file_name || f.originalName || f.filename ||
