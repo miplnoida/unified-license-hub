@@ -98,6 +98,7 @@ export default function FeeManagement() {
   const [categoryId, setCategoryId] = useState('');
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [formIds, setFormIds] = useState<string[]>([]);
+  const [feeScope, setFeeScope] = useState<'category' | 'services' | 'form'>('category');
   const [isActive, setIsActive] = useState(true);
 
 
@@ -174,6 +175,7 @@ export default function FeeManagement() {
   const resetForm = () => {
     setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]);
+    setFeeScope('category');
     setIsActive(true); setEditing(null); setLegacyNote(false);
   };
 
@@ -227,6 +229,7 @@ export default function FeeManagement() {
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
     setServiceIds(fee.service_id ? [fee.service_id] : []);
     setFormIds(fee.form_id ? [fee.form_id] : []);
+    setFeeScope(fee.service_id ? 'services' : fee.form_id ? 'form' : 'category');
     setIsActive(fee.is_active);
     setDialogOpen(true);
   };
@@ -272,12 +275,18 @@ export default function FeeManagement() {
 
   const handleSave = async () => {
     if (!name.trim() || feeTypes.length === 0) { toast.error('Name and at least one fee type are required'); return; }
+    if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
+    if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
+    if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
     if (!validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
+    const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
+    const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
+    const effectiveFormIds = feeScope === 'form' ? formIds : [];
     const basePayload: any = {
       currency,
       sector_id: sectorId || null, sub_sector_id: subSectorId || null,
-      category_id: categoryId || null, is_active: isActive,
+      category_id: effectiveCategoryId, is_active: isActive,
       regulator_id: activeRegulatorId || null,
       calculation_expression: null,
     };
@@ -294,8 +303,8 @@ export default function FeeManagement() {
 
     // Expand fee types × services × forms. When none selected, write a single
     // row with the corresponding id=null (applies to all in that dimension).
-    const serviceTargets: (string | null)[] = serviceIds.length > 0 ? serviceIds : [null];
-    const formTargets: (string | null)[] = formIds.length > 0 ? formIds : [null];
+    const serviceTargets: (string | null)[] = effectiveServiceIds.length > 0 ? effectiveServiceIds : [null];
+    const formTargets: (string | null)[] = effectiveFormIds.length > 0 ? effectiveFormIds : [null];
     const allRows: any[] = [];
     feeTypes.forEach(ft => {
       serviceTargets.forEach(svc => {
@@ -561,6 +570,28 @@ export default function FeeManagement() {
                       )}
                     </div>
 
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Fee Scope *</Label>
+                        <Select
+                          value={feeScope}
+                          onValueChange={(v: 'category' | 'services' | 'form') => {
+                            setFeeScope(v);
+                            // Clear the now-hidden fields so stale values aren't saved
+                            if (v === 'category') { setServiceIds([]); setFormIds([]); }
+                            else if (v === 'services') { setCategoryId(''); setFormIds([]); }
+                            else { setCategoryId(''); setServiceIds([]); }
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="services">Services</SelectItem>
+                            <SelectItem value="form">Individual Form</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
@@ -581,41 +612,50 @@ export default function FeeManagement() {
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Category</Label>
-                        <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
-                          <SelectTrigger><SelectValue placeholder="All categories" /></SelectTrigger>
-                          <SelectContent>
-                            {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
+                    {feeScope === 'category' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Category *</Label>
+                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
+                            <SelectTrigger><SelectValue placeholder={subSectorId ? 'Select a category' : 'Select sub-sector first'} /></SelectTrigger>
+                            <SelectContent>
+                              {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Services</Label>
-                        <MultiSelect
-                          options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
-                          selected={serviceIds}
-                          onChange={selected => { setServiceIds(selected); setFormIds([]); }}
-                          placeholder="None (applies to pre-licensee)"
-                          withinDialog
-                        />
+                    )}
+                    {feeScope === 'services' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Services *</Label>
+                          <MultiSelect
+                            options={filteredServices.map(s => ({ value: s.id, label: s.name }))}
+                            selected={serviceIds}
+                            onChange={selected => { setServiceIds(selected); setFormIds([]); }}
+                            placeholder="Select one or more services"
+                            withinDialog
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2">
-                        <Label>Form (optional)</Label>
-                        <MultiSelect
-                          options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
-                          selected={formIds}
-                          onChange={setFormIds}
-                          placeholder={filteredForms.length === 0 ? "No form present" : "All forms (no specific form)"}
-                          emptyMessage="No form present"
-                          withinDialog
-                        />
-                        <p className="text-xs text-muted-foreground">Leave empty to apply this fee to all forms in the selected scope.</p>
+                    )}
+                    {feeScope === 'form' && (
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                          <Label>Form *</Label>
+                          <MultiSelect
+                            options={filteredForms.map(f => ({ value: f.id, label: f.name + (f.form_type ? ` (${f.form_type})` : '') }))}
+                            selected={formIds}
+                            onChange={setFormIds}
+                            placeholder={filteredForms.length === 0 ? "No form present for selected sector/sub-sector" : "Select one or more forms"}
+                            emptyMessage="No form present"
+                            withinDialog
+                          />
+                          <p className="text-xs text-muted-foreground">Forms are filtered by the selected sector and sub-sector.</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
 
                     <div className="flex items-center gap-2">
                       <Switch checked={isActive} onCheckedChange={setIsActive} />
