@@ -12,6 +12,7 @@ import { ActivityTab } from '@/components/applications/ActivityTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
+import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 import { DocumentUpload } from '@/components/documents/DocumentUpload';
 import { DocumentList } from '@/components/documents/DocumentList';
