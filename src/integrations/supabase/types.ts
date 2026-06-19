@@ -2637,6 +2637,129 @@ export type Database = {
           },
         ]
       }
+      license_certificates: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          is_signed: boolean
+          license_id: string
+          metadata: Json
+          signatory_name: string | null
+          signatory_title: string | null
+          signature_fingerprint: string | null
+          signed_at: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          is_signed?: boolean
+          license_id: string
+          metadata?: Json
+          signatory_name?: string | null
+          signatory_title?: string | null
+          signature_fingerprint?: string | null
+          signed_at?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          is_signed?: boolean
+          license_id?: string
+          metadata?: Json
+          signatory_name?: string | null
+          signatory_title?: string | null
+          signature_fingerprint?: string | null
+          signed_at?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_certificates_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_certificates_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      license_renewals: {
+        Row: {
+          created_at: string
+          decision_reason: string | null
+          id: string
+          initiated_by: string
+          license_id: string
+          new_valid_until: string
+          notes: string | null
+          previous_valid_until: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decision_reason?: string | null
+          id?: string
+          initiated_by: string
+          license_id: string
+          new_valid_until: string
+          notes?: string | null
+          previous_valid_until?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decision_reason?: string | null
+          id?: string
+          initiated_by?: string
+          license_id?: string
+          new_valid_until?: string
+          notes?: string | null
+          previous_valid_until?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_renewals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_renewals_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licensees: {
         Row: {
           category_id: string | null
@@ -6402,6 +6525,127 @@ export type Database = {
           },
         ]
       }
+      supervisory_plan_actions: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          owner_role: string | null
+          plan_id: string
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          owner_role?: string | null
+          plan_id: string
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          owner_role?: string | null
+          plan_id?: string
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_plan_actions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_from: string
+          entity_id: string
+          id: string
+          license_id: string | null
+          notes: string | null
+          risk_rating_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_from?: string
+          entity_id: string
+          id?: string
+          license_id?: string | null
+          notes?: string | null
+          risk_rating_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_from?: string
+          entity_id?: string
+          id?: string
+          license_id?: string | null
+          notes?: string | null
+          risk_rating_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_plans_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plans_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plans_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supervisory_plans_risk_rating_id_fkey"
+            columns: ["risk_rating_id"]
+            isOneToOne: false
+            referencedRelation: "risk_ratings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_dynamic_roles: {
         Row: {
           created_at: string
@@ -6963,6 +7207,10 @@ export type Database = {
         Returns: string
       }
       audit_step_assignee_label: { Args: { _step_id: string }; Returns: string }
+      bootstrap_supervisory_profile: {
+        Args: { _license_id: string }
+        Returns: string
+      }
       build_workflow_snapshot: { Args: { _workflow_id: string }; Returns: Json }
       can_current_user_access_licensee: {
         Args: { target_licensee_id: string; target_sector_id?: string }
