@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 
 const STATUS_CLASSES: Record<string, string> = {
   active: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
+  active_grace: 'bg-amber-500/10 text-amber-800 border-amber-200',
   suspended: 'bg-amber-500/10 text-amber-700 border-amber-200',
   revoked: 'bg-red-500/10 text-red-700 border-red-200',
   cancelled: 'bg-red-500/10 text-red-700 border-red-200',
@@ -12,6 +13,7 @@ const STATUS_CLASSES: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   active: 'Active',
+  active_grace: 'Active (Grace)',
   suspended: 'Suspended',
   revoked: 'Revoked',
   cancelled: 'Cancelled',
@@ -21,21 +23,38 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Returns the effective license status, treating an `active` license whose
- * `valid_until` is in the past as `expired`. UI safety net for when the daily
- * `mark_expired_licenses()` job hasn't run yet.
+ * Returns the effective license status. An `active` license whose `valid_until`
+ * is past is treated as `expired`. When a grace period is supplied and we are
+ * still inside it, the license is treated as `active_grace` (still valid).
  */
-export function resolveLicenseStatus(status?: string | null, validUntil?: string | null): string {
+export function resolveLicenseStatus(
+  status?: string | null,
+  validUntil?: string | null,
+  gracePeriodDays?: number,
+): string {
   const key = (status || 'pending').toLowerCase();
-  if (key === 'active' && validUntil) {
-    const t = new Date(validUntil).getTime();
-    if (Number.isFinite(t) && t < Date.now()) return 'expired';
+  if (!validUntil) return key;
+  const t = new Date(validUntil).getTime();
+  if (!Number.isFinite(t)) return key;
+  const now = Date.now();
+  const graceEnds = t + Math.max(0, gracePeriodDays || 0) * 86_400_000;
+  if ((key === 'active' || key === 'expired') && t < now) {
+    if (graceEnds >= now) return 'active_grace';
+    return 'expired';
   }
   return key;
 }
 
-export function LicenseStatusBadge({ status, validUntil }: { status?: string | null; validUntil?: string | null }) {
-  const key = resolveLicenseStatus(status, validUntil);
+export function LicenseStatusBadge({
+  status,
+  validUntil,
+  gracePeriodDays,
+}: {
+  status?: string | null;
+  validUntil?: string | null;
+  gracePeriodDays?: number;
+}) {
+  const key = resolveLicenseStatus(status, validUntil, gracePeriodDays);
   return (
     <Badge variant="outline" className={`capitalize ${STATUS_CLASSES[key] || ''}`}>
       {STATUS_LABELS[key] || key}
