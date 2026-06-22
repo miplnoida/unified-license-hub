@@ -309,14 +309,101 @@ export function WorkflowActionPreviewDialog({
     return label;
   };
 
+  // ─── Digital signature capture (only when requireSignature) ───
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [sigHasInk, setSigHasInk] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSignatureDataUrl(null);
+      setSigHasInk(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !requireSignature) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    // Reset canvas
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#0f172a';
+
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+    const posFromEvent = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    const onDown = (e: PointerEvent) => {
+      drawing = true;
+      const { x, y } = posFromEvent(e);
+      lastX = x; lastY = y;
+      canvas.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!drawing) return;
+      const { x, y } = posFromEvent(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+      setSigHasInk(true);
+      e.preventDefault();
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!drawing) return;
+      drawing = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+      // Snapshot after stroke ends
+      try { setSignatureDataUrl(canvas.toDataURL('image/png')); } catch { /* ignore */ }
+    };
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+    return () => {
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointerleave', onUp);
+    };
+  }, [open, requireSignature]);
+
+  const clearSignature = () => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    setSigHasInk(false);
+    setSignatureDataUrl(null);
+  };
+
+  const signatureMissing = !!requireSignature && (!sigHasInk || !signatureDataUrl);
+
   const handleConfirm = async () => {
+    if (signatureMissing) return;
     const overrides: ActionNotificationOverride[] = bindings.map(b => ({
       binding_id: b.id,
       subject: edited[b.id]?.subject ?? '',
       body: edited[b.id]?.body ?? '',
     }));
-    await onConfirm(overrides);
+    await onConfirm(overrides, requireSignature ? signatureDataUrl : null);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!processing) onOpenChange(v); }}>
