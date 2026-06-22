@@ -18,7 +18,6 @@ import {
   useLicenseExpiryConfig,
 } from '@/hooks/useLicenseExpiryConfig';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 
 interface TaxonomyRow { id: string; name: string; parent_id?: string | null }
