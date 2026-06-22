@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { X, Plus, Trash2 } from 'lucide-react';
 import type { RegField, RegConditionalRule, RegDataSource } from '@/types/registrationForm';
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
