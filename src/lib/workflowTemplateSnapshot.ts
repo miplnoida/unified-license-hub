@@ -224,6 +224,7 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
       approver_type: s.approver_type ?? 'role_based_user',
       approver_config: s.approver_config ?? {},
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
+      require_digital_signature: !!s.require_digital_signature,
       sla_hours: s.sla_hours ?? 48,
       allowed_actions: s.allowed_actions ?? [],
     };
