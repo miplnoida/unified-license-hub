@@ -33,7 +33,10 @@ export function Header() {
         isPpoc,
         actingAs,
         resolvedLicenseeId,
-        hasPrimaryUserAccess: !!(user.licenseeId || ownLicenseeId),
+        hasPrimaryUserAccess:
+          !!user.licenseeId
+          || String(user.userType || '').toLowerCase() === 'primary'
+          || user.role === 'licensee_primary',
         ppocLoading,
       })
     : '';

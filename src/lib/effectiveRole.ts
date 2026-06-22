@@ -102,6 +102,19 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
     };
   }
 
+  if (normalizedBaseRole === 'pre_licensee' || normalizedBaseRole === 'applicant') {
+    return {
+      loading: false,
+      audience: normalizedBaseRole,
+      effectiveRole: getBaseRoleLabel(baseRole, userType),
+      isInternal: false,
+      isLicensee: false,
+      isPreLicensee: normalizedBaseRole === 'pre_licensee',
+      isApplicant: normalizedBaseRole === 'applicant',
+      activeLicenseeId: null,
+    };
+  }
+
   if (hasPrimaryUserAccess || resolvedLicenseeId || (normalizedBaseRole && LICENSEE_ROLE_SET.has(normalizedBaseRole))) {
     const isSecondaryUser = normalizedBaseRole === 'licensee_secondary' || String(userType || '').toLowerCase() === 'secondary';
     const isPrimaryRole = normalizedBaseRole === 'licensee_primary' || String(userType || '').toLowerCase() === 'primary';
@@ -119,19 +132,6 @@ export function getEffectivePortalContext(input: EffectiveRoleInput): EffectiveP
       isPreLicensee: false,
       isApplicant: false,
       activeLicenseeId: resolvedLicenseeId || null,
-    };
-  }
-
-  if (normalizedBaseRole === 'pre_licensee') {
-    return {
-      loading: false,
-      audience: 'pre_licensee',
-      effectiveRole: getBaseRoleLabel(baseRole, userType),
-      isInternal: false,
-      isLicensee: false,
-      isPreLicensee: true,
-      isApplicant: false,
-      activeLicenseeId: null,
     };
   }
 
