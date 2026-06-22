@@ -34,13 +34,23 @@ export function LicenseeDashboard() {
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
-  const { data: expiryStatuses } = useLicenseExpiryStatus(resolvedLicenseeId || user?.id);
+  // Query both scopes — by licensee id when present, and by user id — and
+  // merge so renewal eligibility is detected for both holder-based and
+  // licensee-linked accounts.
+  const { data: byLicensee } = useLicenseExpiryStatus(resolvedLicenseeId || undefined);
+  const { data: byUser } = useLicenseExpiryStatus(user?.id);
+  const expiryStatuses = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof byUser>[number]>();
+    for (const s of (byLicensee ?? [])) map.set(s.license_id, s);
+    for (const s of (byUser ?? [])) map.set(s.license_id, s);
+    return Array.from(map.values());
+  }, [byLicensee, byUser]);
   const pastGraceIds = useMemo(
-    () => new Set((expiryStatuses ?? []).filter((s) => s.is_expired).map((s) => s.license_id)),
+    () => new Set(expiryStatuses.filter((s) => s.is_expired).map((s) => s.license_id)),
     [expiryStatuses],
   );
   const inGraceIds = useMemo(
-    () => new Set((expiryStatuses ?? []).filter((s) => s.in_grace_period).map((s) => s.license_id)),
+    () => new Set(expiryStatuses.filter((s) => s.in_grace_period).map((s) => s.license_id)),
     [expiryStatuses],
   );
   const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
