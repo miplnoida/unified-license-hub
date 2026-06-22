@@ -6,10 +6,16 @@ export interface LicenseExpiryStatus {
   license_id: string;
   license_number: string | null;
   valid_until: string | null;
+  /** valid_until + grace_period_days. Until this date the license is still usable. */
+  grace_ends_on: string | null;
+  /** Same as grace_ends_on — the effective validity end including grace. */
+  effective_valid_until: string | null;
   status: string;
   days_until_expiry: number | null;
+  /** True only when the grace period has ended (license is past grace). */
   is_expired: boolean;
   in_reminder_window: boolean;
+  /** True when the original valid_until has passed but grace period is still active. */
   in_grace_period: boolean;
 }
 
@@ -18,6 +24,12 @@ const dayDiff = (target: string): number => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return Math.ceil((t - today.getTime()) / 86_400_000);
+};
+
+const addDays = (iso: string, days: number): string => {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
 };
 
 export function useLicenseExpiryStatus(userId: string | undefined) {
@@ -45,15 +57,22 @@ export function useLicenseExpiryStatus(userId: string | undefined) {
           category_id: lic.category_id,
         });
         const maxReminder = Math.max(0, ...(policy.reminder_days || [0]));
+        const graceDays = policy.grace_period_days || 0;
         const days = dayDiff(lic.valid_until);
-        const isExpired = days < 0 || lic.status === 'expired';
-        const inGrace = isExpired && Math.abs(days) <= (policy.grace_period_days || 0);
-        const inReminder = !isExpired && days <= maxReminder;
-        if (inReminder || isExpired) {
+        const graceEndsOn = addDays(lic.valid_until, graceDays);
+        const daysUntilGraceEnd = dayDiff(graceEndsOn);
+        // Past original expiry but still within the grace window.
+        const inGrace = days < 0 && daysUntilGraceEnd >= 0;
+        // Expired only when grace has fully elapsed (or status flagged and no grace left).
+        const isExpired = daysUntilGraceEnd < 0 || (lic.status === 'expired' && graceDays === 0);
+        const inReminder = !inGrace && !isExpired && days <= maxReminder && days >= 0;
+        if (inReminder || inGrace || isExpired) {
           results.push({
             license_id: lic.id,
             license_number: lic.license_number,
             valid_until: lic.valid_until,
+            grace_ends_on: graceEndsOn,
+            effective_valid_until: graceEndsOn,
             status: lic.status,
             days_until_expiry: days,
             is_expired: isExpired,
