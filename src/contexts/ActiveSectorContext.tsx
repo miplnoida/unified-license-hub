@@ -217,6 +217,18 @@ export function ActiveSectorProvider({ children }: { children: ReactNode }) {
 
 export function useActiveSector() {
   const context = useContext(ActiveSectorContext);
-  if (!context) throw new Error('useActiveSector must be used within ActiveSectorProvider');
+  if (!context) {
+    // Safe stub if used outside provider (HMR/desync). Avoids blanking entire
+    // routes when context module is reloaded out of order.
+    console.warn('[useActiveSector] called outside ActiveSectorProvider — returning safe stub');
+    return {
+      activeSectorId: null,
+      activeSectorName: null,
+      availableSectors: [],
+      loading: false,
+      setActiveSector: () => {},
+      clearActiveSector: () => {},
+    } as ActiveSectorContextType;
+  }
   return context;
 }
