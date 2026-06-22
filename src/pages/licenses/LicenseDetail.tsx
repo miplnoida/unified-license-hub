@@ -440,7 +440,7 @@ export default function LicenseDetail() {
                 {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
                 Signed Certificate
               </Button>
-              <LicenseStatusBadge status={license.status} validUntil={license.valid_until} />
+              <LicenseStatusBadge status={license.status} validUntil={license.valid_until} gracePeriodDays={graceDays} />
             </div>
           }
         />
