@@ -387,16 +387,80 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Validation</Label>
             {['text', 'textarea', 'email', 'phone'].includes(f.type) && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Min Length</Label>
-                  <Input type="number" className="h-7 text-xs" value={f.validation?.minLength ?? ''} onChange={e => updateValidation({ minLength: e.target.value ? Number(e.target.value) : undefined })} />
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Min Length</Label>
+                    <Input type="number" className="h-7 text-xs" value={f.validation?.minLength ?? ''} onChange={e => updateValidation({ minLength: e.target.value ? Number(e.target.value) : undefined })} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Max Length</Label>
+                    <Input type="number" className="h-7 text-xs" value={f.validation?.maxLength ?? ''} onChange={e => updateValidation({ maxLength: e.target.value ? Number(e.target.value) : undefined })} />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Max Length</Label>
-                  <Input type="number" className="h-7 text-xs" value={f.validation?.maxLength ?? ''} onChange={e => updateValidation({ maxLength: e.target.value ? Number(e.target.value) : undefined })} />
-                </div>
-              </div>
+                {['text', 'textarea'].includes(f.type) && (() => {
+                  const PRESETS: Record<string, { pattern?: string; msg?: string }> = {
+                    any: {},
+                    numeric: { pattern: '^[0-9]+$', msg: 'Only numbers are allowed' },
+                    alpha: { pattern: '^[A-Za-z\\s]+$', msg: 'Only letters are allowed' },
+                    alphanumeric: { pattern: '^[A-Za-z0-9\\s]+$', msg: 'Only letters and numbers are allowed' },
+                    decimal: { pattern: '^-?\\d+(\\.\\d+)?$', msg: 'Only decimal numbers are allowed' },
+                    no_special: { pattern: '^[A-Za-z0-9_\\-\\s]+$', msg: 'Special characters are not allowed' },
+                  };
+                  const current = f.validation?.pattern;
+                  const preset =
+                    !current ? 'any' :
+                    current === PRESETS.numeric.pattern ? 'numeric' :
+                    current === PRESETS.alpha.pattern ? 'alpha' :
+                    current === PRESETS.alphanumeric.pattern ? 'alphanumeric' :
+                    current === PRESETS.decimal.pattern ? 'decimal' :
+                    current === PRESETS.no_special.pattern ? 'no_special' :
+                    'custom';
+                  return (
+                    <>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Accepts</Label>
+                        <Select
+                          value={preset}
+                          onValueChange={(v) => {
+                            if (v === 'any') {
+                              updateValidation({ pattern: undefined, patternMessage: undefined });
+                            } else if (v === 'custom') {
+                              updateValidation({ pattern: f.validation?.pattern || '', patternMessage: f.validation?.patternMessage });
+                            } else {
+                              const p = PRESETS[v];
+                              updateValidation({ pattern: p.pattern, patternMessage: p.msg });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="any">Any characters</SelectItem>
+                            <SelectItem value="numeric">Only numbers</SelectItem>
+                            <SelectItem value="decimal">Only decimal numbers</SelectItem>
+                            <SelectItem value="alpha">Only letters</SelectItem>
+                            <SelectItem value="alphanumeric">Letters & numbers</SelectItem>
+                            <SelectItem value="no_special">No special characters</SelectItem>
+                            <SelectItem value="custom">Custom pattern (regex)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {preset === 'custom' && (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">Regex Pattern</Label>
+                            <Input className="h-7 text-xs font-mono" value={f.validation?.pattern || ''} onChange={e => updateValidation({ pattern: e.target.value || undefined })} placeholder="^[A-Z]{3}-\d+$" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">Error Message</Label>
+                            <Input className="h-7 text-xs" value={f.validation?.patternMessage || ''} onChange={e => updateValidation({ patternMessage: e.target.value || undefined })} placeholder="Invalid format" />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
+              </>
             )}
             {['number', 'decimal'].includes(f.type) && (
               <div className="grid grid-cols-2 gap-2">
