@@ -78,10 +78,12 @@ export default function LicenseDetail() {
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
   const { resolvedLicenseeId } = usePpoc();
+  const accessGuard = useLicenseeAccessGuard();
   const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
   const [license, setLicense] = useState<License | null>(null);
+  const [linkedLicenseeId, setLinkedLicenseeId] = useState<string | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
