@@ -14,7 +14,7 @@
  * If there are no configured notifications, the dialog simply confirms the
  * action with a "no email is configured" notice — it does NOT block actions.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertTriangle, Loader2, Mail, RotateCcw, Send } from 'lucide-react';
+import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser } from 'lucide-react';
 import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
 
@@ -46,8 +46,11 @@ interface Props {
   /** Display name of the actor (for {{actor_name}} substitution). */
   actorName?: string | null;
   processing: boolean;
-  onConfirm: (overrides: ActionNotificationOverride[]) => void | Promise<void>;
+  /** When true, capture a digital signature before allowing confirm. */
+  requireSignature?: boolean;
+  onConfirm: (overrides: ActionNotificationOverride[], signatureDataUrl?: string | null) => void | Promise<void>;
 }
+
 
 interface BindingRow {
   id: string;
