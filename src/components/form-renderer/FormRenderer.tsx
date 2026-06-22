@@ -1056,15 +1056,31 @@ export function FormRenderer({
                           <Input
                             type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
                             value={row[col.id] || ''}
+                            min={col.type === 'number' ? col.validation?.min : undefined}
+                            max={col.type === 'number' ? col.validation?.max : undefined}
+                            minLength={col.type === 'text' ? col.validation?.minLength : undefined}
+                            maxLength={col.type === 'text' ? col.validation?.maxLength : undefined}
+                            pattern={col.type === 'text' ? col.validation?.pattern : undefined}
+                            title={col.type === 'text' ? col.validation?.patternMessage : undefined}
                             onChange={e => {
+                              const val = e.target.value;
+                              if (col.type === 'text' && val && col.validation?.pattern) {
+                                try {
+                                  const re = new RegExp(col.validation.pattern);
+                                  if (!re.test(val)) {
+                                    // allow typing but mark invalid via HTML5; show toast only on blur via title
+                                  }
+                                } catch {}
+                              }
                               const newData = [...tableData];
-                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: e.target.value };
+                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: val };
                               onChange(field.fieldName, newData);
                             }}
                             disabled={readOnly}
                             className="h-8 text-xs"
                           />
                         )}
+
                       </td>
                     ))}
                     {!readOnly && (
