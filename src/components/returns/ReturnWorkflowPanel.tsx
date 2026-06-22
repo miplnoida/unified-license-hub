@@ -173,7 +173,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
 
   if (!isInternal) return null;
 
-  const executeAction = async (actionType: WorkflowActionType, overrides: ActionNotificationOverride[] = []) => {
+  const executeAction = async (actionType: WorkflowActionType, overrides: ActionNotificationOverride[] = [], signatureDataUrl: string | null = null) => {
     if (!user || !activeInstance || !currentStep) return;
     setProcessingAction(actionType);
     try {
@@ -185,6 +185,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           action_type: actionType,
           comments: comment,
           notification_overrides: overrides,
+          signature_data_url: signatureDataUrl,
         },
       });
       if (error) {
@@ -216,6 +217,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       setProcessingAction(null);
     }
   };
+
 
   const handleAction = (actionType: WorkflowActionType, label: string) => {
     if (!user || !activeInstance || !currentStep) return;
