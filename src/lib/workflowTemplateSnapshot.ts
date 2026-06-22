@@ -122,6 +122,7 @@ export function buildSnapshotFromRows(input: BuildSnapshotInput): TemplateSnapsh
       approver_config: (s.approver_config ?? {}) as Record<string, unknown>,
       sla_hours: s.sla_hours,
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
+      require_digital_signature: !!(s as any).require_digital_signature,
       allowed_actions: Array.isArray(s.allowed_actions) ? s.allowed_actions : [],
       actions,
       entry_notifications: entry,
