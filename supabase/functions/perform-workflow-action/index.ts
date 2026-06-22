@@ -135,6 +135,30 @@ export async function handler(req: Request): Promise<Response> {
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
 
+    // Persist captured signature on the just-written approval_actions row.
+    if (signature_data_url) {
+      try {
+        const { data: latest } = await admin
+          .from("approval_actions")
+          .select("id")
+          .eq("application_id", application_id)
+          .eq("actor_id", caller.id)
+          .eq("action_type", raw_action)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if ((latest as any)?.id) {
+          await admin
+            .from("approval_actions")
+            .update({ signature_data_url })
+            .eq("id", (latest as any).id);
+        }
+      } catch (sigErr) {
+        console.warn("signature persistence failed:", sigErr);
+      }
+    }
+
+
 
 
     // Final approval → atomic RPC commits all DB state, then we call
