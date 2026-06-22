@@ -222,6 +222,7 @@ export default function LicenseDetail() {
           license_type: license.license_type,
           status: 'draft',
           data: {
+            ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
             sector_id: license.sector_id,
             sub_sector_id: license.sub_sector_id,
             category_id: license.category_id,
