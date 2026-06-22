@@ -23,7 +23,7 @@ export function Header() {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { activeSectorName } = useActiveSector();
-  const { isPpoc, actingAs, ownLicenseeId, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
+  const { isPpoc, actingAs, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
   const isLicensee = !!user && portalContext.isLicensee;
   const effectiveRoleLabel = user
