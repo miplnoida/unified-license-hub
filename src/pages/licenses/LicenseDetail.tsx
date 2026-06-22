@@ -145,12 +145,22 @@ export default function LicenseDetail() {
     : undefined;
   const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
 
+  // Auto-calculated next valid_until based on the sector's renewal policy.
+  // Read-only — users cannot override it from the renewal form.
+  const computedNewValidUntil = (() => {
+    if (!license) return '';
+    const base = license.valid_until ? new Date(license.valid_until) : new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // If the license has already expired, extend from today rather than the past date.
+    if (base.getTime() < today.getTime()) base.setTime(today.getTime());
+    base.setDate(base.getDate() + periodDays);
+    return base.toISOString().slice(0, 10);
+  })();
+
   const openRenewDialog = () => {
     if (!license) return;
-    // Extend by configured period from current valid_until (or today if none).
-    const base = license.valid_until ? new Date(license.valid_until) : new Date();
-    base.setDate(base.getDate() + periodDays);
-    setRenewDate(base.toISOString().slice(0, 10));
+    setRenewDate(computedNewValidUntil);
     setRenewNotes('');
     setRenewOpen(true);
   };
@@ -164,23 +174,47 @@ export default function LicenseDetail() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [license]);
+  }, [license, computedNewValidUntil]);
 
   const submitRenewal = async () => {
-    if (!license || !user || !renewDate) return;
+    if (!license || !user) return;
+    const targetDate = computedNewValidUntil;
+    if (!targetDate) return;
     setRenewSubmitting(true);
     const isPaid = !!renewalFee && renewalFee.amount > 0;
-    const renewalStatus = isPaid ? 'pending_payment' : 'submitted';
+
+    // 1. If a fee applies, simulate the payment gateway and record the payment.
+    let paymentRef: string | null = null;
+    if (isPaid) {
+      const txnRef = `RNW-${Date.now().toString(36).toUpperCase()}`;
+      const { data: payRow, error: payErr } = await supabase.from('payments').insert({
+        user_id: user.id,
+        amount: renewalFee!.amount,
+        currency: renewalFee!.currency,
+        status: 'completed',
+        payment_method: 'online',
+        transaction_ref: txnRef,
+        paid_at: new Date().toISOString(),
+      } as any).select('id, transaction_ref').single();
+      if (payErr) {
+        toast.error(`Payment failed: ${payErr.message}`);
+        setRenewSubmitting(false);
+        return;
+      }
+      paymentRef = (payRow as any)?.transaction_ref || txnRef;
+    }
+
+    // 2. Create the renewal record.
     const feeNote = isPaid
-      ? `[Renewal fee: ${renewalFee!.amount} ${renewalFee!.currency} — awaiting payment] `
+      ? `[Renewal fee paid: ${renewalFee!.amount} ${renewalFee!.currency} — ref ${paymentRef}] `
       : '';
     const { error } = await supabase.from('license_renewals' as any).insert({
       license_id: license.id,
       initiated_by: user.id,
       previous_valid_until: license.valid_until,
-      new_valid_until: new Date(renewDate).toISOString(),
+      new_valid_until: new Date(targetDate).toISOString(),
       notes: (feeNote + (renewNotes || '')).trim() || null,
-      status: renewalStatus,
+      status: 'submitted',
     } as any);
     if (error) {
       toast.error(error.message);
@@ -195,7 +229,7 @@ export default function LicenseDetail() {
       old_status: license.status,
       new_status: license.status,
     } as any);
-    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: renewDate } });
+    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: targetDate, fee_paid: isPaid } });
     dispatchNotificationEvent({
       event_key: 'license.renewal_requested',
       entity_type: 'license',
@@ -204,13 +238,13 @@ export default function LicenseDetail() {
         license_id: license.id,
         license_number: license.license_number,
         license_type: license.license_type,
-        new_valid_until: renewDate,
+        new_valid_until: targetDate,
         notes: renewNotes,
         initiated_by_name: user.email || 'A user',
         holder_user_id: license.holder_id,
       },
     });
-    toast.success(isPaid ? 'Renewal submitted — pending payment confirmation' : 'Renewal request submitted');
+    toast.success(isPaid ? 'Payment received — renewal submitted for review' : 'Renewal request submitted');
     setRenewOpen(false);
     setRenewSubmitting(false);
     const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
