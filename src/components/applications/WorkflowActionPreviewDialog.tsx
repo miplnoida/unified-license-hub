@@ -240,9 +240,10 @@ function useStepPreviewData(stepId: string) {
 
 export function WorkflowActionPreviewDialog({
   open, onOpenChange, stepId, actionType, actionLabel, comments,
-  entityType, entityId, actorName, processing, onConfirm,
+  entityType, entityId, actorName, processing, requireSignature, onConfirm,
 }: Props) {
   const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+
   const { data: bindingResult, isLoading } = useBindings(stepId, actionType, entityType);
   const bindings = bindingResult?.bindings ?? [];
   const diagnostic = bindingResult?.diagnostic ?? {
