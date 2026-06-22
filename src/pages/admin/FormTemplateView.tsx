@@ -13,7 +13,7 @@ import {
   useVersionSections,
 } from '@/hooks/useFormTemplates';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useUserDynamicPermissions } from '@/hooks/usePermissions';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   published: 'default',
@@ -30,7 +30,7 @@ const listRouteByType: Record<string, string> = {
 export default function FormTemplateView() {
   const { templateId = '' } = useParams<{ templateId: string }>();
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
+  const { hasPermission } = useUserDynamicPermissions();
   const canEdit = hasPermission('form_management', 'edit');
 
   const { data: template, isLoading: tplLoading } = useFormTemplate(templateId || null);
