@@ -1475,10 +1475,15 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
           />
         ) : (
           <p
-            className="h-9 text-sm font-medium flex-1 px-2 flex items-center text-foreground truncate"
+            className="h-9 text-sm font-medium flex-1 px-2 flex items-center gap-2 text-foreground truncate"
             data-testid={`step-name-readonly-${index}`}
           >
-            {step.name || `Step ${index + 1}`}
+            <span className="truncate">{step.name || `Step ${index + 1}`}</span>
+            {(step as any).require_digital_signature && (
+              <Badge variant="outline" className="text-[10px] shrink-0" title="Approvers on this step must sign at runtime">
+                Signature required
+              </Badge>
+            )}
           </p>
         )}
         {isEditing && (
