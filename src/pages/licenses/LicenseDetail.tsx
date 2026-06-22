@@ -506,8 +506,9 @@ export default function LicenseDetail() {
                     {expired && !inGrace && (
                       <p className="text-xs text-destructive">Grace period has elapsed. Please contact the regulator.</p>
                     )}
-                    <Button onClick={openRenewDialog} disabled={!canRenew}>
-                      <RefreshCw className="h-4 w-4 mr-1" />Renew License
+                    <Button onClick={startRenewal} disabled={!canRenew || startingRenewal}>
+                      {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                      Renew License
                     </Button>
                   </CardContent>
                 </Card>
