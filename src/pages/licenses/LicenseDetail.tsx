@@ -157,98 +157,116 @@ export default function LicenseDetail() {
     return base.toISOString().slice(0, 10);
   })();
 
-  const openRenewDialog = () => {
-    if (!license) return;
-    setRenewDate(computedNewValidUntil);
-    setRenewNotes('');
-    setRenewOpen(true);
+  // Resolve the renewal form template for this license.
+  // Priority: service named "Renew" → sub_sector_id → sector_id → name contains "Renewal".
+  const resolveRenewalTemplate = () => {
+    const published = (formTemplates || []).filter(
+      (t: any) => t.status === 'published' && t.form_type === 'post_license',
+    );
+    if (!published.length) return null;
+
+    if (license?.sub_sector_id) {
+      const byService = published.filter(
+        (t: any) =>
+          (t.service_name || t.service || '').toLowerCase() === 'renew' &&
+          t.sub_sector_id === license.sub_sector_id,
+      );
+      if (byService.length) return byService[0];
+    }
+    if (license?.sub_sector_id) {
+      const bySub = published.filter(
+        (t: any) => t.sub_sector_id === license.sub_sector_id && /renew/i.test(t.name || ''),
+      );
+      if (bySub.length) return bySub[0];
+    }
+    if (license?.sector_id) {
+      const bySector = published.filter(
+        (t: any) => t.sector_id === license.sector_id && /renew/i.test(t.name || ''),
+      );
+      if (bySector.length) return bySector[0];
+    }
+    // Final fallback: any "Renewal" template whose name best matches the license type
+    const renewalOnly = published.filter((t: any) => /renew/i.test(t.name || ''));
+    if (!renewalOnly.length) return null;
+    const type = (license?.license_type || '').toLowerCase();
+    const scored = renewalOnly
+      .map((t: any) => {
+        const name = (t.name || '').toLowerCase();
+        let score = 0;
+        for (const word of type.split(/[^a-z0-9]+/).filter((w) => w.length > 3)) {
+          if (name.includes(word)) score += 1;
+        }
+        return { t, score };
+      })
+      .sort((a, b) => b.score - a.score);
+    return scored[0]?.t || renewalOnly[0];
   };
 
-  // Auto-open dialog when ?action=renew is present
+  const startRenewal = async () => {
+    if (!license || !user) return;
+    if (startingRenewal) return;
+    const template = resolveRenewalTemplate();
+    if (!template) {
+      toast.error('No renewal form is configured for this license.');
+      return;
+    }
+    setStartingRenewal(true);
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          applicant_id: user.id,
+          license_type: license.license_type,
+          status: 'draft',
+          data: {
+            sector_id: license.sector_id,
+            sub_sector_id: license.sub_sector_id,
+            category_id: license.category_id,
+            service_id: (template as any).service_id || null,
+            form_template_ids: [template.id],
+            renewal_of_license_id: license.id,
+            renewal_of_license_number: license.license_number,
+            computed_new_valid_until: computedNewValidUntil,
+            previous_valid_until: license.valid_until,
+            is_renewal: true,
+          },
+          regulator_id: activeRegulator?.id || null,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logAudit({
+        action: 'license_renewal_started',
+        entityType: 'license',
+        entityId: license.id,
+        newValue: {
+          application_id: (data as any).id,
+          new_valid_until: computedNewValidUntil,
+          form_template_id: template.id,
+        },
+      });
+
+      toast.success('Renewal form opened. Complete it and submit your renewal request.');
+      navigate(`/post-licensee/applications/${(data as any).id}/forms?service=Renew`);
+    } catch (err: any) {
+      toast.error('Failed to start renewal: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setStartingRenewal(false);
+    }
+  };
+
+  // Auto-trigger when ?action=renew is present.
   useEffect(() => {
-    if (license && searchParams.get('action') === 'renew' && !renewOpen) {
-      openRenewDialog();
+    if (license && searchParams.get('action') === 'renew' && !startingRenewal) {
       const next = new URLSearchParams(searchParams);
       next.delete('action');
       setSearchParams(next, { replace: true });
+      startRenewal();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [license, computedNewValidUntil]);
-
-  const submitRenewal = async () => {
-    if (!license || !user) return;
-    const targetDate = computedNewValidUntil;
-    if (!targetDate) return;
-    setRenewSubmitting(true);
-    const isPaid = !!renewalFee && renewalFee.amount > 0;
-
-    // 1. If a fee applies, simulate the payment gateway and record the payment.
-    let paymentRef: string | null = null;
-    if (isPaid) {
-      const txnRef = `RNW-${Date.now().toString(36).toUpperCase()}`;
-      const { data: payRow, error: payErr } = await supabase.from('payments').insert({
-        user_id: user.id,
-        amount: renewalFee!.amount,
-        currency: renewalFee!.currency,
-        status: 'completed',
-        payment_method: 'online',
-        transaction_ref: txnRef,
-        paid_at: new Date().toISOString(),
-      } as any).select('id, transaction_ref').single();
-      if (payErr) {
-        toast.error(`Payment failed: ${payErr.message}`);
-        setRenewSubmitting(false);
-        return;
-      }
-      paymentRef = (payRow as any)?.transaction_ref || txnRef;
-    }
-
-    // 2. Create the renewal record.
-    const feeNote = isPaid
-      ? `[Renewal fee paid: ${renewalFee!.amount} ${renewalFee!.currency} — ref ${paymentRef}] `
-      : '';
-    const { error } = await supabase.from('license_renewals' as any).insert({
-      license_id: license.id,
-      initiated_by: user.id,
-      previous_valid_until: license.valid_until,
-      new_valid_until: new Date(targetDate).toISOString(),
-      notes: (feeNote + (renewNotes || '')).trim() || null,
-      status: 'submitted',
-    } as any);
-    if (error) {
-      toast.error(error.message);
-      setRenewSubmitting(false);
-      return;
-    }
-    await supabase.from('license_actions' as any).insert({
-      license_id: license.id,
-      action_type: 'renewal_requested',
-      actor_id: user.id,
-      reason: renewNotes || null,
-      old_status: license.status,
-      new_status: license.status,
-    } as any);
-    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: targetDate, fee_paid: isPaid } });
-    dispatchNotificationEvent({
-      event_key: 'license.renewal_requested',
-      entity_type: 'license',
-      entity_id: license.id,
-      payload: {
-        license_id: license.id,
-        license_number: license.license_number,
-        license_type: license.license_type,
-        new_valid_until: targetDate,
-        notes: renewNotes,
-        initiated_by_name: user.email || 'A user',
-        holder_user_id: license.holder_id,
-      },
-    });
-    toast.success(isPaid ? 'Payment received — renewal submitted for review' : 'Renewal request submitted');
-    setRenewOpen(false);
-    setRenewSubmitting(false);
-    const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
-    if (acts) setActions(acts as any);
-  };
+  }, [license, formTemplates]);
 
   const openSignedUrl = async (url: string) => {
     // Fetch as blob and trigger a same-origin download to avoid Chrome blocking
