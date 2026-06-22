@@ -309,7 +309,11 @@ export default function LicenseDetail() {
       const next = new URLSearchParams(searchParams);
       next.delete('action');
       setSearchParams(next, { replace: true });
-      if (isLicenseExpired) startRenewal();
+      if (isPastGrace) {
+        startRenewal();
+      } else if (isWithinGrace) {
+        toast.info(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates]);
