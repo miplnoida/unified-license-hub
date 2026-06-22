@@ -137,15 +137,14 @@ export default function LicenseExpirySettings() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (!data) return;
-    setRules(
-      data.rules.map((r) => ({
-        ...r,
-        _remindersText: (r.reminder_days || []).join(','),
-      })),
-    );
-  }, [data]);
+  const emptyRule = (): DraftRule => ({
+    ...DEFAULT_LICENSE_EXPIRY_POLICY,
+    id: newRuleId(),
+    sector_id: null,
+    sub_sector_id: null,
+    category_id: null,
+    _remindersText: (DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days || []).join(','),
+  });
 
   useEffect(() => {
     if (!data) return;
@@ -155,15 +154,6 @@ export default function LicenseExpirySettings() {
     }));
     setRules(loaded.length ? loaded : [emptyRule()]);
   }, [data]);
-
-  const emptyRule = (): DraftRule => ({
-    ...DEFAULT_LICENSE_EXPIRY_POLICY,
-    id: newRuleId(),
-    sector_id: null,
-    sub_sector_id: null,
-    category_id: null,
-    _remindersText: (DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days || []).join(','),
-  });
 
   const addRule = () => {
     setRules((prev) => [...prev, emptyRule()]);
