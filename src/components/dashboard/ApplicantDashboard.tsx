@@ -2,11 +2,14 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApplicantMetrics } from '@/hooks/useApplicantMetrics';
 import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
+import { useApplicantLicenses } from '@/hooks/useApplicantLicenses';
+import { useLicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
+import { LicenseStatusList } from './cards/LicenseStatusList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { FileText, DollarSign, Bell, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
@@ -18,8 +21,11 @@ export function ApplicantDashboard() {
   const { user } = useAuth();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useApplicantMetrics(user?.id);
+  const { data: myLicenses } = useApplicantLicenses(user?.id);
+  const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
   const canUseLicensing = portalAccess.hasAreaAccess('licensing') && portalAccess.can('licensing', 'can_view_status');
   const canStartApplication = portalAccess.can('licensing', 'can_submit');
+
 
   const actionRequired =
     (data?.applications.clarification_requested ?? 0) +
@@ -55,6 +61,20 @@ export function ApplicantDashboard() {
           to="/billing/pre-licensee"
         />
       </div>
+
+      {/* Licensee / license details — shows the user's licenses with a Renew
+          action when expired (past grace). Lets applicants and pre-licensees
+          renew an existing entity license without needing a Primary User profile. */}
+      {canUseLicensing && (myLicenses?.length ?? 0) > 0 && (
+        <LicenseStatusList
+          licenses={myLicenses!}
+          expiryStatuses={expiryStatuses}
+          renewMode="expired-only"
+          title="My licenses"
+        />
+      )}
+
+
 
       {/* Primary CTA — directly under the metrics */}
       {canStartApplication && <div className="rounded-lg border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
