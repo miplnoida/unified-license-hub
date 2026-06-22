@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { X, Plus, Trash2 } from 'lucide-react';
 import type { RegField, RegConditionalRule, RegDataSource } from '@/types/registrationForm';
 import { REG_FIELD_TYPES } from '@/types/registrationForm';
@@ -339,8 +340,72 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
           </div>
         )}
 
-        {/* Pattern */}
-        {['text', 'email', 'phone', 'password'].includes(field.type) && (
+        {/* Text pattern presets */}
+        {['text', 'textarea'].includes(field.type) && (() => {
+          const PRESETS: Record<string, { pattern?: string; msg?: string }> = {
+            any: {},
+            numeric: { pattern: '^[0-9]+$', msg: 'Only numbers are allowed' },
+            alpha: { pattern: '^[A-Za-z\\s]+$', msg: 'Only letters are allowed' },
+            alphanumeric: { pattern: '^[A-Za-z0-9\\s]+$', msg: 'Only letters and numbers are allowed' },
+            decimal: { pattern: '^-?\\d+(\\.\\d+)?$', msg: 'Only decimal numbers are allowed' },
+            no_special: { pattern: '^[A-Za-z0-9_\\-\\s]+$', msg: 'Special characters are not allowed' },
+          };
+          const current = field.validation?.pattern;
+          const preset =
+            !current ? 'any' :
+            current === PRESETS.numeric.pattern ? 'numeric' :
+            current === PRESETS.alpha.pattern ? 'alpha' :
+            current === PRESETS.alphanumeric.pattern ? 'alphanumeric' :
+            current === PRESETS.decimal.pattern ? 'decimal' :
+            current === PRESETS.no_special.pattern ? 'no_special' :
+            'custom';
+          return (
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs">Accepts</Label>
+                <Select
+                  value={preset}
+                  onValueChange={(v) => {
+                    if (v === 'any') {
+                      update({ validation: { ...field.validation, pattern: undefined, patternMessage: undefined } });
+                    } else if (v === 'custom') {
+                      update({ validation: { ...field.validation, pattern: field.validation?.pattern || '', patternMessage: field.validation?.patternMessage } });
+                    } else {
+                      const p = PRESETS[v];
+                      update({ validation: { ...field.validation, pattern: p.pattern, patternMessage: p.msg } });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any characters</SelectItem>
+                    <SelectItem value="numeric">Only numbers</SelectItem>
+                    <SelectItem value="decimal">Only decimal numbers</SelectItem>
+                    <SelectItem value="alpha">Only letters</SelectItem>
+                    <SelectItem value="alphanumeric">Letters & numbers</SelectItem>
+                    <SelectItem value="no_special">No special characters</SelectItem>
+                    <SelectItem value="custom">Custom pattern (regex)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {preset === 'custom' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Pattern (Regex)</Label>
+                    <Input value={field.validation?.pattern || ''} onChange={e => update({ validation: { ...field.validation, pattern: e.target.value } })} className="h-8 text-sm font-mono" placeholder="^[A-Z].*" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Error Message</Label>
+                    <Input value={field.validation?.patternMessage || ''} onChange={e => update({ validation: { ...field.validation, patternMessage: e.target.value } })} className="h-8 text-sm" placeholder="Invalid format" />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Pattern (other input types) */}
+        {['email', 'phone', 'password'].includes(field.type) && (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Pattern (Regex)</Label>
@@ -352,6 +417,51 @@ export function FieldEditor({ field, onChange, onClose, allFields }: Props) {
             </div>
           </div>
         )}
+
+        {/* File validation */}
+        {field.type === 'file' && (
+          <div className="space-y-2 p-2 rounded border bg-muted/30">
+            <Label className="text-xs font-semibold">File Validation</Label>
+            <div>
+              <Label className="text-[10px] text-muted-foreground">Allowed File Types</Label>
+              <div className="grid grid-cols-2 gap-1 mt-1">
+                {[
+                  { value: '.pdf', label: 'PDF' },
+                  { value: '.doc,.docx', label: 'Word' },
+                  { value: '.xls,.xlsx', label: 'Excel' },
+                  { value: '.jpg,.jpeg,.png', label: 'Images' },
+                  { value: '.txt', label: 'Text' },
+                  { value: '.zip', label: 'Zip' },
+                ].map(ft => {
+                  const current = field.validation?.allowedTypes || [];
+                  return (
+                    <label key={ft.value} className="flex items-center gap-2 text-xs cursor-pointer">
+                      <Checkbox
+                        checked={current.includes(ft.value)}
+                        onCheckedChange={val => {
+                          const updated = val ? [...current, ft.value] : current.filter(t => t !== ft.value);
+                          update({ validation: { ...field.validation, allowedTypes: updated } });
+                        }}
+                      />
+                      {ft.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Min Size (KB)</Label>
+                <Input type="number" className="h-8 text-sm" value={field.validation?.minSizeKB ?? ''} onChange={e => update({ validation: { ...field.validation, minSizeKB: e.target.value ? Number(e.target.value) : undefined } })} />
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Max Size (MB)</Label>
+                <Input type="number" className="h-8 text-sm" value={field.validation?.maxSizeMB ?? ''} onChange={e => update({ validation: { ...field.validation, maxSizeMB: e.target.value ? Number(e.target.value) : undefined } })} />
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {/* Static text content */}
         {field.type === 'paragraph' && (
