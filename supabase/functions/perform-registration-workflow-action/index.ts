@@ -86,14 +86,22 @@ export async function handler(req: Request): Promise<Response> {
     const admin = createClient(supabaseUrl, serviceKey);
 
     if (step_id) {
-      const { data: cfgRow } = await admin
-        .from("approval_step_actions")
-        .select("require_digital_signature")
-        .eq("step_id", step_id)
-        .eq("action_type", raw_action)
-        .eq("is_enabled", true)
-        .maybeSingle();
-      if ((cfgRow as any)?.require_digital_signature && !signature_data_url) {
+      const [{ data: cfgRow }, { data: stepRow }] = await Promise.all([
+        admin
+          .from("approval_step_actions")
+          .select("require_digital_signature")
+          .eq("step_id", step_id)
+          .eq("action_type", raw_action)
+          .eq("is_enabled", true)
+          .maybeSingle(),
+        admin
+          .from("approval_steps")
+          .select("require_digital_signature")
+          .eq("id", step_id)
+          .maybeSingle(),
+      ]);
+      const needsSig = (cfgRow as any)?.require_digital_signature || (stepRow as any)?.require_digital_signature;
+      if (needsSig && !signature_data_url) {
         return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
       }
     }
