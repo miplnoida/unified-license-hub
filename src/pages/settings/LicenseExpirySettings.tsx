@@ -219,7 +219,7 @@ export default function LicenseExpirySettings() {
       <div className="space-y-6 max-w-5xl">
         <PageHeader
           title="License Expiry & Renewal"
-          description="Configure validity cycle, expiry reminders, and grace period per sector / sub-sector / category."
+          description="Set validity period, reminders, and grace period for each sector."
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}>
