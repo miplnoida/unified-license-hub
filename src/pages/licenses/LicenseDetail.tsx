@@ -481,11 +481,11 @@ export default function LicenseDetail() {
         <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Renew License {license.license_number}</DialogTitle>
+              <DialogTitle>Renew license {license.license_number}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Existing entity details will be reused. Specify the new validity end-date and any notes.
+                New validity is suggested from your sector's renewal policy ({periodDays} days). You can adjust it before submitting.
               </p>
               {renewalFee && renewalFee.amount > 0 && (
                 <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">

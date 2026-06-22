@@ -30,6 +30,34 @@ interface LicenseeRow {
   category_name: string;
   registered_at: string | null;
   application_id: string | null;
+  valid_until: string | null;
+}
+
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const t = new Date(dateStr).getTime();
+  if (!Number.isFinite(t)) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.ceil((t - today.getTime()) / 86400000);
+}
+
+function ExpiryCell({ validUntil, status }: { validUntil: string | null; status: string }) {
+  const days = daysUntil(validUntil);
+  const isExpired = status === 'expired' || (days !== null && days < 0);
+  const isSoon = !isExpired && days !== null && days >= 0 && days <= 7;
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span>{fmtDate(validUntil)}</span>
+      {isExpired && (
+        <Badge variant="destructive" className="animate-pulse">Expired</Badge>
+      )}
+      {isSoon && (
+        <Badge className="animate-pulse bg-amber-500 text-white hover:bg-amber-500">
+          {days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`}
+        </Badge>
+      )}
+    </div>
+  );
 }
 
 interface LookupMap { [id: string]: string }
@@ -62,7 +90,7 @@ export default function ManageLicensees() {
         supabase.from('sectors').select('id, name'),
         supabase.from('sub_sectors').select('id, name'),
         supabase.from('categories').select('id, name'),
-        supabase.from('licenses').select('id, application_id, license_number, status'),
+        supabase.from('licenses').select('id, application_id, license_number, status, valid_until'),
       ]);
 
       const sMap: LookupMap = {};
@@ -78,10 +106,12 @@ export default function ManageLicensees() {
       const licenseToApp: Record<string, string> = {};
       const licenseToNumber: Record<string, string> = {};
       const licenseToStatus: Record<string, string> = {};
+      const licenseToValidUntil: Record<string, string | null> = {};
       (licensesRes.data || []).forEach((l: any) => {
         if (l.application_id) licenseToApp[l.id] = l.application_id;
         if (l.license_number) licenseToNumber[l.id] = l.license_number;
         if (l.status) licenseToStatus[l.id] = l.status;
+        licenseToValidUntil[l.id] = l.valid_until ?? null;
       });
 
       const licensees = (licRes.data || []) as any[];
@@ -167,8 +197,10 @@ export default function ManageLicensees() {
           category_name: (categoryId && cMap[categoryId]) || data?.category_name || '—',
           registered_at: reg?.created_at || app?.created_at || l.created_at,
           application_id: appId,
+          valid_until: (l.license_id && licenseToValidUntil[l.license_id]) || null,
         };
       });
+
 
       setRows(enriched);
       setLoading(false);
@@ -279,6 +311,7 @@ export default function ManageLicensees() {
                       <TableHead>Sub Sector</TableHead>
                       <TableHead>Category / Service</TableHead>
                       <TableHead>Registered At</TableHead>
+                      <TableHead>Expiry</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -286,7 +319,7 @@ export default function ManageLicensees() {
                   <TableBody>
                     {paged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                           No licensees found.
                         </TableCell>
                       </TableRow>
@@ -306,6 +339,7 @@ export default function ManageLicensees() {
                         <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
                         <TableCell className="text-sm">{row.category_name}</TableCell>
                         <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
+                        <TableCell><ExpiryCell validUntil={row.valid_until} status={row.status} /></TableCell>
                         <TableCell>{statusBadge(row.status)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
