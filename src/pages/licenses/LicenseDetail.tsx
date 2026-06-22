@@ -514,7 +514,7 @@ export default function LicenseDetail() {
             )}
 
             {/* Renewal panel visible to license holder only after expiry */}
-            {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
+            {!isInternal && license.valid_until && (() => {
               const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
               const expired = isLicenseExpired;
               const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
