@@ -1267,9 +1267,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           entityId={applicationId}
           actorName={user?.email || null}
           processing={processing}
-          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+          requireSignature={previewState.requireSignature}
+          onConfirm={(overrides, signatureDataUrl) => executeAction(previewState.actionType, overrides, signatureDataUrl ?? null)}
         />
       )}
     </Card>
   );
 }
+
