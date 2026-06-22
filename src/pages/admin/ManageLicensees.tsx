@@ -56,6 +56,7 @@ const fmtDate = (d: string | null | undefined) => {
 
 export default function ManageLicensees() {
   const navigate = useNavigate();
+  const { data: expiryConfig } = useLicenseExpiryConfig();
   const [rows, setRows] = useState<LicenseeRow[]>([]);
   const [sectors, setSectors] = useState<LookupMap>({});
   const [loading, setLoading] = useState(true);
