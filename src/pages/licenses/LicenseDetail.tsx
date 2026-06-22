@@ -155,10 +155,19 @@ export default function LicenseDetail() {
       })
     : undefined;
   const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
-  const isLicenseExpired = !!license && (
-    license.status === 'expired' ||
-    (!!license.valid_until && new Date(license.valid_until).getTime() < new Date().setHours(0, 0, 0, 0))
+  const graceDays = licensePolicy?.grace_period_days || 0;
+  const todayMs = new Date().setHours(0, 0, 0, 0);
+  const validUntilMs = license?.valid_until ? new Date(license.valid_until).getTime() : null;
+  const graceEndsMs = validUntilMs !== null ? validUntilMs + graceDays * 86_400_000 : null;
+  const graceEndsOnLabel = graceEndsMs !== null ? new Date(graceEndsMs).toLocaleDateString() : '';
+  const isWithinGrace = !!license && validUntilMs !== null && graceEndsMs !== null &&
+    validUntilMs < todayMs && graceEndsMs >= todayMs;
+  const isPastGrace = !!license && (
+    (graceEndsMs !== null && graceEndsMs < todayMs) ||
+    (license.status === 'expired' && graceDays === 0)
   );
+  // Kept for backward references — "expired" in the legal sense = past grace.
+  const isLicenseExpired = isPastGrace;
 
   // Auto-calculated next valid_until based on the sector's renewal policy.
   // Read-only — users cannot override it from the renewal form.
