@@ -278,9 +278,8 @@ export default function LicenseExpirySettings() {
                           })
                         }
                       >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="any">Any sector</SelectItem>
                           {sectors.map((s) => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
