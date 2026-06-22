@@ -17,6 +17,8 @@ import {
 import { toast } from 'sonner';
 import { isRemarksRequired, hasNoAllowedActions, REMARKS_REQUIRED_ACTIONS } from '@/lib/workflowActionFilter';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
+import { useStepActions, type StepAction } from '@/hooks/useStepActions';
+
 
 interface CanActResult {
   can_act: boolean;
@@ -92,8 +94,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
   const [processingAction, setProcessingAction] = useState<string | null>(null);
-  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string } | null>(null);
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireSignature: boolean } | null>(null);
   const processing = processingAction !== null;
+
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('returns_management') || hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
@@ -106,7 +109,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
 
   const { data: canActResult } = useCanActOnStep(user?.id, currentStep?.id);
+  const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
+
 
   const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
     if (step.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
@@ -168,7 +173,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
 
   if (!isInternal) return null;
 
-  const executeAction = async (actionType: WorkflowActionType, overrides: ActionNotificationOverride[] = []) => {
+  const executeAction = async (actionType: WorkflowActionType, overrides: ActionNotificationOverride[] = [], signatureDataUrl: string | null = null) => {
     if (!user || !activeInstance || !currentStep) return;
     setProcessingAction(actionType);
     try {
@@ -180,6 +185,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           action_type: actionType,
           comments: comment,
           notification_overrides: overrides,
+          signature_data_url: signatureDataUrl,
         },
       });
       if (error) {
@@ -212,14 +218,19 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
     }
   };
 
+
   const handleAction = (actionType: WorkflowActionType, label: string) => {
     if (!user || !activeInstance || !currentStep) return;
     if (isRemarksRequired(actionType) && !comment.trim()) {
       toast.error('Remarks are mandatory for this action.');
       return;
     }
-    setPreviewState({ actionType, label });
+    const cfgRow = (configuredStepActions as StepAction[]).find(
+      a => a.action_type === actionType && a.is_enabled,
+    );
+    setPreviewState({ actionType, label, requireSignature: !!cfgRow?.require_digital_signature });
   };
+
 
   type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
   const actions: ActionDef[] = [];
@@ -307,7 +318,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           entityId={returnId}
           actorName={user?.email || null}
           processing={processing}
-          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+          requireSignature={previewState.requireSignature}
+          onConfirm={(overrides, signatureDataUrl) => executeAction(previewState.actionType, overrides, signatureDataUrl ?? null)}
+
         />
       )}
     </Card>

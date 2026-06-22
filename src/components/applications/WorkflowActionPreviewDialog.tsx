@@ -14,7 +14,7 @@
  * If there are no configured notifications, the dialog simply confirms the
  * action with a "no email is configured" notice — it does NOT block actions.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertTriangle, Loader2, Mail, RotateCcw, Send } from 'lucide-react';
+import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser } from 'lucide-react';
 import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
 
@@ -46,8 +46,11 @@ interface Props {
   /** Display name of the actor (for {{actor_name}} substitution). */
   actorName?: string | null;
   processing: boolean;
-  onConfirm: (overrides: ActionNotificationOverride[]) => void | Promise<void>;
+  /** When true, capture a digital signature before allowing confirm. */
+  requireSignature?: boolean;
+  onConfirm: (overrides: ActionNotificationOverride[], signatureDataUrl?: string | null) => void | Promise<void>;
 }
+
 
 interface BindingRow {
   id: string;
@@ -237,9 +240,10 @@ function useStepPreviewData(stepId: string) {
 
 export function WorkflowActionPreviewDialog({
   open, onOpenChange, stepId, actionType, actionLabel, comments,
-  entityType, entityId, actorName, processing, onConfirm,
+  entityType, entityId, actorName, processing, requireSignature, onConfirm,
 }: Props) {
   const expectedEventKey = getDefaultEventForAction(actionType, entityType);
+
   const { data: bindingResult, isLoading } = useBindings(stepId, actionType, entityType);
   const bindings = bindingResult?.bindings ?? [];
   const diagnostic = bindingResult?.diagnostic ?? {
@@ -305,14 +309,101 @@ export function WorkflowActionPreviewDialog({
     return label;
   };
 
+  // ─── Digital signature capture (only when requireSignature) ───
+  const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [sigHasInk, setSigHasInk] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSignatureDataUrl(null);
+      setSigHasInk(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !requireSignature) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    // Reset canvas
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#0f172a';
+
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+    const posFromEvent = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
+    const onDown = (e: PointerEvent) => {
+      drawing = true;
+      const { x, y } = posFromEvent(e);
+      lastX = x; lastY = y;
+      canvas.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!drawing) return;
+      const { x, y } = posFromEvent(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+      setSigHasInk(true);
+      e.preventDefault();
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!drawing) return;
+      drawing = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+      // Snapshot after stroke ends
+      try { setSignatureDataUrl(canvas.toDataURL('image/png')); } catch { /* ignore */ }
+    };
+    canvas.addEventListener('pointerdown', onDown);
+    canvas.addEventListener('pointermove', onMove);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointerleave', onUp);
+    return () => {
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointerleave', onUp);
+    };
+  }, [open, requireSignature]);
+
+  const clearSignature = () => {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    setSigHasInk(false);
+    setSignatureDataUrl(null);
+  };
+
+  const signatureMissing = !!requireSignature && (!sigHasInk || !signatureDataUrl);
+
   const handleConfirm = async () => {
+    if (signatureMissing) return;
     const overrides: ActionNotificationOverride[] = bindings.map(b => ({
       binding_id: b.id,
       subject: edited[b.id]?.subject ?? '',
       body: edited[b.id]?.body ?? '',
     }));
-    await onConfirm(overrides);
+    await onConfirm(overrides, requireSignature ? signatureDataUrl : null);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!processing) onOpenChange(v); }}>
@@ -404,6 +495,31 @@ export function WorkflowActionPreviewDialog({
               );
             })
           )}
+
+          {requireSignature && (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <PenLine className="h-4 w-4 text-primary" />
+                  Digital signature required
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={clearSignature} disabled={processing}>
+                  <Eraser className="h-3.5 w-3.5 mr-1" /> Clear
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Sign inside the box below to confirm this action. Your signature will be stored with the audit record.
+              </p>
+              <canvas
+                ref={sigCanvasRef}
+                className="w-full h-40 rounded border border-border bg-white touch-none cursor-crosshair"
+                style={{ touchAction: 'none' }}
+              />
+              {signatureMissing && (
+                <p className="text-xs text-destructive">Please sign above before confirming.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -411,11 +527,12 @@ export function WorkflowActionPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={processing}>
+          <Button onClick={handleConfirm} disabled={processing || signatureMissing}>
             {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             Confirm &amp; Send
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );

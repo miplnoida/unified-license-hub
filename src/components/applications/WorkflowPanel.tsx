@@ -115,6 +115,7 @@ interface ActionRecord {
   action: string;
   comments: string | null;
   created_at: string;
+  signature_data_url?: string | null;
 }
 
 type WorkflowEntity = 'application' | 'registration';
@@ -127,7 +128,7 @@ function useEntityActions(entityType: WorkflowEntity, entityId: string) {
       const filterCol = entityType === 'application' ? 'application_id' : 'entity_id';
       let query = supabase
         .from('approval_actions')
-        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id')
+        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id, signature_data_url')
         .order('created_at', { ascending: true });
       query = entityType === 'application'
         ? query.eq('application_id', entityId)
@@ -141,11 +142,13 @@ function useEntityActions(entityType: WorkflowEntity, entityId: string) {
         id: r.id, step_id: r.step_id, actor_id: r.actor_id,
         action_type: r.action_type, action: r.action,
         comments: r.comments, created_at: r.created_at,
+        signature_data_url: r.signature_data_url ?? null,
       })) as ActionRecord[];
     },
     staleTime: 15_000,
   });
 }
+
 
 function useActorsMap(actorIds: string[]) {
   const key = useMemo(() => Array.from(new Set(actorIds.filter(Boolean))).sort(), [actorIds]);
@@ -433,7 +436,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
   }, [actions, isPaused]);
 
-  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean; requireSignature: boolean } | null>(null);
 
   // Dev-only diagnostic. MUST be declared before the early-returns below so
   // hook order stays stable across renders (otherwise React throws #310 and
@@ -619,11 +622,22 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                                   {a.comments && (
                                     <p className="whitespace-pre-wrap text-foreground/80 border-l-2 border-border pl-2">{a.comments}</p>
                                   )}
+                                  {a.signature_data_url && (
+                                    <div className="pt-1">
+                                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Signature</p>
+                                      <img
+                                        src={a.signature_data_url}
+                                        alt="Digital signature"
+                                        className="h-12 rounded border border-border bg-white object-contain"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
                           </div>
                         );
+
                       })()
                     ) : (
                       <p className="text-xs text-muted-foreground">
@@ -668,6 +682,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const executeAction = async (
     actionType: WorkflowActionType,
     overrides: ActionNotificationOverride[] = [],
+    signatureDataUrl: string | null = null,
   ) => {
     if (!user || !liveInstance || !currentStep) return;
     setProcessingAction(actionType);
@@ -681,6 +696,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             action_type: actionType,
             comments: comment,
             notification_overrides: overrides,
+            signature_data_url: signatureDataUrl,
           }
         : {
             application_id: applicationId,
@@ -689,8 +705,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             action_type: actionType,
             comments: comment,
             notification_overrides: overrides,
+            signature_data_url: signatureDataUrl,
           };
       const { data, error } = await supabase.functions.invoke(fnName, { body });
+
       if (error) {
         let serverMsg = error.message || 'Action failed';
         try {
@@ -742,12 +760,17 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     // email(s) before the action is committed. Empty bindings → dialog still
     // confirms but shows "no email configured".
     const def = actionButtonsList.find(a => a.type === actionType);
+    const cfgRow = (configuredStepActions as StepAction[]).find(
+      a => a.action_type === actionType && a.is_enabled,
+    );
     setPreviewState({
       actionType,
       label: def?.label ?? actionType,
       requireComments: requiresRemarks,
+      requireSignature: !!cfgRow?.require_digital_signature,
     });
   };
+
 
   const handleAddRemark = async () => {
     if (!user || !liveInstance || !currentStep) return;
@@ -957,6 +980,17 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
               {a.comments && (
                 <p className="whitespace-pre-wrap text-foreground/80 border-l-2 border-border pl-2">{a.comments}</p>
               )}
+              {a.signature_data_url && (
+                <div className="pt-1">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Signature</p>
+                  <img
+                    src={a.signature_data_url}
+                    alt="Digital signature"
+                    className="h-12 rounded border border-border bg-white object-contain"
+                  />
+                </div>
+              )}
+
             </div>
           );
         })}
@@ -1258,9 +1292,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           entityId={applicationId}
           actorName={user?.email || null}
           processing={processing}
-          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+          requireSignature={previewState.requireSignature}
+          onConfirm={(overrides, signatureDataUrl) => executeAction(previewState.actionType, overrides, signatureDataUrl ?? null)}
         />
       )}
     </Card>
   );
 }
+
