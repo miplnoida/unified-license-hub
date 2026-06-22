@@ -458,7 +458,10 @@ export default function LicenseDetail() {
                       <>
                         <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
                         <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
-                        <Button variant="outline" onClick={openRenewDialog} disabled={processing}><RefreshCw className="h-4 w-4 mr-1" />Renew</Button>
+                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                          {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                          Renew
+                        </Button>
                       </>
                     )}
                     {license.status === 'suspended' && (
@@ -468,7 +471,10 @@ export default function LicenseDetail() {
                       </>
                     )}
                     {license.status === 'expired' && (
-                      <Button variant="outline" onClick={openRenewDialog} disabled={processing}><RefreshCw className="h-4 w-4 mr-1" />Renew</Button>
+                      <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                        {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                        Renew
+                      </Button>
                     )}
                   </div>
                 </CardContent>
