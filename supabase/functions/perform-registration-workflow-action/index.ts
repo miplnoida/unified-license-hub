@@ -119,6 +119,30 @@ export async function handler(req: Request): Promise<Response> {
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
 
+    if (signature_data_url) {
+      try {
+        const { data: latest } = await admin
+          .from("approval_actions")
+          .select("id")
+          .eq("entity_type", "registration")
+          .eq("entity_id", registration_id)
+          .eq("actor_id", caller.id)
+          .eq("action_type", raw_action)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if ((latest as any)?.id) {
+          await admin
+            .from("approval_actions")
+            .update({ signature_data_url })
+            .eq("id", (latest as any).id);
+        }
+      } catch (sigErr) {
+        console.warn("signature persistence failed:", sigErr);
+      }
+    }
+
+
     // Best-effort notification dispatch
     try {
       const isFinalApprove = raw_action === "approve" && (result as any).new_status === "approved";
