@@ -1,35 +1,38 @@
-## Goal
-1. **Admin → Licensee Entities list**: show each licensee's license **expiry date** and add a **blinking badge** for expired or expiring-within-7-days records.
-2. **Licensee panel renew flow**: clicking **Renew** opens a **renewal form** in-place, with new validity date pre-filled from the **sector-based license expiry config** (current sector-resolved rule) and writable by the user.
+Goal: Stop showing the expiry badge twice. Move the expired/upcoming-expiry indicator into the existing Status column only, with a blink style, and display the configured grace-period days in the upcoming badge. No other functionality changes.
 
-No other functionality changes.
+### Changes
+File: `src/pages/admin/ManageLicensees.tsx`
 
----
+1. **Remove the separate Expiry column**
+   - Delete the `ExpiryCell` component.
+   - Remove the `<TableHead>Expiry</TableHead>` column header and its `<TableCell>`.
+   - Revert the empty-state `colSpan` from `10` back to `9`.
+   - Keep `valid_until` in the `LicenseeRow` interface and in the Supabase `licenses` query, because the status column still needs it.
 
-## Changes
+2. **Load license-expiry configuration for grace days**
+   - Add `const { data: expiryConfig } = useLicenseExpiryConfig();` near the top of the page.
 
-### 1. `src/pages/admin/ManageLicensees.tsx`
-- Extend the `licenses` fetch to also select `valid_until`.
-- Add `valid_until: string | null` to `LicenseeRow` and populate it from the matched license.
-- Add a new **"Expiry"** column between "Registered At" and "Status" showing `fmtDate(valid_until)`.
-- Compute `daysToExpiry` per row. Render a small badge next to the date:
-  - `< 0` (or status === expired): red **"Expired"** badge, blinking.
-  - `0–7` days: amber **"Expires in N day(s)"** badge, blinking.
-  - otherwise: no extra badge.
-- Use a Tailwind `animate-pulse` class on the badge for the blink effect (already in project, no CSS additions needed).
-- No filter/sort/status logic changes.
+3. **New status-cell logic**
+   - Compute `daysUntil(valid_until)` using the existing helper.
+   - Determine the effective expired state: `status === 'expired' || days < 0`.
+   - Resolve the row's grace period via:
+     ```
+     expiryConfig?.resolveFor({
+       sector_id: row.sector_id,
+       sub_sector_id: row.sub_sector_id,
+       category_id: row.category_id,
+     }).grace_period_days ?? 0
+     ```
+   - Render in the Status column:
+     - **Expired** (red destructive badge with `animate-pulse`) when expired.
+     - **Expiring in {days} + {grace} days** (amber badge with `animate-pulse`) when `status === 'active'` and `0 <= days <= 7`.
+     - Otherwise the existing `LicenseStatusBadge` so suspended/revoked/pending/etc. stay unchanged.
 
-### 2. Licensee panel renewal form — `src/components/dashboard/LicenseeDashboard.tsx` + reuse existing dialog
-- The existing **Renew** button on `LicenseeDashboard` already links to `/licenses/:id?action=renew`, which auto-opens the renewal dialog in `LicenseDetail.tsx`. That dialog **already uses the sector-resolved policy** (`useLicenseExpiryConfig().resolveFor({ sector_id, sub_sector_id, category_id })`) to compute `periodDays` and pre-fill the new validity date.
-- Verify and tighten the dialog so the user clearly sees it is a "Renewal form":
-  - Rename dialog title to **"Renew license"** and add a short helper line: *"New validity is suggested from your sector's renewal policy. You can adjust it before submitting."*
-  - Keep existing fields (new validity date, notes) and existing submit logic (creates `license_renewals` row + audit + notification).
-  - No backend changes; renewal config resolution stays on the frontend via `useLicenseExpiryConfig`.
+4. **Assumptions to confirm**
+   - "Upcoming expiry" window remains 7 days, matching the previous implementation.
+   - Badge text shows the literal expression `{days} + {grace} days` using the resolved grace period for that sector/category.
 
-That's it — no schema, RLS, or edge-function changes.
-
----
-
-## Files touched
-- `src/pages/admin/ManageLicensees.tsx` — add expiry column + blinking badge, include `valid_until` in license fetch.
-- `src/pages/licenses/LicenseDetail.tsx` — minor copy tweak on the renewal dialog (title + helper text). Logic unchanged.
+### What is not changing
+- `src/lib/licenseStatusBadge.tsx` remains untouched, so all other pages keep their current badge behavior.
+- `src/pages/licenses/LicenseDetail.tsx` renewal flow is unchanged.
+- Table filters, sorting, pagination, stats, and row-click navigation stay exactly as they are.
