@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
 import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
+import { useLicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
