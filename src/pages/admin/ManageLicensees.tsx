@@ -224,25 +224,23 @@ export default function ManageLicensees() {
   const activeCount = rows.filter(r => r.status === 'active').length;
 
   const renderStatusCell = (row: LicenseeRow) => {
+    const grace = expiryConfig?.resolveFor({
+      sector_id: row.sector_id,
+      sub_sector_id: row.sub_sector_id,
+      category_id: row.category_id,
+    }).grace_period_days ?? 0;
     const days = daysUntil(row.valid_until);
-    const isExpired = row.status === 'expired' || (days !== null && days < 0);
-    if (isExpired) {
-      return <Badge variant="destructive" className="animate-pulse">Expired</Badge>;
-    }
-    const isSoon = row.status === 'active' && days !== null && days >= 0 && days <= 7;
-    if (isSoon) {
-      const grace = expiryConfig?.resolveFor({
-        sector_id: row.sector_id,
-        sub_sector_id: row.sub_sector_id,
-        category_id: row.category_id,
-      }).grace_period_days ?? 0;
+    // Honor grace period: a license past valid_until but inside grace is still
+    // "Active (Grace)", not "Expired". The shared LicenseStatusBadge resolves
+    // this exactly like the rest of the app.
+    if (row.status === 'active' && days !== null && days >= 0 && days <= 7) {
       return (
         <Badge className="animate-pulse bg-amber-500 text-white hover:bg-amber-500">
-          Expiring in {days} + {grace} days
+          Expiring in {days}{grace > 0 ? ` + ${grace} days grace` : ' days'}
         </Badge>
       );
     }
-    return <LicenseStatusBadge status={row.status} />;
+    return <LicenseStatusBadge status={row.status} validUntil={row.valid_until} gracePeriodDays={grace} />;
   };
 
   return (
