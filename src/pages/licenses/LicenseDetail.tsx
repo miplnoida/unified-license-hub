@@ -14,6 +14,7 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { logAudit } from '@/hooks/useAuditLog';
+import { dispatchNotificationEvent } from '@/lib/notificationEvents';
 import { toast } from 'sonner';
 import { LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown } from 'lucide-react';
