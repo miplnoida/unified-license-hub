@@ -439,7 +439,7 @@ function ActionForm({
       </div>
 
       {/* Digital Signature Required */}
-      <DigitalSignatureBlock draft={draft} setDraft={setDraft} keySuffix={editingId ?? 'new'} />
+      <DigitalSignatureBlock draft={draft} setDraft={setDraft} keySuffix={editingId ?? 'new'} stepRequiresSignature={!!stepRequiresSignature} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
