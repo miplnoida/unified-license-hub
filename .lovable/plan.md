@@ -1,54 +1,120 @@
 ## Goal
+Make the licensee renewal flow reliable and runtime-error-free, with this business rule applied everywhere:
 
-Make the grace period truly extend the license, and only allow renewal once the grace period is over (renewal stays open indefinitely after that).
+- Grace period extends license validity.
+- Renewal opens only after grace period ends.
+- After grace ends, renewal remains available indefinitely.
 
-## Behavior summary
+## What I found
 
-| Phase | License usable? | Renew button? | Banner |
-|---|---|---|---|
-| Active (before expiry) | Yes | No | Reminder window only (countdown) |
-| Expired, within grace | Yes (treated as active) | No | "In grace period until <date>. License remains valid." |
-| Grace ended | No | Yes | "Grace period ended on <date>. Renew now." |
-| Renewed | Yes | No | — |
+1. **Licensee panel can still show expiry/renewal incorrectly**
+   - Some UI still treats `valid_until < today` as expired, ignoring grace.
+   - Admin licensee list and licensee dashboard metrics need the same effective status logic as the renewal button.
 
-## Changes
+2. **Expiry lookup can miss the correct license**
+   - The expiry hook primarily checks licenses by `holder_id`, but licensee users can be linked through `licensees.license_id`, active licensee context, or PPOC mapping.
+   - This causes renewal banners/buttons to be missing or inconsistent for real licensee accounts.
 
-### 1. `src/hooks/useLicenseExpiryStatus.ts`
-- Add a derived `grace_ends_on` (= `valid_until + grace_period_days`) and `effective_valid_until` (same value).
-- `is_expired` becomes true only when **past grace end** (today > `grace_ends_on`). While in grace, treat as not expired.
-- Keep `in_grace_period` flag so banners can show the grace messaging.
-- Still surface rows during grace and after grace; reminder-window logic unchanged.
+3. **Renewal app creation does not fully match normal post-license applications**
+   - Normal post-license applications store `data.type`, sector/sub-sector names, service name, and service id consistently.
+   - Renewal-created applications currently store only part of that shape, which can break listing, fee matching, form matching, and review displays.
 
-### 2. `src/components/dashboard/LicenseExpiryBanner.tsx`
-- Three branches:
-  - **In grace**: info/warning variant — "License <num> is in grace period until <grace_ends_on>. It remains valid until then." No Renew button.
-  - **Past grace (is_expired true)**: destructive — "Expired on <valid_until>. Grace ended <grace_ends_on>. Please renew." Renew button shown.
-  - **Reminder window**: unchanged.
+4. **Submission guard can block renewal as a duplicate application**
+   - The backend submission check compares the same sector/sub-sector/category as the original license.
+   - Renewal requests should be exempt from “already approved application” duplicate blocking when `data.is_renewal` and `data.renewal_of_license_id` are present.
 
-### 3. `src/components/dashboard/LicenseeDashboard.tsx`
-- `canRenew` = past grace only (`isExpired && !inGrace`). Hide Renew during grace.
+5. **Date math has boundary risk**
+   - Some code compares normalized “today” while other code compares `Date.now()`.
+   - This can flip renewal availability too early/late within the same day.
 
-### 4. `src/pages/licenses/LicenseDetail.tsx`
-- New helper `isPastGrace` using `license.valid_until + resolved grace_period_days` from `useLicenseExpiryConfig().resolveFor({sector,sub_sector,category})`.
-- `?action=renew` auto-trigger: only fires when `isPastGrace`. During grace, show toast "License is in grace period until <date>. Renewal opens after that."
-- Renewal panel visibility: `!isInternal && license.valid_until && isPastGrace`.
-- `startRenewal` guard: block (with same toast) unless internal or `isPastGrace`.
-- Keep the licensee-link + access-guard logic from the previous fix intact (RLS insert stays correct).
+## Implementation plan
 
-### 5. License status treatment elsewhere (display-only)
-- `src/lib/licenseStatusBadge.tsx` / `src/components/shared/LicenseStatusBanner.tsx`: if `status === 'expired'` but within grace, render as "Active (Grace)" badge/banner instead of "Expired". No DB writes — purely presentational, driven by the resolved grace policy.
+### 1. Add one shared license validity helper
+Create a small shared helper for effective license status/date math:
 
-## Out of scope
+- Normalize dates to start-of-day.
+- Compute:
+  - `days_until_expiry`
+  - `grace_ends_on`
+  - `in_grace_period`
+  - `is_past_grace`
+  - `effective_status`
+  - `can_renew`
+- Treat invalid/null dates safely, returning no runtime errors.
 
-- No DB schema changes. `licenses.status` stays as-is; the "grace = still valid" treatment is computed in the UI/hook layer.
-- No changes to the expiry-reminder edge function or late-fee logic.
-- No new submit controls on the license detail page — renewal continues to flow into `/post-licensee/applications/{id}/forms?service=Renew`.
+### 2. Update all licensee-panel status calculations
+Apply the shared helper to:
 
-## Files to change
+- `useLicenseExpiryStatus`
+- `useLicenseeMetrics`
+- `LicenseeDashboard`
+- `LicenseExpiryBanner`
+- `ManageLicensees`
+- `LicenseStatusBadge`
+- `useLicenseStatusGate`
 
-- `src/hooks/useLicenseExpiryStatus.ts`
-- `src/components/dashboard/LicenseExpiryBanner.tsx`
-- `src/components/dashboard/LicenseeDashboard.tsx`
-- `src/pages/licenses/LicenseDetail.tsx`
-- `src/lib/licenseStatusBadge.tsx`
-- `src/components/shared/LicenseStatusBanner.tsx`
+Expected result:
+
+- During grace: show active/grace state, no Renew button.
+- After grace: show expired/grace-ended state, Renew button visible.
+- Metrics and badges match the button state.
+
+### 3. Fix expiry scoping for real licensee users
+Update the expiry status hook so it loads licenses from both:
+
+- direct holder user id
+- selected/resolved licensee id via `licensees.license_id`
+
+This prevents licensee/PPOC dashboards from missing the license that should drive renewal eligibility.
+
+### 4. Fix renewal application payload
+Make `startRenewal()` create a post-license renewal application with the same data shape as normal post-license apps:
+
+- `type: 'post_license'`
+- `is_renewal: true`
+- `renewal_of_license_id`
+- `renewal_of_license_number`
+- `computed_new_valid_until`
+- `previous_valid_until`
+- `licensee_id`
+- `sector_id`, `sub_sector_id`, `category_id`
+- `sector_name`, `sub_sector_name`, `category_name` where available
+- `service_id`, `service_name: 'Renew'`
+- `form_template_ids`
+
+Also harden template matching to prefer service id, then service name, then renewal-name fallback.
+
+### 5. Exempt valid renewal submissions from duplicate-app blocking
+Update the submission function so duplicate checks skip renewal applications only when both are true:
+
+- `data.is_renewal === true`
+- `data.renewal_of_license_id` is present
+
+This keeps normal duplicate protection intact while allowing real renewals.
+
+### 6. Add defensive runtime guards
+Add safe checks around:
+
+- missing license
+- missing template/service
+- invalid `valid_until`
+- missing linked licensee
+- duplicate renewal-click/autotrigger race
+- failed application insert/update responses
+
+### 7. Verify after implementation
+Use the live preview/browser flow to verify:
+
+- No runtime errors are recorded.
+- Grace-period license shows no renewal button.
+- Past-grace license shows renewal button.
+- Clicking Renew creates a renewal application and opens `/post-licensee/applications/:id/forms?service=Renew`.
+- Forms page loads without blank/runtime error.
+
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
+
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useLicenseExpiryConfig } from './useLicenseExpiryConfig';
+import { getLicenseValidity } from '@/lib/licenseValidity';
 
 export interface LicenseExpiryStatus {
   license_id: string;
@@ -19,65 +20,82 @@ export interface LicenseExpiryStatus {
   in_grace_period: boolean;
 }
 
-const dayDiff = (target: string): number => {
-  const t = new Date(target).getTime();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((t - today.getTime()) / 86_400_000);
-};
-
-const addDays = (iso: string, days: number): string => {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString();
-};
-
-export function useLicenseExpiryStatus(userId: string | undefined) {
+export function useLicenseExpiryStatus(userOrLicenseeId: string | undefined) {
   const { data: config } = useLicenseExpiryConfig();
 
   return useQuery({
-    queryKey: ['license_expiry_status', userId, config?.rules?.length, config?.default],
-    enabled: !!userId && !!config,
+    queryKey: ['license_expiry_status', userOrLicenseeId, config?.rules?.length, config?.default],
+    enabled: !!userOrLicenseeId && !!config,
     queryFn: async (): Promise<LicenseExpiryStatus[]> => {
-      if (!userId || !config) return [];
-      const { data, error } = await (supabase
-        .from('licenses' as any)
-        .select('id, license_number, valid_until, status, sector_id, sub_sector_id, category_id')
-        .eq('holder_id', userId) as any);
-      if (error) {
-        console.error('[useLicenseExpiryStatus]', error);
-        return [];
+      if (!userOrLicenseeId || !config) return [];
+
+      // Pull licenses scoped both ways:
+      //  1) directly owned (licenses.holder_id = id)
+      //  2) linked via a licensee row (licensees.license_id, where licensees.id = id)
+      const [heldRes, linkRes] = await Promise.all([
+        supabase
+          .from('licenses' as any)
+          .select('id, license_number, valid_until, status, sector_id, sub_sector_id, category_id')
+          .eq('holder_id', userOrLicenseeId),
+        supabase
+          .from('licensees' as any)
+          .select('license_id')
+          .eq('id', userOrLicenseeId),
+      ]);
+
+      if (heldRes.error) {
+        console.error('[useLicenseExpiryStatus] held', heldRes.error);
       }
+
+      const seen = new Set<string>();
+      const licenses: any[] = [];
+      for (const row of ((heldRes.data || []) as any[])) {
+        if (row?.id && !seen.has(row.id)) { seen.add(row.id); licenses.push(row); }
+      }
+
+      const linkedIds = (((linkRes.data || []) as any[])
+        .map((r) => r?.license_id)
+        .filter(Boolean)) as string[];
+      const missingLinked = linkedIds.filter((id) => !seen.has(id));
+      if (missingLinked.length) {
+        const { data: extra, error: extraErr } = await (supabase
+          .from('licenses' as any)
+          .select('id, license_number, valid_until, status, sector_id, sub_sector_id, category_id')
+          .in('id', missingLinked) as any);
+        if (extraErr) console.error('[useLicenseExpiryStatus] linked', extraErr);
+        for (const row of ((extra || []) as any[])) {
+          if (row?.id && !seen.has(row.id)) { seen.add(row.id); licenses.push(row); }
+        }
+      }
+
       const results: LicenseExpiryStatus[] = [];
-      for (const lic of (data || []) as any[]) {
-        if (!lic.valid_until) continue;
+      for (const lic of licenses) {
+        if (!lic?.valid_until) continue;
         const policy = config.resolveFor({
           sector_id: lic.sector_id,
           sub_sector_id: lic.sub_sector_id,
           category_id: lic.category_id,
         });
+        const v = getLicenseValidity({
+          status: lic.status,
+          valid_until: lic.valid_until,
+          grace_period_days: policy.grace_period_days,
+        });
         const maxReminder = Math.max(0, ...(policy.reminder_days || [0]));
-        const graceDays = policy.grace_period_days || 0;
-        const days = dayDiff(lic.valid_until);
-        const graceEndsOn = addDays(lic.valid_until, graceDays);
-        const daysUntilGraceEnd = dayDiff(graceEndsOn);
-        // Past original expiry but still within the grace window.
-        const inGrace = days < 0 && daysUntilGraceEnd >= 0;
-        // Expired only when grace has fully elapsed (or status flagged and no grace left).
-        const isExpired = daysUntilGraceEnd < 0 || (lic.status === 'expired' && graceDays === 0);
-        const inReminder = !inGrace && !isExpired && days <= maxReminder && days >= 0;
-        if (inReminder || inGrace || isExpired) {
+        const days = v.days_until_expiry ?? 0;
+        const inReminder = !v.in_grace_period && !v.is_past_grace && days <= maxReminder && days >= 0;
+        if (inReminder || v.in_grace_period || v.is_past_grace) {
           results.push({
             license_id: lic.id,
             license_number: lic.license_number,
             valid_until: lic.valid_until,
-            grace_ends_on: graceEndsOn,
-            effective_valid_until: graceEndsOn,
+            grace_ends_on: v.grace_ends_on,
+            effective_valid_until: v.grace_ends_on,
             status: lic.status,
-            days_until_expiry: days,
-            is_expired: isExpired,
+            days_until_expiry: v.days_until_expiry,
+            is_expired: v.is_past_grace,
             in_reminder_window: inReminder,
-            in_grace_period: inGrace,
+            in_grace_period: v.in_grace_period,
           });
         }
       }

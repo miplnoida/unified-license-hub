@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -230,11 +230,11 @@ export default function LicenseDetail() {
   const startRenewal = async () => {
     if (!license || !user) return;
     if (startingRenewal) return;
-    if (!isInternal && !isPastGrace && !isWithinGrace && !(validUntilMs !== null && (validUntilMs - todayMs) / 86400000 <= 30)) {
+    if (!isInternal && !isPastGrace) {
       if (isWithinGrace) {
         toast.error(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
       } else {
-        toast.error('Renewal is available only when the license is expiring (within 30 days), in grace period, or expired.');
+        toast.error('Renewal is available only after the license grace period has ended.');
       }
       return;
     }
@@ -257,6 +257,20 @@ export default function LicenseDetail() {
     }
     setStartingRenewal(true);
     try {
+      // Resolve a "Renew" service id scoped to this license's sub-sector so the
+      // backend fee + workflow resolvers can match this renewal as a normal
+      // post-license application.
+      let renewServiceId: string | null = (template as any).service_id || null;
+      if (!renewServiceId && license.sub_sector_id) {
+        const { data: services } = await supabase
+          .from('services' as any)
+          .select('id')
+          .eq('name', 'Renew')
+          .eq('sub_sector_id', license.sub_sector_id)
+          .limit(1);
+        renewServiceId = ((services as any[] | null) || [])[0]?.id || null;
+      }
+
       const { data, error } = await supabase
         .from('applications')
         .insert({
@@ -265,10 +279,13 @@ export default function LicenseDetail() {
           status: 'draft',
           data: {
             ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
+            type: 'post_license',
             sector_id: license.sector_id,
             sub_sector_id: license.sub_sector_id,
             category_id: license.category_id,
-            service_id: (template as any).service_id || null,
+            service_id: renewServiceId,
+            service_name: 'Renew',
+            service: 'Renew',
             form_template_ids: [template.id],
             renewal_of_license_id: license.id,
             renewal_of_license_number: license.license_number,
@@ -282,6 +299,10 @@ export default function LicenseDetail() {
         .single();
 
       if (error) throw error;
+      if (!data || !(data as any).id) {
+        toast.error('Failed to start renewal: no application created.');
+        return;
+      }
 
       await logAudit({
         action: 'license_renewal_started',
@@ -303,16 +324,23 @@ export default function LicenseDetail() {
     }
   };
 
-  // Auto-trigger when ?action=renew is present.
+  // Auto-trigger when ?action=renew is present. Guard so it never fires twice.
+  const autoRenewalTriggeredRef = useRef(false);
   useEffect(() => {
-    if (license && searchParams.get('action') === 'renew' && !startingRenewal) {
-      const next = new URLSearchParams(searchParams);
-      next.delete('action');
-      setSearchParams(next, { replace: true });
-      if (isPastGrace || isWithinGrace || (validUntilMs !== null && (validUntilMs - todayMs) / 86400000 <= 30)) {
-        startRenewal();
+    if (!license) return;
+    if (searchParams.get('action') !== 'renew') return;
+    if (autoRenewalTriggeredRef.current) return;
+    autoRenewalTriggeredRef.current = true;
+    const next = new URLSearchParams(searchParams);
+    next.delete('action');
+    setSearchParams(next, { replace: true });
+    if (isPastGrace) {
+      startRenewal();
+    } else if (isWithinGrace) {
+      toast.info(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
+    } else {
+      toast.info('Renewal is available only after the license grace period has ended.');
     }
-      }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates]);
 
