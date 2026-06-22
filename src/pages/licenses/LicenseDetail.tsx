@@ -230,8 +230,12 @@ export default function LicenseDetail() {
   const startRenewal = async () => {
     if (!license || !user) return;
     if (startingRenewal) return;
-    if (!isInternal && !isLicenseExpired) {
-      toast.error('Renewal is available only after the license has expired.');
+    if (!isInternal && !isPastGrace) {
+      if (isWithinGrace) {
+        toast.error(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
+      } else {
+        toast.error('Renewal is available only after the license grace period has ended.');
+      }
       return;
     }
     const template = resolveRenewalTemplate();
