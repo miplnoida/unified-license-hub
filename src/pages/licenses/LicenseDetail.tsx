@@ -36,6 +36,14 @@ interface License {
   application_id: string | null;
   created_at: string;
   updated_at: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+}
+
+interface RenewalFeeInfo {
+  amount: number;
+  currency: string;
 }
 
 interface LicenseAction {
