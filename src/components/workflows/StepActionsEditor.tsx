@@ -345,7 +345,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
 }
 
 function ActionForm({
-  draft, setDraft, typeUsage, editingId, targetStepOptions, onSave, onCancel, saving,
+  draft, setDraft, typeUsage, editingId, targetStepOptions, onSave, onCancel, saving, stepRequiresSignature,
 }: {
   draft: DraftState;
   setDraft: (d: DraftState) => void;
@@ -355,6 +355,7 @@ function ActionForm({
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
+  stepRequiresSignature?: boolean;
 }) {
   // For new rows: hide all already-used types. For existing rows: hide types
   // used by OTHER rows but keep the row's own current type selectable.
