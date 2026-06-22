@@ -1101,6 +1101,11 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                           {s.sla_hours}h
                         </span>
                       ) : null}
+                      {(s as any).require_digital_signature && (
+                        <Badge variant="outline" className="text-[10px]" title="Approvers on this step must sign">
+                          Signature required
+                        </Badge>
+                      )}
                       {(status === 'current' || status === 'paused') && s.sla_hours ? (
                         <StepSlaBadge
                           startedAt={stepStartedAt[idx]}
@@ -1176,6 +1181,13 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                         </div>
                       )}
 
+
+                      {(s as any).require_digital_signature && (
+                        <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+                          <Shield className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                          <span>This step requires a digital signature. You'll be prompted to sign when you submit an action.</span>
+                        </div>
+                      )}
 
                       {remarksBlock}
                       {actionButtons}

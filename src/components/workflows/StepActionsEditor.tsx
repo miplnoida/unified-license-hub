@@ -241,6 +241,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
                   onSave={save}
                   onCancel={cancel}
                   saving={upsert.isPending}
+                  stepRequiresSignature={!!step.require_digital_signature}
                 />
               ) : (
                 <div className="space-y-2">
@@ -259,8 +260,14 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
                     {row.require_comments && (
                       <Badge variant="outline" className="text-[10px]">Comments required</Badge>
                     )}
-                    {row.require_digital_signature && (
-                      <Badge variant="outline" className="text-[10px]">Digital signature</Badge>
+                    {(row.require_digital_signature || step.require_digital_signature) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px]"
+                        title={step.require_digital_signature ? 'Required at step level' : 'Required for this action'}
+                      >
+                        Digital signature
+                      </Badge>
                     )}
                     <Badge variant="outline" className="text-[10px]">
                       → {NEXT_STEP_MODE_LABELS[row.next_step_mode] || row.next_step_mode || 'Unknown'}
@@ -328,6 +335,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
               onSave={save}
               onCancel={cancel}
               saving={upsert.isPending}
+              stepRequiresSignature={!!step.require_digital_signature}
             />
           </Card>
         )}
@@ -337,7 +345,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
 }
 
 function ActionForm({
-  draft, setDraft, typeUsage, editingId, targetStepOptions, onSave, onCancel, saving,
+  draft, setDraft, typeUsage, editingId, targetStepOptions, onSave, onCancel, saving, stepRequiresSignature,
 }: {
   draft: DraftState;
   setDraft: (d: DraftState) => void;
@@ -347,6 +355,7 @@ function ActionForm({
   onSave: () => void;
   onCancel: () => void;
   saving: boolean;
+  stepRequiresSignature?: boolean;
 }) {
   // For new rows: hide all already-used types. For existing rows: hide types
   // used by OTHER rows but keep the row's own current type selectable.
@@ -430,7 +439,7 @@ function ActionForm({
       </div>
 
       {/* Digital Signature Required */}
-      <DigitalSignatureBlock draft={draft} setDraft={setDraft} keySuffix={editingId ?? 'new'} />
+      <DigitalSignatureBlock draft={draft} setDraft={setDraft} keySuffix={editingId ?? 'new'} stepRequiresSignature={!!stepRequiresSignature} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
@@ -520,11 +529,12 @@ function ActionForm({
 }
 
 function DigitalSignatureBlock({
-  draft, setDraft, keySuffix,
+  draft, setDraft, keySuffix, stepRequiresSignature,
 }: {
   draft: DraftState;
   setDraft: (d: DraftState) => void;
   keySuffix: string;
+  stepRequiresSignature?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -569,6 +579,11 @@ function DigitalSignatureBlock({
 
   return (
     <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+      {stepRequiresSignature && (
+        <p className="text-[11px] text-muted-foreground italic">
+          Already required at step level — this per-action toggle only adds an override and is not needed.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <Switch
           id={`digital-sig-${keySuffix}`}

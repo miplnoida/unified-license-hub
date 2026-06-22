@@ -262,13 +262,16 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
               const isDone = idx < currentStepIdx;
               const isCurrent = idx === currentStepIdx;
               return (
-                <li key={s.id} className="flex items-center gap-2 text-xs">
+                <li key={s.id} className="flex items-center gap-2 text-xs flex-wrap">
                   {isDone ? <CheckCircle className="h-3.5 w-3.5 text-success" />
                     : isCurrent ? <CircleDot className="h-3.5 w-3.5 text-primary animate-pulse" />
                     : <Circle className="h-3.5 w-3.5 text-muted-foreground/50" />}
                   <span className={isCurrent ? 'font-medium' : 'text-muted-foreground'}>
                     Step {idx + 1}: {s.name}
                   </span>
+                  {(s as any).require_digital_signature && (
+                    <Badge variant="outline" className="text-[10px]" title="Approvers on this step must sign">Signature required</Badge>
+                  )}
                   <Badge variant="outline" className="ml-auto text-[10px]">{stepRoleLabel(s)}</Badge>
                 </li>
               );
@@ -286,6 +289,13 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
             placeholder="Add a note for the licensee..."
             value={comment} onChange={e => setComment(e.target.value)} disabled={processing} />
         </div>
+
+        {(currentStep as any)?.require_digital_signature && !noActions && (
+          <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2 text-xs">
+            <Shield className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+            <span>This step requires a digital signature. You'll be prompted to sign when you submit an action.</span>
+          </div>
+        )}
 
         {noActions ? (
           <p className="text-xs text-muted-foreground italic">
