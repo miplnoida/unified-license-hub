@@ -34,6 +34,15 @@ export function LicenseeDashboard() {
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
+  const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
+  const pastGraceIds = useMemo(
+    () => new Set((expiryStatuses ?? []).filter((s) => s.is_expired).map((s) => s.license_id)),
+    [expiryStatuses],
+  );
+  const inGraceIds = useMemo(
+    () => new Set((expiryStatuses ?? []).filter((s) => s.in_grace_period).map((s) => s.license_id)),
+    [expiryStatuses],
+  );
   const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
   const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
 
