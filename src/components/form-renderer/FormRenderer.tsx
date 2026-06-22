@@ -979,6 +979,10 @@ export function FormRenderer({
                                     e.target.value = '';
                                     if (!file) return;
                                     if (!user) { toast.error('You must be logged in to upload files'); return; }
+                                    if (col.validation) {
+                                      const colErr = validateFileAgainstField({ validation: col.validation } as any, file);
+                                      if (colErr) { toast.error(colErr); return; }
+                                    }
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: true }));
                                     const result = await uploadFormFile(file, user.id, applicationId);
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: false }));
@@ -991,6 +995,7 @@ export function FormRenderer({
                                       toast.error(result.error || 'Upload failed');
                                     }
                                   }}
+
                                 />
                                 {cellVal?.name ? (
                                   <>
