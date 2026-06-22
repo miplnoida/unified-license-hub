@@ -579,6 +579,11 @@ function DigitalSignatureBlock({
 
   return (
     <div className="rounded-md border bg-muted/20 p-3 space-y-2">
+      {stepRequiresSignature && (
+        <p className="text-[11px] text-muted-foreground italic">
+          Already required at step level — this per-action toggle only adds an override and is not needed.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <Switch
           id={`digital-sig-${keySuffix}`}
