@@ -230,11 +230,11 @@ export default function LicenseDetail() {
   const startRenewal = async () => {
     if (!license || !user) return;
     if (startingRenewal) return;
-    if (!isInternal && !isPastGrace) {
+    if (!isInternal && !isPastGrace && !isWithinGrace && !(validUntilMs !== null && (validUntilMs - todayMs) / 86400000 <= 30)) {
       if (isWithinGrace) {
         toast.error(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
       } else {
-        toast.error('Renewal is available only after the license grace period has ended.');
+        toast.error('Renewal is available only when the license is expiring (within 30 days), in grace period, or expired.');
       }
       return;
     }
@@ -309,12 +309,10 @@ export default function LicenseDetail() {
       const next = new URLSearchParams(searchParams);
       next.delete('action');
       setSearchParams(next, { replace: true });
-      if (isPastGrace) {
+      if (isPastGrace || isWithinGrace || (validUntilMs !== null && (validUntilMs - todayMs) / 86400000 <= 30)) {
         startRenewal();
-      } else if (isWithinGrace) {
-        toast.info(`License is in grace period until ${graceEndsOnLabel}. Renewal opens after that.`);
-      }
     }
+      }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates]);
 

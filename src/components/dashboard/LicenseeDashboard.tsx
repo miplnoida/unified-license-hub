@@ -34,7 +34,7 @@ export function LicenseeDashboard() {
   const { resolvedLicenseeId, activeLicensee } = usePpoc();
   const portalAccess = useExternalPortalAccess();
   const { data, isLoading } = useLicenseeMetrics(resolvedLicenseeId, user?.id);
-  const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
+  const { data: expiryStatuses } = useLicenseExpiryStatus(resolvedLicenseeId || user?.id);
   const pastGraceIds = useMemo(
     () => new Set((expiryStatuses ?? []).filter((s) => s.is_expired).map((s) => s.license_id)),
     [expiryStatuses],
@@ -82,7 +82,7 @@ export function LicenseeDashboard() {
               const isExpiringSoon = lic.status === 'active' && days !== null && days >= 0 && days <= 30;
               const inGrace = inGraceIds.has(lic.id);
               const isPastGrace = pastGraceIds.has(lic.id);
-              const canRenew = isPastGrace;
+              const canRenew = isPastGrace || inGrace || isExpiringSoon;
               let badgeVariant: any;
               let badgeLabel: string;
               if (inGrace) {
