@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
