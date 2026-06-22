@@ -335,6 +335,7 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
               onSave={save}
               onCancel={cancel}
               saving={upsert.isPending}
+              stepRequiresSignature={!!step.require_digital_signature}
             />
           </Card>
         )}
