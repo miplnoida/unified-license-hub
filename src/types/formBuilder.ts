@@ -79,6 +79,7 @@ export interface TableColumn {
   label: string;
   type: 'text' | 'number' | 'date' | 'select' | 'file';
   options?: string[];        // For select columns
+  validation?: ValidationRules; // Per-column validation
 }
 
 // ─── Form Section ───
