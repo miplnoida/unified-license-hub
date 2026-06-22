@@ -228,7 +228,7 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
     const cfgRow = (configuredStepActions as StepAction[]).find(
       a => a.action_type === actionType && a.is_enabled,
     );
-    setPreviewState({ actionType, label, requireSignature: !!cfgRow?.require_digital_signature });
+    setPreviewState({ actionType, label, requireSignature: !!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature });
   };
 
 
