@@ -262,13 +262,16 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
               const isDone = idx < currentStepIdx;
               const isCurrent = idx === currentStepIdx;
               return (
-                <li key={s.id} className="flex items-center gap-2 text-xs">
+                <li key={s.id} className="flex items-center gap-2 text-xs flex-wrap">
                   {isDone ? <CheckCircle className="h-3.5 w-3.5 text-success" />
                     : isCurrent ? <CircleDot className="h-3.5 w-3.5 text-primary animate-pulse" />
                     : <Circle className="h-3.5 w-3.5 text-muted-foreground/50" />}
                   <span className={isCurrent ? 'font-medium' : 'text-muted-foreground'}>
                     Step {idx + 1}: {s.name}
                   </span>
+                  {(s as any).require_digital_signature && (
+                    <Badge variant="outline" className="text-[10px]" title="Approvers on this step must sign">Signature required</Badge>
+                  )}
                   <Badge variant="outline" className="ml-auto text-[10px]">{stepRoleLabel(s)}</Badge>
                 </li>
               );
