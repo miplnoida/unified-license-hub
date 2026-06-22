@@ -131,23 +131,17 @@ export function useLicenseStatusGate(): LicenseStatusGate {
         licenseStatus = licensee.status;
       }
 
-      // Grace handling: a license past valid_until but still inside its grace
-      // window remains usable — treat as active. Past grace flips to expired.
+      // Grace handling via shared helper — keeps the rule identical to UI.
       if (licenseStatus && validUntil) {
-        const t = new Date(validUntil).getTime();
-        if (Number.isFinite(t)) {
-          const graceDays = resolveGrace(sectorId, subSectorId, categoryId);
-          const graceEnds = t + graceDays * 86_400_000;
-          const now = Date.now();
-          const norm = normalize(licenseStatus);
-          if (t < now) {
-            if (graceEnds >= now && (norm === 'active' || norm === 'expired')) {
-              licenseStatus = 'active';
-            } else if (norm === 'active') {
-              licenseStatus = 'expired';
-            }
-          }
-        }
+        const { getLicenseValidity } = await import('@/lib/licenseValidity');
+        const graceDays = resolveGrace(sectorId, subSectorId, categoryId);
+        const v = getLicenseValidity({
+          status: licenseStatus,
+          valid_until: validUntil,
+          grace_period_days: graceDays,
+        });
+        if (v.in_grace_period) licenseStatus = 'active';
+        else if (v.is_past_grace) licenseStatus = 'expired';
       }
 
       return { status: licenseStatus };
