@@ -213,7 +213,9 @@ function fieldRowsToSections(
 }
 
 function isValidSectionSnapshot(snapshot: unknown): snapshot is FormSection[] {
-  return Array.isArray(snapshot) && snapshot.every((section) => {
+  // Require a non-empty array — an empty snapshot must fall through to the
+  // form_fields row-based path so forms with only DB-stored fields still render.
+  return Array.isArray(snapshot) && snapshot.length > 0 && snapshot.every((section) => {
     if (!section || typeof section !== 'object') return false;
     const maybeSection = section as Partial<FormSection>;
     return typeof maybeSection.id === 'string'

@@ -1,50 +1,51 @@
-I understand the frustration. I found the renewal path and the policy that is still failing.
+## Issues
 
-## Actual issue
+### 1. "Loading form fields..." hangs on the renewal form
+The renewal template's `form_versions.schema_snapshot` is stored as an empty array `[]`. In `src/hooks/useFormTemplates.ts`:
 
-The Renew button creates a new row in `applications` and immediately calls `.select().single()` on the insert.
+```ts
+function isValidSectionSnapshot(snapshot): snapshot is FormSection[] {
+  return Array.isArray(snapshot) && snapshot.every(...);
+}
+```
 
-For external users, `applications` has a restrictive select policy named `external_applications_select_capability_gate`. Because it is restrictive, it must pass even when the normal “applicant can read own apps” policy passes. During `INSERT ... RETURNING`, that restrictive select check can fail and roll back the insert, which matches the exact error:
+`[].every(...)` returns `true`, so the empty snapshot is treated as "valid" and `useVersionSections` returns `[]`. The hook never falls back to the `form_fields` table (which actually contains 35 fields for this version). `ActiveFormFiller` then stays on the loader because `sections.length === 0`.
 
-`new row violates row-level security policy "external_applications_select_capability_gate" for table "applications"`
+### 2. Anisha is shown as "Primary User" instead of "Applicant"
+Anisha (`anisha.k2@yopmail.com`) is a `pre_licensee` / `applicant`. She has:
+- No `profiles` row (so `user.licenseeId` is null)
+- No `user_type = 'primary'`
+- No `licensee_primary` role
+- No `ppoc_entity_mappings`
 
-The renewal form page also reads and updates the same application row after navigation, so I will verify both creation and the form continuation path, not only the first click.
+But `PpocContext` *infers* an "own licensee" for her (via license holder back-reference / name match on `Anisha Commercial Bank`). That makes `ownLicenseeId` non-null, which makes `hasPrimaryUserAccess` true. In `src/lib/effectiveRole.ts` (lines 105–116), any user with `hasPrimaryUserAccess` gets relabeled as **"Primary User"**, overriding her real role.
 
-## Plan
+## Fix Plan
 
-1. **Fix the restrictive application select policy safely**
-   - Update `external_applications_select_capability_gate` so external static roles can directly read their own application row using the row’s own `applicant_id`.
-   - Keep the existing portal capability checks for dynamic portal roles.
-   - Do not broaden access to other users’ application records.
+### A. Stop the empty-snapshot loader hang
+- `src/hooks/useFormTemplates.ts` — tighten `isValidSectionSnapshot` to require `snapshot.length > 0`. An empty array must fall through to the `form_fields` row-based path so the renewal form actually renders its 35 fields.
+- No other call site changes needed; `useVersionSections` already prefers `fieldRows` when no valid snapshot is present.
 
-2. **Harden the Renew button creation path**
-   - In `src/pages/licenses/LicenseDetail.tsx`, pre-generate the application id before insert.
-   - Insert the renewal draft without chaining `.select().single()` so renewal creation does not depend on immediate `INSERT RETURNING` readback.
-   - Navigate using the pre-generated application id.
-   - Keep the existing licensee authorization guard and renewal metadata unchanged.
+### B. Stop mislabeling inferred owners as "Primary User"
+Primary User status must come from an explicit signal, not from inference.
 
-3. **Check the renewal form path closely**
-   - Review `src/pages/PostLicenseApplicationForms.tsx` save/submit behavior against the same policies.
-   - Ensure the form can load the created renewal application, save draft data, mark it in progress, handle payment gating, and call final submit without introducing a regression.
+- `src/hooks/useEffectivePortalContext.ts` — compute `hasPrimaryUserAccess` from explicit signals only:
+  ```
+  hasPrimaryUserAccess =
+       !!user?.licenseeId
+    || user?.userType === 'primary'
+    || user?.role === 'licensee_primary'
+  ```
+  Drop the `ownLicenseeId` fallback (inferred), but still pass `resolvedLicenseeId` through so the licensee audience context keeps working for legitimate cases (PPOC, real primary).
+- `src/lib/effectiveRole.ts` — in the non-PPOC licensee branch (lines 105–116), only return `'Primary User'` when `isPrimaryRole` is true (explicit `licensee_primary` role or `userType='primary'`) **or** `user.licenseeId` is set. Inferred `resolvedLicenseeId`-only users fall back to their base role label (`Applicant`, `Pre-licensee`, etc.).
+- Keep all existing PPOC / Secondary / Internal paths and tests intact. The `ppocVsPrimary` test suite continues to pass because all "Primary User" cases there use an explicit signal (`profileLicenseeId`, `userType='primary'`, or `licensee_primary` role).
 
-4. **Validate against Anisha’s record only**
-   - Use the known Anisha account/license relationships already identified:
-     - user id: `817c85c1-114b-41e0-8da2-314c55f87c42`
-     - license: `LIC-2026-000014`
-     - licensee: `8e3ffcec-8270-478d-861e-da60f025e3b3`
-   - Confirm the policy logic permits this user to create/read/update only their renewal draft.
-   - Do not change unrelated licensees or application records.
+### C. Verify
+- Reload `/post-licensee/applications/7d257778-aae0-47e4-a767-f9e1e7b6ec2b/forms?service=Renew` as Anisha → form fields render, no infinite loader.
+- Header / portal context shows her role as **Applicant** (her actual role) while she stays on the renewal flow.
+- Existing primary / PPOC / admin users are unaffected — they all have explicit signals.
 
-5. **Regression guard**
-   - Keep existing internal staff, PPOC, applicant, pre-licensee, primary licensee, and secondary licensee access paths intact.
-   - Avoid changing unrelated tables, forms, dashboard listings, or submission workflow logic.
-
-After approval, I’ll implement this as one focused backend migration plus the small Renew button frontend change, then verify the renewal click and renewal form path.
-
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+## Out of Scope
+- No RLS changes (the previous RLS fix stays).
+- No changes to the Renew button insert flow in `LicenseDetail.tsx`.
+- No DB migration — both fixes are purely frontend.
