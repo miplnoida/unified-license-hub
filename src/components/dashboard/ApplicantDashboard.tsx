@@ -62,6 +62,20 @@ export function ApplicantDashboard() {
         />
       </div>
 
+      {/* Licensee / license details — shows the user's licenses with a Renew
+          action when expired (past grace). Lets applicants and pre-licensees
+          renew an existing entity license without needing a Primary User profile. */}
+      {canUseLicensing && (myLicenses?.length ?? 0) > 0 && (
+        <LicenseStatusList
+          licenses={myLicenses!}
+          expiryStatuses={expiryStatuses}
+          renewMode="expired-only"
+          title="My licenses"
+        />
+      )}
+
+
+
       {/* Primary CTA — directly under the metrics */}
       {canStartApplication && <div className="rounded-lg border bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
