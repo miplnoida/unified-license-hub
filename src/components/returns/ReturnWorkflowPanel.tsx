@@ -225,8 +225,12 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       toast.error('Remarks are mandatory for this action.');
       return;
     }
-    setPreviewState({ actionType, label });
+    const cfgRow = (configuredStepActions as StepAction[]).find(
+      a => a.action_type === actionType && a.is_enabled,
+    );
+    setPreviewState({ actionType, label, requireSignature: !!cfgRow?.require_digital_signature });
   };
+
 
   type ActionDef = { type: WorkflowActionType; label: string; icon: React.ReactNode; variant: 'default' | 'destructive' | 'outline' };
   const actions: ActionDef[] = [];
