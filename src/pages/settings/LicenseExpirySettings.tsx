@@ -236,31 +236,28 @@ export default function LicenseExpirySettings() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle className="text-lg">Sector-Based Rules</CardTitle>
+              <CardTitle className="text-lg">Sector expiry setup</CardTitle>
               <CardDescription>
-                Configure expiry, reminders, and grace period per sector. Optionally narrow by sub-sector or category. Most-specific match wins.
+                Set how long licenses stay valid, when reminders are sent, and the grace period for each sector.
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={addRule}>
-              <Plus className="h-4 w-4 mr-1" />Add Rule
+              <Plus className="h-4 w-4 mr-1" />Add another sector
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
-            {rules.length === 0 && (
-              <p className="text-sm text-muted-foreground italic">
-                No rules configured. Add a sector-based rule to enable expiry reminders.
-              </p>
-            )}
             {rules.map((rule, idx) => {
               const availableSubSectors = subSectors.filter((ss) => !rule.sector_id || ss.parent_id === rule.sector_id);
               const availableCategories = categories.filter((c) => !rule.sub_sector_id || c.parent_id === rule.sub_sector_id);
               return (
                 <div key={rule.id} className="rounded-lg border p-4 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">Rule {idx + 1}</p>
-                    <Button variant="ghost" size="sm" onClick={() => removeRule(rule.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <p className="font-medium text-sm">Sector {idx + 1}</p>
+                    {rules.length > 1 && (
+                      <Button variant="ghost" size="sm" onClick={() => removeRule(rule.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   <div className="grid md:grid-cols-3 gap-3">
                     <div className="space-y-2">
@@ -284,7 +281,7 @@ export default function LicenseExpirySettings() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Sub-Sector</Label>
+                      <Label>Sub-sector (optional)</Label>
                       <Select
                         value={rule.sub_sector_id || 'any'}
                         onValueChange={(v) =>
@@ -305,7 +302,7 @@ export default function LicenseExpirySettings() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Category</Label>
+                      <Label>Category (optional)</Label>
                       <Select
                         value={rule.category_id || 'any'}
                         onValueChange={(v) =>
