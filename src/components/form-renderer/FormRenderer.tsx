@@ -506,8 +506,31 @@ export function FormRenderer({
   // When formId is provided (Form Management context), uses versioned upload:
   // uploading another file for the same field creates a new version of the same
   // logical document group. Otherwise falls back to the legacy uploadFormFile.
+  const validateFileAgainstField = (field: FormField, file: File): string | null => {
+    const v = field.validation;
+    if (!v) return null;
+    if (v.maxSizeMB && file.size > v.maxSizeMB * 1024 * 1024) {
+      return `File exceeds maximum size of ${v.maxSizeMB} MB`;
+    }
+    if (v.minSizeKB && file.size < v.minSizeKB * 1024) {
+      return `File must be at least ${v.minSizeKB} KB`;
+    }
+    if (v.allowedTypes && v.allowedTypes.length > 0) {
+      const name = file.name.toLowerCase();
+      const allowedExts = v.allowedTypes
+        .flatMap(t => t.split(','))
+        .map(t => t.trim().toLowerCase())
+        .filter(Boolean);
+      const ok = allowedExts.some(ext => name.endsWith(ext));
+      if (!ok) return `Only ${allowedExts.join(', ')} files are allowed`;
+    }
+    return null;
+  };
+
   const handleFileUpload = async (field: FormField, file: File) => {
     if (!user) { toast.error('You must be logged in to upload files'); return; }
+    const validationError = validateFileAgainstField(field, file);
+    if (validationError) { toast.error(validationError); return; }
     const fieldName = field.fieldName;
     setUploadingFields(prev => ({ ...prev, [fieldName]: true }));
 
