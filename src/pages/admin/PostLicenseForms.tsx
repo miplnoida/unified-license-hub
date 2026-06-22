@@ -37,8 +37,8 @@ export default function PostLicenseForms() {
   const deleteTemplateMutation = useDeleteFormTemplate();
   const updateStatusMutation = useUpdateTemplateStatus();
 
-  const { data: dbSectors = [] } = useSectors();
-  const { data: dbSubSectors = [] } = useSubSectors();
+  const { data: dbSectors = [] } = useSectors(activeRegulatorId);
+  const { data: dbSubSectors = [] } = useSubSectors(activeRegulatorId);
   const { data: dbServices = [] } = useServices();
 
   const [searchName, setSearchName] = useState('');
