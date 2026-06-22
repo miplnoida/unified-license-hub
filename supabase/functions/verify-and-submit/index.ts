@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
             ? settingsObj.allow_reapplication_after_final
             : true);
 
-      if (sectorId && subSectorId && categoryId) {
+      if (!isRenewal && sectorId && subSectorId && categoryId) {
         const { data: peers } = await adminClient
           .from("applications")
           .select("id, status, data")
