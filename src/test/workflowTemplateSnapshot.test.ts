@@ -24,6 +24,7 @@ const step = (over: Partial<WorkflowStep> = {}): WorkflowStep => ({
   approver_type: over.approver_type ?? 'role_based_user',
   approver_config: over.approver_config ?? { role_ids: ['r1'] },
   auto_approve_on_timeout: over.auto_approve_on_timeout ?? false,
+  require_digital_signature: (over as any).require_digital_signature ?? false,
   step_entry_notifications_enabled: true,
   step_type: 'sequential',
   sla_hours: over.sla_hours ?? 24,
