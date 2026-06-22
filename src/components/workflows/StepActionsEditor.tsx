@@ -259,8 +259,14 @@ export function StepActionsEditor({ step, siblingSteps, entityType }: Props) {
                     {row.require_comments && (
                       <Badge variant="outline" className="text-[10px]">Comments required</Badge>
                     )}
-                    {row.require_digital_signature && (
-                      <Badge variant="outline" className="text-[10px]">Digital signature</Badge>
+                    {(row.require_digital_signature || step.require_digital_signature) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px]"
+                        title={step.require_digital_signature ? 'Required at step level' : 'Required for this action'}
+                      >
+                        Digital signature
+                      </Badge>
                     )}
                     <Badge variant="outline" className="text-[10px]">
                       → {NEXT_STEP_MODE_LABELS[row.next_step_mode] || row.next_step_mode || 'Unknown'}
