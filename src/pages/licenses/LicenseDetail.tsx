@@ -76,6 +76,7 @@ export default function LicenseDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
+  const { resolvedLicenseeId } = usePpoc();
   const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
