@@ -77,7 +77,7 @@ export type FieldType =
 export interface TableColumn {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select';
+  type: 'text' | 'number' | 'date' | 'select' | 'file';
   options?: string[];        // For select columns
 }
 
