@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge';
+import { getLicenseValidity } from '@/lib/licenseValidity';
 
 const STATUS_CLASSES: Record<string, string> = {
   active: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
@@ -23,26 +24,20 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Returns the effective license status. An `active` license whose `valid_until`
- * is past is treated as `expired`. When a grace period is supplied and we are
- * still inside it, the license is treated as `active_grace` (still valid).
+ * Returns the effective license status, honoring grace period as continued
+ * validity. See `getLicenseValidity` for the rule.
  */
 export function resolveLicenseStatus(
   status?: string | null,
   validUntil?: string | null,
   gracePeriodDays?: number,
 ): string {
-  const key = (status || 'pending').toLowerCase();
-  if (!validUntil) return key;
-  const t = new Date(validUntil).getTime();
-  if (!Number.isFinite(t)) return key;
-  const now = Date.now();
-  const graceEnds = t + Math.max(0, gracePeriodDays || 0) * 86_400_000;
-  if ((key === 'active' || key === 'expired') && t < now) {
-    if (graceEnds >= now) return 'active_grace';
-    return 'expired';
-  }
-  return key;
+  if (!validUntil) return (status || 'pending').toLowerCase();
+  return getLicenseValidity({
+    status,
+    valid_until: validUntil,
+    grace_period_days: gracePeriodDays,
+  }).effective_status;
 }
 
 export function LicenseStatusBadge({
