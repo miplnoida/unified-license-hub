@@ -318,7 +318,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
           entityId={returnId}
           actorName={user?.email || null}
           processing={processing}
-          onConfirm={(overrides) => executeAction(previewState.actionType, overrides)}
+          requireSignature={previewState.requireSignature}
+          onConfirm={(overrides, signatureDataUrl) => executeAction(previewState.actionType, overrides, signatureDataUrl ?? null)}
+
         />
       )}
     </Card>
