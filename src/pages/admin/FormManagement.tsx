@@ -62,9 +62,9 @@ export default function FormManagement() {
   const updateStatusMutation = useUpdateTemplateStatus();
 
   // Dynamic master data
-  const { data: dbSectors = [] } = useSectors();
-  const { data: dbSubSectors = [] } = useSubSectors();
-  const { data: dbCategories = [] } = useCategories();
+  const { data: dbSectors = [] } = useSectors(activeRegulatorId);
+  const { data: dbSubSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: dbCategories = [] } = useCategories(activeRegulatorId);
   const { data: dbServices = [] } = useServices();
 
   const [searchName, setSearchName] = useState('');
