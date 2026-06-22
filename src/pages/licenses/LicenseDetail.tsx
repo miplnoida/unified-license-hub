@@ -169,10 +169,10 @@ export default function LicenseDetail() {
   const submitRenewal = async () => {
     if (!license || !user || !renewDate) return;
     setRenewSubmitting(true);
-    const isPaid = expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0;
+    const isPaid = !!renewalFee && renewalFee.amount > 0;
     const renewalStatus = isPaid ? 'pending_payment' : 'submitted';
     const feeNote = isPaid
-      ? `[Renewal fee: ${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} — awaiting payment] `
+      ? `[Renewal fee: ${renewalFee!.amount} ${renewalFee!.currency} — awaiting payment] `
       : '';
     const { error } = await supabase.from('license_renewals' as any).insert({
       license_id: license.id,
