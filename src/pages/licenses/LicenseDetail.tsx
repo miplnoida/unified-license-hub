@@ -71,19 +71,19 @@ function addYears(iso: string | null, years: number): string {
 export default function LicenseDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
+  const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
+  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
   const [license, setLicense] = useState<License | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [renewOpen, setRenewOpen] = useState(false);
-  const [renewDate, setRenewDate] = useState('');
-  const [renewNotes, setRenewNotes] = useState('');
-  const [renewSubmitting, setRenewSubmitting] = useState(false);
+  const [startingRenewal, setStartingRenewal] = useState(false);
   const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
