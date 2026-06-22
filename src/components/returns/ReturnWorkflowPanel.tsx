@@ -94,8 +94,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
   const [processingAction, setProcessingAction] = useState<string | null>(null);
-  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string } | null>(null);
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireSignature: boolean } | null>(null);
   const processing = processingAction !== null;
+
 
   const isInternal = !!user && (enforceDynamic ? hasModuleAccess('returns_management') || hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role));
   const { data: steps = [] } = useWorkflowSteps(workflowId);
