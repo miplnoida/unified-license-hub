@@ -433,7 +433,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     return [...actions].reverse().find(a => causes.has(a.action_type)) || null;
   }, [actions, isPaused]);
 
-  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean } | null>(null);
+  const [previewState, setPreviewState] = useState<{ actionType: WorkflowActionType; label: string; requireComments: boolean; requireSignature: boolean } | null>(null);
 
   // Dev-only diagnostic. MUST be declared before the early-returns below so
   // hook order stays stable across renders (otherwise React throws #310 and
