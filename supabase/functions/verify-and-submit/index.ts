@@ -93,6 +93,10 @@ Deno.serve(async (req) => {
       const sectorId = appDataObj.sector_id as string | undefined;
       const subSectorId = appDataObj.sub_sector_id as string | undefined;
       const categoryId = appDataObj.category_id as string | undefined;
+      // Renewal applications intentionally repeat the same sector/sub-sector/
+      // category as the original license. Skip the duplicate-active /
+      // duplicate-approved guards for valid renewal submissions.
+      const isRenewal = appDataObj.is_renewal === true && !!appDataObj.renewal_of_license_id;
 
       const { data: setting } = await adminClient
         .from("site_settings")
