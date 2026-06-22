@@ -37,9 +37,9 @@ export default function PreLicenseForms() {
   const deleteTemplateMutation = useDeleteFormTemplate();
   const updateStatusMutation = useUpdateTemplateStatus();
 
-  const { data: dbSectors = [] } = useSectors();
-  const { data: dbSubSectors = [] } = useSubSectors();
-  const { data: dbCategories = [] } = useCategories();
+  const { data: dbSectors = [] } = useSectors(activeRegulatorId);
+  const { data: dbSubSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: dbCategories = [] } = useCategories(activeRegulatorId);
 
   const [searchName, setSearchName] = useState('');
   const [filterSectorId, setFilterSectorId] = useState('all');

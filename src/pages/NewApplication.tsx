@@ -122,9 +122,9 @@ export default function NewApplication() {
 
   const { data: appSettings } = useApplicationSettings();
 
-  const { data: sectors = [] } = useSectors();
-  const { data: allSubSectors = [] } = useSubSectors();
-  const { data: allCategories = [] } = useCategories();
+  const { data: sectors = [] } = useSectors(activeRegulator?.id);
+  const { data: allSubSectors = [] } = useSubSectors(activeRegulator?.id);
+  const { data: allCategories = [] } = useCategories(activeRegulator?.id);
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
 
   // Re-application guard state. The actual per-triple check runs in

@@ -162,9 +162,9 @@ export default function FormBuilder() {
     isFetching: conditionsFetching,
   } = useFieldConditions(activeVersion?.id || null);
 
-  const { data: dbSectors = [] } = useSectors();
-  const { data: dbSubSectors = [] } = useSubSectors();
-  const { data: dbCategories = [] } = useCategories();
+  const { data: dbSectors = [] } = useSectors(activeRegulatorId);
+  const { data: dbSubSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: dbCategories = [] } = useCategories(activeRegulatorId);
   const { data: dbServices = [] } = useServices();
 
   const activeSectors = dbSectors.filter(s => s.status === 'active');

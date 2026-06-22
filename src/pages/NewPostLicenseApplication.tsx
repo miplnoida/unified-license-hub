@@ -30,8 +30,8 @@ export default function NewPostLicenseApplication() {
   const [selectedService, setSelectedService] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const { data: sectors = [], isLoading: loadingSectors } = useSectors();
-  const { data: subSectors = [], isLoading: loadingSubSectors } = useSubSectors();
+  const { data: sectors = [], isLoading: loadingSectors } = useSectors(activeRegulator?.id);
+  const { data: subSectors = [], isLoading: loadingSubSectors } = useSubSectors(activeRegulator?.id);
   const { data: services = [], isLoading: loadingServices } = useServices();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
 
