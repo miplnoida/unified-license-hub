@@ -401,6 +401,14 @@ export function FormRenderer({
         if (v.maxLength && strVal.length > v.maxLength) pushErr(field, `Maximum ${v.maxLength} characters`);
         if (v.min !== undefined && Number(val) < v.min) pushErr(field, `Minimum value is ${v.min}`);
         if (v.max !== undefined && Number(val) > v.max) pushErr(field, `Maximum value is ${v.max}`);
+        if (v.pattern && ['text', 'textarea'].includes(field.type)) {
+          try {
+            const re = new RegExp(v.pattern);
+            if (!re.test(strVal)) pushErr(field, v.patternMessage || 'Invalid format');
+          } catch {
+            // ignore malformed regex (admin-configured)
+          }
+        }
       }
       if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
         pushErr(field, 'Invalid email address');
