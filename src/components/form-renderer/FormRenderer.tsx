@@ -422,7 +422,36 @@ export function FormRenderer({
           pushErr(field, 'Must be a valid number');
         }
       }
+      // Table per-column validation
+      if (field.type === 'table' && Array.isArray(val) && field.tableColumns) {
+        for (let r = 0; r < val.length; r++) {
+          const row = val[r] || {};
+          for (const col of field.tableColumns) {
+            const cv = col.validation;
+            if (!cv) continue;
+            const cellVal = row[col.id];
+            if (cellVal === undefined || cellVal === null || cellVal === '') continue;
+            const label = `${field.label} → ${col.label} (row ${r + 1})`;
+            const errField = { ...field, fieldName: `${field.fieldName}__${r}__${col.id}`, label } as FormField;
+            if (col.type === 'text') {
+              const s = String(cellVal);
+              if (cv.minLength && s.length < cv.minLength) { pushErr(errField, `Minimum ${cv.minLength} characters`); continue; }
+              if (cv.maxLength && s.length > cv.maxLength) { pushErr(errField, `Maximum ${cv.maxLength} characters`); continue; }
+              if (cv.pattern) {
+                try { if (!new RegExp(cv.pattern).test(s)) { pushErr(errField, cv.patternMessage || 'Invalid format'); continue; } } catch {}
+              }
+            }
+            if (col.type === 'number') {
+              const n = Number(cellVal);
+              if (isNaN(n)) { pushErr(errField, 'Must be a valid number'); continue; }
+              if (cv.min !== undefined && n < cv.min) { pushErr(errField, `Minimum value is ${cv.min}`); continue; }
+              if (cv.max !== undefined && n > cv.max) { pushErr(errField, `Maximum value is ${cv.max}`); continue; }
+            }
+          }
+        }
+      }
     }
+
     setErrors(stepErrors);
     return { ok: entries.length === 0, entries };
   };
