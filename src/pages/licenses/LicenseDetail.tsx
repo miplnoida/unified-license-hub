@@ -145,12 +145,22 @@ export default function LicenseDetail() {
     : undefined;
   const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
 
+  // Auto-calculated next valid_until based on the sector's renewal policy.
+  // Read-only — users cannot override it from the renewal form.
+  const computedNewValidUntil = (() => {
+    if (!license) return '';
+    const base = license.valid_until ? new Date(license.valid_until) : new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // If the license has already expired, extend from today rather than the past date.
+    if (base.getTime() < today.getTime()) base.setTime(today.getTime());
+    base.setDate(base.getDate() + periodDays);
+    return base.toISOString().slice(0, 10);
+  })();
+
   const openRenewDialog = () => {
     if (!license) return;
-    // Extend by configured period from current valid_until (or today if none).
-    const base = license.valid_until ? new Date(license.valid_until) : new Date();
-    base.setDate(base.getDate() + periodDays);
-    setRenewDate(base.toISOString().slice(0, 10));
+    setRenewDate(computedNewValidUntil);
     setRenewNotes('');
     setRenewOpen(true);
   };
@@ -164,23 +174,47 @@ export default function LicenseDetail() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [license]);
+  }, [license, computedNewValidUntil]);
 
   const submitRenewal = async () => {
-    if (!license || !user || !renewDate) return;
+    if (!license || !user) return;
+    const targetDate = computedNewValidUntil;
+    if (!targetDate) return;
     setRenewSubmitting(true);
     const isPaid = !!renewalFee && renewalFee.amount > 0;
-    const renewalStatus = isPaid ? 'pending_payment' : 'submitted';
+
+    // 1. If a fee applies, simulate the payment gateway and record the payment.
+    let paymentRef: string | null = null;
+    if (isPaid) {
+      const txnRef = `RNW-${Date.now().toString(36).toUpperCase()}`;
+      const { data: payRow, error: payErr } = await supabase.from('payments').insert({
+        user_id: user.id,
+        amount: renewalFee!.amount,
+        currency: renewalFee!.currency,
+        status: 'completed',
+        payment_method: 'online',
+        transaction_ref: txnRef,
+        paid_at: new Date().toISOString(),
+      } as any).select('id, transaction_ref').single();
+      if (payErr) {
+        toast.error(`Payment failed: ${payErr.message}`);
+        setRenewSubmitting(false);
+        return;
+      }
+      paymentRef = (payRow as any)?.transaction_ref || txnRef;
+    }
+
+    // 2. Create the renewal record.
     const feeNote = isPaid
-      ? `[Renewal fee: ${renewalFee!.amount} ${renewalFee!.currency} — awaiting payment] `
+      ? `[Renewal fee paid: ${renewalFee!.amount} ${renewalFee!.currency} — ref ${paymentRef}] `
       : '';
     const { error } = await supabase.from('license_renewals' as any).insert({
       license_id: license.id,
       initiated_by: user.id,
       previous_valid_until: license.valid_until,
-      new_valid_until: new Date(renewDate).toISOString(),
+      new_valid_until: new Date(targetDate).toISOString(),
       notes: (feeNote + (renewNotes || '')).trim() || null,
-      status: renewalStatus,
+      status: 'submitted',
     } as any);
     if (error) {
       toast.error(error.message);
@@ -195,7 +229,7 @@ export default function LicenseDetail() {
       old_status: license.status,
       new_status: license.status,
     } as any);
-    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: renewDate } });
+    await logAudit({ action: 'license_renewal_requested', entityType: 'license', entityId: license.id, newValue: { new_valid_until: targetDate, fee_paid: isPaid } });
     dispatchNotificationEvent({
       event_key: 'license.renewal_requested',
       entity_type: 'license',
@@ -204,13 +238,13 @@ export default function LicenseDetail() {
         license_id: license.id,
         license_number: license.license_number,
         license_type: license.license_type,
-        new_valid_until: renewDate,
+        new_valid_until: targetDate,
         notes: renewNotes,
         initiated_by_name: user.email || 'A user',
         holder_user_id: license.holder_id,
       },
     });
-    toast.success(isPaid ? 'Renewal submitted — pending payment confirmation' : 'Renewal request submitted');
+    toast.success(isPaid ? 'Payment received — renewal submitted for review' : 'Renewal request submitted');
     setRenewOpen(false);
     setRenewSubmitting(false);
     const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
@@ -484,36 +518,66 @@ export default function LicenseDetail() {
               <DialogTitle>Renew license {license.license_number}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                New validity is suggested from your sector's renewal policy ({periodDays} days). You can adjust it before submitting.
-              </p>
-              {renewalFee && renewalFee.amount > 0 && (
-                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-                  <p className="font-medium">Renewal Fee Required</p>
-                  <p className="text-muted-foreground">
-                    A fee of <span className="font-medium text-foreground">{renewalFee.amount} {renewalFee.currency}</span> applies.
-                    Renewal will be marked <span className="font-medium">pending payment</span> until confirmed.
+              {/* License summary */}
+              <div className="rounded-md border bg-muted/30 p-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">License Type</p>
+                  <p className="font-medium">{formatTaxonomyLabel(license.license_type)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Valid Until</p>
+                  <p className="font-medium">
+                    {license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Renewal Period</p>
+                  <p className="font-medium">{periodDays} days <span className="text-xs text-muted-foreground">(from sector policy)</span></p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">New Valid Until</p>
+                  <p className="font-semibold text-primary">
+                    {computedNewValidUntil ? new Date(computedNewValidUntil).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Fee / payment section */}
+              {renewalFee && renewalFee.amount > 0 ? (
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-1.5 text-sm">
+                  <p className="font-medium">Renewal Fee</p>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount due</span>
+                    <span className="font-mono font-semibold">{renewalFee.amount} {renewalFee.currency}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clicking <span className="font-medium">Pay &amp; Submit</span> will process the payment and submit your renewal request.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  No renewal fee is configured for this license. Submission is free.
+                </div>
               )}
-              <div>
-                <Label>Current Valid Until</Label>
-                <p className="text-sm">{license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}</p>
-              </div>
-              <div>
-                <Label htmlFor="renew-date">New Valid Until <span className="text-destructive">*</span></Label>
-                <Input id="renew-date" type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} />
-              </div>
+
               <div>
                 <Label htmlFor="renew-notes">Notes (optional)</Label>
-                <Textarea id="renew-notes" value={renewNotes} onChange={e => setRenewNotes(e.target.value)} rows={3} />
+                <Textarea
+                  id="renew-notes"
+                  value={renewNotes}
+                  onChange={e => setRenewNotes(e.target.value)}
+                  placeholder="Add any information that may help the reviewer..."
+                  rows={3}
+                />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRenewOpen(false)} disabled={renewSubmitting}>Cancel</Button>
-              <Button onClick={submitRenewal} disabled={!renewDate || renewSubmitting}>
+              <Button onClick={submitRenewal} disabled={!computedNewValidUntil || renewSubmitting}>
                 {renewSubmitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Submit Renewal Request
+                {renewalFee && renewalFee.amount > 0
+                  ? `Pay ${renewalFee.amount} ${renewalFee.currency} & Submit`
+                  : 'Submit Renewal Request'}
               </Button>
             </DialogFooter>
           </DialogContent>
