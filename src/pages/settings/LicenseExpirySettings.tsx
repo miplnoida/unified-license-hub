@@ -111,6 +111,7 @@ export default function LicenseExpirySettings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useLicenseExpiryConfig();
+  const { activeRegulatorId } = useRegulator();
 
   const [rules, setRules] = useState<DraftRule[]>([]);
   const [saving, setSaving] = useState(false);
@@ -121,16 +122,19 @@ export default function LicenseExpirySettings() {
 
   useEffect(() => {
     (async () => {
-      const [s, ss, c] = await Promise.all([
-        (supabase.from('sectors' as any).select('id, name').order('name') as any),
-        (supabase.from('sub_sectors' as any).select('id, name, sector_id').order('name') as any),
-        (supabase.from('categories' as any).select('id, name, sub_sector_id').order('name') as any),
-      ]);
+      let sQuery: any = supabase.from('sectors' as any).select('id, name, regulator_id').order('name');
+      if (activeRegulatorId) sQuery = sQuery.eq('regulator_id', activeRegulatorId);
+      let ssQuery: any = supabase.from('sub_sectors' as any).select('id, name, sector_id, sectors!inner(regulator_id)').order('name');
+      if (activeRegulatorId) ssQuery = ssQuery.eq('sectors.regulator_id', activeRegulatorId);
+      let cQuery: any = supabase.from('categories' as any).select('id, name, sub_sector_id, sectors!inner(regulator_id)').order('name');
+      if (activeRegulatorId) cQuery = cQuery.eq('sectors.regulator_id', activeRegulatorId);
+      const [s, ss, c] = await Promise.all([sQuery, ssQuery, cQuery]);
       setSectors((s.data as any) || []);
       setSubSectors(((ss.data as any) || []).map((r: any) => ({ ...r, parent_id: r.sector_id })));
       setCategories(((c.data as any) || []).map((r: any) => ({ ...r, parent_id: r.sub_sector_id })));
     })();
-  }, []);
+  }, [activeRegulatorId]);
+
 
   const emptyRule = (): DraftRule => ({
     ...DEFAULT_LICENSE_EXPIRY_POLICY,
