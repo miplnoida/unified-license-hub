@@ -322,7 +322,7 @@ export default function ManageLicensees() {
                   <TableBody>
                     {paged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                           No licensees found.
                         </TableCell>
                       </TableRow>
@@ -342,8 +342,7 @@ export default function ManageLicensees() {
                         <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
                         <TableCell className="text-sm">{row.category_name}</TableCell>
                         <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
-                        <TableCell><ExpiryCell validUntil={row.valid_until} status={row.status} /></TableCell>
-                        <TableCell>{statusBadge(row.status)}</TableCell>
+                        <TableCell>{renderStatusCell(row)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
                             <Eye className="h-4 w-4 mr-1" />View
