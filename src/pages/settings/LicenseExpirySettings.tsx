@@ -64,17 +64,17 @@ function PolicyFields({
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <div className="space-y-2">
-        <Label>Cycle Type</Label>
+        <Label>Renewal cycle</Label>
         <Select value={policy.cycle_type} onValueChange={(v) => set('cycle_type', v as any)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="annual">Annual (365 days)</SelectItem>
-            <SelectItem value="periodic">Periodic (custom)</SelectItem>
+            <SelectItem value="periodic">Custom period</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="space-y-2">
-        <Label>Validity Period (days)</Label>
+        <Label>Validity period (days)</Label>
         <Input
           type="number"
           min={1}
@@ -84,7 +84,7 @@ function PolicyFields({
         />
       </div>
       <div className="space-y-2">
-        <Label>Grace Period after Expiry (days)</Label>
+        <Label>Grace period after expiry (days)</Label>
         <Input
           type="number"
           min={0}
@@ -93,18 +93,18 @@ function PolicyFields({
         />
       </div>
       <div className="space-y-2">
-        <Label>Reminder Days Before Expiry</Label>
+        <Label>Reminder days before expiry</Label>
         <Input
           value={remindersText}
           onChange={(e) => onRemindersChange(e.target.value)}
-          placeholder="e.g. 10, 5, 1"
+          placeholder="e.g. 30, 15, 7"
         />
-        <p className="text-xs text-muted-foreground">Comma-separated days before expiry.</p>
+        <p className="text-xs text-muted-foreground">Separate days with commas.</p>
       </div>
       <div className="md:col-span-2 flex items-center justify-between">
         <div>
-          <Label>Notify Officers</Label>
-          <p className="text-xs text-muted-foreground">Also send internal alerts to supervisors / regulators.</p>
+          <Label>Notify officers</Label>
+          <p className="text-xs text-muted-foreground">Send alerts to supervisors and regulators.</p>
         </div>
         <Switch checked={policy.auto_notify_officer} onCheckedChange={(v) => set('auto_notify_officer', v)} />
       </div>
