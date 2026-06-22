@@ -244,15 +244,21 @@ export default function LicenseDetail() {
       return;
     }
     const renewalLicenseeId = linkedLicenseeId || resolvedLicenseeId || null;
+    const isLicenseHolder = !!license.holder_id && license.holder_id === user.id;
     if (!isInternal) {
       if (!renewalLicenseeId) {
         toast.error('Could not resolve the licensee for this license.');
         return;
       }
-      const ok = await accessGuard.verify(renewalLicenseeId, license.sector_id);
-      if (!ok) {
-        toast.error('You are not authorized to renew this license.');
-        return;
+      // Skip the Primary/PPOC guard when the current user is the license's
+      // own holder_id — typical for pre-licensees who were issued a license
+      // before a separate Primary User profile was provisioned.
+      if (!isLicenseHolder) {
+        const ok = await accessGuard.verify(renewalLicenseeId, license.sector_id);
+        if (!ok) {
+          toast.error('You are not authorized to renew this license.');
+          return;
+        }
       }
     }
     setStartingRenewal(true);
