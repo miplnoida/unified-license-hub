@@ -326,6 +326,7 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
                     <SelectItem value="number">Number</SelectItem>
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="select">Select</SelectItem>
+                    <SelectItem value="file">File</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTableColumn(i)}>

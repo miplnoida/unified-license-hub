@@ -931,17 +931,104 @@ export function FormRenderer({
                   <tr key={rowIdx} className="border-b">
                     {(field.tableColumns || []).map(col => (
                       <td key={col.id} className="p-1">
-                        <Input
-                          type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
-                          value={row[col.id] || ''}
-                          onChange={e => {
-                            const newData = [...tableData];
-                            newData[rowIdx] = { ...newData[rowIdx], [col.id]: e.target.value };
-                            onChange(field.fieldName, newData);
-                          }}
-                          disabled={readOnly}
-                          className="h-8 text-xs"
-                        />
+                        {col.type === 'file' ? (
+                          (() => {
+                            const cellKey = `${field.fieldName}__${rowIdx}__${col.id}`;
+                            const cellVal = row[col.id] as (FormFileData | undefined);
+                            const uploading = !!uploadingFields[cellKey];
+                            return (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  id={`file-${cellKey}`}
+                                  type="file"
+                                  className="hidden"
+                                  disabled={readOnly || uploading}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    e.target.value = '';
+                                    if (!file) return;
+                                    if (!user) { toast.error('You must be logged in to upload files'); return; }
+                                    setUploadingFields(prev => ({ ...prev, [cellKey]: true }));
+                                    const result = await uploadFormFile(file, user.id, applicationId);
+                                    setUploadingFields(prev => ({ ...prev, [cellKey]: false }));
+                                    if (result.success && result.data) {
+                                      const newData = [...tableData];
+                                      newData[rowIdx] = { ...newData[rowIdx], [col.id]: result.data };
+                                      onChange(field.fieldName, newData);
+                                      toast.success(`${file.name} uploaded`);
+                                    } else {
+                                      toast.error(result.error || 'Upload failed');
+                                    }
+                                  }}
+                                />
+                                {cellVal?.name ? (
+                                  <>
+                                    <span className="text-xs truncate max-w-[140px]" title={cellVal.name}>{cellVal.name}</span>
+                                    {!readOnly && (
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-destructive"
+                                        onClick={async () => {
+                                          if (cellVal.filePath) {
+                                            await deleteFormFile(cellVal.filePath, cellVal.uploadId);
+                                          }
+                                          const newData = [...tableData];
+                                          newData[rowIdx] = { ...newData[rowIdx], [col.id]: '' };
+                                          onChange(field.fieldName, newData);
+                                        }}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    disabled={readOnly || uploading}
+                                    onClick={() => document.getElementById(`file-${cellKey}`)?.click()}
+                                  >
+                                    {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                                    Upload
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()
+                        ) : col.type === 'select' ? (
+                          <Select
+                            value={row[col.id] || ''}
+                            onValueChange={(v) => {
+                              const newData = [...tableData];
+                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: v };
+                              onChange(field.fieldName, newData);
+                            }}
+                            disabled={readOnly}
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                            <SelectContent>
+                              {(col.options || []).map((opt, i) => (
+                                <SelectItem key={i} value={opt}>{opt}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
+                            value={row[col.id] || ''}
+                            onChange={e => {
+                              const newData = [...tableData];
+                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: e.target.value };
+                              onChange(field.fieldName, newData);
+                            }}
+                            disabled={readOnly}
+                            className="h-8 text-xs"
+                          />
+                        )}
                       </td>
                     ))}
                     {!readOnly && (
