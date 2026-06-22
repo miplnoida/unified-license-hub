@@ -115,6 +115,7 @@ interface ActionRecord {
   action: string;
   comments: string | null;
   created_at: string;
+  signature_data_url?: string | null;
 }
 
 type WorkflowEntity = 'application' | 'registration';
@@ -127,7 +128,7 @@ function useEntityActions(entityType: WorkflowEntity, entityId: string) {
       const filterCol = entityType === 'application' ? 'application_id' : 'entity_id';
       let query = supabase
         .from('approval_actions')
-        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id')
+        .select('id, step_id, actor_id, action_type, action, comments, created_at, entity_type, entity_id, application_id, signature_data_url')
         .order('created_at', { ascending: true });
       query = entityType === 'application'
         ? query.eq('application_id', entityId)
@@ -141,11 +142,13 @@ function useEntityActions(entityType: WorkflowEntity, entityId: string) {
         id: r.id, step_id: r.step_id, actor_id: r.actor_id,
         action_type: r.action_type, action: r.action,
         comments: r.comments, created_at: r.created_at,
+        signature_data_url: r.signature_data_url ?? null,
       })) as ActionRecord[];
     },
     staleTime: 15_000,
   });
 }
+
 
 function useActorsMap(actorIds: string[]) {
   const key = useMemo(() => Array.from(new Set(actorIds.filter(Boolean))).sort(), [actorIds]);
