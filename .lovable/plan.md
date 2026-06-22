@@ -1,32 +1,47 @@
-## Why the error appears now
-The renewal flow now creates a row in `applications` (it used to write to `license_renewals`). The `applications` table is protected by external-portal RLS gates:
+## Diagnosis
 
-```
-(NOT has_external_role(auth.uid()))
-OR external_can_access_application_values(auth.uid(), applicant_id, data, 'can_submit')
-```
+The earlier fix only added `resolvedLicenseeId` from the active PPOC/licensee context into the renewal draft. That does not cover all license detail flows because:
 
-`external_can_access_application_values` authorises the insert if any of:
-1. `applicant_id = auth.uid()` and the user holds `applicant` / `pre_licensee` / `licensee_primary` / `licensee_secondary`.
-2. `applicant_id = auth.uid()` and the user has `licensing.can_submit` on their own account scope.
-3. `data->>'licensee_id'` is present and the user has `licensing.can_submit` on that licensee.
+- On the license detail page, `resolvedLicenseeId` can be `null` or point to a different selected entity.
+- The renewal application is inserted with `.insert(...).select().single()`, so the database must allow both creating the row and immediately reading the returned row.
+- The returned row is blocked by the restrictive `external_applications_select_capability_gate` unless the application can be linked to a licensee the user can view.
+- The renewal panel is also too restrictive: it only appears when `user.id === license.holder_id`, which can hide it from valid licensee/PPOC web users acting for the entity.
 
-The renewal insert today fails because the actor is an external-portal user without the static licensee role (dynamic-role web user or PPOC acting on behalf), and the payload does not set `data.licensee_id`, so branch #3 can never authorise the insert. `NewPostLicenseApplication.tsx` doesn't hit this because it explicitly sets `data.licensee_id = resolvedLicenseeId` from `PpocContext`.
+## Plan
 
-## Fix (single file)
-`src/pages/licenses/LicenseDetail.tsx`
+1. **Resolve the actual licensee for the license**
+   - In `LicenseDetail.tsx`, query the `licensees` row linked to the current license (`licensees.license_id = license.id`).
+   - Store that `licenseeId` locally.
+   - Use this license-derived ID as the primary renewal context, falling back to `resolvedLicenseeId` only if needed.
 
-1. Import and read `resolvedLicenseeId` from `usePpoc()`.
-2. In `startRenewal`, include `licensee_id` in the inserted `data` payload when available:
-   ```ts
-   data: {
-     ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
-     sector_id, sub_sector_id, category_id,
-     service_id, form_template_ids,
-     renewal_of_license_id, renewal_of_license_number,
-     computed_new_valid_until, previous_valid_until,
-     is_renewal: true,
-   }
-   ```
+2. **Verify access before starting renewal**
+   - Reuse `useLicenseeAccessGuard()` in `LicenseDetail.tsx`.
+   - For external users, verify they can access the resolved licensee before inserting the renewal draft.
+   - If not authorized, show a clear authorization error instead of triggering the RLS failure.
 
-No schema, no RLS, no other components change. Internal admins are unaffected because they bypass the external gate via `NOT has_external_role(...)`.
+3. **Make the renewal insert RLS-readable**
+   - Set `data.licensee_id` to the license-derived licensee ID.
+   - Keep `applicant_id: user.id`.
+   - Keep `form_template_ids`, `renewal_of_license_id`, and computed validity metadata.
+   - This gives both the insert gate and the immediate select/return gate a licensee link to authorize against.
+
+4. **Show renewal action only for expired licensee-panel licenses**
+   - Keep dashboard/banners limited to expired licenses.
+   - On `LicenseDetail.tsx`, show the renewal panel for external users when:
+     - the license is expired, and
+     - the user is authorized for the linked licensee.
+   - Remove the `user.id === license.holder_id` restriction so valid PPOC/entity web users can renew.
+
+5. **Keep submit button after the renewal form**
+   - Do not add submit controls to the license detail page.
+   - The flow should navigate to the existing post-license form page, where forms are completed first, payment is checked if a fee exists, then the submit button appears.
+
+## Files to change
+
+- `src/pages/licenses/LicenseDetail.tsx` only.
+
+## Validation
+
+- Check that renewal button/panel appears only for expired external-licensee licenses.
+- Check that starting renewal includes `data.licensee_id` from the actual licensee record.
+- Check that the user is sent to `/post-licensee/applications/{id}/forms?service=Renew` instead of seeing the RLS error.

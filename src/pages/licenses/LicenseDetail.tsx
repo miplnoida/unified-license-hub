@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { logAudit } from '@/hooks/useAuditLog';
