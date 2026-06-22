@@ -25,20 +25,22 @@ export function LicenseExpiryBanner({ userId }: Props) {
           ? s.in_grace_period
             ? `Expired on ${new Date(s.valid_until!).toLocaleDateString()}. You are within the grace period — renew now to avoid disruption.`
             : `Expired on ${new Date(s.valid_until!).toLocaleDateString()}. Please renew immediately.`
-          : `Valid until ${new Date(s.valid_until!).toLocaleDateString()}. Renew now to keep your license active.`;
+          : `Valid until ${new Date(s.valid_until!).toLocaleDateString()}.`;
         return (
           <Alert key={s.license_id} variant={variant}>
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>{title}</AlertTitle>
             <AlertDescription className="flex items-center justify-between gap-4 flex-wrap">
               <span>{desc}</span>
-              <Button
-                size="sm"
-                variant={s.is_expired ? 'secondary' : 'outline'}
-                onClick={() => navigate(`/licenses/${s.license_id}?action=renew`)}
-              >
-                <RefreshCw className="h-4 w-4 mr-1" /> Renew License
-              </Button>
+              {s.is_expired && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => navigate(`/licenses/${s.license_id}?action=renew`)}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> Renew License
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         );
