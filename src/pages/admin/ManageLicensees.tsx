@@ -197,8 +197,10 @@ export default function ManageLicensees() {
           category_name: (categoryId && cMap[categoryId]) || data?.category_name || '—',
           registered_at: reg?.created_at || app?.created_at || l.created_at,
           application_id: appId,
+          valid_until: (l.license_id && licenseToValidUntil[l.license_id]) || null,
         };
       });
+
 
       setRows(enriched);
       setLoading(false);
