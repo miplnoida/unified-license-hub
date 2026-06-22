@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_actions ADD COLUMN IF NOT EXISTS signature_data_url text;

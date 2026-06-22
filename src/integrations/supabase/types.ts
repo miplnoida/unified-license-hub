@@ -237,6 +237,7 @@ export type Database = {
           entity_type: string
           id: string
           responded_at: string | null
+          signature_data_url: string | null
           sla_deadline: string | null
           step_id: string | null
           workflow_instance_id: string | null
@@ -255,6 +256,7 @@ export type Database = {
           entity_type?: string
           id?: string
           responded_at?: string | null
+          signature_data_url?: string | null
           sla_deadline?: string | null
           step_id?: string | null
           workflow_instance_id?: string | null
@@ -273,6 +275,7 @@ export type Database = {
           entity_type?: string
           id?: string
           responded_at?: string | null
+          signature_data_url?: string | null
           sla_deadline?: string | null
           step_id?: string | null
           workflow_instance_id?: string | null
