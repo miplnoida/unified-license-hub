@@ -311,6 +311,7 @@ export default function ManageLicensees() {
                       <TableHead>Sub Sector</TableHead>
                       <TableHead>Category / Service</TableHead>
                       <TableHead>Registered At</TableHead>
+                      <TableHead>Expiry</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
