@@ -487,11 +487,11 @@ export default function LicenseDetail() {
               <p className="text-sm text-muted-foreground">
                 Existing entity details will be reused. Specify the new validity end-date and any notes.
               </p>
-              {expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0 && (
+              {renewalFee && renewalFee.amount > 0 && (
                 <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
                   <p className="font-medium">Renewal Fee Required</p>
                   <p className="text-muted-foreground">
-                    A fee of <span className="font-medium text-foreground">{expiryConfig.renewal_fee_amount} {expiryConfig.renewal_fee_currency}</span> applies.
+                    A fee of <span className="font-medium text-foreground">{renewalFee.amount} {renewalFee.currency}</span> applies.
                     Renewal will be marked <span className="font-medium">pending payment</span> until confirmed.
                   </p>
                 </div>
