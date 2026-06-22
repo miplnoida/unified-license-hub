@@ -60,6 +60,29 @@ export function useLicenseStatusGate(): LicenseStatusGate {
     enabled: !!user && !!activeLicenseeId,
     staleTime: 60_000,
     queryFn: async () => {
+      // Pull active grace-period policy alongside license data so we can keep
+      // a license usable while it sits inside its grace window.
+      const { data: settingRow } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'license_expiry')
+        .maybeSingle();
+      const cfg: any = (settingRow as any)?.value || {};
+      const rules: any[] = Array.isArray(cfg.rules) ? cfg.rules : [];
+      const defaultGrace = Number(cfg?.default?.grace_period_days) || 0;
+      const resolveGrace = (sectorId?: string | null, subSectorId?: string | null, categoryId?: string | null) => {
+        const matches = rules
+          .filter((r) => !r.sector_id || r.sector_id === sectorId)
+          .filter((r) => !r.sub_sector_id || r.sub_sector_id === subSectorId)
+          .filter((r) => !r.category_id || r.category_id === categoryId)
+          .map((r) => ({
+            r,
+            score: (r.category_id ? 4 : 0) + (r.sub_sector_id ? 2 : 0) + (r.sector_id ? 1 : 0),
+          }))
+          .sort((a, b) => b.score - a.score);
+        return matches.length ? Number(matches[0].r.grace_period_days) || 0 : defaultGrace;
+      };
+
       // licensees.license_id -> licenses.status, fall back to licenses.holder_id
       const { data: licensee } = await supabase
         .from('licensees')
@@ -69,36 +92,62 @@ export function useLicenseStatusGate(): LicenseStatusGate {
 
       let licenseStatus: string | null = null;
       let validUntil: string | null = null;
+      let sectorId: string | null = null;
+      let subSectorId: string | null = null;
+      let categoryId: string | null = null;
 
       if (licensee?.license_id) {
         const { data: lic } = await supabase
           .from('licenses')
-          .select('status, valid_until')
+          .select('status, valid_until, sector_id, sub_sector_id, category_id')
           .eq('id', licensee.license_id)
           .maybeSingle();
-        if (lic?.status) { licenseStatus = lic.status; validUntil = lic.valid_until; }
+        if (lic?.status) {
+          licenseStatus = lic.status;
+          validUntil = lic.valid_until;
+          sectorId = (lic as any).sector_id ?? null;
+          subSectorId = (lic as any).sub_sector_id ?? null;
+          categoryId = (lic as any).category_id ?? null;
+        }
       }
 
       if (!licenseStatus) {
-        // Fallback: most recently-issued license held by this licensee
         const { data: held } = await supabase
           .from('licenses')
-          .select('status, valid_until, issued_at')
+          .select('status, valid_until, sector_id, sub_sector_id, category_id, issued_at')
           .eq('holder_id', activeLicenseeId!)
           .order('issued_at', { ascending: false })
           .limit(1);
-        if (held && held[0]?.status) { licenseStatus = held[0].status; validUntil = held[0].valid_until; }
+        if (held && held[0]?.status) {
+          licenseStatus = held[0].status;
+          validUntil = (held[0] as any).valid_until;
+          sectorId = (held[0] as any).sector_id ?? null;
+          subSectorId = (held[0] as any).sub_sector_id ?? null;
+          categoryId = (held[0] as any).category_id ?? null;
+        }
       }
 
       if (!licenseStatus && licensee?.status) {
         licenseStatus = licensee.status;
       }
 
-      // Safety net: if the license is still marked active but valid_until is
-      // in the past, treat as expired until the daily job flips it.
-      if (licenseStatus && normalize(licenseStatus) === 'active' && validUntil) {
+      // Grace handling: a license past valid_until but still inside its grace
+      // window remains usable — treat as active. Past grace flips to expired.
+      if (licenseStatus && validUntil) {
         const t = new Date(validUntil).getTime();
-        if (Number.isFinite(t) && t < Date.now()) licenseStatus = 'expired';
+        if (Number.isFinite(t)) {
+          const graceDays = resolveGrace(sectorId, subSectorId, categoryId);
+          const graceEnds = t + graceDays * 86_400_000;
+          const now = Date.now();
+          const norm = normalize(licenseStatus);
+          if (t < now) {
+            if (graceEnds >= now && (norm === 'active' || norm === 'expired')) {
+              licenseStatus = 'active';
+            } else if (norm === 'active') {
+              licenseStatus = 'expired';
+            }
+          }
+        }
       }
 
       return { status: licenseStatus };
