@@ -106,10 +106,12 @@ export default function ManageLicensees() {
       const licenseToApp: Record<string, string> = {};
       const licenseToNumber: Record<string, string> = {};
       const licenseToStatus: Record<string, string> = {};
+      const licenseToValidUntil: Record<string, string | null> = {};
       (licensesRes.data || []).forEach((l: any) => {
         if (l.application_id) licenseToApp[l.id] = l.application_id;
         if (l.license_number) licenseToNumber[l.id] = l.license_number;
         if (l.status) licenseToStatus[l.id] = l.status;
+        licenseToValidUntil[l.id] = l.valid_until ?? null;
       });
 
       const licensees = (licRes.data || []) as any[];
