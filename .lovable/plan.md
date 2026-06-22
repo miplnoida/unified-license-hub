@@ -1,23 +1,50 @@
-The error is caused by the backend authorization function, not the renew button itself.
+I understand the frustration. I found the renewal path and the policy that is still failing.
 
-**Root cause**
-- `anisha.k2@yopmail.com` exists in `pre_license_users`, not `profiles`.
-- Her license `LIC-2026-000014` is correctly linked to licensee `8e3ffcec-8270-478d-861e-da60f025e3b3` and `licenses.holder_id` is her user id.
-- But `can_current_user_access_licensee()` only authorizes:
-  - users whose `profiles.licensee_id` matches the licensee, or
-  - active PPOC mappings.
-- It does **not** authorize the original license holder from `pre_license_users`, so the renewal flow returns: `You are not authorized to renew this license.`
+## Actual issue
 
-**Plan**
-1. Update the backend authorization function `can_user_access_licensee` to also allow the primary license holder when:
-   - `licensees.id = target_licensee_id`
-   - `licensees.license_id = licenses.id`
-   - `licenses.holder_id = current user id`
-   - and, when a sector is provided, it matches the license/licensee sector.
-2. Keep the existing `profiles.licensee_id` and PPOC authorization paths unchanged.
-3. Re-test the specific Anisha record by checking that the function authorizes her for licensee `8e3ffcec-8270-478d-861e-da60f025e3b3` / license `LIC-2026-000014`.
-4. Then verify the frontend renewal path no longer shows the authorization error and can create the renewal draft.
+The Renew button creates a new row in `applications` and immediately calls `.select().single()` on the insert.
 
-**Files / backend affected**
-- Backend migration only: replace `public.can_user_access_licensee(...)` logic.
-- No unrelated records will be changed.
+For external users, `applications` has a restrictive select policy named `external_applications_select_capability_gate`. Because it is restrictive, it must pass even when the normal “applicant can read own apps” policy passes. During `INSERT ... RETURNING`, that restrictive select check can fail and roll back the insert, which matches the exact error:
+
+`new row violates row-level security policy "external_applications_select_capability_gate" for table "applications"`
+
+The renewal form page also reads and updates the same application row after navigation, so I will verify both creation and the form continuation path, not only the first click.
+
+## Plan
+
+1. **Fix the restrictive application select policy safely**
+   - Update `external_applications_select_capability_gate` so external static roles can directly read their own application row using the row’s own `applicant_id`.
+   - Keep the existing portal capability checks for dynamic portal roles.
+   - Do not broaden access to other users’ application records.
+
+2. **Harden the Renew button creation path**
+   - In `src/pages/licenses/LicenseDetail.tsx`, pre-generate the application id before insert.
+   - Insert the renewal draft without chaining `.select().single()` so renewal creation does not depend on immediate `INSERT RETURNING` readback.
+   - Navigate using the pre-generated application id.
+   - Keep the existing licensee authorization guard and renewal metadata unchanged.
+
+3. **Check the renewal form path closely**
+   - Review `src/pages/PostLicenseApplicationForms.tsx` save/submit behavior against the same policies.
+   - Ensure the form can load the created renewal application, save draft data, mark it in progress, handle payment gating, and call final submit without introducing a regression.
+
+4. **Validate against Anisha’s record only**
+   - Use the known Anisha account/license relationships already identified:
+     - user id: `817c85c1-114b-41e0-8da2-314c55f87c42`
+     - license: `LIC-2026-000014`
+     - licensee: `8e3ffcec-8270-478d-861e-da60f025e3b3`
+   - Confirm the policy logic permits this user to create/read/update only their renewal draft.
+   - Do not change unrelated licensees or application records.
+
+5. **Regression guard**
+   - Keep existing internal staff, PPOC, applicant, pre-licensee, primary licensee, and secondary licensee access paths intact.
+   - Avoid changing unrelated tables, forms, dashboard listings, or submission workflow logic.
+
+After approval, I’ll implement this as one focused backend migration plus the small Renew button frontend change, then verify the renewal click and renewal form path.
+
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
+
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>

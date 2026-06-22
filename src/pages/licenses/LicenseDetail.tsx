@@ -271,9 +271,12 @@ export default function LicenseDetail() {
         renewServiceId = ((services as any[] | null) || [])[0]?.id || null;
       }
 
-      const { data, error } = await supabase
+      const renewalApplicationId = crypto.randomUUID();
+
+      const { error } = await supabase
         .from('applications')
         .insert({
+          id: renewalApplicationId,
           applicant_id: user.id,
           license_type: license.license_type,
           status: 'draft',
@@ -295,28 +298,23 @@ export default function LicenseDetail() {
           },
           regulator_id: activeRegulator?.id || null,
         } as any)
-        .select()
-        .single();
+        .throwOnError();
 
       if (error) throw error;
-      if (!data || !(data as any).id) {
-        toast.error('Failed to start renewal: no application created.');
-        return;
-      }
 
       await logAudit({
         action: 'license_renewal_started',
         entityType: 'license',
         entityId: license.id,
         newValue: {
-          application_id: (data as any).id,
+          application_id: renewalApplicationId,
           new_valid_until: computedNewValidUntil,
           form_template_id: template.id,
         },
       });
 
       toast.success('Renewal form opened. Complete it and submit your renewal request.');
-      navigate(`/post-licensee/applications/${(data as any).id}/forms?service=Renew`);
+      navigate(`/post-licensee/applications/${renewalApplicationId}/forms?service=Renew`);
     } catch (err: any) {
       toast.error('Failed to start renewal: ' + (err?.message || 'Unknown error'));
     } finally {
