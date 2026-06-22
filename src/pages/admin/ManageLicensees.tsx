@@ -12,6 +12,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Building2, Search, Loader2, CheckCircle, ChevronLeft, ChevronRight, Briefcase, Layers, Eye } from 'lucide-react';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
+import { useLicenseExpiryConfig } from '@/hooks/useLicenseExpiryConfig';
 
 interface LicenseeRow {
   id: string;
@@ -41,24 +42,6 @@ function daysUntil(dateStr: string | null | undefined): number | null {
   return Math.ceil((t - today.getTime()) / 86400000);
 }
 
-function ExpiryCell({ validUntil, status }: { validUntil: string | null; status: string }) {
-  const days = daysUntil(validUntil);
-  const isExpired = status === 'expired' || (days !== null && days < 0);
-  const isSoon = !isExpired && days !== null && days >= 0 && days <= 7;
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span>{fmtDate(validUntil)}</span>
-      {isExpired && (
-        <Badge variant="destructive" className="animate-pulse">Expired</Badge>
-      )}
-      {isSoon && (
-        <Badge className="animate-pulse bg-amber-500 text-white hover:bg-amber-500">
-          {days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`}
-        </Badge>
-      )}
-    </div>
-  );
-}
 
 interface LookupMap { [id: string]: string }
 
@@ -73,6 +56,7 @@ const fmtDate = (d: string | null | undefined) => {
 
 export default function ManageLicensees() {
   const navigate = useNavigate();
+  const { data: expiryConfig } = useLicenseExpiryConfig();
   const [rows, setRows] = useState<LicenseeRow[]>([]);
   const [sectors, setSectors] = useState<LookupMap>({});
   const [loading, setLoading] = useState(true);
@@ -239,7 +223,27 @@ export default function ManageLicensees() {
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const activeCount = rows.filter(r => r.status === 'active').length;
 
-  const statusBadge = (status: string) => <LicenseStatusBadge status={status} />;
+  const renderStatusCell = (row: LicenseeRow) => {
+    const days = daysUntil(row.valid_until);
+    const isExpired = row.status === 'expired' || (days !== null && days < 0);
+    if (isExpired) {
+      return <Badge variant="destructive" className="animate-pulse">Expired</Badge>;
+    }
+    const isSoon = row.status === 'active' && days !== null && days >= 0 && days <= 7;
+    if (isSoon) {
+      const grace = expiryConfig?.resolveFor({
+        sector_id: row.sector_id,
+        sub_sector_id: row.sub_sector_id,
+        category_id: row.category_id,
+      }).grace_period_days ?? 0;
+      return (
+        <Badge className="animate-pulse bg-amber-500 text-white hover:bg-amber-500">
+          Expiring in {days} + {grace} days
+        </Badge>
+      );
+    }
+    return <LicenseStatusBadge status={row.status} />;
+  };
 
   return (
     <DashboardLayout>
@@ -311,7 +315,6 @@ export default function ManageLicensees() {
                       <TableHead>Sub Sector</TableHead>
                       <TableHead>Category / Service</TableHead>
                       <TableHead>Registered At</TableHead>
-                      <TableHead>Expiry</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -319,7 +322,7 @@ export default function ManageLicensees() {
                   <TableBody>
                     {paged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                           No licensees found.
                         </TableCell>
                       </TableRow>
@@ -339,8 +342,7 @@ export default function ManageLicensees() {
                         <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
                         <TableCell className="text-sm">{row.category_name}</TableCell>
                         <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
-                        <TableCell><ExpiryCell validUntil={row.valid_until} status={row.status} /></TableCell>
-                        <TableCell>{statusBadge(row.status)}</TableCell>
+                        <TableCell>{renderStatusCell(row)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
                             <Eye className="h-4 w-4 mr-1" />View
