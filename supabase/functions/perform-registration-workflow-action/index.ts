@@ -62,6 +62,9 @@ export async function handler(req: Request): Promise<Response> {
     const instance_id: string | undefined = body.instance_id;
     const raw_action: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    const signature_data_url: string | null = typeof body.signature_data_url === "string" && body.signature_data_url.startsWith("data:image/")
+      ? body.signature_data_url
+      : null;
     const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
       Array.isArray(body.notification_overrides) ? body.notification_overrides : [];
     const overrideMap = new Map<string, { subject?: string; body?: string }>();
@@ -82,6 +85,19 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    if (step_id) {
+      const { data: cfgRow } = await admin
+        .from("approval_step_actions")
+        .select("require_digital_signature")
+        .eq("step_id", step_id)
+        .eq("action_type", raw_action)
+        .eq("is_enabled", true)
+        .maybeSingle();
+      if ((cfgRow as any)?.require_digital_signature && !signature_data_url) {
+        return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+      }
+    }
+
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_registration_workflow_transition", {
       _registration_id: registration_id,
       _instance_id: instance_id ?? null,
@@ -90,6 +106,7 @@ export async function handler(req: Request): Promise<Response> {
       _comments: comments,
       _actor_id: caller.id,
     });
+
 
     if (rpcErr) {
       console.error("perform_registration_workflow_transition error:", rpcErr);
