@@ -15,7 +15,13 @@ export function useEffectivePortalContext() {
         isPpoc,
         actingAs,
         resolvedLicenseeId,
-        hasPrimaryUserAccess: !!(user?.licenseeId || ownLicenseeId),
+        // Primary User status must come from EXPLICIT signals only — never
+        // from an inferred ownLicenseeId (name match / license back-ref),
+        // which would mislabel applicants/pre-licensees as "Primary User".
+        hasPrimaryUserAccess:
+          !!user?.licenseeId
+          || String(user?.userType || '').toLowerCase() === 'primary'
+          || user?.role === 'licensee_primary',
         ppocLoading,
       }),
     [actingAs, isPpoc, ownLicenseeId, ppocLoading, resolvedLicenseeId, user?.licenseeId, user?.role, user?.userType],
