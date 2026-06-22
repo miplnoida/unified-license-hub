@@ -54,6 +54,7 @@ export interface TemplateStepV2 {
   approver_config: Record<string, unknown>;
   sla_hours: number | null;
   auto_approve_on_timeout: boolean;
+  require_digital_signature?: boolean;
   allowed_actions: WorkflowActionType[];
   actions: TemplateActionV2[];
   entry_notifications: TemplateNotificationV2[];
@@ -121,6 +122,7 @@ export function buildSnapshotFromRows(input: BuildSnapshotInput): TemplateSnapsh
       approver_config: (s.approver_config ?? {}) as Record<string, unknown>,
       sla_hours: s.sla_hours,
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
+      require_digital_signature: !!(s as any).require_digital_signature,
       allowed_actions: Array.isArray(s.allowed_actions) ? s.allowed_actions : [],
       actions,
       entry_notifications: entry,
@@ -222,6 +224,7 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
       approver_type: s.approver_type ?? 'role_based_user',
       approver_config: s.approver_config ?? {},
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
+      require_digital_signature: !!s.require_digital_signature,
       sla_hours: s.sla_hours ?? 48,
       allowed_actions: s.allowed_actions ?? [],
     };

@@ -1,0 +1,1 @@
+ALTER TABLE public.approval_steps ADD COLUMN IF NOT EXISTS require_digital_signature boolean NOT NULL DEFAULT false;

@@ -767,7 +767,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       actionType,
       label: def?.label ?? actionType,
       requireComments: requiresRemarks,
-      requireSignature: !!cfgRow?.require_digital_signature,
+      requireSignature: !!cfgRow?.require_digital_signature || !!(currentStep as any)?.require_digital_signature,
     });
   };
 

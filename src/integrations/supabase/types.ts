@@ -455,6 +455,7 @@ export type Database = {
           id: string
           is_required: boolean
           name: string
+          require_digital_signature: boolean
           sla_breach_template_id: string | null
           sla_hours: number | null
           sla_pause_on_rfi: boolean
@@ -480,6 +481,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           name: string
+          require_digital_signature?: boolean
           sla_breach_template_id?: string | null
           sla_hours?: number | null
           sla_pause_on_rfi?: boolean
@@ -505,6 +507,7 @@ export type Database = {
           id?: string
           is_required?: boolean
           name?: string
+          require_digital_signature?: boolean
           sla_breach_template_id?: string | null
           sla_hours?: number | null
           sla_pause_on_rfi?: boolean
