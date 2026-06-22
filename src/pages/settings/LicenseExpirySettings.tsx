@@ -117,8 +117,6 @@ export default function LicenseExpirySettings() {
   const qc = useQueryClient();
   const { data, isLoading } = useLicenseExpiryConfig();
 
-  const [defaultPolicy, setDefaultPolicy] = useState<LicenseExpiryPolicy>(DEFAULT_LICENSE_EXPIRY_POLICY);
-  const [defaultRemindersText, setDefaultRemindersText] = useState('10,5,1');
   const [rules, setRules] = useState<DraftRule[]>([]);
   const [saving, setSaving] = useState(false);
 
