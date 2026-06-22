@@ -50,6 +50,9 @@ Deno.serve(async (req) => {
     const instance_id: string | undefined = body.instance_id;
     const action_type: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    const signature_data_url: string | null = typeof body.signature_data_url === "string" && body.signature_data_url.startsWith("data:image/")
+      ? body.signature_data_url
+      : null;
     const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
       Array.isArray(body.notification_overrides) ? body.notification_overrides : [];
     const overrideMap = new Map<string, { subject?: string; body?: string }>();
@@ -65,6 +68,20 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
+
+    if (step_id) {
+      const { data: cfgRow } = await admin
+        .from("approval_step_actions")
+        .select("require_digital_signature")
+        .eq("step_id", step_id)
+        .eq("action_type", action_type)
+        .eq("is_enabled", true)
+        .maybeSingle();
+      if ((cfgRow as any)?.require_digital_signature && !signature_data_url) {
+        return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+      }
+    }
+
     const { data: rpcRes, error: rpcErr } = await admin.rpc("perform_return_workflow_transition", {
       _return_id: return_id,
       _instance_id: instance_id ?? null,
@@ -83,6 +100,30 @@ Deno.serve(async (req) => {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return errorResponse(req, status, String(result.error), String(result.code || "BUSINESS_ERROR"));
     }
+
+    if (signature_data_url) {
+      try {
+        const { data: latest } = await admin
+          .from("approval_actions")
+          .select("id")
+          .eq("entity_type", "return")
+          .eq("entity_id", return_id)
+          .eq("actor_id", caller.id)
+          .eq("action_type", action_type)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if ((latest as any)?.id) {
+          await admin
+            .from("approval_actions")
+            .update({ signature_data_url })
+            .eq("id", (latest as any).id);
+        }
+      } catch (sigErr) {
+        console.warn("signature persistence failed:", sigErr);
+      }
+    }
+
 
     // Best-effort notification dispatch
     try {
