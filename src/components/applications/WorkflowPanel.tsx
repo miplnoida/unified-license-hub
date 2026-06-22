@@ -742,12 +742,17 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     // email(s) before the action is committed. Empty bindings → dialog still
     // confirms but shows "no email configured".
     const def = actionButtonsList.find(a => a.type === actionType);
+    const cfgRow = (configuredStepActions as StepAction[]).find(
+      a => a.action_type === actionType && a.is_enabled,
+    );
     setPreviewState({
       actionType,
       label: def?.label ?? actionType,
       requireComments: requiresRemarks,
+      requireSignature: !!cfgRow?.require_digital_signature,
     });
   };
+
 
   const handleAddRemark = async () => {
     if (!user || !liveInstance || !currentStep) return;
