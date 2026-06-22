@@ -146,6 +146,10 @@ export default function LicenseDetail() {
       })
     : undefined;
   const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
+  const isLicenseExpired = !!license && (
+    license.status === 'expired' ||
+    (!!license.valid_until && new Date(license.valid_until).getTime() < new Date().setHours(0, 0, 0, 0))
+  );
 
   // Auto-calculated next valid_until based on the sector's renewal policy.
   // Read-only — users cannot override it from the renewal form.
@@ -208,6 +212,10 @@ export default function LicenseDetail() {
   const startRenewal = async () => {
     if (!license || !user) return;
     if (startingRenewal) return;
+    if (!isInternal && !isLicenseExpired) {
+      toast.error('Renewal is available only after the license has expired.');
+      return;
+    }
     const template = resolveRenewalTemplate();
     if (!template) {
       toast.error('No renewal form is configured for this license.');
@@ -267,7 +275,7 @@ export default function LicenseDetail() {
       const next = new URLSearchParams(searchParams);
       next.delete('action');
       setSearchParams(next, { replace: true });
-      startRenewal();
+      if (isLicenseExpired) startRenewal();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates]);
@@ -484,15 +492,13 @@ export default function LicenseDetail() {
               </Card>
             )}
 
-            {/* Renewal panel visible to license holder when expired / within reminder window */}
+            {/* Renewal panel visible to license holder only after expiry */}
             {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
               const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
-              const maxRem = Math.max(0, ...((licensePolicy?.reminder_days) || [0]));
-              const expired = days < 0 || license.status === 'expired';
-              const inWindow = !expired && days <= maxRem;
+              const expired = isLicenseExpired;
               const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
-              if (!(expired || inWindow)) return null;
-              const canRenew = inWindow || inGrace;
+              if (!expired) return null;
+              const canRenew = inGrace;
               const fee = renewalFee
                 ? `${renewalFee.amount} ${renewalFee.currency} (paid renewal)`
                 : 'Free';
