@@ -23,7 +23,7 @@ export function Header() {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
   const { activeSectorName } = useActiveSector();
-  const { isPpoc, actingAs, ownLicenseeId, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
+  const { isPpoc, actingAs, loading: ppocLoading, resolvedLicenseeId } = usePpoc();
   const portalContext = useEffectivePortalContext();
   const isLicensee = !!user && portalContext.isLicensee;
   const effectiveRoleLabel = user
@@ -33,7 +33,10 @@ export function Header() {
         isPpoc,
         actingAs,
         resolvedLicenseeId,
-        hasPrimaryUserAccess: !!(user.licenseeId || ownLicenseeId),
+        hasPrimaryUserAccess:
+          !!user.licenseeId
+          || String(user.userType || '').toLowerCase() === 'primary'
+          || user.role === 'licensee_primary',
         ppocLoading,
       })
     : '';
