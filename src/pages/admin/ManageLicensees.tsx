@@ -42,24 +42,6 @@ function daysUntil(dateStr: string | null | undefined): number | null {
   return Math.ceil((t - today.getTime()) / 86400000);
 }
 
-function ExpiryCell({ validUntil, status }: { validUntil: string | null; status: string }) {
-  const days = daysUntil(validUntil);
-  const isExpired = status === 'expired' || (days !== null && days < 0);
-  const isSoon = !isExpired && days !== null && days >= 0 && days <= 7;
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span>{fmtDate(validUntil)}</span>
-      {isExpired && (
-        <Badge variant="destructive" className="animate-pulse">Expired</Badge>
-      )}
-      {isSoon && (
-        <Badge className="animate-pulse bg-amber-500 text-white hover:bg-amber-500">
-          {days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`}
-        </Badge>
-      )}
-    </div>
-  );
-}
 
 interface LookupMap { [id: string]: string }
 
