@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, ArrowLeft, Loader2, Plus, Trash2, ExternalLink } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Save, ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -26,11 +26,6 @@ interface TaxonomyRow { id: string; name: string; parent_id?: string | null }
 type DraftRule = LicenseExpiryRule & { _remindersText: string };
 
 const newRuleId = () => `rule_${Math.random().toString(36).slice(2, 9)}`;
-
-const policyToDraft = (p: LicenseExpiryPolicy): { policy: LicenseExpiryPolicy; remindersText: string } => ({
-  policy: { ...p },
-  remindersText: (p.reminder_days || []).join(','),
-});
 
 const sanitizePolicy = (p: LicenseExpiryPolicy, remindersText: string): LicenseExpiryPolicy => {
   const reminders = remindersText
