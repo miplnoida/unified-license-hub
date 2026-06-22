@@ -54,6 +54,7 @@ export interface TemplateStepV2 {
   approver_config: Record<string, unknown>;
   sla_hours: number | null;
   auto_approve_on_timeout: boolean;
+  require_digital_signature?: boolean;
   allowed_actions: WorkflowActionType[];
   actions: TemplateActionV2[];
   entry_notifications: TemplateNotificationV2[];
