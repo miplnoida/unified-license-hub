@@ -147,25 +147,36 @@ export default function LicenseExpirySettings() {
     );
   }, [data]);
 
+  useEffect(() => {
+    if (!data) return;
+    const loaded = data.rules.map((r) => ({
+      ...r,
+      _remindersText: (r.reminder_days || []).join(','),
+    }));
+    setRules(loaded.length ? loaded : [emptyRule()]);
+  }, [data]);
+
+  const emptyRule = (): DraftRule => ({
+    ...DEFAULT_LICENSE_EXPIRY_POLICY,
+    id: newRuleId(),
+    sector_id: null,
+    sub_sector_id: null,
+    category_id: null,
+    _remindersText: (DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days || []).join(','),
+  });
+
   const addRule = () => {
-    setRules((prev) => [
-      ...prev,
-      {
-        ...DEFAULT_LICENSE_EXPIRY_POLICY,
-        id: newRuleId(),
-        sector_id: null,
-        sub_sector_id: null,
-        category_id: null,
-        _remindersText: (DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days || []).join(','),
-      },
-    ]);
+    setRules((prev) => [...prev, emptyRule()]);
   };
 
   const updateRule = (id: string, patch: Partial<DraftRule>) =>
     setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const removeRule = (id: string) =>
-    setRules((prev) => prev.filter((r) => r.id !== id));
+    setRules((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      return next.length ? next : [emptyRule()];
+    });
 
   const handleSave = async () => {
     const missingSector = rules.some((r) => !r.sector_id);
