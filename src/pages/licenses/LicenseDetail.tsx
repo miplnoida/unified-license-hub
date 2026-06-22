@@ -212,6 +212,10 @@ export default function LicenseDetail() {
   const startRenewal = async () => {
     if (!license || !user) return;
     if (startingRenewal) return;
+    if (!isInternal && !isLicenseExpired) {
+      toast.error('Renewal is available only after the license has expired.');
+      return;
+    }
     const template = resolveRenewalTemplate();
     if (!template) {
       toast.error('No renewal form is configured for this license.');
