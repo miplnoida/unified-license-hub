@@ -622,11 +622,22 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
                                   {a.comments && (
                                     <p className="whitespace-pre-wrap text-foreground/80 border-l-2 border-border pl-2">{a.comments}</p>
                                   )}
+                                  {a.signature_data_url && (
+                                    <div className="pt-1">
+                                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Signature</p>
+                                      <img
+                                        src={a.signature_data_url}
+                                        alt="Digital signature"
+                                        className="h-12 rounded border border-border bg-white object-contain"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
                           </div>
                         );
+
                       })()
                     ) : (
                       <p className="text-xs text-muted-foreground">
