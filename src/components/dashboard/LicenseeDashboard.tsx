@@ -80,11 +80,24 @@ export function LicenseeDashboard() {
             {data!.licenses.list.map((lic) => {
               const days = lic.days_until_expiry;
               const isExpiringSoon = lic.status === 'active' && days !== null && days >= 0 && days <= 30;
-              const isExpired = lic.status === 'expired' || (lic.status === 'active' && days !== null && days < 0);
-              const canRenew = isExpired;
-              const variant = isExpiringSoon ? 'warning' : (LICENSE_BADGE_VARIANT[lic.status] || 'outline');
-              let badgeLabel: string = lic.status.charAt(0).toUpperCase() + lic.status.slice(1);
-              if (isExpiringSoon) badgeLabel = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`;
+              const inGrace = inGraceIds.has(lic.id);
+              const isPastGrace = pastGraceIds.has(lic.id);
+              const canRenew = isPastGrace;
+              let badgeVariant: any;
+              let badgeLabel: string;
+              if (inGrace) {
+                badgeVariant = 'warning';
+                badgeLabel = 'In grace period';
+              } else if (isPastGrace) {
+                badgeVariant = 'destructive';
+                badgeLabel = 'Grace ended';
+              } else if (isExpiringSoon) {
+                badgeVariant = 'warning';
+                badgeLabel = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`;
+              } else {
+                badgeVariant = LICENSE_BADGE_VARIANT[lic.status] || 'outline';
+                badgeLabel = lic.status.charAt(0).toUpperCase() + lic.status.slice(1);
+              }
               return (
                 <div key={lic.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
                   <div className="min-w-0">
@@ -97,7 +110,7 @@ export function LicenseeDashboard() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={variant as any}>{badgeLabel}</Badge>
+                    <Badge variant={badgeVariant}>{badgeLabel}</Badge>
                     {canRenew && (
                       <Button asChild size="sm" variant="outline">
                         <Link to={`/licenses/${lic.id}?action=renew`}>
