@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -7,48 +7,180 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, ArrowLeft, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Save, ArrowLeft, Loader2, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
-  DEFAULT_LICENSE_EXPIRY_CONFIG,
-  LicenseExpiryConfig,
+  DEFAULT_LICENSE_EXPIRY_POLICY,
+  LicenseExpiryPolicy,
+  LicenseExpiryRule,
   useLicenseExpiryConfig,
 } from '@/hooks/useLicenseExpiryConfig';
 import { useQueryClient } from '@tanstack/react-query';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+
+interface TaxonomyRow { id: string; name: string; parent_id?: string | null }
+
+type DraftRule = LicenseExpiryRule & { _remindersText: string };
+
+const newRuleId = () => `rule_${Math.random().toString(36).slice(2, 9)}`;
+
+const policyToDraft = (p: LicenseExpiryPolicy): { policy: LicenseExpiryPolicy; remindersText: string } => ({
+  policy: { ...p },
+  remindersText: (p.reminder_days || []).join(','),
+});
+
+const sanitizePolicy = (p: LicenseExpiryPolicy, remindersText: string): LicenseExpiryPolicy => {
+  const reminders = remindersText
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((n) => Number.isFinite(n) && n >= 0)
+    .sort((a, b) => b - a);
+  return {
+    cycle_type: p.cycle_type,
+    period_days: p.cycle_type === 'annual' ? 365 : Math.max(1, Number(p.period_days) || 365),
+    reminder_days: reminders.length ? reminders : DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days,
+    grace_period_days: Math.max(0, Number(p.grace_period_days) || 0),
+    auto_notify_officer: !!p.auto_notify_officer,
+  };
+};
+
+function PolicyFields({
+  policy,
+  remindersText,
+  onPolicyChange,
+  onRemindersChange,
+}: {
+  policy: LicenseExpiryPolicy;
+  remindersText: string;
+  onPolicyChange: (next: LicenseExpiryPolicy) => void;
+  onRemindersChange: (text: string) => void;
+}) {
+  const set = <K extends keyof LicenseExpiryPolicy>(key: K, val: LicenseExpiryPolicy[K]) =>
+    onPolicyChange({ ...policy, [key]: val });
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="space-y-2">
+        <Label>Cycle Type</Label>
+        <Select value={policy.cycle_type} onValueChange={(v) => set('cycle_type', v as any)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="annual">Annual (365 days)</SelectItem>
+            <SelectItem value="periodic">Periodic (custom)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Validity Period (days)</Label>
+        <Input
+          type="number"
+          min={1}
+          value={policy.cycle_type === 'annual' ? 365 : policy.period_days}
+          disabled={policy.cycle_type === 'annual'}
+          onChange={(e) => set('period_days', parseInt(e.target.value) || 0)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Grace Period after Expiry (days)</Label>
+        <Input
+          type="number"
+          min={0}
+          value={policy.grace_period_days}
+          onChange={(e) => set('grace_period_days', parseInt(e.target.value) || 0)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Reminder Days Before Expiry</Label>
+        <Input
+          value={remindersText}
+          onChange={(e) => onRemindersChange(e.target.value)}
+          placeholder="e.g. 10, 5, 1"
+        />
+        <p className="text-xs text-muted-foreground">Comma-separated days before expiry.</p>
+      </div>
+      <div className="md:col-span-2 flex items-center justify-between">
+        <div>
+          <Label>Notify Officers</Label>
+          <p className="text-xs text-muted-foreground">Also send internal alerts to supervisors / regulators.</p>
+        </div>
+        <Switch checked={policy.auto_notify_officer} onCheckedChange={(v) => set('auto_notify_officer', v)} />
+      </div>
+    </div>
+  );
+}
 
 export default function LicenseExpirySettings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, isLoading } = useLicenseExpiryConfig();
-  const [form, setForm] = useState<LicenseExpiryConfig>(DEFAULT_LICENSE_EXPIRY_CONFIG);
-  const [remindersText, setRemindersText] = useState('10,5,1');
+
+  const [defaultPolicy, setDefaultPolicy] = useState<LicenseExpiryPolicy>(DEFAULT_LICENSE_EXPIRY_POLICY);
+  const [defaultRemindersText, setDefaultRemindersText] = useState('10,5,1');
+  const [rules, setRules] = useState<DraftRule[]>([]);
   const [saving, setSaving] = useState(false);
 
+  const [sectors, setSectors] = useState<TaxonomyRow[]>([]);
+  const [subSectors, setSubSectors] = useState<TaxonomyRow[]>([]);
+  const [categories, setCategories] = useState<TaxonomyRow[]>([]);
+
   useEffect(() => {
-    if (data) {
-      setForm(data);
-      setRemindersText((data.reminder_days || []).join(','));
-    }
+    (async () => {
+      const [s, ss, c] = await Promise.all([
+        (supabase.from('sectors' as any).select('id, name').order('name') as any),
+        (supabase.from('sub_sectors' as any).select('id, name, sector_id').order('name') as any),
+        (supabase.from('categories' as any).select('id, name, sub_sector_id').order('name') as any),
+      ]);
+      setSectors((s.data as any) || []);
+      setSubSectors(((ss.data as any) || []).map((r: any) => ({ ...r, parent_id: r.sector_id })));
+      setCategories(((c.data as any) || []).map((r: any) => ({ ...r, parent_id: r.sub_sector_id })));
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!data) return;
+    setDefaultPolicy(data.default);
+    setDefaultRemindersText((data.default.reminder_days || []).join(','));
+    setRules(
+      data.rules.map((r) => ({
+        ...r,
+        _remindersText: (r.reminder_days || []).join(','),
+      })),
+    );
   }, [data]);
 
-  const set = <K extends keyof LicenseExpiryConfig>(key: K, val: LicenseExpiryConfig[K]) =>
-    setForm((p) => ({ ...p, [key]: val }));
+  const addRule = () => {
+    setRules((prev) => [
+      ...prev,
+      {
+        ...DEFAULT_LICENSE_EXPIRY_POLICY,
+        id: newRuleId(),
+        sector_id: null,
+        sub_sector_id: null,
+        category_id: null,
+        _remindersText: (DEFAULT_LICENSE_EXPIRY_POLICY.reminder_days || []).join(','),
+      },
+    ]);
+  };
+
+  const updateRule = (id: string, patch: Partial<DraftRule>) =>
+    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const removeRule = (id: string) =>
+    setRules((prev) => prev.filter((r) => r.id !== id));
 
   const handleSave = async () => {
-    const reminderDays = remindersText
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => Number.isFinite(n) && n >= 0)
-      .sort((a, b) => b - a);
-
-    const payload: LicenseExpiryConfig = {
-      ...form,
-      reminder_days: reminderDays.length ? reminderDays : DEFAULT_LICENSE_EXPIRY_CONFIG.reminder_days,
-      period_days: form.cycle_type === 'annual' ? 365 : Math.max(1, Number(form.period_days) || 365),
-      renewal_fee_amount: form.renewal_fee_mode === 'paid' ? Math.max(0, Number(form.renewal_fee_amount) || 0) : 0,
-      grace_period_days: Math.max(0, Number(form.grace_period_days) || 0),
+    const payload = {
+      default: sanitizePolicy(defaultPolicy, defaultRemindersText),
+      rules: rules.map((r) => ({
+        id: r.id,
+        sector_id: r.sector_id || null,
+        sub_sector_id: r.sub_sector_id || null,
+        category_id: r.category_id || null,
+        ...sanitizePolicy(r, r._remindersText),
+      })),
     };
 
     setSaving(true);
@@ -79,10 +211,10 @@ export default function LicenseExpirySettings() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-5xl">
         <PageHeader
           title="License Expiry & Renewal"
-          description="Configure validity cycle, expiry reminders, and renewal fee policy."
+          description="Configure validity cycle, expiry reminders, and grace period — globally or per sector / sub-sector / category."
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}>
@@ -96,110 +228,135 @@ export default function LicenseExpirySettings() {
           }
         />
 
+        <Alert>
+          <AlertTitle>Renewal fees moved to Fee Management</AlertTitle>
+          <AlertDescription>
+            Renewal fees are now configured in{' '}
+            <Link to="/admin/fees" className="underline font-medium inline-flex items-center gap-1">
+              Fee Management <ExternalLink className="h-3 w-3" />
+            </Link>
+            . Create a fee with type <span className="font-medium">Renewal</span> scoped to the{' '}
+            <span className="font-medium">Renew</span> service of the relevant sector / sub-sector. The fee is
+            charged only when a licensee initiates renewal — never on a normal application.
+          </AlertDescription>
+        </Alert>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Validity Cycle</CardTitle>
-            <CardDescription>How long a license remains valid after issue or renewal.</CardDescription>
+            <CardTitle className="text-lg">Default Policy</CardTitle>
+            <CardDescription>Applies to any license that doesn't match a specific rule below.</CardDescription>
           </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Cycle Type</Label>
-              <Select value={form.cycle_type} onValueChange={(v) => set('cycle_type', v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="annual">Annual (365 days)</SelectItem>
-                  <SelectItem value="periodic">Periodic (custom)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Validity Period (days)</Label>
-              <Input
-                type="number"
-                min={1}
-                value={form.cycle_type === 'annual' ? 365 : form.period_days}
-                disabled={form.cycle_type === 'annual'}
-                onChange={(e) => set('period_days', parseInt(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Grace Period after Expiry (days)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.grace_period_days}
-                onChange={(e) => set('grace_period_days', parseInt(e.target.value) || 0)}
-              />
-              <p className="text-xs text-muted-foreground">Renewal remains allowed for this many days after expiry.</p>
-            </div>
+          <CardContent>
+            <PolicyFields
+              policy={defaultPolicy}
+              remindersText={defaultRemindersText}
+              onPolicyChange={setDefaultPolicy}
+              onRemindersChange={setDefaultRemindersText}
+            />
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Expiry Notifications</CardTitle>
-            <CardDescription>When licensees and officers receive expiry reminders.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-lg">Sector-Specific Rules</CardTitle>
+              <CardDescription>
+                Override the default for a specific sector, sub-sector, or category. Most-specific match wins.
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={addRule}>
+              <Plus className="h-4 w-4 mr-1" />Add Rule
+            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Reminder Days Before Expiry</Label>
-              <Input
-                value={remindersText}
-                onChange={(e) => setRemindersText(e.target.value)}
-                placeholder="e.g. 10, 5, 1"
-              />
-              <p className="text-xs text-muted-foreground">
-                Comma-separated list of days. A notification will be sent on each of these days before expiry.
+            {rules.length === 0 && (
+              <p className="text-sm text-muted-foreground italic">
+                No rules configured. The default policy applies to all licenses.
               </p>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Notify Officers</Label>
-                <p className="text-xs text-muted-foreground">Also send internal alerts to supervisors / regulators.</p>
-              </div>
-              <Switch
-                checked={form.auto_notify_officer}
-                onCheckedChange={(v) => set('auto_notify_officer', v)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Renewal Fee</CardTitle>
-            <CardDescription>Whether license renewal requires payment.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Renewal Mode</Label>
-              <Select value={form.renewal_fee_mode} onValueChange={(v) => set('renewal_fee_mode', v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="free">Free Renewal</SelectItem>
-                  <SelectItem value="paid">Paid Renewal</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Renewal Fee Amount</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={form.renewal_fee_amount}
-                disabled={form.renewal_fee_mode === 'free'}
-                onChange={(e) => set('renewal_fee_amount', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Input
-                value={form.renewal_fee_currency}
-                disabled={form.renewal_fee_mode === 'free'}
-                onChange={(e) => set('renewal_fee_currency', e.target.value.toUpperCase())}
-              />
-            </div>
+            )}
+            {rules.map((rule, idx) => {
+              const availableSubSectors = subSectors.filter((ss) => !rule.sector_id || ss.parent_id === rule.sector_id);
+              const availableCategories = categories.filter((c) => !rule.sub_sector_id || c.parent_id === rule.sub_sector_id);
+              return (
+                <div key={rule.id} className="rounded-lg border p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">Rule {idx + 1}</p>
+                    <Button variant="ghost" size="sm" onClick={() => removeRule(rule.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label>Sector</Label>
+                      <Select
+                        value={rule.sector_id || 'any'}
+                        onValueChange={(v) =>
+                          updateRule(rule.id, {
+                            sector_id: v === 'any' ? null : v,
+                            sub_sector_id: null,
+                            category_id: null,
+                          })
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any sector</SelectItem>
+                          {sectors.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Sub-Sector</Label>
+                      <Select
+                        value={rule.sub_sector_id || 'any'}
+                        onValueChange={(v) =>
+                          updateRule(rule.id, {
+                            sub_sector_id: v === 'any' ? null : v,
+                            category_id: null,
+                          })
+                        }
+                        disabled={!rule.sector_id}
+                      >
+                        <SelectTrigger><SelectValue placeholder={rule.sector_id ? 'Any sub-sector' : 'Pick sector first'} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any sub-sector</SelectItem>
+                          {availableSubSectors.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select
+                        value={rule.category_id || 'any'}
+                        onValueChange={(v) =>
+                          updateRule(rule.id, { category_id: v === 'any' ? null : v })
+                        }
+                        disabled={!rule.sub_sector_id}
+                      >
+                        <SelectTrigger><SelectValue placeholder={rule.sub_sector_id ? 'Any category' : 'Pick sub-sector first'} /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any category</SelectItem>
+                          {availableCategories.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Separator />
+                  <PolicyFields
+                    policy={rule}
+                    remindersText={rule._remindersText}
+                    onPolicyChange={(next) => updateRule(rule.id, next)}
+                    onRemindersChange={(text) => updateRule(rule.id, { _remindersText: text })}
+                  />
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </div>

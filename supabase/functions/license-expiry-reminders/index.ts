@@ -21,7 +21,51 @@ const corsHeaders = {
 
 type Window = { label: string; days: number; event: "license.expiring_soon" | "license.expired" };
 
-const DEFAULT_REMINDER_DAYS = [30, 15, 7, 1];
+interface Policy {
+  reminder_days: number[];
+  grace_period_days: number;
+  auto_notify_officer: boolean;
+}
+
+interface Rule extends Policy {
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+}
+
+const DEFAULT_POLICY: Policy = {
+  reminder_days: [30, 15, 7, 1],
+  grace_period_days: 30,
+  auto_notify_officer: true,
+};
+
+function normalizePolicy(raw: any, fallback: Policy): Policy {
+  if (!raw || typeof raw !== "object") return fallback;
+  const reminder = Array.isArray(raw.reminder_days)
+    ? raw.reminder_days.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n) && n >= 0)
+    : fallback.reminder_days;
+  return {
+    reminder_days: reminder.length ? reminder : fallback.reminder_days,
+    grace_period_days: Number.isFinite(Number(raw.grace_period_days))
+      ? Math.max(0, Number(raw.grace_period_days))
+      : fallback.grace_period_days,
+    auto_notify_officer:
+      typeof raw.auto_notify_officer === "boolean" ? raw.auto_notify_officer : fallback.auto_notify_officer,
+  };
+}
+
+function resolvePolicy(def: Policy, rules: Rule[], lic: { sector_id: any; sub_sector_id: any; category_id: any }): Policy {
+  const matches = rules
+    .filter((r) => !r.sector_id || r.sector_id === lic.sector_id)
+    .filter((r) => !r.sub_sector_id || r.sub_sector_id === lic.sub_sector_id)
+    .filter((r) => !r.category_id || r.category_id === lic.category_id)
+    .map((r) => ({
+      r,
+      score: (r.category_id ? 4 : 0) + (r.sub_sector_id ? 2 : 0) + (r.sector_id ? 1 : 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+  return matches.length ? matches[0].r : def;
+}
 
 function buildWindows(reminderDays: number[]): Window[] {
   const uniq = Array.from(new Set(reminderDays.filter((d) => Number.isFinite(d) && d >= 0))).sort((a, b) => b - a);
@@ -45,9 +89,10 @@ Deno.serve(async (req) => {
     let reqBody: any = {};
     try { reqBody = await req.json(); } catch { /* allow empty */ }
 
-    // Load admin-configured expiry policy (site_settings.license_expiry).
-    let reminderDays = DEFAULT_REMINDER_DAYS;
-    let notifyOfficer = true;
+    // Load admin-configured expiry policy (new shape: { default, rules }).
+    // Falls back to legacy flat shape and finally to DEFAULT_POLICY.
+    let defaultPolicy: Policy = DEFAULT_POLICY;
+    let rules: Rule[] = [];
     try {
       const { data: cfgRow } = await admin
         .from("site_settings")
@@ -55,17 +100,27 @@ Deno.serve(async (req) => {
         .eq("key", "license_expiry")
         .maybeSingle();
       const cfg: any = cfgRow?.value;
-      if (cfg?.reminder_days && Array.isArray(cfg.reminder_days) && cfg.reminder_days.length) {
-        reminderDays = cfg.reminder_days;
-      }
-      if (typeof cfg?.auto_notify_officer === "boolean") {
-        notifyOfficer = cfg.auto_notify_officer;
+      const hasNewShape = cfg && typeof cfg === "object" && (cfg.default || cfg.rules);
+      defaultPolicy = hasNewShape
+        ? normalizePolicy(cfg.default, DEFAULT_POLICY)
+        : normalizePolicy(cfg, DEFAULT_POLICY);
+      if (Array.isArray(cfg?.rules)) {
+        rules = cfg.rules.map((r: any) => ({
+          sector_id: r?.sector_id || null,
+          sub_sector_id: r?.sub_sector_id || null,
+          category_id: r?.category_id || null,
+          ...normalizePolicy(r, defaultPolicy),
+        }));
       }
     } catch (e) {
       console.warn("license_expiry config load failed, using defaults", e);
     }
 
-    const allWindows = buildWindows(reminderDays);
+    // Union of all reminder days across default + every rule, so we cover every
+    // possible scheduling window in a single sweep. Per-license matching below
+    // decides whether each license actually qualifies for that window.
+    const allReminderDays = Array.from(new Set([...defaultPolicy.reminder_days, ...rules.flatMap((r) => r.reminder_days)]));
+    const allWindows = buildWindows(allReminderDays);
     const windows = reqBody?.window
       ? allWindows.filter((w) => w.label === reqBody.window)
       : allWindows;
@@ -81,7 +136,7 @@ Deno.serve(async (req) => {
 
       let q = admin
         .from("licenses")
-        .select("id, license_number, license_type, holder_id, valid_until, status")
+        .select("id, license_number, license_type, holder_id, valid_until, status, sector_id, sub_sector_id, category_id")
         .not("valid_until", "is", null)
         .gte("valid_until", `${targetDate}T00:00:00Z`)
         .lt("valid_until", `${targetDate}T23:59:59Z`);
@@ -104,6 +159,11 @@ Deno.serve(async (req) => {
       summary.by_window[win.label] = 0;
 
       for (const lic of licenses || []) {
+        // Skip licenses whose resolved policy doesn't include this window.
+        const policy = resolvePolicy(defaultPolicy, rules, lic);
+        if (win.event === "license.expiring_soon" && !policy.reminder_days.includes(win.days)) {
+          continue;
+        }
         summary.scanned++;
 
         // Resolve recipient user(s) for this license.
@@ -154,7 +214,7 @@ Deno.serve(async (req) => {
 
 
         // Also dispatch officer-targeted event (recipient rules resolve via sector_regulators / supervisor role).
-        if (notifyOfficer && win.event === "license.expiring_soon") {
+        if (policy.auto_notify_officer && win.event === "license.expiring_soon") {
           try {
             await admin.functions.invoke("dispatch-notification-event", {
               body: {

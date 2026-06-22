@@ -36,6 +36,14 @@ interface License {
   application_id: string | null;
   created_at: string;
   updated_at: string;
+  sector_id: string | null;
+  sub_sector_id: string | null;
+  category_id: string | null;
+}
+
+interface RenewalFeeInfo {
+  amount: number;
+  currency: string;
 }
 
 interface LicenseAction {
@@ -77,6 +85,7 @@ export default function LicenseDetail() {
   const [renewDate, setRenewDate] = useState('');
   const [renewNotes, setRenewNotes] = useState('');
   const [renewSubmitting, setRenewSubmitting] = useState(false);
+  const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
@@ -91,7 +100,50 @@ export default function LicenseDetail() {
     load();
   }, [id]);
 
-  const periodDays = expiryConfig?.cycle_type === 'periodic' ? (expiryConfig.period_days || 365) : 365;
+  // Resolve renewal fee from Fee Management: a fee tagged "Renewal" tied to the
+  // Renew service for this license's sub-sector. If no row exists, renewal is free.
+  useEffect(() => {
+    async function loadRenewalFee() {
+      if (!license?.sub_sector_id) { setRenewalFee(null); return; }
+      const { data: services } = await supabase
+        .from('services' as any)
+        .select('id')
+        .eq('name', 'Renew')
+        .eq('sub_sector_id', license.sub_sector_id);
+      const serviceIds = (services as any[] | null)?.map((s) => s.id) || [];
+      if (serviceIds.length === 0) { setRenewalFee(null); return; }
+      const { data: fees } = await supabase
+        .from('fee_configurations' as any)
+        .select('amount, currency, sub_sector_id, category_id')
+        .eq('is_active', true)
+        .in('service_id', serviceIds)
+        .ilike('fee_type', 'renewal');
+      const rows = (fees as any[] | null) || [];
+      const match = rows
+        .filter((r) => !r.sub_sector_id || r.sub_sector_id === license.sub_sector_id)
+        .filter((r) => !r.category_id || r.category_id === license.category_id)
+        .sort(
+          (a, b) =>
+            ((b.category_id ? 2 : 0) + (b.sub_sector_id ? 1 : 0)) -
+            ((a.category_id ? 2 : 0) + (a.sub_sector_id ? 1 : 0)),
+        )[0];
+      if (match && Number(match.amount) > 0) {
+        setRenewalFee({ amount: Number(match.amount), currency: match.currency || 'USD' });
+      } else {
+        setRenewalFee(null);
+      }
+    }
+    loadRenewalFee();
+  }, [license?.sub_sector_id, license?.category_id]);
+
+  const licensePolicy = license
+    ? expiryConfig?.resolveFor({
+        sector_id: license.sector_id,
+        sub_sector_id: license.sub_sector_id,
+        category_id: license.category_id,
+      })
+    : undefined;
+  const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
 
   const openRenewDialog = () => {
     if (!license) return;
@@ -117,10 +169,10 @@ export default function LicenseDetail() {
   const submitRenewal = async () => {
     if (!license || !user || !renewDate) return;
     setRenewSubmitting(true);
-    const isPaid = expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0;
+    const isPaid = !!renewalFee && renewalFee.amount > 0;
     const renewalStatus = isPaid ? 'pending_payment' : 'submitted';
     const feeNote = isPaid
-      ? `[Renewal fee: ${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} — awaiting payment] `
+      ? `[Renewal fee: ${renewalFee!.amount} ${renewalFee!.currency} — awaiting payment] `
       : '';
     const { error } = await supabase.from('license_renewals' as any).insert({
       license_id: license.id,
@@ -374,14 +426,14 @@ export default function LicenseDetail() {
             {/* Renewal panel visible to license holder when expired / within reminder window */}
             {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
               const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
-              const maxRem = Math.max(0, ...((expiryConfig?.reminder_days) || [0]));
+              const maxRem = Math.max(0, ...((licensePolicy?.reminder_days) || [0]));
               const expired = days < 0 || license.status === 'expired';
               const inWindow = !expired && days <= maxRem;
-              const inGrace = expired && Math.abs(days) <= (expiryConfig?.grace_period_days || 0);
+              const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
               if (!(expired || inWindow)) return null;
               const canRenew = inWindow || inGrace;
-              const fee = expiryConfig?.renewal_fee_mode === 'paid'
-                ? `${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} (paid renewal)`
+              const fee = renewalFee
+                ? `${renewalFee.amount} ${renewalFee.currency} (paid renewal)`
                 : 'Free';
               return (
                 <Card>
@@ -435,11 +487,11 @@ export default function LicenseDetail() {
               <p className="text-sm text-muted-foreground">
                 Existing entity details will be reused. Specify the new validity end-date and any notes.
               </p>
-              {expiryConfig?.renewal_fee_mode === 'paid' && (expiryConfig?.renewal_fee_amount || 0) > 0 && (
+              {renewalFee && renewalFee.amount > 0 && (
                 <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
                   <p className="font-medium">Renewal Fee Required</p>
                   <p className="text-muted-foreground">
-                    A fee of <span className="font-medium text-foreground">{expiryConfig.renewal_fee_amount} {expiryConfig.renewal_fee_currency}</span> applies.
+                    A fee of <span className="font-medium text-foreground">{renewalFee.amount} {renewalFee.currency}</span> applies.
                     Renewal will be marked <span className="font-medium">pending payment</span> until confirmed.
                   </p>
                 </div>
