@@ -530,13 +530,9 @@ export default function LicenseDetail() {
               </Card>
             )}
 
-            {/* Renewal panel visible to license holder only after expiry */}
-            {!isInternal && license.valid_until && (() => {
-              const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
-              const expired = isLicenseExpired;
-              const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
-              if (!expired) return null;
-              const canRenew = inGrace;
+            {/* Renewal panel visible to license holder only after grace period has ended */}
+            {!isInternal && license.valid_until && isPastGrace && (() => {
+              const days = Math.ceil((new Date(license.valid_until).getTime() - todayMs) / 86_400_000);
               const fee = renewalFee
                 ? `${renewalFee.amount} ${renewalFee.currency} (paid renewal)`
                 : 'Free';
@@ -545,15 +541,10 @@ export default function LicenseDetail() {
                   <CardHeader><CardTitle>Renewal</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      {expired
-                        ? `This license expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago.`
-                        : `This license expires in ${days} day${days === 1 ? '' : 's'}.`}
+                      This license expired {Math.abs(days)} day{Math.abs(days) === 1 ? '' : 's'} ago. Grace period ended on {graceEndsOnLabel}.
                     </p>
                     <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
-                    {expired && !inGrace && (
-                      <p className="text-xs text-destructive">Grace period has elapsed. Please contact the regulator.</p>
-                    )}
-                    <Button onClick={startRenewal} disabled={!canRenew || startingRenewal}>
+                    <Button onClick={startRenewal} disabled={startingRenewal}>
                       {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                       Renew License
                     </Button>
@@ -561,7 +552,21 @@ export default function LicenseDetail() {
                 </Card>
               );
             })()}
+
+            {/* Informational panel while inside the grace period */}
+            {!isInternal && license.valid_until && isWithinGrace && (
+              <Card>
+                <CardHeader><CardTitle>Grace Period Active</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Your license expired on {new Date(license.valid_until).toLocaleDateString()} and is currently in the grace period.
+                    It remains valid until <span className="font-medium text-foreground">{graceEndsOnLabel}</span>. You can renew once the grace period ends.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
+
 
           <div>
             <Card>
