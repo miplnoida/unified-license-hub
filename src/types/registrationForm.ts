@@ -30,6 +30,10 @@ export interface RegFieldValidation {
   patternMessage?: string;
   /** When true, this field's value must be unique across registration applicant names. */
   uniqueApplicantName?: boolean;
+  // File validation
+  allowedTypes?: string[];
+  minSizeKB?: number;
+  maxSizeMB?: number;
 }
 
 export interface RegConditionalRule {
