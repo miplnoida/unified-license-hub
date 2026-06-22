@@ -1,67 +1,53 @@
-# Step-level Digital Signature Requirement
+# Step-level Digital Signature — Frontend Polish (every workflow)
 
-Move/expose digital signature as a single switch on the approval step. When ON, every action executed on that step requires the approver to capture a signature at runtime. The existing per-action toggle stays as an override (optional), but the new step-level switch is the primary control admins use.
+The backend column, edge-function enforcement, and snapshot serialization for `approval_steps.require_digital_signature` are already in place, plus a switch on the step card in `WorkflowList.tsx`. This plan closes the remaining frontend gaps so the requirement is **visibly managed and surfaced for every workflow** (applications, registrations, returns).
 
-## 1. Database
+## 1. Admin: `WorkflowList.tsx`
 
-New migration:
-- `ALTER TABLE public.approval_steps ADD COLUMN require_digital_signature boolean NOT NULL DEFAULT false;`
-- No RLS/GRANT changes (existing policies cover the column).
+- Keep the existing step-level switch where it is (just above `StepActionsEditor`).
+- When `step.require_digital_signature === true`, also render a small **"Signature required"** badge in the step card header next to the step name / SLA badge, so admins see it at a glance without expanding the step.
 
-Snapshot tables (`approval_workflow_versions.snapshot` JSON) — no schema change; snapshot writer already serializes whatever columns are on the step.
+## 2. Admin: `StepActionsEditor.tsx` (per-action editor)
 
-## 2. Admin UI — `WorkflowList.tsx` (step card)
+When the parent step has `require_digital_signature = true`:
 
-Add a new switch block right above `<StepActionsEditor>` (around line 1665):
+- **List view** (each action row): always show the existing `Digital signature` badge (currently shown only when the per-action flag is true). Tooltip: "Required at step level."
+- **Edit form**: above the per-action `Digital Signature Required` switch, show a muted hint: *"Already required at step level — this per-action toggle only adds an override and is not needed."* Leave the per-action switch interactive (overrides are still allowed).
 
-```
-[Switch] Require digital signature on this step
-        When ON, every approver action on this step must be signed at runtime.
-        Individual action overrides still apply.
-```
+No data model changes — purely presentational, driven by the `step.require_digital_signature` prop already passed in.
 
-- Wired through existing `onUpdate(step.id, { require_digital_signature: !!v })`.
-- `useWorkflowEngine` `WorkflowStep` type + `useUpdateStep` payload extended with the new field.
+## 3. Runtime UI — applications (`WorkflowPanel.tsx`)
 
-## 3. Runtime enforcement (edge functions)
+- In the step progress list, append a small **"Signature required"** badge to the **current** step when `currentStep.require_digital_signature` is true.
+- Above the action buttons, render a one-line inline notice when the active step requires a signature: *"This step requires a digital signature. You'll be prompted to sign when you submit an action."*
+- `requireSignature` passed to `WorkflowActionPreviewDialog` already ORs step + action — no change.
 
-In all three: `perform-workflow-action`, `perform-registration-workflow-action`, `perform-return-workflow-action`.
+## 4. Runtime UI — returns (`ReturnWorkflowPanel.tsx`)
 
-Update the existing signature-required check so it triggers when **either**:
-- the matching `approval_step_actions.require_digital_signature` is true, OR
-- the parent `approval_steps.require_digital_signature` is true.
+Mirror the application changes above (badge in progress list + inline notice).
 
-One extra `select require_digital_signature from approval_steps where id = step_id` (or join into the existing step lookup). If required and `signature_data_url` missing → return 422 `SIGNATURE_REQUIRED` (already wired).
+## 5. Runtime UI — registrations
 
-## 4. Runtime UI
+Check the registration review surface (`src/pages/admin/RegistrationReview.tsx` and any registration workflow panel it renders) and apply the same badge + inline notice. If registration review uses `WorkflowPanel` already, no extra work is needed.
 
-`WorkflowPanel.tsx` and `ReturnWorkflowPanel.tsx`:
-- When loading the step, also read `require_digital_signature` from `approval_steps`.
-- Compute `requireSignature = stepRequires || actionRequires` and pass to `WorkflowActionPreviewDialog` (already accepts the prop). No change to the dialog itself.
+## 6. Out of scope
 
-## 5. Snapshot / versioning
-
-`workflowTemplateSnapshot.ts` — include `require_digital_signature` when serializing steps and when applying a snapshot back to `approval_steps`. Backward-compatible (missing field treated as `false`).
-
-## 6. Per-action toggle
-
-Keep it as-is in `StepActionsEditor` for fine-grained overrides. Add a small helper line under it: "Already required at step level" (muted) when the parent step has the flag on, so admins aren't confused.
-
-## Out of scope
-
-- Builder visual diagram, SLA, routing, notifications, DocuSign.
-- Changing existing per-action signature data already saved.
-- Dashboard/licensee work.
+- No DB / migration changes.
+- No edge-function changes (enforcement already ORs step + action).
+- No changes to the signature-capture dialog itself.
+- No changes to saved per-action signature data.
+- No dashboard / licensee-portal changes.
 
 ## Files to touch
 
-- New migration: `approval_steps.require_digital_signature`.
-- `src/hooks/useWorkflowEngine.ts` — type + update payload.
-- `src/pages/workflows/WorkflowList.tsx` — step-level switch.
-- `src/components/workflows/StepActionsEditor.tsx` — muted hint when step-level is on.
-- `src/components/applications/WorkflowPanel.tsx` — OR logic for requireSignature.
+- `src/pages/workflows/WorkflowList.tsx` — step header badge.
+- `src/components/workflows/StepActionsEditor.tsx` — list badge + edit-form hint when step-level is on (needs `step` already in props).
+- `src/components/applications/WorkflowPanel.tsx` — current-step badge + inline runtime notice.
 - `src/components/returns/ReturnWorkflowPanel.tsx` — same.
-- `supabase/functions/perform-workflow-action/index.ts` — OR check.
-- `supabase/functions/perform-registration-workflow-action/index.ts` — same.
-- `supabase/functions/perform-return-workflow-action/index.ts` — same.
-- `src/lib/workflowTemplateSnapshot.ts` — serialize/apply new field.
+- `src/pages/admin/RegistrationReview.tsx` (only if it renders its own workflow panel rather than reusing `WorkflowPanel`).
+
+## Verification
+
+- Toggle the step-level switch on an application workflow → reload an in-progress application → confirm badge + notice appear in `WorkflowPanel` and the signature dialog is required at submit.
+- Repeat for a return workflow and a registration workflow.
+- With step-level ON, open `StepActionsEditor` → confirm every action row shows the badge and the edit form shows the hint.
