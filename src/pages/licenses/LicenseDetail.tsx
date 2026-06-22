@@ -518,36 +518,66 @@ export default function LicenseDetail() {
               <DialogTitle>Renew license {license.license_number}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                New validity is suggested from your sector's renewal policy ({periodDays} days). You can adjust it before submitting.
-              </p>
-              {renewalFee && renewalFee.amount > 0 && (
-                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-                  <p className="font-medium">Renewal Fee Required</p>
-                  <p className="text-muted-foreground">
-                    A fee of <span className="font-medium text-foreground">{renewalFee.amount} {renewalFee.currency}</span> applies.
-                    Renewal will be marked <span className="font-medium">pending payment</span> until confirmed.
+              {/* License summary */}
+              <div className="rounded-md border bg-muted/30 p-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">License Type</p>
+                  <p className="font-medium">{formatTaxonomyLabel(license.license_type)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Valid Until</p>
+                  <p className="font-medium">
+                    {license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Renewal Period</p>
+                  <p className="font-medium">{periodDays} days <span className="text-xs text-muted-foreground">(from sector policy)</span></p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">New Valid Until</p>
+                  <p className="font-semibold text-primary">
+                    {computedNewValidUntil ? new Date(computedNewValidUntil).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Fee / payment section */}
+              {renewalFee && renewalFee.amount > 0 ? (
+                <div className="rounded-md border border-warning/40 bg-warning/10 p-3 space-y-1.5 text-sm">
+                  <p className="font-medium">Renewal Fee</p>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Amount due</span>
+                    <span className="font-mono font-semibold">{renewalFee.amount} {renewalFee.currency}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Clicking <span className="font-medium">Pay &amp; Submit</span> will process the payment and submit your renewal request.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  No renewal fee is configured for this license. Submission is free.
+                </div>
               )}
-              <div>
-                <Label>Current Valid Until</Label>
-                <p className="text-sm">{license.valid_until ? new Date(license.valid_until).toLocaleDateString() : 'No Expiry'}</p>
-              </div>
-              <div>
-                <Label htmlFor="renew-date">New Valid Until <span className="text-destructive">*</span></Label>
-                <Input id="renew-date" type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} />
-              </div>
+
               <div>
                 <Label htmlFor="renew-notes">Notes (optional)</Label>
-                <Textarea id="renew-notes" value={renewNotes} onChange={e => setRenewNotes(e.target.value)} rows={3} />
+                <Textarea
+                  id="renew-notes"
+                  value={renewNotes}
+                  onChange={e => setRenewNotes(e.target.value)}
+                  placeholder="Add any information that may help the reviewer..."
+                  rows={3}
+                />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setRenewOpen(false)} disabled={renewSubmitting}>Cancel</Button>
-              <Button onClick={submitRenewal} disabled={!renewDate || renewSubmitting}>
+              <Button onClick={submitRenewal} disabled={!computedNewValidUntil || renewSubmitting}>
                 {renewSubmitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Submit Renewal Request
+                {renewalFee && renewalFee.amount > 0
+                  ? `Pay ${renewalFee.amount} ${renewalFee.currency} & Submit`
+                  : 'Submit Renewal Request'}
               </Button>
             </DialogFooter>
           </DialogContent>
