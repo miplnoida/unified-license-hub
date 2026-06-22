@@ -100,6 +100,12 @@ export default function LicenseDetail() {
       if (data) setLicense(data as any);
       const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', id).order('created_at', { ascending: false });
       if (acts) setActions(acts as any);
+      const { data: linked } = await supabase
+        .from('licensees' as any)
+        .select('id')
+        .eq('license_id', id)
+        .maybeSingle();
+      if (linked) setLinkedLicenseeId((linked as any).id);
       setLoading(false);
     }
     load();
