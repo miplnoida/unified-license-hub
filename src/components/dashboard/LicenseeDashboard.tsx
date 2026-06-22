@@ -71,7 +71,7 @@ export function LicenseeDashboard() {
               const days = lic.days_until_expiry;
               const isExpiringSoon = lic.status === 'active' && days !== null && days >= 0 && days <= 30;
               const isExpired = lic.status === 'expired' || (lic.status === 'active' && days !== null && days < 0);
-              const canRenew = isExpired || isExpiringSoon;
+              const canRenew = isExpired;
               const variant = isExpiringSoon ? 'warning' : (LICENSE_BADGE_VARIANT[lic.status] || 'outline');
               let badgeLabel: string = lic.status.charAt(0).toUpperCase() + lic.status.slice(1);
               if (isExpiringSoon) badgeLabel = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`;
