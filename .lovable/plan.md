@@ -1,38 +1,43 @@
-Goal: Stop showing the expiry badge twice. Move the expired/upcoming-expiry indicator into the existing Status column only, with a blink style, and display the configured grace-period days in the upcoming badge. No other functionality changes.
+## Goal
+Make the renewal form actually render. Today the Renew button opens a small dialog with only a Notes textarea and a Submit/Pay button — no form. The Submit Renewal Request button must appear **after** the renewal form fields.
 
-### Changes
-File: `src/pages/admin/ManageLicensees.tsx`
+## Approach
+Reuse the existing post-license application flow. The database already has published renewal templates (`form_templates.form_type = 'post_license'`, names like "Commercial Bank License Renewal"). The post-license forms page (`/post-licensee/applications/:id/forms`) already:
+- renders the form via `FormRenderer`
+- shows the Submit button at the bottom
+- enforces mandatory fees/payment
 
-1. **Remove the separate Expiry column**
-   - Delete the `ExpiryCell` component.
-   - Remove the `<TableHead>Expiry</TableHead>` column header and its `<TableCell>`.
-   - Revert the empty-state `colSpan` from `10` back to `9`.
-   - Keep `valid_until` in the `LicenseeRow` interface and in the Supabase `licenses` query, because the status column still needs it.
+So the Renew button should create a draft renewal application bound to the matched renewal template and navigate there.
 
-2. **Load license-expiry configuration for grace days**
-   - Add `const { data: expiryConfig } = useLicenseExpiryConfig();` near the top of the page.
+## Changes in `src/pages/licenses/LicenseDetail.tsx`
 
-3. **New status-cell logic**
-   - Compute `daysUntil(valid_until)` using the existing helper.
-   - Determine the effective expired state: `status === 'expired' || days < 0`.
-   - Resolve the row's grace period via:
-     ```
-     expiryConfig?.resolveFor({
-       sector_id: row.sector_id,
-       sub_sector_id: row.sub_sector_id,
-       category_id: row.category_id,
-     }).grace_period_days ?? 0
-     ```
-   - Render in the Status column:
-     - **Expired** (red destructive badge with `animate-pulse`) when expired.
-     - **Expiring in {days} + {grace} days** (amber badge with `animate-pulse`) when `status === 'active'` and `0 <= days <= 7`.
-     - Otherwise the existing `LicenseStatusBadge` so suspended/revoked/pending/etc. stay unchanged.
+1. **Resolve the renewal form template** using `useFormTemplates`, filtering `status = 'published'` and `form_type = 'post_license'`, then matching by:
+   - service named "Renew" (priority 1)
+   - `sub_sector_id` (priority 2)
+   - `sector_id` (priority 3)
+   - name contains "Renewal" (fallback)
+   If none, show toast "No renewal form is configured for this license."
 
-4. **Assumptions to confirm**
-   - "Upcoming expiry" window remains 7 days, matching the previous implementation.
-   - Badge text shows the literal expression `{days} + {grace} days` using the resolved grace period for that sector/category.
+2. **Replace `openRenewDialog` + `submitRenewal` with a single `startRenewal()`**:
+   - Insert into `applications`:
+     - `status: 'draft'`
+     - `license_type`: current license type
+     - `data`: `{ form_template_ids: [renewalTemplate.id], sector_id, sub_sector_id, service_id, renewal_of_license_id: license.id, computed_new_valid_until: computedNewValidUntil, licensee_id? }`
+     - `regulator_id`: from active regulator
+   - `logAudit({ action: 'license_renewal_started', entityType: 'license', entityId: license.id, newValue: { application_id, new_valid_until: computedNewValidUntil } })`
+   - `navigate('/post-licensee/applications/:id/forms?service=Renew')`
 
-### What is not changing
-- `src/lib/licenseStatusBadge.tsx` remains untouched, so all other pages keep their current badge behavior.
-- `src/pages/licenses/LicenseDetail.tsx` renewal flow is unchanged.
-- Table filters, sorting, pagination, stats, and row-click navigation stay exactly as they are.
+3. **Remove the inline renewal `<Dialog>`** (summary + notes + Pay & Submit). The forms page is now the single source of the renewal form and Submit button.
+
+4. **`?action=renew` auto-trigger**: keep, but now calls `startRenewal()` once on mount instead of opening the dialog.
+
+5. **Keep `computedNewValidUntil`** logic and continue passing it into the application `data` so approval still extends the license correctly. `license_renewals` is created on approval as today — no change to that path.
+
+## Not changing
+- `src/pages/admin/ManageLicensees.tsx` status badge.
+- `LicenseStatusBadge`, `useLicenseExpiryConfig`.
+- The post-license forms page renderer or its existing Submit / payment flow.
+- Renewal fee resolution — fees continue to be charged via the standard application payment step.
+
+## Open question
+Confirm: the renewal templates currently in the DB are not scoped by sector/sub-sector (`sector_id` is null). Is name-based matching ("Renewal" in the template name plus the license's sub-sector keyword) acceptable as the fallback when no service/sector match exists, or should I pick the single template whose name best matches `license.license_type`?
