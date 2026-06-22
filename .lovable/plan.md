@@ -1,43 +1,32 @@
-## Goal
-Make the renewal form actually render. Today the Renew button opens a small dialog with only a Notes textarea and a Submit/Pay button — no form. The Submit Renewal Request button must appear **after** the renewal form fields.
+## Why the error appears now
+The renewal flow now creates a row in `applications` (it used to write to `license_renewals`). The `applications` table is protected by external-portal RLS gates:
 
-## Approach
-Reuse the existing post-license application flow. The database already has published renewal templates (`form_templates.form_type = 'post_license'`, names like "Commercial Bank License Renewal"). The post-license forms page (`/post-licensee/applications/:id/forms`) already:
-- renders the form via `FormRenderer`
-- shows the Submit button at the bottom
-- enforces mandatory fees/payment
+```
+(NOT has_external_role(auth.uid()))
+OR external_can_access_application_values(auth.uid(), applicant_id, data, 'can_submit')
+```
 
-So the Renew button should create a draft renewal application bound to the matched renewal template and navigate there.
+`external_can_access_application_values` authorises the insert if any of:
+1. `applicant_id = auth.uid()` and the user holds `applicant` / `pre_licensee` / `licensee_primary` / `licensee_secondary`.
+2. `applicant_id = auth.uid()` and the user has `licensing.can_submit` on their own account scope.
+3. `data->>'licensee_id'` is present and the user has `licensing.can_submit` on that licensee.
 
-## Changes in `src/pages/licenses/LicenseDetail.tsx`
+The renewal insert today fails because the actor is an external-portal user without the static licensee role (dynamic-role web user or PPOC acting on behalf), and the payload does not set `data.licensee_id`, so branch #3 can never authorise the insert. `NewPostLicenseApplication.tsx` doesn't hit this because it explicitly sets `data.licensee_id = resolvedLicenseeId` from `PpocContext`.
 
-1. **Resolve the renewal form template** using `useFormTemplates`, filtering `status = 'published'` and `form_type = 'post_license'`, then matching by:
-   - service named "Renew" (priority 1)
-   - `sub_sector_id` (priority 2)
-   - `sector_id` (priority 3)
-   - name contains "Renewal" (fallback)
-   If none, show toast "No renewal form is configured for this license."
+## Fix (single file)
+`src/pages/licenses/LicenseDetail.tsx`
 
-2. **Replace `openRenewDialog` + `submitRenewal` with a single `startRenewal()`**:
-   - Insert into `applications`:
-     - `status: 'draft'`
-     - `license_type`: current license type
-     - `data`: `{ form_template_ids: [renewalTemplate.id], sector_id, sub_sector_id, service_id, renewal_of_license_id: license.id, computed_new_valid_until: computedNewValidUntil, licensee_id? }`
-     - `regulator_id`: from active regulator
-   - `logAudit({ action: 'license_renewal_started', entityType: 'license', entityId: license.id, newValue: { application_id, new_valid_until: computedNewValidUntil } })`
-   - `navigate('/post-licensee/applications/:id/forms?service=Renew')`
+1. Import and read `resolvedLicenseeId` from `usePpoc()`.
+2. In `startRenewal`, include `licensee_id` in the inserted `data` payload when available:
+   ```ts
+   data: {
+     ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
+     sector_id, sub_sector_id, category_id,
+     service_id, form_template_ids,
+     renewal_of_license_id, renewal_of_license_number,
+     computed_new_valid_until, previous_valid_until,
+     is_renewal: true,
+   }
+   ```
 
-3. **Remove the inline renewal `<Dialog>`** (summary + notes + Pay & Submit). The forms page is now the single source of the renewal form and Submit button.
-
-4. **`?action=renew` auto-trigger**: keep, but now calls `startRenewal()` once on mount instead of opening the dialog.
-
-5. **Keep `computedNewValidUntil`** logic and continue passing it into the application `data` so approval still extends the license correctly. `license_renewals` is created on approval as today — no change to that path.
-
-## Not changing
-- `src/pages/admin/ManageLicensees.tsx` status badge.
-- `LicenseStatusBadge`, `useLicenseExpiryConfig`.
-- The post-license forms page renderer or its existing Submit / payment flow.
-- Renewal fee resolution — fees continue to be charged via the standard application payment step.
-
-## Open question
-Confirm: the renewal templates currently in the DB are not scoped by sector/sub-sector (`sector_id` is null). Is name-based matching ("Renewal" in the template name plus the license's sub-sector keyword) acceptable as the fallback when no service/sector match exists, or should I pick the single template whose name best matches `license.license_type`?
+No schema, no RLS, no other components change. Internal admins are unaffected because they bypass the external gate via `NOT has_external_role(...)`.
