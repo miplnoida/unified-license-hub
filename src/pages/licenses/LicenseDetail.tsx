@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { usePpoc } from '@/contexts/PpocContext';
+import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { logAudit } from '@/hooks/useAuditLog';
@@ -77,10 +78,12 @@ export default function LicenseDetail() {
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
   const { resolvedLicenseeId } = usePpoc();
+  const accessGuard = useLicenseeAccessGuard();
   const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
   const [license, setLicense] = useState<License | null>(null);
+  const [linkedLicenseeId, setLinkedLicenseeId] = useState<string | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
@@ -97,6 +100,12 @@ export default function LicenseDetail() {
       if (data) setLicense(data as any);
       const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', id).order('created_at', { ascending: false });
       if (acts) setActions(acts as any);
+      const { data: linked } = await supabase
+        .from('licensees' as any)
+        .select('id')
+        .eq('license_id', id)
+        .maybeSingle();
+      if (linked) setLinkedLicenseeId((linked as any).id);
       setLoading(false);
     }
     load();
@@ -221,6 +230,18 @@ export default function LicenseDetail() {
       toast.error('No renewal form is configured for this license.');
       return;
     }
+    const renewalLicenseeId = linkedLicenseeId || resolvedLicenseeId || null;
+    if (!isInternal) {
+      if (!renewalLicenseeId) {
+        toast.error('Could not resolve the licensee for this license.');
+        return;
+      }
+      const ok = await accessGuard.verify(renewalLicenseeId, license.sector_id);
+      if (!ok) {
+        toast.error('You are not authorized to renew this license.');
+        return;
+      }
+    }
     setStartingRenewal(true);
     try {
       const { data, error } = await supabase
@@ -230,7 +251,7 @@ export default function LicenseDetail() {
           license_type: license.license_type,
           status: 'draft',
           data: {
-            ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
+            ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
             sector_id: license.sector_id,
             sub_sector_id: license.sub_sector_id,
             category_id: license.category_id,
@@ -493,7 +514,7 @@ export default function LicenseDetail() {
             )}
 
             {/* Renewal panel visible to license holder only after expiry */}
-            {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
+            {!isInternal && license.valid_until && (() => {
               const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
               const expired = isLicenseExpired;
               const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
