@@ -1,47 +1,54 @@
-## Diagnosis
+## Goal
 
-The earlier fix only added `resolvedLicenseeId` from the active PPOC/licensee context into the renewal draft. That does not cover all license detail flows because:
+Make the grace period truly extend the license, and only allow renewal once the grace period is over (renewal stays open indefinitely after that).
 
-- On the license detail page, `resolvedLicenseeId` can be `null` or point to a different selected entity.
-- The renewal application is inserted with `.insert(...).select().single()`, so the database must allow both creating the row and immediately reading the returned row.
-- The returned row is blocked by the restrictive `external_applications_select_capability_gate` unless the application can be linked to a licensee the user can view.
-- The renewal panel is also too restrictive: it only appears when `user.id === license.holder_id`, which can hide it from valid licensee/PPOC web users acting for the entity.
+## Behavior summary
 
-## Plan
+| Phase | License usable? | Renew button? | Banner |
+|---|---|---|---|
+| Active (before expiry) | Yes | No | Reminder window only (countdown) |
+| Expired, within grace | Yes (treated as active) | No | "In grace period until <date>. License remains valid." |
+| Grace ended | No | Yes | "Grace period ended on <date>. Renew now." |
+| Renewed | Yes | No | — |
 
-1. **Resolve the actual licensee for the license**
-   - In `LicenseDetail.tsx`, query the `licensees` row linked to the current license (`licensees.license_id = license.id`).
-   - Store that `licenseeId` locally.
-   - Use this license-derived ID as the primary renewal context, falling back to `resolvedLicenseeId` only if needed.
+## Changes
 
-2. **Verify access before starting renewal**
-   - Reuse `useLicenseeAccessGuard()` in `LicenseDetail.tsx`.
-   - For external users, verify they can access the resolved licensee before inserting the renewal draft.
-   - If not authorized, show a clear authorization error instead of triggering the RLS failure.
+### 1. `src/hooks/useLicenseExpiryStatus.ts`
+- Add a derived `grace_ends_on` (= `valid_until + grace_period_days`) and `effective_valid_until` (same value).
+- `is_expired` becomes true only when **past grace end** (today > `grace_ends_on`). While in grace, treat as not expired.
+- Keep `in_grace_period` flag so banners can show the grace messaging.
+- Still surface rows during grace and after grace; reminder-window logic unchanged.
 
-3. **Make the renewal insert RLS-readable**
-   - Set `data.licensee_id` to the license-derived licensee ID.
-   - Keep `applicant_id: user.id`.
-   - Keep `form_template_ids`, `renewal_of_license_id`, and computed validity metadata.
-   - This gives both the insert gate and the immediate select/return gate a licensee link to authorize against.
+### 2. `src/components/dashboard/LicenseExpiryBanner.tsx`
+- Three branches:
+  - **In grace**: info/warning variant — "License <num> is in grace period until <grace_ends_on>. It remains valid until then." No Renew button.
+  - **Past grace (is_expired true)**: destructive — "Expired on <valid_until>. Grace ended <grace_ends_on>. Please renew." Renew button shown.
+  - **Reminder window**: unchanged.
 
-4. **Show renewal action only for expired licensee-panel licenses**
-   - Keep dashboard/banners limited to expired licenses.
-   - On `LicenseDetail.tsx`, show the renewal panel for external users when:
-     - the license is expired, and
-     - the user is authorized for the linked licensee.
-   - Remove the `user.id === license.holder_id` restriction so valid PPOC/entity web users can renew.
+### 3. `src/components/dashboard/LicenseeDashboard.tsx`
+- `canRenew` = past grace only (`isExpired && !inGrace`). Hide Renew during grace.
 
-5. **Keep submit button after the renewal form**
-   - Do not add submit controls to the license detail page.
-   - The flow should navigate to the existing post-license form page, where forms are completed first, payment is checked if a fee exists, then the submit button appears.
+### 4. `src/pages/licenses/LicenseDetail.tsx`
+- New helper `isPastGrace` using `license.valid_until + resolved grace_period_days` from `useLicenseExpiryConfig().resolveFor({sector,sub_sector,category})`.
+- `?action=renew` auto-trigger: only fires when `isPastGrace`. During grace, show toast "License is in grace period until <date>. Renewal opens after that."
+- Renewal panel visibility: `!isInternal && license.valid_until && isPastGrace`.
+- `startRenewal` guard: block (with same toast) unless internal or `isPastGrace`.
+- Keep the licensee-link + access-guard logic from the previous fix intact (RLS insert stays correct).
+
+### 5. License status treatment elsewhere (display-only)
+- `src/lib/licenseStatusBadge.tsx` / `src/components/shared/LicenseStatusBanner.tsx`: if `status === 'expired'` but within grace, render as "Active (Grace)" badge/banner instead of "Expired". No DB writes — purely presentational, driven by the resolved grace policy.
+
+## Out of scope
+
+- No DB schema changes. `licenses.status` stays as-is; the "grace = still valid" treatment is computed in the UI/hook layer.
+- No changes to the expiry-reminder edge function or late-fee logic.
+- No new submit controls on the license detail page — renewal continues to flow into `/post-licensee/applications/{id}/forms?service=Renew`.
 
 ## Files to change
 
-- `src/pages/licenses/LicenseDetail.tsx` only.
-
-## Validation
-
-- Check that renewal button/panel appears only for expired external-licensee licenses.
-- Check that starting renewal includes `data.licensee_id` from the actual licensee record.
-- Check that the user is sent to `/post-licensee/applications/{id}/forms?service=Renew` instead of seeing the RLS error.
+- `src/hooks/useLicenseExpiryStatus.ts`
+- `src/components/dashboard/LicenseExpiryBanner.tsx`
+- `src/components/dashboard/LicenseeDashboard.tsx`
+- `src/pages/licenses/LicenseDetail.tsx`
+- `src/lib/licenseStatusBadge.tsx`
+- `src/components/shared/LicenseStatusBanner.tsx`
