@@ -286,7 +286,7 @@ export default function FormManagement() {
   };
 
   const handleView = (id: string) => {
-    navigate(`/admin/forms/create?type=${activeTab}&id=${id}&mode=view`);
+    navigate(`/admin/forms/${id}/view`);
   };
 
   const requestStatusChange = (template: FormTemplate, newStatus: string) => {

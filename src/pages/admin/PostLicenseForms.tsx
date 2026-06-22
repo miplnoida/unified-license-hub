@@ -90,7 +90,7 @@ export default function PostLicenseForms() {
   };
 
   const handleView = (id: string) => {
-    navigate(`/admin/forms/create?type=post_license&id=${id}&mode=view`);
+    navigate(`/admin/forms/${id}/view`);
   };
 
   const requestStatusChange = (tpl: FormTemplate, newStatus: string) => {

@@ -1,53 +1,60 @@
-# Step-level Digital Signature — Frontend Polish (every workflow)
+## Problem
 
-The backend column, edge-function enforcement, and snapshot serialization for `approval_steps.require_digital_signature` are already in place, plus a switch on the step card in `WorkflowList.tsx`. This plan closes the remaining frontend gaps so the requirement is **visibly managed and surfaced for every workflow** (applications, registrations, returns).
+Clicking **View** on a form template (Pre-License / Post-License / Returns) currently opens the full Form Builder at `/admin/forms/create?...&mode=view`. That URL is wrong (it says "create"), and the builder UI — even with palette/properties hidden — is dense, technical, and not how the form will actually look to applicants.
 
-## 1. Admin: `WorkflowList.tsx`
+A clean, friendly preview already exists (`/preview/:versionId`, rendered with `FormRenderer`), but it's only reachable from inside the builder's "Preview" button.
 
-- Keep the existing step-level switch where it is (just above `StepActionsEditor`).
-- When `step.require_digital_signature === true`, also render a small **"Signature required"** badge in the step card header next to the step name / SLA badge, so admins see it at a glance without expanding the step.
+## What changes
 
-## 2. Admin: `StepActionsEditor.tsx` (per-action editor)
+### 1. New route + page: read-only template view
 
-When the parent step has `require_digital_signature = true`:
+- Add `/admin/forms/:templateId/view` (admin-guarded, same as other `/admin/forms/*` routes).
+- New page `src/pages/admin/FormTemplateView.tsx` that:
+  - Loads the template via `useFormTemplates` (lookup by id) and its **published/active** version (fall back to latest if none published) via `useFormVersions` + `useVersionSections`.
+  - Renders inside `DashboardLayout` with a `PageHeader`:
+    - Title = template name
+    - Sub-line = sector / sub-sector / category / service badges + version + status badge
+    - Actions: **Back to list**, **Edit** (only when user has edit permission — routes to `/admin/forms/create?type=<form_type>&id=<templateId>`), **Open in new tab** (opens `/preview/<versionId>`).
+  - Body = `FormRenderer` with `readOnly`, no submit/save callbacks (the same component end users see), wrapped in a `Card` for consistency with admin pages.
+  - Empty state when the template has no fields/sections.
+  - Loading + not-found states.
 
-- **List view** (each action row): always show the existing `Digital signature` badge (currently shown only when the per-action flag is true). Tooltip: "Required at step level."
-- **Edit form**: above the per-action `Digital Signature Required` switch, show a muted hint: *"Already required at step level — this per-action toggle only adds an override and is not needed."* Leave the per-action switch interactive (overrides are still allowed).
+### 2. Wire the View action to the new route
 
-No data model changes — purely presentational, driven by the `step.require_digital_signature` prop already passed in.
+Update the `onClick` for the **View** row action in:
 
-## 3. Runtime UI — applications (`WorkflowPanel.tsx`)
+- `src/pages/admin/PreLicenseForms.tsx` (`handleView`)
+- `src/pages/admin/PostLicenseForms.tsx` (`handleView`)
+- `src/pages/admin/FormManagement.tsx` (the View action around line 289 and any other View entry points for returns/other tabs)
 
-- In the step progress list, append a small **"Signature required"** badge to the **current** step when `currentStep.require_digital_signature` is true.
-- Above the action buttons, render a one-line inline notice when the active step requires a signature: *"This step requires a digital signature. You'll be prompted to sign when you submit an action."*
-- `requireSignature` passed to `WorkflowActionPreviewDialog` already ORs step + action — no change.
+…to navigate to `/admin/forms/<id>/view` instead of `/admin/forms/create?...&mode=view`.
 
-## 4. Runtime UI — returns (`ReturnWorkflowPanel.tsx`)
+### 3. Builder cleanup (minimal)
 
-Mirror the application changes above (badge in progress list + inline notice).
+- Keep the existing `mode=view` branch inside `FormBuilder.tsx` as a harmless fallback for now (no admin link points to it anymore). No structural builder changes.
 
-## 5. Runtime UI — registrations
+## Out of scope
 
-Check the registration review surface (`src/pages/admin/RegistrationReview.tsx` and any registration workflow panel it renders) and apply the same badge + inline notice. If registration review uses `WorkflowPanel` already, no extra work is needed.
+- No changes to the builder itself, the existing `/preview/:versionId` page, `FormRenderer`, permissions, version history, or any backend/migration.
+- No change to the "Edit" or "Create" flows — they still use `/admin/forms/create`.
 
-## 6. Out of scope
+## Files touched
 
-- No DB / migration changes.
-- No edge-function changes (enforcement already ORs step + action).
-- No changes to the signature-capture dialog itself.
-- No changes to saved per-action signature data.
-- No dashboard / licensee-portal changes.
+- **Add** `src/routes/adminRoutes.tsx` — new route entry.
+- **Add** `src/pages/admin/FormTemplateView.tsx` — new view page.
+- **Edit** `src/pages/admin/PreLicenseForms.tsx` — repoint `handleView`.
+- **Edit** `src/pages/admin/PostLicenseForms.tsx` — repoint `handleView`.
+- **Edit** `src/pages/admin/FormManagement.tsx` — repoint the View action(s).
 
-## Files to touch
+## Result
 
-- `src/pages/workflows/WorkflowList.tsx` — step header badge.
-- `src/components/workflows/StepActionsEditor.tsx` — list badge + edit-form hint when step-level is on (needs `step` already in props).
-- `src/components/applications/WorkflowPanel.tsx` — current-step badge + inline runtime notice.
-- `src/components/returns/ReturnWorkflowPanel.tsx` — same.
-- `src/pages/admin/RegistrationReview.tsx` (only if it renders its own workflow panel rather than reusing `WorkflowPanel`).
-
-## Verification
-
-- Toggle the step-level switch on an application workflow → reload an in-progress application → confirm badge + notice appear in `WorkflowPanel` and the signature dialog is required at submit.
-- Repeat for a return workflow and a registration workflow.
-- With step-level ON, open `StepActionsEditor` → confirm every action row shows the badge and the edit form shows the hint.
+```text
+Click "View" on a form template
+   │
+   ▼
+/admin/forms/<id>/view   ← clean URL, admin layout
+   │
+   ▼
+PageHeader (name, sector, version, status, Edit, Open in new tab)
+FormRenderer (readOnly) — looks exactly like the applicant experience
+```
