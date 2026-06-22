@@ -90,7 +90,7 @@ export default function PreLicenseForms() {
   };
 
   const handleView = (id: string) => {
-    navigate(`/admin/forms/create?type=pre_license&id=${id}&mode=view`);
+    navigate(`/admin/forms/${id}/view`);
   };
 
   const requestStatusChange = (template: FormTemplate, newStatus: string) => {
