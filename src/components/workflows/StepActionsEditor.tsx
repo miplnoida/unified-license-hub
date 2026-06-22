@@ -529,11 +529,12 @@ function ActionForm({
 }
 
 function DigitalSignatureBlock({
-  draft, setDraft, keySuffix,
+  draft, setDraft, keySuffix, stepRequiresSignature,
 }: {
   draft: DraftState;
   setDraft: (d: DraftState) => void;
   keySuffix: string;
+  stepRequiresSignature?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
