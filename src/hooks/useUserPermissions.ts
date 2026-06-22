@@ -78,6 +78,11 @@ export function useCanPay(): boolean {
 export const PRE_LICENSEE_ALLOWED_ROUTES = [
   '/dashboard',
   '/applications',
+  // Pre-licensees who already hold a license (e.g. registered as applicant
+  // and later issued one) must be able to view it and start a renewal.
+  '/licenses',
+  '/post-licensee/applications',
+  '/post-license',
   '/payments',
   '/profile',
   '/change-password',
