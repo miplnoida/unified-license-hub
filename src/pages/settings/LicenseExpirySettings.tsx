@@ -139,8 +139,6 @@ export default function LicenseExpirySettings() {
 
   useEffect(() => {
     if (!data) return;
-    setDefaultPolicy(data.default);
-    setDefaultRemindersText((data.default.reminder_days || []).join(','));
     setRules(
       data.rules.map((r) => ({
         ...r,
