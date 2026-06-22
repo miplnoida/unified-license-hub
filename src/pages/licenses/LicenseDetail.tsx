@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { usePpoc } from '@/contexts/PpocContext';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
 import { useRegulator } from '@/contexts/RegulatorContext';
 import { logAudit } from '@/hooks/useAuditLog';
@@ -75,6 +76,7 @@ export default function LicenseDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const portalContext = useEffectivePortalContext();
+  const { resolvedLicenseeId } = usePpoc();
   const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
   const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
@@ -220,6 +222,7 @@ export default function LicenseDetail() {
           license_type: license.license_type,
           status: 'draft',
           data: {
+            ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
             sector_id: license.sector_id,
             sub_sector_id: license.sub_sector_id,
             category_id: license.category_id,
