@@ -339,6 +339,7 @@ export default function ManageLicensees() {
                         <TableCell className="text-sm">{row.sub_sector_name}</TableCell>
                         <TableCell className="text-sm">{row.category_name}</TableCell>
                         <TableCell className="text-sm">{fmtDate(row.registered_at)}</TableCell>
+                        <TableCell><ExpiryCell validUntil={row.valid_until} status={row.status} /></TableCell>
                         <TableCell>{statusBadge(row.status)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); navigate(`/admin/licensees/${row.id}`); }}>
