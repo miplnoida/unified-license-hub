@@ -1659,6 +1659,27 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               </div>
             </div>
 
+            {/* Require digital signature on this step */}
+            <div className="flex items-start gap-3">
+              <Switch
+                id={`require-sig-${step.id}`}
+                checked={!!(step as any).require_digital_signature}
+                onCheckedChange={(v) => {
+                  Promise.resolve(onUpdate(step.id, { require_digital_signature: !!v } as any)).catch((e: any) =>
+                    toast.error(e?.message || 'Failed to update signature setting'),
+                  );
+                }}
+                aria-label="Require digital signature on this step"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`require-sig-${step.id}`} className="text-xs cursor-pointer">
+                  Require digital signature on this step
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  When ON, every approver action on this step must be signed at runtime. Per-action overrides still apply.
+                </p>
+              </div>
+            </div>
 
             {/* Step entry notifications */}
             <StepEntryNotificationsEditor stepId={step.id} />
