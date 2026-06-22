@@ -422,7 +422,36 @@ export function FormRenderer({
           pushErr(field, 'Must be a valid number');
         }
       }
+      // Table per-column validation
+      if (field.type === 'table' && Array.isArray(val) && field.tableColumns) {
+        for (let r = 0; r < val.length; r++) {
+          const row = val[r] || {};
+          for (const col of field.tableColumns) {
+            const cv = col.validation;
+            if (!cv) continue;
+            const cellVal = row[col.id];
+            if (cellVal === undefined || cellVal === null || cellVal === '') continue;
+            const label = `${field.label} → ${col.label} (row ${r + 1})`;
+            const errField = { ...field, fieldName: `${field.fieldName}__${r}__${col.id}`, label } as FormField;
+            if (col.type === 'text') {
+              const s = String(cellVal);
+              if (cv.minLength && s.length < cv.minLength) { pushErr(errField, `Minimum ${cv.minLength} characters`); continue; }
+              if (cv.maxLength && s.length > cv.maxLength) { pushErr(errField, `Maximum ${cv.maxLength} characters`); continue; }
+              if (cv.pattern) {
+                try { if (!new RegExp(cv.pattern).test(s)) { pushErr(errField, cv.patternMessage || 'Invalid format'); continue; } } catch {}
+              }
+            }
+            if (col.type === 'number') {
+              const n = Number(cellVal);
+              if (isNaN(n)) { pushErr(errField, 'Must be a valid number'); continue; }
+              if (cv.min !== undefined && n < cv.min) { pushErr(errField, `Minimum value is ${cv.min}`); continue; }
+              if (cv.max !== undefined && n > cv.max) { pushErr(errField, `Maximum value is ${cv.max}`); continue; }
+            }
+          }
+        }
+      }
     }
+
     setErrors(stepErrors);
     return { ok: entries.length === 0, entries };
   };
@@ -979,6 +1008,10 @@ export function FormRenderer({
                                     e.target.value = '';
                                     if (!file) return;
                                     if (!user) { toast.error('You must be logged in to upload files'); return; }
+                                    if (col.validation) {
+                                      const colErr = validateFileAgainstField({ validation: col.validation } as any, file);
+                                      if (colErr) { toast.error(colErr); return; }
+                                    }
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: true }));
                                     const result = await uploadFormFile(file, user.id, applicationId);
                                     setUploadingFields(prev => ({ ...prev, [cellKey]: false }));
@@ -991,6 +1024,7 @@ export function FormRenderer({
                                       toast.error(result.error || 'Upload failed');
                                     }
                                   }}
+
                                 />
                                 {cellVal?.name ? (
                                   <>
@@ -1051,15 +1085,31 @@ export function FormRenderer({
                           <Input
                             type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text'}
                             value={row[col.id] || ''}
+                            min={col.type === 'number' ? col.validation?.min : undefined}
+                            max={col.type === 'number' ? col.validation?.max : undefined}
+                            minLength={col.type === 'text' ? col.validation?.minLength : undefined}
+                            maxLength={col.type === 'text' ? col.validation?.maxLength : undefined}
+                            pattern={col.type === 'text' ? col.validation?.pattern : undefined}
+                            title={col.type === 'text' ? col.validation?.patternMessage : undefined}
                             onChange={e => {
+                              const val = e.target.value;
+                              if (col.type === 'text' && val && col.validation?.pattern) {
+                                try {
+                                  const re = new RegExp(col.validation.pattern);
+                                  if (!re.test(val)) {
+                                    // allow typing but mark invalid via HTML5; show toast only on blur via title
+                                  }
+                                } catch {}
+                              }
                               const newData = [...tableData];
-                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: e.target.value };
+                              newData[rowIdx] = { ...newData[rowIdx], [col.id]: val };
                               onChange(field.fieldName, newData);
                             }}
                             disabled={readOnly}
                             className="h-8 text-xs"
                           />
                         )}
+
                       </td>
                     ))}
                     {!readOnly && (
