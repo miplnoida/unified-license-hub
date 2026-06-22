@@ -70,6 +70,9 @@ export async function handler(req: Request): Promise<Response> {
     const instance_id: string | undefined = body.instance_id;
     const raw_action: string | undefined = body.action_type;
     const comments: string = (body.comments || "").toString();
+    const signature_data_url: string | null = typeof body.signature_data_url === "string" && body.signature_data_url.startsWith("data:image/")
+      ? body.signature_data_url
+      : null;
     // Optional per-binding subject/body overrides supplied from the reviewer's
     // email preview dialog. Shape: [{ binding_id, subject, body }].
     const notification_overrides: Array<{ binding_id?: string; subject?: string; body?: string }> =
@@ -93,6 +96,20 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // Enforce digital signature requirement (configured per step+action).
+    if (step_id) {
+      const { data: cfgRow } = await admin
+        .from("approval_step_actions")
+        .select("require_digital_signature")
+        .eq("step_id", step_id)
+        .eq("action_type", raw_action)
+        .eq("is_enabled", true)
+        .maybeSingle();
+      if ((cfgRow as any)?.require_digital_signature && !signature_data_url) {
+        return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+      }
+    }
+
     // Atomic transition — lock + validate + write happens in one transaction.
     // raw_action is passed through unchanged; the RPC understands every
     // accepted action type as a first-class transition.
@@ -105,6 +122,7 @@ export async function handler(req: Request): Promise<Response> {
       _comments: comments,
       _actor_id: caller.id,
     });
+
 
     if (rpcErr) {
       console.error("perform_workflow_transition error:", rpcErr);
