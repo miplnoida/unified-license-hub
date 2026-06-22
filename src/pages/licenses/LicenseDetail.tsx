@@ -426,14 +426,14 @@ export default function LicenseDetail() {
             {/* Renewal panel visible to license holder when expired / within reminder window */}
             {!isInternal && user?.id === license.holder_id && license.valid_until && (() => {
               const days = Math.ceil((new Date(license.valid_until).getTime() - new Date().setHours(0,0,0,0)) / 86_400_000);
-              const maxRem = Math.max(0, ...((expiryConfig?.reminder_days) || [0]));
+              const maxRem = Math.max(0, ...((licensePolicy?.reminder_days) || [0]));
               const expired = days < 0 || license.status === 'expired';
               const inWindow = !expired && days <= maxRem;
-              const inGrace = expired && Math.abs(days) <= (expiryConfig?.grace_period_days || 0);
+              const inGrace = expired && Math.abs(days) <= (licensePolicy?.grace_period_days || 0);
               if (!(expired || inWindow)) return null;
               const canRenew = inWindow || inGrace;
-              const fee = expiryConfig?.renewal_fee_mode === 'paid'
-                ? `${expiryConfig?.renewal_fee_amount} ${expiryConfig?.renewal_fee_currency} (paid renewal)`
+              const fee = renewalFee
+                ? `${renewalFee.amount} ${renewalFee.currency} (paid renewal)`
                 : 'Free';
               return (
                 <Card>
