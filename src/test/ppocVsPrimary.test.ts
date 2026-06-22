@@ -187,4 +187,30 @@ describe('Primary User vs PPOC', () => {
     expect(context.effectiveRole).toBe('Applicant');
     expect(context.activeLicenseeId).toBe('lic-fallback');
   });
+
+  it('pre-licensee with inferred licensee context never displays as Primary User', () => {
+    const label = getEffectiveUserRoleLabel({
+      baseRole: 'pre_licensee',
+      userType: null,
+      isPpoc: false,
+      actingAs: 'primary',
+      resolvedLicenseeId: 'lic-inferred',
+      hasPrimaryUserAccess: false,
+      ppocLoading: false,
+    });
+    expect(label).not.toBe('Primary User');
+  });
+
+  it('applicant with inferred licensee context never displays as Primary User', () => {
+    const label = getEffectiveUserRoleLabel({
+      baseRole: 'applicant',
+      userType: null,
+      isPpoc: false,
+      actingAs: 'primary',
+      resolvedLicenseeId: 'lic-inferred',
+      hasPrimaryUserAccess: false,
+      ppocLoading: false,
+    });
+    expect(label).toBe('Applicant');
+  });
 });

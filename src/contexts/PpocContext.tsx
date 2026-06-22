@@ -385,7 +385,12 @@ export function PpocProvider({ children }: { children: ReactNode }) {
         setActiveLicenseeIdState(null);
       }
 
-      const ownResolvedLicenseeId = profileLicenseeId || Array.from(ownCandidateIds)[0] || null;
+      // Primary User ownership requires an EXPLICIT signal: profiles.licensee_id
+      // (loaded as profileLicenseeId / user.licenseeId). Licensees discovered via
+      // entity-name / application / license back-references stay in
+      // resolvedLicensees for downstream scoping but must NOT be treated as
+      // Primary User ownership for applicants/pre-licensees.
+      const ownResolvedLicenseeId = profileLicenseeId || null;
       setResolvedLicensees(resolvedList);
       setDirectOwnLicenseeId(ownResolvedLicenseeId);
       if (import.meta.env.DEV) {
