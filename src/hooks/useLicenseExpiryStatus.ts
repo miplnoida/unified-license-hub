@@ -24,25 +24,30 @@ export function useLicenseExpiryStatus(userId: string | undefined) {
   const { data: config } = useLicenseExpiryConfig();
 
   return useQuery({
-    queryKey: ['license_expiry_status', userId, config?.reminder_days, config?.grace_period_days],
+    queryKey: ['license_expiry_status', userId, config?.rules?.length, config?.default],
     enabled: !!userId && !!config,
     queryFn: async (): Promise<LicenseExpiryStatus[]> => {
       if (!userId || !config) return [];
       const { data, error } = await (supabase
         .from('licenses' as any)
-        .select('id, license_number, valid_until, status')
+        .select('id, license_number, valid_until, status, sector_id, sub_sector_id, category_id')
         .eq('holder_id', userId) as any);
       if (error) {
         console.error('[useLicenseExpiryStatus]', error);
         return [];
       }
-      const maxReminder = Math.max(0, ...(config.reminder_days || [0]));
       const results: LicenseExpiryStatus[] = [];
       for (const lic of (data || []) as any[]) {
         if (!lic.valid_until) continue;
+        const policy = config.resolveFor({
+          sector_id: lic.sector_id,
+          sub_sector_id: lic.sub_sector_id,
+          category_id: lic.category_id,
+        });
+        const maxReminder = Math.max(0, ...(policy.reminder_days || [0]));
         const days = dayDiff(lic.valid_until);
         const isExpired = days < 0 || lic.status === 'expired';
-        const inGrace = isExpired && Math.abs(days) <= (config.grace_period_days || 0);
+        const inGrace = isExpired && Math.abs(days) <= (policy.grace_period_days || 0);
         const inReminder = !isExpired && days <= maxReminder;
         if (inReminder || isExpired) {
           results.push({
