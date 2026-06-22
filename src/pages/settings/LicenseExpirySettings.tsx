@@ -117,8 +117,6 @@ export default function LicenseExpirySettings() {
   const qc = useQueryClient();
   const { data, isLoading } = useLicenseExpiryConfig();
 
-  const [defaultPolicy, setDefaultPolicy] = useState<LicenseExpiryPolicy>(DEFAULT_LICENSE_EXPIRY_POLICY);
-  const [defaultRemindersText, setDefaultRemindersText] = useState('10,5,1');
   const [rules, setRules] = useState<DraftRule[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -141,8 +139,6 @@ export default function LicenseExpirySettings() {
 
   useEffect(() => {
     if (!data) return;
-    setDefaultPolicy(data.default);
-    setDefaultRemindersText((data.default.reminder_days || []).join(','));
     setRules(
       data.rules.map((r) => ({
         ...r,
@@ -172,8 +168,16 @@ export default function LicenseExpirySettings() {
     setRules((prev) => prev.filter((r) => r.id !== id));
 
   const handleSave = async () => {
+    const missingSector = rules.some((r) => !r.sector_id);
+    if (missingSector) {
+      toast.error('Every rule must have a sector selected.');
+      return;
+    }
+
     const payload = {
-      default: sanitizePolicy(defaultPolicy, defaultRemindersText),
+      // No default policy — expiry/renewal applies only to licenses whose
+      // sector matches a configured rule.
+      default: null,
       rules: rules.map((r) => ({
         id: r.id,
         sector_id: r.sector_id || null,
@@ -214,7 +218,7 @@ export default function LicenseExpirySettings() {
       <div className="space-y-6 max-w-5xl">
         <PageHeader
           title="License Expiry & Renewal"
-          description="Configure validity cycle, expiry reminders, and grace period — globally or per sector / sub-sector / category."
+          description="Configure validity cycle, expiry reminders, and grace period per sector / sub-sector / category."
           actions={
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate('/settings')}>
@@ -228,40 +232,12 @@ export default function LicenseExpirySettings() {
           }
         />
 
-        <Alert>
-          <AlertTitle>Renewal fees moved to Fee Management</AlertTitle>
-          <AlertDescription>
-            Renewal fees are now configured in{' '}
-            <Link to="/admin/fees" className="underline font-medium inline-flex items-center gap-1">
-              Fee Management <ExternalLink className="h-3 w-3" />
-            </Link>
-            . Create a fee with type <span className="font-medium">Renewal</span> scoped to the{' '}
-            <span className="font-medium">Renew</span> service of the relevant sector / sub-sector. The fee is
-            charged only when a licensee initiates renewal — never on a normal application.
-          </AlertDescription>
-        </Alert>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Default Policy</CardTitle>
-            <CardDescription>Applies to any license that doesn't match a specific rule below.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PolicyFields
-              policy={defaultPolicy}
-              remindersText={defaultRemindersText}
-              onPolicyChange={setDefaultPolicy}
-              onRemindersChange={setDefaultRemindersText}
-            />
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
-              <CardTitle className="text-lg">Sector-Specific Rules</CardTitle>
+              <CardTitle className="text-lg">Sector-Based Rules</CardTitle>
               <CardDescription>
-                Override the default for a specific sector, sub-sector, or category. Most-specific match wins.
+                Configure expiry, reminders, and grace period per sector. Optionally narrow by sub-sector or category. Most-specific match wins.
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={addRule}>
@@ -271,7 +247,7 @@ export default function LicenseExpirySettings() {
           <CardContent className="space-y-6">
             {rules.length === 0 && (
               <p className="text-sm text-muted-foreground italic">
-                No rules configured. The default policy applies to all licenses.
+                No rules configured. Add a sector-based rule to enable expiry reminders.
               </p>
             )}
             {rules.map((rule, idx) => {
@@ -298,9 +274,8 @@ export default function LicenseExpirySettings() {
                           })
                         }
                       >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="any">Any sector</SelectItem>
                           {sectors.map((s) => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
