@@ -316,29 +316,155 @@ export function FormBuilderFieldProperties({ selectedField, allFields, onUpdateF
         {isTable && (
           <div className="space-y-2">
             <Label className="text-xs">Table Columns</Label>
-            {(f.tableColumns || []).map((col, i) => (
-              <div key={col.id} className="flex gap-1">
-                <Input value={col.label} onChange={e => updateTableColumn(i, { label: e.target.value })} className="h-7 text-xs flex-1" />
-                <Select value={col.type} onValueChange={(v: any) => updateTableColumn(i, { type: v })}>
-                  <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="select">Select</SelectItem>
-                    <SelectItem value="file">File</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTableColumn(i)}>
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
+            {(f.tableColumns || []).map((col, i) => {
+              const cv = col.validation || {};
+              const updateColValidation = (patch: Partial<ValidationRules>) =>
+                updateTableColumn(i, { validation: { ...cv, ...patch } });
+              const PRESETS: Record<string, { pattern?: string; msg?: string }> = {
+                any: {},
+                numeric: { pattern: '^[0-9]+$', msg: 'Only numbers are allowed' },
+                alpha: { pattern: '^[A-Za-z\\s]+$', msg: 'Only letters are allowed' },
+                alphanumeric: { pattern: '^[A-Za-z0-9\\s]+$', msg: 'Only letters and numbers are allowed' },
+                decimal: { pattern: '^-?\\d+(\\.\\d+)?$', msg: 'Only decimal numbers are allowed' },
+                no_special: { pattern: '^[A-Za-z0-9_\\-\\s]+$', msg: 'Special characters are not allowed' },
+              };
+              const current = cv.pattern;
+              const preset =
+                !current ? 'any' :
+                current === PRESETS.numeric.pattern ? 'numeric' :
+                current === PRESETS.alpha.pattern ? 'alpha' :
+                current === PRESETS.alphanumeric.pattern ? 'alphanumeric' :
+                current === PRESETS.decimal.pattern ? 'decimal' :
+                current === PRESETS.no_special.pattern ? 'no_special' :
+                'custom';
+              return (
+                <div key={col.id} className="space-y-1.5 p-2 rounded border bg-muted/30">
+                  <div className="flex gap-1">
+                    <Input value={col.label} onChange={e => updateTableColumn(i, { label: e.target.value })} className="h-7 text-xs flex-1" placeholder="Column label" />
+                    <Select value={col.type} onValueChange={(v: any) => updateTableColumn(i, { type: v })}>
+                      <SelectTrigger className="h-7 w-20 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="select">Select</SelectItem>
+                        <SelectItem value="file">File</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTableColumn(i)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {col.type === 'select' && (
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Options (one per line)</Label>
+                      <Textarea
+                        value={(col.options || []).join('\n')}
+                        onChange={e => updateTableColumn(i, { options: e.target.value.split('\n').filter(Boolean) })}
+                        rows={2}
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+
+                  {col.type === 'text' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Min Length</Label>
+                          <Input type="number" className="h-7 text-xs" value={cv.minLength ?? ''} onChange={e => updateColValidation({ minLength: e.target.value ? Number(e.target.value) : undefined })} />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Max Length</Label>
+                          <Input type="number" className="h-7 text-xs" value={cv.maxLength ?? ''} onChange={e => updateColValidation({ maxLength: e.target.value ? Number(e.target.value) : undefined })} />
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Accepts</Label>
+                        <Select
+                          value={preset}
+                          onValueChange={(v) => {
+                            if (v === 'any') updateColValidation({ pattern: undefined, patternMessage: undefined });
+                            else if (v === 'custom') updateColValidation({ pattern: cv.pattern || '', patternMessage: cv.patternMessage });
+                            else { const p = PRESETS[v]; updateColValidation({ pattern: p.pattern, patternMessage: p.msg }); }
+                          }}
+                        >
+                          <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="any">Any characters</SelectItem>
+                            <SelectItem value="numeric">Only numbers</SelectItem>
+                            <SelectItem value="decimal">Only decimal numbers</SelectItem>
+                            <SelectItem value="alpha">Only letters</SelectItem>
+                            <SelectItem value="alphanumeric">Letters & numbers</SelectItem>
+                            <SelectItem value="no_special">No special characters</SelectItem>
+                            <SelectItem value="custom">Custom pattern (regex)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {preset === 'custom' && (
+                        <div className="grid grid-cols-2 gap-1">
+                          <Input className="h-7 text-xs font-mono" value={cv.pattern || ''} onChange={e => updateColValidation({ pattern: e.target.value || undefined })} placeholder="Regex" />
+                          <Input className="h-7 text-xs" value={cv.patternMessage || ''} onChange={e => updateColValidation({ patternMessage: e.target.value || undefined })} placeholder="Error message" />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {col.type === 'number' && (
+                    <div className="grid grid-cols-2 gap-1">
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Min Value</Label>
+                        <Input type="number" className="h-7 text-xs" value={cv.min ?? ''} onChange={e => updateColValidation({ min: e.target.value ? Number(e.target.value) : undefined })} />
+                      </div>
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] text-muted-foreground">Max Value</Label>
+                        <Input type="number" className="h-7 text-xs" value={cv.max ?? ''} onChange={e => updateColValidation({ max: e.target.value ? Number(e.target.value) : undefined })} />
+                      </div>
+                    </div>
+                  )}
+
+                  {col.type === 'file' && (
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Allowed File Types</Label>
+                      <div className="grid grid-cols-2 gap-0.5">
+                        {COMMON_FILE_TYPES.map(ft => {
+                          const cur = cv.allowedTypes || [];
+                          return (
+                            <label key={ft.value} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                              <Checkbox
+                                checked={cur.includes(ft.value)}
+                                onCheckedChange={val => {
+                                  const updated = val ? [...cur, ft.value] : cur.filter(t => t !== ft.value);
+                                  updateColValidation({ allowedTypes: updated });
+                                }}
+                              />
+                              {ft.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Min (KB)</Label>
+                          <Input type="number" className="h-7 text-xs" value={cv.minSizeKB ?? ''} onChange={e => updateColValidation({ minSizeKB: e.target.value ? Number(e.target.value) : undefined })} />
+                        </div>
+                        <div className="space-y-0.5">
+                          <Label className="text-[10px] text-muted-foreground">Max (MB)</Label>
+                          <Input type="number" className="h-7 text-xs" value={cv.maxSizeMB ?? ''} onChange={e => updateColValidation({ maxSizeMB: e.target.value ? Number(e.target.value) : undefined })} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={addTableColumn}>
               <Plus className="h-3 w-3 mr-1" /> Add Column
             </Button>
           </div>
         )}
+
 
         {/* Calculated expression */}
         {isCalculated && (
