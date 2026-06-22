@@ -495,6 +495,31 @@ export function WorkflowActionPreviewDialog({
               );
             })
           )}
+
+          {requireSignature && (
+            <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <PenLine className="h-4 w-4 text-primary" />
+                  Digital signature required
+                </div>
+                <Button type="button" size="sm" variant="ghost" onClick={clearSignature} disabled={processing}>
+                  <Eraser className="h-3.5 w-3.5 mr-1" /> Clear
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Sign inside the box below to confirm this action. Your signature will be stored with the audit record.
+              </p>
+              <canvas
+                ref={sigCanvasRef}
+                className="w-full h-40 rounded border border-border bg-white touch-none cursor-crosshair"
+                style={{ touchAction: 'none' }}
+              />
+              {signatureMissing && (
+                <p className="text-xs text-destructive">Please sign above before confirming.</p>
+              )}
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -502,11 +527,12 @@ export function WorkflowActionPreviewDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={processing}>
+          <Button onClick={handleConfirm} disabled={processing || signatureMissing}>
             {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
             Confirm &amp; Send
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
