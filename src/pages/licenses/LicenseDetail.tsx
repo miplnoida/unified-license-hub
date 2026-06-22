@@ -85,6 +85,7 @@ export default function LicenseDetail() {
   const [renewDate, setRenewDate] = useState('');
   const [renewNotes, setRenewNotes] = useState('');
   const [renewSubmitting, setRenewSubmitting] = useState(false);
+  const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
   useEffect(() => {
@@ -99,7 +100,50 @@ export default function LicenseDetail() {
     load();
   }, [id]);
 
-  const periodDays = expiryConfig?.cycle_type === 'periodic' ? (expiryConfig.period_days || 365) : 365;
+  // Resolve renewal fee from Fee Management: a fee tagged "Renewal" tied to the
+  // Renew service for this license's sub-sector. If no row exists, renewal is free.
+  useEffect(() => {
+    async function loadRenewalFee() {
+      if (!license?.sub_sector_id) { setRenewalFee(null); return; }
+      const { data: services } = await supabase
+        .from('services' as any)
+        .select('id')
+        .eq('name', 'Renew')
+        .eq('sub_sector_id', license.sub_sector_id);
+      const serviceIds = (services as any[] | null)?.map((s) => s.id) || [];
+      if (serviceIds.length === 0) { setRenewalFee(null); return; }
+      const { data: fees } = await supabase
+        .from('fee_configurations' as any)
+        .select('amount, currency, sub_sector_id, category_id')
+        .eq('is_active', true)
+        .in('service_id', serviceIds)
+        .ilike('fee_type', 'renewal');
+      const rows = (fees as any[] | null) || [];
+      const match = rows
+        .filter((r) => !r.sub_sector_id || r.sub_sector_id === license.sub_sector_id)
+        .filter((r) => !r.category_id || r.category_id === license.category_id)
+        .sort(
+          (a, b) =>
+            ((b.category_id ? 2 : 0) + (b.sub_sector_id ? 1 : 0)) -
+            ((a.category_id ? 2 : 0) + (a.sub_sector_id ? 1 : 0)),
+        )[0];
+      if (match && Number(match.amount) > 0) {
+        setRenewalFee({ amount: Number(match.amount), currency: match.currency || 'USD' });
+      } else {
+        setRenewalFee(null);
+      }
+    }
+    loadRenewalFee();
+  }, [license?.sub_sector_id, license?.category_id]);
+
+  const licensePolicy = license
+    ? expiryConfig?.resolveFor({
+        sector_id: license.sector_id,
+        sub_sector_id: license.sub_sector_id,
+        category_id: license.category_id,
+      })
+    : undefined;
+  const periodDays = licensePolicy?.cycle_type === 'periodic' ? (licensePolicy.period_days || 365) : 365;
 
   const openRenewDialog = () => {
     if (!license) return;
