@@ -172,8 +172,16 @@ export default function LicenseExpirySettings() {
     setRules((prev) => prev.filter((r) => r.id !== id));
 
   const handleSave = async () => {
+    const missingSector = rules.some((r) => !r.sector_id);
+    if (missingSector) {
+      toast.error('Every rule must have a sector selected.');
+      return;
+    }
+
     const payload = {
-      default: sanitizePolicy(defaultPolicy, defaultRemindersText),
+      // No default policy — expiry/renewal applies only to licenses whose
+      // sector matches a configured rule.
+      default: null,
       rules: rules.map((r) => ({
         id: r.id,
         sector_id: r.sector_id || null,
