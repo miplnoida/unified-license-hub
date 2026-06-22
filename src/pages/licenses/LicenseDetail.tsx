@@ -230,6 +230,18 @@ export default function LicenseDetail() {
       toast.error('No renewal form is configured for this license.');
       return;
     }
+    const renewalLicenseeId = linkedLicenseeId || resolvedLicenseeId || null;
+    if (!isInternal) {
+      if (!renewalLicenseeId) {
+        toast.error('Could not resolve the licensee for this license.');
+        return;
+      }
+      const ok = await accessGuard.verify(renewalLicenseeId, license.sector_id);
+      if (!ok) {
+        toast.error('You are not authorized to renew this license.');
+        return;
+      }
+    }
     setStartingRenewal(true);
     try {
       const { data, error } = await supabase
@@ -239,7 +251,7 @@ export default function LicenseDetail() {
           license_type: license.license_type,
           status: 'draft',
           data: {
-            ...(resolvedLicenseeId ? { licensee_id: resolvedLicenseeId } : {}),
+            ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
             sector_id: license.sector_id,
             sub_sector_id: license.sub_sector_id,
             category_id: license.category_id,
