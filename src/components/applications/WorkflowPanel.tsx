@@ -668,6 +668,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   const executeAction = async (
     actionType: WorkflowActionType,
     overrides: ActionNotificationOverride[] = [],
+    signatureDataUrl: string | null = null,
   ) => {
     if (!user || !liveInstance || !currentStep) return;
     setProcessingAction(actionType);
@@ -681,6 +682,7 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             action_type: actionType,
             comments: comment,
             notification_overrides: overrides,
+            signature_data_url: signatureDataUrl,
           }
         : {
             application_id: applicationId,
@@ -689,8 +691,10 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
             action_type: actionType,
             comments: comment,
             notification_overrides: overrides,
+            signature_data_url: signatureDataUrl,
           };
       const { data, error } = await supabase.functions.invoke(fnName, { body });
+
       if (error) {
         let serverMsg = error.message || 'Action failed';
         try {
