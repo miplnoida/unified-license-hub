@@ -109,7 +109,9 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const currentStepIdx = currentStep ? steps.findIndex(s => s.id === currentStep.id) : -1;
 
   const { data: canActResult } = useCanActOnStep(user?.id, currentStep?.id);
+  const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
+
 
   const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
     if (step.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
