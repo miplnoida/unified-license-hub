@@ -301,7 +301,28 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 4b. Fire-and-forget: trigger advisory AI Analyst Assessment.
+    //     Failures here MUST NOT block applicant submission.
+    try {
+      adminClient.functions
+        .invoke("generate-application-ai-assessment", {
+          body: { application_id },
+        })
+        .catch((e) =>
+          console.error(
+            "[ai-assessment] dispatch failed (non-fatal):",
+            e?.message || e,
+          ),
+        );
+    } catch (aiErr) {
+      console.error(
+        "[ai-assessment] invoke threw (non-fatal):",
+        aiErr instanceof Error ? aiErr.message : aiErr,
+      );
+    }
+
     // 5. Fire-and-forget notification dispatch.
+
     //    Two distinct event keys are used so applicant and reviewers get
     //    purpose-specific subjects, bodies, and CTA buttons. Template content
     //    lives entirely in notification_event_configs — nothing is hardcoded
