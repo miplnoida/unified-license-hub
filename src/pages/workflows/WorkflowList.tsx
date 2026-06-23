@@ -404,7 +404,8 @@ export default function WorkflowList() {
       setCreateOpen(false);
       setNewName(''); setNewDesc('');
       setNewEntityType(visibleWorkflowTypes[0]?.key ?? '');
-      setNewSectorId('none'); setSeedFromTemplateId('blank');
+      setNewSectorId('none'); setNewSubSectorId('none'); setNewCategoryId('none'); setNewServiceId('none');
+      setSeedFromTemplateId('blank');
     } catch (err: any) {
       // No client-side rollback needed — the RPC ran in a single transaction,
       // so a failure means nothing was inserted.
