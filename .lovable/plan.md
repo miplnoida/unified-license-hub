@@ -1,28 +1,28 @@
-Plan to fix the remaining notification warning without disrupting other workflow behavior:
+## Cause
+The backend data for `APP-2026-000096` is valid:
+- Attached workflow: `Registration Workflow`
+- Workflow has exactly 2 configured steps
+- Step 1 has enabled email bindings for approve/reject/send back/request resubmission
+- Templates are active
 
-1. Resolve the workflow entity type dynamically
-   - In the Application Detail workflow mount, read the attached workflow’s `entity_type`.
-   - If the attached workflow is `registration`, pass `entityType="registration"` into `WorkflowPanel` even though the page URL is `/applications/:id`.
-   - Keep existing `application` behavior for normal pre/post application workflows.
+The warning still appears because the Application Detail screen mounts `WorkflowPanel` without the attached workflow's real `entity_type`. It defaults to `application`, while this application is attached to a workflow configured as `registration`. The previous change only loosened the preview filter, but it did not fix the source context mismatch end-to-end.
 
-2. Preserve correct entity IDs for registration workflows attached to application rows
-   - Add a safe mapping so `WorkflowPanel` can still use the application id for backend actions when the workflow instance is stored against the application row.
-   - Do not switch to the standalone registration review route unless the source record is truly a `registrations` row.
+## Plan
+1. **Resolve workflow context on Application Detail**
+   - Fetch the attached workflow's `entity_type` along with the application.
+   - Treat only registration-backed application workflows as notification-preview `registration` context, while keeping the actual review entity/action target as the application record where required.
 
-3. Make notification preview use backend/source-of-truth bindings only
-   - Keep the current step/action lookup against `approval_action_notifications`.
-   - Ensure the preview dialog does not infer `application.*` event keys when the attached workflow is `registration`.
-   - Keep the diagnostic message only as a real missing-config warning, not a false warning caused by entity mismatch.
+2. **Separate notification entity type from action entity type**
+   - Keep `WorkflowPanel` runtime action execution on `perform-workflow-action` for application rows.
+   - Add a separate `notificationEntityType` prop for the preview dialog so it uses `registration.*` bindings/templates when the attached workflow is a registration workflow.
+   - This avoids breaking workflow instance lookup or approval action execution.
 
-4. Align runtime dispatch with the workflow’s configured entity type
-   - Update action execution so per-action notification dispatch uses the attached workflow entity type for event keys/payload context, while preserving existing application transition RPC behavior where instances are application-backed.
-   - Do not add fake workflows, hardcoded steps, or fallback direct approval paths.
+3. **Harden preview lookup**
+   - Query bindings by the actual `currentStep.id + action_type` first.
+   - If no rows are returned, query the step’s workflow/action bindings as a diagnostic fallback and show the real mismatch details instead of the misleading “not configured” message.
+   - Update the warning copy so it no longer says “with an active email template” when the real issue is no binding row returned.
 
-5. Validate against live backend data
-   - Verify the current Registration Workflow has 2 steps and enabled templates for the exact step/action.
-   - Verify the specific application currently attached to Registration Workflow no longer shows “No email notification is configured” when the configured action is opened.
-
-Technical notes:
-- The database already has enabled bindings and active email templates for Registration Workflow step 1 and step 2.
-- The observed cause is UI/entity routing drift: `ApplicationDetail` mounts `WorkflowPanel` without passing `entityType`, so it defaults to `application` even for `approval_workflows.entity_type = 'registration'`.
-- The fix should be scoped to entity routing and notification preview/runtime; no workflow configuration data should be changed.
+4. **Verify against live data**
+   - Check `APP-2026-000096` opens Step 1 with the configured 2-step workflow.
+   - Confirm approve/reject/send back/request resubmission preview shows the active configured email template instead of the warning.
+   - Confirm no fake workflow, hardcoded steps, or manual fallback changes are introduced.
