@@ -150,12 +150,11 @@ export function DecisionReadySummary({
     (appData.organization_name as string) ||
     null;
 
-  const taxonomyLabel = formatTaxonomyLabel({
-    sector: appData.sector_name,
-    subSector: appData.sub_sector_name,
-    category: appData.category_name,
-    service: appData.service_name,
-  } as any);
+  const taxonomyLabel = formatTaxonomyLabel(
+    [appData.sector_name, appData.sub_sector_name, appData.category_name, appData.service_name]
+      .filter(Boolean)
+      .join(' - '),
+  );
 
   const currentStepName: string | null = useMemo(() => {
     const snap: any = instance?.version_snapshot;
