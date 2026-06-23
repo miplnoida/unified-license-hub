@@ -833,10 +833,9 @@ export default function ApplicationDetail() {
               />
             )}
 
-            {/* Prominent workflow SLA timer for internal staff — restored. */}
-            {isInternal && app.status !== 'draft' && (
-              <ApplicationSlaBanner applicationId={app.id} />
-            )}
+            {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
+                top-level banner removed to avoid duplicate/misleading aggregate SLA. */}
+
 
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
             {showWorkflowPanel && (
