@@ -362,7 +362,9 @@ export default function WorkflowList() {
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
-          category_id: null,
+          sub_sector_id: subSectorId,
+          category_id: categoryId,
+          service_id: serviceId,
         });
         workflowId = wf.id;
         await applyV2SnapshotToWorkflow({
@@ -382,7 +384,9 @@ export default function WorkflowList() {
             entity_type: newEntityType as WorkflowEntityType,
             regulator_id: activeRegulatorId,
             sector_id: sectorId,
-            category_id: null,
+            sub_sector_id: subSectorId,
+            category_id: categoryId,
+            service_id: serviceId,
           },
           steps: stepsPayload,
         });
