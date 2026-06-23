@@ -301,6 +301,40 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Diagnostic (no PII / no form data): submission + workflow attach summary.
+    console.log(
+      "[verify-and-submit] submitted",
+      JSON.stringify({
+        application_id,
+        license_type: app.license_type,
+        workflow_id: result.workflow_id ?? null,
+        first_step_id: result.first_step_id ?? null,
+        workflow_attached: !!result.workflow_attached,
+        is_resubmission: !!result.is_resubmission,
+      }),
+    );
+
+    // Best-effort repair: if the RPC could not attach a workflow (e.g. the
+    // resolver returned no match at submission time), try the repair helper.
+    // This is fully non-blocking and never rolls back submission state.
+    if (!result.workflow_attached) {
+      try {
+        const { data: repaired } = await adminClient.rpc(
+          "repair_application_workflow" as never,
+          { _application_id: application_id } as never,
+        );
+        console.log(
+          "[verify-and-submit] post-submit repair result",
+          JSON.stringify(repaired ?? null),
+        );
+      } catch (repairErr) {
+        console.error(
+          "[verify-and-submit] post-submit repair failed (non-fatal):",
+          repairErr instanceof Error ? repairErr.message : repairErr,
+        );
+      }
+    }
+
     // 4b. Advisory AI Analyst Assessment.
     //     Non-blocking for the applicant: failures are swallowed.
     //     Reliability pattern: insert a `pending` row synchronously so the
