@@ -543,6 +543,9 @@ export default function WorkflowList() {
     
     setEditEntityType(wf.entity_type as WorkflowEntityType);
     setEditSectorId(wf.sector_id || 'none');
+    setEditSubSectorId(wf.sub_sector_id || 'none');
+    setEditCategoryId(wf.category_id || 'none');
+    setEditServiceId(wf.service_id || 'none');
     setEditOpen(true);
   };
 
