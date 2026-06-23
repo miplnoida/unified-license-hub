@@ -1,14 +1,18 @@
-## Goal
-Hide Min and Max cap inputs in the Fee Management dialog. They're not needed in this app.
+## Problem
 
-## Change (single file: `src/pages/admin/FeeManagement.tsx`)
+On the dashboard's Renew button, navigation goes to `/licenses/:id?action=renew`. On the license detail page an auto-trigger effect calls `startRenewal()` as soon as the license loads. At that moment the `useFormTemplates` query is often still in flight, so `formTemplates` is `[]`. `resolveRenewalTemplate()` returns `null`, and we show "No renewal form is configured for this license."
 
-1. **Remove the Min and Max input cells** from the Fee Type Amounts row (lines ~688–698) so each row only shows: Calculation Type + Amount (and currency note).
-2. **Drop the Min/Max validation branches** in `handleSave` (lines ~265–271). Keep only the `amount >= 0` check.
-3. **Persist sane defaults** when building the row (lines ~337–338): always save `min_amount: 0` and `max_amount: null`. This keeps the existing DB schema untouched.
-4. **Edit-mode prefill** (lines ~226–227): stop reading min/max into state. The `FeeTypeRow` state will keep `minAmount`/`maxAmount` as `''` internally so nothing else breaks, but those fields are no longer surfaced or edited.
+The effect does have `formTemplates` in its dependency array, but it sets `autoRenewalTriggeredRef.current = true` on the first run, so the re-run after templates load is skipped. The toast is incorrect — clicking the "Renew License" button afterwards works because templates are loaded by then.
 
-## Out of scope
-- No DB migration (columns stay; new rows write defaults).
-- No changes to listings, calculation logic elsewhere, Free/Paid toggle, or any other module.
-- No styling changes beyond removing the two cells.
+## Fix
+
+Single file: `src/pages/licenses/LicenseDetail.tsx`
+
+1. Pull `isLoading` (as `templatesLoading`) from `useFormTemplates(...)` alongside `data: formTemplates`.
+2. In the `?action=renew` auto-trigger effect (around lines 334–350), wait for both `license` and templates to be ready before firing:
+   - Return early if `templatesLoading` is true.
+   - Return early if `formTemplates.length === 0` (templates query resolved but no published templates yet — better to no-op than show a misleading toast on auto-trigger).
+   - Only after these guards set the ref and call `startRenewal()` / `toast.info(...)`.
+3. Keep the manual "Renew License" button behavior untouched — it still calls `startRenewal()` directly, which still surfaces the existing error toast if no template truly exists.
+
+No backend, schema, or UI changes beyond this guard. No changes to the resolver logic or fee/workflow handling.
