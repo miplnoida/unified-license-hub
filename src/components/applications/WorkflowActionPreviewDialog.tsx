@@ -95,7 +95,7 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
   return useQuery({
     queryKey: ['preview_action_bindings', stepId, actionType, entityType],
     enabled: !!stepId,
-    queryFn: async (): Promise<{ bindings: BindingRow[]; diagnostic: BindingDiagnostic }> => {
+    queryFn: async (): Promise<{ bindings: BindingRow[]; diagnostic: BindingDiagnostic; synthesized: boolean }> => {
       const expectedEventKey = getDefaultEventForAction(actionType, entityType);
       const { data, error } = await supabase
         .from('approval_action_notifications' as any)
@@ -104,17 +104,22 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
         .eq('action_type', actionType)
         .eq('is_enabled', true);
       if (error) throw error;
-      // Bindings are uniquely scoped by (step_id, action_type, is_enabled).
-      // We intentionally do NOT additionally filter by event_key prefix here:
-      // a step may belong to a workflow whose entity_type differs from the
-      // host entity (e.g. a New Licensee application attached to a workflow
-      // configured as entity_type='registration'), in which case the stored
-      // event_key is `registration.*` even though the dialog is opened from
-      // the application detail page. Trusting the admin-configured binding
-      // by step+action is the correct source of truth.
       const rows = (data ?? []) as unknown as BindingRow[];
       const templateIds = Array.from(new Set(rows.map(r => r.template_id).filter((x): x is string => !!x)));
-      const eventKeys = Array.from(new Set(rows.map(r => r.event_key).filter(Boolean)));
+      // Always look up an active email template for the expected event_key
+      // (plus the alternate entity-prefix variant) so we can resolve bindings
+      // whose template is missing/inactive, or synthesize a default binding
+      // when nothing is configured at all.
+      const altEventKey = expectedEventKey.startsWith('application.')
+        ? expectedEventKey.replace('application.', 'registration.')
+        : expectedEventKey.startsWith('registration.')
+          ? expectedEventKey.replace('registration.', 'application.')
+          : expectedEventKey;
+      const eventKeys = Array.from(new Set([
+        ...rows.map(r => r.event_key).filter(Boolean),
+        expectedEventKey,
+        altEventKey,
+      ]));
       const tplMap = new Map<string, any>();
       const eventTplMap = new Map<string, any>();
       const [byId, byEvent] = await Promise.all([
@@ -129,6 +134,8 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
               .from('notification_templates')
               .select('id, name, subject, body, channel, is_active, event_type')
               .in('event_type', eventKeys)
+              .eq('channel', 'email')
+              .eq('is_active', true)
           : Promise.resolve({ data: [] as any[] }),
       ]);
       const tpls = [...(byId.data || []), ...(byEvent.data || [])];
@@ -136,26 +143,53 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
         tplMap.set(t.id, t);
         if (t.channel === 'email' && t.is_active && !eventTplMap.has(t.event_type)) eventTplMap.set(t.event_type, t);
       });
-      // Keep every enabled binding. If its bound template is missing or
-      // inactive, fall back to any active email template for the same
-      // event_key. If still nothing, the row is kept and rendered with a
-      // "no template bound — basic default used" note so the reviewer can
-      // still proceed instead of seeing a misleading "nothing configured".
-      const resolved = rows.map(r => {
-        const direct = r.template_id ? (tplMap.get(r.template_id) ?? null) : null;
-        const directOk = direct && direct.channel === 'email' && direct.is_active;
-        const fallback = eventTplMap.get(r.event_key) ?? null;
-        const template = directOk ? direct : (fallback ?? direct ?? null);
-        return {
-          ...r,
-          template,
-          template_found: !!template,
-          template_active: !!template?.is_active,
-          template_id_was_null: !r.template_id,
-        };
-      });
+
+      let synthesized = false;
+      let resolvedRows: BindingRow[];
+      if (rows.length === 0) {
+        // No admin-configured binding for this (step, action). Synthesize a
+        // virtual one against the best-matching active email template so the
+        // reviewer can preview & send instead of seeing a misleading warning.
+        // Runtime dispatch in perform-workflow-action already fires the
+        // generic event for this action, so the email is sent either way.
+        const tpl = eventTplMap.get(expectedEventKey) ?? eventTplMap.get(altEventKey) ?? null;
+        if (tpl) {
+          synthesized = true;
+          resolvedRows = [{
+            id: `synthetic:${stepId}:${actionType}`,
+            step_id: stepId,
+            action_type: actionType,
+            event_key: tpl.event_type,
+            recipient_type: 'applicant',
+            recipient_config: {},
+            template_id: tpl.id,
+            is_enabled: true,
+            template: tpl,
+            template_found: true,
+            template_active: true,
+            template_id_was_null: false,
+          }];
+        } else {
+          resolvedRows = [];
+        }
+      } else {
+        resolvedRows = rows.map(r => {
+          const direct = r.template_id ? (tplMap.get(r.template_id) ?? null) : null;
+          const directOk = direct && direct.channel === 'email' && direct.is_active;
+          const fallback = eventTplMap.get(r.event_key) ?? eventTplMap.get(expectedEventKey) ?? null;
+          const template = directOk ? direct : (fallback ?? direct ?? null);
+          return {
+            ...r,
+            template,
+            template_found: !!template,
+            template_active: !!template?.is_active,
+            template_id_was_null: !r.template_id,
+          };
+        });
+      }
       return {
-        bindings: resolved,
+        bindings: resolvedRows,
+        synthesized,
         diagnostic: {
           currentStepId: stepId,
           actionType,
@@ -163,7 +197,7 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
           expectedEventKey,
           foundApprovalActionNotificationsCount: rows.length,
           templateIdIsNull: rows.some(r => !r.template_id),
-          templateExistsAndActive: resolved.some(r => r.template?.channel === 'email' && r.template?.is_active),
+          templateExistsAndActive: resolvedRows.some(r => r.template?.channel === 'email' && r.template?.is_active),
         },
       };
     },
