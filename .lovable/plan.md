@@ -1,32 +1,72 @@
 ## Goal
-In the Fee Management edit modal, ensure the Category and Services dropdowns appear and behave exactly like in the Add Fee modal.
 
-## Root cause
-`openEdit` (FeeManagement.tsx lines 218–238) derives `feeScope` from `fee.service_id ? 'services' : fee.form_id ? 'form' : 'category'`. Two failure modes hide the relevant dropdown when editing:
+Add optional **Sub-Sector**, **Category**, and **Services** dropdowns to the Approval Workflow create/edit dialogs (keeping the existing **Sector** dropdown), and make the runtime workflow resolver pick the most specific matching workflow on the frontend.
 
-1. **State-set order race.** `setSectorId`, `setSubSectorId`, `setCategoryId`, `setServiceIds`, `setFormIds`, `setFeeScope`, and `setDialogOpen(true)` are queued together. On open, the `feeScope === 'category'` branch may render before `subSectorId` is committed, so the Category Select renders `disabled` ("Select sub-sector first") and the value never displays. Same for Services (filtered to empty by sector/sub-sector mismatch on first paint).
-2. **Legacy rows with multiple scope columns.** Older rows wrote both `category_id` and `service_id` (or `form_id`) on the same row. Current derivation only honors one, hiding the other dropdown the admin needs to see/edit.
+## Scope (what changes)
 
-## Fix (single file: `src/pages/admin/FeeManagement.tsx`)
+Affected files:
+- `supabase/migrations/...` — add `sub_sector_id` and `service_id` columns to `approval_workflows`
+- `src/hooks/useWorkflowEngine.ts` — extend `Workflow` type and create/update payloads
+- `src/pages/workflows/WorkflowList.tsx` — add dropdowns in Create & Edit dialogs + persist
+- `src/lib/workflowApprovalResolver.ts` — extend hierarchical match
+- `src/lib/workflowDuplicateCheck.ts` — include new fields in uniqueness key
 
-1. **Rewrite `openEdit`** to seed state in a stable order using functional updates and to pick scope with explicit fallback:
-   - Compute `scope` as: `form_id → 'form'`, else `service_id → 'services'`, else `'category'` (default even if `category_id` is null, so the Category dropdown is always visible by default in edit).
-   - Set sector/sub-sector first, then scope, then the scope-specific value (`categoryId` / `serviceIds` / `formIds`). Wrap the dialog open in a `queueMicrotask`/`setTimeout(…,0)` so the derived `filteredCategories` / `filteredServices` memos recompute against the freshly-set `subSectorId` before the dialog paints.
+Not changed: workflow step editor, action notifications, registration/return workflow logic, sidebar, fee management, or any other module.
 
-2. **Make the Category and Services dropdowns render regardless of `subSectorId`** in the dialog (lines 545–571):
-   - Drop the `disabled={!subSectorId}` guard on the Category Select; when `subSectorId` is empty, show all categories for the active regulator. Keep the placeholder helpful ("Select a category").
-   - Mirror for Services: when sector/sub-sector are empty, show the full services list for the active regulator instead of an empty filtered list.
-   - `filteredCategories` and `filteredServices` (lines 406–407) updated to fall back to the unfiltered list when scope filters are empty.
+## Detailed changes
 
-3. **Preserve legacy multi-column rows on save**: in the update branch (line 345), when editing, always persist `category_id`, `service_id`, `form_id` from current state (null when not in scope) so switching scope in edit cleanly clears the unused columns instead of leaving stale values.
+### 1. Database (migration)
+Add two nullable columns to `approval_workflows`:
+- `sub_sector_id uuid` referencing `sub_sectors(id)`
+- `service_id uuid` referencing `services(id)`
 
-## Out of scope
-- No changes to Add modal layout, validation rules, fee-type/amount logic, rules tab, fee types tab.
-- No backend / resolver / migration changes.
-- Earlier renewal-fee resolver fix (`applicationFeeBreakdown.ts`, `LicenseDetail.tsx`) stays as is.
+Both nullable (backwards compatible — existing rows keep working). Index both. No RLS changes (existing policies cover the table).
 
-## Verification
-- Open an existing fee row with `category_id` only → Edit modal opens with scope=Category and the Category dropdown showing the saved value.
-- Open a row with `service_id` only → scope=Services, Services multi-select shows the saved service.
-- Open a row with `form_id` → scope=Form, Form multi-select populated.
-- Switching scope inside the edit modal reveals the corresponding dropdown immediately, matching Add modal behavior.
+### 2. Workflow create/edit dialog (`WorkflowList.tsx`)
+
+In **both** Create Workflow and Edit Workflow dialogs, after the existing Sector dropdown, add three optional dropdowns in this order:
+
+```text
+Sector       (optional, existing)
+Sub-Sector   (optional, filtered by selected Sector)
+Category     (optional, filtered by selected Sub-Sector → falls back to Sector)
+Services     (optional, filtered by selected Sector/Sub-Sector)
+```
+
+Rules:
+- All four are optional, default `"none"`.
+- Clearing a parent (e.g. Sector → none) clears its dependent values.
+- Each dropdown shows "All <parent>" / "Any" as the none option.
+- Persist non-`none` values; persist `null` for `none`.
+- Display selected values as small badges on the workflow list card (next to the existing sector chip).
+
+### 3. Save / duplicate guard
+
+Extend the duplicate-workflow uniqueness key from `(regulator, sector, entity_type)` to `(regulator, sector, sub_sector, category, service, entity_type)`. Same warning copy.
+
+### 4. Runtime resolver (`workflowApprovalResolver.ts`)
+
+Update `matchWorkflowForApplication` to read `sub_sector_id` and `service_id` from the application data and rank candidates from most-specific to least-specific:
+
+```text
+1. service match
+2. category match
+3. sub_sector match
+4. sector match
+5. regulator + license_type only
+6. license_type prefix fallback (unchanged)
+```
+
+A workflow with `service_id = X` only matches an application whose data has the same service; a workflow with all four fields null is the broadest fallback. Existing behavior for sector/category preserved.
+
+### 5. Out of scope
+- No changes to backend RPCs that don't reference these fields.
+- No changes to `WorkflowConfig.tsx` (legacy/demo page).
+- No changes to step approver roles or per-step routing.
+
+## Acceptance
+- Create dialog shows 4 optional dropdowns; saving with any combination works.
+- Edit dialog pre-fills all 4 dropdowns from the workflow row.
+- Two workflows with same sector but different sub-sector/category/service can coexist.
+- Submitting an application whose data has a specific `service_id` routes to the service-scoped workflow when present; otherwise falls back to category → sub-sector → sector → regulator-wide workflow.
+- Existing single-sector workflows continue to match as before.
