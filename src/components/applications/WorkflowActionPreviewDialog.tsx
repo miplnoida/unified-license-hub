@@ -136,10 +136,16 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
         tplMap.set(t.id, t);
         if (t.channel === 'email' && t.is_active && !eventTplMap.has(t.event_type)) eventTplMap.set(t.event_type, t);
       });
+      // Keep every enabled binding. If its bound template is missing or
+      // inactive, fall back to any active email template for the same
+      // event_key. If still nothing, the row is kept and rendered with a
+      // "no template bound — basic default used" note so the reviewer can
+      // still proceed instead of seeing a misleading "nothing configured".
       const resolved = rows.map(r => {
         const direct = r.template_id ? (tplMap.get(r.template_id) ?? null) : null;
+        const directOk = direct && direct.channel === 'email' && direct.is_active;
         const fallback = eventTplMap.get(r.event_key) ?? null;
-        const template = direct && direct.channel === 'email' && direct.is_active ? direct : fallback;
+        const template = directOk ? direct : (fallback ?? direct ?? null);
         return {
           ...r,
           template,
@@ -147,7 +153,7 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
           template_active: !!template?.is_active,
           template_id_was_null: !r.template_id,
         };
-      }).filter(r => r.template?.channel === 'email' && r.template?.is_active);
+      });
       return {
         bindings: resolved,
         diagnostic: {
@@ -157,7 +163,7 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
           expectedEventKey,
           foundApprovalActionNotificationsCount: rows.length,
           templateIdIsNull: rows.some(r => !r.template_id),
-          templateExistsAndActive: resolved.length > 0,
+          templateExistsAndActive: resolved.some(r => r.template?.channel === 'email' && r.template?.is_active),
         },
       };
     },
