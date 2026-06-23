@@ -111,33 +111,32 @@ export default function LicenseDetail() {
     load();
   }, [id]);
 
-  // Resolve renewal fee from Fee Management: a fee tagged "Renewal" tied to the
-  // Renew service for this license's sub-sector. If no row exists, renewal is free.
+  // Resolve renewal fee from Fee Management: a fee with fee_type "renewal"
+  // scoped to this license's sector/sub-sector/category. Mirrors the resolver
+  // in src/lib/applicationFeeBreakdown.ts so the badge matches what the
+  // renewal application's payment panel will compute. Independent of whether
+  // a "Renew" service row exists for the sub-sector.
   useEffect(() => {
     async function loadRenewalFee() {
-      if (!license?.sub_sector_id) { setRenewalFee(null); return; }
-      const { data: services } = await supabase
-        .from('services' as any)
-        .select('id')
-        .eq('name', 'Renew')
-        .eq('sub_sector_id', license.sub_sector_id);
-      const serviceIds = (services as any[] | null)?.map((s) => s.id) || [];
-      if (serviceIds.length === 0) { setRenewalFee(null); return; }
+      if (!license?.sector_id) { setRenewalFee(null); return; }
       const { data: fees } = await supabase
         .from('fee_configurations' as any)
-        .select('amount, currency, sub_sector_id, category_id')
+        .select('amount, currency, sector_id, sub_sector_id, category_id, service_id')
         .eq('is_active', true)
-        .in('service_id', serviceIds)
-        .ilike('fee_type', 'renewal');
+        .ilike('fee_type', '%renew%')
+        .or(`sector_id.eq.${license.sector_id},sector_id.is.null`);
       const rows = (fees as any[] | null) || [];
       const match = rows
-        .filter((r) => !r.sub_sector_id || r.sub_sector_id === license.sub_sector_id)
-        .filter((r) => !r.category_id || r.category_id === license.category_id)
-        .sort(
-          (a, b) =>
-            ((b.category_id ? 2 : 0) + (b.sub_sector_id ? 1 : 0)) -
-            ((a.category_id ? 2 : 0) + (a.sub_sector_id ? 1 : 0)),
-        )[0];
+        .filter((r) => !r.sub_sector_id || !license.sub_sector_id || r.sub_sector_id === license.sub_sector_id)
+        .filter((r) => !r.category_id || !license.category_id || r.category_id === license.category_id)
+        .map((r) => ({
+          row: r,
+          score:
+            (r.category_id === license.category_id ? 4 : 0) +
+            (r.sub_sector_id === license.sub_sector_id ? 2 : 0) +
+            (r.sector_id === license.sector_id ? 1 : 0),
+        }))
+        .sort((a, b) => b.score - a.score)[0]?.row;
       if (match && Number(match.amount) > 0) {
         setRenewalFee({ amount: Number(match.amount), currency: match.currency || 'USD' });
       } else {
@@ -145,7 +144,8 @@ export default function LicenseDetail() {
       }
     }
     loadRenewalFee();
-  }, [license?.sub_sector_id, license?.category_id]);
+  }, [license?.sector_id, license?.sub_sector_id, license?.category_id]);
+
 
   const licensePolicy = license
     ? expiryConfig?.resolveFor({
