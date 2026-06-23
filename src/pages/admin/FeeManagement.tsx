@@ -301,7 +301,7 @@ export default function FeeManagement() {
       const { data: existing, error: dupErr } = await dupQuery;
       if (dupErr) { toast.error(dupErr.message); setSaving(false); return; }
       const rows = ((existing || []) as unknown) as Array<{ fee_type: string; category_id: string | null; service_id: string | null; form_id: string | null }>;
-      for (const ft of feeTypes) {
+      for (const ft of effectiveFeeTypes) {
         if (feeScope === 'category') {
           const hit = rows.find(r => r.fee_type === ft && r.category_id === effectiveCategoryId && !r.service_id && !r.form_id);
           if (hit) { toast.error(`A fee already exists for this category and fee type "${ft}"`); setSaving(false); return; }
