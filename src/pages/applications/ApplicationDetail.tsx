@@ -21,6 +21,7 @@ import { StatusTimeline } from '@/components/applications/StatusTimeline';
 import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel';
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
+import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -814,6 +815,11 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
+            {/* Advisory AI Analyst Assessment — internal staff only, post-draft. */}
+            {isInternal && app.status !== 'draft' && (
+              <ApplicationAiAssessmentPanel applicationId={app.id} />
+            )}
+
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
             {showWorkflowPanel && (
               <WorkflowPanel
@@ -824,6 +830,7 @@ export default function ApplicationDetail() {
                 onStatusChange={loadData}
               />
             )}
+
 
             {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
