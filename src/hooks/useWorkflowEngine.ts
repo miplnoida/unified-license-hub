@@ -119,7 +119,9 @@ export interface Workflow {
   is_active: boolean;
   regulator_id: string | null;
   sector_id: string | null;
+  sub_sector_id: string | null;
   category_id: string | null;
+  service_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -293,7 +295,9 @@ export function useCreateWorkflow() {
       entity_type: WorkflowEntityType;
       regulator_id?: string | null;
       sector_id?: string | null;
+      sub_sector_id?: string | null;
       category_id?: string | null;
+      service_id?: string | null;
     }) => {
       const { data, error } = await supabase
         .from('approval_workflows')
@@ -304,7 +308,9 @@ export function useCreateWorkflow() {
           entity_type: params.entity_type,
           regulator_id: params.regulator_id || null,
           sector_id: params.sector_id || null,
+          sub_sector_id: params.sub_sector_id || null,
           category_id: params.category_id || null,
+          service_id: params.service_id || null,
         } as any)
         .select()
         .single();
@@ -346,7 +352,9 @@ export function useCreateWorkflowWithSteps() {
         entity_type: WorkflowEntityType;
         regulator_id?: string | null;
         sector_id?: string | null;
+        sub_sector_id?: string | null;
         category_id?: string | null;
+        service_id?: string | null;
         is_active?: boolean;
       };
       steps: Array<{

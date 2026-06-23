@@ -637,6 +637,8 @@ export type Database = {
           name: string
           regulator_id: string | null
           sector_id: string | null
+          service_id: string | null
+          sub_sector_id: string | null
           updated_at: string
         }
         Insert: {
@@ -652,6 +654,8 @@ export type Database = {
           name: string
           regulator_id?: string | null
           sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -667,6 +671,8 @@ export type Database = {
           name?: string
           regulator_id?: string | null
           sector_id?: string | null
+          service_id?: string | null
+          sub_sector_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -710,6 +716,20 @@ export type Database = {
             columns: ["sector_id"]
             isOneToOne: false
             referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_workflows_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
             referencedColumns: ["id"]
           },
         ]

@@ -39,7 +39,7 @@ import {
   ACTION_LABELS,
 } from '@/hooks/useWorkflowEngine';
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
-import { useSectors } from '@/hooks/useMasterConfig';
+import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEditor';
@@ -151,6 +151,9 @@ export default function WorkflowList() {
   } = useWorkflowTypeConfigs();
   const { data: dynamicRoles = [], isLoading: rolesLoading } = useRoles();
   const { data: sectors = [] } = useSectors(activeRegulatorId);
+  const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: categories = [] } = useCategories(activeRegulatorId);
+  const { data: services = [] } = useServices(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
   const qc = useQueryClient();
 
@@ -193,6 +196,9 @@ export default function WorkflowList() {
   
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType | ''>('');
   const [newSectorId, setNewSectorId] = useState<string>('none');
+  const [newSubSectorId, setNewSubSectorId] = useState<string>('none');
+  const [newCategoryId, setNewCategoryId] = useState<string>('none');
+  const [newServiceId, setNewServiceId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
 
   // Edit dialog
@@ -203,6 +209,9 @@ export default function WorkflowList() {
   
   const [editEntityType, setEditEntityType] = useState<WorkflowEntityType | ''>('');
   const [editSectorId, setEditSectorId] = useState<string>('none');
+  const [editSubSectorId, setEditSubSectorId] = useState<string>('none');
+  const [editCategoryId, setEditCategoryId] = useState<string>('none');
+  const [editServiceId, setEditServiceId] = useState<string>('none');
 
   // Templates dialog
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -264,6 +273,9 @@ export default function WorkflowList() {
     }
     // Pre-validate a role exists BEFORE creating the workflow to avoid orphans.
     const sectorId = newSectorId !== 'none' ? newSectorId : null;
+    const subSectorId = newSubSectorId !== 'none' ? newSubSectorId : null;
+    const categoryId = newCategoryId !== 'none' ? newCategoryId : null;
+    const serviceId = newServiceId !== 'none' ? newServiceId : null;
     const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
     const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
     const fallbackRole = defaultRole || dynamicRoles[0];
@@ -283,10 +295,13 @@ export default function WorkflowList() {
       templateSteps = tpl.steps;
     }
 
-    // Duplicate guard — Sector + Used For must be unique per regulator.
+    // Duplicate guard — Scope + Used For must be unique per regulator.
     const dup = findDuplicateWorkflow(workflows, {
       regulator_id: activeRegulatorId ?? null,
       sector_id: sectorId,
+      sub_sector_id: subSectorId,
+      category_id: categoryId,
+      service_id: serviceId,
       entity_type: newEntityType,
     });
     if (dup) {
@@ -347,7 +362,9 @@ export default function WorkflowList() {
           entity_type: newEntityType as WorkflowEntityType,
           regulator_id: activeRegulatorId,
           sector_id: sectorId,
-          category_id: null,
+          sub_sector_id: subSectorId,
+          category_id: categoryId,
+          service_id: serviceId,
         });
         workflowId = wf.id;
         await applyV2SnapshotToWorkflow({
@@ -367,7 +384,9 @@ export default function WorkflowList() {
             entity_type: newEntityType as WorkflowEntityType,
             regulator_id: activeRegulatorId,
             sector_id: sectorId,
-            category_id: null,
+            sub_sector_id: subSectorId,
+            category_id: categoryId,
+            service_id: serviceId,
           },
           steps: stepsPayload,
         });
@@ -385,7 +404,8 @@ export default function WorkflowList() {
       setCreateOpen(false);
       setNewName(''); setNewDesc('');
       setNewEntityType(visibleWorkflowTypes[0]?.key ?? '');
-      setNewSectorId('none'); setSeedFromTemplateId('blank');
+      setNewSectorId('none'); setNewSubSectorId('none'); setNewCategoryId('none'); setNewServiceId('none');
+      setSeedFromTemplateId('blank');
     } catch (err: any) {
       // No client-side rollback needed — the RPC ran in a single transaction,
       // so a failure means nothing was inserted.
@@ -476,6 +496,9 @@ export default function WorkflowList() {
       {
         regulator_id: wf.regulator_id,
         sector_id: wf.sector_id,
+        sub_sector_id: wf.sub_sector_id ?? null,
+        category_id: wf.category_id ?? null,
+        service_id: wf.service_id ?? null,
         entity_type: wf.entity_type,
       },
       wf.id,
@@ -520,6 +543,9 @@ export default function WorkflowList() {
     
     setEditEntityType(wf.entity_type as WorkflowEntityType);
     setEditSectorId(wf.sector_id || 'none');
+    setEditSubSectorId(wf.sub_sector_id || 'none');
+    setEditCategoryId(wf.category_id || 'none');
+    setEditServiceId(wf.service_id || 'none');
     setEditOpen(true);
   };
 
@@ -538,14 +564,25 @@ export default function WorkflowList() {
       toast.error('Pick a valid, currently active Used For.');
       return;
     }
+
     const sectorId = editSectorId !== 'none' ? editSectorId : null;
+    const subSectorId = editSubSectorId !== 'none' ? editSubSectorId : null;
+    const categoryId = editCategoryId !== 'none' ? editCategoryId : null;
+    const serviceId = editServiceId !== 'none' ? editServiceId : null;
     const scopeChanged =
-      sectorId !== editTarget.sector_id || editEntityType !== editTarget.entity_type;
+      sectorId !== editTarget.sector_id ||
+      subSectorId !== (editTarget.sub_sector_id ?? null) ||
+      categoryId !== (editTarget.category_id ?? null) ||
+      serviceId !== (editTarget.service_id ?? null) ||
+      editEntityType !== editTarget.entity_type;
 
     // Duplicate guard for the new scope, excluding self.
     const dup = findDuplicateWorkflow(workflows, {
       regulator_id: editTarget.regulator_id,
       sector_id: sectorId,
+      sub_sector_id: subSectorId,
+      category_id: categoryId,
+      service_id: serviceId,
       entity_type: editEntityType,
     }, editTarget.id);
     if (dup) {
@@ -561,7 +598,7 @@ export default function WorkflowList() {
       if (depCount > 0) {
         const res = await Swal.fire({
           title: 'Change scope?',
-          html: `<p>This workflow has <strong>${depCount}</strong> in-flight or historical instance${depCount === 1 ? '' : 's'}. Changing Sector or Used For may break routing for them.</p>`,
+          html: `<p>This workflow has <strong>${depCount}</strong> in-flight or historical instance${depCount === 1 ? '' : 's'}. Changing scope or Used For may break routing for them.</p>`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: 'Change anyway',
@@ -579,6 +616,9 @@ export default function WorkflowList() {
         // backward compatibility, but no longer editable in the UI.
         entity_type: editEntityType,
         sector_id: sectorId,
+        sub_sector_id: subSectorId,
+        category_id: categoryId,
+        service_id: serviceId,
       } as any);
       toast.success('Workflow updated');
       setEditOpen(false);
@@ -965,10 +1005,18 @@ export default function WorkflowList() {
 
             <div>
               <Label>Sector</Label>
-              <Select value={newSectorId} onValueChange={setNewSectorId}>
+              <Select
+                value={newSectorId}
+                onValueChange={(v) => {
+                  setNewSectorId(v);
+                  setNewSubSectorId('none');
+                  setNewCategoryId('none');
+                  setNewServiceId('none');
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Select a sector (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No specific sector</SelectItem>
+                  <SelectItem value="none">All sectors</SelectItem>
                   {(sectors as any[]).map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -991,6 +1039,57 @@ export default function WorkflowList() {
                   </div>
                 </div>
               )}
+            </div>
+            <div>
+              <Label>Sub-Sector <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select
+                value={newSubSectorId}
+                onValueChange={(v) => {
+                  setNewSubSectorId(v);
+                  setNewCategoryId('none');
+                  setNewServiceId('none');
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Any sub-sector" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any sub-sector</SelectItem>
+                  {(subSectors as any[])
+                    .filter(ss => newSectorId === 'none' || ss.sector_id === newSectorId)
+                    .map(ss => (
+                      <SelectItem key={ss.id} value={ss.id}>{ss.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={newCategoryId} onValueChange={setNewCategoryId}>
+                <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any category</SelectItem>
+                  {(categories as any[])
+                    .filter(c => newSectorId === 'none' || c.sector_id === newSectorId)
+                    .filter(c => newSubSectorId === 'none' || c.sub_sector_id === newSubSectorId)
+                    .map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Service <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={newServiceId} onValueChange={setNewServiceId}>
+                <SelectTrigger><SelectValue placeholder="Any service" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any service</SelectItem>
+                  {(services as any[])
+                    .filter(s => newSectorId === 'none' || s.sector_id === newSectorId)
+                    .filter(s => newSubSectorId === 'none' || s.sub_sector_id === newSubSectorId)
+                    .map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Template</Label>
@@ -1054,13 +1153,72 @@ export default function WorkflowList() {
             </div>
             <div>
               <Label>Sector</Label>
-              <Select value={editSectorId} onValueChange={setEditSectorId}>
+              <Select
+                value={editSectorId}
+                onValueChange={(v) => {
+                  setEditSectorId(v);
+                  setEditSubSectorId('none');
+                  setEditCategoryId('none');
+                  setEditServiceId('none');
+                }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No specific sector</SelectItem>
+                  <SelectItem value="none">All sectors</SelectItem>
                   {(sectors as any[]).map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Sub-Sector <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select
+                value={editSubSectorId}
+                onValueChange={(v) => {
+                  setEditSubSectorId(v);
+                  setEditCategoryId('none');
+                  setEditServiceId('none');
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Any sub-sector" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any sub-sector</SelectItem>
+                  {(subSectors as any[])
+                    .filter(ss => editSectorId === 'none' || ss.sector_id === editSectorId)
+                    .map(ss => (
+                      <SelectItem key={ss.id} value={ss.id}>{ss.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any category</SelectItem>
+                  {(categories as any[])
+                    .filter(c => editSectorId === 'none' || c.sector_id === editSectorId)
+                    .filter(c => editSubSectorId === 'none' || c.sub_sector_id === editSubSectorId)
+                    .map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Service <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={editServiceId} onValueChange={setEditServiceId}>
+                <SelectTrigger><SelectValue placeholder="Any service" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any service</SelectItem>
+                  {(services as any[])
+                    .filter(s => editSectorId === 'none' || s.sector_id === editSectorId)
+                    .filter(s => editSubSectorId === 'none' || s.sub_sector_id === editSubSectorId)
+                    .map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
