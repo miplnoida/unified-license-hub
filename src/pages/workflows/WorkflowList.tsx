@@ -196,6 +196,9 @@ export default function WorkflowList() {
   
   const [newEntityType, setNewEntityType] = useState<WorkflowEntityType | ''>('');
   const [newSectorId, setNewSectorId] = useState<string>('none');
+  const [newSubSectorId, setNewSubSectorId] = useState<string>('none');
+  const [newCategoryId, setNewCategoryId] = useState<string>('none');
+  const [newServiceId, setNewServiceId] = useState<string>('none');
   const [seedFromTemplateId, setSeedFromTemplateId] = useState<string>('blank');
 
   // Edit dialog
@@ -206,6 +209,9 @@ export default function WorkflowList() {
   
   const [editEntityType, setEditEntityType] = useState<WorkflowEntityType | ''>('');
   const [editSectorId, setEditSectorId] = useState<string>('none');
+  const [editSubSectorId, setEditSubSectorId] = useState<string>('none');
+  const [editCategoryId, setEditCategoryId] = useState<string>('none');
+  const [editServiceId, setEditServiceId] = useState<string>('none');
 
   // Templates dialog
   const [templatesOpen, setTemplatesOpen] = useState(false);
