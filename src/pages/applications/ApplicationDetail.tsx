@@ -23,7 +23,7 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
-import { ApplicationSlaBanner } from '@/components/applications/ApplicationSlaBanner';
+
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
