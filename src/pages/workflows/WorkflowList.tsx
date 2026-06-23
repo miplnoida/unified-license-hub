@@ -1153,13 +1153,72 @@ export default function WorkflowList() {
             </div>
             <div>
               <Label>Sector</Label>
-              <Select value={editSectorId} onValueChange={setEditSectorId}>
+              <Select
+                value={editSectorId}
+                onValueChange={(v) => {
+                  setEditSectorId(v);
+                  setEditSubSectorId('none');
+                  setEditCategoryId('none');
+                  setEditServiceId('none');
+                }}
+              >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No specific sector</SelectItem>
+                  <SelectItem value="none">All sectors</SelectItem>
                   {(sectors as any[]).map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Sub-Sector <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select
+                value={editSubSectorId}
+                onValueChange={(v) => {
+                  setEditSubSectorId(v);
+                  setEditCategoryId('none');
+                  setEditServiceId('none');
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Any sub-sector" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any sub-sector</SelectItem>
+                  {(subSectors as any[])
+                    .filter(ss => editSectorId === 'none' || ss.sector_id === editSectorId)
+                    .map(ss => (
+                      <SelectItem key={ss.id} value={ss.id}>{ss.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any category</SelectItem>
+                  {(categories as any[])
+                    .filter(c => editSectorId === 'none' || c.sector_id === editSectorId)
+                    .filter(c => editSubSectorId === 'none' || c.sub_sector_id === editSubSectorId)
+                    .map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Service <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Select value={editServiceId} onValueChange={setEditServiceId}>
+                <SelectTrigger><SelectValue placeholder="Any service" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Any service</SelectItem>
+                  {(services as any[])
+                    .filter(s => editSectorId === 'none' || s.sector_id === editSectorId)
+                    .filter(s => editSubSectorId === 'none' || s.sub_sector_id === editSubSectorId)
+                    .map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
