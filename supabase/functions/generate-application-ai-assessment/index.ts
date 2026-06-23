@@ -507,6 +507,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           source_payload_hash: sourcePayloadHash,
         })
         .eq("id", assessmentId);
+      console.error("[ai-assessment] failed id=", assessmentId, aiErr instanceof Error ? aiErr.message : aiErr);
       return jsonResponse({ error: "AI generation failed" }, 500);
     }
   } catch (err) {
