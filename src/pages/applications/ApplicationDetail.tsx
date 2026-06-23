@@ -845,6 +845,8 @@ export default function ApplicationDetail() {
                 workflowEnabled={workflowOn}
                 applicationStatus={app.status}
                 onStatusChange={loadData}
+                applicationSubmittedAt={app.submitted_at}
+                applicationCreatedAt={app.created_at}
               />
             )}
 

@@ -10,13 +10,22 @@
  *   - Dashboard Workflow SLA Overview widget
  *
  * All consumers go through this hook so the breach calculation is
- * identical everywhere.
+ * identical everywhere. Active approval_steps are preferred over
+ * version_snapshot, because backend workflow configuration is the source of
+ * truth for in-flight SLA/status display.
  */
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { computeWorkflowSLA, type UseWorkflowSLAInput, type SlaStatus } from '@/hooks/useWorkflowSLA';
-import { resolveSlaInputFromInstance, type WorkflowInstanceRow } from '@/lib/workflowSlaResolver';
+import {
+  getWorkflowSlaStepConfig,
+  resolveCurrentStepStartedAt,
+  resolveSlaInputFromInstance,
+  type WorkflowInstanceRow,
+  type WorkflowSlaActionRecord,
+  type WorkflowSlaStepConfig,
+} from '@/lib/workflowSlaResolver';
 
 export interface WorkflowSlaEntry {
   entityId: string;
@@ -42,7 +51,15 @@ interface Options {
   enabled?: boolean;
 }
 
-const SELECT = 'id,entity_type,entity_id,status,current_step_id,current_step_key,started_at,updated_at,version_snapshot';
+const SELECT = 'id,workflow_id,entity_type,entity_id,status,current_step_id,current_step_key,started_at,created_at,updated_at,version_snapshot';
+
+interface ApplicationClockRow {
+  id: string;
+  submitted_at: string | null;
+  created_at: string | null;
+}
+
+const STEP_SELECT = 'id,workflow_id,step_order,sla_hours,sla_warning_threshold_percent,escalation_after_hours,sla_pause_on_rfi';
 
 export function useWorkflowSlaInstances({ entityType = 'application', entityIds, enabled = true }: Options = {}) {
   const idsKey = entityIds ? [...entityIds].sort().join(',') : 'all';
@@ -62,7 +79,83 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data as WorkflowInstanceRow[]) || [];
+      const instances = (data as WorkflowInstanceRow[]) || [];
+
+      const stepIds = Array.from(new Set(instances.map(wi => wi.current_step_id).filter((id): id is string => !!id)));
+      const entityIdList = Array.from(new Set(instances.map(wi => wi.entity_id).filter(Boolean)));
+      const workflowIds = Array.from(new Set(instances.map(wi => wi.workflow_id).filter((id): id is string => !!id)));
+      const instanceIds = Array.from(new Set(instances.map(wi => wi.id).filter(Boolean)));
+
+      const [stepsRes, workflowStepsRes, instanceActionsRes, appActionsRes, appsRes] = await Promise.all([
+        stepIds.length > 0
+          ? supabase.from('approval_steps').select(STEP_SELECT).in('id', stepIds)
+          : Promise.resolve({ data: [] as any[], error: null } as any),
+        workflowIds.length > 0
+          ? supabase.from('approval_steps').select('id, workflow_id, step_order').in('workflow_id', workflowIds)
+          : Promise.resolve({ data: [] as any[], error: null } as any),
+        instanceIds.length > 0
+          ? supabase.from('approval_actions').select('workflow_instance_id, step_id, action_type, action, created_at').in('workflow_instance_id', instanceIds)
+          : Promise.resolve({ data: [] as any[], error: null } as any),
+        entityType === 'application' && entityIdList.length > 0
+          ? supabase.from('approval_actions').select('application_id, step_id, action_type, action, created_at').in('application_id', entityIdList)
+          : Promise.resolve({ data: [] as any[], error: null } as any),
+        entityType === 'application' && entityIdList.length > 0
+          ? supabase.from('applications').select('id, submitted_at, created_at').in('id', entityIdList)
+          : Promise.resolve({ data: [] as any[], error: null } as any),
+      ]);
+      if (stepsRes.error) throw stepsRes.error;
+      if (workflowStepsRes.error) throw workflowStepsRes.error;
+      if (instanceActionsRes.error) throw instanceActionsRes.error;
+      if (appActionsRes.error) throw appActionsRes.error;
+      if (appsRes.error) throw appsRes.error;
+
+      const stepById = new Map<string, WorkflowSlaStepConfig>();
+      ((stepsRes.data as WorkflowSlaStepConfig[]) || []).forEach(step => {
+        if (step.id) stepById.set(step.id, step);
+      });
+      const workflowStepsByWorkflowId = new Map<string, WorkflowSlaStepConfig[]>();
+      ((workflowStepsRes.data as WorkflowSlaStepConfig[]) || []).forEach(step => {
+        if (!step.workflow_id) return;
+        const list = workflowStepsByWorkflowId.get(step.workflow_id) || [];
+        list.push(step);
+        workflowStepsByWorkflowId.set(step.workflow_id, list);
+      });
+
+      const actionsByInstanceId = new Map<string, WorkflowSlaActionRecord[]>();
+      ((instanceActionsRes.data as any[]) || []).forEach(action => {
+        const instanceId = action.workflow_instance_id as string | null;
+        if (!instanceId) return;
+        const list = actionsByInstanceId.get(instanceId) || [];
+        list.push(action);
+        actionsByInstanceId.set(instanceId, list);
+      });
+      const actionsByAppId = new Map<string, WorkflowSlaActionRecord[]>();
+      ((appActionsRes.data as any[]) || []).forEach(action => {
+        const appId = action.application_id as string | null;
+        if (!appId) return;
+        const list = actionsByAppId.get(appId) || [];
+        list.push(action);
+        actionsByAppId.set(appId, list);
+      });
+
+      const appClockById = new Map<string, ApplicationClockRow>();
+      ((appsRes.data as ApplicationClockRow[]) || []).forEach(app => appClockById.set(app.id, app));
+
+      return instances.map(wi => {
+        const liveCurrentStep = wi.current_step_id ? stepById.get(wi.current_step_id) ?? null : null;
+        const currentStep = getWorkflowSlaStepConfig(wi, liveCurrentStep);
+        const firstStepStartedAt = appClockById.get(wi.entity_id)?.submitted_at || appClockById.get(wi.entity_id)?.created_at || wi.started_at || wi.created_at || null;
+        const actionHistory = actionsByInstanceId.get(wi.id) || actionsByAppId.get(wi.entity_id) || [];
+        const workflowSteps = wi.workflow_id ? (workflowStepsByWorkflowId.get(wi.workflow_id) || []) : [];
+        const currentStepStartedAt = resolveCurrentStepStartedAt(currentStep, workflowSteps, actionHistory, firstStepStartedAt);
+
+        return {
+          ...wi,
+          __currentStep: liveCurrentStep,
+          __firstStepStartedAt: firstStepStartedAt,
+          __currentStepStartedAt: currentStepStartedAt,
+        };
+      }) as Array<WorkflowInstanceRow & { __currentStep?: WorkflowSlaStepConfig | null; __firstStepStartedAt?: string | null; __currentStepStartedAt?: string | null }>;
     },
   });
 
@@ -70,7 +163,11 @@ export function useWorkflowSlaInstances({ entityType = 'application', entityIds,
     const list = query.data || [];
     const now = new Date();
     return list.map(wi => {
-      const slaInput = resolveSlaInputFromInstance(wi);
+      const slaInput = resolveSlaInputFromInstance(wi, {
+        currentStep: (wi as any).__currentStep ?? null,
+        currentStepStartedAt: (wi as any).__currentStepStartedAt ?? null,
+        firstStepStartedAt: (wi as any).__firstStepStartedAt ?? null,
+      });
       const r = computeWorkflowSLA(slaInput, now);
       return {
         entityId: wi.entity_id,

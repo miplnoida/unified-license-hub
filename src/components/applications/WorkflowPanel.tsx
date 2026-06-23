@@ -227,9 +227,12 @@ interface Props {
   entityType?: WorkflowEntity;
   /** Display noun for messages/titles ('application' or 'registration'). Defaults from entityType. */
   entityNoun?: string;
+  /** Application submission time; used as the first-step SLA clock start. */
+  applicationSubmittedAt?: string | null;
+  applicationCreatedAt?: string | null;
 }
 
-export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange, entityType = 'application', entityNoun }: Props) {
+export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, applicationStatus, onStatusChange, entityType = 'application', entityNoun, applicationSubmittedAt, applicationCreatedAt }: Props) {
   if (!workflowEnabled) return null;
   return (
     <WorkflowPanelContent
@@ -239,11 +242,13 @@ export function WorkflowPanel({ applicationId, workflowId, workflowEnabled, appl
       onStatusChange={onStatusChange}
       entityType={entityType}
       entityNoun={entityNoun ?? (entityType === 'registration' ? 'registration' : 'application')}
+      applicationSubmittedAt={applicationSubmittedAt}
+      applicationCreatedAt={applicationCreatedAt}
     />
   );
 }
 
-function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange, entityType, entityNoun }: Omit<Props, 'workflowEnabled'> & { entityType: WorkflowEntity; entityNoun: string }) {
+function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, onStatusChange, entityType, entityNoun, applicationSubmittedAt, applicationCreatedAt }: Omit<Props, 'workflowEnabled'> & { entityType: WorkflowEntity; entityNoun: string }) {
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const [comment, setComment] = useState('');
@@ -367,16 +372,17 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
       'request_resubmission', 'return_for_correction', 'request_more_info',
     ]);
     const instanceStart = (liveInstance as any)?.started_at ?? (liveInstance as any)?.created_at ?? null;
+    const firstStepStart = applicationSubmittedAt || applicationCreatedAt || instanceStart;
     return steps.map((s, idx) => {
       const status = stepStatuses[idx];
       if (status === 'upcoming') return null;
-      if (idx === 0) return instanceStart;
+      if (idx === 0) return firstStepStart;
       const prev = steps[idx - 1];
       const prevHistory = actionsByStep.get(prev.id) || [];
       const prevDecisive = [...prevHistory].reverse().find(a => decisiveSet.has(a.action_type));
       return prevDecisive?.created_at ?? instanceStart;
     });
-  }, [steps, stepStatuses, actionsByStep, liveInstance]);
+  }, [steps, stepStatuses, actionsByStep, liveInstance, applicationSubmittedAt, applicationCreatedAt]);
 
   // Collect approver user_ids across all steps (specific_users mode) so we can
   // resolve their display names without a query-per-step.

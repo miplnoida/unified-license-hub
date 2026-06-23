@@ -9,7 +9,14 @@ import { ClipboardCheck, Info, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { SlaProgressPanel } from '@/components/workflows/SlaIndicator';
-import { resolveSlaInputFromInstance, type WorkflowInstanceRow } from '@/lib/workflowSlaResolver';
+import {
+  getWorkflowSlaStepConfig,
+  resolveCurrentStepStartedAt,
+  resolveSlaInputFromInstance,
+  type WorkflowInstanceRow,
+  type WorkflowSlaActionRecord,
+  type WorkflowSlaStepConfig,
+} from '@/lib/workflowSlaResolver';
 import { APPLICATION_STATUS_LABELS } from '@/types/platform';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
@@ -81,6 +88,8 @@ export function DecisionReadySummary({
   const [applicant, setApplicant] = useState<{ full_name?: string; email?: string } | null>(null);
   const [docCount, setDocCount] = useState<number | null>(null);
   const [instance, setInstance] = useState<WorkflowInstanceRow | null>(null);
+  const [currentStep, setCurrentStep] = useState<WorkflowSlaStepConfig | null>(null);
+  const [currentStepStartedAt, setCurrentStepStartedAt] = useState<string | null>(null);
   const [assessment, setAssessment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -125,16 +134,49 @@ export function DecisionReadySummary({
           .maybeSingle(),
       ]);
       if (cancelled) return;
+      const instanceRow = (wi as any) || null;
+      let liveCurrentStep: WorkflowSlaStepConfig | null = null;
+      let workflowSteps: WorkflowSlaStepConfig[] = [];
+      let actionHistory: WorkflowSlaActionRecord[] = [];
+      if (instanceRow?.current_step_id) {
+        const [stepRes, stepsRes, actionsRes] = await Promise.all([
+          supabase
+            .from('approval_steps')
+            .select('id, workflow_id, name, step_order, sla_hours, sla_warning_threshold_percent, escalation_after_hours, sla_pause_on_rfi')
+            .eq('id', instanceRow.current_step_id)
+            .maybeSingle(),
+          instanceRow.workflow_id
+            ? supabase
+              .from('approval_steps')
+              .select('id, workflow_id, name, step_order')
+              .eq('workflow_id', instanceRow.workflow_id)
+            : Promise.resolve({ data: [] as any[], error: null } as any),
+          supabase
+            .from('approval_actions')
+            .select('workflow_instance_id, step_id, action_type, action, created_at')
+            .eq('application_id', application.id),
+        ]);
+        const stepRow = (stepRes as any).data;
+        if (!cancelled) liveCurrentStep = (stepRow as any) || null;
+        workflowSteps = ((stepsRes as any).data as WorkflowSlaStepConfig[]) || [];
+        actionHistory = ((actionsRes as any).data as WorkflowSlaActionRecord[]) || [];
+      }
+      if (cancelled) return;
+      const resolvedStep = instanceRow ? getWorkflowSlaStepConfig(instanceRow, liveCurrentStep) : null;
+      const firstStepStart = application.submitted_at || application.created_at;
+      const resolvedStepStart = resolveCurrentStepStartedAt(resolvedStep, workflowSteps, actionHistory, firstStepStart);
       setApplicant((profile as any) || (preUser as any) || null);
       setDocCount(((legacyDocs as any[]) || []).length + ((secureDocs as any[]) || []).length);
-      setInstance((wi as any) || null);
+      setInstance(instanceRow);
+      setCurrentStep(liveCurrentStep || resolvedStep);
+      setCurrentStepStartedAt(resolvedStepStart);
       setAssessment((aiRow as any) || null);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [application.id, application.applicant_id]);
+  }, [application.id, application.applicant_id, application.submitted_at, application.created_at, application.updated_at, application.workflow_id, application.current_step_id]);
 
   const applicantLabel =
     applicant?.full_name ||
@@ -157,16 +199,20 @@ export function DecisionReadySummary({
   );
 
   const currentStepName: string | null = useMemo(() => {
+    if (currentStep?.name) return currentStep.name;
     const snap: any = instance?.version_snapshot;
     const steps = Array.isArray(snap?.steps) ? snap.steps : [];
     const key = instance?.current_step_key || instance?.current_step_id;
     if (!key) return null;
     const found = steps.find((s: any) => s.local_id === key || s.id === key);
     return found?.name || found?.label || null;
-  }, [instance]);
+  }, [instance, currentStep]);
 
-  const slaInput = instance ? resolveSlaInputFromInstance(instance) : null;
-  const stepAgeIsEstimated = !!instance && !!instance.updated_at;
+  const slaInput = instance ? resolveSlaInputFromInstance(instance, {
+    currentStep,
+    currentStepStartedAt,
+    firstStepStartedAt: application.submitted_at || application.created_at,
+  }) : null;
 
   // RFI pairing
   const rfiEntries = useMemo(() => {
@@ -257,11 +303,6 @@ export function DecisionReadySummary({
               {slaInput ? (
                 <>
                   <SlaProgressPanel input={slaInput} title="Current step SLA" />
-                  {stepAgeIsEstimated && (
-                    <p className="text-[11px] text-muted-foreground">
-                      Step start time estimated from last workflow update.
-                    </p>
-                  )}
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">No active workflow instance for SLA tracking.</p>
