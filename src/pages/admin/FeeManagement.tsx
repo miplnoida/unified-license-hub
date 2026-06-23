@@ -515,30 +515,28 @@ export default function FeeManagement() {
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editing ? 'Edit Fee' : 'New Fee Configuration'}</DialogTitle></DialogHeader>
                   <div className="space-y-4">
-                    {/* Scope selector (create mode only — edit mode shows all scope fields) */}
-                    {!editing && (
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="space-y-2">
-                          <Label>Fee Scope *</Label>
-                          <Select
-                            value={feeScope}
-                            onValueChange={(v: 'category' | 'services' | 'form') => {
-                              setFeeScope(v);
-                              if (v === 'category') { setServiceIds([]); setFormIds([]); }
-                              else if (v === 'services') { setCategoryId(''); setFormIds([]); }
-                              else { setCategoryId(''); setServiceIds([]); }
-                            }}
-                          >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="category">Category</SelectItem>
-                              <SelectItem value="services">Services</SelectItem>
-                              <SelectItem value="form">Individual Form</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    {/* Scope selector (visible in both add and edit modes) */}
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Fee Scope *</Label>
+                        <Select
+                          value={feeScope}
+                          onValueChange={(v: 'category' | 'services' | 'form') => {
+                            setFeeScope(v);
+                            if (v === 'category') { setServiceIds([]); setFormIds([]); }
+                            else if (v === 'services') { setCategoryId(''); setFormIds([]); }
+                            else { setCategoryId(''); setServiceIds([]); }
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="services">Services</SelectItem>
+                            <SelectItem value="form">Individual Form</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
