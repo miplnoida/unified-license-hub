@@ -561,8 +561,8 @@ export default function FeeManagement() {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Category *</Label>
-                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
-                            <SelectTrigger><SelectValue placeholder={subSectorId ? 'Select a category' : 'Select sub-sector first'} /></SelectTrigger>
+                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }}>
+                            <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                             <SelectContent>
                               {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
