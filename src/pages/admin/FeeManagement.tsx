@@ -217,14 +217,16 @@ export default function FeeManagement() {
 
   const openEdit = (fee: FeeConfig) => {
     setEditing(fee);
-    setName(fee.name); setFeeTypesSelected([fee.fee_type]);
+    const free = fee.fee_type === 'free';
+    setIsPaid(!free);
+    setName(fee.name); setFeeTypesSelected(free ? [] : [fee.fee_type]);
     const row: FeeTypeAmountRow = {
       calculationType: (fee.calculation_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
       amount: String(fee.amount),
       minAmount: String(fee.min_amount || ''),
       maxAmount: String(fee.max_amount || ''),
     };
-    setFeeTypeAmounts({ [fee.fee_type]: row });
+    setFeeTypeAmounts(free ? {} : { [fee.fee_type]: row });
     setLegacyNote(false);
     setCurrency(fee.currency); setSectorId(fee.sector_id || '');
     setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
