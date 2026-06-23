@@ -820,6 +820,17 @@ export default function ApplicationDetail() {
               <ApplicationAiAssessmentPanel applicationId={app.id} />
             )}
 
+            {/* Consolidated read-only decision support — internal staff only, post-draft. */}
+            {isInternal && app.status !== 'draft' && (
+              <DecisionReadySummary
+                application={app as any}
+                events={events}
+                templateNames={templateNames}
+                paymentComplete={paymentComplete}
+                onJumpToFormsTab={() => setActiveTab('forms')}
+              />
+            )}
+
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
             {showWorkflowPanel && (
               <WorkflowPanel
