@@ -815,6 +815,11 @@ export default function ApplicationDetail() {
               </Card>
             )}
 
+            {/* Advisory AI Analyst Assessment — internal staff only, post-draft. */}
+            {isInternal && app.status !== 'draft' && (
+              <ApplicationAiAssessmentPanel applicationId={app.id} />
+            )}
+
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
             {showWorkflowPanel && (
               <WorkflowPanel
@@ -825,6 +830,7 @@ export default function ApplicationDetail() {
                 onStatusChange={loadData}
               />
             )}
+
 
             {/* Manual staff actions (no workflow configured) */}
             {showManualActions && (
