@@ -122,9 +122,8 @@ export function DecisionReadySummary({
           .select('*')
           .eq('entity_type', 'application')
           .eq('entity_id', application.id)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+          .in('status', ['active', 'paused'])
+          .order('updated_at', { ascending: false }),
         supabase
           .from('application_ai_assessments' as never)
           .select('*')
@@ -134,7 +133,8 @@ export function DecisionReadySummary({
           .maybeSingle(),
       ]);
       if (cancelled) return;
-      const instanceRow = (wi as any) || null;
+      const instanceRows = ((wi as any[]) || []);
+      const instanceRow = instanceRows.find(row => row.status === 'active') || instanceRows.find(row => row.status === 'paused') || null;
       let liveCurrentStep: WorkflowSlaStepConfig | null = null;
       let workflowSteps: WorkflowSlaStepConfig[] = [];
       let actionHistory: WorkflowSlaActionRecord[] = [];
