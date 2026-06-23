@@ -478,25 +478,23 @@ export function WorkflowActionPreviewDialog({
               <Loader2 className="h-4 w-4 animate-spin" /> Loading notification templates…
             </div>
           ) : bindings.length === 0 ? (
-            <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/5 p-3 text-sm">
-              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-              <div className="space-y-2">
-                <p className="font-medium">No email notification is configured for this action.</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  No enabled action-notification binding with an active email template was found for this exact step/action.
+            <div className="flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="font-medium">No email will be sent for this action.</p>
+                <p className="text-xs text-muted-foreground">
+                  No active email template was found for <code>{diagnostic.expectedEventKey}</code>.
+                  You can still proceed — the action will be recorded without an outbound email.
                 </p>
-                <div className="grid grid-cols-1 gap-1 rounded border bg-background/60 p-2 font-mono text-[11px]">
-                  <div>currentStep.id: {diagnostic.currentStepId}</div>
-                  <div>action_type: {diagnostic.actionType}</div>
-                  <div>entityType: {diagnostic.entityType}</div>
-                  <div>expected event_key: {diagnostic.expectedEventKey}</div>
-                  <div>approval_action_notifications count: {diagnostic.foundApprovalActionNotificationsCount}</div>
-                  <div>template_id is null: {String(diagnostic.templateIdIsNull)}</div>
-                  <div>template exists and active: {String(diagnostic.templateExistsAndActive)}</div>
-                </div>
               </div>
             </div>
           ) : (
+            <>
+            {synthesized && (
+              <p className="text-xs text-muted-foreground">
+                Using the default email template for <code>{diagnostic.expectedEventKey}</code> (no custom binding configured for this step/action).
+              </p>
+            )}
             bindings.map((b, idx) => {
               const e = edited[b.id] || { subject: '', body: '' };
               const noTemplate = !b.template;
