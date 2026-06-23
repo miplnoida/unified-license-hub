@@ -509,105 +509,7 @@ export default function FeeManagement() {
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editing ? 'Edit Fee' : 'New Fee Configuration'}</DialogTitle></DialogHeader>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Fee Name *</Label>
-                        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Application Fee" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Fee Type(s) *</Label>
-                        <MultiSelect
-                          options={feeTypesData
-                            .filter(ft => ft.status === 'active')
-                            .map(ft => ({ value: ft.name, label: ft.name + (ft.code ? ` (${ft.code})` : '') }))}
-                          selected={feeTypes}
-                          onChange={handleFeeTypesChange}
-                          placeholder="Select fee types..."
-                          withinDialog
-                        />
-                      </div>
-                    </div>
-
-                    {/* Currency */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Currency</Label>
-                        <Select value={currency} onValueChange={setCurrency}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {['USD','EUR','GBP','LSL','ZAR','INR'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Per-fee-type amount rows */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Fee Type Amounts</Label>
-                      {legacyNote && (
-                        <div className="flex items-start gap-2 p-2 rounded-md bg-accent/50 border border-border text-xs text-muted-foreground">
-                          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                          <span>Legacy record: values were copied to all rows. Adjust each row individually as needed.</span>
-                        </div>
-                      )}
-                      {feeTypes.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4 border rounded-md bg-muted/20">
-                          Select one or more fee types above to enter amounts.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {feeTypes.map(ft => {
-                            const row = feeTypeAmounts[ft];
-                            if (!row) return null;
-                            const ftData = feeTypesData.find(d => d.name === ft);
-                            const label = ftData ? ftData.name + (ftData.code ? ` (${ftData.code})` : '') : ft;
-                            return (
-                              <div key={ft} className={`border rounded-lg p-3 space-y-2 ${row.error ? 'border-destructive bg-destructive/5' : 'bg-muted/20'}`}>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium">{label}</span>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeFeeTypeRow(ft)}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                                <div className="grid grid-cols-4 gap-2">
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Calc Type</Label>
-                                    <Select value={row.calculationType} onValueChange={v => updateFeeTypeRow(ft, 'calculationType', v)}>
-                                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="fixed">Fixed</SelectItem>
-                                        <SelectItem value="percentage">Percentage</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">{row.calculationType === 'percentage' ? '% *' : 'Amount *'}</Label>
-                                    <Input className="h-8 text-xs" type="number" step="0.01" value={row.amount}
-                                      onChange={e => updateFeeTypeRow(ft, 'amount', e.target.value)} placeholder="0.00" />
-                                  </div>
-                                  {row.calculationType === 'fixed' && (
-                                    <>
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Min</Label>
-                                        <Input className="h-8 text-xs" type="number" step="0.01" value={row.minAmount}
-                                          onChange={e => updateFeeTypeRow(ft, 'minAmount', e.target.value)} placeholder="0" />
-                                      </div>
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Max</Label>
-                                        <Input className="h-8 text-xs" type="number" step="0.01" value={row.maxAmount}
-                                          onChange={e => updateFeeTypeRow(ft, 'maxAmount', e.target.value)} placeholder="No cap" />
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                                {row.error && <p className="text-xs text-destructive">{row.error}</p>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
+                    {/* Scope first */}
                     <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <Label>Fee Scope *</Label>
@@ -615,7 +517,6 @@ export default function FeeManagement() {
                           value={feeScope}
                           onValueChange={(v: 'category' | 'services' | 'form') => {
                             setFeeScope(v);
-                            // Clear the now-hidden fields so stale values aren't saved
                             if (v === 'category') { setServiceIds([]); setFormIds([]); }
                             else if (v === 'services') { setCategoryId(''); setFormIds([]); }
                             else { setCategoryId(''); setServiceIds([]); }
@@ -693,6 +594,122 @@ export default function FeeManagement() {
                         </div>
                       </div>
                     )}
+
+                    {/* Paid / Free toggle */}
+                    <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/20">
+                      <div>
+                        <Label className="text-sm font-medium">{isPaid ? 'Paid' : 'Free'}</Label>
+                        <p className="text-xs text-muted-foreground">
+                          {isPaid
+                            ? 'This scope requires payment. Configure fee name, type, and amount below.'
+                            : 'This scope is free. No payment will be collected.'}
+                        </p>
+                      </div>
+                      <Switch checked={isPaid} onCheckedChange={setIsPaid} />
+                    </div>
+
+                    {isPaid && (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Fee Name *</Label>
+                            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Application Fee" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Fee Type(s) *</Label>
+                            <MultiSelect
+                              options={feeTypesData
+                                .filter(ft => ft.status === 'active')
+                                .map(ft => ({ value: ft.name, label: ft.name + (ft.code ? ` (${ft.code})` : '') }))}
+                              selected={feeTypes}
+                              onChange={handleFeeTypesChange}
+                              placeholder="Select fee types..."
+                              withinDialog
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Currency</Label>
+                            <Select value={currency} onValueChange={setCurrency}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {['USD','EUR','GBP','LSL','ZAR','INR'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Fee Type Amounts</Label>
+                          {legacyNote && (
+                            <div className="flex items-start gap-2 p-2 rounded-md bg-accent/50 border border-border text-xs text-muted-foreground">
+                              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                              <span>Legacy record: values were copied to all rows. Adjust each row individually as needed.</span>
+                            </div>
+                          )}
+                          {feeTypes.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4 border rounded-md bg-muted/20">
+                              Select one or more fee types above to enter amounts.
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {feeTypes.map(ft => {
+                                const row = feeTypeAmounts[ft];
+                                if (!row) return null;
+                                const ftData = feeTypesData.find(d => d.name === ft);
+                                const label = ftData ? ftData.name + (ftData.code ? ` (${ftData.code})` : '') : ft;
+                                return (
+                                  <div key={ft} className={`border rounded-lg p-3 space-y-2 ${row.error ? 'border-destructive bg-destructive/5' : 'bg-muted/20'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium">{label}</span>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => removeFeeTypeRow(ft)}>
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-2">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Calc Type</Label>
+                                        <Select value={row.calculationType} onValueChange={v => updateFeeTypeRow(ft, 'calculationType', v)}>
+                                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="fixed">Fixed</SelectItem>
+                                            <SelectItem value="percentage">Percentage</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">{row.calculationType === 'percentage' ? '% *' : 'Amount *'}</Label>
+                                        <Input className="h-8 text-xs" type="number" step="0.01" value={row.amount}
+                                          onChange={e => updateFeeTypeRow(ft, 'amount', e.target.value)} placeholder="0.00" />
+                                      </div>
+                                      {row.calculationType === 'fixed' && (
+                                        <>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Min</Label>
+                                            <Input className="h-8 text-xs" type="number" step="0.01" value={row.minAmount}
+                                              onChange={e => updateFeeTypeRow(ft, 'minAmount', e.target.value)} placeholder="0" />
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Max</Label>
+                                            <Input className="h-8 text-xs" type="number" step="0.01" value={row.maxAmount}
+                                              onChange={e => updateFeeTypeRow(ft, 'maxAmount', e.target.value)} placeholder="No cap" />
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                    {row.error && <p className="text-xs text-destructive">{row.error}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+
 
 
                     <div className="flex items-center gap-2">
