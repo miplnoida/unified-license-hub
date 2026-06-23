@@ -1,54 +1,32 @@
-## Problems
+## Goal
+In the Fee Management edit modal, ensure the Category and Services dropdowns appear and behave exactly like in the Add Fee modal.
 
-**1. Fee Management — Category & Services dropdowns**
+## Root cause
+`openEdit` (FeeManagement.tsx lines 218–238) derives `feeScope` from `fee.service_id ? 'services' : fee.form_id ? 'form' : 'category'`. Two failure modes hide the relevant dropdown when editing:
 
-Keep the existing scope-toggle behavior in `src/pages/admin/FeeManagement.tsx` exactly as-is: when `feeScope = 'category'` show only the Category dropdown, when `feeScope = 'services'` show only the Services multi-select, when `feeScope = 'form'` show only the Form multi-select. The current code (lines 545–587) already does this. **No code change for point 1** — confirming your clarification.
+1. **State-set order race.** `setSectorId`, `setSubSectorId`, `setCategoryId`, `setServiceIds`, `setFormIds`, `setFeeScope`, and `setDialogOpen(true)` are queued together. On open, the `feeScope === 'category'` branch may render before `subSectorId` is committed, so the Category Select renders `disabled` ("Select sub-sector first") and the value never displays. Same for Services (filtered to empty by sector/sub-sector mismatch on first paint).
+2. **Legacy rows with multiple scope columns.** Older rows wrote both `category_id` and `service_id` (or `form_id`) on the same row. Current derivation only honors one, hiding the other dropdown the admin needs to see/edit.
 
-**2. Renewal payment not picked up**
+## Fix (single file: `src/pages/admin/FeeManagement.tsx`)
 
-`startRenewal()` in `src/pages/licenses/LicenseDetail.tsx` (lines 270–308) tries to resolve a `Renew` service for the license's sub-sector and writes it onto the renewal application as `data.service_id`. Two failure modes follow:
+1. **Rewrite `openEdit`** to seed state in a stable order using functional updates and to pick scope with explicit fallback:
+   - Compute `scope` as: `form_id → 'form'`, else `service_id → 'services'`, else `'category'` (default even if `category_id` is null, so the Category dropdown is always visible by default in edit).
+   - Set sector/sub-sector first, then scope, then the scope-specific value (`categoryId` / `serviceIds` / `formIds`). Wrap the dialog open in a `queueMicrotask`/`setTimeout(…,0)` so the derived `filteredCategories` / `filteredServices` memos recompute against the freshly-set `subSectorId` before the dialog paints.
 
-- If no `services` row named "Renew" exists for that `sub_sector_id`, `renewServiceId` stays `null`. The renewal application is saved with `service_id: null`, which `src/lib/applicationFeeBreakdown.ts` then treats as a **pre-licensee** filing via `selectedService ? f.service_id === selectedService : !f.service_id`. Any renewal fee an admin saved under scope=Services with a Renew `service_id` is filtered out → zero fee components → no Pay Now.
-- Even when a Renew service exists, admins commonly configure the renewal fee under scope=Category (since Fee Management's scope is exclusive). That row has `service_id = null`, but the renewal application has `service_id` set, so the resolver again rejects the row for the symmetric reason.
+2. **Make the Category and Services dropdowns render regardless of `subSectorId`** in the dialog (lines 545–571):
+   - Drop the `disabled={!subSectorId}` guard on the Category Select; when `subSectorId` is empty, show all categories for the active regulator. Keep the placeholder helpful ("Select a category").
+   - Mirror for Services: when sector/sub-sector are empty, show the full services list for the active regulator instead of an empty filtered list.
+   - `filteredCategories` and `filteredServices` (lines 406–407) updated to fall back to the unfiltered list when scope filters are empty.
 
-The mismatch is purely in the frontend resolver: renewals straddle scopes and the strict service / no-service partition rejects valid rows.
-
-## Fix
-
-Two small frontend-only edits. No backend, schema, or Fee Management UI changes.
-
-### A. `src/lib/applicationFeeBreakdown.ts` — relax matching for renewals
-
-In the `else` branch that walks `fee_configurations` (after deriving `selectedSector`, `selectedSubSector`, `selectedCategory`, `selectedService`, `selectedFormIds`):
-
-1. Detect renewals:  
-   `const isRenewal = appData.is_renewal === true || appData.service_name === 'Renew' || appData.service === 'Renew';`
-2. When `isRenewal`, **bypass** the strict service partition. Replace  
-   `(selectedService ? f.service_id === selectedService : !f.service_id)`  
-   with  
-   `(isRenewal ? (!f.service_id || f.service_id === selectedService) : (selectedService ? f.service_id === selectedService : !f.service_id))`
-3. When `isRenewal`, prefer rows whose `fee_type` matches `renewal` (case-insensitive). Extend the specificity:  
-   `+ (isRenewal && typeof f.fee_type === 'string' && f.fee_type.toLowerCase().includes('renew') ? 32 : 0)`  
-   The existing deterministic sort and dedupe stay; the renewal-typed row simply wins over generic fees scoped to the same sector/sub-sector.
-
-The `fee_components` (frozen) path is unchanged — only the fallback `fee_configurations` walk used by drafts and freshly-opened renewals.
-
-### B. `src/pages/licenses/LicenseDetail.tsx` — make the renewal-fee summary mirror the resolver
-
-`loadRenewalFee` (lines 116–148) currently only shows the paid-renewal hint when a `services` row named `Renew` exists for the sub-sector. Mirror the resolver fix so the badge matches what the payment panel will compute:
-
-1. Drop the hard requirement that a Renew `service_id` exists. Query `fee_configurations` with `is_active = true` and `fee_type ILIKE 'renewal'`, scoped to the license's `sector_id`/`sub_sector_id`.
-2. Rank matches with the same specificity (category > sub-sector > sector); prefer rows whose `service_id` is null or matches the Renew service if one happens to exist.
-3. If nothing matches, leave `renewalFee = null` (existing no-fee state).
+3. **Preserve legacy multi-column rows on save**: in the update branch (line 345), when editing, always persist `category_id`, `service_id`, `form_id` from current state (null when not in scope) so switching scope in edit cleanly clears the unused columns instead of leaving stale values.
 
 ## Out of scope
+- No changes to Add modal layout, validation rules, fee-type/amount logic, rules tab, fee types tab.
+- No backend / resolver / migration changes.
+- Earlier renewal-fee resolver fix (`applicationFeeBreakdown.ts`, `LicenseDetail.tsx`) stays as is.
 
-- `src/pages/admin/FeeManagement.tsx` is untouched.
-- `startRenewal()` still writes the application exactly as today (sets `service_id`, `service_name = 'Renew'`, `is_renewal: true`, `form_template_ids`).
-- Workflow resolvers, edge functions, and `fee_components` behavior are unchanged.
-- The earlier Min/Max removal and the `?action=renew` auto-trigger guard remain shipped.
-
-## Acceptance
-
-- An admin can save a renewal fee under any scope (Category, Services with the Renew service, or Form) and the renewal application opens with a populated fee breakdown and a working Pay Now button.
-- The License Detail renewal banner shows the matching fee amount whenever such a row exists, regardless of whether the sub-sector has a Renew service configured.
+## Verification
+- Open an existing fee row with `category_id` only → Edit modal opens with scope=Category and the Category dropdown showing the saved value.
+- Open a row with `service_id` only → scope=Services, Services multi-select shows the saved service.
+- Open a row with `form_id` → scope=Form, Form multi-select populated.
+- Switching scope inside the edit modal reveals the corresponding dropdown immediately, matching Add modal behavior.

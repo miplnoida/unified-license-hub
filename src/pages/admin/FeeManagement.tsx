@@ -228,13 +228,24 @@ export default function FeeManagement() {
     };
     setFeeTypeAmounts(free ? {} : { [fee.fee_type]: row });
     setLegacyNote(false);
-    setCurrency(fee.currency); setSectorId(fee.sector_id || '');
-    setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
+    setCurrency(fee.currency);
+    // Seed sector/sub-sector first so filtered lists recompute before scope-specific
+    // dropdowns paint.
+    setSectorId(fee.sector_id || '');
+    setSubSectorId(fee.sub_sector_id || '');
+    // Derive scope with explicit fallback: form_id → 'form'; else service_id →
+    // 'services'; else 'category' (default even when category_id is null so the
+    // Category dropdown is always visible by default in edit).
+    const scope: 'category' | 'services' | 'form' =
+      fee.form_id ? 'form' : fee.service_id ? 'services' : 'category';
+    setFeeScope(scope);
+    setCategoryId(fee.category_id || '');
     setServiceIds(fee.service_id ? [fee.service_id] : []);
     setFormIds(fee.form_id ? [fee.form_id] : []);
-    setFeeScope(fee.service_id ? 'services' : fee.form_id ? 'form' : 'category');
     setIsActive(fee.is_active);
-    setDialogOpen(true);
+    // Defer dialog open so memos (filteredCategories/filteredServices) recompute
+    // against the freshly-set sector/sub-sector before the dropdowns mount.
+    setTimeout(() => setDialogOpen(true), 0);
   };
 
 
@@ -403,8 +414,12 @@ export default function FeeManagement() {
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
   const getFormName = (id: string | null) => formTemplates.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
-  const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
-  const filteredServices = services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
+  const filteredCategories = subSectorId
+    ? categories.filter(c => c.sub_sector_id === subSectorId)
+    : categories;
+  const filteredServices = (!sectorId && !subSectorId)
+    ? services
+    : services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
   const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
     if (!sectorId && !subSectorId && !categoryId && serviceIds.length === 0) return false;
     if (sectorId && f.sector_id !== sectorId) return false;
@@ -546,8 +561,8 @@ export default function FeeManagement() {
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Category *</Label>
-                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }} disabled={!subSectorId}>
-                            <SelectTrigger><SelectValue placeholder={subSectorId ? 'Select a category' : 'Select sub-sector first'} /></SelectTrigger>
+                          <Select value={categoryId} onValueChange={v => { setCategoryId(v); setFormIds([]); }}>
+                            <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                             <SelectContent>
                               {filteredCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
