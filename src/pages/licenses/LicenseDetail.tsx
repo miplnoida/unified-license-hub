@@ -335,6 +335,11 @@ export default function LicenseDetail() {
     if (!license) return;
     if (searchParams.get('action') !== 'renew') return;
     if (autoRenewalTriggeredRef.current) return;
+    // Wait until form templates have finished loading before auto-firing,
+    // otherwise resolveRenewalTemplate() runs against an empty list and
+    // surfaces a false "No renewal form is configured" toast.
+    if (templatesLoading) return;
+    if (!formTemplates || formTemplates.length === 0) return;
     autoRenewalTriggeredRef.current = true;
     const next = new URLSearchParams(searchParams);
     next.delete('action');
@@ -347,7 +352,7 @@ export default function LicenseDetail() {
       toast.info('Renewal is available only after the license grace period has ended.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [license, formTemplates]);
+  }, [license, formTemplates, templatesLoading]);
 
   const openSignedUrl = async (url: string) => {
     // Fetch as blob and trigger a same-origin download to avoid Chrome blocking
