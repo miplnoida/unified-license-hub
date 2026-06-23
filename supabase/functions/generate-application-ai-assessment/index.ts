@@ -158,7 +158,8 @@ Deno.serve(async (req) => {
       categoryRow,
       serviceRow,
       submittedForms,
-      documents,
+      legacyDocuments,
+      secureDocuments,
       payments,
     ] = await Promise.all([
       sectorId
@@ -178,11 +179,19 @@ Deno.serve(async (req) => {
         .select("id, template_id, response_data, submitted_at, status")
         .eq("entity_type", "application")
         .eq("entity_id", application_id),
-
+      // Legacy documents table — entity_type/entity_id AND application_id linkage.
       adminClient
         .from("documents")
-        .select("id, file_name, document_type, file_size, mime_type, created_at")
-        .eq("application_id", application_id),
+        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id, application_id")
+        .or(
+          `application_id.eq.${application_id},and(entity_type.eq.application,entity_id.eq.${application_id})`,
+        ),
+      // Secure storage table used by uploads.
+      adminClient
+        .from("file_uploads")
+        .select("id, file_name, file_size, mime_type, created_at")
+        .eq("entity_type", "application")
+        .eq("entity_id", application_id),
       adminClient
         .from("payments")
         .select("id, amount, currency, status, created_at")
@@ -190,7 +199,12 @@ Deno.serve(async (req) => {
     ]);
 
     const submittedFormsList = (submittedForms.data as unknown[]) || [];
-    const documentsList = (documents.data as unknown[]) || [];
+    const legacyDocsList = (legacyDocuments.data as Array<Record<string, unknown>>) || [];
+    const secureDocsList = (secureDocuments.data as Array<Record<string, unknown>>) || [];
+    const documentsList: Array<Record<string, unknown>> = [
+      ...legacyDocsList.map((d) => ({ ...d, source: "documents" })),
+      ...secureDocsList.map((d) => ({ ...d, source: "file_uploads" })),
+    ];
     const paymentsList = (payments.data as Array<Record<string, unknown>>) || [];
     const completedPayment = paymentsList.find((p) =>
       ["completed", "success", "paid"].includes(String(p.status || "").toLowerCase()),
