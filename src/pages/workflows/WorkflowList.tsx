@@ -151,6 +151,9 @@ export default function WorkflowList() {
   } = useWorkflowTypeConfigs();
   const { data: dynamicRoles = [], isLoading: rolesLoading } = useRoles();
   const { data: sectors = [] } = useSectors(activeRegulatorId);
+  const { data: subSectors = [] } = useSubSectors(activeRegulatorId);
+  const { data: categories = [] } = useCategories(activeRegulatorId);
+  const { data: services = [] } = useServices(activeRegulatorId);
   const { data: templates = [] } = useTemplates();
   const qc = useQueryClient();
 
