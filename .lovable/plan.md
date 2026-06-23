@@ -1,38 +1,57 @@
-I will not claim this is fixed until it is verified in the preview.
+## Goal
+In Admin → Fee Management → "Add/Edit Fee" dialog:
+1. Add a switcher controlling whether the selected category/services/form is **Free** or **Paid**.
+2. Reorder the dialog so scope fields appear first, then fee details.
+3. When Free is selected, skip paid-only fields and persist a zero-amount/free configuration so downstream payment flow treats the application as free.
 
-What I found:
-- The database says `anisha.k2@yopmail.com` is not a Primary User:
-  - roles: `applicant`, `pre_licensee`
-  - no `profiles.licensee_id`
-  - no `profiles.user_type = primary`
-  - no active PPOC mappings
-- The remaining problem is frontend context inference: `PpocContext` still treats licensees found by entity name/application/license back-reference as the user’s “own” licensee. That can make applicant/pre-licensee users look like they are operating as Primary User even when the database does not grant that role.
-- There is also a preview crash in the console: `useActiveSector must be used within ActiveSectorProvider`. The provider exists in `App.tsx`, so this is likely an HMR/context mismatch made fatal by the hook throwing. I will make this hook degrade safely so it does not blank the route while we verify the role issue.
+No changes to listing tables, rules, fee types tab, or other modules.
 
-Plan:
-1. Tighten Primary User ownership in `PpocContext`
-   - Only set `ownLicenseeId` from explicit Primary User signals:
-     - `profiles.licensee_id`
-     - `user.licenseeId`
-     - `profiles.user_type = primary`
-     - `user.role = licensee_primary`
-   - Do not mark inferred matches from entity name, applicant applications, registration sector, or license back-references as Primary User ownership for applicants/pre-licensees.
-   - Keep inferred licensee context available for renewal/form scoping where needed, but do not expose it as `ownLicenseeId` or Primary User mode.
+## UX Changes (`src/pages/admin/FeeManagement.tsx`)
 
-2. Make role display authoritative
-   - Header role label should use only the effective role helper and explicit Primary User signals.
-   - Ensure dynamic role labels cannot override an applicant/pre-licensee into `Primary User` unless the explicit Primary User signals exist.
+### New field order inside the dialog (top → bottom)
+1. **Fee Scope** (Category / Services / Individual Form) — moved to top
+2. **Sector**
+3. **Sub-Sector**
+4. **Category** / **Services** / **Form** (conditional on scope, unchanged logic)
+5. **Paid toggle** — new `Switch` labeled "Paid (toggle off = Free)". Default ON (paid) for backward compatibility.
+6. **Fee Name** *(only when Paid)*
+7. **Fee Type(s)** *(only when Paid)*
+8. **Currency** *(only when Paid)*
+9. **Per-fee-type amount rows** *(only when Paid)*
+10. **Active** switch
+11. **Save** button
 
-3. Prevent the provider crash from hiding verification
-   - Update `useActiveSector()` to return a safe empty context fallback instead of throwing when the provider is temporarily unavailable during route/HMR rendering.
-   - This avoids disrupting admin/licensee pages while keeping normal provider behavior unchanged.
+When the Paid switch is OFF:
+- Hide name, fee types, currency, amount rows.
+- Show a small info banner: "This scope will be marked as Free. No payment will be collected."
+- Skip name/fee-type validation in `handleSave`.
 
-4. Add/adjust focused tests
-   - Add a regression case for Anisha’s exact shape: `pre_licensee/applicant`, no profile licensee, no primary user type, no PPOC mapping, but with a resolved/inferred licensee context.
-   - Expected result: label remains `Pre-Licensee Applicant` or `Applicant`, never `Primary User`.
-   - Keep existing Primary User and PPOC tests passing.
+### Persistence when Free
+- Insert a single `fee_configurations` row per scope target (same expansion as today for services/forms, one row for category) with:
+  - `name`: auto `"Free"` (or `"Free - <scope label>"`)
+  - `fee_type`: `'free'` (a reserved sentinel)
+  - `calculation_type`: `'fixed'`
+  - `amount`: `0`, `min_amount`: `0`, `max_amount`: `null`
+  - `currency`: existing default
+  - `is_active`: from Active switch
+- Duplicate guard reuses existing logic against `fee_type = 'free'`.
 
-5. Verify before reporting fixed
-   - Run the focused role tests.
-   - Use the browser preview after implementation to verify the header/account role no longer shows `Primary User` for Anisha’s session.
-   - Check console/runtime errors after the change before saying it is fixed.
+### Edit mode
+- When opening an existing row with `amount = 0` and `fee_type = 'free'`, prefill the Paid switch OFF; otherwise ON.
+
+## Downstream Free handling
+The application/payment workflow already reads `fee_configurations` to resolve fees. A row with `amount = 0` naturally yields a zero total. To make the "free" path explicit and skip the mandatory payment gate:
+- In `src/lib/applicationFeeBreakdown.ts` (fee resolution): when the resolved configuration has `fee_type === 'free'` or total computes to `0`, mark the breakdown as `isFree: true`.
+- In the application submit flow that today blocks submission until payment is recorded (per memory: "Mandatory payment before final submit"), bypass the payment gate when `isFree` is true and auto-mark `feeStatus = 'paid'` / `feeApproved = true` at submit time so the existing edge function (`verify-and-submit`) accepts it.
+
+Scope note: only the resolver + the client-side gate check change; no edits to other modules, no schema migration (uses existing columns with sentinel `fee_type`).
+
+## Files to edit
+- `src/pages/admin/FeeManagement.tsx` — reorder dialog, add `isPaid` state, conditional rendering, free-row save path, edit prefill.
+- `src/lib/applicationFeeBreakdown.ts` — recognise free configurations.
+- Application submit gate (the helper used by the applicant submission page that currently enforces payment) — allow skip when breakdown is free. I will locate the exact file at implementation time (likely the submit handler in the application detail page) and limit the change to a single conditional.
+
+## Out of scope
+- No DB migration.
+- No changes to Rules, Fee Types tab, late fees, or listings table columns.
+- No styling/layout changes outside the dialog field order.
