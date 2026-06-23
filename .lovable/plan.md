@@ -1,75 +1,51 @@
-## Goal
+# Backfill SLA for APP-2026-000096
 
-Add a single consolidated **Decision-Ready Summary** card on `ApplicationDetail` for internal approvers, sitting between the existing `ApplicationAiAssessmentPanel` and `WorkflowPanel`. Read-only. No new workflow logic, no new data model, no changes to existing components.
+## Why SLA was empty
+- `applications.workflow_id` for `b7496054-080b-4652-b404-edb903280a5d` is `NULL`.
+- `workflow_instances` has zero rows for this entity_id, so the SLA banner correctly renders its empty state.
+- No `approval_workflows` row exists with `entity_type='application'` matching this app's taxonomy (Building Society / Building Society / Building Society) — so the submit flow had nothing to instantiate.
 
-## Scope
+## Fix (data-only, no code changes)
 
-- One new component: `src/components/applications/DecisionReadySummary.tsx`
-- One small edit: `src/pages/applications/ApplicationDetail.tsx` to mount it
-- Optionally one tiny helper if needed for SLA age formatting (reuse `useWorkflowSLA` / `resolveSlaInputFromInstance`)
+Single migration that does both:
 
-No DB migration. No edge function changes. No changes to `DocumentList`, `WorkflowPanel`, `ApplicationAiAssessmentPanel`, RLS, or routing.
+### 1. Create an active "application" workflow by cloning Pre Licensee Approval Workflow v1
+- `approval_workflows` insert
+  - `name = 'Application Review (Default)'`
+  - `entity_type = 'application'`
+  - `license_type = 'Application'` (required NOT NULL)
+  - `is_active = true`
+  - `regulator_id = 8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3` (same as this app)
+  - sector / sub_sector / category / service = `NULL` → global scope
+- `approval_workflow_versions` insert
+  - `workflow_id = <new>`, `version_number = 1`, `status = 'published'`, `published_at = now()`
+  - `snapshot` = cloned from Pre Licensee Approval Workflow v1, with each step's `sla_hours` rewritten to `1` and `sla_warning_threshold_percent` left at 80
+- `approval_workflows.current_published_version_id` updated to the new version id
+- `approval_steps` rows mirrored from the snapshot (3 steps, `sla_hours=1`, default actions) so future submissions also work end-to-end through the workflow engine
+- `approval_step_actions` rows mirrored from the snapshot (approve / reject / send_back) per step
 
-## Visibility rules
+### 2. Backfill the workflow_instance for APP-2026-000096
+- `workflow_instances` insert
+  - `entity_type = 'application'`, `entity_id = b7496054-080b-4652-b404-edb903280a5d`
+  - `status = 'active'`
+  - `current_step_id` / `current_step_key = de660e7e-1dcb-4c6b-8f6f-8b17081e6511` (cloned step 1 local_id)
+  - `started_at = 2026-06-23 09:56:48+00` (the app's `submitted_at`)
+  - `updated_at = now()`
+  - `version_snapshot` = exact snapshot stored in step 1 above
+- `applications.workflow_id` updated to the new workflow id (so the detail page shows the workflow link)
 
-Render only when:
-- `portalContext.isInternal` is true (or dynamic `application_management` access), AND
-- `app.status !== 'draft'` (matches existing AI panel gating)
+## Scope guardrails (per your earlier instructions)
+- No application status mutation — `applications.status` stays `submitted`.
+- No code changes to WorkflowPanel, SLA calculation, or Decision-Ready Summary.
+- No changes to other apps. Only this one row gets a workflow_instance.
+- Future submissions (any sector) will now pick up the new global "Application Review (Default)" workflow on submit. If you want a different global default or a Building-Society-scoped variant instead, say so and I'll adjust before running the migration.
 
-Never rendered for applicants, licensees, pre-licensees. RLS already blocks `application_ai_assessments` and internal `approval_actions` columns; component additionally guards on role.
+## Verification after migration runs
+- Reload `/applications/b7496054-...`: SLA banner shows "Within SLA · ~1h left" then warns/breaches per the 1h timer.
+- Application Queue row for APP-2026-000096 shows the SLA badge.
+- WorkflowPanel renders 3 steps with current = Step 1.
 
-## Layout
-
-Compact card with collapsible subsections (shadcn `Accordion` / `Collapsible` + `Badge`):
-
-1. **Case Snapshot** — application number, applicant name/email, entity/company, license type / sector / sub-sector / category / service (via `formatTaxonomyLabel`), status badge, current workflow step name, submitted/created dates.
-2. **SLA & Status** — total age since `submitted_at`, current-step age via `workflow_instances.updated_at` fallback (labeled "estimated" when not exact), step SLA hours from `version_snapshot`, within/overdue badge using existing `useWorkflowSLA` + `SlaStatusBadge`.
-3. **Documents** — total count merged from `documents` + `file_uploads` by `entity_type='application'`/`entity_id=app.id` (same pattern as `DocumentList`); "missing documents" flag pulled from AI assessment `rule_check_snapshot` when present; embeds existing `DocumentList` inside accordion for view/download — no new storage URLs.
-4. **AI / Risk Flags** — reads latest row from `application_ai_assessments` (status, summary, routing recommendation, confidence, counts of high/critical findings, risks, missing info, top 3 findings/risks, generated_at). Shows advisory disclaimer. Empty state links to existing AI panel above. Also surfaces deterministic flags: `paymentComplete` (already in parent), submitted forms count (`formTemplateIds.length`), document count, missing info count.
-5. **RFIs & Responses** — derived from existing `approval_actions` filtered to RFI-style actions (`resubmission_requested`, `info_requested`, `query_raised`, `returned_for_correction`, `edit_requested`, `resubmitted`). Pairs each request with the next `resubmitted`/response action to show status open/responded. No parallel workflow.
-6. **Notes & Remarks** — consolidated internal comments from `approval_actions.comments` (excluding RFI rows already shown). Placeholder "No legal notes recorded" if none.
-7. **Submitted Responses** — compact list of form template names from `templateNames` already loaded in parent + completion state from `formsData`; accordion to expand and reuse existing `SubmittedForms` rendering link by switching tabs (button: "View full responses" sets `activeTab='forms'`).
-
-## Data sources per subsection
-
-| Subsection | Source |
-|---|---|
-| Case Snapshot | `applications` row + `profiles`/`pre_license_users` for applicant name (already loaded in parent, pass via props) |
-| SLA | `workflow_instances` (entity_type='application', entity_id=app.id) + `useWorkflowSLA` |
-| Documents | `documents` + `file_uploads` (merged), AI `rule_check_snapshot` |
-| AI / Risk | `application_ai_assessments` latest row |
-| RFIs | `approval_actions` (already loaded as `events` in parent, pass via props) |
-| Notes | `approval_actions.comments` |
-| Submitted Responses | `app.data.form_template_ids` + `templateNames` (already in parent) |
-
-## Mount point
-
-In `ApplicationDetail.tsx` around line 820–824, insert immediately after `<ApplicationAiAssessmentPanel />` and before `{showWorkflowPanel && <WorkflowPanel .../>}`:
-
-```tsx
-{isInternal && app.status !== 'draft' && (
-  <DecisionReadySummary
-    application={app}
-    events={events}
-    templateNames={templateNames}
-    paymentComplete={paymentComplete}
-    onJumpToFormsTab={() => setActiveTab('forms')}
-  />
-)}
-```
-
-## Non-goals / guardrails
-
-- No Approve/Reject/Forward buttons in the new card.
-- No mutations to `applications`, `workflow_instances`, `approval_actions`, or AI tables.
-- No new RLS policies (existing policies already enforce internal-only reads on AI + workflow data).
-- Does not duplicate `DocumentList`; embeds it.
-- Does not duplicate `ApplicationAiAssessmentPanel`; summarises it and links up.
-- Does not alter applicant-facing tabs.
-
-## Verification
-
-- Typecheck (auto via harness).
-- Manual: login as analyst/admin → Applications → Application Queue → open submitted application → confirm "Decision-Ready Summary" appears above WorkflowPanel.
-- Manual: login as applicant → open own application → confirm summary not visible.
-- Confirm WorkflowPanel actions still work and AI panel still renders.
+## Technical details
+- All inserts are in one `supabase--migration` call wrapped so failures roll back.
+- Snapshot keeps the original action set (approve / reject / send_back) and approver roles (supervisor → licensing_officer → admin); only `sla_hours` is overridden.
+- `version_snapshot.version` bumped to a new uuid string to avoid colliding with the source.
