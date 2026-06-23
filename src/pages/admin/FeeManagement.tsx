@@ -228,13 +228,24 @@ export default function FeeManagement() {
     };
     setFeeTypeAmounts(free ? {} : { [fee.fee_type]: row });
     setLegacyNote(false);
-    setCurrency(fee.currency); setSectorId(fee.sector_id || '');
-    setSubSectorId(fee.sub_sector_id || ''); setCategoryId(fee.category_id || '');
+    setCurrency(fee.currency);
+    // Seed sector/sub-sector first so filtered lists recompute before scope-specific
+    // dropdowns paint.
+    setSectorId(fee.sector_id || '');
+    setSubSectorId(fee.sub_sector_id || '');
+    // Derive scope with explicit fallback: form_id → 'form'; else service_id →
+    // 'services'; else 'category' (default even when category_id is null so the
+    // Category dropdown is always visible by default in edit).
+    const scope: 'category' | 'services' | 'form' =
+      fee.form_id ? 'form' : fee.service_id ? 'services' : 'category';
+    setFeeScope(scope);
+    setCategoryId(fee.category_id || '');
     setServiceIds(fee.service_id ? [fee.service_id] : []);
     setFormIds(fee.form_id ? [fee.form_id] : []);
-    setFeeScope(fee.service_id ? 'services' : fee.form_id ? 'form' : 'category');
     setIsActive(fee.is_active);
-    setDialogOpen(true);
+    // Defer dialog open so memos (filteredCategories/filteredServices) recompute
+    // against the freshly-set sector/sub-sector before the dropdowns mount.
+    setTimeout(() => setDialogOpen(true), 0);
   };
 
 
