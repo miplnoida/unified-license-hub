@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_ai_assessments: {
+        Row: {
+          application_id: string
+          confidence_score: number | null
+          created_at: string
+          error_message: string | null
+          findings: Json
+          generated_at: string | null
+          id: string
+          missing_information: Json
+          model_name: string | null
+          model_provider: string | null
+          prompt_version: string
+          risks: Json
+          routing_recommendation: Json
+          rule_check_snapshot: Json
+          source_payload_hash: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          confidence_score?: number | null
+          created_at?: string
+          error_message?: string | null
+          findings?: Json
+          generated_at?: string | null
+          id?: string
+          missing_information?: Json
+          model_name?: string | null
+          model_provider?: string | null
+          prompt_version?: string
+          risks?: Json
+          routing_recommendation?: Json
+          rule_check_snapshot?: Json
+          source_payload_hash?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          error_message?: string | null
+          findings?: Json
+          generated_at?: string | null
+          id?: string
+          missing_information?: Json
+          model_name?: string | null
+          model_provider?: string | null
+          prompt_version?: string
+          risks?: Json
+          routing_recommendation?: Json
+          rule_check_snapshot?: Json
+          source_payload_hash?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_ai_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_ai_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_form_versions: {
         Row: {
           application_id: string
