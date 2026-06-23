@@ -301,23 +301,57 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 4b. Fire-and-forget: trigger advisory AI Analyst Assessment.
-    //     Failures here MUST NOT block applicant submission.
+    // 4b. Advisory AI Analyst Assessment.
+    //     Non-blocking for the applicant: failures are swallowed.
+    //     Reliability pattern: insert a `pending` row synchronously so the
+    //     analyst UI always sees an in-progress assessment, then dispatch the
+    //     heavier AI generation via EdgeRuntime.waitUntil so the runtime keeps
+    //     the background promise alive after the HTTP response is returned
+    //     (plain fire-and-forget can be cancelled when the function exits).
     try {
-      adminClient.functions
-        .invoke("generate-application-ai-assessment", {
-          body: { application_id },
-        })
-        .catch((e) =>
-          console.error(
-            "[ai-assessment] dispatch failed (non-fatal):",
-            e?.message || e,
-          ),
-        );
-    } catch (aiErr) {
+      await adminClient.from("application_ai_assessments").insert({
+        application_id,
+        status: "pending",
+        prompt_version: "v1",
+        model_provider: "lovable-ai-gateway",
+        model_name: "google/gemini-2.5-flash",
+      });
+    } catch (seedErr) {
       console.error(
-        "[ai-assessment] invoke threw (non-fatal):",
-        aiErr instanceof Error ? aiErr.message : aiErr,
+        "[ai-assessment] pending row insert failed (non-fatal):",
+        seedErr instanceof Error ? seedErr.message : seedErr,
+      );
+    }
+
+    const dispatchAiAssessment = adminClient.functions
+      .invoke("generate-application-ai-assessment", {
+        body: { application_id },
+      })
+      .then(({ error }: { error: unknown }) => {
+        if (error) {
+          console.error(
+            "[ai-assessment] generation returned error (non-fatal):",
+            (error as { message?: string })?.message || error,
+          );
+        }
+      })
+      .catch((e: unknown) =>
+        console.error(
+          "[ai-assessment] dispatch failed (non-fatal):",
+          (e as { message?: string })?.message || e,
+        ),
+      );
+
+    try {
+      // @ts-ignore - EdgeRuntime is provided by Supabase Edge Functions runtime
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(dispatchAiAssessment);
+      }
+    } catch (waitErr) {
+      console.error(
+        "[ai-assessment] waitUntil unavailable (non-fatal):",
+        waitErr instanceof Error ? waitErr.message : waitErr,
       );
     }
 
