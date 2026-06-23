@@ -61,6 +61,11 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
 
   if (!selectedSector) return [];
 
+  const isRenewal =
+    appData.is_renewal === true ||
+    appData.service_name === 'Renew' ||
+    appData.service === 'Renew';
+
   const { data: fees } = await supabase
     .from('fee_configurations')
     .select('*')
@@ -77,7 +82,8 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
         (f.service_id && f.service_id === selectedService ? 8 : 0) +
         (f.category_id && f.category_id === selectedCategory ? 4 : 0) +
         (f.sub_sector_id && f.sub_sector_id === selectedSubSector ? 2 : 0) +
-        (f.sector_id === selectedSector ? 1 : 0),
+        (f.sector_id === selectedSector ? 1 : 0) +
+        (isRenewal && typeof f.fee_type === 'string' && f.fee_type.toLowerCase().includes('renew') ? 32 : 0),
     }))
     .filter((f: any) =>
       (!f.sub_sector_id || !selectedSubSector || f.sub_sector_id === selectedSubSector) &&
@@ -87,12 +93,14 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
       (!f.form_id || selectedFormIds.includes(f.form_id)) &&
 
       // Service-scoped distinction between post-licensee (service selected)
-      // and pre-licensee (no service). Fee configs with a service_id apply
-      // ONLY when that same service is selected; fee configs without a
-      // service_id apply ONLY when no service is selected.
-      (selectedService ? f.service_id === selectedService : !f.service_id)
+      // and pre-licensee (no service). Renewals straddle both scopes, so a
+      // renewal fee may be configured with or without a service_id.
+      (isRenewal
+        ? (!f.service_id || f.service_id === selectedService)
+        : (selectedService ? f.service_id === selectedService : !f.service_id))
     )
     .sort((a: any, b: any) => b.specificity - a.specificity);
+
 
   const seen = new Set<string>();
   return ranked.filter((row: any) => {
