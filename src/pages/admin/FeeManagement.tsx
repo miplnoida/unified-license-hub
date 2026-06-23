@@ -277,7 +277,7 @@ export default function FeeManagement() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || feeTypes.length === 0) { toast.error('Name and at least one fee type are required'); return; }
+    if (isPaid && (!name.trim() || feeTypes.length === 0)) { toast.error('Name and at least one fee type are required'); return; }
     if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
     if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
     if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
