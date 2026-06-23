@@ -22,6 +22,7 @@ import { FeeComponentsPanel } from '@/components/applications/FeeComponentsPanel
 import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentPanel';
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
+import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -818,6 +819,17 @@ export default function ApplicationDetail() {
             {/* Advisory AI Analyst Assessment — internal staff only, post-draft. */}
             {isInternal && app.status !== 'draft' && (
               <ApplicationAiAssessmentPanel applicationId={app.id} />
+            )}
+
+            {/* Consolidated read-only decision support — internal staff only, post-draft. */}
+            {isInternal && app.status !== 'draft' && (
+              <DecisionReadySummary
+                application={app as any}
+                events={events}
+                templateNames={templateNames}
+                paymentComplete={paymentComplete}
+                onJumpToFormsTab={() => setActiveTab('forms')}
+              />
             )}
 
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
