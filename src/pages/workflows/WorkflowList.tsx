@@ -568,10 +568,24 @@ export default function WorkflowList() {
     const scopeChanged =
       sectorId !== editTarget.sector_id || editEntityType !== editTarget.entity_type;
 
+    const sectorId = editSectorId !== 'none' ? editSectorId : null;
+    const subSectorId = editSubSectorId !== 'none' ? editSubSectorId : null;
+    const categoryId = editCategoryId !== 'none' ? editCategoryId : null;
+    const serviceId = editServiceId !== 'none' ? editServiceId : null;
+    const scopeChanged =
+      sectorId !== editTarget.sector_id ||
+      subSectorId !== (editTarget.sub_sector_id ?? null) ||
+      categoryId !== (editTarget.category_id ?? null) ||
+      serviceId !== (editTarget.service_id ?? null) ||
+      editEntityType !== editTarget.entity_type;
+
     // Duplicate guard for the new scope, excluding self.
     const dup = findDuplicateWorkflow(workflows, {
       regulator_id: editTarget.regulator_id,
       sector_id: sectorId,
+      sub_sector_id: subSectorId,
+      category_id: categoryId,
+      service_id: serviceId,
       entity_type: editEntityType,
     }, editTarget.id);
     if (dup) {
@@ -587,7 +601,7 @@ export default function WorkflowList() {
       if (depCount > 0) {
         const res = await Swal.fire({
           title: 'Change scope?',
-          html: `<p>This workflow has <strong>${depCount}</strong> in-flight or historical instance${depCount === 1 ? '' : 's'}. Changing Sector or Used For may break routing for them.</p>`,
+          html: `<p>This workflow has <strong>${depCount}</strong> in-flight or historical instance${depCount === 1 ? '' : 's'}. Changing scope or Used For may break routing for them.</p>`,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonText: 'Change anyway',
@@ -605,6 +619,9 @@ export default function WorkflowList() {
         // backward compatibility, but no longer editable in the UI.
         entity_type: editEntityType,
         sector_id: sectorId,
+        sub_sector_id: subSectorId,
+        category_id: categoryId,
+        service_id: serviceId,
       } as any);
       toast.success('Workflow updated');
       setEditOpen(false);
