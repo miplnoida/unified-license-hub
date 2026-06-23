@@ -281,8 +281,9 @@ export default function FeeManagement() {
     if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
     if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
     if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
-    if (!validateRows()) { toast.error('Fix amount errors before saving'); return; }
+    if (isPaid && !validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
+    const effectiveFeeTypes = isPaid ? feeTypes : ['free'];
     const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
     const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
     const effectiveFormIds = feeScope === 'form' ? formIds : [];
