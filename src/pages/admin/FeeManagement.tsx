@@ -280,30 +280,15 @@ export default function FeeManagement() {
 
   const handleSave = async () => {
     if (isPaid && (!name.trim() || feeTypes.length === 0)) { toast.error('Name and at least one fee type are required'); return; }
-    if (editing) {
-      // In edit mode all three dropdowns are visible; require at least one scope value.
-      if (!categoryId && serviceIds.length === 0 && formIds.length === 0) {
-        toast.error('Select at least one of Category, Services, or Form'); return;
-      }
-    } else {
-      if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
-      if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
-      if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
-    }
+    if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
+    if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
+    if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
     if (isPaid && !validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
     const effectiveFeeTypes = isPaid ? feeTypes : ['free'];
-    // In edit mode persist all set fields so legacy rows that combine
-    // category + service (or category + form) stay intact when re-saved.
-    const effectiveCategoryId = editing
-      ? (categoryId || null)
-      : (feeScope === 'category' ? (categoryId || null) : null);
-    const effectiveServiceIds = editing
-      ? serviceIds
-      : (feeScope === 'services' ? serviceIds : []);
-    const effectiveFormIds = editing
-      ? formIds
-      : (feeScope === 'form' ? formIds : []);
+    const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
+    const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
+    const effectiveFormIds = feeScope === 'form' ? formIds : [];
 
     // Duplicate guard: no two fee configurations may share the same scope
     // (regulator + sector + sub-sector + category/service/form) and fee type.
@@ -530,30 +515,28 @@ export default function FeeManagement() {
                 <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>{editing ? 'Edit Fee' : 'New Fee Configuration'}</DialogTitle></DialogHeader>
                   <div className="space-y-4">
-                    {/* Scope selector (create mode only — edit mode shows all scope fields) */}
-                    {!editing && (
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="space-y-2">
-                          <Label>Fee Scope *</Label>
-                          <Select
-                            value={feeScope}
-                            onValueChange={(v: 'category' | 'services' | 'form') => {
-                              setFeeScope(v);
-                              if (v === 'category') { setServiceIds([]); setFormIds([]); }
-                              else if (v === 'services') { setCategoryId(''); setFormIds([]); }
-                              else { setCategoryId(''); setServiceIds([]); }
-                            }}
-                          >
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="category">Category</SelectItem>
-                              <SelectItem value="services">Services</SelectItem>
-                              <SelectItem value="form">Individual Form</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    {/* Scope selector (visible in both add and edit modes) */}
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label>Fee Scope *</Label>
+                        <Select
+                          value={feeScope}
+                          onValueChange={(v: 'category' | 'services' | 'form') => {
+                            setFeeScope(v);
+                            if (v === 'category') { setServiceIds([]); setFormIds([]); }
+                            else if (v === 'services') { setCategoryId(''); setFormIds([]); }
+                            else { setCategoryId(''); setServiceIds([]); }
+                          }}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="category">Category</SelectItem>
+                            <SelectItem value="services">Services</SelectItem>
+                            <SelectItem value="form">Individual Form</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Sector</Label>
@@ -574,7 +557,7 @@ export default function FeeManagement() {
                         </Select>
                       </div>
                     </div>
-                    {(feeScope === 'category' || editing) && (
+                    {feeScope === 'category' && (
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Category *</Label>
@@ -587,7 +570,7 @@ export default function FeeManagement() {
                         </div>
                       </div>
                     )}
-                    {(feeScope === 'services' || editing) && (
+                    {feeScope === 'services' && (
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Services *</Label>
@@ -601,7 +584,7 @@ export default function FeeManagement() {
                         </div>
                       </div>
                     )}
-                    {(feeScope === 'form' || editing) && (
+                    {feeScope === 'form' && (
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Form *</Label>
