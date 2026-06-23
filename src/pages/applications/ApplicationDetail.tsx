@@ -90,6 +90,7 @@ export default function ApplicationDetail() {
   const [activeTab, setActiveTab] = useState<string>('details');
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
+  const [workflowEntityType, setWorkflowEntityType] = useState<'application' | 'registration'>('application');
 
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || (enforceDynamic ? hasModuleAccess('application_management') : INTERNAL_ROLES.includes(user.role)));
   const isPreLicensee = useIsPreLicensee();
