@@ -1,51 +1,28 @@
-# Backfill SLA for APP-2026-000096
+Plan to fix the remaining notification warning without disrupting other workflow behavior:
 
-## Why SLA was empty
-- `applications.workflow_id` for `b7496054-080b-4652-b404-edb903280a5d` is `NULL`.
-- `workflow_instances` has zero rows for this entity_id, so the SLA banner correctly renders its empty state.
-- No `approval_workflows` row exists with `entity_type='application'` matching this app's taxonomy (Building Society / Building Society / Building Society) — so the submit flow had nothing to instantiate.
+1. Resolve the workflow entity type dynamically
+   - In the Application Detail workflow mount, read the attached workflow’s `entity_type`.
+   - If the attached workflow is `registration`, pass `entityType="registration"` into `WorkflowPanel` even though the page URL is `/applications/:id`.
+   - Keep existing `application` behavior for normal pre/post application workflows.
 
-## Fix (data-only, no code changes)
+2. Preserve correct entity IDs for registration workflows attached to application rows
+   - Add a safe mapping so `WorkflowPanel` can still use the application id for backend actions when the workflow instance is stored against the application row.
+   - Do not switch to the standalone registration review route unless the source record is truly a `registrations` row.
 
-Single migration that does both:
+3. Make notification preview use backend/source-of-truth bindings only
+   - Keep the current step/action lookup against `approval_action_notifications`.
+   - Ensure the preview dialog does not infer `application.*` event keys when the attached workflow is `registration`.
+   - Keep the diagnostic message only as a real missing-config warning, not a false warning caused by entity mismatch.
 
-### 1. Create an active "application" workflow by cloning Pre Licensee Approval Workflow v1
-- `approval_workflows` insert
-  - `name = 'Application Review (Default)'`
-  - `entity_type = 'application'`
-  - `license_type = 'Application'` (required NOT NULL)
-  - `is_active = true`
-  - `regulator_id = 8dd8ac87-4e11-4a6b-8991-bf88cb03d7c3` (same as this app)
-  - sector / sub_sector / category / service = `NULL` → global scope
-- `approval_workflow_versions` insert
-  - `workflow_id = <new>`, `version_number = 1`, `status = 'published'`, `published_at = now()`
-  - `snapshot` = cloned from Pre Licensee Approval Workflow v1, with each step's `sla_hours` rewritten to `1` and `sla_warning_threshold_percent` left at 80
-- `approval_workflows.current_published_version_id` updated to the new version id
-- `approval_steps` rows mirrored from the snapshot (3 steps, `sla_hours=1`, default actions) so future submissions also work end-to-end through the workflow engine
-- `approval_step_actions` rows mirrored from the snapshot (approve / reject / send_back) per step
+4. Align runtime dispatch with the workflow’s configured entity type
+   - Update action execution so per-action notification dispatch uses the attached workflow entity type for event keys/payload context, while preserving existing application transition RPC behavior where instances are application-backed.
+   - Do not add fake workflows, hardcoded steps, or fallback direct approval paths.
 
-### 2. Backfill the workflow_instance for APP-2026-000096
-- `workflow_instances` insert
-  - `entity_type = 'application'`, `entity_id = b7496054-080b-4652-b404-edb903280a5d`
-  - `status = 'active'`
-  - `current_step_id` / `current_step_key = de660e7e-1dcb-4c6b-8f6f-8b17081e6511` (cloned step 1 local_id)
-  - `started_at = 2026-06-23 09:56:48+00` (the app's `submitted_at`)
-  - `updated_at = now()`
-  - `version_snapshot` = exact snapshot stored in step 1 above
-- `applications.workflow_id` updated to the new workflow id (so the detail page shows the workflow link)
+5. Validate against live backend data
+   - Verify the current Registration Workflow has 2 steps and enabled templates for the exact step/action.
+   - Verify the specific application currently attached to Registration Workflow no longer shows “No email notification is configured” when the configured action is opened.
 
-## Scope guardrails (per your earlier instructions)
-- No application status mutation — `applications.status` stays `submitted`.
-- No code changes to WorkflowPanel, SLA calculation, or Decision-Ready Summary.
-- No changes to other apps. Only this one row gets a workflow_instance.
-- Future submissions (any sector) will now pick up the new global "Application Review (Default)" workflow on submit. If you want a different global default or a Building-Society-scoped variant instead, say so and I'll adjust before running the migration.
-
-## Verification after migration runs
-- Reload `/applications/b7496054-...`: SLA banner shows "Within SLA · ~1h left" then warns/breaches per the 1h timer.
-- Application Queue row for APP-2026-000096 shows the SLA badge.
-- WorkflowPanel renders 3 steps with current = Step 1.
-
-## Technical details
-- All inserts are in one `supabase--migration` call wrapped so failures roll back.
-- Snapshot keeps the original action set (approve / reject / send_back) and approver roles (supervisor → licensing_officer → admin); only `sla_hours` is overridden.
-- `version_snapshot.version` bumped to a new uuid string to avoid colliding with the source.
+Technical notes:
+- The database already has enabled bindings and active email templates for Registration Workflow step 1 and step 2.
+- The observed cause is UI/entity routing drift: `ApplicationDetail` mounts `WorkflowPanel` without passing `entityType`, so it defaults to `application` even for `approval_workflows.entity_type = 'registration'`.
+- The fix should be scoped to entity routing and notification preview/runtime; no workflow configuration data should be changed.
