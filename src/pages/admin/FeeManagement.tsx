@@ -177,7 +177,7 @@ export default function FeeManagement() {
     setName(''); setFeeTypesSelected([]); setFeeTypeAmounts({}); setCurrency('USD');
     setSectorId(''); setSubSectorId(''); setCategoryId(''); setServiceIds([]); setFormIds([]);
     setFeeScope('category');
-    setIsActive(true); setEditing(null); setLegacyNote(false);
+    setIsActive(true); setIsPaid(true); setEditing(null); setLegacyNote(false);
   };
 
 
