@@ -557,7 +557,7 @@ export default function FeeManagement() {
                         </Select>
                       </div>
                     </div>
-                    {(feeScope === 'category' || editing) && (
+                    {feeScope === 'category' && (
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Category *</Label>
