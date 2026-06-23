@@ -292,6 +292,7 @@ export function WorkflowActionPreviewDialog({
 
   const { data: bindingResult, isLoading } = useBindings(stepId, actionType, entityType);
   const bindings = bindingResult?.bindings ?? [];
+  const synthesized = bindingResult?.synthesized ?? false;
   const diagnostic = bindingResult?.diagnostic ?? {
     currentStepId: stepId,
     actionType,
