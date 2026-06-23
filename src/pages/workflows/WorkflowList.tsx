@@ -496,6 +496,9 @@ export default function WorkflowList() {
       {
         regulator_id: wf.regulator_id,
         sector_id: wf.sector_id,
+        sub_sector_id: wf.sub_sector_id ?? null,
+        category_id: wf.category_id ?? null,
+        service_id: wf.service_id ?? null,
         entity_type: wf.entity_type,
       },
       wf.id,
