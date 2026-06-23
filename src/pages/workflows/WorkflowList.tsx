@@ -1014,7 +1014,7 @@ export default function WorkflowList() {
                   setNewServiceId('none');
                 }}
               >
-                <SelectTrigger><SelectValue placeholder="Select a sector (optional)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select a sector" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">All sectors</SelectItem>
                   {(sectors as any[]).map(s => (
@@ -1041,7 +1041,7 @@ export default function WorkflowList() {
               )}
             </div>
             <div>
-              <Label>Sub-Sector <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Sub-Sector</Label>
               <Select
                 value={newSubSectorId}
                 onValueChange={(v) => {
@@ -1062,7 +1062,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Category</Label>
               <Select value={newCategoryId} onValueChange={setNewCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
                 <SelectContent>
@@ -1077,7 +1077,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Service <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Service</Label>
               <Select value={newServiceId} onValueChange={setNewServiceId}>
                 <SelectTrigger><SelectValue placeholder="Any service" /></SelectTrigger>
                 <SelectContent>
@@ -1106,7 +1106,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Description (optional)</Label>
+              <Label>Description</Label>
               <Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} rows={2} />
             </div>
           </div>
@@ -1172,7 +1172,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Sub-Sector <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Sub-Sector</Label>
               <Select
                 value={editSubSectorId}
                 onValueChange={(v) => {
@@ -1193,7 +1193,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Category <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Category</Label>
               <Select value={editCategoryId} onValueChange={setEditCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Any category" /></SelectTrigger>
                 <SelectContent>
@@ -1208,7 +1208,7 @@ export default function WorkflowList() {
               </Select>
             </div>
             <div>
-              <Label>Service <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>Service</Label>
               <Select value={editServiceId} onValueChange={setEditServiceId}>
                 <SelectTrigger><SelectValue placeholder="Any service" /></SelectTrigger>
                 <SelectContent>
