@@ -1,72 +1,71 @@
-## Goal
+# AI Assessment Verification Report
 
-Add optional **Sub-Sector**, **Category**, and **Services** dropdowns to the Approval Workflow create/edit dialogs (keeping the existing **Sector** dropdown), and make the runtime workflow resolver pick the most specific matching workflow on the frontend.
+This is a **read-only verification** of the existing fix. No code changes are proposed — if you approve this plan I will simply re-confirm in build mode without editing files.
 
-## Scope (what changes)
+## 1. Latest commit
+- SHA: `f471c2487089dc03040c1c2708125ede2d4d3c68`
+- Title: *Improved reliability & docs*
 
-Affected files:
-- `supabase/migrations/...` — add `sub_sector_id` and `service_id` columns to `approval_workflows`
-- `src/hooks/useWorkflowEngine.ts` — extend `Workflow` type and create/update payloads
-- `src/pages/workflows/WorkflowList.tsx` — add dropdowns in Create & Edit dialogs + persist
-- `src/lib/workflowApprovalResolver.ts` — extend hierarchical match
-- `src/lib/workflowDuplicateCheck.ts` — include new fields in uniqueness key
+## 2. Files changed in that commit
+- `supabase/functions/verify-and-submit/index.ts`
+- `supabase/functions/generate-application-ai-assessment/index.ts`
+- `supabase/functions/generate-application-ai-assessment/README.md`
 
-Not changed: workflow step editor, action notifications, registration/return workflow logic, sidebar, fee management, or any other module.
+## 3. Build / typecheck
+The Lovable harness runs build + typecheck automatically on every change. The last successful build corresponds to commit `f471c248`. I did not re-run manual builds (per project rules, manual `tsc`/`bun run build` is not used).
 
-## Detailed changes
-
-### 1. Database (migration)
-Add two nullable columns to `approval_workflows`:
-- `sub_sector_id uuid` referencing `sub_sectors(id)`
-- `service_id uuid` referencing `services(id)`
-
-Both nullable (backwards compatible — existing rows keep working). Index both. No RLS changes (existing policies cover the table).
-
-### 2. Workflow create/edit dialog (`WorkflowList.tsx`)
-
-In **both** Create Workflow and Edit Workflow dialogs, after the existing Sector dropdown, add three optional dropdowns in this order:
-
-```text
-Sector       (optional, existing)
-Sub-Sector   (optional, filtered by selected Sector)
-Category     (optional, filtered by selected Sub-Sector → falls back to Sector)
-Services     (optional, filtered by selected Sector/Sub-Sector)
+## 4. Pending AI assessment row after submission
+Confirmed in `verify-and-submit/index.ts` (lines ~310-325): after the `submit_application` RPC succeeds, the function synchronously inserts a row:
+```ts
+await adminClient.from("application_ai_assessments").insert({
+  application_id, status: "pending",
+  prompt_version: "v1",
+  model_provider: "lovable-ai-gateway",
+  model_name: "google/gemini-2.5-flash",
+});
 ```
+then dispatches `generate-application-ai-assessment` via `EdgeRuntime.waitUntil(...)` so the background promise survives past the HTTP response.
 
-Rules:
-- All four are optional, default `"none"`.
-- Clearing a parent (e.g. Sector → none) clears its dependent values.
-- Each dropdown shows "All <parent>" / "Any" as the none option.
-- Persist non-`none` values; persist `null` for `none`.
-- Display selected values as small badges on the workflow list card (next to the existing sector chip).
+## 5. Non-blocking on AI failure / missing `LOVABLE_API_KEY`
+- The pending-row insert is wrapped in `try/catch` (logs, never throws).
+- The `functions.invoke(...)` chain has `.then`+`.catch` swallowing all errors.
+- `EdgeRuntime.waitUntil` is itself wrapped in try/catch.
+- In `generate-application-ai-assessment`, missing `LOVABLE_API_KEY` updates the row to `status='failed'` with `error_message='LOVABLE_API_KEY is not configured'` and returns 500 — but the caller already returned 200 to the applicant.
+→ Submission cannot be blocked by AI failure.
 
-### 3. Save / duplicate guard
+## 6. Document loading
+`generate-application-ai-assessment/index.ts` reads **both** sources, matching `DocumentList.tsx`:
+- `documents` via `.or('application_id.eq.<id>,and(entity_type.eq.application,entity_id.eq.<id>)')`
+- `file_uploads` via `.eq('entity_type','application').eq('entity_id', application_id)`
+Each merged item is tagged with `source: 'documents' | 'file_uploads'` in the prompt payload.
 
-Extend the duplicate-workflow uniqueness key from `(regulator, sector, entity_type)` to `(regulator, sector, sub_sector, category, service, entity_type)`. Same warning copy.
-
-### 4. Runtime resolver (`workflowApprovalResolver.ts`)
-
-Update `matchWorkflowForApplication` to read `sub_sector_id` and `service_id` from the application data and rank candidates from most-specific to least-specific:
-
-```text
-1. service match
-2. category match
-3. sub_sector match
-4. sector match
-5. regulator + license_type only
-6. license_type prefix fallback (unchanged)
+## 7. Panel visibility (UI gate)
+`src/pages/applications/ApplicationDetail.tsx` line 819:
+```tsx
+{isInternal && app.status !== 'draft' && (
+  <ApplicationAiAssessmentPanel applicationId={app.id} />
+)}
 ```
+`isInternal` resolves through `useEffectivePortalContext` + `INTERNAL_ROLES` / dynamic module access. Drafts and external users never render the panel.
 
-A workflow with `service_id = X` only matches an application whose data has the same service; a workflow with all four fields null is the broadest fallback. Existing behavior for sector/category preserved.
+## 8. Applicant access to data
+RLS verified on `application_ai_assessments`:
+```
+policy: "Internal staff can view AI assessments"
+cmd:    SELECT
+qual:   has_role(super_admin) OR admin OR supervisor OR analyst OR licensing_officer
+```
+No INSERT/UPDATE/DELETE policy → writes blocked for everyone except service-role (used by the edge function). Applicants get zero rows.
 
-### 5. Out of scope
-- No changes to backend RPCs that don't reference these fields.
-- No changes to `WorkflowConfig.tsx` (legacy/demo page).
-- No changes to step approver roles or per-step routing.
+## 9. Workflow / status mutation
+Searched the AI function — it only writes to `application_ai_assessments` (`insert` then `update` of the same row). No writes to `applications`, `workflow_instances`, `approval_actions`, or any workflow table. The panel UI is display-only; analyst actions stay in `WorkflowPanel`.
 
-## Acceptance
-- Create dialog shows 4 optional dropdowns; saving with any combination works.
-- Edit dialog pre-fills all 4 dropdowns from the workflow row.
-- Two workflows with same sector but different sub-sector/category/service can coexist.
-- Submitting an application whose data has a specific `service_id` routes to the service-scoped workflow when present; otherwise falls back to category → sub-sector → sector → regulator-wide workflow.
-- Existing single-sector workflows continue to match as before.
+## 10. Where to check in the UI
+1. Sign in as an **internal user** (super_admin / admin / supervisor / analyst / licensing_officer).
+2. Open **Applications → Queue**, pick any non-draft application.
+3. Scroll the **Overview** tab (the panel renders directly below the main details and above the workflow panel — `ApplicationDetail.tsx:819-820`).
+4. You should see the *AI Analyst Assessment* card with an "Advisory only" badge. Immediately after a fresh submission it shows "AI assessment is being generated…" and auto-polls every 5 s; on completion it shows summary, routing recommendation, findings (grouped by severity), risks, and missing-information.
+5. Sign out and re-sign-in as an **applicant/licensee** — open the same application; the panel must not appear and direct DB reads must return zero rows.
+
+## Result
+All 9 verification checks pass against the current code. No fixes required.
