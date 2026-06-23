@@ -599,7 +599,7 @@ export default function FeeManagement() {
                         </div>
                       </div>
                     )}
-                    {feeScope === 'form' && (
+                    {(feeScope === 'form' || editing) && (
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label>Form *</Label>
