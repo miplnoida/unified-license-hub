@@ -359,11 +359,13 @@ Deno.serve(async (req) => {
       application_data: appData,
       submitted_forms: submittedFormsList,
       documents: documentsList.map((d: Record<string, unknown>) => ({
+        source: d.source ?? null,
+        id: d.id ?? null,
         file_name: d.file_name,
         document_type: d.document_type ?? null,
         file_size: d.file_size,
         mime_type: d.mime_type,
-        source: d.source ?? null,
+        created_at: d.created_at ?? null,
       })),
       payments: paymentsList.map((p) => ({
         amount: p.amount,
