@@ -308,14 +308,22 @@ Deno.serve(async (req) => {
     //     heavier AI generation via EdgeRuntime.waitUntil so the runtime keeps
     //     the background promise alive after the HTTP response is returned
     //     (plain fire-and-forget can be cancelled when the function exits).
+    let assessmentId: string | null = null;
     try {
-      await adminClient.from("application_ai_assessments").insert({
-        application_id,
-        status: "pending",
-        prompt_version: "v1",
-        model_provider: "lovable-ai-gateway",
-        model_name: "google/gemini-2.5-flash",
-      });
+      const { data: seedRow, error: seedErr } = await adminClient
+        .from("application_ai_assessments")
+        .insert({
+          application_id,
+          status: "pending",
+          prompt_version: "v1",
+          model_provider: "lovable-ai-gateway",
+          model_name: "google/gemini-2.5-flash",
+        })
+        .select("id")
+        .single();
+      if (seedErr) throw seedErr;
+      assessmentId = (seedRow?.id as string) || null;
+      console.log("[ai-assessment] pending row created id=", assessmentId);
     } catch (seedErr) {
       console.error(
         "[ai-assessment] pending row insert failed (non-fatal):",
@@ -325,7 +333,7 @@ Deno.serve(async (req) => {
 
     const dispatchAiAssessment = adminClient.functions
       .invoke("generate-application-ai-assessment", {
-        body: { application_id },
+        body: { application_id, assessment_id: assessmentId },
       })
       .then(({ error }: { error: unknown }) => {
         if (error) {
@@ -354,6 +362,7 @@ Deno.serve(async (req) => {
         waitErr instanceof Error ? waitErr.message : waitErr,
       );
     }
+
 
     // 5. Fire-and-forget notification dispatch.
 

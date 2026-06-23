@@ -125,13 +125,14 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Missing authorization" }, 401);
     }
 
-    let body: { application_id?: string } = {};
+    let body: { application_id?: string; assessment_id?: string } = {};
     try {
       body = await req.json();
     } catch {
       return jsonResponse({ error: "Invalid JSON body" }, 400);
     }
     const application_id = body.application_id;
+    const inboundAssessmentId = body.assessment_id || null;
     if (!application_id || typeof application_id !== "string") {
       return jsonResponse({ error: "application_id is required" }, 400);
     }
@@ -152,13 +153,38 @@ Deno.serve(async (req) => {
     const categoryId = (appData.category_id as string | undefined) || null;
     const serviceId = (appData.service_id as string | undefined) || null;
 
+    // Documents: load defensively. The legacy `documents.application_id`
+    // column may or may not exist depending on schema history; try the OR
+    // query first and fall back to entity-only if it fails.
+    let legacyDocsList: Array<Record<string, unknown>> = [];
+    try {
+      const r = await adminClient
+        .from("documents")
+        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id, application_id")
+        .or(
+          `application_id.eq.${application_id},and(entity_type.eq.application,entity_id.eq.${application_id})`,
+        );
+      if (r.error) throw r.error;
+      legacyDocsList = (r.data as Array<Record<string, unknown>>) || [];
+    } catch (e) {
+      console.warn(
+        "[ai-assessment] documents OR query failed, falling back to entity-only:",
+        e instanceof Error ? e.message : e,
+      );
+      const r2 = await adminClient
+        .from("documents")
+        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id")
+        .eq("entity_type", "application")
+        .eq("entity_id", application_id);
+      legacyDocsList = (r2.data as Array<Record<string, unknown>>) || [];
+    }
+
     const [
       sectorRow,
       subSectorRow,
       categoryRow,
       serviceRow,
       submittedForms,
-      legacyDocuments,
       secureDocuments,
       payments,
     ] = await Promise.all([
@@ -179,14 +205,6 @@ Deno.serve(async (req) => {
         .select("id, template_id, response_data, submitted_at, status")
         .eq("entity_type", "application")
         .eq("entity_id", application_id),
-      // Legacy documents table — entity_type/entity_id AND application_id linkage.
-      adminClient
-        .from("documents")
-        .select("id, file_name, document_type, file_size, mime_type, created_at, entity_type, entity_id, application_id")
-        .or(
-          `application_id.eq.${application_id},and(entity_type.eq.application,entity_id.eq.${application_id})`,
-        ),
-      // Secure storage table used by uploads.
       adminClient
         .from("file_uploads")
         .select("id, file_name, file_size, mime_type, created_at")
@@ -199,12 +217,28 @@ Deno.serve(async (req) => {
     ]);
 
     const submittedFormsList = (submittedForms.data as unknown[]) || [];
-    const legacyDocsList = (legacyDocuments.data as Array<Record<string, unknown>>) || [];
     const secureDocsList = (secureDocuments.data as Array<Record<string, unknown>>) || [];
-    const documentsList: Array<Record<string, unknown>> = [
+
+    // Merge + de-duplicate by (source,id).
+    const mergedRaw: Array<Record<string, unknown>> = [
       ...legacyDocsList.map((d) => ({ ...d, source: "documents" })),
       ...secureDocsList.map((d) => ({ ...d, source: "file_uploads" })),
     ];
+    const seenKey = new Set<string>();
+    const documentsList: Array<Record<string, unknown>> = [];
+    for (const d of mergedRaw) {
+      const key = `${d.source}:${d.id}`;
+      if (seenKey.has(key)) continue;
+      seenKey.add(key);
+      documentsList.push(d);
+    }
+
+    console.log(
+      "[ai-assessment] doc counts legacy=", legacyDocsList.length,
+      "secure=", secureDocsList.length,
+      "merged=", documentsList.length,
+    );
+
     const paymentsList = (payments.data as Array<Record<string, unknown>>) || [];
     const completedPayment = paymentsList.find((p) =>
       ["completed", "success", "paid"].includes(String(p.status || "").toLowerCase()),
@@ -227,27 +261,78 @@ Deno.serve(async (req) => {
       is_resubmission: !!appData.resubmission_comments,
     };
 
-    // Upsert a pending row (latest one).
-    const { data: pendingRow, error: pendingErr } = await adminClient
-      .from("application_ai_assessments")
-      .insert({
-        application_id,
-        status: "pending",
-        rule_check_snapshot: ruleCheckSnapshot as unknown as Record<string, unknown>,
-        prompt_version: PROMPT_VERSION,
-        model_provider: MODEL_PROVIDER,
-        model_name: MODEL_NAME,
-      })
-      .select("id")
-      .single();
+    // Idempotent row resolution: inbound id → existing pending row → new row.
+    let assessmentId: string | null = null;
 
-    if (pendingErr || !pendingRow) {
-      return jsonResponse(
-        { error: "Failed to create assessment row: " + (pendingErr?.message || "unknown") },
-        500,
-      );
+    if (inboundAssessmentId) {
+      const { data: existing } = await adminClient
+        .from("application_ai_assessments")
+        .select("id, application_id")
+        .eq("id", inboundAssessmentId)
+        .maybeSingle();
+      if (existing && existing.application_id === application_id) {
+        assessmentId = existing.id as string;
+        await adminClient
+          .from("application_ai_assessments")
+          .update({
+            status: "pending",
+            error_message: null,
+            rule_check_snapshot: ruleCheckSnapshot as unknown as Record<string, unknown>,
+            prompt_version: PROMPT_VERSION,
+            model_provider: MODEL_PROVIDER,
+            model_name: MODEL_NAME,
+          })
+          .eq("id", assessmentId);
+      }
     }
-    const assessmentId = pendingRow.id as string;
+
+    if (!assessmentId) {
+      const { data: pendingExisting } = await adminClient
+        .from("application_ai_assessments")
+        .select("id")
+        .eq("application_id", application_id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pendingExisting?.id) {
+        assessmentId = pendingExisting.id as string;
+        await adminClient
+          .from("application_ai_assessments")
+          .update({
+            rule_check_snapshot: ruleCheckSnapshot as unknown as Record<string, unknown>,
+            prompt_version: PROMPT_VERSION,
+            model_provider: MODEL_PROVIDER,
+            model_name: MODEL_NAME,
+            error_message: null,
+          })
+          .eq("id", assessmentId);
+      }
+    }
+
+    if (!assessmentId) {
+      const { data: created, error: createErr } = await adminClient
+        .from("application_ai_assessments")
+        .insert({
+          application_id,
+          status: "pending",
+          rule_check_snapshot: ruleCheckSnapshot as unknown as Record<string, unknown>,
+          prompt_version: PROMPT_VERSION,
+          model_provider: MODEL_PROVIDER,
+          model_name: MODEL_NAME,
+        })
+        .select("id")
+        .single();
+      if (createErr || !created) {
+        return jsonResponse(
+          { error: "Failed to create assessment row: " + (createErr?.message || "unknown") },
+          500,
+        );
+      }
+      assessmentId = created.id as string;
+    }
+
+    console.log("[ai-assessment] using assessment id=", assessmentId, "for application=", application_id);
 
     if (!aiKey) {
       await adminClient
@@ -274,11 +359,13 @@ Deno.serve(async (req) => {
       application_data: appData,
       submitted_forms: submittedFormsList,
       documents: documentsList.map((d: Record<string, unknown>) => ({
+        source: d.source ?? null,
+        id: d.id ?? null,
         file_name: d.file_name,
         document_type: d.document_type ?? null,
         file_size: d.file_size,
         mime_type: d.mime_type,
-        source: d.source ?? null,
+        created_at: d.created_at ?? null,
       })),
       payments: paymentsList.map((p) => ({
         amount: p.amount,
@@ -408,6 +495,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         })
         .eq("id", assessmentId);
 
+      console.log("[ai-assessment] completed id=", assessmentId);
       return jsonResponse({ success: true, assessment_id: assessmentId });
     } catch (aiErr) {
       await adminClient
@@ -419,6 +507,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           source_payload_hash: sourcePayloadHash,
         })
         .eq("id", assessmentId);
+      console.error("[ai-assessment] failed id=", assessmentId, aiErr instanceof Error ? aiErr.message : aiErr);
       return jsonResponse({ error: "AI generation failed" }, 500);
     }
   } catch (err) {
