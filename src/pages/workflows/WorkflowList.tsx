@@ -39,7 +39,7 @@ import {
   ACTION_LABELS,
 } from '@/hooks/useWorkflowEngine';
 import { useRoles, type DynamicRole } from '@/hooks/useRoles';
-import { useSectors } from '@/hooks/useMasterConfig';
+import { useSectors, useSubSectors, useCategories, useServices } from '@/hooks/useMasterConfig';
 import { supabase } from '@/integrations/supabase/client';
 import { ActionNotificationsEditor } from '@/components/workflows/ActionNotificationsEditor';
 import { ApproverConfigEditor } from '@/components/workflows/ApproverConfigEditor';
