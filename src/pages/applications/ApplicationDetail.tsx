@@ -121,26 +121,10 @@ export default function ApplicationDetail() {
       const resolution = await resolveWorkflowApproval({ application: appRow as any });
       setWorkflowApprovalEnabled(resolution.enabled);
       setWorkflowActive(resolution.enabled);
-      // Pick up the attached workflow's actual entity_type so the workflow
-      // panel (preview dialog + runtime dispatch) routes correctly even when
-      // a registration-typed workflow is attached to an application row.
-      const attachedWorkflowId = (appRow as any).workflow_id as string | null;
-      if (attachedWorkflowId) {
-        const { data: wf } = await supabase
-          .from('approval_workflows')
-          .select('entity_type')
-          .eq('id', attachedWorkflowId)
-          .maybeSingle();
-        const et = (wf as any)?.entity_type;
-        setWorkflowEntityType(et === 'registration' ? 'registration' : 'application');
-      } else {
-        setWorkflowEntityType('application');
-      }
       setWorkflowChecked(true);
     } else {
       setWorkflowApprovalEnabled(false);
       setWorkflowActive(false);
-      setWorkflowEntityType('application');
       setWorkflowChecked(true);
     }
 
