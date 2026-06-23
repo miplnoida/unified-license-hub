@@ -414,8 +414,12 @@ export default function FeeManagement() {
   const getFeeName = (id: string) => fees.find(f => f.id === id)?.name || '—';
   const getFormName = (id: string | null) => formTemplates.find(f => f.id === id)?.name || '—';
   const filteredSubSectors = subSectors.filter(s => s.sector_id === sectorId);
-  const filteredCategories = categories.filter(c => c.sub_sector_id === subSectorId);
-  const filteredServices = services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
+  const filteredCategories = subSectorId
+    ? categories.filter(c => c.sub_sector_id === subSectorId)
+    : categories;
+  const filteredServices = (!sectorId && !subSectorId)
+    ? services
+    : services.filter(s => (!sectorId || s.sector_id === sectorId) && (!subSectorId || s.sub_sector_id === subSectorId));
   const filteredForms = useMemo(() => formTemplates.filter((f: FormTemplate) => {
     if (!sectorId && !subSectorId && !categoryId && serviceIds.length === 0) return false;
     if (sectorId && f.sector_id !== sectorId) return false;
