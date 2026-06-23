@@ -223,8 +223,8 @@ export default function FeeManagement() {
     const row: FeeTypeAmountRow = {
       calculationType: (fee.calculation_type === 'percentage' ? 'percentage' : 'fixed') as 'fixed' | 'percentage',
       amount: String(fee.amount),
-      minAmount: String(fee.min_amount || ''),
-      maxAmount: String(fee.max_amount || ''),
+      minAmount: '',
+      maxAmount: '',
     };
     setFeeTypeAmounts(free ? {} : { [fee.fee_type]: row });
     setLegacyNote(false);
@@ -261,15 +261,6 @@ export default function FeeManagement() {
       const amt = parseFloat(row.amount);
       if (isNaN(amt) || amt <= 0) { updated[ft] = { ...row, error: 'Amount required and > 0' }; valid = false; continue; }
       if (row.calculationType === 'percentage' && (amt < 0 || amt > 100)) { updated[ft] = { ...row, error: 'Percentage must be 0–100' }; valid = false; continue; }
-      if (row.calculationType === 'fixed') {
-        const min = parseFloat(row.minAmount) || 0;
-        const max = row.maxAmount ? parseFloat(row.maxAmount) : null;
-        if (min < 0) { updated[ft] = { ...row, error: 'Min must be ≥ 0' }; valid = false; continue; }
-        if (max !== null && max < 0) { updated[ft] = { ...row, error: 'Max must be ≥ 0' }; valid = false; continue; }
-        if (max !== null && min > max) { updated[ft] = { ...row, error: 'Min must be ≤ Max' }; valid = false; continue; }
-        if (max !== null && (amt < min || amt > max)) { updated[ft] = { ...row, error: 'Amount must be between Min and Max' }; valid = false; continue; }
-        if (amt < min) { updated[ft] = { ...row, error: 'Amount must be ≥ Min' }; valid = false; continue; }
-      }
       updated[ft] = { ...row, error: undefined };
     }
     setFeeTypeAmounts(updated);
@@ -668,7 +659,7 @@ export default function FeeManagement() {
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
                                     </div>
-                                    <div className="grid grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                       <div className="space-y-1">
                                         <Label className="text-xs">Calc Type</Label>
                                         <Select value={row.calculationType} onValueChange={v => updateFeeTypeRow(ft, 'calculationType', v)}>
@@ -684,20 +675,6 @@ export default function FeeManagement() {
                                         <Input className="h-8 text-xs" type="number" step="0.01" value={row.amount}
                                           onChange={e => updateFeeTypeRow(ft, 'amount', e.target.value)} placeholder="0.00" />
                                       </div>
-                                      {row.calculationType === 'fixed' && (
-                                        <>
-                                          <div className="space-y-1">
-                                            <Label className="text-xs">Min</Label>
-                                            <Input className="h-8 text-xs" type="number" step="0.01" value={row.minAmount}
-                                              onChange={e => updateFeeTypeRow(ft, 'minAmount', e.target.value)} placeholder="0" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <Label className="text-xs">Max</Label>
-                                            <Input className="h-8 text-xs" type="number" step="0.01" value={row.maxAmount}
-                                              onChange={e => updateFeeTypeRow(ft, 'maxAmount', e.target.value)} placeholder="No cap" />
-                                          </div>
-                                        </>
-                                      )}
                                     </div>
                                     {row.error && <p className="text-xs text-destructive">{row.error}</p>}
                                   </div>
