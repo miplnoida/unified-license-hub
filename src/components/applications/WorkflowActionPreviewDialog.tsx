@@ -97,7 +97,6 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
     enabled: !!stepId,
     queryFn: async (): Promise<{ bindings: BindingRow[]; diagnostic: BindingDiagnostic }> => {
       const expectedEventKey = getDefaultEventForAction(actionType, entityType);
-      const prefix = `${entityType}.`;
       const { data, error } = await supabase
         .from('approval_action_notifications' as any)
         .select('id, step_id, action_type, event_key, recipient_type, recipient_config, template_id, is_enabled')
@@ -105,8 +104,15 @@ function useBindings(stepId: string, actionType: WorkflowActionType, entityType:
         .eq('action_type', actionType)
         .eq('is_enabled', true);
       if (error) throw error;
-      const allRows = (data ?? []) as unknown as BindingRow[];
-      const rows = allRows.filter(r => r.event_key === expectedEventKey || r.event_key?.startsWith(prefix));
+      // Bindings are uniquely scoped by (step_id, action_type, is_enabled).
+      // We intentionally do NOT additionally filter by event_key prefix here:
+      // a step may belong to a workflow whose entity_type differs from the
+      // host entity (e.g. a New Licensee application attached to a workflow
+      // configured as entity_type='registration'), in which case the stored
+      // event_key is `registration.*` even though the dialog is opened from
+      // the application detail page. Trusting the admin-configured binding
+      // by step+action is the correct source of truth.
+      const rows = (data ?? []) as unknown as BindingRow[];
       const templateIds = Array.from(new Set(rows.map(r => r.template_id).filter((x): x is string => !!x)));
       const eventKeys = Array.from(new Set(rows.map(r => r.event_key).filter(Boolean)));
       const tplMap = new Map<string, any>();
