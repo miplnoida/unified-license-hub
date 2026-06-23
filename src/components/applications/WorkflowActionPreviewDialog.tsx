@@ -495,7 +495,7 @@ export function WorkflowActionPreviewDialog({
                 Using the default email template for <code>{diagnostic.expectedEventKey}</code> (no custom binding configured for this step/action).
               </p>
             )}
-            bindings.map((b, idx) => {
+            {bindings.map((b, idx) => {
               const e = edited[b.id] || { subject: '', body: '' };
               const noTemplate = !b.template;
               const recipientWarning =
