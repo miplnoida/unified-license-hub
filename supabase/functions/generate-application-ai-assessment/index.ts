@@ -174,9 +174,11 @@ Deno.serve(async (req) => {
         ? adminClient.from("services").select("name").eq("id", serviceId).maybeSingle()
         : Promise.resolve({ data: null }),
       adminClient
-        .from("application_form_submissions")
-        .select("id, form_id, data, submitted_at")
-        .eq("application_id", application_id),
+        .from("form_responses")
+        .select("id, template_id, response_data, submitted_at, status")
+        .eq("entity_type", "application")
+        .eq("entity_id", application_id),
+
       adminClient
         .from("documents")
         .select("id, file_name, document_type, file_size, mime_type, created_at")
