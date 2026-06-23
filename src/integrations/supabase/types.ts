@@ -7858,6 +7858,10 @@ export type Database = {
         Args: { _orders: Json; _workflow_id: string }
         Returns: undefined
       }
+      repair_application_workflow: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
       request_resubmission_for_application: {
         Args: { _application_id: string; _comments: string }
         Returns: Json
