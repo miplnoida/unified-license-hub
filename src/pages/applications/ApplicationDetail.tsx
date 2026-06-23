@@ -23,6 +23,7 @@ import { LicenseePaymentPanel } from '@/components/applications/LicenseePaymentP
 import { WorkflowPanel } from '@/components/applications/WorkflowPanel';
 import { ApplicationAiAssessmentPanel } from '@/components/applications/ApplicationAiAssessmentPanel';
 import { DecisionReadySummary } from '@/components/applications/DecisionReadySummary';
+import { ApplicationSlaBanner } from '@/components/applications/ApplicationSlaBanner';
 import { PaymentVerificationDialog } from '@/components/applications/PaymentVerificationDialog';
 import { SubmittedForms } from '@/components/applications/SubmittedForms';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -830,6 +831,11 @@ export default function ApplicationDetail() {
                 paymentComplete={paymentComplete}
                 onJumpToFormsTab={() => setActiveTab('forms')}
               />
+            )}
+
+            {/* Prominent workflow SLA timer for internal staff — restored. */}
+            {isInternal && app.status !== 'draft' && (
+              <ApplicationSlaBanner applicationId={app.id} />
             )}
 
             {/* Workflow-based review panel — only when workflow is ON (active + has steps) */}
