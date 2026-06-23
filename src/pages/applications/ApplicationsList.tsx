@@ -928,10 +928,21 @@ export default function ApplicationsList() {
           <TableCell>
             {(() => {
               const sla = getSlaForApp(app.id);
-              if (!sla) {
-                return <span className="text-[10px] text-muted-foreground">—</span>;
+              if (!sla || sla.status === 'unknown') {
+                return <span className="text-xs text-muted-foreground">No SLA</span>;
               }
-              return <SlaStatusBadge sla={sla} />;
+              return (
+                <div className="flex flex-col gap-0.5 min-w-[110px]">
+                  <SlaStatusBadge sla={sla} />
+                  {typeof sla.remainingHours === 'number' && (
+                    <span className={`text-[10px] font-medium ${sla.status === 'breached' ? 'text-red-600' : sla.status === 'warning' ? 'text-amber-700' : 'text-emerald-700'}`}>
+                      {sla.status === 'breached'
+                        ? `Overdue ${Math.abs(Math.round(sla.remainingHours))}h`
+                        : `${Math.max(0, Math.round(sla.remainingHours))}h left`}
+                    </span>
+                  )}
+                </div>
+              );
             })()}
           </TableCell>
           <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
