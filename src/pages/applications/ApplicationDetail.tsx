@@ -863,6 +863,8 @@ export default function ApplicationDetail() {
                 workflowEnabled={workflowOn}
                 applicationStatus={app.status}
                 onStatusChange={loadData}
+                entityType={workflowEntityType}
+                entityNoun="application"
               />
             )}
 
