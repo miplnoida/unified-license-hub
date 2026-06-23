@@ -324,6 +324,12 @@ export default function FeeManagement() {
     };
 
     const buildRow = (ft: string, svcId: string | null, formId: string | null) => {
+      if (!isPaid) {
+        return {
+          ...basePayload, name: (name.trim() || 'Free'), fee_type: 'free', service_id: svcId, form_id: formId,
+          amount: 0, calculation_type: 'fixed', min_amount: 0, max_amount: null,
+        };
+      }
       const row = feeTypeAmounts[ft];
       return {
         ...basePayload, name: name.trim(), fee_type: ft, service_id: svcId, form_id: formId,
@@ -338,7 +344,7 @@ export default function FeeManagement() {
     const serviceTargets: (string | null)[] = effectiveServiceIds.length > 0 ? effectiveServiceIds : [null];
     const formTargets: (string | null)[] = effectiveFormIds.length > 0 ? effectiveFormIds : [null];
     const allRows: any[] = [];
-    feeTypes.forEach(ft => {
+    effectiveFeeTypes.forEach(ft => {
       serviceTargets.forEach(svc => {
         formTargets.forEach(fid => allRows.push(buildRow(ft, svc, fid)));
       });
