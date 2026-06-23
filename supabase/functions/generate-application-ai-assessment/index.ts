@@ -495,6 +495,7 @@ ${JSON.stringify(applicationContext, null, 2)}`;
         })
         .eq("id", assessmentId);
 
+      console.log("[ai-assessment] completed id=", assessmentId);
       return jsonResponse({ success: true, assessment_id: assessmentId });
     } catch (aiErr) {
       await adminClient
