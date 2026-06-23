@@ -564,9 +564,6 @@ export default function WorkflowList() {
       toast.error('Pick a valid, currently active Used For.');
       return;
     }
-    const sectorId = editSectorId !== 'none' ? editSectorId : null;
-    const scopeChanged =
-      sectorId !== editTarget.sector_id || editEntityType !== editTarget.entity_type;
 
     const sectorId = editSectorId !== 'none' ? editSectorId : null;
     const subSectorId = editSubSectorId !== 'none' ? editSubSectorId : null;
