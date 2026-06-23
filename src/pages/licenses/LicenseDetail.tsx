@@ -81,7 +81,7 @@ export default function LicenseDetail() {
   const accessGuard = useLicenseeAccessGuard();
   const { activeRegulator } = useRegulator();
   const { data: expiryConfig } = useLicenseExpiryConfig();
-  const { data: formTemplates = [] } = useFormTemplates(undefined, activeRegulator?.id);
+  const { data: formTemplates = [], isLoading: templatesLoading } = useFormTemplates(undefined, activeRegulator?.id);
   const [license, setLicense] = useState<License | null>(null);
   const [linkedLicenseeId, setLinkedLicenseeId] = useState<string | null>(null);
   const [actions, setActions] = useState<LicenseAction[]>([]);
