@@ -280,15 +280,30 @@ export default function FeeManagement() {
 
   const handleSave = async () => {
     if (isPaid && (!name.trim() || feeTypes.length === 0)) { toast.error('Name and at least one fee type are required'); return; }
-    if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
-    if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
-    if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
+    if (editing) {
+      // In edit mode all three dropdowns are visible; require at least one scope value.
+      if (!categoryId && serviceIds.length === 0 && formIds.length === 0) {
+        toast.error('Select at least one of Category, Services, or Form'); return;
+      }
+    } else {
+      if (feeScope === 'category' && !categoryId) { toast.error('Category is required'); return; }
+      if (feeScope === 'services' && serviceIds.length === 0) { toast.error('At least one service is required'); return; }
+      if (feeScope === 'form' && formIds.length === 0) { toast.error('At least one form is required'); return; }
+    }
     if (isPaid && !validateRows()) { toast.error('Fix amount errors before saving'); return; }
     setSaving(true);
     const effectiveFeeTypes = isPaid ? feeTypes : ['free'];
-    const effectiveCategoryId = feeScope === 'category' ? (categoryId || null) : null;
-    const effectiveServiceIds = feeScope === 'services' ? serviceIds : [];
-    const effectiveFormIds = feeScope === 'form' ? formIds : [];
+    // In edit mode persist all set fields so legacy rows that combine
+    // category + service (or category + form) stay intact when re-saved.
+    const effectiveCategoryId = editing
+      ? (categoryId || null)
+      : (feeScope === 'category' ? (categoryId || null) : null);
+    const effectiveServiceIds = editing
+      ? serviceIds
+      : (feeScope === 'services' ? serviceIds : []);
+    const effectiveFormIds = editing
+      ? formIds
+      : (feeScope === 'form' ? formIds : []);
 
     // Duplicate guard: no two fee configurations may share the same scope
     // (regulator + sector + sub-sector + category/service/form) and fee type.
