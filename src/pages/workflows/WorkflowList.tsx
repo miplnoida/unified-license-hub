@@ -273,6 +273,9 @@ export default function WorkflowList() {
     }
     // Pre-validate a role exists BEFORE creating the workflow to avoid orphans.
     const sectorId = newSectorId !== 'none' ? newSectorId : null;
+    const subSectorId = newSubSectorId !== 'none' ? newSubSectorId : null;
+    const categoryId = newCategoryId !== 'none' ? newCategoryId : null;
+    const serviceId = newServiceId !== 'none' ? newServiceId : null;
     const sectorName = (sectors as any[]).find(s => s.id === sectorId)?.name as string | undefined;
     const { role: defaultRole, matched } = resolveDefaultRoleForSector(sectorName, dynamicRoles);
     const fallbackRole = defaultRole || dynamicRoles[0];
@@ -292,10 +295,13 @@ export default function WorkflowList() {
       templateSteps = tpl.steps;
     }
 
-    // Duplicate guard — Sector + Used For must be unique per regulator.
+    // Duplicate guard — Scope + Used For must be unique per regulator.
     const dup = findDuplicateWorkflow(workflows, {
       regulator_id: activeRegulatorId ?? null,
       sector_id: sectorId,
+      sub_sector_id: subSectorId,
+      category_id: categoryId,
+      service_id: serviceId,
       entity_type: newEntityType,
     });
     if (dup) {
