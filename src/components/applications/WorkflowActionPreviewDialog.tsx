@@ -538,7 +538,8 @@ export function WorkflowActionPreviewDialog({
                   </div>
                 </div>
               );
-            })
+            })}
+            </>
           )}
 
           {requireSignature && (
