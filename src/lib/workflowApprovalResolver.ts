@@ -122,7 +122,9 @@ async function matchWorkflowForApplication(
   appRow: WorkflowApprovalContext['application'],
 ): Promise<{ id: string; is_active: boolean; license_type: string } | null> {
   const sectorId = (appRow?.data as any)?.sector_id as string | undefined;
+  const subSectorId = (appRow?.data as any)?.sub_sector_id as string | undefined;
   const categoryId = (appRow?.data as any)?.category_id as string | undefined;
+  const serviceId = (appRow?.data as any)?.service_id as string | undefined;
   const licenseType = appRow?.license_type;
   if (!licenseType) return null;
 
@@ -137,7 +139,7 @@ async function matchWorkflowForApplication(
   if (effectiveRegulator) {
     const { data } = await supabase
       .from('approval_workflows')
-      .select('id, is_active, license_type, sector_id, category_id, entity_type')
+      .select('id, is_active, license_type, sector_id, sub_sector_id, category_id, service_id, entity_type')
       .eq('license_type', licenseType)
       .in('entity_type', entityTypes)
       .eq('regulator_id', effectiveRegulator);
@@ -149,10 +151,14 @@ async function matchWorkflowForApplication(
       ...candidates.filter((w) => w.entity_type === primaryType),
       ...candidates.filter((w) => w.entity_type !== primaryType),
     ];
+    // Most-specific match wins: service > category > sub_sector > sector > regulator-wide.
+    // A workflow scoped to X only matches if the application's X equals it.
     const found =
-      ranked.find((w) => categoryId && w.category_id === categoryId) ||
-      ranked.find((w) => sectorId && w.sector_id === sectorId) ||
-      ranked[0] ||
+      ranked.find((w) => serviceId && w.service_id === serviceId) ||
+      ranked.find((w) => categoryId && w.category_id === categoryId && !w.service_id) ||
+      ranked.find((w) => subSectorId && w.sub_sector_id === subSectorId && !w.category_id && !w.service_id) ||
+      ranked.find((w) => sectorId && w.sector_id === sectorId && !w.sub_sector_id && !w.category_id && !w.service_id) ||
+      ranked.find((w) => !w.sector_id && !w.sub_sector_id && !w.category_id && !w.service_id) ||
       null;
     if (found) return found as any;
   }
