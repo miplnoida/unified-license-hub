@@ -3,7 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { LicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
+
+const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+
 
 const STATUS_BADGE: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
   active: 'approved',
