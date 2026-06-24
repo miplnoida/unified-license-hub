@@ -282,7 +282,31 @@ export default function LicenseDetail() {
         }
       }
     }
+    // Guard against duplicate in-flight renewals. If the licensee already has
+    // a pending renewal application for this license, surface it instead of
+    // inserting a second one.
+    await refreshPendingRenewal(license.id);
+    if (pendingRenewalAppId) {
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${pendingRenewalAppId}`);
+      return;
+    }
+    const { data: existingPending } = await supabase
+      .from('applications' as any)
+      .select('id, status')
+      .eq('data->>renewal_of_license_id', license.id)
+      .in('status', PENDING_RENEWAL_STATUSES as any)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const existingRow = ((existingPending as any[]) || [])[0];
+    if (existingRow?.id) {
+      setPendingRenewalAppId(existingRow.id);
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${existingRow.id}`);
+      return;
+    }
     setStartingRenewal(true);
+
     try {
       // Resolve a "Renew" service id scoped to this license's sub-sector so the
       // backend fee + workflow resolvers can match this renewal as a normal
