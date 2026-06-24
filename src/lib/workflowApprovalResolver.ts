@@ -163,25 +163,13 @@ async function matchWorkflowForApplication(
     if (found) return found as any;
   }
 
-  // Fallback: license_type only (prefix-tolerant match)
-  const { data } = await supabase
-    .from('approval_workflows')
-    .select('id, is_active, license_type, entity_type')
-    .in('entity_type', entityTypes);
-
-  const lt = String(licenseType).toLowerCase();
-  const primaryType = entityTypes[0];
-  const matches = ((data || []) as any[]).filter((w) => {
-    const wl = String(w.license_type || '').toLowerCase();
-    return (
-      wl !== '' &&
-      (lt === wl || lt.startsWith(`${wl} `) || lt.startsWith(`${wl}_`) || lt.startsWith(`${wl}-`))
-    );
-  });
-  return (
-    matches.find((w) => w.entity_type === primaryType) || matches[0] || null
-  );
+  // No scope-matched workflow. We deliberately do NOT fall back to a
+  // license_type-only / unscoped workflow here — that would mask
+  // misconfigured Sector / Sub-Sector / Category routing and surface a
+  // workflow that the admin did not configure for this application's scope.
+  return null;
 }
+
 
 async function resolveAttachedActiveWorkflow(
   appRow: WorkflowApprovalContext['application'],

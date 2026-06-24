@@ -3,7 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import type { LicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
+
+const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+
 
 const STATUS_BADGE: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
   active: 'approved',
@@ -51,11 +56,35 @@ export function LicenseStatusList({
   const pastGraceIds = new Set(expiryStatuses.filter(s => s.is_expired).map(s => s.license_id));
   const inGraceIds = new Set(expiryStatuses.filter(s => s.in_grace_period).map(s => s.license_id));
 
+  // Fetch in-flight renewal applications for these licenses so we can hide the
+  // Renew button (and surface the application instead) when one already exists.
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = licenses.map(l => l.id);
+      if (ids.length === 0) { setPendingRenewalByLicense({}); return; }
+      const { data } = await supabase
+        .from('applications' as any)
+        .select('id, status, data')
+        .in('status', PENDING_RENEWAL_STATUSES as any);
+      const rows = (data as any[]) || [];
+      const next: Record<string, string> = {};
+      for (const r of rows) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && ids.includes(lid) && !next[lid]) next[lid] = r.id;
+      }
+      if (!cancelled) setPendingRenewalByLicense(next);
+    })();
+    return () => { cancelled = true; };
+  }, [licenses.map(l => l.id).join(',')]);
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-2">
         {licenses.map((lic) => {
           const computedDays = lic.days_until_expiry ?? daysUntil(lic.valid_until);
@@ -101,7 +130,13 @@ export function LicenseStatusList({
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={badgeVariant as any}>{badgeLabel}</Badge>
-                {canRenew && (
+                {pendingRenewalByLicense[lic.id] ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/applications/${pendingRenewalByLicense[lic.id]}`}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />Renewal in progress
+                    </Link>
+                  </Button>
+                ) : canRenew && (
                   <Button asChild size="sm" variant="outline">
                     <Link to={`/licenses/${lic.id}?action=renew`}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
@@ -109,6 +144,7 @@ export function LicenseStatusList({
                   </Button>
                 )}
               </div>
+
             </div>
           );
         })}

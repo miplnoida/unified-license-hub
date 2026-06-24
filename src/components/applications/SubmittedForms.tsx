@@ -24,7 +24,12 @@ interface SingleFormViewerProps {
 function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
-  const resolvedVersionId = versionId || latestVersion?.id || null;
+  // Prefer the EXACT version the applicant originally submitted on — its field
+  // ids match the keys in formData. Only fall back to the latest published
+  // version when no submitted version was recorded; otherwise resubmission
+  // edits would show blank fields whenever the form template was re-published.
+  const { data: submittedVersionInfo } = useFormVersion(versionId || null);
+  const resolvedVersionId = (submittedVersionInfo?.id) || versionId || latestVersion?.id || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
   const { data: versionInfo } = useFormVersion(resolvedVersionId);
 
@@ -54,6 +59,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
   return (
     <div className="space-y-2">
       <FormRenderer
+        key={`${templateId}:${resolvedVersionId || 'latest'}`}
         formName={template.name}
         sections={sections}
         initialData={formData}
@@ -67,6 +73,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
     </div>
   );
 }
+
 
 interface SubmittedFormsProps {
   formTemplateIds: string[];

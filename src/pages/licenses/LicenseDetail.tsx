@@ -91,7 +91,25 @@ export default function LicenseDetail() {
   const [downloading, setDownloading] = useState(false);
   const [startingRenewal, setStartingRenewal] = useState(false);
   const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
+  const [pendingRenewalAppId, setPendingRenewalAppId] = useState<string | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+
+  // Status values that mean the renewal application is still in flight and a
+  // duplicate Renew should NOT be allowed. Anything else (approved / rejected
+  // / cancelled / withdrawn) frees the licensee to start a fresh renewal.
+  const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+
+  const refreshPendingRenewal = async (licenseId: string) => {
+    const { data } = await supabase
+      .from('applications' as any)
+      .select('id, status, data, created_at')
+      .eq('data->>renewal_of_license_id', licenseId)
+      .in('status', PENDING_RENEWAL_STATUSES as any)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const row = ((data as any[]) || [])[0];
+    setPendingRenewalAppId(row?.id || null);
+  };
 
   useEffect(() => {
     async function load() {
@@ -106,10 +124,12 @@ export default function LicenseDetail() {
         .eq('license_id', id)
         .maybeSingle();
       if (linked) setLinkedLicenseeId((linked as any).id);
+      await refreshPendingRenewal(id);
       setLoading(false);
     }
     load();
   }, [id]);
+
 
   // Resolve renewal fee from Fee Management: a fee with fee_type "renewal"
   // scoped to this license's sector/sub-sector/category. Mirrors the resolver
@@ -262,7 +282,31 @@ export default function LicenseDetail() {
         }
       }
     }
+    // Guard against duplicate in-flight renewals. If the licensee already has
+    // a pending renewal application for this license, surface it instead of
+    // inserting a second one.
+    await refreshPendingRenewal(license.id);
+    if (pendingRenewalAppId) {
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${pendingRenewalAppId}`);
+      return;
+    }
+    const { data: existingPending } = await supabase
+      .from('applications' as any)
+      .select('id, status')
+      .eq('data->>renewal_of_license_id', license.id)
+      .in('status', PENDING_RENEWAL_STATUSES as any)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const existingRow = ((existingPending as any[]) || [])[0];
+    if (existingRow?.id) {
+      setPendingRenewalAppId(existingRow.id);
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${existingRow.id}`);
+      return;
+    }
     setStartingRenewal(true);
+
     try {
       // Resolve a "Renew" service id scoped to this license's sub-sector so the
       // backend fee + workflow resolvers can match this renewal as a normal
@@ -344,6 +388,11 @@ export default function LicenseDetail() {
     const next = new URLSearchParams(searchParams);
     next.delete('action');
     setSearchParams(next, { replace: true });
+    if (pendingRenewalAppId) {
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${pendingRenewalAppId}`);
+      return;
+    }
     if (isPastGrace) {
       startRenewal();
     } else if (isWithinGrace) {
@@ -351,6 +400,7 @@ export default function LicenseDetail() {
     } else {
       toast.info('Renewal is available only after the license grace period has ended.');
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates, templatesLoading]);
 
@@ -543,10 +593,16 @@ export default function LicenseDetail() {
                       <>
                         <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
                         <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
-                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
-                          {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                          Renew
-                        </Button>
+                        {pendingRenewalAppId ? (
+                          <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                            <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                            {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                            Renew
+                          </Button>
+                        )}
                       </>
                     )}
                     {license.status === 'suspended' && (
@@ -556,10 +612,16 @@ export default function LicenseDetail() {
                       </>
                     )}
                     {license.status === 'expired' && (
-                      <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
-                        {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                        Renew
-                      </Button>
+                      pendingRenewalAppId ? (
+                        <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                          <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                        </Button>
+                      ) : (
+                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                          {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                          Renew
+                        </Button>
+                      )
                     )}
                   </div>
                 </CardContent>
@@ -580,14 +642,21 @@ export default function LicenseDetail() {
                       This license expired {Math.abs(days)} day{Math.abs(days) === 1 ? '' : 's'} ago. Grace period ended on {graceEndsOnLabel}.
                     </p>
                     <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
-                    <Button onClick={startRenewal} disabled={startingRenewal}>
-                      {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                      Renew License
-                    </Button>
+                    {pendingRenewalAppId ? (
+                      <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                        <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                      </Button>
+                    ) : (
+                      <Button onClick={startRenewal} disabled={startingRenewal}>
+                        {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                        Renew License
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
             })()}
+
 
             {/* Informational panel while inside the grace period */}
             {!isInternal && license.valid_until && isWithinGrace && (

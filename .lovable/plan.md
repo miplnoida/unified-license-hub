@@ -1,39 +1,48 @@
-## Problem
 
-On Application Detail, the SLA panel renders twice:
+## 1. Dynamic Approval Workflow Resolution (Pre-Licensee, Post-Licensee, Compliance)
 
-1. **Top banner** (`ApplicationSlaBanner`) — shows "Within SLA · 2d 23h left · SLA 72h". This value is wrong: 72h is not the active step's SLA (Step 1 is configured for 2h).
-2. **Inside Step 1 card** (`WorkflowPanel` → `SlaProgressPanel`) — correctly shows "Within SLA · 1h 7m left · SLA 2h".
+Goal: internal-user workflow on application/return detail screens is matched strictly from backend configuration scoped to Sector → Sub-Sector → Category (→ Service). No static/synthetic fallbacks. Registration workflow is untouched.
 
-Root cause:
-- `ApplicationSlaBanner` resolves SLA from `workflow_instances` via `resolveSlaInputFromInstance`, using `updated_at` as the step start and looking up the current step in `version_snapshot.steps`. When `current_step_key`/`current_step_id` doesn't exactly match a snapshot step's `local_id`/`id`, it falls back to a different/first matching step (and uses instance `started_at` semantics), producing the misleading 72h reading.
-- `WorkflowPanel` independently and correctly computes per-step SLA from `approval_actions` history (precise per-step start time), which is the intended source of truth for the detail page.
+**Application resolver — `src/lib/workflowApprovalResolver.ts`**
+- Keep existing hierarchical matching (service > category > sub_sector > sector > regulator-wide) but **drop the license_type-only/global fallback block** that picks any workflow with a similar `license_type` regardless of sector scope. If no scoped match exists, return `no_matched_workflow` (UI already handles this).
+- Stop treating empty `license_type` rows as catch-alls when the application has a specific license_type; only match when scopes match.
 
-Showing two SLA cards — one of which is mathematically wrong — is what the user is reporting.
+**Compliance resolver — `supabase/migrations/<new>.sql` + `src/lib/returnWorkflowResolver.ts`**
+- Rewrite `public.resolve_return_workflow(_return_id)` to read `sector_id`, `sub_sector_id`, **and** `category_id` from `returns_filed` / `compliance_returns` (currently it incorrectly compares the return's subsector against `approval_workflows.category_id`).
+- Match priority: regulator + sector + sub_sector + category → … → sector only → regulator-wide. No global fallback when sector is set.
+- Update `ReturnApprovalContext` typing to include `category_id`.
 
-## Fix
+**Cleanup**
+- Mark the "Application Review (Default)" catch-all workflow (and any equivalent return catch-all) inactive via migration so it cannot mask scope mismatches. Internal Workflow Management UI already lets admins re-activate if intended.
 
-Remove the duplicate top SLA banner from the Application Detail page. Per-step SLA already appears prominently inside the Workflow Review card next to the current step (Step 1), which is the correct, granular value the user expects ("at step 1 it should show SLA for 1 step").
+**WorkflowPanel**
+- No behaviour change needed beyond consuming the stricter resolver result; existing "no_matched_workflow" branch shows the manual-review notice.
 
-This restores a single, accurate SLA display per step without losing visibility.
+## 2. Resubmission Edit — Pre-fill missing data (Licensee panel)
 
-### Changes
+Symptom: when an application is `resubmission_requested` / `query_raised`, the licensee opens the form tab on `ApplicationDetail`, fields render blank instead of showing previously submitted values.
 
-1. `src/pages/applications/ApplicationDetail.tsx`
-   - Remove the `<ApplicationSlaBanner …/>` render above `WorkflowPanel`.
-   - Remove the now-unused import.
+Fix in `src/components/applications/SubmittedForms.tsx` + `src/pages/applications/ApplicationDetail.tsx`:
+- `SingleFormViewer` currently sets `resolvedVersionId = versionId || latestVersion?.id`. When the latest published version differs from the version the applicant originally filled, the field-id keys in `formData` no longer match the sections being rendered → blank fields. Force the **submitted version** (`versionId` from `form_version_ids[templateId]`) whenever it exists; only fall back to latest when there is no submitted version.
+- Ensure `formsData[templateId]` is passed as `initialData` even when the object exists but has falsy keys; today `formsData` is derived once from `appData.forms_data` — re-read after any save and pass a stable, defined object so `FormRenderer` resets via `initialData` on status change.
+- In `FormRenderer`, accept and react to `initialData` changes when the application status transitions into a resubmission state (only when the key changes), so values are repopulated when re-opening the tab.
+- Keep `editable={...}` whitelist as-is (already includes `resubmission_requested` / `query_raised`).
 
-2. Keep `WorkflowPanel`'s `SlaProgressPanel` (per-step) untouched — it already shows the correct step SLA, deadline, % consumed, and status badge.
+## 3. Hide Renew Button when a renewal application is already in progress
 
-3. Do **not** delete `ApplicationSlaBanner.tsx`, `useWorkflowSlaInstances`, or the Applications-list SLA badge / Dashboard SLA Overview widget — those aggregate views still need the instance-level resolver.
+Symptom: user can click Renew repeatedly and create duplicate renewal applications.
 
-### Out of scope
+Fix:
+- `src/pages/licenses/LicenseDetail.tsx`: add a query for `applications` where `data->>renewal_of_license_id = license.id` and status not in `('approved','rejected','cancelled','withdrawn')`. If a row exists, hide the Renew button (both header and inline) and instead show "Renewal in progress" with a link to that application.
+- `src/components/dashboard/cards/LicenseStatusList.tsx`: extend `useApplicantLicenses` (or add a sibling query) to fetch pending renewal application ids per license; replace the per-row Renew button with a "Continue Renewal" link when one exists, otherwise show Renew. `canRenew` stays gated on grace-period rules.
+- Server guard (defence in depth): in the renewal insert path, check for an existing non-terminal renewal application for the same `license.id` and short-circuit with a toast "A renewal request is already pending review" instead of inserting a duplicate.
 
-- No changes to workflow engine, step actions, notification bindings, or dashboard SLA widgets.
-- No changes to the per-step SLA computation in `WorkflowPanel`.
+## Out of scope
+- No changes to registration approval workflow, registration forms, or registration submission paths.
+- No UI redesign — only behavioural fixes.
+- No changes to SLA/Decision-Ready panels beyond what falls out of resolver behaviour.
 
-### Verification
-
-- Open APP-2026-000096 detail as internal user → only one SLA card is visible, inside Step 1, showing `SLA 2h` and the correct remaining time.
-- Applications Queue list still shows per-row SLA badges.
-- Dashboard "Workflow SLA Overview" widget still renders counts.
+## Technical notes
+- New migration will contain only `CREATE OR REPLACE FUNCTION` + an `UPDATE approval_workflows SET is_active = false WHERE ...` for the synthetic default; no new tables, so no GRANT block needed.
+- All client-side changes are typed against existing tables (`applications`, `approval_workflows`, `returns_filed`).
+- Add/extend tests: `workflowApprovalResolver.test.ts` (no global fallback), a new return-workflow resolver test, and a renewal-duplicate guard test.
