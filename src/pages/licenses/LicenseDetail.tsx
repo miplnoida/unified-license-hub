@@ -587,10 +587,16 @@ export default function LicenseDetail() {
                       <>
                         <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
                         <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
-                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
-                          {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                          Renew
-                        </Button>
+                        {pendingRenewalAppId ? (
+                          <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                            <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                            {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                            Renew
+                          </Button>
+                        )}
                       </>
                     )}
                     {license.status === 'suspended' && (
@@ -600,10 +606,16 @@ export default function LicenseDetail() {
                       </>
                     )}
                     {license.status === 'expired' && (
-                      <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
-                        {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                        Renew
-                      </Button>
+                      pendingRenewalAppId ? (
+                        <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                          <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                        </Button>
+                      ) : (
+                        <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
+                          {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                          Renew
+                        </Button>
+                      )
                     )}
                   </div>
                 </CardContent>
@@ -624,14 +636,21 @@ export default function LicenseDetail() {
                       This license expired {Math.abs(days)} day{Math.abs(days) === 1 ? '' : 's'} ago. Grace period ended on {graceEndsOnLabel}.
                     </p>
                     <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
-                    <Button onClick={startRenewal} disabled={startingRenewal}>
-                      {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                      Renew License
-                    </Button>
+                    {pendingRenewalAppId ? (
+                      <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                        <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                      </Button>
+                    ) : (
+                      <Button onClick={startRenewal} disabled={startingRenewal}>
+                        {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                        Renew License
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               );
             })()}
+
 
             {/* Informational panel while inside the grace period */}
             {!isInternal && license.valid_until && isWithinGrace && (
