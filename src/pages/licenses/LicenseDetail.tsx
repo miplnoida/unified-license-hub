@@ -388,6 +388,11 @@ export default function LicenseDetail() {
     const next = new URLSearchParams(searchParams);
     next.delete('action');
     setSearchParams(next, { replace: true });
+    if (pendingRenewalAppId) {
+      toast.info('A renewal application is already in progress for this license.');
+      navigate(`/applications/${pendingRenewalAppId}`);
+      return;
+    }
     if (isPastGrace) {
       startRenewal();
     } else if (isWithinGrace) {
@@ -395,6 +400,7 @@ export default function LicenseDetail() {
     } else {
       toast.info('Renewal is available only after the license grace period has ended.');
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [license, formTemplates, templatesLoading]);
 
