@@ -130,7 +130,13 @@ export function LicenseStatusList({
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={badgeVariant as any}>{badgeLabel}</Badge>
-                {canRenew && (
+                {pendingRenewalByLicense[lic.id] ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/applications/${pendingRenewalByLicense[lic.id]}`}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />Renewal in progress
+                    </Link>
+                  </Button>
+                ) : canRenew && (
                   <Button asChild size="sm" variant="outline">
                     <Link to={`/licenses/${lic.id}?action=renew`}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
@@ -138,6 +144,7 @@ export function LicenseStatusList({
                   </Button>
                 )}
               </div>
+
             </div>
           );
         })}
