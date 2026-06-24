@@ -242,10 +242,24 @@ export function FormRenderer({
   const [repeatableData, setRepeatableData] = useState<Record<string, Record<string, any>[]>>(
     initialData?.__repeatable || {}
   );
+  // Re-sync when parent supplies a different initialData object (e.g. after
+  // the application detail finishes loading or after a status flip into
+  // resubmission_requested). Without this, the form stays blank because
+  // useState only honours the initial value on first mount.
+  const lastInitialDataRef = useRef<Record<string, any> | undefined>(initialData);
+  useEffect(() => {
+    if (initialData === lastInitialDataRef.current) return;
+    lastInitialDataRef.current = initialData;
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData(initialData);
+      setRepeatableData((initialData as any).__repeatable || {});
+    }
+  }, [initialData]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewFile, setPreviewFile] = useState<{ name: string; url: string; type: string } | null>(null);
   const [uploadingFields, setUploadingFields] = useState<Record<string, boolean>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
 
   // Normalize incoming sections so every section has a `rows` layout.
   const sections = useMemo(() => migrateSectionsToRows(rawSections), [rawSections]);
