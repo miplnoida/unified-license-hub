@@ -91,7 +91,25 @@ export default function LicenseDetail() {
   const [downloading, setDownloading] = useState(false);
   const [startingRenewal, setStartingRenewal] = useState(false);
   const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
+  const [pendingRenewalAppId, setPendingRenewalAppId] = useState<string | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
+
+  // Status values that mean the renewal application is still in flight and a
+  // duplicate Renew should NOT be allowed. Anything else (approved / rejected
+  // / cancelled / withdrawn) frees the licensee to start a fresh renewal.
+  const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+
+  const refreshPendingRenewal = async (licenseId: string) => {
+    const { data } = await supabase
+      .from('applications' as any)
+      .select('id, status, data, created_at')
+      .eq('data->>renewal_of_license_id', licenseId)
+      .in('status', PENDING_RENEWAL_STATUSES as any)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const row = ((data as any[]) || [])[0];
+    setPendingRenewalAppId(row?.id || null);
+  };
 
   useEffect(() => {
     async function load() {
@@ -106,10 +124,12 @@ export default function LicenseDetail() {
         .eq('license_id', id)
         .maybeSingle();
       if (linked) setLinkedLicenseeId((linked as any).id);
+      await refreshPendingRenewal(id);
       setLoading(false);
     }
     load();
   }, [id]);
+
 
   // Resolve renewal fee from Fee Management: a fee with fee_type "renewal"
   // scoped to this license's sector/sub-sector/category. Mirrors the resolver
