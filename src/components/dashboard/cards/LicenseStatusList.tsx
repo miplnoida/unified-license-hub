@@ -56,11 +56,35 @@ export function LicenseStatusList({
   const pastGraceIds = new Set(expiryStatuses.filter(s => s.is_expired).map(s => s.license_id));
   const inGraceIds = new Set(expiryStatuses.filter(s => s.in_grace_period).map(s => s.license_id));
 
+  // Fetch in-flight renewal applications for these licenses so we can hide the
+  // Renew button (and surface the application instead) when one already exists.
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = licenses.map(l => l.id);
+      if (ids.length === 0) { setPendingRenewalByLicense({}); return; }
+      const { data } = await supabase
+        .from('applications' as any)
+        .select('id, status, data')
+        .in('status', PENDING_RENEWAL_STATUSES as any);
+      const rows = (data as any[]) || [];
+      const next: Record<string, string> = {};
+      for (const r of rows) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && ids.includes(lid) && !next[lid]) next[lid] = r.id;
+      }
+      if (!cancelled) setPendingRenewalByLicense(next);
+    })();
+    return () => { cancelled = true; };
+  }, [licenses.map(l => l.id).join(',')]);
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
+
       <CardContent className="space-y-2">
         {licenses.map((lic) => {
           const computedDays = lic.days_until_expiry ?? daysUntil(lic.valid_until);
