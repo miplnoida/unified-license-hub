@@ -69,7 +69,7 @@ export function LicenseStatusList({
 
   // Fetch in-flight renewal applications for these licenses so we can hide the
   // Renew button (and surface the application instead) when one already exists.
-  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, string>>({});
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -80,10 +80,10 @@ export function LicenseStatusList({
         .select('id, status, data')
         .in('status', PENDING_RENEWAL_STATUSES as any);
       const rows = (data as any[]) || [];
-      const next: Record<string, string> = {};
+      const next: Record<string, { id: string; status: string }> = {};
       for (const r of rows) {
         const lid = r?.data?.renewal_of_license_id;
-        if (lid && ids.includes(lid) && !next[lid]) next[lid] = r.id;
+        if (lid && ids.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
       }
       if (!cancelled) setPendingRenewalByLicense(next);
     })();
