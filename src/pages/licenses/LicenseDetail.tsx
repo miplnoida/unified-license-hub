@@ -97,7 +97,9 @@ export default function LicenseDetail() {
   // Status values that mean the renewal application is still in flight and a
   // duplicate Renew should NOT be allowed. Anything else (approved / rejected
   // / cancelled / withdrawn) frees the licensee to start a fresh renewal.
-  const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+  // Only treat the renewal as "in progress" once it has actually been
+  // submitted. Drafts are reopenable via the duplicate-guard in startRenewal.
+  const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
 
   const refreshPendingRenewal = async (licenseId: string) => {
     const { data } = await supabase
