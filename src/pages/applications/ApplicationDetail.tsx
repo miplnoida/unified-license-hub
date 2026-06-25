@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,6 +72,9 @@ interface TimelineEvent {
 
 export default function ApplicationDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const forceReadOnlyView = searchParams.get('view') === 'submitted';
+  const initialTabParam = searchParams.get('tab');
   const { user } = useAuth();
   const { hasModuleAccess, enforceDynamic } = useUserDynamicPermissions();
   const portalContext = useEffectivePortalContext();
@@ -87,7 +90,7 @@ export default function ApplicationDetail() {
   const [workflowApprovalEnabled, setWorkflowApprovalEnabled] = useState(false);
   const [workflowActive, setWorkflowActive] = useState<boolean>(false);
   const [workflowChecked, setWorkflowChecked] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('details');
+  const [activeTab, setActiveTab] = useState<string>(initialTabParam || 'details');
   const [showReview, setShowReview] = useState(false);
   const [templateNames, setTemplateNames] = useState<Record<string, string>>({});
 
@@ -663,7 +666,7 @@ export default function ApplicationDetail() {
                       formVersionIds={formVersionIds}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
-                      editable={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                       onSave={async (templateId, data, versionId) => {
                         const updatedFormsData = { ...formsData, [templateId]: data };
                         const updatedFormVersionIds = versionId
@@ -726,7 +729,7 @@ export default function ApplicationDetail() {
                       </CardHeader>
                     )}
                     <CardContent className="pt-6 space-y-6">
-                      {isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
+                      {!forceReadOnlyView && isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
                         <DocumentUpload
                           entityType="application"
                           entityId={app.id}
@@ -754,13 +757,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
                 ))}

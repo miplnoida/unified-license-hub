@@ -7,7 +7,18 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { LicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 
-const PENDING_RENEWAL_STATUSES = ['draft', 'in_progress', 'submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+// Only treat a renewal as "in progress" once the licensee has actually
+// submitted it. A draft/in-progress row should NOT suppress the Renew button
+// — the duplicate-guard inside LicenseDetail.startRenewal will reopen that
+// same draft if the user clicks Renew again.
+const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+
+const STATUS_LABELS: Record<string, string> = {
+  submitted: 'Renewal submitted',
+  under_review: 'Under review',
+  query_raised: 'Query raised',
+  resubmission_requested: 'Resubmission requested',
+};
 
 
 const STATUS_BADGE: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
@@ -58,7 +69,7 @@ export function LicenseStatusList({
 
   // Fetch in-flight renewal applications for these licenses so we can hide the
   // Renew button (and surface the application instead) when one already exists.
-  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, string>>({});
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -69,10 +80,10 @@ export function LicenseStatusList({
         .select('id, status, data')
         .in('status', PENDING_RENEWAL_STATUSES as any);
       const rows = (data as any[]) || [];
-      const next: Record<string, string> = {};
+      const next: Record<string, { id: string; status: string }> = {};
       for (const r of rows) {
         const lid = r?.data?.renewal_of_license_id;
-        if (lid && ids.includes(lid) && !next[lid]) next[lid] = r.id;
+        if (lid && ids.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
       }
       if (!cancelled) setPendingRenewalByLicense(next);
     })();
@@ -132,8 +143,9 @@ export function LicenseStatusList({
                 <Badge variant={badgeVariant as any}>{badgeLabel}</Badge>
                 {pendingRenewalByLicense[lic.id] ? (
                   <Button asChild size="sm" variant="outline">
-                    <Link to={`/applications/${pendingRenewalByLicense[lic.id]}`}>
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" />Renewal in progress
+                    <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                      {STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
                     </Link>
                   </Button>
                 ) : canRenew && (
