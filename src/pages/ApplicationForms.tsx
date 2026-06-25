@@ -120,35 +120,65 @@ export default function ApplicationForms() {
   const { data: reviewSettings } = useReviewSettings();
   useEffect(() => {
     if (!applicationId) return;
+    let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from('applications')
         .select('*')
         .eq('id', applicationId)
         .single();
-      if (data) {
-        setAppData(data);
-        const appJson = (data as any).data || {};
-        const templateIds: string[] = appJson.form_template_ids || [];
-        const formsData: Record<string, any> = appJson.forms_data || {};
-        const formVersionIds: Record<string, string> = appJson.form_version_ids || {};
-        const initial: Record<string, FormProgress> = {};
-        templateIds.forEach(tid => {
-          const hasData = formsData[tid] && Object.keys(formsData[tid]).length > 0;
-          const formStatus: FormStatus = hasData
-            ? ((data as any).status === 'draft' ? 'in_progress' : 'completed')
-            : 'not_started';
-          initial[tid] = {
-            templateId: tid,
-            status: formStatus,
-            data: formsData[tid] || {},
-            versionId: formVersionIds[tid] || null,
-          };
-        });
-        setFormProgressMap(initial);
+      if (!data || cancelled) { setLoading(false); return; }
+      setAppData(data);
+      const appJson = (data as any).data || {};
+      const templateIds: string[] = appJson.form_template_ids || [];
+      const formsData: Record<string, any> = appJson.forms_data || {};
+      const formVersionIds: Record<string, string> = appJson.form_version_ids || {};
+
+      // Recover any responses that were saved into form_responses but never
+      // merged back into applications.data.forms_data (e.g. older drafts or
+      // partial saves before resubmission). This ensures the form is always
+      // prefilled with the licensee's most recent answers.
+      const missing = templateIds.filter(tid => !formsData[tid] || Object.keys(formsData[tid]).length === 0);
+      if (missing.length > 0) {
+        const { data: respRows } = await supabase
+          .from('form_responses' as any)
+          .select('template_id, version_id, response_data, submitted_at, updated_at')
+          .eq('entity_type', 'application')
+          .eq('entity_id', applicationId)
+          .in('template_id', missing as any);
+        const byTpl: Record<string, any> = {};
+        for (const r of (respRows as any[]) || []) {
+          const cur = byTpl[r.template_id];
+          const ts = Date.parse(r.submitted_at || r.updated_at || '') || 0;
+          if (!cur || ts > cur.__ts) {
+            byTpl[r.template_id] = { ...r, __ts: ts };
+          }
+        }
+        for (const tid of Object.keys(byTpl)) {
+          formsData[tid] = byTpl[tid].response_data || {};
+          if (byTpl[tid].version_id) formVersionIds[tid] = byTpl[tid].version_id;
+        }
       }
-      setLoading(false);
+
+      const initial: Record<string, FormProgress> = {};
+      templateIds.forEach(tid => {
+        const hasData = formsData[tid] && Object.keys(formsData[tid]).length > 0;
+        const formStatus: FormStatus = hasData
+          ? ((data as any).status === 'draft' ? 'in_progress' : 'completed')
+          : 'not_started';
+        initial[tid] = {
+          templateId: tid,
+          status: formStatus,
+          data: formsData[tid] || {},
+          versionId: formVersionIds[tid] || null,
+        };
+      });
+      if (!cancelled) {
+        setFormProgressMap(initial);
+        setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [applicationId]);
 
   // Matched templates from application data or dynamic matching
