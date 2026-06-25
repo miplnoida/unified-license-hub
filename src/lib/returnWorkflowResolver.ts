@@ -9,6 +9,7 @@ export interface ReturnApprovalContext {
     id: string;
     sector_id?: string | null;
     subsector_id?: string | null;
+    category_id?: string | null;
     return_configuration_id?: string | null;
     workflow_id?: string | null;
   };
@@ -39,8 +40,12 @@ export async function resolveReturnWorkflow(ctx: ReturnApprovalContext): Promise
     return { enabled: false, reason: 'global_disabled', globalReviewEnabled, matchedWorkflowId: null, stepCount: 0 };
   }
 
+  // Always resolve through the backend RPC so the match is strictly driven by
+  // the return's current sector / sub-sector / category. We deliberately do
+  // NOT fall back to ctx.return.workflow_id here — that would surface a stale
+  // workflow even after admin reconfigured routing.
   const { data: workflowIdRpc } = await (supabase as any).rpc('resolve_return_workflow', { _return_id: ctx.return.id });
-  const workflowId = (workflowIdRpc as string | null) || ctx.return.workflow_id || null;
+  const workflowId = (workflowIdRpc as string | null) || null;
 
   if (!workflowId) {
     return { enabled: false, reason: 'no_matched_workflow', globalReviewEnabled, matchedWorkflowId: null, stepCount: 0 };
