@@ -729,7 +729,7 @@ export default function ApplicationDetail() {
                       </CardHeader>
                     )}
                     <CardContent className="pt-6 space-y-6">
-                      {isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
+                      {!forceReadOnlyView && isOwner && app.status !== 'approved' && app.status !== 'rejected' && app.status !== 'cancelled' && (
                         <DocumentUpload
                           entityType="application"
                           entityId={app.id}
@@ -757,13 +757,13 @@ export default function ApplicationDetail() {
                     <ViewPaymentButton applicationId={app.id} />
                     <FeeComponentsPanel
                       applicationId={app.id}
-                      editable={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                      editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     />
                   </>
                 ) : (
                   <LicenseePaymentPanel
                     applicationId={app.id}
-                    canPay={isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
+                    canPay={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
                     onPaid={loadData}
                   />
                 ))}
