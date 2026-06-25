@@ -173,8 +173,16 @@ async function matchWorkflowForApplication(
 
 async function resolveAttachedActiveWorkflow(
   appRow: WorkflowApprovalContext['application'],
+  freshMatchId: string | null,
 ): Promise<{ workflow: { id: string; is_active: boolean; license_type: string }; stepCount: number } | null> {
   if (!appRow?.id || !appRow?.workflow_id) return null;
+
+  // Only honour an attached workflow when it ALSO equals the workflow we'd
+  // pick fresh from current backend scope (Sector > Sub-Sector > Category >
+  // Service). This prevents a stale `applications.workflow_id` from masking
+  // taxonomy/route changes made in the backend after the application was
+  // attached — the "static workflow" leak.
+  if (!freshMatchId || freshMatchId !== appRow.workflow_id) return null;
 
   const { data: attachedWorkflow } = await supabase
     .from('approval_workflows')
@@ -208,6 +216,7 @@ async function resolveAttachedActiveWorkflow(
   return { workflow, stepCount };
 }
 
+
 /**
  * Main entry point — resolve the effective workflow-approval ON/OFF state
  * for an application. Always honours all four authoritative signals.
@@ -227,7 +236,14 @@ export async function resolveWorkflowApproval(
     };
   }
 
-  const attachedActiveWorkflow = await resolveAttachedActiveWorkflow(ctx.application);
+  // Always resolve the scope-matched workflow first; the attached workflow is
+  // only valid when it agrees with this fresh match.
+  const matchedWorkflow = await matchWorkflowForApplication(ctx.application);
+
+  const attachedActiveWorkflow = await resolveAttachedActiveWorkflow(
+    ctx.application,
+    matchedWorkflow?.id ?? null,
+  );
   if (attachedActiveWorkflow) {
     return {
       enabled: true,
@@ -237,8 +253,6 @@ export async function resolveWorkflowApproval(
       stepCount: attachedActiveWorkflow.stepCount,
     };
   }
-
-  const matchedWorkflow = await matchWorkflowForApplication(ctx.application);
 
   if (!matchedWorkflow) {
     return {
