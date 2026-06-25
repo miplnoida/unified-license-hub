@@ -143,8 +143,9 @@ export function LicenseStatusList({
                 <Badge variant={badgeVariant as any}>{badgeLabel}</Badge>
                 {pendingRenewalByLicense[lic.id] ? (
                   <Button asChild size="sm" variant="outline">
-                    <Link to={`/applications/${pendingRenewalByLicense[lic.id]}`}>
-                      <RefreshCw className="h-3.5 w-3.5 mr-1" />Renewal in progress
+                    <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                      {STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
                     </Link>
                   </Button>
                 ) : canRenew && (
