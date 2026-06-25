@@ -290,7 +290,7 @@ export default function LicenseDetail() {
     await refreshPendingRenewal(license.id);
     if (pendingRenewalAppId) {
       toast.info('A renewal application is already in progress for this license.');
-      navigate(`/applications/${pendingRenewalAppId}`);
+      navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`);
       return;
     }
     const { data: existingPending } = await supabase
@@ -304,7 +304,7 @@ export default function LicenseDetail() {
     if (existingRow?.id) {
       setPendingRenewalAppId(existingRow.id);
       toast.info('A renewal application is already in progress for this license.');
-      navigate(`/applications/${existingRow.id}`);
+      navigate(`/applications/${existingRow.id}?tab=form&view=submitted`);
       return;
     }
     setStartingRenewal(true);
@@ -392,7 +392,7 @@ export default function LicenseDetail() {
     setSearchParams(next, { replace: true });
     if (pendingRenewalAppId) {
       toast.info('A renewal application is already in progress for this license.');
-      navigate(`/applications/${pendingRenewalAppId}`);
+      navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`);
       return;
     }
     if (isPastGrace) {
@@ -596,7 +596,7 @@ export default function LicenseDetail() {
                         <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
                         <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
                         {pendingRenewalAppId ? (
-                          <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                          <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                           </Button>
                         ) : (
@@ -615,7 +615,7 @@ export default function LicenseDetail() {
                     )}
                     {license.status === 'expired' && (
                       pendingRenewalAppId ? (
-                        <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                        <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                           <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                         </Button>
                       ) : (
@@ -645,7 +645,7 @@ export default function LicenseDetail() {
                     </p>
                     <p className="text-sm"><span className="text-muted-foreground">Renewal fee: </span><span className="font-medium">{fee}</span></p>
                     {pendingRenewalAppId ? (
-                      <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}`)}>
+                      <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                         <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                       </Button>
                     ) : (
