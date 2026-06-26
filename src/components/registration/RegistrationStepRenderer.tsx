@@ -681,7 +681,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }:
       const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
       const subdir = imageOnly ? 'registrations/signatures' : 'registrations';
       const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
-      console.log('signature upload path', filePath);
+      if (imageOnly) console.log('signature upload path', filePath);
 
       const { error: uploadError } = await supabase.storage
         .from('secure-documents')
