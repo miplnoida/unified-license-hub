@@ -532,6 +532,18 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
         />
       );
       break;
+    case 'signature':
+      input = (
+        <FileUploadField
+          field={field}
+          value={value}
+          onChange={handleChange}
+          readOnly={readOnly}
+          error={error}
+          imageOnly
+        />
+      );
+      break;
     case 'paragraph':
     case 'heading':
     case 'section_title':
