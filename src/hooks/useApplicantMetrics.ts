@@ -22,8 +22,9 @@ export interface ApplicantMetrics {
   payments: { pending: number; paid: number; outstanding_amount: number };
   notifications: { unread: number };
   priority_lists: {
-    recent_applications: Array<{ id: string; application_number: string | null; status: string; created_at: string }>;
+    recent_applications: Array<{ id: string; application_number: string | null; status: string; created_at: string; updated_at?: string | null }>;
     pending_payments: Array<{ id: string; amount: number; status: string; created_at: string }>;
+    action_required: Array<{ id: string; application_number: string | null; status: string; updated_at: string }>;
   };
 }
 
