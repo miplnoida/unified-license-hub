@@ -23,6 +23,12 @@ import {
   isRegistrationPasswordField,
   resolveRegistrationEmail,
   resolveRegistrationPassword,
+  resolveRegistrationFirstName,
+  resolveRegistrationLastName,
+  resolveRegistrationApplicantName,
+  findRegistrationFirstNameField,
+  findRegistrationLastNameField,
+  findRegistrationApplicantNameField,
 } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
