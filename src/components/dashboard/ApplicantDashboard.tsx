@@ -12,7 +12,7 @@ import { PriorityListCard } from './cards/PriorityListCard';
 import { LicenseStatusList } from './cards/LicenseStatusList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { FileText, DollarSign, Bell, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, DollarSign, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 
 const fmtMoney = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
@@ -91,19 +91,6 @@ export function ApplicantDashboard() {
         </Button>
       </div>}
 
-      {/* Notifications strip */}
-      {(data?.notifications.unread ?? 0) > 0 && (
-        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <Bell className="h-4 w-4 text-primary" />
-            You have <strong className="tabular-nums">{data?.notifications.unread}</strong> unread notification
-            {(data?.notifications.unread ?? 0) === 1 ? '' : 's'}.
-          </div>
-          <Link to="/notifications" className="text-xs text-primary hover:underline">
-            View all
-          </Link>
-        </div>
-      )}
 
       {insights.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

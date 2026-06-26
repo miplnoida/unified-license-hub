@@ -359,6 +359,14 @@ export default function ApplicationsList() {
       // so totalCount and the visible slice reflect the filter.
       if (clientPaginate && !groupingMode) {
         setTotalCount(rows.length);
+        // Derive stat counts from the filtered set so header tiles match the list.
+        const PENDING = new Set(['submitted', 'under_review', 'in_progress', 'clarification_requested', 'resubmission_requested', 'query_raised']);
+        setStatCounts({
+          total: rows.length,
+          approved: rows.filter((r: any) => r.status === 'approved').length,
+          rejected: rows.filter((r: any) => r.status === 'rejected').length,
+          pending: rows.filter((r: any) => PENDING.has(r.status)).length,
+        });
         const start = page * PAGE_SIZE;
         rows = rows.slice(start, start + PAGE_SIZE);
       } else {
@@ -437,7 +445,10 @@ export default function ApplicationsList() {
 
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
+  // Skipped when a pre/post type filter is active — stats are derived from the
+  // filtered list inside loadPage() so totals match the visible rows.
   useEffect(() => {
+    if (typeFilter) return;
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
@@ -453,7 +464,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId, validActiveSectorId]);
+  }, [refreshKey, resolvedLicenseeId, validActiveSectorId, typeFilter]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
