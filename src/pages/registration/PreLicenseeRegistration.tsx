@@ -308,56 +308,93 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   // Validate a dynamic step's required fields
   const validateDynamicStep = useCallback((stepData: RegStep): boolean => {
     const errs: Record<string, string> = {};
-    for (const row of stepData.rows) {
-      for (const col of row.columns) {
-        const field = col.field;
-        if (!field) continue;
-        // Display-only field types have no input/value — skip validation entirely
-        if (isDisplayOnlyField(field)) continue;
-        const val = dynamicFormData[field.fieldName];
 
-        if (field.required && (val === undefined || val === null || val === '')) {
-          errs[field.fieldName] = `${field.label} is required`;
-          continue;
+    const isRequiredValueMissing = (field: RegField, value: unknown): boolean => {
+      if (value === undefined || value === null) return true;
+      if (field.type === 'checkbox') return value !== true && value !== 'true';
+      if (field.type === 'multi_select') return !Array.isArray(value) || value.length === 0;
+      if (field.type === 'file') {
+        if (isAttachmentValue(value)) return false;
+        if (typeof value === 'object') {
+          const v = value as Record<string, unknown>;
+          if (v.path || v.url || v.name || v.id) return false;
         }
-        if (val && field.validation) {
-          const v = field.validation;
-          const strVal = String(val);
-          if (v.minLength && strVal.length < v.minLength) errs[field.fieldName] = `Minimum ${v.minLength} characters`;
-          if (v.maxLength && strVal.length > v.maxLength) errs[field.fieldName] = `Maximum ${v.maxLength} characters`;
-          if (v.min !== undefined && Number(val) < v.min) errs[field.fieldName] = `Minimum value is ${v.min}`;
-          if (v.max !== undefined && Number(val) > v.max) errs[field.fieldName] = `Maximum value is ${v.max}`;
-          if (v.pattern) {
-            try {
-              if (!new RegExp(v.pattern).test(strVal)) {
-                errs[field.fieldName] = v.patternMessage || 'Invalid format';
-              }
-            } catch {}
+        return true;
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' || trimmed === '__empty';
+      }
+      if (Array.isArray(value)) return value.length === 0;
+      return false;
+    };
+
+    // Determine how many repeatable entries to validate (matches renderer heuristic):
+    // any saved key matching `<base>__<n>` raises the count to n+1.
+    const baseNames = stepData.rows.flatMap(r => r.columns.map(c => c.field?.fieldName).filter(Boolean) as string[]);
+    let entryCount = 1;
+    if (stepData.isRepeatable) {
+      for (const k of Object.keys(dynamicFormData || {})) {
+        const m = k.match(/^(.+)__(\d+)$/);
+        if (!m || !baseNames.includes(m[1])) continue;
+        const n = parseInt(m[2], 10);
+        if (!isNaN(n) && n + 1 > entryCount) entryCount = n + 1;
+      }
+    }
+
+    const validateOneEntry = (entryIndex: number) => {
+      for (const row of stepData.rows) {
+        for (const col of row.columns) {
+          const field = col.field;
+          if (!field) continue;
+          if (isDisplayOnlyField(field)) continue;
+          const effectiveName = entryIndex === 0
+            ? field.fieldName
+            : `${field.fieldName}__${entryIndex}`;
+          const val = dynamicFormData[effectiveName];
+
+          if (field.required && isRequiredValueMissing(field, val)) {
+            errs[effectiveName] = `${field.label} is required`;
+            continue;
           }
-        }
-        if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
-          errs[field.fieldName] = 'Invalid email address';
-        }
-        if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
-          errs[field.fieldName] = 'Invalid phone number';
-        }
-        // File field: must be an uploaded object, not just a filename string
-        if (field.type === 'file' && field.required) {
-          if (!val || typeof val !== 'object' || !('path' in (val as Record<string, unknown>))) {
-            errs[field.fieldName] = `${field.label} is required`;
+          if (val && typeof val !== 'object' && field.validation) {
+            const v = field.validation;
+            const strVal = String(val);
+            if (v.minLength && strVal.length < v.minLength) errs[effectiveName] = `Minimum ${v.minLength} characters`;
+            if (v.maxLength && strVal.length > v.maxLength) errs[effectiveName] = `Maximum ${v.maxLength} characters`;
+            if (v.min !== undefined && Number(val) < v.min) errs[effectiveName] = `Minimum value is ${v.min}`;
+            if (v.max !== undefined && Number(val) > v.max) errs[effectiveName] = `Maximum value is ${v.max}`;
+            if (v.pattern) {
+              try {
+                if (!new RegExp(v.pattern).test(strVal)) {
+                  errs[effectiveName] = v.patternMessage || 'Invalid format';
+                }
+              } catch {}
+            }
           }
-        }
-        // Confirm password: must match the referenced password field
-        if (field.type === 'confirm_password' && val) {
-          const matchName = field.matchField
-            || stepData.rows.flatMap(r => r.columns.map(c => c.field)).find(f => f?.type === 'password')?.fieldName;
-          const target = matchName ? dynamicFormData[matchName] : undefined;
-          if (String(val) !== String(target ?? '')) {
-            errs[field.fieldName] = 'Passwords do not match';
+          if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
+            errs[effectiveName] = 'Invalid email address';
+          }
+          if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
+            errs[effectiveName] = 'Invalid phone number';
+          }
+          // Confirm password: must match the referenced password field within same entry
+          if (field.type === 'confirm_password' && val) {
+            const baseMatch = field.matchField
+              || stepData.rows.flatMap(r => r.columns.map(c => c.field)).find(f => f?.type === 'password')?.fieldName;
+            const matchName = baseMatch
+              ? (entryIndex === 0 ? baseMatch : `${baseMatch}__${entryIndex}`)
+              : undefined;
+            const target = matchName ? dynamicFormData[matchName] : undefined;
+            if (String(val) !== String(target ?? '')) {
+              errs[effectiveName] = 'Passwords do not match';
+            }
           }
         }
       }
-    }
+    };
+
+    for (let i = 0; i < entryCount; i++) validateOneEntry(i);
     // Applicant Name uniqueness — block step until check resolves to 'available'
     if (!isUpdateMode && applicantNameCheck.fieldName) {
       const stepHasField = stepData.rows.some(r =>
