@@ -60,7 +60,7 @@ export function getRegistrationCredentialSchemaFields(schema?: RegFormSchema | n
     step.rows.flatMap(row =>
       row.columns
         .map(col => col.field)
-        .filter((field): field is NonNullable<typeof field> => !!field)
+        .filter((field): field is RegField => !!field)
         .filter(field => {
           const meta = credentialMeta(field);
           const haystack = `${meta.fieldName} ${meta.label} ${meta.type}`;
