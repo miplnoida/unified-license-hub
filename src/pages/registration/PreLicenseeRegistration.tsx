@@ -758,11 +758,6 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   const handleSubmit = async () => {
     const currentDynamicStep = steps[currentStep]?.type === 'dynamic' ? steps[currentStep]?.stepData : undefined;
-    const primaryEmailBlockers = getPrimaryEmailBlockers(currentDynamicStep);
-    if (!isUpdateMode && (primaryEmailBlockers.hasPending || emailUniqueness.status === 'checking')) {
-      toast.error('Please wait — verifying email availability…');
-      return;
-    }
     if (!validateScope()) return;
     if (!validateCurrentStep()) {
       reportValidationFailure();
@@ -770,10 +765,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       firstError?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (!isUpdateMode && (primaryEmailBlockers.hasDuplicate || primaryEmailBlockers.hasTakenStatus || emailUniqueness.status === 'taken')) {
+    const { duplicate } = await ensurePrimaryEmailResolved(currentDynamicStep);
+    if (duplicate) {
       toast.error(DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR);
       return;
     }
+
 
     if (isUpdateMode) {
       await saveRegistrationUpdate();
