@@ -246,10 +246,13 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
       if (latestPrimaryEmailCheckRef.current[fieldName] !== requestId) return;
       if (error) {
-        setDynamicErrors(prev => ({
-          ...prev,
-          [fieldName]: 'Unable to validate email right now. Please try again.',
-        }));
+        console.warn('[registration] primary email uniqueness RPC failed', error);
+        // Soft-fail: do not block the user. Server-side validation will catch duplicates at submit.
+        setDynamicErrors(prev => {
+          const next = { ...prev };
+          if (next[fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) delete next[fieldName];
+          return next;
+        });
         return;
       }
 
@@ -373,22 +376,11 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       const stepHasField = stepData.rows.some(r =>
         r.columns.some(c => c.field?.fieldName === emailUniquenessPreview.fieldName)
       );
-      if (stepHasField) {
-        if (emailUniquenessPreview.status === 'taken') {
-          errs[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
-        } else if (emailUniquenessPreview.status === 'checking') {
-          errs[emailUniquenessPreview.fieldName] = 'Checking email availability…';
-        }
+      if (stepHasField && emailUniquenessPreview.status === 'taken') {
+        errs[emailUniquenessPreview.fieldName] = DUPLICATE_PRIMARY_EMAIL_ERROR;
       }
     }
     const primaryEmailBlockers = getPrimaryEmailBlockers(stepData);
-    if (primaryEmailBlockers.hasPending) {
-      for (const field of getPrimaryEmailFieldsForStep(stepData)) {
-        if (pendingPrimaryEmailChecks[field.fieldName]) {
-          errs[field.fieldName] = 'Checking email availability…';
-        }
-      }
-    }
     if (primaryEmailBlockers.hasDuplicate) {
       for (const field of getPrimaryEmailFieldsForStep(stepData)) {
         if (dynamicErrors[field.fieldName] === DUPLICATE_PRIMARY_EMAIL_ERROR) {
