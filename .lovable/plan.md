@@ -1,76 +1,41 @@
-## Goal
-Extend the existing Applicant / Pre-Licensee Portal so it visually and functionally matches the uploaded LIC-APP spec — without rebuilding it, duplicating workflow logic, or touching backend/permissions/routes.
+## Scope
 
-All data continues to flow through the existing hooks (`useApplicantMetrics`, `useApplicantLicenses`, `useLicenseExpiryStatus`, `useRegistrationApprovalStatus`, `useExternalPortalAccess`) and existing pages (`/applications`, `/applications/:id`, `/applications/new`, `/billing/pre-licensee`, renewal in `LicenseStatusList`).
+The Applicant Portal enhancement is functionally in place. Code review against the spec identified two concrete gaps and one verification gap. This plan closes them without rebuilding anything.
 
-## Scope by Phase
+## Remaining Gaps to Fix
 
-### Phase 1 — Welcome Banner + Summary Cards (extend existing)
-Extend the banner already in `ApplicantDashboard.tsx` to also surface:
-- Entity Name (from `applicant_metrics` / latest application `data.entity_name` or `data.applicant_name`)
-- Applicant Type (pre-licensee vs licensee via `EffectivePortalContext`)
-- Current Status chip (registration status when no licenses; license status otherwise)
+### 1. Track Application button missing on Registration Success
+`src/pages/registration/RegistrationSuccess.tsx` does not pass `trackHref` to `SubmissionAcknowledgement`, so the "Track Application" CTA never renders.
 
-Summary cards already exist; add **Rejected** to the top strip and ensure every card links to the existing filtered list route (no new pages).
+**Fix:** pass `trackHref="/registration/status"` (existing route) so the button appears.
 
-### Phase 2 — Required Forms as Cards
-New presentation-only component `src/components/dashboard/applicant/RequiredFormsList.tsx`.
-- Source: existing `useApplicantMetrics` recent applications **plus** existing `useFormTemplates`/registration required-forms hook already used inside `PreLicenseeDashboard` and registration flow (reuse, do not refetch).
-- Each card: Form Name, Description, Status badge, Progress (steps completed / total from existing draft data), Last Updated, primary CTA = Start / Continue / Resume routed to existing `/applications/:id/continue` or `/applications/new`.
+### 2. Recent Activity is single-event-per-application
+`RecentActivityPanel.tsx` derives one row per application from `recent_applications`. The spec lists multi-event verbs (Draft Saved, Submitted, Info Requested, Returned, Resubmitted, Approved, Rejected, License Issued).
 
-### Phase 3 — Action Required (reuse workflow statuses)
-The current `ApplicantDashboard` already lists `action_required` rows. Promote it into a richer card grid `src/components/dashboard/applicant/ActionRequiredList.tsx` showing:
-Application Number · Request Type (mapped from status: Info Requested / Resubmission Requested / Returned for Correction / Clarification / Needs Changes) · Requested Date (`updated_at`) · Status badge · **Continue** → existing `/applications/:id` route.
-No new tables, no new workflow calls.
+**Fix:** switch the panel's data source to the existing `audit_logs` table (already used elsewhere), filtered by the current applicant's user_id, ordered `created_at desc`, limit 15. Map known `action` values to friendly verbs. Keep the existing empty state. No new tables, no edge functions, no schema changes.
 
-### Phase 4 — Application Timeline
-New display-only component `src/components/dashboard/applicant/ApplicationTimeline.tsx`.
-- Input: the latest active application from existing metrics (or "most recent non-draft").
-- Renders fixed milestone steps (Draft → Submitted → Under Review → More Info Requested → Resubmitted → Approved / Rejected) and marks the reached step based on `status`. No workflow IDs exposed.
+### 3. Live verification on an applicant session
+Previous verification ran as `super_admin` (which routes to SupervisoryDashboard). The applicant-side dashboard, Continue Draft, Action Required → Continue, RegistrationSuccess, and responsive layout were not exercised against the running app.
 
-### Phase 5 — Recent Activity
-New display-only component `src/components/dashboard/applicant/RecentActivityPanel.tsx`.
-- Reuse the existing `recent_applications` list already returned by `useApplicantMetrics` (already includes `updated_at`).
-- Map status → friendly verb (Draft Saved / Submitted / Returned / More Info Requested / Resubmitted / Approved / License Issued).
-- Empty state: "No recent activity".
-- Replaces the inline "Recent activity" section currently inside `ApplicantDashboard.tsx`.
+**Fix:** run a Playwright pass once an applicant/pre-licensee session is available, capturing screenshots of:
+- `/` applicant dashboard (banner, 7 cards, Required Forms, Action Required, Timeline, Recent Activity, My Licenses)
+- Continue Draft → `/applications/:id/continue`
+- Action Required Continue → `/applications/:id`
+- `/registration/success` showing all CTAs incl. Track Application
+- Tablet (768) and mobile (390) viewports for layout regression
+- Console + network panels for errors / duplicate requests
 
-### Phase 6 — My Licenses
-Keep using existing `LicenseStatusList` (already wired with `renewMode="expired-only"`).
-- Add Issue Date and License Type columns by passing the values already on the row (`license_number`, `status`, `valid_until` are present; extend `useApplicantLicenses` select list with `issued_at, license_type` only — no schema change).
+## Files To Change
 
-### Phase 7 — Submission Acknowledgement
-Enhance `src/pages/registration/RegistrationSuccess.tsx` and (if present) the post-submit screen used by application submit. New shared component `src/components/applications/SubmissionAcknowledgement.tsx`:
-- Success banner, Reference Number, Submitted Date, Current Status, Expected Next Step (derived from status text).
-- Buttons: Return to Dashboard, Track Application (`/applications/:id`), Download Acknowledgement (placeholder button that triggers `window.print()` fallback when no backend endpoint).
-- Wire into `RegistrationSuccess` and the existing application-submit success screen (search call sites of `RegistrationSuccess` / submit redirect; do not change submit logic itself).
+- `src/pages/registration/RegistrationSuccess.tsx` — add `trackHref` prop.
+- `src/components/dashboard/applicant/RecentActivityPanel.tsx` — swap data source to `audit_logs` (read-only query via existing supabase client), add action→verb map, keep empty state.
 
-### Phase 8 — Layout
-Reorganize `ApplicantDashboard.tsx` only:
-```text
-Row 1 (full): Welcome Banner
-Row 2 (full): Summary Cards (existing strip)
-Row 3:       [ Applications / Required Forms ]  [ Action Required ]
-Row 4:       [ Recent Activity ]                [ My Licenses ]
-```
-Responsive: stacks on mobile/tablet via existing Tailwind `lg:grid-cols-2`.
+No other files are touched. No DB migrations. No new routes. No permission changes.
 
-## Technical Notes
-- All new files live under `src/components/dashboard/applicant/` plus `SubmissionAcknowledgement.tsx`. Pure presentation — no new queries except a light extension of `useApplicantLicenses` select fields.
-- No edits to: routes, edge functions, RLS/migrations, permissions, registration submit, OTP, signature, workflow engine, `PreLicenseeDashboard.tsx` table logic, `LicenseStatusList` renewal logic.
-- Reuses existing tokens/shadcn primitives — no hardcoded colors.
+## Out of Scope (intentionally not changed)
 
-## Verification Checklist (will be re-produced in final reply)
-- [ ] Welcome banner shows name, entity, registration #, applicant type, status
-- [ ] Summary cards: Draft, Submitted, Under Review, Approved, Rejected, Action Required, Pending Payments — all link to existing routes
-- [ ] Required Forms render as cards with Start/Continue/Resume → existing routes
-- [ ] Action Required cards built from existing workflow statuses; Continue opens existing edit page
-- [ ] Application Timeline derived from existing status field
-- [ ] Recent Activity sourced from existing `recent_applications`
-- [ ] My Licenses uses existing `LicenseStatusList` with Renew (expired-only)
-- [ ] Submission Acknowledgement shown after registration + application submit
-- [ ] Layout matches spec rows; responsive
-- [ ] No existing workflow/registration/permission/route/db changes
+Registration form builder, workflow engine, RFI/resubmission/return-for-correction actions, renewal flow, document upload, permissions, route guards, edge functions, `useApplicantMetrics`, `useApplicantLicenses`, `LicenseStatusList`, `ApplicantDashboard` layout, `RequiredFormsList`, `ActionRequiredList`, `ApplicationTimeline`, `SubmissionAcknowledgement` shared component.
 
-## Out of Scope
-New RFI module, new renewal flow, permission changes, route changes, edge function changes, database migrations, registration submit logic, signature/OTP flow.
+## Verification & Final Report
+
+After the two edits, run the Playwright pass above (requires applicant session — if `LOVABLE_BROWSER_AUTH_STATUS` is `signed_out`, will request the user sign in as an applicant in preview). Then produce the 6-section report (Implemented / Connected to Live Data / Manual Tests / Regression / Remaining Gaps / Completion Status) and only mark COMPLETE if every Playwright check passes with no console errors, no failed requests, and no layout breakage.
