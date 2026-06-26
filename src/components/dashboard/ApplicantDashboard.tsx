@@ -4,6 +4,7 @@ import { useApplicantMetrics } from '@/hooks/useApplicantMetrics';
 import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { useApplicantLicenses } from '@/hooks/useApplicantLicenses';
 import { useLicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
@@ -20,9 +21,14 @@ const fmtMoney = (v: number) =>
 export function ApplicantDashboard() {
   const { user } = useAuth();
   const portalAccess = useExternalPortalAccess();
-  const { data, isLoading } = useApplicantMetrics(user?.id);
+  const portalCtx = useEffectivePortalContext();
+  const scope: 'pre' | 'all' = portalCtx.isPreLicensee ? 'pre' : 'all';
+  const appsListPath = portalCtx.isPreLicensee ? '/applications?type=pre' : '/applications';
+  const draftsPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=draft' : '/applications?status=draft';
+  const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
   const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
+
   const canUseLicensing = portalAccess.hasAreaAccess('licensing') && portalAccess.can('licensing', 'can_view_status');
   const canStartApplication = portalAccess.can('licensing', 'can_submit');
 
@@ -46,11 +52,12 @@ export function ApplicantDashboard() {
     <div className="space-y-6">
       {/* Top metric strip — applicant-relevant only */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {canUseLicensing && <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to="/applications?status=draft" />}
-        {canUseLicensing && <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to="/applications" />}
-        {canUseLicensing && <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={Clock} tone="warning" loading={isLoading} to="/applications" />}
-        {canUseLicensing && <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={CheckCircle2} tone="success" loading={isLoading} to="/applications" />}
-        {canUseLicensing && <MetricCard title="Action required" value={actionRequired} icon={AlertCircle} tone={actionRequired > 0 ? 'destructive' : 'muted'} loading={isLoading} to="/applications" hint="Clarification or resubmission" />}
+        {canUseLicensing && <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to={draftsPath} />}
+        {canUseLicensing && <MetricCard title="Submitted" value={data?.applications.submitted ?? 0} icon={FileText} tone="primary" loading={isLoading} to={appsListPath} />}
+        {canUseLicensing && <MetricCard title="Under review" value={data?.applications.under_review ?? 0} icon={Clock} tone="warning" loading={isLoading} to={appsListPath} />}
+        {canUseLicensing && <MetricCard title="Approved" value={data?.applications.approved ?? 0} icon={CheckCircle2} tone="success" loading={isLoading} to={appsListPath} />}
+        {canUseLicensing && <MetricCard title="Action required" value={actionRequired} icon={AlertCircle} tone={actionRequired > 0 ? 'destructive' : 'muted'} loading={isLoading} to={appsListPath} hint="Clarification or resubmission" />}
+
         <MetricCard
           title="Pending payment"
           value={data?.payments.outstanding_amount ?? 0}
@@ -117,7 +124,7 @@ export function ApplicantDashboard() {
         {canUseLicensing && <PriorityListCard
           title="Recent applications"
           loading={isLoading}
-          viewAll={{ label: 'All', to: '/applications' }}
+          viewAll={{ label: 'All', to: appsListPath }}
           rows={(data?.priority_lists.recent_applications ?? []).map((a: any) => ({
             id: a.id,
             primary: a.application_number || a.id.slice(0, 8),

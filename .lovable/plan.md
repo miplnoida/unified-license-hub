@@ -1,32 +1,34 @@
-## Scope
+## Goal
+Scope the pre-licensee dashboard so counts, recent list, and the "View all" link only reflect pre-licensee applications (no post-licensee leakage).
 
-Two small fixes on the licensee/applicant portal. No other functionality changes.
+## Changes
 
-### 1. Pre-Licensing Applications count mismatch (9 total vs 3 rows)
+### 1. `src/hooks/useApplicantMetrics.ts`
+- Accept a second arg `scope: 'all' | 'pre' | 'post'` (default `'all'`, keyed into queryKey).
+- When scope is `'pre'`, add filters to every `applications` query (count queries + recent list):
+  - `.is('data->>service_id', null)` (post-license apps always carry a `service_id`)
+  - `.neq('data->>type', 'post_license')`
+- When scope is `'post'`, the inverse (kept for symmetry; not used yet).
+- Payments queries are unchanged.
 
-**Cause** — `src/pages/applications/ApplicationsList.tsx` filters rows by `?type=pre|post` on the client (lines 351–366), but the header "Total Requests / Approved / Pending / Rejected" stat cards come from the `get_application_list_stats` RPC (lines 439–456) which is NOT scoped by `typeFilter`. So when viewing Pre-Licensing Applications, stats show all applications (e.g. 9) while the list correctly shows only pre-license rows (e.g. 3).
+### 2. `src/components/dashboard/ApplicantDashboard.tsx`
+- Read `useEffectivePortalContext()` to detect `isPreLicensee`.
+- Compute `scope = isPreLicensee ? 'pre' : 'all'`; pass it into `useApplicantMetrics(user?.id, scope)`.
+- Set application-related navigation targets to `/applications?type=pre` when `isPreLicensee`:
+  - All `MetricCard` `to` props that currently point to `/applications` or `/applications?status=draft`
+  - `PriorityListCard` "Recent applications" `viewAll.to`
+  - Row-level `to: /applications/${a.id}` is unchanged (detail page is shared).
+- Non-pre-licensee applicants keep current `/applications` targets.
 
-**Fix** — When `typeFilter` is active (pre or post):
-- Skip the stats RPC for those stat cards.
-- Derive `statCounts` (total / approved / pending / rejected) from the same filtered 500-row payload the list already fetches (the array right before client-side pagination slicing in the existing `loadPage` effect). `pending` mirrors the RPC definition (submitted + under_review + in_progress + clarification_requested + resubmission_requested / query_raised).
-- When `typeFilter` is null, keep the existing RPC-based stats unchanged.
+### 3. No change to `/applications` list page
+- `ApplicationsList` already derives header stats from the filtered (`typeFilter`) rows from the prior fix, so visiting `/applications?type=pre` shows correct counts and rows. No further work needed there.
 
-This keeps the totals and the visible list consistent without changing the RPC contract or any other queue.
-
-### 2. Remove "unread notifications" strip from the licensee/applicant dashboard
-
-**Location** — `src/components/dashboard/ApplicantDashboard.tsx`, lines 94–106 (the `{(data?.notifications.unread ?? 0) > 0 && ( … )}` block that sits right after the "New application" CTA div).
-
-**Fix** — Delete that block. Also drop the now-unused `Bell` import. The "Unread notifications" metric tile already exists elsewhere and is unaffected.
-
-## Files touched
-
-- `src/pages/applications/ApplicationsList.tsx` — derive stat counts from the filtered set when `typeFilter` is active.
-- `src/components/dashboard/ApplicantDashboard.tsx` — remove the notifications strip + unused import.
+### 4. Out of scope (untouched)
+- LicenseeDashboard, SupervisoryDashboard.
+- `PreLicenseeDashboard.tsx` page (already filters out post-license).
+- Workflow, renewal, resubmission, and other prior fixes.
 
 ## Verification
-
-- Open Pre-Licensing Applications as the licensee with the reported data: header "Total Requests" should equal the row count (3), Approved/Pending/Rejected should sum to that total.
-- Open Post-Licensing Applications: same consistency.
-- Open the unfiltered Applications list: stats unchanged from today.
-- Licensee/applicant dashboard no longer renders the highlighted notifications strip between the "New application" CTA and the insights grid.
+- Sign-in as a pre-licensee: dashboard metric tiles (Drafts / Submitted / Under review / Approved / Action required) match the count shown on `/applications?type=pre`.
+- "View all" / "All" from Recent Applications and metric tiles navigates to `/applications?type=pre`, listing only pre-license rows with matching header counts.
+- Applicants who are not pre-licensee still see all their applications and links to `/applications`.
