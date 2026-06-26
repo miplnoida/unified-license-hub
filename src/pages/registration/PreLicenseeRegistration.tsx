@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import type { RegStep, RegField } from '@/types/registrationForm';
 import {
   getRegistrationCredentialSchemaFields,
+  isRegistrationConfirmPasswordField,
   isRegistrationEmailField,
   isRegistrationPasswordField,
   resolveRegistrationEmail,
@@ -380,16 +381,16 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
               } catch {}
             }
           }
-          if (field.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
+          if (isRegistrationEmailField(field) && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(val))) {
             errs[effectiveName] = 'Invalid email address';
           }
           if (field.type === 'phone' && val && !/^[+]?[\d\s\-()]{7,20}$/.test(String(val))) {
             errs[effectiveName] = 'Invalid phone number';
           }
           // Confirm password: must match the referenced password field within same entry
-          if (field.type === 'confirm_password' && val) {
+          if (isRegistrationConfirmPasswordField(field) && val) {
             const baseMatch = field.matchField
-              || stepData.rows.flatMap(r => r.columns.map(c => c.field)).find(f => f?.type === 'password')?.fieldName;
+              || stepData.rows.flatMap(r => r.columns.map(c => c.field)).find(f => isRegistrationPasswordField(f))?.fieldName;
             const matchName = baseMatch
               ? (entryIndex === 0 ? baseMatch : `${baseMatch}__${entryIndex}`)
               : undefined;
