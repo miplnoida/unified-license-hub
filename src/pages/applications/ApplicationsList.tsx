@@ -359,6 +359,14 @@ export default function ApplicationsList() {
       // so totalCount and the visible slice reflect the filter.
       if (clientPaginate && !groupingMode) {
         setTotalCount(rows.length);
+        // Derive stat counts from the filtered set so header tiles match the list.
+        const PENDING = new Set(['submitted', 'under_review', 'in_progress', 'clarification_requested', 'resubmission_requested', 'query_raised']);
+        setStatCounts({
+          total: rows.length,
+          approved: rows.filter((r: any) => r.status === 'approved').length,
+          rejected: rows.filter((r: any) => r.status === 'rejected').length,
+          pending: rows.filter((r: any) => PENDING.has(r.status)).length,
+        });
         const start = page * PAGE_SIZE;
         rows = rows.slice(start, start + PAGE_SIZE);
       } else {
