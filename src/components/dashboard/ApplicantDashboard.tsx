@@ -5,15 +5,20 @@ import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { useApplicantLicenses } from '@/hooks/useApplicantLicenses';
 import { useLicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { useRegistrationApprovalStatus } from '@/hooks/useRegistrationApprovalStatus';
 import { buildInsights } from '@/lib/dashboardInsights';
+import { getApplicationStatusLabel } from '@/lib/applicationStatus';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
 import { StatusBreakdownCard } from './cards/StatusBreakdownCard';
 import { PriorityListCard } from './cards/PriorityListCard';
 import { LicenseStatusList } from './cards/LicenseStatusList';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { FileText, DollarSign, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, DollarSign, PlusCircle, AlertCircle, CheckCircle2, Clock, BellRing } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 const fmtMoney = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
