@@ -84,7 +84,7 @@ function loadFromStorage(): RegistrationFormData {
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...initialState, ...parsed, password: '', confirmPassword: '', emailVerified: false };
+      return { ...initialState, ...parsed, emailVerified: false };
     }
   } catch {}
   return { ...initialState };
@@ -100,8 +100,7 @@ export function useRegistrationForm(options?: { updateMode?: boolean }) {
 
   useEffect(() => {
     if (options?.updateMode) return;
-    const { password, confirmPassword, ...safe } = form;
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(form));
   }, [form, options?.updateMode]);
 
   const setField = useCallback((field: string, value: string | boolean) => {
