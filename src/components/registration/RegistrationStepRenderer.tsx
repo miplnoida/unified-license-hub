@@ -305,7 +305,21 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
   let input: React.ReactNode;
   const strValue = typeof value === 'string' ? value : (value === null || value === undefined ? '' : String(value));
 
-  switch (field.type) {
+  // Backward-compat: legacy registration configs may have signature fields saved as
+  // 'text' (or an unknown/missing type). Detect via label/fieldName and re-route to
+  // the image-only upload renderer so users get a signature uploader, not a text box.
+  const KNOWN_REG_TYPES = new Set([
+    'text','number','email','phone','password','confirm_password','date','textarea',
+    'select','multi_select','checkbox','radio','file','signature',
+    'paragraph','heading','static_text','section_title','divider','info',
+  ]);
+  const nameForMatch = `${field.label || ''} ${field.fieldName || ''}`.toLowerCase();
+  const looksLikeSignature = /(^|[^a-z])signature([^a-z]|$)/.test(nameForMatch);
+  const effectiveType: string = (looksLikeSignature && (field.type === 'text' || !KNOWN_REG_TYPES.has(field.type as string)))
+    ? 'signature'
+    : field.type;
+
+  switch (effectiveType) {
     case 'text':
     case 'email':
     case 'password':
