@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/select';
 import type { RegStep, RegField } from '@/types/registrationForm';
 import { useSectors, useSubSectors, useCategories } from '@/hooks/useMasterConfig';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useActiveMasterItems } from '@/hooks/useMasterData';
