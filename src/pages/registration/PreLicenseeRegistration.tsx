@@ -313,7 +313,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       if (value === undefined || value === null) return true;
       if (field.type === 'checkbox') return value !== true && value !== 'true';
       if (field.type === 'multi_select') return !Array.isArray(value) || value.length === 0;
-      if (field.type === 'file') {
+      if (field.type === 'file' || field.type === 'signature') {
         if (isAttachmentValue(value)) return false;
         if (typeof value === 'object') {
           const v = value as Record<string, unknown>;
@@ -990,7 +990,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           // File fields are always rendered as attachments (driven by field
           // type, not value-shape guessing) so View/Download icons display
           // even for legacy or partial value shapes.
-          if (f.type === 'file' || isAttachmentValue(raw)) {
+          if (f.type === 'file' || f.type === 'signature' || isAttachmentValue(raw)) {
             fields.push({ label: f.label, value: raw ?? null, type: 'attachment' });
             return;
           }
