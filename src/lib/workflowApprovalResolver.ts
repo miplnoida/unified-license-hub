@@ -122,11 +122,10 @@ async function matchWorkflowForApplication(
   appRow: WorkflowApprovalContext['application'],
 ): Promise<{ id: string; is_active: boolean; license_type: string } | null> {
   const sectorId = (appRow?.data as any)?.sector_id as string | undefined;
-  const subSectorId = (appRow?.data as any)?.sub_sector_id as string | undefined;
+  const subSectorIdFromData = (appRow?.data as any)?.sub_sector_id as string | undefined;
   const categoryId = (appRow?.data as any)?.category_id as string | undefined;
   const serviceId = (appRow?.data as any)?.service_id as string | undefined;
   const licenseType = appRow?.license_type;
-  if (!licenseType) return null;
 
   const effectiveRegulator = await resolveEffectiveRegulator(
     appRow?.regulator_id,
@@ -135,40 +134,56 @@ async function matchWorkflowForApplication(
   );
 
   const entityTypes = entityTypesForApplication({ data: appRow?.data });
+  const primaryType = entityTypes[0];
+
+  // Derive sub_sector from category when not present in data.
+  let subSectorId = subSectorIdFromData;
+  if (!subSectorId && categoryId) {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('sub_sector_id')
+      .eq('id', categoryId)
+      .maybeSingle();
+    subSectorId = (cat as any)?.sub_sector_id ?? undefined;
+  }
 
   if (effectiveRegulator) {
+    // TAXONOMY-FIRST: don't filter by license_type at the SQL level. Pre/post
+    // license workflows are scoped by Sector > Sub-Sector > Category > Service,
+    // not by the application's taxonomy-triple license_type string.
     const { data } = await supabase
       .from('approval_workflows')
       .select('id, is_active, license_type, sector_id, sub_sector_id, category_id, service_id, entity_type')
-      .eq('license_type', licenseType)
       .in('entity_type', entityTypes)
       .eq('regulator_id', effectiveRegulator);
 
-    const candidates = (data || []) as any[];
-    // Prefer rows of the primary (non-legacy) entity_type
-    const primaryType = entityTypes[0];
+    const candidates = ((data || []) as any[]).filter((w) => w.is_active);
     const ranked = [
       ...candidates.filter((w) => w.entity_type === primaryType),
       ...candidates.filter((w) => w.entity_type !== primaryType),
     ];
-    // Most-specific match wins: service > category > sub_sector > sector > regulator-wide.
-    // A workflow scoped to X only matches if the application's X equals it.
+
+    const lt = (licenseType || '').toLowerCase();
+    const matchesLegacyLicenseType = (w: any) => {
+      const wlt = (w.license_type || '').toLowerCase();
+      // Empty / 'general' is treated as a wildcard for pre/post license workflows.
+      if (!wlt || wlt === 'general') return true;
+      return lt === wlt || lt.startsWith(wlt + ' ') || lt.startsWith(wlt + '-') || lt.startsWith(wlt + '_');
+    };
+
     const found =
-      ranked.find((w) => serviceId && w.service_id === serviceId) ||
-      ranked.find((w) => categoryId && w.category_id === categoryId && !w.service_id) ||
-      ranked.find((w) => subSectorId && w.sub_sector_id === subSectorId && !w.category_id && !w.service_id) ||
-      ranked.find((w) => sectorId && w.sector_id === sectorId && !w.sub_sector_id && !w.category_id && !w.service_id) ||
-      ranked.find((w) => !w.sector_id && !w.sub_sector_id && !w.category_id && !w.service_id) ||
+      ranked.find((w) => serviceId && w.service_id === serviceId && matchesLegacyLicenseType(w)) ||
+      ranked.find((w) => categoryId && w.category_id === categoryId && !w.service_id && matchesLegacyLicenseType(w)) ||
+      ranked.find((w) => subSectorId && w.sub_sector_id === subSectorId && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
+      ranked.find((w) => sectorId && w.sector_id === sectorId && !w.sub_sector_id && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
+      ranked.find((w) => !w.sector_id && !w.sub_sector_id && !w.category_id && !w.service_id && matchesLegacyLicenseType(w)) ||
       null;
     if (found) return found as any;
   }
 
-  // No scope-matched workflow. We deliberately do NOT fall back to a
-  // license_type-only / unscoped workflow here — that would mask
-  // misconfigured Sector / Sub-Sector / Category routing and surface a
-  // workflow that the admin did not configure for this application's scope.
   return null;
 }
+
 
 
 async function resolveAttachedActiveWorkflow(
