@@ -2,7 +2,7 @@
 // Priority: static form.email > common dynamic field names > any field declared as type=email.
 // Always returns a trimmed, lowercased string (or '' if none found).
 
-import type { RegFormSchema } from '@/types/registrationForm';
+import type { RegField, RegFormSchema } from '@/types/registrationForm';
 
 const COMMON_KEYS = [
   'email',
@@ -12,6 +12,79 @@ const COMMON_KEYS = [
   'primary_email',
   'email_address',
 ];
+
+function normalizeMeta(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function credentialMeta(field: RegField) {
+  return {
+    fieldName: normalizeMeta(field.fieldName),
+    label: normalizeMeta(field.label),
+    type: normalizeMeta((field as unknown as Record<string, unknown>).type),
+  };
+}
+
+function containsConfirm(value: string): boolean {
+  return value.includes('confirm');
+}
+
+export function isRegistrationConfirmPasswordField(
+  field?: RegField | null,
+): boolean {
+  if (!field) return false;
+  const meta = credentialMeta(field);
+  const haystack = `${meta.fieldName} ${meta.label} ${meta.type}`;
+  return meta.type === 'confirm_password' || (haystack.includes('password') && containsConfirm(haystack));
+}
+
+export function isRegistrationPasswordField(
+  field?: RegField | null,
+): boolean {
+  if (!field || isRegistrationConfirmPasswordField(field)) return false;
+  const meta = credentialMeta(field);
+  return meta.type === 'password' || meta.fieldName.includes('password') || meta.label.includes('password');
+}
+
+export function isRegistrationEmailField(
+  field?: RegField | null,
+): boolean {
+  if (!field) return false;
+  const meta = credentialMeta(field);
+  return meta.type === 'email' || meta.fieldName.includes('email') || meta.label.includes('email');
+}
+
+export function getRegistrationCredentialSchemaFields(schema?: RegFormSchema | null) {
+  if (!schema) return [];
+  return schema.flatMap((step, stepIndex) =>
+    step.rows.flatMap(row =>
+      row.columns
+        .map(col => col.field)
+        .filter((field): field is RegField => !!field)
+        .filter(field => {
+          const meta = credentialMeta(field);
+          const haystack = `${meta.fieldName} ${meta.label} ${meta.type}`;
+          return haystack.includes('email') || haystack.includes('password');
+        })
+        .map(field => ({
+          stepId: step.id,
+          stepIndex,
+          stepTitle: step.title,
+          fieldId: field.id,
+          fieldName: field.fieldName,
+          label: field.label,
+          type: String((field as unknown as Record<string, unknown>).type || ''),
+          kind: isRegistrationEmailField(field)
+            ? 'email'
+            : isRegistrationConfirmPasswordField(field)
+              ? 'confirm_password'
+              : isRegistrationPasswordField(field)
+                ? 'password'
+                : 'credential',
+        }))
+    )
+  );
+}
 
 export function resolveRegistrationEmail(
   staticEmail: string | undefined,
@@ -24,7 +97,7 @@ export function resolveRegistrationEmail(
     for (const step of schema) {
       for (const row of step.rows) {
         for (const col of row.columns) {
-          if (col.field?.type === 'email') {
+          if (isRegistrationEmailField(col.field)) {
             candidates.push(dynamicData[col.field.fieldName]);
           }
         }
@@ -68,7 +141,7 @@ export function resolveRegistrationPassword(
       for (const row of step.rows) {
         for (const col of row.columns) {
           const f = col.field;
-          if (f && f.type === 'password') {
+          if (isRegistrationPasswordField(f)) {
             candidates.push(dynamicData[f.fieldName]);
           }
         }
