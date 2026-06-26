@@ -97,6 +97,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   });
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>(loadDynamicData);
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
   const [updateContext, setUpdateContext] = useState<ResolvedRegistrationUpdate | null>(null);
