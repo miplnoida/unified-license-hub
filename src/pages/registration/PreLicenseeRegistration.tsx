@@ -16,7 +16,13 @@ import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep, RegField } from '@/types/registrationForm';
-import { resolveRegistrationEmail, resolveRegistrationPassword } from '@/lib/registrationEmail';
+import {
+  getRegistrationCredentialSchemaFields,
+  isRegistrationEmailField,
+  isRegistrationPasswordField,
+  resolveRegistrationEmail,
+  resolveRegistrationPassword,
+} from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
@@ -106,6 +112,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   const [documentsTouched, setDocumentsTouched] = useState(false);
   const [pendingPrimaryEmailChecks, setPendingPrimaryEmailChecks] = useState<Record<string, boolean>>({});
   const latestPrimaryEmailCheckRef = useRef<Record<string, number>>({});
+  const dynamicFormDataRef = useRef<Record<string, unknown>>(dynamicFormData);
   // Captures the last dynamic-step validation result so handleNext/handleSubmit
   // can show a summary toast naming the offending fields with their labels.
   const lastDynamicErrorsRef = useRef<{ errs: Record<string, string>; step: RegStep | null }>({ errs: {}, step: null });
@@ -175,6 +182,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
   // Persist dynamic step data so going back to previous steps preserves entries
   useEffect(() => {
+    dynamicFormDataRef.current = dynamicFormData;
     if (isUpdateMode) return;
     try {
       sessionStorage.setItem(DYNAMIC_DATA_KEY, JSON.stringify(dynamicFormData));
@@ -639,7 +647,11 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
   };
 
   const handleDynamicFieldChange = useCallback((fieldName: string, value: unknown) => {
-    setDynamicFormData(prev => ({ ...prev, [fieldName]: value }));
+    setDynamicFormData(prev => {
+      const next = { ...prev, [fieldName]: value };
+      dynamicFormDataRef.current = next;
+      return next;
+    });
     setDynamicErrors(prev => {
       const next = { ...prev };
       delete next[fieldName];
@@ -808,10 +820,44 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
 
     setSubmitting(true);
     try {
-      const emailVal = (effectiveEmail || form.email || String(dynamicFormData.email || '')).trim().toLowerCase();
-      const passwordVal = resolveRegistrationPassword(form.password, dynamicFormData, config?.formSchema);
+      const latestDynamicFormData = dynamicFormDataRef.current;
+      const emailVal = resolveRegistrationEmail(form.email, latestDynamicFormData, config?.formSchema);
+      const passwordVal = resolveRegistrationPassword(form.password, latestDynamicFormData, config?.formSchema);
+      const credentialSchemaFields = getRegistrationCredentialSchemaFields(config?.formSchema);
+
+      console.log('registration submit resolved emailVal', emailVal);
+      console.log('registration submit resolved passwordVal', passwordVal ? 'present' : 'missing');
+      console.log('registration submit dynamicFormData keys', Object.keys(latestDynamicFormData));
+      console.log('registration submit credential schema fields', credentialSchemaFields);
 
       if (!emailVal || !passwordVal) {
+        const credentialErrors: Record<string, string> = {};
+        let targetStepIndex = -1;
+
+        if (!emailVal) {
+          const emailField = config?.formSchema
+            ?.flatMap((step, stepIndex) => step.rows.flatMap(row => row.columns.map(col => ({ field: col.field, stepIndex }))))
+            .find(({ field }) => isRegistrationEmailField(field));
+          if (emailField?.field?.fieldName) {
+            credentialErrors[emailField.field.fieldName] = `${emailField.field.label || 'Email'} is required`;
+            targetStepIndex = emailField.stepIndex;
+          }
+        }
+
+        if (!passwordVal) {
+          const passwordField = config?.formSchema
+            ?.flatMap((step, stepIndex) => step.rows.flatMap(row => row.columns.map(col => ({ field: col.field, stepIndex }))))
+            .find(({ field }) => isRegistrationPasswordField(field));
+          if (passwordField?.field?.fieldName) {
+            credentialErrors[passwordField.field.fieldName] = `${passwordField.field.label || 'Password'} is required`;
+            if (targetStepIndex < 0) targetStepIndex = passwordField.stepIndex;
+          }
+        }
+
+        if (Object.keys(credentialErrors).length > 0) {
+          setDynamicErrors(prev => ({ ...prev, ...credentialErrors }));
+          if (targetStepIndex >= 0) setCurrentStep(targetStepIndex);
+        }
         toast.error('Email and password are required to complete registration.');
         setSubmitting(false);
         return;
@@ -821,22 +867,22 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         body: {
           email: emailVal,
           password: passwordVal,
-          first_name: form.firstName || String(dynamicFormData.first_name || ''),
-          last_name: form.lastName || String(dynamicFormData.last_name || ''),
+          first_name: form.firstName || String(latestDynamicFormData.first_name || ''),
+          last_name: form.lastName || String(latestDynamicFormData.last_name || ''),
           applicant_name: form.applicantName
-            || (applicantNameCheck.fieldName ? String(dynamicFormData[applicantNameCheck.fieldName] || '') : '')
-            || String(dynamicFormData.applicant_name || ''),
-          applicant_name_alt: form.applicantNameAlt || String(dynamicFormData.applicant_name_alt || ''),
-          sector_id: form.sectorId || String(dynamicFormData.sector || ''),
-          sub_sector_id: form.subSectorId || String(dynamicFormData.sub_sector || ''),
-          category_id: form.categoryId || String(dynamicFormData.category || ''),
+            || (applicantNameCheck.fieldName ? String(latestDynamicFormData[applicantNameCheck.fieldName] || '') : '')
+            || String(latestDynamicFormData.applicant_name || ''),
+          applicant_name_alt: form.applicantNameAlt || String(latestDynamicFormData.applicant_name_alt || ''),
+          sector_id: form.sectorId || String(latestDynamicFormData.sector || ''),
+          sub_sector_id: form.subSectorId || String(latestDynamicFormData.sub_sector || ''),
+          category_id: form.categoryId || String(latestDynamicFormData.category || ''),
           mailing_address: form.mailingAddress,
           physical_address: form.sameAsMailing ? form.mailingAddress : form.physicalAddress,
           same_as_mailing: form.sameAsMailing,
-          telephone: form.telephone || String(dynamicFormData.telephone || ''),
-          username: form.username || String(dynamicFormData.username || '') || null,
-          registration_number: form.registrationNumber || String(dynamicFormData.registration_number || '') || null,
-          entity_specific_data: { ...form.entitySpecificData, ...dynamicFormData },
+          telephone: form.telephone || String(latestDynamicFormData.telephone || ''),
+          username: form.username || String(latestDynamicFormData.username || '') || null,
+          registration_number: form.registrationNumber || String(latestDynamicFormData.registration_number || '') || null,
+          entity_specific_data: { ...form.entitySpecificData, ...latestDynamicFormData },
           documents_metadata: form.documents,
           terms_accepted: true, // validated before reaching submit
         },
