@@ -58,6 +58,7 @@ export const adminRoutes = (
     <Route path="/admin/forms" element={<M module="form_management"><FormManagement /></M>} />
     <Route path="/admin/forms/pre-license" element={<Navigate to="/admin/forms?tab=pre_license" replace />} />
     <Route path="/admin/forms/post-license" element={<Navigate to="/admin/forms?tab=post_license" replace />} />
+    <Route path="/admin/forms/internal" element={<Navigate to="/admin/forms?tab=internal" replace />} />
     <Route path="/admin/forms/create" element={<M module="form_management"><FormBuilder /></M>} />
     <Route path="/admin/forms/:templateId/view" element={<M module="form_management"><FormTemplateView /></M>} />
 
