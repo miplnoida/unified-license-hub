@@ -695,16 +695,18 @@ export default function FormBuilder() {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Sector</Label>
-                <Select value={selectedSector} onValueChange={handleSectorChange} disabled={isViewMode}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="Select sector" /></SelectTrigger>
-                  <SelectContent>
-                    {activeSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              {selectedSector && (
+              {formType !== 'internal' && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Sector</Label>
+                  <Select value={selectedSector} onValueChange={handleSectorChange} disabled={isViewMode}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Select sector" /></SelectTrigger>
+                    <SelectContent>
+                      {activeSectors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formType !== 'internal' && selectedSector && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Sub-Sector</Label>
                   <Select value={selectedSubSector} onValueChange={handleSubSectorChange} disabled={isViewMode}>
@@ -715,7 +717,7 @@ export default function FormBuilder() {
                   </Select>
                 </div>
               )}
-              {selectedSubSector && (
+              {formType !== 'internal' && selectedSubSector && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Category</Label>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isViewMode}>
@@ -726,7 +728,7 @@ export default function FormBuilder() {
                   </Select>
                 </div>
               )}
-              {selectedSubSector && (
+              {formType !== 'internal' && selectedSubSector && (
                 <div className="space-y-1.5">
                   <Label className="text-xs">Service</Label>
                   <Select value={selectedService} onValueChange={setSelectedService} disabled={isViewMode}>
