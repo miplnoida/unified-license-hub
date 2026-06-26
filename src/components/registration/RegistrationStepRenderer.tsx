@@ -679,7 +679,7 @@ function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }:
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
-      const subdir = imageOnly ? 'signatures' : 'registrations';
+      const subdir = imageOnly ? 'registrations/signatures' : 'registrations';
       const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
