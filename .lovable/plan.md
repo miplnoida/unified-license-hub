@@ -1,30 +1,76 @@
-# Fix: /admin/registration-forms "Something went wrong"
+## Goal
+Extend the existing Applicant / Pre-Licensee Portal so it visually and functionally matches the uploaded LIC-APP spec — without rebuilding it, duplicating workflow logic, or touching backend/permissions/routes.
 
-## Root cause
-Console shows:
-`TypeError: Failed to fetch dynamically imported module: .../assets/RegistrationFormBuilder-De9aml2i.js`
+All data continues to flow through the existing hooks (`useApplicantMetrics`, `useApplicantLicenses`, `useLicenseExpiryStatus`, `useRegistrationApprovalStatus`, `useExternalPortalAccess`) and existing pages (`/applications`, `/applications/:id`, `/applications/new`, `/billing/pre-licensee`, renewal in `LicenseStatusList`).
 
-This is a stale-chunk error. The deployed `index.html` bundle was built against an older build of `RegistrationFormBuilder`, whose hashed JS file no longer exists on the CDN after a rebuild/redeploy. Any user with an open tab (or cached HTML) hits this when navigating to a lazy-loaded route. The `ErrorBoundary` catches it and renders the generic fallback — that is what the user sees on `/admin/registration-forms`.
+## Scope by Phase
 
-The page itself isn't broken; only the chunk fetch is.
+### Phase 1 — Welcome Banner + Summary Cards (extend existing)
+Extend the banner already in `ApplicantDashboard.tsx` to also surface:
+- Entity Name (from `applicant_metrics` / latest application `data.entity_name` or `data.applicant_name`)
+- Applicant Type (pre-licensee vs licensee via `EffectivePortalContext`)
+- Current Status chip (registration status when no licenses; license status otherwise)
 
-## Fix (frontend-only, no behavior change)
+Summary cards already exist; add **Rejected** to the top strip and ensure every card links to the existing filtered list route (no new pages).
 
-1. **Add `src/lib/lazyWithRetry.ts`** — a wrapper around `React.lazy` that:
-   - Retries the dynamic import once after a short delay.
-   - If it still fails with a chunk-load / dynamic-import error AND we haven't already reloaded this session, sets a `sessionStorage` flag and triggers `window.location.reload()` so the browser fetches the fresh `index.html` and its new chunk hashes.
-   - If the reload flag is already set (we just reloaded and still failing), rethrows so `ErrorBoundary` shows the existing fallback instead of infinite reloading.
+### Phase 2 — Required Forms as Cards
+New presentation-only component `src/components/dashboard/applicant/RequiredFormsList.tsx`.
+- Source: existing `useApplicantMetrics` recent applications **plus** existing `useFormTemplates`/registration required-forms hook already used inside `PreLicenseeDashboard` and registration flow (reuse, do not refetch).
+- Each card: Form Name, Description, Status badge, Progress (steps completed / total from existing draft data), Last Updated, primary CTA = Start / Continue / Resume routed to existing `/applications/:id/continue` or `/applications/new`.
 
-2. **Use it in `src/routes/adminRoutes.tsx`** for the lazy routes — at minimum `RegistrationFormBuilder`, and ideally swap all `lazy(...)` calls in that file to `lazyWithRetry(...)` since the same failure mode applies to every admin lazy route.
-   - Pure import swap, identical signature, no route or component changes.
+### Phase 3 — Action Required (reuse workflow statuses)
+The current `ApplicantDashboard` already lists `action_required` rows. Promote it into a richer card grid `src/components/dashboard/applicant/ActionRequiredList.tsx` showing:
+Application Number · Request Type (mapped from status: Info Requested / Resubmission Requested / Returned for Correction / Clarification / Needs Changes) · Requested Date (`updated_at`) · Status badge · **Continue** → existing `/applications/:id` route.
+No new tables, no new workflow calls.
 
-3. **Optionally extend to the other route files** (`dashboardRoutes.tsx`, `publicRoutes.tsx`, `settingsRoutes.tsx`, `returnsRoutes.tsx`) — same one-line swap. Recommended for consistency; will confirm scope with the user before doing it.
+### Phase 4 — Application Timeline
+New display-only component `src/components/dashboard/applicant/ApplicationTimeline.tsx`.
+- Input: the latest active application from existing metrics (or "most recent non-draft").
+- Renders fixed milestone steps (Draft → Submitted → Under Review → More Info Requested → Resubmitted → Approved / Rejected) and marks the reached step based on `status`. No workflow IDs exposed.
 
-## Out of scope
-- No changes to RegistrationFormBuilder, registration submit flow, signature upload, OTP, or anything else from earlier tasks.
-- No backend / RLS / edge function changes.
+### Phase 5 — Recent Activity
+New display-only component `src/components/dashboard/applicant/RecentActivityPanel.tsx`.
+- Reuse the existing `recent_applications` list already returned by `useApplicantMetrics` (already includes `updated_at`).
+- Map status → friendly verb (Draft Saved / Submitted / Returned / More Info Requested / Resubmitted / Approved / License Issued).
+- Empty state: "No recent activity".
+- Replaces the inline "Recent activity" section currently inside `ApplicantDashboard.tsx`.
 
-## Acceptance
-- Visiting `/admin/registration-forms` after a redeploy no longer shows "Something went wrong"; the page reloads once and renders normally.
-- If the chunk genuinely cannot load (offline, real 404 after reload), the existing ErrorBoundary fallback shows — no reload loop.
-- All other lazy routes behave the same as before.
+### Phase 6 — My Licenses
+Keep using existing `LicenseStatusList` (already wired with `renewMode="expired-only"`).
+- Add Issue Date and License Type columns by passing the values already on the row (`license_number`, `status`, `valid_until` are present; extend `useApplicantLicenses` select list with `issued_at, license_type` only — no schema change).
+
+### Phase 7 — Submission Acknowledgement
+Enhance `src/pages/registration/RegistrationSuccess.tsx` and (if present) the post-submit screen used by application submit. New shared component `src/components/applications/SubmissionAcknowledgement.tsx`:
+- Success banner, Reference Number, Submitted Date, Current Status, Expected Next Step (derived from status text).
+- Buttons: Return to Dashboard, Track Application (`/applications/:id`), Download Acknowledgement (placeholder button that triggers `window.print()` fallback when no backend endpoint).
+- Wire into `RegistrationSuccess` and the existing application-submit success screen (search call sites of `RegistrationSuccess` / submit redirect; do not change submit logic itself).
+
+### Phase 8 — Layout
+Reorganize `ApplicantDashboard.tsx` only:
+```text
+Row 1 (full): Welcome Banner
+Row 2 (full): Summary Cards (existing strip)
+Row 3:       [ Applications / Required Forms ]  [ Action Required ]
+Row 4:       [ Recent Activity ]                [ My Licenses ]
+```
+Responsive: stacks on mobile/tablet via existing Tailwind `lg:grid-cols-2`.
+
+## Technical Notes
+- All new files live under `src/components/dashboard/applicant/` plus `SubmissionAcknowledgement.tsx`. Pure presentation — no new queries except a light extension of `useApplicantLicenses` select fields.
+- No edits to: routes, edge functions, RLS/migrations, permissions, registration submit, OTP, signature, workflow engine, `PreLicenseeDashboard.tsx` table logic, `LicenseStatusList` renewal logic.
+- Reuses existing tokens/shadcn primitives — no hardcoded colors.
+
+## Verification Checklist (will be re-produced in final reply)
+- [ ] Welcome banner shows name, entity, registration #, applicant type, status
+- [ ] Summary cards: Draft, Submitted, Under Review, Approved, Rejected, Action Required, Pending Payments — all link to existing routes
+- [ ] Required Forms render as cards with Start/Continue/Resume → existing routes
+- [ ] Action Required cards built from existing workflow statuses; Continue opens existing edit page
+- [ ] Application Timeline derived from existing status field
+- [ ] Recent Activity sourced from existing `recent_applications`
+- [ ] My Licenses uses existing `LicenseStatusList` with Renew (expired-only)
+- [ ] Submission Acknowledgement shown after registration + application submit
+- [ ] Layout matches spec rows; responsive
+- [ ] No existing workflow/registration/permission/route/db changes
+
+## Out of Scope
+New RFI module, new renewal flow, permission changes, route changes, edge function changes, database migrations, registration submit logic, signature/OTP flow.
