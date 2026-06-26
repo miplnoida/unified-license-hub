@@ -2,7 +2,7 @@
 // Priority: static form.email > common dynamic field names > any field declared as type=email.
 // Always returns a trimmed, lowercased string (or '' if none found).
 
-import type { RegFormSchema } from '@/types/registrationForm';
+import type { RegField, RegFormSchema } from '@/types/registrationForm';
 
 const COMMON_KEYS = [
   'email',
@@ -17,7 +17,7 @@ function normalizeMeta(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
-function credentialMeta(field: NonNullable<RegFormSchema[number]['rows'][number]['columns'][number]['field']>) {
+function credentialMeta(field: RegField) {
   return {
     fieldName: normalizeMeta(field.fieldName),
     label: normalizeMeta(field.label),
@@ -30,7 +30,7 @@ function containsConfirm(value: string): boolean {
 }
 
 export function isRegistrationConfirmPasswordField(
-  field?: NonNullable<RegFormSchema[number]['rows'][number]['columns'][number]['field']> | null,
+  field?: RegField | null,
 ): boolean {
   if (!field) return false;
   const meta = credentialMeta(field);
@@ -39,7 +39,7 @@ export function isRegistrationConfirmPasswordField(
 }
 
 export function isRegistrationPasswordField(
-  field?: NonNullable<RegFormSchema[number]['rows'][number]['columns'][number]['field']> | null,
+  field?: RegField | null,
 ): boolean {
   if (!field || isRegistrationConfirmPasswordField(field)) return false;
   const meta = credentialMeta(field);
@@ -47,7 +47,7 @@ export function isRegistrationPasswordField(
 }
 
 export function isRegistrationEmailField(
-  field?: NonNullable<RegFormSchema[number]['rows'][number]['columns'][number]['field']> | null,
+  field?: RegField | null,
 ): boolean {
   if (!field) return false;
   const meta = credentialMeta(field);
