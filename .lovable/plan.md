@@ -1,46 +1,30 @@
-## Problem
+# Fix: /admin/registration-forms "Something went wrong"
 
-On the public registration form (`/register`), Step 1, after entering an email and clicking **Next**, the user gets the toast **"Please wait — verifying email availability…"** and is blocked from advancing.
+## Root cause
+Console shows:
+`TypeError: Failed to fetch dynamically imported module: .../assets/RegistrationFormBuilder-De9aml2i.js`
 
-Root cause in `src/pages/registration/PreLicenseeRegistration.tsx`:
+This is a stale-chunk error. The deployed `index.html` bundle was built against an older build of `RegistrationFormBuilder`, whose hashed JS file no longer exists on the CDN after a rebuild/redeploy. Any user with an open tab (or cached HTML) hits this when navigating to a lazy-loaded route. The `ErrorBoundary` catches it and renders the generic fallback — that is what the user sees on `/admin/registration-forms`.
 
-- The hook `usePrimaryUserEmailUniqueness` debounces 500ms before calling the RPC `check_primary_user_email_exists`, and synchronously sets `status = 'checking'` the moment `effectiveEmail` changes.
-- `handleDynamicFieldBlur` separately fires the same RPC on blur and sets `pendingPrimaryEmailChecks[fieldName] = true` until it resolves.
-- `handleNext` (line 535) and `handleSubmit` (line 710) hard-block with that toast whenever `status === 'checking'` OR `hasPending` is true.
-- A user typing an email and immediately clicking Next is inside the 500 ms debounce window (or the ~200–500 ms RPC roundtrip), so they hit the block even though the email is fine.
+The page itself isn't broken; only the chunk fetch is.
 
-The RPC works (verified in DB) and the duplicate-detection logic itself is correct — only the UX of the "still checking" gate is wrong.
+## Fix (frontend-only, no behavior change)
 
-## Fix (minimal, frontend-only)
+1. **Add `src/lib/lazyWithRetry.ts`** — a wrapper around `React.lazy` that:
+   - Retries the dynamic import once after a short delay.
+   - If it still fails with a chunk-load / dynamic-import error AND we haven't already reloaded this session, sets a `sessionStorage` flag and triggers `window.location.reload()` so the browser fetches the fresh `index.html` and its new chunk hashes.
+   - If the reload flag is already set (we just reloaded and still failing), rethrows so `ErrorBoundary` shows the existing fallback instead of infinite reloading.
 
-Replace the synchronous toast-and-return guard with an **await-the-check** flow. No DB, no schema, no other workflows touched.
+2. **Use it in `src/routes/adminRoutes.tsx`** for the lazy routes — at minimum `RegistrationFormBuilder`, and ideally swap all `lazy(...)` calls in that file to `lazyWithRetry(...)` since the same failure mode applies to every admin lazy route.
+   - Pure import swap, identical signature, no route or component changes.
 
-### File: `src/pages/registration/PreLicenseeRegistration.tsx`
+3. **Optionally extend to the other route files** (`dashboardRoutes.tsx`, `publicRoutes.tsx`, `settingsRoutes.tsx`, `returnsRoutes.tsx`) — same one-line swap. Recommended for consistency; will confirm scope with the user before doing it.
 
-1. Add a small helper `ensurePrimaryEmailResolved(currentDynamicStep)` that:
-   - Resolves the primary-email field on the current step (uses existing `getPrimaryEmailFieldsForStep`).
-   - If `emailUniqueness.status === 'checking'` or any `pendingPrimaryEmailChecks[fieldName]` is true, **awaits** until they settle (poll a ref every 100 ms with a hard timeout of ~4 s).
-   - On timeout, fall back to a single direct `supabase.rpc('check_primary_user_email_exists', { p_email })` call to get a definitive answer and update `dynamicErrors` accordingly.
-   - Returns `{ duplicate: boolean }`.
-2. In `handleNext` (line 532-553):
-   - Remove the early `toast.error('Please wait — verifying email availability…')` return.
-   - Before `setCompletedSteps`, `await ensurePrimaryEmailResolved(...)`. If `duplicate`, show the existing `DUPLICATE_PRIMARY_EMAIL_SUBMIT_ERROR` toast and stop. Otherwise advance.
-   - While awaiting, set a local `isAdvancing` state to disable the Next button and show a subtle spinner (reuse existing button loading pattern).
-3. In `handleSubmit` (line 707): apply the same await-then-decide change for the final submit click.
-4. Keep the existing `validateCurrentStep`, duplicate-error toast, and `emailUniqueness.status === 'taken'` short-circuit intact — they still run after the await.
+## Out of scope
+- No changes to RegistrationFormBuilder, registration submit flow, signature upload, OTP, or anything else from earlier tasks.
+- No backend / RLS / edge function changes.
 
-### Out of scope (do not touch)
-
-- `usePrimaryUserEmailUniqueness.ts`, `primaryEmailValidation.ts`, RPC, schema, migrations.
-- `RegistrationStepRenderer`, `DynamicRegistrationStepper`, `FormRenderer`.
-- Applicant-name uniqueness, OTP/CAPTCHA, document upload, save-draft, resubmit, declarations, review acknowledgement.
-- Admin form builder, generic application/return/workflow forms.
-
-## Verification
-
-1. `/register` → Step 1 → type a fresh email → immediately click **Next**: button briefly disables (≤ ~500 ms), step advances, no false toast.
-2. Type a known-existing email → click Next: inline field error + duplicate toast, step does not advance.
-3. Slow-network simulation (3G): Next button shows spinner until RPC resolves, then either advances or shows duplicate error.
-4. Final Submit on last step behaves identically.
-5. Save Draft, resubmission deep-link, OTP verify, document upload, and admin preview unaffected.
-6. `tsgo` typecheck passes.
+## Acceptance
+- Visiting `/admin/registration-forms` after a redeploy no longer shows "Something went wrong"; the page reloads once and renders normally.
+- If the chunk genuinely cannot load (offline, real 404 after reload), the existing ErrorBoundary fallback shows — no reload loop.
+- All other lazy routes behave the same as before.
