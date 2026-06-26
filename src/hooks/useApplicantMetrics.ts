@@ -7,6 +7,8 @@ const head = async (q: any): Promise<number> => {
   return count ?? 0;
 };
 
+export type ApplicantMetricsScope = 'all' | 'pre' | 'post';
+
 export interface ApplicantMetrics {
   applications: {
     draft: number;
@@ -25,27 +27,51 @@ export interface ApplicantMetrics {
   };
 }
 
-export function useApplicantMetrics(userId: string | undefined) {
+// Apply pre/post-license scoping at the application query level. Post-license
+// applications always carry a `service_id` inside `data` (set during
+// NewPostLicenseApplication); pre-license never do.
+function scopeApps(q: any, scope: ApplicantMetricsScope) {
+  if (scope === 'pre') {
+    return q.is('data->>service_id', null).neq('data->>type', 'post_license');
+  }
+  if (scope === 'post') {
+    return q.not('data->>service_id', 'is', null);
+  }
+  return q;
+}
+
+export function useApplicantMetrics(userId: string | undefined, scope: ApplicantMetricsScope = 'all') {
   return useQuery<ApplicantMetrics>({
-    queryKey: ['applicant-metrics', userId],
+    queryKey: ['applicant-metrics', userId, scope],
     enabled: !!userId,
     staleTime: 60_000,
     queryFn: async () => {
+      const apps = (status: string | string[]) => {
+        const base = supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!);
+        const filtered = Array.isArray(status) ? base.in('status', status) : base.eq('status', status);
+        return scopeApps(filtered, scope);
+      };
+
       const [draft, submitted, under_review, approved, rejected, clarification, resubmission, payPending, payPaid, notif] = await Promise.all([
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'draft')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['submitted', 'in_progress'])),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['under_review', 'in_review', 'review', 'pending_review'])),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'approved')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).eq('status', 'rejected')),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['query_raised', 'info_requested'])),
-        head(supabase.from('applications').select('*', { count: 'exact', head: true }).eq('applicant_id', userId!).in('status', ['resubmission_requested', 'resubmission_required', 'returned_for_correction'])),
+        head(apps('draft')),
+        head(apps(['submitted', 'in_progress'])),
+        head(apps(['under_review', 'in_review', 'review', 'pending_review'])),
+        head(apps('approved')),
+        head(apps('rejected')),
+        head(apps(['query_raised', 'info_requested'])),
+        head(apps(['resubmission_requested', 'resubmission_required', 'returned_for_correction'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId!).in('status', ['pending', 'awaiting_verification'])),
         head(supabase.from('payments').select('*', { count: 'exact', head: true }).eq('user_id', userId!).in('status', ['paid', 'completed', 'verified'])),
         head(supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId!).eq('read', false)),
       ]);
 
+      const recentAppsQuery = scopeApps(
+        supabase.from('applications').select('id, application_number, status, created_at').eq('applicant_id', userId!),
+        scope,
+      ).order('created_at', { ascending: false }).limit(5);
+
       const [recentAppsRes, pendingPaymentsRes] = await Promise.all([
-        supabase.from('applications').select('id, application_number, status, created_at').eq('applicant_id', userId!).order('created_at', { ascending: false }).limit(5),
+        recentAppsQuery,
         supabase.from('payments').select('id, amount, status, created_at').eq('user_id', userId!).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5),
       ]);
 
@@ -71,4 +97,3 @@ export function useApplicantMetrics(userId: string | undefined) {
     },
   });
 }
-

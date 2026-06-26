@@ -4,6 +4,7 @@ import { useApplicantMetrics } from '@/hooks/useApplicantMetrics';
 import { useExternalPortalAccess } from '@/hooks/useExternalPortalAccess';
 import { useApplicantLicenses } from '@/hooks/useApplicantLicenses';
 import { useLicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
+import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { MetricCard } from './cards/MetricCard';
 import { InsightCard } from './cards/InsightCard';
@@ -20,9 +21,14 @@ const fmtMoney = (v: number) =>
 export function ApplicantDashboard() {
   const { user } = useAuth();
   const portalAccess = useExternalPortalAccess();
-  const { data, isLoading } = useApplicantMetrics(user?.id);
+  const portalCtx = useEffectivePortalContext();
+  const scope: 'pre' | 'all' = portalCtx.isPreLicensee ? 'pre' : 'all';
+  const appsListPath = portalCtx.isPreLicensee ? '/applications?type=pre' : '/applications';
+  const draftsPath = portalCtx.isPreLicensee ? '/applications?type=pre&status=draft' : '/applications?status=draft';
+  const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
   const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
+
   const canUseLicensing = portalAccess.hasAreaAccess('licensing') && portalAccess.can('licensing', 'can_view_status');
   const canStartApplication = portalAccess.can('licensing', 'can_submit');
 
