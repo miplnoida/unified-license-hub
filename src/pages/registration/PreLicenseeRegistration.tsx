@@ -830,12 +830,14 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
       const latestDynamicFormData = dynamicFormDataRef.current;
       const emailVal = resolveRegistrationEmail(form.email, latestDynamicFormData, config?.formSchema);
       const passwordVal = resolveRegistrationPassword(form.password, latestDynamicFormData, config?.formSchema);
-      const credentialSchemaFields = getRegistrationCredentialSchemaFields(config?.formSchema);
-
-      console.log('registration submit resolved emailVal', emailVal);
-      console.log('registration submit resolved passwordVal', passwordVal ? 'present' : 'missing');
-      console.log('registration submit dynamicFormData keys', Object.keys(latestDynamicFormData));
-      console.log('registration submit credential schema fields', credentialSchemaFields);
+      const firstNameVal = resolveRegistrationFirstName(form.firstName, latestDynamicFormData, config?.formSchema);
+      const lastNameVal = resolveRegistrationLastName(form.lastName, latestDynamicFormData, config?.formSchema);
+      const applicantNameVal = resolveRegistrationApplicantName(
+        form.applicantName,
+        latestDynamicFormData,
+        config?.formSchema,
+        applicantNameCheck.fieldName,
+      );
 
       if (!emailVal || !passwordVal) {
         const credentialErrors: Record<string, string> = {};
@@ -870,15 +872,53 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
         return;
       }
 
+      if (!firstNameVal || !lastNameVal || !applicantNameVal) {
+        const identityErrors: Record<string, string> = {};
+        let targetStepIndex = -1;
+        const missingLabels: string[] = [];
+
+        if (!firstNameVal) {
+          const match = findRegistrationFirstNameField(config?.formSchema);
+          if (match?.field?.fieldName) {
+            identityErrors[match.field.fieldName] = `${match.field.label || 'First name'} is required`;
+            if (targetStepIndex < 0) targetStepIndex = match.stepIndex;
+          }
+          missingLabels.push('first name');
+        }
+        if (!lastNameVal) {
+          const match = findRegistrationLastNameField(config?.formSchema);
+          if (match?.field?.fieldName) {
+            identityErrors[match.field.fieldName] = `${match.field.label || 'Last name'} is required`;
+            if (targetStepIndex < 0) targetStepIndex = match.stepIndex;
+          }
+          missingLabels.push('last name');
+        }
+        if (!applicantNameVal) {
+          const match = findRegistrationApplicantNameField(config?.formSchema);
+          const fieldName = match?.field?.fieldName || applicantNameCheck.fieldName;
+          if (fieldName) {
+            identityErrors[fieldName] = `${match?.field?.label || 'Applicant name'} is required`;
+            if (targetStepIndex < 0 && match) targetStepIndex = match.stepIndex;
+          }
+          missingLabels.push('applicant name');
+        }
+
+        if (Object.keys(identityErrors).length > 0) {
+          setDynamicErrors(prev => ({ ...prev, ...identityErrors }));
+          if (targetStepIndex >= 0) setCurrentStep(targetStepIndex);
+        }
+        toast.error(`Missing required fields: ${missingLabels.join(', ')}.`);
+        setSubmitting(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('register-pre-licensee', {
         body: {
           email: emailVal,
           password: passwordVal,
-          first_name: form.firstName || String(latestDynamicFormData.first_name || ''),
-          last_name: form.lastName || String(latestDynamicFormData.last_name || ''),
-          applicant_name: form.applicantName
-            || (applicantNameCheck.fieldName ? String(latestDynamicFormData[applicantNameCheck.fieldName] || '') : '')
-            || String(latestDynamicFormData.applicant_name || ''),
+          first_name: firstNameVal,
+          last_name: lastNameVal,
+          applicant_name: applicantNameVal,
           applicant_name_alt: form.applicantNameAlt || String(latestDynamicFormData.applicant_name_alt || ''),
           sector_id: form.sectorId || String(latestDynamicFormData.sector || ''),
           sub_sector_id: form.subSectorId || String(latestDynamicFormData.sub_sector || ''),
