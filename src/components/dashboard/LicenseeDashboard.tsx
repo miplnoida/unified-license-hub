@@ -69,6 +69,33 @@ export function LicenseeDashboard() {
   const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
   const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
 
+  // Detect in-flight renewal applications per license so we can swap the
+  // "Renew" button for a "Renewal in progress" link that opens the read-only
+  // ApplicationDetail view (submitted forms + history) instead of the
+  // editable renewal form.
+  const licenseIds = useMemo(
+    () => (data?.licenses.list ?? []).map((l) => l.id),
+    [data?.licenses.list],
+  );
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (licenseIds.length === 0) { setPendingRenewalByLicense({}); return; }
+      const { data: rows } = await supabase
+        .from('applications')
+        .select('id, status, data')
+        .in('status', PENDING_RENEWAL_STATUSES as any);
+      const next: Record<string, { id: string; status: string }> = {};
+      for (const r of (rows || []) as any[]) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
+      }
+      if (!cancelled) setPendingRenewalByLicense(next);
+    })();
+    return () => { cancelled = true; };
+  }, [licenseIds]);
+
   const insights = useMemo(() => {
     if (!data) return [];
     return buildInsights({
