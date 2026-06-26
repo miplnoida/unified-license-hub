@@ -198,6 +198,10 @@ describe('resolveRegistrationFirstName', () => {
     const schema = buildSchema([{ label: 'Name', fieldName: 'firstName' }]);
     expect(resolveRegistrationFirstName('', { firstName: 'Eve' }, schema)).toBe('Eve');
   });
+  it('falls back to the first token from Full Legal Name', () => {
+    const schema = buildSchema([{ label: 'Full Legal Name', fieldName: 'full_legal_name' }]);
+    expect(resolveRegistrationFirstName('', { full_legal_name: 'Jane Mary Doe' }, schema)).toBe('Jane');
+  });
 });
 
 describe('resolveRegistrationLastName', () => {
@@ -208,6 +212,10 @@ describe('resolveRegistrationLastName', () => {
   it('matches by label "Family Name"', () => {
     const schema = buildSchema([{ label: 'Family Name', fieldName: 'pu_lname' }]);
     expect(resolveRegistrationLastName('', { pu_lname: 'Doe' }, schema)).toBe('Doe');
+  });
+  it('falls back to remaining tokens from Full Legal Name', () => {
+    const schema = buildSchema([{ label: 'Full Legal Name', fieldName: 'full_legal_name' }]);
+    expect(resolveRegistrationLastName('', { full_legal_name: 'Jane Mary Doe' }, schema)).toBe('Mary Doe');
   });
 });
 
@@ -226,6 +234,16 @@ describe('resolveRegistrationApplicantName', () => {
   });
   it('static wins over dynamic', () => {
     expect(resolveRegistrationApplicantName('Static Co', { entity_name: 'Other' })).toBe('Static Co');
+  });
+  it('prefers Full Legal Name over later unrelated entity-name fields', () => {
+    const schema = buildSchema([
+      { label: 'Full Legal Name', fieldName: 'full_legal_name' },
+      { label: 'Entity Name', fieldName: 'shareholding_entity_name' },
+    ]);
+    expect(resolveRegistrationApplicantName('', {
+      full_legal_name: 'Jane Doe',
+      shareholding_entity_name: 'Other Entity',
+    }, schema)).toBe('Jane Doe');
   });
 });
 
