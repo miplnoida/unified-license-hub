@@ -16,7 +16,7 @@ import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep, RegField } from '@/types/registrationForm';
-import { resolveRegistrationEmail } from '@/lib/registrationEmail';
+import { resolveRegistrationEmail, resolveRegistrationPassword } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
@@ -809,7 +809,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setSubmitting(true);
     try {
       const emailVal = (effectiveEmail || form.email || String(dynamicFormData.email || '')).trim().toLowerCase();
-      const passwordVal = form.password || String(dynamicFormData.password || '');
+      const passwordVal = resolveRegistrationPassword(form.password, dynamicFormData, config?.formSchema);
 
       if (!emailVal || !passwordVal) {
         toast.error('Email and password are required to complete registration.');

@@ -43,3 +43,41 @@ export function resolveRegistrationEmail(
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
+
+// Resolves the registration account password. Mirrors resolveRegistrationEmail.
+// Priority: static form.password > common dynamic keys > any field declared as
+// type=password (excluding confirm_password). Returns the raw string.
+const COMMON_PASSWORD_KEYS = [
+  'password',
+  'user_password',
+  'primary_password',
+  'primary_user_password',
+  'login_password',
+  'account_password',
+];
+
+export function resolveRegistrationPassword(
+  staticPassword: string | undefined,
+  dynamicData: Record<string, unknown>,
+  schema?: RegFormSchema | null,
+): string {
+  const candidates: unknown[] = [staticPassword];
+  for (const k of COMMON_PASSWORD_KEYS) candidates.push(dynamicData[k]);
+  if (schema) {
+    for (const step of schema) {
+      for (const row of step.rows) {
+        for (const col of row.columns) {
+          const f = col.field;
+          if (f && f.type === 'password') {
+            candidates.push(dynamicData[f.fieldName]);
+          }
+        }
+      }
+    }
+  }
+  for (const v of candidates) {
+    if (typeof v === 'string' && v.length > 0) return v;
+  }
+  return '';
+}
+
