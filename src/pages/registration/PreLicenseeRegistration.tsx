@@ -809,7 +809,7 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
     setSubmitting(true);
     try {
       const emailVal = (effectiveEmail || form.email || String(dynamicFormData.email || '')).trim().toLowerCase();
-      const passwordVal = form.password || String(dynamicFormData.password || '');
+      const passwordVal = resolveRegistrationPassword(form.password, dynamicFormData, config?.formSchema);
 
       if (!emailVal || !passwordVal) {
         toast.error('Email and password are required to complete registration.');
