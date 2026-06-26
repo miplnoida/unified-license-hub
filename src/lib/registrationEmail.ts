@@ -164,32 +164,48 @@ function normalizeKey(value: unknown): string {
   return typeof value === 'string' ? value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') : '';
 }
 
+function normalizeCompact(value: unknown): string {
+  return typeof value === 'string' ? value.toLowerCase().replace(/[^a-z0-9]+/g, '') : '';
+}
+
+function getDynamicValue(dynamicData: Record<string, unknown>, key: string): unknown {
+  if (Object.prototype.hasOwnProperty.call(dynamicData, key)) return dynamicData[key];
+  const normalized = normalizeKey(key);
+  const compact = normalizeCompact(key);
+  for (const [dataKey, value] of Object.entries(dynamicData)) {
+    if (normalizeKey(dataKey) === normalized || normalizeCompact(dataKey) === compact) return value;
+  }
+  return undefined;
+}
+
 function fieldMeta(field: RegField) {
   return {
     fieldName: normalizeKey(field.fieldName),
+    compactFieldName: normalizeCompact(field.fieldName),
     label: normalizeKey(field.label),
+    compactLabel: normalizeCompact(field.label),
     rawFieldName: typeof field.fieldName === 'string' ? field.fieldName : '',
     labelText: typeof field.label === 'string' ? field.label.toLowerCase() : '',
   };
 }
 
 const FIRST_NAME_KEYS = [
-  'first_name', 'firstname', 'given_name', 'givenname',
+  'first_name', 'firstName', 'firstname', 'given_name', 'givenName', 'givenname',
   'primary_user_first_name', 'contact_first_name', 'applicant_first_name',
 ];
 const FIRST_NAME_LABEL_TOKENS = ['first name', 'given name'];
 
 const LAST_NAME_KEYS = [
-  'last_name', 'lastname', 'surname', 'family_name', 'familyname',
+  'last_name', 'lastName', 'lastname', 'surname', 'family_name', 'familyName', 'familyname',
   'primary_user_last_name', 'contact_last_name', 'applicant_last_name',
 ];
 const LAST_NAME_LABEL_TOKENS = ['last name', 'surname', 'family name'];
 
 const APPLICANT_NAME_KEYS = [
-  'applicant_name', 'applicantname',
-  'entity_name', 'entityname',
-  'legal_name', 'legalname',
-  'company_name', 'companyname',
+  'applicant_name', 'applicantName', 'applicantname',
+  'entity_name', 'entityName', 'entityname',
+  'legal_name', 'legalName', 'legalname',
+  'company_name', 'companyName', 'companyname',
   'business_name', 'businessname',
   'licensee_name', 'licenseename',
   'organisation_name', 'organisationname',
@@ -200,14 +216,58 @@ const APPLICANT_NAME_LABEL_TOKENS = [
   'business name', 'licensee name', 'organisation name', 'organization name',
 ];
 
+const FULL_NAME_KEYS = ['full_legal_name', 'fullLegalName', 'full_name', 'fullName'];
+const FULL_NAME_LABEL_TOKENS = ['full legal name', 'full name'];
+
+function normalizedKeySet(keys: string[]): Set<string> {
+  return new Set(keys.flatMap(k => [normalizeKey(k), normalizeCompact(k)]));
+}
+
 function fieldMatches(field: RegField | undefined | null, keys: string[], labelTokens: string[]): boolean {
   if (!field) return false;
   const meta = fieldMeta(field);
-  if (keys.includes(meta.fieldName)) return true;
+  const keySet = normalizedKeySet(keys);
+  if (keySet.has(meta.fieldName) || keySet.has(meta.compactFieldName)) return true;
   for (const token of labelTokens) {
-    if (meta.labelText.includes(token)) return true;
+    if (meta.labelText.includes(token) || meta.label.includes(normalizeKey(token)) || meta.compactLabel.includes(normalizeCompact(token))) return true;
   }
   return false;
+}
+
+function resolveFullNameValue(
+  dynamicData: Record<string, unknown>,
+  schema: RegFormSchema | null | undefined,
+): string {
+  const candidates: unknown[] = [];
+  for (const k of FULL_NAME_KEYS) candidates.push(getDynamicValue(dynamicData, k));
+  if (schema) {
+    for (const step of schema) {
+      for (const row of step.rows) {
+        for (const col of row.columns) {
+          if (fieldMatches(col.field, FULL_NAME_KEYS, FULL_NAME_LABEL_TOKENS)) {
+            candidates.push(dynamicData[col.field!.fieldName]);
+          }
+        }
+      }
+    }
+  }
+  for (const v of candidates) {
+    if (typeof v === 'string') {
+      const t = v.trim().replace(/\s+/g, ' ');
+      if (t) return t;
+    }
+  }
+  return '';
+}
+
+function splitFirstName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return parts[0] || '';
+}
+
+function splitLastName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  return parts.length > 1 ? parts.slice(1).join(' ') : '';
 }
 
 function resolveByMatcher(
@@ -219,8 +279,8 @@ function resolveByMatcher(
   extraFieldNames: string[] = [],
 ): string {
   const candidates: unknown[] = [staticValue];
-  for (const k of keys) candidates.push(dynamicData[k]);
-  for (const k of extraFieldNames) if (k) candidates.push(dynamicData[k]);
+  for (const k of keys) candidates.push(getDynamicValue(dynamicData, k));
+  for (const k of extraFieldNames) if (k) candidates.push(getDynamicValue(dynamicData, k));
   if (schema) {
     for (const step of schema) {
       for (const row of step.rows) {
@@ -246,7 +306,8 @@ export function resolveRegistrationFirstName(
   dynamicData: Record<string, unknown>,
   schema?: RegFormSchema | null,
 ): string {
-  return resolveByMatcher(staticValue, dynamicData, schema, FIRST_NAME_KEYS, FIRST_NAME_LABEL_TOKENS);
+  const direct = resolveByMatcher(staticValue, dynamicData, schema, FIRST_NAME_KEYS, FIRST_NAME_LABEL_TOKENS);
+  return direct || splitFirstName(resolveFullNameValue(dynamicData, schema));
 }
 
 export function resolveRegistrationLastName(
@@ -254,7 +315,8 @@ export function resolveRegistrationLastName(
   dynamicData: Record<string, unknown>,
   schema?: RegFormSchema | null,
 ): string {
-  return resolveByMatcher(staticValue, dynamicData, schema, LAST_NAME_KEYS, LAST_NAME_LABEL_TOKENS);
+  const direct = resolveByMatcher(staticValue, dynamicData, schema, LAST_NAME_KEYS, LAST_NAME_LABEL_TOKENS);
+  return direct || splitLastName(resolveFullNameValue(dynamicData, schema));
 }
 
 export function resolveRegistrationApplicantName(
@@ -263,16 +325,28 @@ export function resolveRegistrationApplicantName(
   schema?: RegFormSchema | null,
   applicantNameCheckFieldName?: string | null,
 ): string {
-  const extras = applicantNameCheckFieldName ? [applicantNameCheckFieldName] : [];
-  return resolveByMatcher(staticValue, dynamicData, schema, APPLICANT_NAME_KEYS, APPLICANT_NAME_LABEL_TOKENS, extras);
+  const explicit = resolveByMatcher(
+    staticValue,
+    dynamicData,
+    schema,
+    ['applicant_name', 'applicantName', 'applicantname'],
+    ['applicant name'],
+    applicantNameCheckFieldName ? [applicantNameCheckFieldName] : [],
+  );
+  if (explicit) return explicit;
+  const fullLegal = resolveFullNameValue(dynamicData, schema);
+  if (fullLegal) return fullLegal;
+  return resolveByMatcher(undefined, dynamicData, schema, APPLICANT_NAME_KEYS, APPLICANT_NAME_LABEL_TOKENS);
 }
 
 export function findRegistrationFirstNameField(schema?: RegFormSchema | null) {
-  return findFirstFieldMatch(schema, FIRST_NAME_KEYS, FIRST_NAME_LABEL_TOKENS);
+  return findFirstFieldMatch(schema, FIRST_NAME_KEYS, FIRST_NAME_LABEL_TOKENS)
+    || findFirstFieldMatch(schema, FULL_NAME_KEYS, FULL_NAME_LABEL_TOKENS);
 }
 
 export function findRegistrationLastNameField(schema?: RegFormSchema | null) {
-  return findFirstFieldMatch(schema, LAST_NAME_KEYS, LAST_NAME_LABEL_TOKENS);
+  return findFirstFieldMatch(schema, LAST_NAME_KEYS, LAST_NAME_LABEL_TOKENS)
+    || findFirstFieldMatch(schema, FULL_NAME_KEYS, FULL_NAME_LABEL_TOKENS);
 }
 
 export function findRegistrationApplicantNameField(schema?: RegFormSchema | null) {

@@ -24,11 +24,38 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { email, code, channel = "email", purpose = "registration" } = await req.json();
+    const { email, code, channel = "email", purpose = "registration", checkOnly = false } = await req.json();
 
-    if (!email || !code) {
-      return new Response(JSON.stringify({ error: "Email and code are required" }), {
+    if (!email || (!checkOnly && !code)) {
+      return new Response(JSON.stringify({ error: checkOnly ? "Email is required" : "Email and code are required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    if (checkOnly) {
+      const { data: verifiedRecords, error: checkError } = await supabaseAdmin
+        .from("otp_verifications")
+        .select("id")
+        .eq("user_email", normalizedEmail)
+        .eq("channel", channel)
+        .eq("purpose", purpose)
+        .not("verified_at", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (checkError) {
+        console.error("OTP verification check error:", checkError);
+        return new Response(JSON.stringify({ verified: false }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ verified: !!verifiedRecords?.length }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -37,7 +64,7 @@ Deno.serve(async (req) => {
     const { data: otpRecords, error: fetchError } = await supabaseAdmin
       .from("otp_verifications")
       .select("*")
-      .eq("user_email", email)
+      .eq("user_email", normalizedEmail)
       .eq("channel", channel)
       .eq("purpose", purpose)
       .is("verified_at", null)

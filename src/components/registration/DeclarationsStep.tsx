@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,10 @@ function isValidUrl(url?: string): boolean {
   } catch {
     return false;
   }
+}
+
+function verifiedEmailMarkerKey(email: string): string {
+  return `registrationEmailVerified:${email.trim().toLowerCase()}`;
 }
 
 export function DeclarationsStep({
@@ -179,12 +183,63 @@ function OtpVerificationSection({
   // Resolved email: prefer parent-provided value (covers dynamic schemas), fall back to form.email.
   const resolvedEmail = (verificationEmail || form.email || '').trim().toLowerCase();
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail);
+  const previousEmailRef = useRef<string>('');
   const [otpSending, setOtpSending] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>('');
   const [otpCode, setOtpCode] = useState('');
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (!resolvedEmail || !emailValid) {
+      previousEmailRef.current = resolvedEmail;
+      return;
+    }
+
+    const previousEmail = previousEmailRef.current;
+    if (previousEmail && previousEmail !== resolvedEmail) {
+      try {
+        sessionStorage.removeItem(verifiedEmailMarkerKey(previousEmail));
+      } catch {}
+      setField('emailVerified', false);
+      setOtpSent(false);
+      setOtpCode('');
+      setSentToEmail('');
+    }
+    previousEmailRef.current = resolvedEmail;
+
+    let cancelled = false;
+    const applyVerified = () => {
+      if (!cancelled && !form.emailVerified) setField('emailVerified', true);
+    };
+
+    try {
+      if (sessionStorage.getItem(verifiedEmailMarkerKey(resolvedEmail)) === 'true') {
+        applyVerified();
+        return () => { cancelled = true; };
+      }
+    } catch {}
+
+    if (form.emailVerified) return () => { cancelled = true; };
+
+    (async () => {
+      try {
+        const { data } = await supabase.functions.invoke('verify-registration-otp', {
+          body: { email: resolvedEmail, channel: 'email', purpose: 'registration', checkOnly: true },
+        });
+        if (cancelled || !data?.verified) return;
+        try {
+          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
+        } catch {}
+        applyVerified();
+      } catch {
+        // Verification lookup is a UX optimization; submit remains server-validated.
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [resolvedEmail, emailValid, form.emailVerified, setField]);
 
   // If the user changes the email after sending an OTP, reset OTP-sent state.
   if (otpSent && sentToEmail && resolvedEmail !== sentToEmail) {
@@ -248,6 +303,9 @@ function OtpVerificationSection({
       if (error) { toast.error('Verification failed'); return; }
       if (data?.error) { toast.error(data.error); return; }
       if (data?.verified) {
+        try {
+          sessionStorage.setItem(verifiedEmailMarkerKey(resolvedEmail), 'true');
+        } catch {}
         setField('emailVerified', true);
         toast.success('Email verified successfully!');
       }
