@@ -41,6 +41,7 @@ const FORM_TYPES = [
   { value: 'post_license', label: 'Post-License' },
   { value: 'returns', label: 'Returns' },
   { value: 'registration', label: 'Registration' },
+  { value: 'internal', label: 'Internal' },
 ] as const;
 
 export default function FormManagement() {
