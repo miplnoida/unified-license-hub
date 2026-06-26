@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveRegistrationEmail, resolveRegistrationPassword, isValidEmail } from '@/lib/registrationEmail';
+import {
+  resolveRegistrationEmail,
+  resolveRegistrationPassword,
+  resolveRegistrationFirstName,
+  resolveRegistrationLastName,
+  resolveRegistrationApplicantName,
+  isValidEmail,
+} from '@/lib/registrationEmail';
 import type { RegFormSchema } from '@/types/registrationForm';
 
 const schema: RegFormSchema = [
@@ -152,3 +159,73 @@ describe('isValidEmail', () => {
     expect(isValidEmail('a@b')).toBe(false);
   });
 });
+
+import type { RegFormSchema as Schema } from '@/types/registrationForm';
+
+function buildSchema(fields: { label: string; fieldName: string; type?: string }[]): Schema {
+  return [{
+    id: 's1',
+    title: 'Step',
+    rows: fields.map((f, i) => ({
+      id: `r${i}`,
+      columns: [{
+        span: 12,
+        field: {
+          id: `f${i}`,
+          type: (f.type as any) || 'text',
+          label: f.label,
+          fieldName: f.fieldName,
+          required: true,
+        },
+      }],
+    })),
+  }];
+}
+
+describe('resolveRegistrationFirstName', () => {
+  it('returns static value when present', () => {
+    expect(resolveRegistrationFirstName('Alice', {})).toBe('Alice');
+  });
+  it('matches common dynamic keys', () => {
+    expect(resolveRegistrationFirstName('', { given_name: 'Bob' })).toBe('Bob');
+    expect(resolveRegistrationFirstName('', { primary_user_first_name: 'Carol' })).toBe('Carol');
+  });
+  it('matches custom builder fieldName by label', () => {
+    const schema = buildSchema([{ label: 'First Name', fieldName: 'pu_fname' }]);
+    expect(resolveRegistrationFirstName('', { pu_fname: 'Dan' }, schema)).toBe('Dan');
+  });
+  it('matches camelCase fieldName', () => {
+    const schema = buildSchema([{ label: 'Name', fieldName: 'firstName' }]);
+    expect(resolveRegistrationFirstName('', { firstName: 'Eve' }, schema)).toBe('Eve');
+  });
+});
+
+describe('resolveRegistrationLastName', () => {
+  it('matches surname/family_name keys', () => {
+    expect(resolveRegistrationLastName('', { surname: 'Smith' })).toBe('Smith');
+    expect(resolveRegistrationLastName('', { family_name: 'Jones' })).toBe('Jones');
+  });
+  it('matches by label "Family Name"', () => {
+    const schema = buildSchema([{ label: 'Family Name', fieldName: 'pu_lname' }]);
+    expect(resolveRegistrationLastName('', { pu_lname: 'Doe' }, schema)).toBe('Doe');
+  });
+});
+
+describe('resolveRegistrationApplicantName', () => {
+  it('matches entity/legal/company keys', () => {
+    expect(resolveRegistrationApplicantName('', { entity_name: 'Acme' })).toBe('Acme');
+    expect(resolveRegistrationApplicantName('', { legal_name: 'Acme LLC' })).toBe('Acme LLC');
+    expect(resolveRegistrationApplicantName('', { company_name: 'Acme Co' })).toBe('Acme Co');
+  });
+  it('matches by builder label "Business Name"', () => {
+    const schema = buildSchema([{ label: 'Business Name', fieldName: 'biz' }]);
+    expect(resolveRegistrationApplicantName('', { biz: 'Acme Biz' }, schema)).toBe('Acme Biz');
+  });
+  it('honors applicantNameCheck fieldName fallback', () => {
+    expect(resolveRegistrationApplicantName('', { custom_name_field: 'Acme' }, null, 'custom_name_field')).toBe('Acme');
+  });
+  it('static wins over dynamic', () => {
+    expect(resolveRegistrationApplicantName('Static Co', { entity_name: 'Other' })).toBe('Static Co');
+  });
+});
+
