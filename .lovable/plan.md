@@ -1,34 +1,23 @@
-## Goal
-Scope the pre-licensee dashboard so counts, recent list, and the "View all" link only reflect pre-licensee applications (no post-licensee leakage).
+## Diagnosis
 
-## Changes
+The error is a classic stale-chunk issue, not a code bug:
 
-### 1. `src/hooks/useApplicantMetrics.ts`
-- Accept a second arg `scope: 'all' | 'pre' | 'post'` (default `'all'`, keyed into queryKey).
-- When scope is `'pre'`, add filters to every `applications` query (count queries + recent list):
-  - `.is('data->>service_id', null)` (post-license apps always carry a `service_id`)
-  - `.neq('data->>type', 'post_license')`
-- When scope is `'post'`, the inverse (kept for symmetry; not used yet).
-- Payments queries are unchanged.
+```
+Failed to fetch dynamically imported module:
+  /assets/Index-DWMKhdJK.js
+```
 
-### 2. `src/components/dashboard/ApplicantDashboard.tsx`
-- Read `useEffectivePortalContext()` to detect `isPreLicensee`.
-- Compute `scope = isPreLicensee ? 'pre' : 'all'`; pass it into `useApplicantMetrics(user?.id, scope)`.
-- Set application-related navigation targets to `/applications?type=pre` when `isPreLicensee`:
-  - All `MetricCard` `to` props that currently point to `/applications` or `/applications?status=draft`
-  - `PriorityListCard` "Recent applications" `viewAll.to`
-  - Row-level `to: /applications/${a.id}` is unchanged (detail page is shared).
-- Non-pre-licensee applicants keep current `/applications` targets.
+The user's browser tab was loaded against the previous build. After my last edit to `ApplicantDashboard.tsx` / `useApplicantMetrics.ts`, Vite rebuilt and re-hashed the lazy chunks, so the old `Index-DWMKhdJK.js` filename no longer exists on the server. Every lazy route fails to mount and the ErrorBoundary shows "Internal server error / Something went wrong".
 
-### 3. No change to `/applications` list page
-- `ApplicationsList` already derives header stats from the filtered (`typeFilter`) rows from the prior fix, so visiting `/applications?type=pre` shows correct counts and rows. No further work needed there.
+This is not an SSR/server outage — the dev server is up; only the cached tab is wedged.
 
-### 4. Out of scope (untouched)
-- LicenseeDashboard, SupervisoryDashboard.
-- `PreLicenseeDashboard.tsx` page (already filters out post-license).
-- Workflow, renewal, resubmission, and other prior fixes.
+## Plan
+
+1. Ask the user to do a hard reload of the preview (Ctrl/Cmd-Shift-R, or click "Reload page" on the error screen). This pulls the new asset manifest and the lazy chunks resolve again.
+2. If a hard reload alone doesn't recover the page, restart the Vite dev server in the sandbox to guarantee the manifest is fresh, then ask the user to reload once more.
+3. No source-code changes are required for this symptom. If after the reload the user still sees a real runtime error (different message / stack), I'll diagnose that separately.
 
 ## Verification
-- Sign-in as a pre-licensee: dashboard metric tiles (Drafts / Submitted / Under review / Approved / Action required) match the count shown on `/applications?type=pre`.
-- "View all" / "All" from Recent Applications and metric tiles navigates to `/applications?type=pre`, listing only pre-license rows with matching header counts.
-- Applicants who are not pre-licensee still see all their applications and links to `/applications`.
+
+- After reload, the preview should render `/dashboard` (or `/register`) normally with no ErrorBoundary screen.
+- Console should no longer show `Failed to fetch dynamically imported module`.
