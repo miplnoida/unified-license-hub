@@ -161,7 +161,14 @@ export function LicenseeDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-                    {canRenew && (
+                    {pendingRenewalByLicense[lic.id] ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
+                          <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                          {RENEWAL_STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
+                        </Link>
+                      </Button>
+                    ) : canRenew && (
                       <Button asChild size="sm" variant="outline">
                         <Link to={`/licenses/${lic.id}?action=renew`}>
                           <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew
