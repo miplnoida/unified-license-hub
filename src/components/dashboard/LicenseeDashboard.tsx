@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
@@ -15,6 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle, RefreshCw } from 'lucide-react';
 import { licenseeDrilldownTo, recordPath } from '@/lib/licenseeDashboardDrilldowns';
+import { supabase } from '@/integrations/supabase/client';
+
+// Treat a renewal as "in progress" once it's been submitted/under review/etc.
+// In these states the licensee must NOT re-open the editable renewal form —
+// they should land on the read-only ApplicationDetail with submitted forms
+// and full history (activity log).
+const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+const RENEWAL_STATUS_LABELS: Record<string, string> = {
+  submitted: 'Renewal submitted',
+  under_review: 'Renewal under review',
+  query_raised: 'Renewal query raised',
+  resubmission_requested: 'Renewal resubmission requested',
+};
 
 
 const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
