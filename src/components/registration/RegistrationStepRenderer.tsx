@@ -315,9 +315,18 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
   ]);
   const nameForMatch = `${field.label || ''} ${field.fieldName || ''}`.toLowerCase();
   const looksLikeSignature = /(^|[^a-z])signature([^a-z]|$)/.test(nameForMatch);
+  const looksLikeConfirmPassword = nameForMatch.includes('password') && nameForMatch.includes('confirm');
+  const looksLikePassword = nameForMatch.includes('password') && !looksLikeConfirmPassword;
+  const looksLikeEmail = nameForMatch.includes('email');
   const effectiveType: string = (looksLikeSignature && (field.type === 'text' || !KNOWN_REG_TYPES.has(field.type as string)))
     ? 'signature'
-    : field.type;
+    : (looksLikePassword && field.type !== 'password')
+      ? 'password'
+      : (looksLikeConfirmPassword && field.type !== 'confirm_password')
+        ? 'confirm_password'
+        : (looksLikeEmail && field.type !== 'email')
+          ? 'email'
+          : field.type;
 
   switch (effectiveType) {
     case 'text':
@@ -326,13 +335,13 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
     case 'confirm_password':
       input = (
         <Input
-          type={field.type === 'email' ? 'email' : (field.type === 'password' || field.type === 'confirm_password') ? 'password' : 'text'}
+          type={effectiveType === 'email' ? 'email' : (effectiveType === 'password' || effectiveType === 'confirm_password') ? 'password' : 'text'}
           value={strValue}
           onChange={e => handleChange(e.target.value)}
           onBlur={e => handleBlur(e.target.value)}
           placeholder={field.placeholder}
           disabled={readOnly}
-          autoComplete={(field.type === 'password' || field.type === 'confirm_password') ? 'new-password' : undefined}
+          autoComplete={(effectiveType === 'password' || effectiveType === 'confirm_password') ? 'new-password' : undefined}
           className={error ? 'border-destructive' : ''}
         />
       );
