@@ -1177,9 +1177,12 @@ export default function PreLicenseeRegistration({ mode = 'new' }: PreLicenseeReg
           </Button>
 
           {!isLastStep ? (
-            <Button onClick={handleNext} className="sm:ml-auto">
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
+            <Button onClick={handleNext} disabled={isAdvancing} className="sm:ml-auto">
+              {isAdvancing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Checking…</>
+              ) : (
+                <>Next<ArrowRight className="h-4 w-4 ml-2" /></>
+              )}
             </Button>
           ) : steps[currentStep]?.type === 'review' ? null : (
             <Button onClick={handleSubmit} disabled={submitting} size="lg" className="sm:ml-auto">
