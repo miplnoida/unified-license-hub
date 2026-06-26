@@ -12,7 +12,7 @@ import { PriorityListCard } from './cards/PriorityListCard';
 import { LicenseStatusList } from './cards/LicenseStatusList';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { FileText, DollarSign, Bell, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, DollarSign, PlusCircle, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 
 const fmtMoney = (v: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
