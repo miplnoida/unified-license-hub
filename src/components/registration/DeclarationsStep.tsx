@@ -211,7 +211,7 @@ function OtpVerificationSection({
 
     let cancelled = false;
     const applyVerified = () => {
-      if (!cancelled) setField('emailVerified', true);
+      if (!cancelled && !form.emailVerified) setField('emailVerified', true);
     };
 
     try {
