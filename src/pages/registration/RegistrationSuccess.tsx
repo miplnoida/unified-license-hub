@@ -17,6 +17,7 @@ export default function RegistrationSuccess() {
         status="Pending Review"
         nextStep="Your registration will be reviewed by the regulator. You will receive an email once a decision is made."
         dashboardHref="/"
+        trackHref="/registration/status"
       />
     </div>
   );
