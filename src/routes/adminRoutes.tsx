@@ -1,5 +1,5 @@
 import { Route, Navigate } from 'react-router-dom';
-import { lazy } from 'react';
+import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { AdminRoute, ModuleRoute } from '@/components/auth/RouteGuards';
 import type { PermissionModule } from '@/lib/permissionModules';

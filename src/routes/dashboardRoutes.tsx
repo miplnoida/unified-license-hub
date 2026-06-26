@@ -1,5 +1,5 @@
 import { Route } from 'react-router-dom';
-import { lazy } from 'react';
+import { lazyWithRetry as lazy } from '@/lib/lazyWithRetry';
 import { P } from '@/routes/routeHelpers';
 import { ModuleRoute } from '@/components/auth/RouteGuards';
 import { PortalRoute } from '@/components/auth/PortalRoute';
