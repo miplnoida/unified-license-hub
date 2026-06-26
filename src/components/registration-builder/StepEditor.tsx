@@ -197,8 +197,32 @@ export function StepEditor({ step, onChange, allSteps }: Props) {
               placeholder="Brief description for this step..."
             />
           </div>
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              id={`repeatable-${step.id}`}
+              type="checkbox"
+              checked={!!step.isRepeatable}
+              onChange={e => update({ isRepeatable: e.target.checked })}
+              className="h-3.5 w-3.5"
+            />
+            <Label htmlFor={`repeatable-${step.id}`} className="text-xs cursor-pointer">
+              Repeatable section (allow multiple entries)
+            </Label>
+          </div>
+          {step.isRepeatable && (
+            <div>
+              <Label className="text-xs">Entry label (singular)</Label>
+              <Input
+                value={step.repeatLabel || ''}
+                onChange={e => update({ repeatLabel: e.target.value })}
+                className="h-8 text-xs"
+                placeholder={`e.g. Qualification, Employment, Directorship`}
+              />
+            </div>
+          )}
         </div>
       </CardHeader>
+
 
       <CardContent className="space-y-3">
         {step.rows.map((row, rowIdx) => (
