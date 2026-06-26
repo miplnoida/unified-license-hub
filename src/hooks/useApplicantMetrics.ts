@@ -67,13 +67,27 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
       ]);
 
       const recentAppsQuery = scopeApps(
-        supabase.from('applications').select('id, application_number, status, created_at').eq('applicant_id', userId!),
+        supabase.from('applications').select('id, application_number, status, created_at, updated_at').eq('applicant_id', userId!),
         scope,
       ).order('created_at', { ascending: false }).limit(5);
 
-      const [recentAppsRes, pendingPaymentsRes] = await Promise.all([
+      const ACTION_REQUIRED_STATUSES = [
+        'query_raised',
+        'info_requested',
+        'resubmission_requested',
+        'resubmission_required',
+        'returned_for_correction',
+      ];
+
+      const actionRequiredQuery = scopeApps(
+        supabase.from('applications').select('id, application_number, status, updated_at').eq('applicant_id', userId!),
+        scope,
+      ).in('status', ACTION_REQUIRED_STATUSES).order('updated_at', { ascending: false }).limit(10);
+
+      const [recentAppsRes, pendingPaymentsRes, actionReqRes] = await Promise.all([
         recentAppsQuery,
         supabase.from('payments').select('id, amount, status, created_at').eq('user_id', userId!).in('status', ['pending', 'awaiting_verification']).order('created_at', { ascending: false }).limit(5),
+        actionRequiredQuery,
       ]);
 
       const outstanding_amount = ((pendingPaymentsRes.data || []) as any[]).reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -93,6 +107,7 @@ export function useApplicantMetrics(userId: string | undefined, scope: Applicant
         priority_lists: {
           recent_applications: (recentAppsRes.data || []) as any,
           pending_payments: (pendingPaymentsRes.data || []) as any,
+          action_required: (actionReqRes.data || []) as any,
         },
       };
     },
