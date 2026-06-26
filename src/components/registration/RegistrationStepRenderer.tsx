@@ -597,15 +597,20 @@ function InteractiveField({ field, value, error, onChange, onBlur, readOnly, all
 }
 
 /** File upload field that actually uploads to secure storage */
-function FileUploadField({ field, value, onChange, readOnly, error }: {
+function FileUploadField({ field, value, onChange, readOnly, error, imageOnly }: {
   field: RegField;
   value: unknown;
   onChange: (val: unknown) => void;
   readOnly?: boolean;
   error?: string;
+  imageOnly?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const IMAGE_ACCEPT = 'image/png,image/jpeg,image/jpg,image/webp,.png,.jpg,.jpeg,.webp';
+  const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp'];
 
   // Use the shared attachment detector so any file-shaped value (single object,
   // array, or legacy {fileName,url} shapes) renders View/Download actions.
@@ -613,21 +618,55 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
   const firstNormalized = hasAttachment ? normalizeAttachments(value)[0] : null;
   const fileData = firstNormalized ? { name: firstNormalized.name, path: firstNormalized.path || '', size: firstNormalized.size || 0 } : null;
 
+  // For signature fields, resolve a signed preview URL from the storage path.
+  const signaturePath = imageOnly && firstNormalized?.path ? firstNormalized.path : null;
+  useEffect(() => {
+    let cancelled = false;
+    if (!signaturePath) {
+      setPreviewUrl(null);
+      return;
+    }
+    supabase.storage
+      .from('secure-documents')
+      .createSignedUrl(signaturePath, 600)
+      .then(({ data }) => {
+        if (!cancelled) setPreviewUrl(data?.signedUrl || null);
+      });
+    return () => { cancelled = true; };
+  }, [signaturePath]);
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      toast.error(validation.error || 'Invalid file');
-      if (inputRef.current) inputRef.current.value = '';
-      return;
+    if (imageOnly) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const mimeOk = (file.type || '').startsWith('image/');
+      const extOk = IMAGE_EXT.includes(ext);
+      if (!mimeOk || !extOk) {
+        toast.error('Signature must be an image (PNG, JPG, JPEG, or WEBP).');
+        if (inputRef.current) inputRef.current.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Signature image must be 5MB or smaller.');
+        if (inputRef.current) inputRef.current.value = '';
+        return;
+      }
+    } else {
+      const validation = validateFile(file);
+      if (!validation.valid) {
+        toast.error(validation.error || 'Invalid file');
+        if (inputRef.current) inputRef.current.value = '';
+        return;
+      }
     }
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'pdf';
-      const filePath = `registrations/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || (imageOnly ? 'png' : 'pdf');
+      const subdir = imageOnly ? 'signatures' : 'registrations';
+      const filePath = `${subdir}/${crypto.randomUUID()}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('secure-documents')
@@ -666,7 +705,18 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
   if (hasAttachment) {
     return (
       <div className="space-y-1.5">
-        <AttachmentDisplay value={value} />
+        {imageOnly && previewUrl ? (
+          <div className="rounded-md border bg-muted/20 p-2 inline-block">
+            <img
+              src={previewUrl}
+              alt={fileData?.name || 'Signature'}
+              className="max-h-32 max-w-full object-contain"
+            />
+            <div className="text-[11px] text-muted-foreground mt-1 truncate">{fileData?.name}</div>
+          </div>
+        ) : (
+          <AttachmentDisplay value={value} />
+        )}
         {!readOnly && (
           <Button type="button" variant="ghost" size="sm" onClick={handleRemove} className="h-7 text-xs text-destructive hover:text-destructive">
             <X className="h-3 w-3 mr-1" /> Remove
@@ -681,7 +731,7 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPT_STRING}
+        accept={imageOnly ? IMAGE_ACCEPT : ACCEPT_STRING}
         onChange={handleFileSelect}
         className="hidden"
         id={`file-${field.fieldName}`}
@@ -697,9 +747,12 @@ function FileUploadField({ field, value, onChange, readOnly, error }: {
         {uploading ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
         ) : (
-          <><Upload className="h-4 w-4 mr-2" />Choose File</>
+          <><Upload className="h-4 w-4 mr-2" />{imageOnly ? 'Upload Signature Image' : 'Choose File'}</>
         )}
       </Button>
+      {imageOnly && (
+        <p className="text-[11px] text-muted-foreground mt-1">PNG, JPG, JPEG, or WEBP. Max 5MB.</p>
+      )}
     </div>
   );
 }
