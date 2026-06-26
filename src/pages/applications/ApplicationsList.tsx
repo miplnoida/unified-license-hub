@@ -445,7 +445,10 @@ export default function ApplicationsList() {
 
 
   // Header stat counts via dedicated RPC. Pending INCLUDES in_progress.
+  // Skipped when a pre/post type filter is active — stats are derived from the
+  // filtered list inside loadPage() so totals match the visible rows.
   useEffect(() => {
+    if (typeFilter) return;
     async function loadStats() {
       const { data, error } = await supabase.rpc('get_application_list_stats' as any, {
         _licensee_id: resolvedLicenseeId,
@@ -461,7 +464,7 @@ export default function ApplicationsList() {
       });
     }
     loadStats();
-  }, [refreshKey, resolvedLicenseeId, validActiveSectorId]);
+  }, [refreshKey, resolvedLicenseeId, validActiveSectorId, typeFilter]);
 
   // Lazy-load action history for a single application when its row is expanded.
   const ensureActionsLoaded = async (appId: string) => {
