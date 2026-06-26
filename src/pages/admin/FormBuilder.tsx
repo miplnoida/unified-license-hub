@@ -617,7 +617,7 @@ export default function FormBuilder() {
     }
   }, [formType, activeRegulatorId, selectedSector, selectedSubSector, selectedCategory, selectedService, dbSectors, dbSubSectors, dbCategories, dbServices, navigate]);
 
-  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : 'Form';
+  const formTypeLabel = formType === 'pre_license' ? 'Pre-License' : formType === 'post_license' ? 'Post-License' : formType === 'returns' ? 'Returns' : formType === 'registration' ? 'Registration' : formType === 'internal' ? 'Internal' : 'Form';
 
   return (
     <DashboardLayout>
