@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useLicenseeMetrics } from '@/hooks/useLicenseeMetrics';
@@ -15,6 +15,19 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Shield, ClipboardList, DollarSign, Bell, AlertTriangle, RefreshCw } from 'lucide-react';
 import { licenseeDrilldownTo, recordPath } from '@/lib/licenseeDashboardDrilldowns';
+import { supabase } from '@/integrations/supabase/client';
+
+// Treat a renewal as "in progress" once it's been submitted/under review/etc.
+// In these states the licensee must NOT re-open the editable renewal form —
+// they should land on the read-only ApplicationDetail with submitted forms
+// and full history (activity log).
+const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+const RENEWAL_STATUS_LABELS: Record<string, string> = {
+  submitted: 'Renewal submitted',
+  under_review: 'Renewal under review',
+  query_raised: 'Renewal query raised',
+  resubmission_requested: 'Renewal resubmission requested',
+};
 
 
 const LICENSE_BADGE_VARIANT: Record<string, 'approved' | 'destructive' | 'warning' | 'outline'> = {
@@ -55,6 +68,33 @@ export function LicenseeDashboard() {
   );
   const canViewLicensing = Boolean(resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status', resolvedLicenseeId) || portalAccess.can('licensing', 'can_view_status');
   const canViewReturns = portalAccess.can('returns', 'can_view_status', resolvedLicenseeId) || portalAccess.can('returns', 'can_view_status');
+
+  // Detect in-flight renewal applications per license so we can swap the
+  // "Renew" button for a "Renewal in progress" link that opens the read-only
+  // ApplicationDetail view (submitted forms + history) instead of the
+  // editable renewal form.
+  const licenseIds = useMemo(
+    () => (data?.licenses.list ?? []).map((l) => l.id),
+    [data?.licenses.list],
+  );
+  const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (licenseIds.length === 0) { setPendingRenewalByLicense({}); return; }
+      const { data: rows } = await supabase
+        .from('applications')
+        .select('id, status, data')
+        .in('status', PENDING_RENEWAL_STATUSES as any);
+      const next: Record<string, { id: string; status: string }> = {};
+      for (const r of (rows || []) as any[]) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
+      }
+      if (!cancelled) setPendingRenewalByLicense(next);
+    })();
+    return () => { cancelled = true; };
+  }, [licenseIds]);
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -121,7 +161,14 @@ export function LicenseeDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-                    {canRenew && (
+                    {pendingRenewalByLicense[lic.id] ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
+                          <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                          {RENEWAL_STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
+                        </Link>
+                      </Button>
+                    ) : canRenew && (
                       <Button asChild size="sm" variant="outline">
                         <Link to={`/licenses/${lic.id}?action=renew`}>
                           <RefreshCw className="h-3.5 w-3.5 mr-1" />Renew

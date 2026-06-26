@@ -1,23 +1,45 @@
-## Diagnosis
+# Plan
 
-The error is a classic stale-chunk issue, not a code bug:
+Three independent fixes. I'll investigate each, implement, and verify before claiming done.
 
-```
-Failed to fetch dynamically imported module:
-  /assets/Index-DWMKhdJK.js
-```
+## 1. Workflow resolution by sector/sub-sector/category (Pre/Post Licensee + Compliance)
 
-The user's browser tab was loaded against the previous build. After my last edit to `ApplicantDashboard.tsx` / `useApplicantMetrics.ts`, Vite rebuilt and re-hashed the lazy chunks, so the old `Index-DWMKhdJK.js` filename no longer exists on the server. Every lazy route fails to mount and the ErrorBoundary shows "Internal server error / Something went wrong".
+**Goal:** Internal approval workflows for Pre Licensee, Post Licensee, and Compliance approvals must resolve dynamically from backend configuration based on the application's sector → sub-sector → category. No hardcoded/static workflow fallback. Registration approval workflow stays untouched.
 
-This is not an SSR/server outage — the dev server is up; only the cached tab is wedged.
+**Approach:**
+- Audit `src/lib/workflowApprovalResolver.ts`, `useWorkflowEngine.ts`, `workflowService.ts`, and any callers in pre-license, post-license, and compliance review screens.
+- Replace any static workflow ID lookups or "default workflow" fallbacks with the taxonomy resolution rule already documented in mem://architecture/taxonomy (Category > Sub-Sector > Sector hierarchy match against `approval_workflows`).
+- Ensure entity_type filter distinguishes `pre_license`, `post_license`, `compliance` (do not touch `registration`).
+- When no workflow matches, surface an explicit error in the internal reviewer UI instead of silently using a default — matches existing manual-processing fallback memory.
 
-## Plan
+**Verify:** Load a pre-license, post-license, and compliance application as internal reviewer; confirm the steps panel reflects the workflow configured for that exact taxonomy, and a different taxonomy yields a different workflow. Confirm registration approval still works unchanged.
 
-1. Ask the user to do a hard reload of the preview (Ctrl/Cmd-Shift-R, or click "Reload page" on the error screen). This pulls the new asset manifest and the lazy chunks resolve again.
-2. If a hard reload alone doesn't recover the page, restart the Vite dev server in the sandbox to guarantee the manifest is fresh, then ask the user to reload once more.
-3. No source-code changes are required for this symptom. If after the reload the user still sees a real runtime error (different message / stack), I'll diagnose that separately.
+## 2. Edit application not showing prefilled data after resubmission request
 
-## Verification
+**Goal:** When internal user requests resubmission, the licensee opening "Edit" must see all previously submitted field values prefilled.
 
-- After reload, the preview should render `/dashboard` (or `/register`) normally with no ErrorBoundary screen.
-- Console should no longer show `Failed to fetch dynamically imported module`.
+**Approach:**
+- Inspect `src/pages/NewApplication.tsx` and `ApplicationForms.tsx` resume path (`/applications/:id/continue`), and how `form_responses` / `applications.data` is loaded into `FormRenderer`.
+- Check that on resubmission status, the loader hydrates from the latest `form_responses` snapshot (not a blank draft) and passes initial values into FormRenderer.
+- Fix the data-hydration path so resubmission opens with prior answers + uploaded files intact (file persistence per mem://tech/form-field-file-persistence).
+
+**Verify:** Reviewer requests resubmission → licensee opens edit → all fields and uploaded files render with prior values; user can modify and resubmit.
+
+## 3. Renewal-in-progress button opens form instead of view
+
+**Goal:** On Licensee Dashboard, the "Renewal in progress" button must open the renewal application's **view** page (submitted data + action/history log), not re-open the editable renewal form.
+
+**Approach:**
+- Locate the renewal tile in `LicenseeDashboard.tsx` / `cards/`.
+- Change its target from `/applications/:id/continue` (or equivalent edit route) to `/applications/:id` (ApplicationDetail), which already renders submitted forms accordion + history.
+- Only change the in-progress state; "Start renewal" for not-yet-started renewals stays as-is.
+
+**Verify:** Click "Renewal in progress" → ApplicationDetail loads with submitted form data accordion and full action log; no form edit screen appears. Other dashboard buttons unchanged.
+
+## Technical notes
+
+- Files likely touched: `src/lib/workflowApprovalResolver.ts`, `src/hooks/useWorkflowEngine.ts`, `src/components/dashboard/LicenseeDashboard.tsx` (+ cards), `src/pages/NewApplication.tsx`, `src/pages/applications/ApplicationDetail.tsx`, possibly `src/components/form-renderer/FormRenderer.tsx` for initialValues wiring.
+- No DB migrations expected; if a workflow row is missing for a taxonomy, that's a config gap, not a code fix.
+- Registration workflow code paths (`registrationWorkflowClient`, `perform-registration-workflow-action`) will not be modified.
+
+Approve to proceed and I'll implement + verify each fix end-to-end before reporting back.
