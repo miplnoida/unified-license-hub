@@ -124,7 +124,7 @@ export function ApplicantDashboard() {
         {canUseLicensing && <PriorityListCard
           title="Recent applications"
           loading={isLoading}
-          viewAll={{ label: 'All', to: '/applications' }}
+          viewAll={{ label: 'All', to: appsListPath }}
           rows={(data?.priority_lists.recent_applications ?? []).map((a: any) => ({
             id: a.id,
             primary: a.application_number || a.id.slice(0, 8),
