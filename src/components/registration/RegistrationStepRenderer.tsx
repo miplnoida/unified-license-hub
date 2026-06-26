@@ -37,6 +37,62 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
     return step.rows.flatMap(r => r.columns.map(c => c.field).filter(Boolean)) as RegField[];
   }, [step]);
 
+  // Compute initial entry count for repeatable steps based on already-saved data.
+  // Any saved key matching `<baseFieldName>__<n>` raises the count to n+1.
+  const initialEntryCount = useMemo(() => {
+    if (!step.isRepeatable) return 1;
+    let max = 0;
+    const baseNames = allFields.map(f => f.fieldName);
+    for (const k of Object.keys(data || {})) {
+      const m = k.match(/^(.+)__(\d+)$/);
+      if (!m) continue;
+      if (!baseNames.includes(m[1])) continue;
+      const n = parseInt(m[2], 10);
+      if (!isNaN(n) && n > max) max = n;
+    }
+    return Math.max(1, max + 1);
+  }, [step.isRepeatable, allFields, data]);
+
+  const [entryCount, setEntryCount] = useState<number>(initialEntryCount);
+
+  const renderRows = (entryIndex: number) => (
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-12">
+      {step.rows.flatMap(row =>
+        row.columns.map((col, colIdx) => {
+          const baseField = col.field;
+          const effectiveName = baseField
+            ? (entryIndex === 0 ? baseField.fieldName : `${baseField.fieldName}__${entryIndex}`)
+            : '';
+          const effectiveField: RegField | null = baseField
+            ? { ...baseField, fieldName: effectiveName }
+            : null;
+          return (
+            <div
+              key={`${row.id}-${colIdx}`}
+              className="col-span-1"
+              style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
+            >
+              {effectiveField ? (
+                <InteractiveField
+                  field={effectiveField}
+                  value={data[effectiveName] ?? effectiveField.defaultValue ?? ''}
+                  error={errors[effectiveName]}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  readOnly={readOnly}
+                  allData={data}
+                  allFields={allFields}
+                />
+              ) : (
+                <div className="h-10" />
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-4">
@@ -44,35 +100,79 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
           <p className="text-sm text-muted-foreground mb-4">{step.description}</p>
         )}
 
-        {step.rows.map(row => (
-          <div
-            key={row.id}
-            className="grid gap-4 grid-cols-1 md:grid-cols-12"
-          >
-            {row.columns.map((col, colIdx) => (
-              <div
-                key={colIdx}
-                className="col-span-1"
-                style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
-              >
-                {col.field ? (
-                  <InteractiveField
-                    field={col.field}
-                    value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
-                    error={errors[col.field.fieldName]}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    readOnly={readOnly}
-                    allData={data}
-                    allFields={allFields}
-                  />
-                ) : (
-                  <div className="h-10" />
-                )}
+        {step.isRepeatable ? (
+          <div className="space-y-6">
+            {Array.from({ length: entryCount }).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {(step.repeatLabel || step.title)} {i + 1}
+                  </h4>
+                  {i > 0 && !readOnly && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        // Drop saved values for this entry, then decrement count.
+                        const baseNames = allFields.map(f => f.fieldName);
+                        for (const name of baseNames) {
+                          const key = `${name}__${i}`;
+                          if (key in data) onChange(key, undefined);
+                        }
+                        setEntryCount(c => Math.max(1, c - 1));
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Remove
+                    </Button>
+                  )}
+                </div>
+                {renderRows(i)}
               </div>
             ))}
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEntryCount(c => c + 1)}
+              >
+                + Add another {(step.repeatLabel || step.title).toLowerCase()}
+              </Button>
+            )}
           </div>
-        ))}
+        ) : (
+          step.rows.map(row => (
+            <div
+              key={row.id}
+              className="grid gap-4 grid-cols-1 md:grid-cols-12"
+            >
+              {row.columns.map((col, colIdx) => (
+                <div
+                  key={colIdx}
+                  className="col-span-1"
+                  style={{ gridColumn: `span ${col.span}` } as React.CSSProperties}
+                >
+                  {col.field ? (
+                    <InteractiveField
+                      field={col.field}
+                      value={data[col.field.fieldName] ?? col.field.defaultValue ?? ''}
+                      error={errors[col.field.fieldName]}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      readOnly={readOnly}
+                      allData={data}
+                      allFields={allFields}
+                    />
+                  ) : (
+                    <div className="h-10" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ))
+        )}
 
         {step.rows.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">No fields in this step.</p>
@@ -81,6 +181,7 @@ export function RegistrationStepRenderer({ step, data, errors, onChange, onBlur,
     </Card>
   );
 }
+
 
 interface FieldProps {
   field: RegField;

@@ -85,7 +85,12 @@ export interface RegStep {
   title: string;
   description?: string;
   rows: RegRow[];
+  /** When true, the step renders as multiple repeatable entries with "Add another" / "Remove" controls. */
+  isRepeatable?: boolean;
+  /** Label shown above each repeated entry (e.g. "Qualification"). Defaults to the step title. */
+  repeatLabel?: string;
 }
+
 
 export type RegFormSchema = RegStep[];
 
