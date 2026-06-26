@@ -33,14 +33,13 @@ export function ApplicantDashboard() {
   const { data, isLoading } = useApplicantMetrics(user?.id, scope);
   const { data: myLicenses } = useApplicantLicenses(user?.id);
   const { data: expiryStatuses } = useLicenseExpiryStatus(user?.id);
+  const regApproval = useRegistrationApprovalStatus();
 
   const canUseLicensing = portalAccess.hasAreaAccess('licensing') && portalAccess.can('licensing', 'can_view_status');
   const canStartApplication = portalAccess.can('licensing', 'can_submit');
 
-
-  const actionRequired =
-    (data?.applications.clarification_requested ?? 0) +
-    (data?.applications.resubmission_requested ?? 0);
+  const actionRequiredRows = data?.priority_lists.action_required ?? [];
+  const actionRequired = actionRequiredRows.length;
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -53,8 +52,53 @@ export function ApplicantDashboard() {
     });
   }, [data]);
 
+  // Recent activity derived from recent applications (uses existing data only).
+  const recentActivity = useMemo(() => {
+    const rows = data?.priority_lists.recent_applications ?? [];
+    return rows.slice(0, 6).map((a: any) => {
+      const ts = a.updated_at || a.created_at;
+      const label = getApplicationStatusLabel(a.status);
+      return {
+        id: a.id,
+        title: `${a.application_number || a.id.slice(0, 8)} — ${label}`,
+        when: ts ? formatDistanceToNow(new Date(ts), { addSuffix: true }) : '',
+        to: `/applications/${a.id}`,
+      };
+    });
+  }, [data]);
+
   return (
     <div className="space-y-6">
+      {/* Welcome banner — applicant identity + registration context */}
+      <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
+        <CardContent className="pt-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm text-muted-foreground">Welcome back</p>
+            <h2 className="text-lg md:text-xl font-semibold truncate">{user?.fullName || 'Applicant'}</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {regApproval.registration?.registration_reference && (
+                <span className="font-mono">Ref: {regApproval.registration.registration_reference}</span>
+              )}
+              {regApproval.registration?.status && (
+                <Badge variant="outline" className="text-[10px]">
+                  Registration: {regApproval.registration.status.replace(/_/g, ' ')}
+                </Badge>
+              )}
+              {(myLicenses?.[0]?.license_number) && (
+                <span className="font-mono">License: {myLicenses[0].license_number}</span>
+              )}
+            </div>
+          </div>
+          {canStartApplication && (
+            <Button asChild size="sm">
+              <Link to="/applications/new">
+                <PlusCircle className="h-4 w-4 mr-1.5" /> New application
+              </Link>
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Top metric strip — applicant-relevant only */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {canUseLicensing && <MetricCard title="Drafts" value={data?.applications.draft ?? 0} icon={FileText} tone="default" loading={isLoading} to={draftsPath} />}
