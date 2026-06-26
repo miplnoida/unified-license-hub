@@ -174,6 +174,17 @@ function FieldPreview({ field }: { field: RegField }) {
         </div>
       );
 
+    case 'signature':
+      return (
+        <div className="space-y-1">
+          <Label className="text-sm">{field.label}{field.required && <span className="text-destructive"> *</span>}</Label>
+          <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/30 px-3 py-6 text-xs text-muted-foreground">
+            Signature image upload (PNG, JPG, JPEG, WEBP)
+          </div>
+          {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+        </div>
+      );
+
     case 'paragraph':
       return (
         <div className="p-3 rounded bg-muted/30 text-sm text-muted-foreground">
