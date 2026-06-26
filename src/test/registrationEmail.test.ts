@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveRegistrationEmail, resolveRegistrationPassword, isValidEmail } from '@/lib/registrationEmail';
+import {
+  resolveRegistrationEmail,
+  resolveRegistrationPassword,
+  resolveRegistrationFirstName,
+  resolveRegistrationLastName,
+  resolveRegistrationApplicantName,
+  isValidEmail,
+} from '@/lib/registrationEmail';
 import type { RegFormSchema } from '@/types/registrationForm';
 
 const schema: RegFormSchema = [
