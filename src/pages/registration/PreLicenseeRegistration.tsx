@@ -16,7 +16,7 @@ import { ArrowRight, ArrowLeft, FileText, Send, Loader2 } from 'lucide-react';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { toast } from 'sonner';
 import type { RegStep, RegField } from '@/types/registrationForm';
-import { resolveRegistrationEmail } from '@/lib/registrationEmail';
+import { resolveRegistrationEmail, resolveRegistrationPassword } from '@/lib/registrationEmail';
 import { ReviewAcknowledgement } from '@/components/applications/ReviewAcknowledgement';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { useReviewSettings } from '@/hooks/useReviewSettings';
