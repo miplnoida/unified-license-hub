@@ -4057,6 +4057,7 @@ export type Database = {
           declarations: Json
           document_types: Json
           form_schema: Json
+          form_schema_backup: Json | null
           form_template_id: string | null
           id: string
           is_active: boolean
@@ -4078,6 +4079,7 @@ export type Database = {
           declarations?: Json
           document_types?: Json
           form_schema?: Json
+          form_schema_backup?: Json | null
           form_template_id?: string | null
           id?: string
           is_active?: boolean
@@ -4099,6 +4101,7 @@ export type Database = {
           declarations?: Json
           document_types?: Json
           form_schema?: Json
+          form_schema_backup?: Json | null
           form_template_id?: string | null
           id?: string
           is_active?: boolean
