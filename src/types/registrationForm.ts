@@ -14,6 +14,7 @@ export type RegFieldType =
   | 'checkbox'
   | 'radio'
   | 'file'
+  | 'signature'
   | 'paragraph'
   | 'heading'
   | 'static_text'
@@ -118,6 +119,7 @@ export const REG_FIELD_TYPES: { type: RegFieldType; label: string }[] = [
   { type: 'checkbox', label: 'Checkbox' },
   { type: 'radio', label: 'Radio' },
   { type: 'file', label: 'File Upload' },
+  { type: 'signature', label: 'Signature (Image)' },
   { type: 'paragraph', label: 'Static Text' },
   { type: 'heading', label: 'Heading' },
   { type: 'static_text', label: 'Static Text Block' },
