@@ -325,8 +325,18 @@ export function resolveRegistrationApplicantName(
   schema?: RegFormSchema | null,
   applicantNameCheckFieldName?: string | null,
 ): string {
-  const extras = applicantNameCheckFieldName ? [applicantNameCheckFieldName] : [];
-  return resolveByMatcher(staticValue, dynamicData, schema, APPLICANT_NAME_KEYS, APPLICANT_NAME_LABEL_TOKENS, extras);
+  const explicit = resolveByMatcher(
+    staticValue,
+    dynamicData,
+    schema,
+    ['applicant_name', 'applicantName', 'applicantname'],
+    ['applicant name'],
+    applicantNameCheckFieldName ? [applicantNameCheckFieldName] : [],
+  );
+  if (explicit) return explicit;
+  const fullLegal = resolveFullNameValue(dynamicData, schema);
+  if (fullLegal) return fullLegal;
+  return resolveByMatcher(undefined, dynamicData, schema, APPLICANT_NAME_KEYS, APPLICANT_NAME_LABEL_TOKENS);
 }
 
 export function findRegistrationFirstNameField(schema?: RegFormSchema | null) {
