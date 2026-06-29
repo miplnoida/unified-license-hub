@@ -1022,12 +1022,7 @@ export function FormRenderer({
                   const rowChanged = baselineProvided && !deepEqualField(row, baselineRow);
                   return (
                   <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
-                    {rowChanged && (
-                      <td className="p-1 align-middle">
-                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
-                      </td>
-                    )}
-                    {(field.tableColumns || []).map(col => (
+                    {(field.tableColumns || []).map((col, colIdx) => (
                       <td key={col.id} className="p-1">
                         {col.type === 'file' ? (
                           (() => {
