@@ -227,9 +227,18 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               </div>
             </div>
           </div>
+        ) : renewalFeeMissing ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+            <p className="font-semibold">Renewal fee is not configured.</p>
+            <p className="mt-1 text-amber-800 dark:text-amber-300">
+              Contact the regulator to configure the renewal fee for this license before payment can be processed.
+            </p>
+          </div>
         ) : totalDue <= 0 ? (
           <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-            No payment is required for this application. You may continue with the next steps.
+            {isRenewal
+              ? 'No renewal fee is required for this license. You may continue with the next steps.'
+              : 'No payment is required for this application. You may continue with the next steps.'}
           </div>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/30">
