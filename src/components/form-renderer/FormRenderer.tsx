@@ -357,6 +357,39 @@ export function FormRenderer({
   const progress = totalSteps > 0 ? ((currentStepIdx + 1) / totalSteps) * 100 : 0;
   const showTabs = !sectionGroups && visibleSections.length > 1;
 
+  // -------------------- Memoized renewal-diff data --------------------
+  // Computed once per (formData, repeatableData, originalData) change so the
+  // renderer doesn't redo deep comparison per field on every keystroke.
+  const repeatableBaseline = useMemo<Record<string, any[]>>(() => {
+    if (!originalData) return {};
+    const out: Record<string, any[]> = {};
+    const repIndex = (originalData as any).__repeatable;
+    if (repIndex && typeof repIndex === 'object') {
+      for (const [sid, arr] of Object.entries(repIndex)) {
+        if (Array.isArray(arr)) out[sid] = arr as any[];
+      }
+    }
+    for (const key of Object.keys(originalData)) {
+      if (key.startsWith('_repeatable_')) {
+        const sid = key.replace('_repeatable_', '');
+        if (Array.isArray((originalData as any)[key]) && !out[sid]) {
+          out[sid] = (originalData as any)[key];
+        }
+      }
+    }
+    return out;
+  }, [originalData]);
+
+  const repeatablePairsBySection = useMemo<Record<string, ReturnType<typeof diffRepeatable>>>(() => {
+    if (!originalData) return {};
+    const out: Record<string, ReturnType<typeof diffRepeatable>> = {};
+    for (const [sid, current] of Object.entries(repeatableData)) {
+      out[sid] = diffRepeatable(current, repeatableBaseline[sid]);
+    }
+    return out;
+  }, [repeatableData, repeatableBaseline, originalData]);
+
+
   // Check if a section has any data filled in
   const isSectionCompleted = useCallback((section: FormSection): boolean => {
     return section.fields.some(f => {
