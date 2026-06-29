@@ -6,6 +6,16 @@ export interface ApplicationFeeLine {
   amount: number;
 }
 
+export interface ApplicationFeeBreakdownMeta {
+  lines: ApplicationFeeLine[];
+  isRenewal: boolean;
+  /** True when a renewal fee configuration exists for this app's scope. Only meaningful when isRenewal. */
+  hasRenewalFeeConfig: boolean;
+}
+
+const isRenewalFeeType = (t?: string | null) =>
+  typeof t === 'string' && t.toLowerCase().includes('renew');
+
 const formatFeeType = (t?: string | null) => {
   if (!t) return 'Fee';
   const cleaned = t.replace(/[_-]+/g, ' ').trim();
