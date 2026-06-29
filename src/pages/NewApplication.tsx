@@ -596,7 +596,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
-  const paymentComplete = feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord;
+  const paymentComplete = !renewalFeeMissing && (feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord);
   const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
