@@ -79,20 +79,40 @@ export function LicenseeDashboard() {
     [data?.licenses.list],
   );
   const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
+  const [inProgressRenewalByLicense, setInProgressRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (licenseIds.length === 0) { setPendingRenewalByLicense({}); return; }
-      const { data: rows } = await supabase
-        .from('applications')
-        .select('id, status, data')
-        .in('status', PENDING_RENEWAL_STATUSES as any);
-      const next: Record<string, { id: string; status: string }> = {};
-      for (const r of (rows || []) as any[]) {
-        const lid = r?.data?.renewal_of_license_id;
-        if (lid && licenseIds.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
+      if (licenseIds.length === 0) {
+        setPendingRenewalByLicense({});
+        setInProgressRenewalByLicense({});
+        return;
       }
-      if (!cancelled) setPendingRenewalByLicense(next);
+      const [pendingRes, draftRes] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('id, status, data')
+          .in('status', PENDING_RENEWAL_STATUSES as any),
+        supabase
+          .from('applications')
+          .select('id, status, data')
+          .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
+          .eq('data->>is_renewal', 'true'),
+      ]);
+      const pending: Record<string, { id: string; status: string }> = {};
+      for (const r of ((pendingRes.data || []) as any[])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !pending[lid]) pending[lid] = { id: r.id, status: r.status };
+      }
+      const inProgress: Record<string, { id: string; status: string }> = {};
+      for (const r of ((draftRes.data || []) as any[])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !inProgress[lid]) inProgress[lid] = { id: r.id, status: r.status };
+      }
+      if (!cancelled) {
+        setPendingRenewalByLicense(pending);
+        setInProgressRenewalByLicense(inProgress);
+      }
     })();
     return () => { cancelled = true; };
   }, [licenseIds]);
