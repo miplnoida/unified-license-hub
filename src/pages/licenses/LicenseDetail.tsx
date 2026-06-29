@@ -597,6 +597,11 @@ export default function LicenseDetail() {
       navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`);
       return;
     }
+    if (inProgressRenewalAppId) {
+      toast.info('A renewal form is already in progress for this license — reopening it.');
+      navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`);
+      return;
+    }
     if (isPastGrace) {
       startRenewal();
     } else if (isWithinGrace) {
