@@ -95,6 +95,28 @@ function ReviewBuilderInner({
           const originalFormatted = originalData ? formatValue(originalRaw, f) : undefined;
           const isAttachment = f.type === 'file' || isAttachmentValue(formatted);
           const changed = !!originalData && !deepEqualField(raw, originalRaw);
+
+          // Tables: emit structured pairs so the review screen can render
+          // per-row status badges (added/deleted/edited/reordered) instead
+          // of a single "N row(s)" string.
+          if (f.type === 'table') {
+            const cols = (f.tableColumns || []).map((c) => ({ id: c.id, label: c.label }));
+            const currentRows = Array.isArray(raw) ? raw : [];
+            const originalRows = Array.isArray(originalRaw) ? originalRaw : [];
+            const diff = originalData ? diffRepeatable(currentRows, originalRows) : null;
+            fields.push({
+              label: f.label || f.fieldName,
+              value: `${currentRows.length} row(s)`,
+              type: 'table',
+              tableColumns: cols,
+              tablePairs: diff
+                ? diff.pairs as DiffPair<Record<string, any>>[]
+                : currentRows.map((r, i) => ({ current: r as Record<string, any>, original: null, currentIndex: i, originalIndex: null, status: 'unchanged' as const })),
+              changed,
+            });
+            return;
+          }
+
           fields.push({
             label: f.label || f.fieldName,
             value: formatted,
