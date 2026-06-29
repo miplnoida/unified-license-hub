@@ -18,9 +18,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PROMPT_VERSION = "v1";
+const PROMPT_VERSION = "v2";
 const MODEL_PROVIDER = "lovable-ai-gateway";
 const MODEL_NAME = "google/gemini-2.5-flash";
+
+const SECTION_KEYS = [
+  "application_details",
+  "submitted_forms",
+  "documents",
+  "fees_payment",
+  "rfi_history",
+  "workflow_sla_history",
+  "compliance_notes",
+  "risk_indicators",
+] as const;
 
 const INTERNAL_ROLES = new Set([
   "super_admin",
