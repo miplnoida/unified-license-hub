@@ -1,34 +1,44 @@
-## Goal
-Clean up renewal applications for licensee `817c85c1-114b-41e0-8da2-314c55f87c42` against license **LIC-2026-000014** (`7a5b3197-49cc-49ea-a1fd-ca94434cb005`) so they can start a fresh renewal.
+## Problem
 
-## Records found
-Six renewal applications currently exist for this licensee + license:
+Creating a fee in Admin → Fee Management fails with:
 
-| App ID | Status |
-|---|---|
-| `a6c9b5f8-e26a-47ab-981b-b69b845e06da` | submitted |
-| `d58310ad-69f8-4ba0-97ca-f6d57dd1d137` | draft |
-| `f658db8f-d6b1-4e72-a3bb-3e65f64cb9d3` | draft |
-| `75752d82-3002-412d-80a3-8faf9df1f461` | draft |
-| `70f623f3-0b83-469c-8677-9c95fb0eac09` | draft |
-| `7d257778-aae0-47e4-a767-f9e1e7b6ec2b` | draft |
+> invalid input syntax for type uuid: "null"
 
-## Plan
-Hard-delete all six renewal application rows above (drafts + the one submitted). Scope is strictly:
-- `applicant_id = 817c85c1-114b-41e0-8da2-314c55f87c42`
-- `data->>renewal_of_license_id = 7a5b3197-49cc-49ea-a1fd-ca94434cb005`
+## Cause
 
-Also delete dependent child rows that reference these application IDs so the delete doesn't fail or leave orphans:
-- `application_form_versions`
-- `application_ai_assessments`
-- `payments`, `payment_receipts`, `payment_attachments`, `payment_remarks`
-- `workflow_instances`
-- `audit_logs` rows pointing at these application IDs are kept (audit trail must remain).
+In `src/pages/admin/FeeManagement.tsx` (`handleSave`, line ~299), the duplicate-check query does:
 
-No schema changes. No code changes. License row, original approved application, and all non-renewal records for this licensee are untouched.
+```ts
+.eq('regulator_id', activeRegulatorId || null as any)
+```
 
-## Verification after run
-Re-query and confirm zero renewal applications remain for this licensee + license. Licensee can then click "Renew" on LIC-2026-000014 and get a clean draft.
+When `activeRegulatorId` is empty (no active regulator selected, or super-admin context where the context value is `null`), PostgREST serializes this as `regulator_id=eq.null`, and Postgres tries to cast the literal string `"null"` to UUID → the exact error shown.
 
-## Confirm before I proceed
-Should I delete **all six** (including the submitted one), or only the **5 drafts** and keep the submitted renewal intact?
+The sector/sub-sector lines right below already handle this correctly using `.is(col, null)` when the value is empty. The `regulator_id` filter just missed that pattern.
+
+## Fix
+
+One-line behavior change in `src/pages/admin/FeeManagement.tsx`:
+
+Replace:
+```ts
+.eq('regulator_id', activeRegulatorId || null as any);
+```
+with the conditional pattern used for sector/sub-sector:
+```ts
+let dupQuery = supabase
+  .from('fee_configurations' as any)
+  .select('id, fee_type, category_id, service_id, form_id');
+dupQuery = activeRegulatorId
+  ? dupQuery.eq('regulator_id', activeRegulatorId)
+  : dupQuery.is('regulator_id', null);
+```
+
+No other code, schema, or workflow changes. Non-renewal fee creation, edit, and the existing sector/sub-sector duplicate logic stay identical.
+
+## Verification
+
+- Create a fee with no active regulator → succeeds (or returns a real duplicate message, never the UUID cast error).
+- Create a fee with an active regulator → still scoped correctly.
+- Duplicate guard still blocks identical (regulator + sector + sub-sector + scope + fee type) combos.
+- Build + tsgo pass.

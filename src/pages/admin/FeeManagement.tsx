@@ -295,8 +295,10 @@ export default function FeeManagement() {
     {
       let dupQuery = supabase
         .from('fee_configurations' as any)
-        .select('id, fee_type, category_id, service_id, form_id')
-        .eq('regulator_id', activeRegulatorId || null as any);
+        .select('id, fee_type, category_id, service_id, form_id');
+      dupQuery = activeRegulatorId
+        ? dupQuery.eq('regulator_id', activeRegulatorId)
+        : dupQuery.is('regulator_id', null);
       dupQuery = sectorId ? dupQuery.eq('sector_id', sectorId) : dupQuery.is('sector_id', null);
       dupQuery = subSectorId ? dupQuery.eq('sub_sector_id', subSectorId) : dupQuery.is('sub_sector_id', null);
       if (editing?.id) dupQuery = dupQuery.neq('id', editing.id);
