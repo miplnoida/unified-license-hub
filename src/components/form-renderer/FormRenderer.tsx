@@ -1166,9 +1166,33 @@ export function FormRenderer({
         input = <Input value={val} onChange={e => onChange(field.fieldName, e.target.value)} disabled={readOnly} />;
     }
 
+    // Diff-highlight: only at the top level (renderField called with formData).
+    // Repeatable entries pass a different `data` reference; we skip those to
+    // avoid false positives when there is no per-entry baseline.
+    const isTopLevel = data === formData;
+    const changed = isTopLevel && !!originalData && isFieldChanged(field.fieldName, val, originalData);
+
     return (
-      <div key={field.id} className="space-y-1.5" data-field-name={field.fieldName}>
-        {fieldLabel}
+      <div
+        key={field.id}
+        className={
+          changed
+            ? 'space-y-1.5 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-2'
+            : 'space-y-1.5'
+        }
+        data-field-name={field.fieldName}
+        data-changed={changed ? 'true' : undefined}
+      >
+        {fieldLabel && changed ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            {fieldLabel}
+            <Badge variant="outline" className="text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">
+              Changed
+            </Badge>
+          </div>
+        ) : (
+          fieldLabel
+        )}
         {input}
         {field.helpText && <p className="text-[10px] text-muted-foreground">{field.helpText}</p>}
         {error && <p className="text-xs text-destructive">{error}</p>}
