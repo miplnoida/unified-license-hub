@@ -56,7 +56,7 @@ function ReviewBuilderInner({
       const data = formProgressMap[t.id]?.data || {};
       const originalData = originalFormsData?.[t.id] || null;
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean }> = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
