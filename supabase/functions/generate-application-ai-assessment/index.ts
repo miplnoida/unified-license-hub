@@ -198,6 +198,9 @@ Deno.serve(async (req) => {
       submittedForms,
       secureDocuments,
       payments,
+      approvalActions,
+      workflowInstances,
+      formTemplates,
     ] = await Promise.all([
       sectorId
         ? adminClient.from("sectors").select("name").eq("id", sectorId).maybeSingle()
@@ -225,6 +228,19 @@ Deno.serve(async (req) => {
         .from("payments")
         .select("id, amount, currency, status, created_at")
         .eq("application_id", application_id),
+      adminClient
+        .from("approval_actions")
+        .select("id, step_id, action_type, action, comments, actor_id, created_at")
+        .eq("application_id", application_id)
+        .order("created_at", { ascending: true }),
+      adminClient
+        .from("workflow_instances")
+        .select("id, workflow_id, status, current_step_id, current_step_key, started_at, updated_at, version_snapshot")
+        .eq("entity_type", "application")
+        .eq("entity_id", application_id),
+      adminClient
+        .from("form_templates")
+        .select("id, name"),
     ]);
 
     const submittedFormsList = (submittedForms.data as unknown[]) || [];
