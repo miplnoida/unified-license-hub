@@ -1038,6 +1038,10 @@ export function FormRenderer({
         const tableData = Array.isArray(val) ? val : [{}];
         const tableBaseline: any[] | undefined =
           baselineProvided && Array.isArray(baselineForField) ? (baselineForField as any[]) : undefined;
+        const tableDiff = tableBaseline ? diffRepeatable(tableData, tableBaseline) : null;
+        const tablePairByIdx = new Map<number, DiffPair<any>>();
+        tableDiff?.pairs.forEach((p) => { if (p.currentIndex !== null) tablePairByIdx.set(p.currentIndex, p); });
+        const tableDeleted = tableDiff?.pairs.filter((p) => p.status === 'deleted') || [];
         input = (
           <div className="space-y-2 overflow-x-auto">
             <table className="w-full text-sm border">
@@ -1051,14 +1055,24 @@ export function FormRenderer({
               </thead>
               <tbody>
                 {tableData.map((row: Record<string, any>, rowIdx: number) => {
-                  const baselineRow = tableBaseline ? tableBaseline[rowIdx] : undefined;
-                  const rowChanged = baselineProvided && !deepEqualField(row, baselineRow);
+                  const pair = tablePairByIdx.get(rowIdx);
+                  const status: DiffStatus = pair?.status || 'unchanged';
+                  const rowChanged = baselineProvided && status !== 'unchanged';
+                  const rowBg =
+                    status === 'added' || status === 'edited' || status === 'reordered'
+                      ? 'border-b bg-yellow-50 dark:bg-yellow-950/30'
+                      : 'border-b';
+                  const badgeLabel =
+                    status === 'added' ? 'Added'
+                    : status === 'reordered' ? 'Reordered'
+                    : status === 'edited' ? 'Changed'
+                    : null;
                   return (
-                  <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
+                  <tr key={rowIdx} className={rowBg}>
                     {(field.tableColumns || []).map((col, colIdx) => (
                       <td key={col.id} className="p-1 align-top">
-                        {rowChanged && colIdx === 0 && (
-                          <Badge variant="outline" className="mb-1 text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                        {rowChanged && colIdx === 0 && badgeLabel && (
+                          <Badge variant="outline" className="mb-1 text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">{badgeLabel}</Badge>
                         )}
                         {col.type === 'file' ? (
                           (() => {
