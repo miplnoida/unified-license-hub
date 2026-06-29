@@ -16,9 +16,15 @@ export type Database = {
     Tables: {
       application_ai_assessments: {
         Row: {
+          analyst_decision: string | null
+          analyst_decision_action: string | null
+          analyst_decision_at: string | null
+          analyst_decision_by: string | null
+          analyst_justification: string | null
           application_id: string
           confidence_score: number | null
           created_at: string
+          decision_report: Json
           error_message: string | null
           findings: Json
           generated_at: string | null
@@ -30,15 +36,22 @@ export type Database = {
           risks: Json
           routing_recommendation: Json
           rule_check_snapshot: Json
+          sections: Json
           source_payload_hash: string | null
           status: string
           summary: string | null
           updated_at: string
         }
         Insert: {
+          analyst_decision?: string | null
+          analyst_decision_action?: string | null
+          analyst_decision_at?: string | null
+          analyst_decision_by?: string | null
+          analyst_justification?: string | null
           application_id: string
           confidence_score?: number | null
           created_at?: string
+          decision_report?: Json
           error_message?: string | null
           findings?: Json
           generated_at?: string | null
@@ -50,15 +63,22 @@ export type Database = {
           risks?: Json
           routing_recommendation?: Json
           rule_check_snapshot?: Json
+          sections?: Json
           source_payload_hash?: string | null
           status?: string
           summary?: string | null
           updated_at?: string
         }
         Update: {
+          analyst_decision?: string | null
+          analyst_decision_action?: string | null
+          analyst_decision_at?: string | null
+          analyst_decision_by?: string | null
+          analyst_justification?: string | null
           application_id?: string
           confidence_score?: number | null
           created_at?: string
+          decision_report?: Json
           error_message?: string | null
           findings?: Json
           generated_at?: string | null
@@ -70,6 +90,7 @@ export type Database = {
           risks?: Json
           routing_recommendation?: Json
           rule_check_snapshot?: Json
+          sections?: Json
           source_payload_hash?: string | null
           status?: string
           summary?: string | null
