@@ -569,4 +569,316 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+function DecisionReportBlock({
+  assessment,
+  applicationId,
+  onChange,
+}: {
+  assessment: any;
+  applicationId: string;
+  onChange: (next: any) => void;
+}) {
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideAction, setOverrideAction] = useState<string>('request_more_information');
+  const [saving, setSaving] = useState(false);
+
+  if (!assessment) {
+    return (
+      <section className="rounded-md border p-3 space-y-1 bg-muted/30">
+        <div className="text-sm font-semibold">Decision-Ready Report</div>
+        <p className="text-sm text-muted-foreground">
+          No AI assessment generated yet. Use the AI Analyst Assessment panel above to generate one.
+        </p>
+      </section>
+    );
+  }
+
+  const report = (assessment.decision_report || {}) as Record<string, any>;
+  const sections: any[] = Array.isArray(assessment.sections) ? assessment.sections : [];
+  const recommended = String(report.recommended_action || '').toLowerCase();
+  const recommendedLabel = RECOMMENDED_ACTION_LABEL[recommended] || (recommended ? recommended : '—');
+  const confidence = typeof assessment.confidence_score === 'number' ? assessment.confidence_score : null;
+  const topRisks: string[] = Array.isArray(report.top_risks) ? report.top_risks : [];
+  const compliance: string[] = Array.isArray(report.compliance_concerns) ? report.compliance_concerns : [];
+  const missing: string[] = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
+  const conditions: string[] = Array.isArray(report.suggested_conditions) ? report.suggested_conditions : [];
+  const questions: string[] = Array.isArray(report.suggested_questions) ? report.suggested_questions : [];
+
+  const hasReport = recommended || report.executive_summary || sections.length > 0;
+
+  async function saveDecision(payload: {
+    analyst_decision: 'accepted' | 'overridden';
+    analyst_decision_action: string;
+    analyst_justification?: string;
+  }) {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const now = new Date().toISOString();
+      const update: any = {
+        analyst_decision: payload.analyst_decision,
+        analyst_decision_action: payload.analyst_decision_action,
+        analyst_justification: payload.analyst_justification ?? null,
+        analyst_decision_by: user?.id ?? null,
+        analyst_decision_at: now,
+      };
+      const { error } = await supabase
+        .from('application_ai_assessments' as never)
+        .update(update)
+        .eq('id', assessment.id);
+      if (error) throw error;
+      await logAudit({
+        action: payload.analyst_decision === 'accepted' ? 'ai_recommendation_accepted' : 'ai_recommendation_overridden',
+        entityType: 'application_ai_assessment',
+        entityId: assessment.id,
+        metadata: {
+          application_id: applicationId,
+          recommended_action: recommended,
+          chosen_action: payload.analyst_decision_action,
+          justification: payload.analyst_justification ?? null,
+        },
+      });
+      onChange({ ...assessment, ...update });
+      toast.success(
+        payload.analyst_decision === 'accepted'
+          ? 'AI recommendation accepted'
+          : 'AI recommendation overridden',
+      );
+    } catch (e) {
+      toast.error('Failed to save decision', {
+        description: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="rounded-md border border-primary/40 p-3 space-y-3 bg-primary/5">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-sm font-semibold flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-primary" />
+          Decision-Ready Report
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {recommended && (
+            <Badge variant={RECOMMENDED_ACTION_VARIANT[recommended] || 'outline'}>
+              Recommended: {recommendedLabel}
+            </Badge>
+          )}
+          {confidence !== null && (
+            <Badge variant="secondary">Confidence: {(confidence * 100).toFixed(0)}%</Badge>
+          )}
+          {assessment.prompt_version && (
+            <Badge variant="outline" className="text-[10px]">Prompt {assessment.prompt_version}</Badge>
+          )}
+        </div>
+      </div>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>AI advisory only</AlertTitle>
+        <AlertDescription>
+          Accepting or overriding records the analyst position. It does NOT change the application
+          status. The final action must still happen through the Workflow panel below.
+        </AlertDescription>
+      </Alert>
+
+      {!hasReport ? (
+        <p className="text-sm text-muted-foreground">
+          This assessment was generated before the decision-ready report was available. Regenerate from the AI Analyst panel to produce a section-wise report.
+        </p>
+      ) : (
+        <>
+          {report.executive_summary && (
+            <div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Executive summary</div>
+              <p className="text-sm whitespace-pre-line">{report.executive_summary}</p>
+            </div>
+          )}
+
+          {report.rationale && (
+            <div>
+              <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">Rationale</div>
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{report.rationale}</p>
+            </div>
+          )}
+
+          {recommended === 'approve_with_conditions' && conditions.length > 0 && (
+            <DetailList title="Suggested conditions" items={conditions} />
+          )}
+          {recommended === 'request_more_information' && questions.length > 0 && (
+            <DetailList title="Suggested questions" items={questions} />
+          )}
+          {recommended === 'escalate' && report.escalation_reason && (
+            <DetailParagraph title="Escalation reason" text={String(report.escalation_reason)} />
+          )}
+          {recommended === 'reject' && report.rejection_rationale && (
+            <DetailParagraph title="Rejection rationale" text={String(report.rejection_rationale)} />
+          )}
+
+          {sections.length > 0 && (
+            <Accordion type="single" collapsible>
+              <AccordionItem value="sections">
+                <AccordionTrigger className="text-sm py-2">
+                  Section-wise findings ({sections.length})
+                </AccordionTrigger>
+                <AccordionContent className="space-y-2">
+                  {sections.map((s, i) => {
+                    const status = String(s.status || '').toLowerCase();
+                    return (
+                      <div key={`drs-sec-${i}`} className="rounded border p-2 text-xs space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
+                            {SECTION_STATUS_LABEL[status] || s.status || 'unknown'}
+                          </Badge>
+                          <span className="font-medium">{s.label || s.key}</span>
+                          {s.risk_level && (
+                            <Badge variant="outline" className="text-[10px]">Risk: {s.risk_level}</Badge>
+                          )}
+                        </div>
+                        {Array.isArray(s.observations) && s.observations.length > 0 && (
+                          <ul className="list-disc pl-4 text-muted-foreground space-y-0.5">
+                            {s.observations.map((o: string, idx: number) => <li key={idx}>{o}</li>)}
+                          </ul>
+                        )}
+                        {s.suggested_action && (
+                          <div><span className="font-medium">Suggested action: </span>{s.suggested_action}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
+
+          <div className="grid sm:grid-cols-3 gap-2">
+            {topRisks.length > 0 && <DetailList title="Top risks" items={topRisks} dense />}
+            {compliance.length > 0 && <DetailList title="Compliance concerns" items={compliance} dense />}
+            {missing.length > 0 && <DetailList title="Missing information" items={missing} dense />}
+          </div>
+
+          {report.suggested_next_workflow_action && (
+            <DetailParagraph
+              title="Suggested next workflow action"
+              text={String(report.suggested_next_workflow_action)}
+            />
+          )}
+        </>
+      )}
+
+      {/* Analyst controls */}
+      <div className="border-t pt-3 space-y-2">
+        {assessment.analyst_decision ? (
+          <div className="flex items-start gap-2 text-sm">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
+            <div className="flex-1">
+              <div className="font-medium">
+                {assessment.analyst_decision === 'accepted'
+                  ? 'AI recommendation accepted'
+                  : 'AI recommendation overridden'}
+                {assessment.analyst_decision_action && (
+                  <Badge variant="outline" className="ml-2 text-[10px]">
+                    Action: {RECOMMENDED_ACTION_LABEL[assessment.analyst_decision_action] || assessment.analyst_decision_action}
+                  </Badge>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {assessment.analyst_decision_at && new Date(assessment.analyst_decision_at).toLocaleString()}
+              </div>
+              {assessment.analyst_justification && (
+                <p className="text-xs text-muted-foreground mt-1 italic">
+                  "{assessment.analyst_justification}"
+                </p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={saving}
+              onClick={() => setOverrideOpen(true)}
+            >
+              Change
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              disabled={saving || !recommended}
+              onClick={() =>
+                saveDecision({
+                  analyst_decision: 'accepted',
+                  analyst_decision_action: recommended,
+                })
+              }
+            >
+              Accept recommendation
+            </Button>
+            <div className="flex items-center gap-2">
+              <Select value={overrideAction} onValueChange={setOverrideAction}>
+                <SelectTrigger className="h-8 w-[220px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(RECOMMENDED_ACTION_LABEL).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={saving}
+                onClick={() => setOverrideOpen(true)}
+              >
+                Override
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground basis-full">
+              Recording your decision here does not change workflow status. Take the final action in the Workflow panel.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <OverrideJustificationDialog
+        open={overrideOpen}
+        onOpenChange={setOverrideOpen}
+        title="Override AI recommendation"
+        description={`AI recommended "${recommendedLabel}". Provide a justification for choosing a different course of action. This is recorded in the audit log.`}
+        confirmLabel="Save override"
+        onConfirm={async (justification) => {
+          await saveDecision({
+            analyst_decision: 'overridden',
+            analyst_decision_action: overrideAction,
+            analyst_justification: justification,
+          });
+        }}
+      />
+    </section>
+  );
+}
+
+function DetailList({ title, items, dense }: { title: string; items: string[]; dense?: boolean }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">{title}</div>
+      <ul className={`list-disc pl-5 ${dense ? 'text-xs' : 'text-sm'} text-muted-foreground space-y-0.5`}>
+        {items.map((it, i) => <li key={i}>{it}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function DetailParagraph({ title, text }: { title: string; text: string }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">{title}</div>
+      <p className="text-sm text-muted-foreground whitespace-pre-line">{text}</p>
+    </div>
+  );
+}
+
 export default DecisionReadySummary;
