@@ -96,6 +96,80 @@ export function ReviewAcknowledgement({
     );
   };
 
+  const statusBadge = (status: DiffStatus) => {
+    if (status === 'unchanged') return null;
+    const label =
+      status === 'added' ? 'Added'
+      : status === 'deleted' ? 'Deleted'
+      : status === 'reordered' ? 'Reordered'
+      : 'Changed';
+    const cls = status === 'deleted'
+      ? 'text-[10px] text-red-700 border-red-400 bg-red-100/70 dark:text-red-200'
+      : 'text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200';
+    return <Badge variant="outline" className={cls}>{label}</Badge>;
+  };
+
+  const renderTableDiff = (field: ReviewField, key: number) => {
+    const cols = field.tableColumns || [];
+    const pairs = field.tablePairs || [];
+    const anyChange = pairs.some((p) => p.status !== 'unchanged');
+    return (
+      <div key={key} className={anyChange ? 'rounded-md border border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/20 p-2' : 'rounded-md border p-2'}>
+        <div className="text-sm font-medium mb-2 flex items-center gap-2 flex-wrap">
+          {field.label}
+          {anyChange && <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border">
+            <thead>
+              <tr className="bg-muted">
+                <th className="p-1 border-b text-left w-24">Status</th>
+                {cols.map((c) => (
+                  <th key={c.id} className="p-1 border-b text-left">{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pairs.map((p, i) => {
+                const cur = (p.current as Record<string, unknown>) || null;
+                const orig = (p.original as Record<string, unknown>) || null;
+                const rowBg =
+                  p.status === 'deleted' ? 'bg-red-50/40 dark:bg-red-950/20'
+                  : p.status === 'unchanged' ? ''
+                  : 'bg-yellow-50/40 dark:bg-yellow-950/20';
+                return (
+                  <tr key={i} className={`border-b ${rowBg}`}>
+                    <td className="p-1 align-top">{statusBadge(p.status) || <span className="text-muted-foreground">—</span>}</td>
+                    {cols.map((c) => {
+                      const cv = cur ? cur[c.id] : undefined;
+                      const ov = orig ? orig[c.id] : undefined;
+                      const showOrig =
+                        (p.status === 'edited' || p.status === 'deleted') &&
+                        ov != null && ov !== '' &&
+                        String(ov) !== String(cv ?? '');
+                      return (
+                        <td key={c.id} className="p-1 align-top">
+                          {p.status === 'deleted' ? (
+                            <span className="text-muted-foreground italic">{String(ov ?? '')}</span>
+                          ) : (
+                            <span>{String(cv ?? '')}</span>
+                          )}
+                          {showOrig && p.status !== 'deleted' && (
+                            <div className="text-[10px] text-muted-foreground italic">Was: {String(ov)}</div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
