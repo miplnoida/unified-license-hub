@@ -156,12 +156,19 @@ export function ReviewAcknowledgement({
                           ) : (
                             <span className="font-medium text-right break-words max-w-[300px]">{String(field.value)}</span>
                           )}
-                          {changed && hasOriginal && !isAttachmentLike && (
-                            <span className="text-[11px] text-muted-foreground italic">
-                              Was: {typeof field.originalValue === 'boolean'
-                                ? (field.originalValue ? 'Yes' : 'No')
-                                : String(field.originalValue)}
-                            </span>
+                          {changed && hasOriginal && (
+                            isAttachmentLike || isAttachmentValue(field.originalValue) ? (
+                              <div className="min-w-0 max-w-[360px] w-full">
+                                <span className="text-[11px] text-muted-foreground italic block mb-1">Was:</span>
+                                <AttachmentDisplay value={field.originalValue} />
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground italic">
+                                Was: {typeof field.originalValue === 'boolean'
+                                  ? (field.originalValue ? 'Yes' : 'No')
+                                  : String(field.originalValue)}
+                              </span>
+                            )
                           )}
                         </div>
                       </div>
