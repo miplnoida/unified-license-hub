@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows } from '@/lib/formRows';
-import { isFieldChanged, deepEqualField, isFileFieldChanged } from '@/lib/formDiff';
+import { isFieldChanged, deepEqualField, isFileFieldChanged, diffRepeatable, type DiffPair, type DiffStatus } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { uploadVersionedDocument } from '@/lib/documentVersioning';
@@ -356,6 +356,39 @@ export function FormRenderer({
   const currentStepIdx = sectionGroups ? activeFormIdx : currentStep;
   const progress = totalSteps > 0 ? ((currentStepIdx + 1) / totalSteps) * 100 : 0;
   const showTabs = !sectionGroups && visibleSections.length > 1;
+
+  // -------------------- Memoized renewal-diff data --------------------
+  // Computed once per (formData, repeatableData, originalData) change so the
+  // renderer doesn't redo deep comparison per field on every keystroke.
+  const repeatableBaseline = useMemo<Record<string, any[]>>(() => {
+    if (!originalData) return {};
+    const out: Record<string, any[]> = {};
+    const repIndex = (originalData as any).__repeatable;
+    if (repIndex && typeof repIndex === 'object') {
+      for (const [sid, arr] of Object.entries(repIndex)) {
+        if (Array.isArray(arr)) out[sid] = arr as any[];
+      }
+    }
+    for (const key of Object.keys(originalData)) {
+      if (key.startsWith('_repeatable_')) {
+        const sid = key.replace('_repeatable_', '');
+        if (Array.isArray((originalData as any)[key]) && !out[sid]) {
+          out[sid] = (originalData as any)[key];
+        }
+      }
+    }
+    return out;
+  }, [originalData]);
+
+  const repeatablePairsBySection = useMemo<Record<string, ReturnType<typeof diffRepeatable>>>(() => {
+    if (!originalData) return {};
+    const out: Record<string, ReturnType<typeof diffRepeatable>> = {};
+    for (const [sid, current] of Object.entries(repeatableData)) {
+      out[sid] = diffRepeatable(current, repeatableBaseline[sid]);
+    }
+    return out;
+  }, [repeatableData, repeatableBaseline, originalData]);
+
 
   // Check if a section has any data filled in
   const isSectionCompleted = useCallback((section: FormSection): boolean => {
@@ -1005,6 +1038,10 @@ export function FormRenderer({
         const tableData = Array.isArray(val) ? val : [{}];
         const tableBaseline: any[] | undefined =
           baselineProvided && Array.isArray(baselineForField) ? (baselineForField as any[]) : undefined;
+        const tableDiff = tableBaseline ? diffRepeatable(tableData, tableBaseline) : null;
+        const tablePairByIdx = new Map<number, DiffPair<any>>();
+        tableDiff?.pairs.forEach((p) => { if (p.currentIndex !== null) tablePairByIdx.set(p.currentIndex, p); });
+        const tableDeleted = tableDiff?.pairs.filter((p) => p.status === 'deleted') || [];
         input = (
           <div className="space-y-2 overflow-x-auto">
             <table className="w-full text-sm border">
@@ -1018,14 +1055,24 @@ export function FormRenderer({
               </thead>
               <tbody>
                 {tableData.map((row: Record<string, any>, rowIdx: number) => {
-                  const baselineRow = tableBaseline ? tableBaseline[rowIdx] : undefined;
-                  const rowChanged = baselineProvided && !deepEqualField(row, baselineRow);
+                  const pair = tablePairByIdx.get(rowIdx);
+                  const status: DiffStatus = pair?.status || 'unchanged';
+                  const rowChanged = baselineProvided && status !== 'unchanged';
+                  const rowBg =
+                    status === 'added' || status === 'edited' || status === 'reordered'
+                      ? 'border-b bg-yellow-50 dark:bg-yellow-950/30'
+                      : 'border-b';
+                  const badgeLabel =
+                    status === 'added' ? 'Added'
+                    : status === 'reordered' ? 'Reordered'
+                    : status === 'edited' ? 'Changed'
+                    : null;
                   return (
-                  <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
+                  <tr key={rowIdx} className={rowBg}>
                     {(field.tableColumns || []).map((col, colIdx) => (
                       <td key={col.id} className="p-1 align-top">
-                        {rowChanged && colIdx === 0 && (
-                          <Badge variant="outline" className="mb-1 text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                        {rowChanged && colIdx === 0 && badgeLabel && (
+                          <Badge variant="outline" className="mb-1 text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">{badgeLabel}</Badge>
                         )}
                         {col.type === 'file' ? (
                           (() => {
@@ -1163,6 +1210,16 @@ export function FormRenderer({
                 })}
               </tbody>
             </table>
+            {tableDeleted.length > 0 && (
+              <div className="text-[11px] text-muted-foreground border border-dashed border-red-300 bg-red-50/40 dark:bg-red-950/20 rounded-md p-2">
+                <div className="font-medium mb-1 text-red-700 dark:text-red-200">{tableDeleted.length} row(s) removed since the original application</div>
+                {tableDeleted.map((p, di) => (
+                  <div key={di} className="truncate">
+                    {Object.values((p.original as Record<string, unknown>) || {}).slice(0, 4).map((v) => String(v ?? '')).join(' · ') || '(empty row)'}
+                  </div>
+                ))}
+              </div>
+            )}
             {!readOnly && (
               <Button variant="outline" size="sm" className="text-xs" onClick={() => onChange(field.fieldName, [...tableData, {}])}>
                 <Plus className="h-3 w-3 mr-1" /> Add Row
@@ -1387,60 +1444,98 @@ export function FormRenderer({
             />
           ) : (
             <div className="space-y-4">
-              {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => {
-                const baselineEntries: any[] | undefined = (() => {
-                  if (!originalData) return undefined;
-                  const rep = (originalData as any).__repeatable;
-                  if (rep && Array.isArray(rep[currentSection.id])) return rep[currentSection.id];
-                  const flat = (originalData as any)[`_repeatable_${currentSection.id}`];
-                  if (Array.isArray(flat)) return flat;
-                  return undefined;
-                })();
-                const baselineEntry = baselineEntries ? baselineEntries[entryIdx] : undefined;
-                const entryChanged =
-                  !!baselineEntries && !deepEqualField(entry, baselineEntry);
+              {(() => {
+                const entries = repeatableData[currentSection.id] || [{}];
+                const pairsInfo = repeatablePairsBySection[currentSection.id];
+                const baselineEntries = repeatableBaseline[currentSection.id];
+                // Map currentIndex → pair so each editable entry can lookup
+                // its diff status without re-running deepEqualField.
+                const pairByCurrentIdx = new Map<number, DiffPair<any>>();
+                pairsInfo?.pairs.forEach((p) => {
+                  if (p.currentIndex !== null) pairByCurrentIdx.set(p.currentIndex, p);
+                });
+                const deletedPairs = pairsInfo?.pairs.filter((p) => p.status === 'deleted') || [];
+                const statusBadge = (status: DiffStatus | undefined) => {
+                  if (!status || status === 'unchanged') return null;
+                  const label =
+                    status === 'added' ? 'Added'
+                    : status === 'deleted' ? 'Deleted'
+                    : status === 'reordered' ? 'Reordered'
+                    : 'Changed';
+                  return (
+                    <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">
+                      {label}
+                    </Badge>
+                  );
+                };
                 return (
-                <Card
-                  key={entryIdx}
-                  className={
-                    entryChanged
-                      ? 'border-dashed border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/20'
-                      : 'border-dashed'
-                  }
-                >
-                  <CardHeader className="py-2 px-4 flex-row items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                      Entry {entryIdx + 1}
-                      {entryChanged && (
-                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
-                      )}
-                    </span>
-                    {entryIdx > 0 && !readOnly && (
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeRepeatableEntry(currentSection.id, entryIdx)}>
-                        <Trash2 className="h-3 w-3" />
+                  <>
+                    {entries.map((entry, entryIdx) => {
+                      const pair = pairByCurrentIdx.get(entryIdx);
+                      const baselineEntry = pair?.original ?? (baselineEntries ? baselineEntries[entryIdx] : undefined);
+                      const status: DiffStatus = pair?.status ?? (baselineEntries ? 'unchanged' : 'unchanged');
+                      const entryHighlight = status === 'added' || status === 'edited' || status === 'reordered';
+                      return (
+                        <Card
+                          key={entryIdx}
+                          className={
+                            entryHighlight
+                              ? 'border-dashed border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/20'
+                              : 'border-dashed'
+                          }
+                        >
+                          <CardHeader className="py-2 px-4 flex-row items-center justify-between">
+                            <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                              Entry {entryIdx + 1}
+                              {statusBadge(status)}
+                            </span>
+                            {entryIdx > 0 && !readOnly && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeRepeatableEntry(currentSection.id, entryIdx)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </CardHeader>
+                          <CardContent className="pb-4">
+                            <RowsGrid
+                              rows={currentSection.rows || []}
+                              renderField={(field) => renderField(
+                                field,
+                                entry,
+                                (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v),
+                                baselineEntry ? (baselineEntry as any)[field.fieldName] : undefined,
+                                !!baselineEntries && status !== 'added',
+                              )}
+                            />
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                    {deletedPairs.map((p, i) => (
+                      <Card key={`deleted-${i}`} className="border-dashed border-red-300 bg-red-50/40 dark:bg-red-950/20 opacity-80">
+                        <CardHeader className="py-2 px-4 flex-row items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                            Removed entry
+                            <Badge variant="outline" className="text-[10px] text-red-700 border-red-400 bg-red-100/70 dark:text-red-200">Deleted</Badge>
+                          </span>
+                        </CardHeader>
+                        <CardContent className="pb-4 text-xs text-muted-foreground">
+                          {Object.entries((p.original as Record<string, unknown>) || {}).slice(0, 6).map(([k, v]) => (
+                            <div key={k} className="flex justify-between gap-2 border-b border-dashed py-0.5">
+                              <span className="font-medium">{k}</span>
+                              <span className="text-right break-all">{String(v ?? '')}</span>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {!readOnly && (
+                      <Button variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
+                        <Plus className="h-4 w-4 mr-1" /> Add Another Entry
                       </Button>
                     )}
-                  </CardHeader>
-                  <CardContent className="pb-4">
-                    <RowsGrid
-                      rows={currentSection.rows || []}
-                      renderField={(field) => renderField(
-                        field,
-                        entry,
-                        (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v),
-                        baselineEntry ? (baselineEntry as any)[field.fieldName] : undefined,
-                        !!baselineEntries,
-                      )}
-                    />
-                  </CardContent>
-                </Card>
+                  </>
                 );
-              })}
-              {!readOnly && (
-                <Button variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Another Entry
-                </Button>
-              )}
+              })()}
             </div>
           )}
         </CardContent>

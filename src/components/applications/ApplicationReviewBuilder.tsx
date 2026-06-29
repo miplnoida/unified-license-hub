@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
-import { deepEqualField } from '@/lib/formDiff';
+import { deepEqualField, diffRepeatable, type DiffPair } from '@/lib/formDiff';
 
 interface TemplateLite {
   id: string;
@@ -56,7 +56,7 @@ function ReviewBuilderInner({
       const data = formProgressMap[t.id]?.data || {};
       const originalData = originalFormsData?.[t.id] || null;
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean }> = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | 'table' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean; tableColumns?: { id: string; label: string }[]; tablePairs?: DiffPair<Record<string, any>>[] }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
@@ -95,6 +95,28 @@ function ReviewBuilderInner({
           const originalFormatted = originalData ? formatValue(originalRaw, f) : undefined;
           const isAttachment = f.type === 'file' || isAttachmentValue(formatted);
           const changed = !!originalData && !deepEqualField(raw, originalRaw);
+
+          // Tables: emit structured pairs so the review screen can render
+          // per-row status badges (added/deleted/edited/reordered) instead
+          // of a single "N row(s)" string.
+          if (f.type === 'table') {
+            const cols = (f.tableColumns || []).map((c) => ({ id: c.id, label: c.label }));
+            const currentRows = Array.isArray(raw) ? raw : [];
+            const originalRows = Array.isArray(originalRaw) ? originalRaw : [];
+            const diff = originalData ? diffRepeatable(currentRows, originalRows) : null;
+            fields.push({
+              label: f.label || f.fieldName,
+              value: `${currentRows.length} row(s)`,
+              type: 'table',
+              tableColumns: cols,
+              tablePairs: diff
+                ? diff.pairs as DiffPair<Record<string, any>>[]
+                : currentRows.map((r, i) => ({ current: r as Record<string, any>, original: null, currentIndex: i, originalIndex: null, status: 'unchanged' as const })),
+              changed,
+            });
+            return;
+          }
+
           fields.push({
             label: f.label || f.fieldName,
             value: formatted,
