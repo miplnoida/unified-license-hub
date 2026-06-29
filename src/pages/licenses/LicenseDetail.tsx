@@ -314,17 +314,19 @@ export default function LicenseDetail() {
       navigate(`/applications/${existingRow.id}?tab=form&view=submitted`);
       return;
     }
-    // Reopen an existing draft renewal for this license instead of creating a duplicate.
+    // Reopen any existing pre-submission renewal (draft or in_progress) for
+    // this license instead of inserting a duplicate.
     const { data: existingDraft } = await supabase
       .from('applications' as any)
       .select('id')
-      .eq('status', 'draft')
+      .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
       .eq('data->>renewal_of_license_id', license.id)
       .eq('data->>is_renewal', 'true')
       .order('created_at', { ascending: false })
       .limit(1);
     const draftRow = ((existingDraft as any[]) || [])[0];
     if (draftRow?.id) {
+      setInProgressRenewalAppId(draftRow.id);
       toast.info('A renewal form is already in progress for this license — reopening it.');
       navigate(`/post-licensee/applications/${draftRow.id}/forms?service=Renew`);
       return;
