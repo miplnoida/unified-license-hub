@@ -1392,15 +1392,12 @@ export default function NewApplication() {
   const loadFees = useCallback(async () => {
     if (!applicationId) return;
     try {
-      const lines = await resolveApplicationFeeBreakdown(applicationId);
-      if (lines.length > 0) {
-        const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
-        setFeeBreakdown(breakdown);
-        setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
-      } else {
-        setFeeBreakdown([]);
-        setFeeAmount(0);
-      }
+      const meta = await resolveApplicationFeeBreakdownMeta(applicationId);
+      const breakdown = meta.lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+      setFeeBreakdown(breakdown);
+      setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+      setIsRenewalApp(meta.isRenewal);
+      setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
     } catch (err) {
       console.warn('[NewApplication] fee resolution failed:', err);
     }
