@@ -266,6 +266,7 @@ export function SubmittedForms({
                   onSave={onSave ? handleSave : undefined}
                   saving={saving}
                   applicationStatus={applicationStatus}
+                  originalData={originalFormsData?.[tid]}
                 />
               </AccordionContent>
             </AccordionItem>
