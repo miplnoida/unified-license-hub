@@ -806,6 +806,10 @@ export default function LicenseDetail() {
                           <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                           </Button>
+                        ) : inProgressRenewalAppId ? (
+                          <Button variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                            <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
+                          </Button>
                         ) : (
                           <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
                             {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
