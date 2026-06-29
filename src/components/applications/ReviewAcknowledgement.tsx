@@ -124,6 +124,9 @@ export function ReviewAcknowledgement({
                     if (isDisplayOnlyReviewField(field)) {
                       return renderDisplayOnlyField(field, fIdx);
                     }
+                    if (field.tablePairs && field.tableColumns) {
+                      return renderTableDiff(field, fIdx);
+                    }
                     const changed = !!field.changed;
                     const isAttachmentLike = field.type === 'attachment' || isAttachmentValue(field.value);
                     const hasOriginal = field.originalValue != null && field.originalValue !== '';
