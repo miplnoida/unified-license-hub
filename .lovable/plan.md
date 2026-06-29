@@ -1,119 +1,96 @@
-## Goal
+## End-to-End Renewal Form Hardening Plan
 
-Finish the renewal pre-fill + diff-highlight feature so a renewal application behaves exactly like the original approved application being reopened — same templates, same versions, same data, with every applicant change highlighted yellow for both applicants and internal reviewers. No changes outside the renewal path.
+Goal: make license renewal reliably reuse the original approved application's templates, versions, and submitted data with correct change-highlighting everywhere — without regressing any other flow.
 
----
+### 1. Original-application lookup (LicenseDetail.startRenewal)
 
-## Gaps in the current implementation
+Build a single resolver `resolveOriginalApplication(license)` that tries, in order, and returns the first hit:
 
-After reviewing the code that was already shipped:
+1. `license.application_id` direct foreign key.
+2. JSON references: `license.metadata.application_id`, `license.source_application_id`, `license.renewal_of_application_id`.
+3. `applications` where `license_id = license.id` and `status in ('approved','active')`.
+4. `applications` where `license_number = license.license_number`.
+5. Holder/applicant + sector taxonomy: `applicant_id = license.holder_id` AND matching `sector_id` / `sub_sector_id` / `category_id`, latest approved.
+6. Fallback: latest approved application for the same applicant in the same sector.
 
-1. **`LicenseDetail.startRenewal` still hard-requires a renewal template.** It calls `resolveRenewalTemplate()` and bails with *"No renewal form is configured for this license."* before it ever looks up the original approved application. It also only sets `form_template_ids` to the originals — `form_version_ids` is copied but never validated, and template lookup blocks renewal when no template exists.
-2. **`FormRenderer` only highlights top-level scalar fields.** The `isFieldChanged` call sits in `renderField` guarded by `isTopLevel = data === formData`, so repeatable-section rows, table rows, and nested groups never highlight. Tables and repeatables also don't compare row-by-row.
-3. **`ApplicationReviewBuilder` / `ReviewAcknowledgement` show no diff.** They render `field.value` only — no comparison against the original snapshot.
-4. **No legacy fallback banner.** When no original app can be located, the renewal still opens silently with the standalone renewal template; the spec wants a non-blocking notice.
-5. **Original-app lookup is narrow.** Today it only tries `licenses.application_id` plus an `approved + sector + license_number/id` fallback. Spec wants priority chain incl. license_number and holder/applicant+sector/sub-sector/category.
-6. **No memoization of `originalData` per template** — comparisons re-run on every render of every field.
+If found, snapshot into the new renewal application:
+- `original_application_id`, `original_forms_data`, `original_form_version_ids`, `original_form_template_ids`, `original_snapshot_at`.
+- Seed `forms_data`, `form_version_ids`, `form_template_ids` from the original so the renewal opens pre-filled with the exact same forms/versions.
 
-Everything else (snapshot persistence, version pinning via `useResolveAppFormVersion`, internal-view wiring, applicant edit wiring, legend banners in PostLicense and ApplicationDetail) is already in place and stays untouched.
+If not found, set `legacy_renewal_fallback = true` and keep current renewal-template behavior.
 
----
+### 2. Diff engine (`src/lib/formDiff.ts`)
 
-## Files to change
+- Keep `deepEqualField`, `isFieldChanged`, `isRowChanged`, `isRepeatableEntryChanged`, `isFileFieldChanged`.
+- Add `buildDiffIndex(current, original, fields)` → returns a `Map<fieldName, { changed, original }>` computed once per render. This eliminates repeated deep comparisons inside `renderField`.
+- File compare: identity chain uploadId → groupId+version → filePath → name+size; supports arrays for multi-file.
+- Add unit tests for: scalar, array, nested object, table rows, repeatable entries, single file, multi-file, empty/null/whitespace normalization.
 
-```text
-src/pages/licenses/LicenseDetail.tsx                  # priority chain + drop template requirement + persist legacy flag
-src/components/form-renderer/FormRenderer.tsx         # diff for repeatables, tables, files; memoize
-src/components/applications/ApplicationReviewBuilder.tsx # accept + propagate originalFormsData to review
-src/components/applications/ReviewAcknowledgement.tsx # render Changed badge + yellow wrapper per field
-src/pages/PostLicenseApplicationForms.tsx             # pass originalFormsData to ApplicationReviewBuilder; legacy banner
-src/pages/applications/ApplicationDetail.tsx          # pass originalFormsData to ApplicationReviewBuilder
-src/lib/formDiff.ts                                   # add row-aware diff helpers (table row, repeatable entry)
-```
+### 3. FormRenderer highlighting
 
-No DB migration, no edge-function, no workflow/payment/AI/RLS/permission/route-guard changes.
+- Accept `originalData` prop; compute `diffIndex` via `useMemo` keyed on `(formData, originalData, fieldsSignature)`.
+- Apply yellow ring/background when `diffIndex.get(fieldName).changed === true`:
+  - Normal inputs (text, number, select, radio, checkbox, date, textarea).
+  - Table: per-row highlight using `isRowChanged`; "Changed" badge embedded inside first `<td>` so column count matches header (already in place — verify).
+  - Repeatable sections: per-entry highlight via `isRepeatableEntryChanged`.
+  - File / multi-file: via `isFileFieldChanged`.
+  - Nested objects: deep compare via `deepEqualField`.
+- Revert-to-original clears highlight automatically (driven by diffIndex recompute).
 
----
+### 4. Review screens (applicant + internal)
 
-## Detailed plan
+`ApplicationReviewBuilder` + `ReviewAcknowledgement`:
+- Pass `originalFormsData` through.
+- For each field show: current value, `Changed` badge, and `Was: <original>` line.
+- Attachment fields render the original file preview under "Was:" (already added — verify alignment with `max-w-[360px]`).
+- Tables: per-row "Changed" indicator in first cell.
+- Repeatables: per-entry "Changed" indicator.
 
-### 1. `src/pages/licenses/LicenseDetail.tsx` — renewal creation
+### 5. Wiring points
 
-- Drop the early `if (!template) return toast.error(...)` gate. Templates are now optional.
-- Replace original-application lookup with a priority chain that runs **before** any template logic:
-  1. `licenses.application_id`
-  2. `applications` where `status='approved'` and `data->>license_id = license.id` (most recent by `approved_at`)
-  3. `applications` where `status='approved'` and `data->>license_number = license.license_number`
-  4. `applications` where `status='approved'` AND `applicant_id = license.holder_id` (or `licensee_id = linked`) AND `sector_id`/`sub_sector_id`/`category_id` match, most recent
-- If found → use `original.data.form_template_ids`, `forms_data`, `form_version_ids` exactly. Set `legacy_renewal_fallback: false`.
-- If **not** found → only then call `resolveRenewalTemplate()`; if that also returns nothing, still allow renewal with `form_template_ids: []` and surface a single non-blocking toast (`"Original approved application could not be located. This renewal will use the standard renewal form if available."`). Set `legacy_renewal_fallback: true` and **do not** write `original_*` snapshot keys.
-- Keep all existing logic for fee/service/workflow/payment resolution unchanged. Continue writing `is_renewal`, `renewal_of_license_id`, `service: 'Renew'`, `service_id`, valid_until, etc.
-- Snapshot is already deep-cloned (`JSON.parse(JSON.stringify(...))`) — keep that. Never overwrite `original_forms_data` / `original_form_version_ids` / `original_form_template_ids` after insert.
-- Add `original_form_template_ids` to the insert payload (currently missing).
+- `PostLicenseApplicationForms.tsx`: load `original_forms_data` + `original_form_version_ids` from the application row, pass `originalData` to `FormRenderer`. Show non-blocking yellow banner when `legacy_renewal_fallback`.
+- `ApplicationDetail.tsx` (internal review): same — pass `originalFormsData` to `ApplicationReviewBuilder` and show legacy banner.
+- `SubmittedForms.tsx`: pass `originalData` for readonly comparison view.
+- Resubmission + Continue Draft: both reuse the same renewal application row, so they inherit `originalData` automatically — confirm no code path strips it.
 
-### 2. `src/lib/formDiff.ts` — extend helpers
+### 6. Backward compatibility
 
-- Existing `deepEqualField` already handles nested objects/arrays — keep as-is.
-- Add `isRowChanged(currentRow, originalRow)` and `isRepeatableEntryChanged(currentEntry, originalEntry)` as thin wrappers around `deepEqualField` so callers don't reinvent the compare.
-- Add `pickFieldFromOriginal(originalData, fieldName)` helper that safely returns `undefined` when `originalData` is null/undefined.
+- Renewals without `original_*` fields → `originalData` is `undefined` → diff engine returns no changes → renderer behaves like a normal application. Show legacy banner only when explicitly flagged.
+- Non-renewal applications never receive `originalData` → zero behavior change.
 
-### 3. `src/components/form-renderer/FormRenderer.tsx` — full diff coverage
+### 7. Performance
 
-- Remove the `isTopLevel = data === formData` guard. Replace with a per-call optional `baselineForField?: unknown` argument so each renderField invocation knows its own baseline:
-  - Top-level: `baselineForField = originalData?.[field.fieldName]`.
-  - Repeatable entry at index `i`: `baselineForField = originalData?.__repeatable?.[sectionId]?.[i]?.[field.fieldName]` (matches the `__repeatable` shape already used).
-  - Table rows: still rendered inside one `field`; diff at the field level (see below) — individual cells compared via deep equal.
-- For `field.type === 'table'`: compare each row against `originalData?.[field.fieldName]?.[rowIdx]` via `deepEqualField`. Add a `bg-yellow-50 ring-1 ring-yellow-400` class on the changed `<tr>` plus a small "Changed" pill in the row's actions cell. Keep existing add/remove row UX.
-- For repeatable sections: highlight the whole entry container (yellow border) when `isRepeatableEntryChanged`. Also keep per-field highlight inside the entry.
-- For `file` fields (single + `allowMultiple`): compare by stable identity — prefer `uploadId`, then `groupId`+`version`, then `filePath`, then `name+size`. Highlight the file row when changed (different file uploaded, removed, or added vs. original).
-- Memoize per-render: wrap the original-data lookup in a `useMemo` keyed on `originalData` reference + `formData`/`repeatableData` so the diff cost is proportional to actual changes, not render count.
-- Keep the existing top-level "Changed" badge + yellow wrapper; just expand the surfaces it applies to.
-- `display`/`heading`/`paragraph`/`divider` fields: skip diff (already returned early — preserve that).
+- Single `useMemo`-built diff index per form (not per field).
+- Stable signature using field name list + JSON.stringify of relevant slices avoided in favor of reference equality on `formData` / `originalData`.
+- Avoid re-running diff on every keystroke for unrelated fields by scoping recompute to the changed field path when feasible.
 
-### 4. `src/components/applications/ApplicationReviewBuilder.tsx`
+### 8. Verification checklist (must all pass before reporting done)
 
-- Add prop `originalFormsData?: Record<string, Record<string, any>>`.
-- For each template, also fetch the original section data the same way as current values, run `resolveDynamicFieldValue` against `originalFormsData?.[templateId]`, and push a parallel `originalValue` onto each section field.
-- Pass `originalValue` and a derived `changed` boolean (via `deepEqualField`) into the `sections` array given to `ReviewAcknowledgement`.
+- `tsgo --noEmit` clean.
+- ESLint clean on changed files.
+- Manual via Playwright on localhost:
+  1. Renewal with original found → forms pre-filled, edits highlight yellow live, revert clears highlight.
+  2. Renewal without original → legacy banner shown, renewal continues using renewal templates.
+  3. Table edit → only changed row highlights, columns aligned.
+  4. Repeatable edit / add / remove → correct entry-level highlights.
+  5. File replace (single + multi) → highlights, review shows "Was:" with prior file.
+  6. Save Draft → reopen via Continue Draft → highlights persist against original snapshot.
+  7. Submit → applicant Review screen shows Changed + Was values.
+  8. Internal review (`ApplicationDetail`) shows identical Changed + Was values.
+  9. Resubmission after query → still diffed against original snapshot, not previous submission.
+  10. New (non-renewal) application → no diff UI, no banner, behaves exactly as before.
+  11. Smoke: payments page loads, AI assessment trigger works, workflow actions execute, documents tab loads on an existing approved application.
 
-### 5. `src/components/applications/ReviewAcknowledgement.tsx`
+### Files to touch
 
-- Extend the section field type with optional `originalValue` and `changed`.
-- When `changed === true`:
-  - Wrap that row in `border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 rounded-md px-2 py-1`.
-  - Append `<Badge variant="outline">Changed</Badge>` next to the label.
-  - When `originalValue` is non-empty and differs, render it as a muted `Was: <value>` line under the current value (skipping it for attachment/file types to avoid clutter).
-- No behavior change when `changed` is undefined/false — keeps every non-renewal review identical to today.
+- `src/lib/formDiff.ts` — add `buildDiffIndex`, tests.
+- `src/pages/licenses/LicenseDetail.tsx` — `resolveOriginalApplication` + snapshot writer.
+- `src/components/form-renderer/FormRenderer.tsx` — memoized diff index, per-type highlighting.
+- `src/components/applications/ApplicationReviewBuilder.tsx` — already wired; confirm repeatable/table per-entry diff.
+- `src/components/applications/ReviewAcknowledgement.tsx` — verify attachment "Was" rendering.
+- `src/components/applications/SubmittedForms.tsx` — pass `originalData` in readonly mode.
+- `src/pages/PostLicenseApplicationForms.tsx` — load snapshot + banner.
+- `src/pages/applications/ApplicationDetail.tsx` — load snapshot + banner.
+- New: `src/test/formDiff.test.ts`.
 
-### 6. `src/pages/PostLicenseApplicationForms.tsx`
-
-- Pass `originalFormsData={hasRenewalDiff ? originalFormsData : undefined}` into the `<ApplicationReviewBuilder>` call (line ~630).
-- Add a small legacy-fallback banner just above the forms when `appData?.data?.is_renewal === true` and `appData?.data?.legacy_renewal_fallback === true`:
-  *"Original approved application could not be located. This renewal is using the standard renewal form."*
-
-### 7. `src/pages/applications/ApplicationDetail.tsx`
-
-- Pass `originalFormsData={hasRenewalDiff ? originalFormsData : undefined}` into the second `<ApplicationReviewBuilder>` (line ~971, the submit-review dialog).
-- Show the legacy-fallback banner symmetrically when `appData.legacy_renewal_fallback === true`.
-
-### 8. Backward compatibility & safety
-
-- All new behavior is opt-in via the presence of `originalData` / `original_forms_data`. Existing non-renewal applications never see a baseline → no visual change.
-- Legacy in-flight renewals without snapshot keys: render normally, no highlighting, no legend, legacy banner only if `legacy_renewal_fallback` is true.
-- Version pinning is already handled by `useResolveAppFormVersion` + `formVersionIds` snapshot stored at renewal-creation time. The renderer keeps using the pinned id; latest published is only the fallback. Friendly "version unavailable" message is already produced by `useResolveAppFormVersion`/`SingleFormViewer` (resolver error path).
-- Performance: `originalData` references stay stable per render (read from `appData.data.original_forms_data`); memoized field-level lookups avoid O(N) recomputes.
-
----
-
-## Verification (executed before declaring complete)
-
-1. Build a license whose original approved application is reachable → click Renew → renewal opens with original templates + values prefilled; legend shown.
-2. Edit a top-level field, a repeatable row, a table cell, a file upload, and a nested group → all four surfaces highlight yellow live; revert removes highlight.
-3. Save draft → reopen → highlights persist.
-4. Open the renewal in Review → review screen shows yellow Changed badges and `Was:` lines.
-5. Submit renewal → open `/applications/:id` (internal) → Submitted Forms tab + ApplicationReviewBuilder dialog both show identical highlighting; legend appears.
-6. Force a legacy path (license with no resolvable original) → renewal still opens, legacy banner shown, no highlighting, no crashes, no console errors.
-7. Smoke a non-renewal new application + a normal post-license non-renew service → no visual change vs main.
-8. Trigger Query Raised → applicant resubmits → highlight still compares against original snapshot, not the prior submitted draft.
-
-Acceptance criteria from the request map 1:1 onto steps 1–8 above; completion is only declared after all pass.
+No DB schema migration required if `original_*` columns already exist on `applications`; if missing I will add a migration with proper GRANTs and RLS preservation before snapshot writes.
