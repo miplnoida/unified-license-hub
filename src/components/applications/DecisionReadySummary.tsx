@@ -5,10 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ClipboardCheck, Info, Loader2 } from 'lucide-react';
+import { ClipboardCheck, Info, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { SlaProgressPanel } from '@/components/workflows/SlaIndicator';
+import OverrideJustificationDialog from '@/components/audit/OverrideJustificationDialog';
+import { logAudit } from '@/hooks/useAuditLog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import {
   getWorkflowSlaStepConfig,
   resolveCurrentStepStartedAt,
@@ -19,6 +25,33 @@ import {
 } from '@/lib/workflowSlaResolver';
 import { APPLICATION_STATUS_LABELS } from '@/types/platform';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
+
+const RECOMMENDED_ACTION_LABEL: Record<string, string> = {
+  approve: 'Approve',
+  approve_with_conditions: 'Approve with conditions',
+  request_more_information: 'Request more information',
+  escalate: 'Escalate',
+  reject: 'Reject',
+};
+const RECOMMENDED_ACTION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  approve: 'default',
+  approve_with_conditions: 'secondary',
+  request_more_information: 'outline',
+  escalate: 'destructive',
+  reject: 'destructive',
+};
+const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  pass: 'secondary',
+  concern: 'outline',
+  missing_info: 'default',
+  high_risk: 'destructive',
+};
+const SECTION_STATUS_LABEL: Record<string, string> = {
+  pass: 'Pass',
+  concern: 'Concern',
+  missing_info: 'Missing Info',
+  high_risk: 'High Risk',
+};
 
 interface TimelineEvent {
   id: string;
