@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { deepEqualField } from '@/lib/formDiff';
 
 interface TemplateLite {
   id: string;
