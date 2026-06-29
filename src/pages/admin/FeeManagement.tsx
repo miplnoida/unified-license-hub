@@ -127,7 +127,7 @@ export default function FeeManagement() {
   const loadFees = async () => {
     setLoading(true);
     let query = supabase.from('fee_configurations' as any).select('*').order('created_at', { ascending: false });
-    if (activeRegulatorId) query = query.eq('regulator_id', activeRegulatorId);
+    if (activeRegulatorId) query = query.or(`regulator_id.eq.${activeRegulatorId},regulator_id.is.null`);
     const { data, error } = await query;
     if (!error) setFees((data || []) as any);
     setLoading(false);
