@@ -1379,14 +1379,44 @@ export function FormRenderer({
           {!currentSection.isRepeatable ? (
             <RowsGrid
               rows={currentSection.rows || []}
-              renderField={(field) => renderField(field, formData, updateField)}
+              renderField={(field) => renderField(
+                field,
+                formData,
+                updateField,
+                originalData ? originalData[field.fieldName] : undefined,
+                !!originalData,
+              )}
             />
           ) : (
             <div className="space-y-4">
-              {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => (
-                <Card key={entryIdx} className="border-dashed">
+              {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => {
+                const baselineEntries: any[] | undefined = (() => {
+                  if (!originalData) return undefined;
+                  const rep = (originalData as any).__repeatable;
+                  if (rep && Array.isArray(rep[currentSection.id])) return rep[currentSection.id];
+                  const flat = (originalData as any)[`_repeatable_${currentSection.id}`];
+                  if (Array.isArray(flat)) return flat;
+                  return undefined;
+                })();
+                const baselineEntry = baselineEntries ? baselineEntries[entryIdx] : undefined;
+                const entryChanged =
+                  !!baselineEntries && !deepEqualField(entry, baselineEntry);
+                return (
+                <Card
+                  key={entryIdx}
+                  className={
+                    entryChanged
+                      ? 'border-dashed border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/20'
+                      : 'border-dashed'
+                  }
+                >
                   <CardHeader className="py-2 px-4 flex-row items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Entry {entryIdx + 1}</span>
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                      Entry {entryIdx + 1}
+                      {entryChanged && (
+                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                      )}
+                    </span>
                     {entryIdx > 0 && !readOnly && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeRepeatableEntry(currentSection.id, entryIdx)}>
                         <Trash2 className="h-3 w-3" />
@@ -1396,7 +1426,13 @@ export function FormRenderer({
                   <CardContent className="pb-4">
                     <RowsGrid
                       rows={currentSection.rows || []}
-                      renderField={(field) => renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                      renderField={(field) => renderField(
+                        field,
+                        entry,
+                        (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v),
+                        baselineEntry ? (baselineEntry as any)[field.fieldName] : undefined,
+                        !!baselineEntries,
+                      )}
                     />
                   </CardContent>
                 </Card>
