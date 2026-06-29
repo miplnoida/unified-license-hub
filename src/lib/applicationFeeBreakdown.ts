@@ -6,6 +6,16 @@ export interface ApplicationFeeLine {
   amount: number;
 }
 
+export interface ApplicationFeeBreakdownMeta {
+  lines: ApplicationFeeLine[];
+  isRenewal: boolean;
+  /** True when a renewal fee configuration exists for this app's scope. Only meaningful when isRenewal. */
+  hasRenewalFeeConfig: boolean;
+}
+
+const isRenewalFeeType = (t?: string | null) =>
+  typeof t === 'string' && t.toLowerCase().includes('renew');
+
 const formatFeeType = (t?: string | null) => {
   if (!t) return 'Fee';
   const cleaned = t.replace(/[_-]+/g, ' ').trim();
@@ -13,6 +23,23 @@ const formatFeeType = (t?: string | null) => {
 };
 
 export async function resolveApplicationFeeBreakdown(applicationId: string): Promise<ApplicationFeeLine[]> {
+  const meta = await resolveApplicationFeeBreakdownMeta(applicationId);
+  return meta.lines;
+}
+
+export async function resolveApplicationFeeBreakdownMeta(applicationId: string): Promise<ApplicationFeeBreakdownMeta> {
+  const { data: application } = await supabase
+    .from('applications')
+    .select('data')
+    .eq('id', applicationId)
+    .maybeSingle();
+
+  const appData = (application?.data || {}) as Record<string, any>;
+  const isRenewal =
+    appData.is_renewal === true ||
+    appData.service_name === 'Renew' ||
+    appData.service === 'Renew';
+
   const { data: feeRows } = await supabase
     .from('fee_components' as any)
     .select('id, amount, description, fee_type_id')
@@ -31,26 +58,29 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     }
 
     const seen = new Set<string>();
-    return componentRows.filter((row) => {
-      const key = (feeTypeNameById.get(row.fee_type_id || '') || row.description || '').trim().toLowerCase();
-      if (!key) return true;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    }).map((row) => ({
-      id: row.id,
-      name: formatFeeType(feeTypeNameById.get(row.fee_type_id || '') || row.description),
-      amount: Number(row.amount || 0),
-    }));
+    const lines = componentRows
+      // For renewals, manual components MUST also be renewal-typed; otherwise
+      // we silently keep applying the original application fee.
+      .filter((row) => {
+        if (!isRenewal) return true;
+        const label = feeTypeNameById.get(row.fee_type_id || '') || row.description || '';
+        return isRenewalFeeType(label);
+      })
+      .filter((row) => {
+        const key = (feeTypeNameById.get(row.fee_type_id || '') || row.description || '').trim().toLowerCase();
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map((row) => ({
+        id: row.id,
+        name: formatFeeType(feeTypeNameById.get(row.fee_type_id || '') || row.description),
+        amount: Number(row.amount || 0),
+      }));
+
+    return { lines, isRenewal, hasRenewalFeeConfig: isRenewal ? lines.length > 0 : false };
   }
 
-  const { data: application } = await supabase
-    .from('applications')
-    .select('data')
-    .eq('id', applicationId)
-    .maybeSingle();
-
-  const appData = (application?.data || {}) as Record<string, any>;
   const selectedSector = appData.sector_id as string | undefined;
   const selectedSubSector = appData.sub_sector_id as string | undefined;
   const selectedCategory = appData.category_id as string | undefined;
@@ -59,12 +89,7 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     ? (appData.form_template_ids as string[])
     : (appData.form_template_id ? [appData.form_template_id as string] : []);
 
-  if (!selectedSector) return [];
-
-  const isRenewal =
-    appData.is_renewal === true ||
-    appData.service_name === 'Renew' ||
-    appData.service === 'Renew';
+  if (!selectedSector) return { lines: [], isRenewal, hasRenewalFeeConfig: false };
 
   const { data: fees } = await supabase
     .from('fee_configurations')
@@ -82,28 +107,24 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
         (f.service_id && f.service_id === selectedService ? 8 : 0) +
         (f.category_id && f.category_id === selectedCategory ? 4 : 0) +
         (f.sub_sector_id && f.sub_sector_id === selectedSubSector ? 2 : 0) +
-        (f.sector_id === selectedSector ? 1 : 0) +
-        (isRenewal && typeof f.fee_type === 'string' && f.fee_type.toLowerCase().includes('renew') ? 32 : 0),
+        (f.sector_id === selectedSector ? 1 : 0),
     }))
     .filter((f: any) =>
       (!f.sub_sector_id || !selectedSubSector || f.sub_sector_id === selectedSubSector) &&
       (!f.category_id || !selectedCategory || f.category_id === selectedCategory) &&
-      // Form-scoped distinction: a fee with form_id only applies if that form
-      // is part of the application; a fee without form_id applies to all forms.
       (!f.form_id || selectedFormIds.includes(f.form_id)) &&
 
-      // Service-scoped distinction between post-licensee (service selected)
-      // and pre-licensee (no service). Renewals straddle both scopes, so a
-      // renewal fee may be configured with or without a service_id.
+      // RENEWAL: strict — only fees whose fee_type marks them as renewal fees.
+      // Non-renewal application fees must never appear on a renewal.
+      // NON-RENEWAL: original behaviour, scoped by service.
       (isRenewal
-        ? (!f.service_id || f.service_id === selectedService)
-        : (selectedService ? f.service_id === selectedService : !f.service_id))
+        ? (isRenewalFeeType(f.fee_type) && (!f.service_id || f.service_id === selectedService))
+        : (!isRenewalFeeType(f.fee_type) && (selectedService ? f.service_id === selectedService : !f.service_id)))
     )
     .sort((a: any, b: any) => b.specificity - a.specificity);
 
-
   const seen = new Set<string>();
-  return ranked.filter((row: any) => {
+  const lines = ranked.filter((row: any) => {
     const key = (row.fee_type || '').trim().toLowerCase();
     if (!key) return false;
     if (seen.has(key)) return false;
@@ -114,4 +135,6 @@ export async function resolveApplicationFeeBreakdown(applicationId: string): Pro
     name: formatFeeType(row.fee_type),
     amount: Number(row.amount || 0),
   }));
+
+  return { lines, isRenewal, hasRenewalFeeConfig: isRenewal ? lines.length > 0 : false };
 }

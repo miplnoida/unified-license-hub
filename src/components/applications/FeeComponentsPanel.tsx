@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PlusCircle, Pencil, Trash2, Loader2, DollarSign } from 'lucide-react';
-import { resolveApplicationFeeBreakdown, ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { resolveApplicationFeeBreakdownMeta, ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 interface FeeType {
   id: string;
@@ -36,6 +36,8 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
   const [feeTypes, setFeeTypes] = useState<FeeType[]>([]);
   const [components, setComponents] = useState<FeeComponent[]>([]);
   const [resolvedFallback, setResolvedFallback] = useState<ApplicationFeeLine[]>([]);
+  const [isRenewal, setIsRenewal] = useState(false);
+  const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Form state for adding/editing
@@ -53,10 +55,10 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
 
   const loadData = async () => {
     setLoading(true);
-    const [ftRes, fcRes, resolved] = await Promise.all([
+    const [ftRes, fcRes, meta] = await Promise.all([
       supabase.from('fee_types' as any).select('*').order('name'),
       supabase.from('fee_components' as any).select('*').eq('application_id', applicationId).order('created_at'),
-      resolveApplicationFeeBreakdown(applicationId).catch(() => [] as ApplicationFeeLine[]),
+      resolveApplicationFeeBreakdownMeta(applicationId).catch(() => ({ lines: [] as ApplicationFeeLine[], isRenewal: false, hasRenewalFeeConfig: false })),
     ]);
     if (ftRes.data) setFeeTypes(ftRes.data as any);
     if (fcRes.data) {
@@ -66,7 +68,9 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
       }));
       setComponents(comps);
     }
-    setResolvedFallback(resolved || []);
+    setResolvedFallback(meta.lines || []);
+    setIsRenewal(meta.isRenewal);
+    setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig && (fcRes.data?.length || 0) === 0);
     setLoading(false);
   };
 
@@ -211,6 +215,10 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
                 </div>
               </div>
             </>
+          ) : renewalFeeMissing ? (
+            <p className="text-sm text-amber-700 dark:text-amber-300 text-center py-4 font-medium">
+              Renewal fee is not configured.
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">No fee components added yet.</p>
           )

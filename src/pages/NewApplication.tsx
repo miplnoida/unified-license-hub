@@ -32,7 +32,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePpoc } from '@/contexts/PpocContext';
-import { resolveApplicationFeeBreakdown } from '@/lib/applicationFeeBreakdown';
+import { resolveApplicationFeeBreakdown, resolveApplicationFeeBreakdownMeta } from '@/lib/applicationFeeBreakdown';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
@@ -117,6 +117,8 @@ export default function NewApplication() {
   const [hasSuccessfulPaymentRecord, setHasSuccessfulPaymentRecord] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
+  const [isRenewalApp, setIsRenewalApp] = useState(false);
+  const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
   const [showInlineReview, setShowInlineReview] = useState(false);
   const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
@@ -551,16 +553,13 @@ export default function NewApplication() {
   // (previously only the "Proceed to payment" button triggered this).
   useEffect(() => {
     if (!applicationId || currentStep !== 'payment') return;
-    resolveApplicationFeeBreakdown(applicationId)
-      .then((lines) => {
-        if (lines.length > 0) {
-          const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
-          setFeeBreakdown(breakdown);
-          setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
-        } else {
-          setFeeBreakdown([]);
-          setFeeAmount(0);
-        }
+    resolveApplicationFeeBreakdownMeta(applicationId)
+      .then((meta) => {
+        const breakdown = meta.lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+        setFeeBreakdown(breakdown);
+        setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+        setIsRenewalApp(meta.isRenewal);
+        setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
       })
       .catch((err) => console.warn('[NewApplication] fee resolution failed:', err));
   }, [applicationId, currentStep]);
@@ -597,7 +596,7 @@ export default function NewApplication() {
   const displayStep = currentStep === 'filling' ? 'forms' : currentStep;
   const stepIndex = WIZARD_STEPS.findIndex(s => s.key === displayStep);
   const progress = ((stepIndex + 1) / WIZARD_STEPS.length) * 100;
-  const paymentComplete = feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord;
+  const paymentComplete = !renewalFeeMissing && (feeAmount === 0 || paymentStatus === 'success' || hasSuccessfulPaymentRecord);
   const hasReusablePendingPayment = paymentStatus === 'pending' && !!paymentId && !hasSuccessfulPaymentRecord;
 
   const sectorObj = sectors.find(s => s.id === selectedSector);
@@ -1393,15 +1392,12 @@ export default function NewApplication() {
   const loadFees = useCallback(async () => {
     if (!applicationId) return;
     try {
-      const lines = await resolveApplicationFeeBreakdown(applicationId);
-      if (lines.length > 0) {
-        const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
-        setFeeBreakdown(breakdown);
-        setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
-      } else {
-        setFeeBreakdown([]);
-        setFeeAmount(0);
-      }
+      const meta = await resolveApplicationFeeBreakdownMeta(applicationId);
+      const breakdown = meta.lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+      setFeeBreakdown(breakdown);
+      setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+      setIsRenewalApp(meta.isRenewal);
+      setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
     } catch (err) {
       console.warn('[NewApplication] fee resolution failed:', err);
     }
@@ -2205,9 +2201,18 @@ export default function NewApplication() {
                           <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
                         </div>
                       </>
+                    ) : renewalFeeMissing ? (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                        <p className="font-semibold">Renewal fee is not configured.</p>
+                        <p className="mt-1 text-amber-800 dark:text-amber-300">
+                          Contact the regulator to configure the renewal fee for this license. You cannot proceed to submit until the renewal fee is set up.
+                        </p>
+                      </div>
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-2">
-                        No fees configured for this category. You may proceed without payment.
+                        {isRenewalApp
+                          ? 'No renewal fee is required for this license. You may proceed without payment.'
+                          : 'No fees configured for this category. You may proceed without payment.'}
                       </p>
                     )}
                   </div>
@@ -2261,7 +2266,7 @@ export default function NewApplication() {
                 )}
 
                 {/* No fees – skip payment */}
-                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && (
+                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && !renewalFeeMissing && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
                     <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
                     <p className="text-sm text-muted-foreground">No payment required. You can proceed to submit.</p>

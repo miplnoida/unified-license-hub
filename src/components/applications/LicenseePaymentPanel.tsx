@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { logAudit } from '@/hooks/useAuditLog';
-import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { resolveApplicationFeeBreakdownMeta, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 interface Props {
   applicationId: string;
@@ -44,11 +44,13 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
   const [currency, setCurrency] = useState<string>('USD');
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [isRenewal, setIsRenewal] = useState(false);
+  const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
-    const [resolvedFees, payRes] = await Promise.all([
-      resolveApplicationFeeBreakdown(applicationId),
+    const [meta, payRes] = await Promise.all([
+      resolveApplicationFeeBreakdownMeta(applicationId),
       supabase
         .from('payments')
         .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
@@ -56,8 +58,10 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         .order('created_at', { ascending: false }),
     ]);
 
-    setFees(resolvedFees);
-    setTotalDue(resolvedFees.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    setFees(meta.lines);
+    setTotalDue(meta.lines.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    setIsRenewal(meta.isRenewal);
+    setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
@@ -223,9 +227,18 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
               </div>
             </div>
           </div>
+        ) : renewalFeeMissing ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+            <p className="font-semibold">Renewal fee is not configured.</p>
+            <p className="mt-1 text-amber-800 dark:text-amber-300">
+              Contact the regulator to configure the renewal fee for this license before payment can be processed.
+            </p>
+          </div>
         ) : totalDue <= 0 ? (
           <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-            No payment is required for this application. You may continue with the next steps.
+            {isRenewal
+              ? 'No renewal fee is required for this license. You may continue with the next steps.'
+              : 'No payment is required for this application. You may continue with the next steps.'}
           </div>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-4 dark:border-amber-900/40 dark:bg-amber-950/30">
