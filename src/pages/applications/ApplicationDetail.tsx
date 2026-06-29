@@ -105,6 +105,9 @@ export default function ApplicationDetail() {
   const formTemplateIds: string[] = appData?.form_template_ids || [];
   const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
+  const originalFormsData: Record<string, Record<string, any>> | undefined = appData?.original_forms_data || undefined;
+  const isRenewalApplication: boolean = !!appData?.is_renewal;
+  const hasRenewalDiff = isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
   const hasSubmittedForms = formTemplateIds.length > 0;
 
   useEffect(() => {
