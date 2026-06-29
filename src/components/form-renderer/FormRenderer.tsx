@@ -738,7 +738,13 @@ export function FormRenderer({
     });
   };
 
-  const renderField = (field: FormField, data: Record<string, any>, onChange: (fieldName: string, val: any) => void) => {
+  const renderField = (
+    field: FormField,
+    data: Record<string, any>,
+    onChange: (fieldName: string, val: any) => void,
+    baselineForField?: unknown,
+    baselineProvided: boolean = false,
+  ) => {
     if (!isFieldVisible(field, data, allFields)) return null;
     const val = data[field.fieldName] ?? field.defaultValue ?? '';
     const required = isFieldRequired(field, data, allFields);
