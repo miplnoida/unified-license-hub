@@ -2266,7 +2266,7 @@ export default function NewApplication() {
                 )}
 
                 {/* No fees – skip payment */}
-                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && (
+                {paymentStatus === 'pending' && feeAmount === 0 && feeBreakdown.length === 0 && !renewalFeeMissing && (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-6 text-center space-y-2">
                     <CheckCircle2 className="h-8 w-8 text-emerald-600 mx-auto" />
                     <p className="text-sm text-muted-foreground">No payment required. You can proceed to submit.</p>
