@@ -101,28 +101,22 @@ export default function LicenseDetail() {
   // instead of inserting a new draft.
   const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
-  const refreshPendingRenewal = async (licenseId: string) => {
-    const [pendingRes, draftRes] = await Promise.all([
-      supabase
-        .from('applications' as any)
-        .select('id, status, data, created_at')
-        .eq('data->>renewal_of_license_id', licenseId)
-        .in('status', PENDING_RENEWAL_STATUSES as any)
-        .order('created_at', { ascending: false })
-        .limit(1),
-      supabase
-        .from('applications' as any)
-        .select('id, status, data, created_at')
-        .eq('data->>renewal_of_license_id', licenseId)
-        .eq('data->>is_renewal', 'true')
-        .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
-        .order('created_at', { ascending: false })
-        .limit(1),
-    ]);
-    const pendingRow = ((pendingRes.data as any[]) || [])[0];
-    const draftRow = ((draftRes.data as any[]) || [])[0];
-    setPendingRenewalAppId(pendingRow?.id || null);
-    setInProgressRenewalAppId(draftRow?.id || null);
+  const refreshPendingRenewal = async (licenseId: string): Promise<{ pendingId: string | null; inProgressId: string | null }> => {
+    const { data, error } = await (supabase as any).rpc('get_in_flight_renewals', { license_ids: [licenseId] });
+    if (error) {
+      console.error('[LicenseDetail] get_in_flight_renewals failed', error);
+      setPendingRenewalAppId(null);
+      setInProgressRenewalAppId(null);
+      return { pendingId: null, inProgressId: null };
+    }
+    const rows = (data as any[]) || [];
+    const pending = rows.find((r) => r.is_pending);
+    const inProgress = rows.find((r) => r.is_in_progress);
+    const pendingId = pending?.application_id || null;
+    const inProgressId = inProgress?.application_id || null;
+    setPendingRenewalAppId(pendingId);
+    setInProgressRenewalAppId(inProgressId);
+    return { pendingId, inProgressId };
   };
 
   useEffect(() => {
@@ -292,43 +286,19 @@ export default function LicenseDetail() {
       }
     }
     // Guard against duplicate in-flight renewals. If the licensee already has
-    // a pending renewal application for this license, surface it instead of
-    // inserting a second one.
-    await refreshPendingRenewal(license.id);
-    if (pendingRenewalAppId) {
+    // a pending or in-progress renewal application for this license, surface
+    // it instead of inserting a second one. The RPC is scoped to the caller's
+    // licensee membership so secondary users see rows started by primary
+    // users in the same licensee too.
+    const { pendingId, inProgressId } = await refreshPendingRenewal(license.id);
+    if (pendingId) {
       toast.info('A renewal application is already in progress for this license.');
-      navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`);
+      navigate(`/applications/${pendingId}?tab=form&view=submitted`);
       return;
     }
-    const { data: existingPending } = await supabase
-      .from('applications' as any)
-      .select('id, status')
-      .eq('data->>renewal_of_license_id', license.id)
-      .in('status', PENDING_RENEWAL_STATUSES as any)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    const existingRow = ((existingPending as any[]) || [])[0];
-    if (existingRow?.id) {
-      setPendingRenewalAppId(existingRow.id);
-      toast.info('A renewal application is already in progress for this license.');
-      navigate(`/applications/${existingRow.id}?tab=form&view=submitted`);
-      return;
-    }
-    // Reopen any existing pre-submission renewal (draft or in_progress) for
-    // this license instead of inserting a duplicate.
-    const { data: existingDraft } = await supabase
-      .from('applications' as any)
-      .select('id')
-      .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
-      .eq('data->>renewal_of_license_id', license.id)
-      .eq('data->>is_renewal', 'true')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    const draftRow = ((existingDraft as any[]) || [])[0];
-    if (draftRow?.id) {
-      setInProgressRenewalAppId(draftRow.id);
+    if (inProgressId) {
       toast.info('A renewal form is already in progress for this license — reopening it.');
-      navigate(`/post-licensee/applications/${draftRow.id}/forms?service=Renew`);
+      navigate(`/post-licensee/applications/${inProgressId}/forms?service=Renew`);
       return;
     }
     setStartingRenewal(true);

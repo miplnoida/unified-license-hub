@@ -88,26 +88,18 @@ export function LicenseeDashboard() {
         setInProgressRenewalByLicense({});
         return;
       }
-      const [pendingRes, draftRes] = await Promise.all([
-        supabase
-          .from('applications')
-          .select('id, status, data')
-          .in('status', PENDING_RENEWAL_STATUSES as any),
-        supabase
-          .from('applications')
-          .select('id, status, data')
-          .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
-          .eq('data->>is_renewal', 'true'),
-      ]);
-      const pending: Record<string, { id: string; status: string }> = {};
-      for (const r of ((pendingRes.data || []) as any[])) {
-        const lid = r?.data?.renewal_of_license_id;
-        if (lid && licenseIds.includes(lid) && !pending[lid]) pending[lid] = { id: r.id, status: r.status };
+      const { data, error } = await (supabase as any).rpc('get_in_flight_renewals', { license_ids: licenseIds });
+      if (error) {
+        console.error('[LicenseeDashboard] get_in_flight_renewals failed', error);
+        return;
       }
+      const pending: Record<string, { id: string; status: string }> = {};
       const inProgress: Record<string, { id: string; status: string }> = {};
-      for (const r of ((draftRes.data || []) as any[])) {
-        const lid = r?.data?.renewal_of_license_id;
-        if (lid && licenseIds.includes(lid) && !inProgress[lid]) inProgress[lid] = { id: r.id, status: r.status };
+      for (const r of ((data as any[]) || [])) {
+        const lid = r.license_id;
+        if (!lid) continue;
+        if (r.is_pending && !pending[lid]) pending[lid] = { id: r.application_id, status: r.status };
+        if (r.is_in_progress && !inProgress[lid]) inProgress[lid] = { id: r.application_id, status: r.status };
       }
       if (!cancelled) {
         setPendingRenewalByLicense(pending);

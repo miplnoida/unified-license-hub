@@ -1,63 +1,62 @@
 ## Problem
 
-Previous fix only treated `status = 'draft'` as an in-progress renewal. The actual rows in the database for a started renewal are stored with `status = 'in_progress'` (also a pre-submission status), so the guard misses them and a brand-new renewal application is inserted on every click.
-
-DB evidence — two renewal rows exist for the same `renewal_of_license_id`:
-
-```
-status=in_progress  is_renewal=true  service=Renew
-status=draft        is_renewal=true  service=Renew  (newly created on the retry click)
-```
-
-Additionally, the Renew button label never changes when an in-progress renewal already exists, so the user has no UI cue that clicking it will resume rather than start fresh.
-
-## Fix (scope: renewal UI only — no fee / workflow / AI changes)
-
-### 1. Treat draft AND in_progress as "in-progress renewal"
-
-Introduce a single shared constant for pre-submission renewal statuses:
+On the Licensee Dashboard, the Renew/Continue Renewal button is decided by a direct query against `applications` from the browser:
 
 ```ts
-const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
+supabase.from('applications').select('id, status, data')
+  .in('status', ['draft','in_progress']).eq('data->>is_renewal','true')
 ```
 
-Use it in three places that currently only check `'draft'` (or only check the submitted list):
+Row-Level Security on `applications` is the combination of two policies:
+- **Read policy** — allows licensee-linked users via `application_ids_for_licensee(user_licensee_id(auth.uid()))`.
+- **External capability gate** — for external roles (applicant, pre_licensee, licensee_primary, licensee_secondary) it ANDs an extra check that requires `applicant_id = auth.uid()` OR `external_can_access_application(...)`.
 
-- `src/pages/licenses/LicenseDetail.tsx` — `startRenewal` duplicate-guard (replace the existing draft-only lookup with `.in('status', IN_PROGRESS_RENEWAL_STATUSES)`), and resolve the row id into a new `inProgressRenewalAppId` state.
-- `src/components/dashboard/cards/LicenseStatusList.tsx` — the `pendingRenewalByLicense` lookup currently uses `PENDING_RENEWAL_STATUSES` (submitted/under_review/...). Add a second lookup for in-progress rows and merge into a new `inProgressRenewalByLicense` map.
-- `src/components/dashboard/LicenseeDashboard.tsx` — same treatment as `LicenseStatusList`.
+Effect: a **secondary licensee user** (or any external user other than the original applicant) cannot read a renewal application started by another user in the same licensee. The dashboard sees an empty result and falls back to showing **"Renew"**, which is exactly what the user reported.
 
-### 2. Update button label and navigation when an in-progress renewal exists
+The earlier "in_progress vs draft" fix was correct but only helped the user who created the row.
 
-Priority shown on the Renew control becomes:
+## Fix
 
-1. Submitted/under-review renewal exists → "Renewal in progress" badge linking to read-only application view (unchanged).
-2. **Draft/in_progress renewal exists → "Continue Renewal" button linking to the form route** `/post-licensee/applications/<id>/forms?service=Renew` (new behavior + new label).
-3. Otherwise → "Renew" button calling `startRenewal` (unchanged).
+Add a small security-definer RPC that returns in-flight renewal applications scoped to the caller's licensee membership, and use it from the dashboard / license list places that today hit `applications` directly.
 
-Files touched for the label/route change:
+### 1. Migration — new RPC `get_in_flight_renewals(license_ids uuid[])`
 
-- `src/pages/licenses/LicenseDetail.tsx` — both Renew button sites (around lines 786-815 and 835-845) and the renewal panel.
-- `src/components/dashboard/cards/LicenseStatusList.tsx` — Renew button block (around line 151).
-- `src/components/dashboard/LicenseeDashboard.tsx` — Renew button block (around line 171).
+- Language SQL, `security definer`, `stable`, `set search_path = public`.
+- For the caller (`auth.uid()`), resolve their licensee scope (reuse the existing `user_licensee_id` / `ppoc_mapped_licensee_ids` / `application_ids_for_licensee` helpers, plus the user's own `applicant_id = auth.uid()` rows).
+- Return rows `(application_id uuid, license_id uuid, status text, is_pending boolean, is_in_progress boolean)` for any `applications` where:
+  - `data->>'is_renewal' = 'true'`
+  - `(data->>'renewal_of_license_id')::uuid = ANY(license_ids)`
+  - `status IN ('draft','in_progress','submitted','under_review','query_raised','resubmission_requested')`
+  - AND the application is in the caller's scope (own + licensee-linked + PPOC-mapped).
+- `GRANT EXECUTE ON FUNCTION public.get_in_flight_renewals(uuid[]) TO authenticated;`
+- No table grants, no policy changes, no schema changes to `applications`.
 
-### 3. Auto-trigger path (`?action=renew`)
+### 2. Frontend — call the RPC from three places
 
-`startRenewal` already runs the guard, so once step 1 is applied the auto-trigger automatically reopens the existing in-progress form instead of inserting a duplicate. No separate change needed beyond passing `inProgressRenewalAppId` through the same short-circuit used for submitted renewals.
+Replace the existing direct `applications` queries in the renewal-detection effect:
+
+- `src/components/dashboard/LicenseeDashboard.tsx`
+- `src/components/dashboard/cards/LicenseStatusList.tsx` (used by ApplicantDashboard)
+- `src/pages/licenses/LicenseDetail.tsx` (the `refreshPendingRenewal` / duplicate-guard fetch — same RLS blind spot, so the duplicate guard fails for secondary users too)
+
+Each call becomes:
+
+```ts
+const { data } = await supabase.rpc('get_in_flight_renewals', { license_ids: licenseIds });
+// Split rows into pendingRenewalByLicense (submitted/under_review/…) and
+// inProgressRenewalByLicense (draft/in_progress) using is_pending / is_in_progress.
+```
+
+The downstream button logic (Renewal-in-progress link, Continue Renewal link, Renew fallback) and label constants stay exactly as they are.
+
+### 3. Verification
+
+- Sign in as the primary licensee user → start a renewal → leave it as draft.
+- Sign in as a secondary licensee user of the same licensee → open the Licensee Dashboard.
+- Expect: license row shows **"Continue Renewal"**, links to `/post-licensee/applications/<id>/forms?service=Renew`.
+- On `/licenses/<id>` clicking Renew also reopens the existing form instead of inserting a duplicate row. Confirm no new `applications` row appears in the DB.
+- Typecheck + run existing tests.
 
 ## Out of scope
 
-- No DB migration, no RLS changes, no status enum changes.
-- No changes to fee resolution, payment panel, workflow engine, approvals, documents, or AI assessment.
-- Non-renewal applications: untouched.
-- Existing duplicate `in_progress` row in the DB is data, not code — left as-is. Going forward the guard prevents new duplicates.
-
-## Verification (must be done in UI before claiming fixed)
-
-1. License with an existing `in_progress` renewal → dashboard / license card shows **"Continue Renewal"** (not "Renew"). Click it → opens the same `/post-licensee/applications/<existing-id>/forms?service=Renew`. No new row inserted (verify by row count for that `renewal_of_license_id`).
-2. License with an existing `draft` renewal → same behavior as case 1.
-3. License with a submitted renewal → still shows "Renewal in progress" badge → opens read-only view. Unchanged.
-4. License with no renewal → "Renew" button → creates a new draft → status becomes `in_progress` after user begins editing → returning to dashboard now shows "Continue Renewal".
-5. Deep link `/licenses/:id?action=renew` with an existing in-progress renewal → navigates to that same renewal form, no duplicate created.
-6. Non-renewal applications unaffected.
-
+No changes to: existing RLS policies, status enum, fee resolution, payment flow, workflow engine, AI assessment, non-renewal applications, or the admin `/admin/fees` UUID issue from earlier turns.

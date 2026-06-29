@@ -7632,6 +7632,16 @@ export type Database = {
           version_id: string
         }[]
       }
+      get_in_flight_renewals: {
+        Args: { license_ids: string[] }
+        Returns: {
+          application_id: string
+          is_in_progress: boolean
+          is_pending: boolean
+          license_id: string
+          status: string
+        }[]
+      }
       get_my_licenses_page: {
         Args: {
           _licensee_id?: string
