@@ -9,11 +9,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { CheckCircle2, FileText, Eye, Edit, AlertTriangle } from 'lucide-react';
 import { AttachmentDisplay, isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText, type DisplayKind } from '@/lib/registrationDisplayTypes';
+import type { DiffPair, DiffStatus } from '@/lib/formDiff';
+
+interface ReviewTableColumn { id: string; label: string }
 
 interface ReviewField {
   label: string;
   value: any;
-  type?: 'attachment' | 'display' | string;
+  type?: 'attachment' | 'display' | 'table' | string;
   displayKind?: DisplayKind;
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
   placeholder?: string;
@@ -23,6 +26,9 @@ interface ReviewField {
   originalValue?: any;
   /** Renewal diff: when true, highlight the row yellow + "Changed" badge. */
   changed?: boolean;
+  /** Optional structured table data with paired rows for added/deleted/edited/reordered. */
+  tableColumns?: ReviewTableColumn[];
+  tablePairs?: DiffPair<Record<string, any>>[];
 }
 
 interface ReviewSection {
