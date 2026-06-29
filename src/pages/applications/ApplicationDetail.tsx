@@ -724,6 +724,7 @@ export default function ApplicationDetail() {
                         setActiveTab(next);
                       }}
                     />
+                    </>
                   )}
                 </TabsContent>
               )}
