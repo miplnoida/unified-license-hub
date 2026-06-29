@@ -1436,7 +1436,8 @@ export function FormRenderer({
                     />
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
               {!readOnly && (
                 <Button variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
                   <Plus className="h-4 w-4 mr-1" /> Add Another Entry
