@@ -1003,6 +1003,8 @@ export function FormRenderer({
         break;
       case 'table':
         const tableData = Array.isArray(val) ? val : [{}];
+        const tableBaseline: any[] | undefined =
+          baselineProvided && Array.isArray(baselineForField) ? (baselineForField as any[]) : undefined;
         input = (
           <div className="space-y-2 overflow-x-auto">
             <table className="w-full text-sm border">
@@ -1015,8 +1017,16 @@ export function FormRenderer({
                 </tr>
               </thead>
               <tbody>
-                {tableData.map((row: Record<string, any>, rowIdx: number) => (
-                  <tr key={rowIdx} className="border-b">
+                {tableData.map((row: Record<string, any>, rowIdx: number) => {
+                  const baselineRow = tableBaseline ? tableBaseline[rowIdx] : undefined;
+                  const rowChanged = baselineProvided && !deepEqualField(row, baselineRow);
+                  return (
+                  <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
+                    {rowChanged && (
+                      <td className="p-1 align-middle">
+                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                      </td>
+                    )}
                     {(field.tableColumns || []).map(col => (
                       <td key={col.id} className="p-1">
                         {col.type === 'file' ? (
