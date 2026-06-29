@@ -1023,7 +1023,10 @@ export function FormRenderer({
                   return (
                   <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
                     {(field.tableColumns || []).map((col, colIdx) => (
-                      <td key={col.id} className="p-1">
+                      <td key={col.id} className="p-1 align-top">
+                        {rowChanged && colIdx === 0 && (
+                          <Badge variant="outline" className="mb-1 text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                        )}
                         {col.type === 'file' ? (
                           (() => {
                             const cellKey = `${field.fieldName}__${rowIdx}__${col.id}`;
