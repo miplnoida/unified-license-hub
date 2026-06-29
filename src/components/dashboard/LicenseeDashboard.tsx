@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 // they should land on the read-only ApplicationDetail with submitted forms
 // and full history (activity log).
 const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 const RENEWAL_STATUS_LABELS: Record<string, string> = {
   submitted: 'Renewal submitted',
   under_review: 'Renewal under review',
