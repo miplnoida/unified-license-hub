@@ -18,9 +18,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const PROMPT_VERSION = "v1";
+const PROMPT_VERSION = "v2";
 const MODEL_PROVIDER = "lovable-ai-gateway";
 const MODEL_NAME = "google/gemini-2.5-flash";
+
+const SECTION_KEYS = [
+  "application_details",
+  "submitted_forms",
+  "documents",
+  "fees_payment",
+  "rfi_history",
+  "workflow_sla_history",
+  "compliance_notes",
+  "risk_indicators",
+] as const;
 
 const INTERNAL_ROLES = new Set([
   "super_admin",
@@ -187,6 +198,9 @@ Deno.serve(async (req) => {
       submittedForms,
       secureDocuments,
       payments,
+      approvalActions,
+      workflowInstances,
+      formTemplates,
     ] = await Promise.all([
       sectorId
         ? adminClient.from("sectors").select("name").eq("id", sectorId).maybeSingle()
@@ -214,6 +228,19 @@ Deno.serve(async (req) => {
         .from("payments")
         .select("id, amount, currency, status, created_at")
         .eq("application_id", application_id),
+      adminClient
+        .from("approval_actions")
+        .select("id, step_id, action_type, action, comments, actor_id, created_at")
+        .eq("application_id", application_id)
+        .order("created_at", { ascending: true }),
+      adminClient
+        .from("workflow_instances")
+        .select("id, workflow_id, status, current_step_id, current_step_key, started_at, updated_at, version_snapshot")
+        .eq("entity_type", "application")
+        .eq("entity_id", application_id),
+      adminClient
+        .from("form_templates")
+        .select("id, name"),
     ]);
 
     const submittedFormsList = (submittedForms.data as unknown[]) || [];
@@ -345,19 +372,56 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "AI provider not configured" }, 500);
     }
 
+    // Derive RFI/query history and workflow timeline from approval_actions.
+    const actionsList = (approvalActions.data as Array<Record<string, unknown>>) || [];
+    const RFI_ACTIONS = new Set([
+      "resubmission_requested",
+      "info_requested",
+      "query_raised",
+      "returned_for_correction",
+      "edit_requested",
+    ]);
+    const RESPONSE_ACTIONS = new Set(["resubmitted", "edit_allowed"]);
+    const rfiHistory = actionsList.filter((a) => RFI_ACTIONS.has(String(a.action || "")));
+    const workflowHistory = actionsList.map((a) => ({
+      step_id: a.step_id ?? null,
+      action_type: a.action_type ?? null,
+      action: a.action ?? null,
+      comments: a.comments ?? null,
+      created_at: a.created_at ?? null,
+    }));
+    const rfiResponses = actionsList.filter((a) => RESPONSE_ACTIONS.has(String(a.action || "")));
+
+    // Group submitted forms by template name + section.
+    const templateNameById = new Map<string, string>(
+      ((formTemplates.data as Array<{ id: string; name: string }>) || []).map((t) => [t.id, t.name]),
+    );
+    const submittedFormsGrouped = submittedFormsList.map((f: any) => ({
+      id: f.id,
+      template_id: f.template_id,
+      template_name: templateNameById.get(f.template_id) || null,
+      status: f.status,
+      submitted_at: f.submitted_at,
+      response_data: f.response_data,
+    }));
+
+    const workflowInstanceRows = (workflowInstances.data as Array<Record<string, unknown>>) || [];
+
     // Build prompt payload (advisory only).
     const applicationContext = {
-      application_number: app.application_number,
-      license_type: app.license_type,
-      status: app.status,
-      sector_name: sectorRow.data?.name ?? null,
-      sub_sector_name: subSectorRow.data?.name ?? null,
-      category_name: categoryRow.data?.name ?? null,
-      service_name: serviceRow.data?.name ?? null,
-      submitted_at: app.submitted_at,
-      created_at: app.created_at,
-      application_data: appData,
-      submitted_forms: submittedFormsList,
+      application_details: {
+        application_number: app.application_number,
+        license_type: app.license_type,
+        status: app.status,
+        sector_name: sectorRow.data?.name ?? null,
+        sub_sector_name: subSectorRow.data?.name ?? null,
+        category_name: categoryRow.data?.name ?? null,
+        service_name: serviceRow.data?.name ?? null,
+        submitted_at: app.submitted_at,
+        created_at: app.created_at,
+        application_data: appData,
+      },
+      submitted_forms: submittedFormsGrouped,
       documents: documentsList.map((d: Record<string, unknown>) => ({
         source: d.source ?? null,
         id: d.id ?? null,
@@ -367,11 +431,36 @@ Deno.serve(async (req) => {
         mime_type: d.mime_type,
         created_at: d.created_at ?? null,
       })),
-      payments: paymentsList.map((p) => ({
-        amount: p.amount,
-        currency: p.currency,
-        status: p.status,
-      })),
+      fees_payment: {
+        payments: paymentsList.map((p) => ({
+          id: p.id,
+          amount: p.amount,
+          currency: p.currency,
+          status: p.status,
+          created_at: p.created_at,
+        })),
+        has_completed_payment: !!completedPayment,
+      },
+      rfi_history: {
+        requests: rfiHistory,
+        responses: rfiResponses,
+      },
+      workflow_sla_history: {
+        instances: workflowInstanceRows.map((i) => ({
+          id: i.id,
+          status: i.status,
+          current_step_id: i.current_step_id,
+          current_step_key: i.current_step_key,
+          started_at: i.started_at,
+          updated_at: i.updated_at,
+        })),
+        actions: workflowHistory,
+      },
+      compliance_notes: appData.compliance_notes ?? null,
+      risk_indicators: {
+        is_resubmission: !!appData.resubmission_comments,
+        prior_rfi_count: rfiHistory.length,
+      },
       rule_check_snapshot: ruleCheckSnapshot,
     };
 
@@ -379,33 +468,32 @@ Deno.serve(async (req) => {
 
     const systemPrompt = `You are an assistant to a licensing analyst.
 Use ONLY the supplied application data. Do not invent facts.
-Separate deterministic rule-check outcomes from AI inferences.
-Every finding and risk must include evidence (short quotes/IDs/field names).
-If evidence is missing, list it under missing_information rather than making it up.
-Do NOT make a final approval or rejection decision and do NOT say the application
-should be automatically approved. Use "request_more_info" when required evidence
-is missing. Use "enhanced_due_diligence" for high-risk ownership, compliance,
-financial, or document concerns. Return VALID JSON ONLY matching this exact schema:
+Every finding, risk, and section observation must include evidence (short quotes, IDs, or field names from the input).
+If evidence is missing, list it under missing_information rather than inventing it.
+Do NOT make a final approval or rejection decision and do NOT say the application should be automatically approved.
+You produce BOTH a section-wise review AND a consolidated decision-ready report. The recommended_action is advisory only; the human analyst takes the final action.
+
+Return VALID JSON ONLY matching this exact schema:
 
 {
   "summary": "string",
-  "findings": [
+  "sections": [
     {
-      "severity": "low|medium|high|critical",
-      "category": "completeness|eligibility|financial|ownership|compliance|document|duplicate|other",
-      "title": "string",
-      "description": "string",
+      "key": "application_details|submitted_forms|documents|fees_payment|rfi_history|workflow_sla_history|compliance_notes|risk_indicators",
+      "label": "string",
+      "status": "pass|concern|missing_info|high_risk",
+      "risk_level": "low|medium|high|critical",
+      "observations": ["string"],
       "evidence": ["string"],
-      "analyst_action": "string"
+      "suggested_action": "string",
+      "links": [{ "type": "form|document|payment|rfi|workflow", "id": "string", "label": "string" }]
     }
   ],
+  "findings": [
+    { "severity": "low|medium|high|critical", "category": "completeness|eligibility|financial|ownership|compliance|document|duplicate|other", "title": "string", "description": "string", "evidence": ["string"], "analyst_action": "string" }
+  ],
   "risks": [
-    {
-      "risk_type": "compliance|financial|operational|ownership|document|eligibility|other",
-      "level": "low|medium|high|critical",
-      "reason": "string",
-      "evidence": ["string"]
-    }
+    { "risk_type": "compliance|financial|operational|ownership|document|eligibility|other", "level": "low|medium|high|critical", "reason": "string", "evidence": ["string"] }
   ],
   "routing_recommendation": {
     "recommended_route": "standard_review|senior_analyst|enhanced_due_diligence|request_more_info|reject_review",
@@ -413,9 +501,34 @@ financial, or document concerns. Return VALID JSON ONLY matching this exact sche
     "reason": "string",
     "confidence": 0.0
   },
+  "decision_report": {
+    "executive_summary": "string",
+    "recommended_action": "approve|approve_with_conditions|request_more_information|escalate|reject",
+    "rationale": "string",
+    "suggested_conditions": ["string"],
+    "suggested_questions": ["string"],
+    "escalation_reason": "string",
+    "rejection_rationale": "string",
+    "top_risks": ["string"],
+    "compliance_concerns": ["string"],
+    "suggested_next_workflow_action": "string"
+  },
   "missing_information": ["string"],
   "confidence_score": 0.0
-}`;
+}
+
+Rules for the section-wise review:
+- Always produce one entry per available section key in: ${SECTION_KEYS.join(", ")}.
+- If a section has no data, mark status="missing_info" with a clear observation, do not skip it.
+- Choose status="pass" only when the section is complete and consistent.
+- Choose status="high_risk" only when concrete evidence in the input shows material risk.
+
+Rules for decision_report.recommended_action:
+- "approve_with_conditions" must populate suggested_conditions.
+- "request_more_information" must populate suggested_questions.
+- "escalate" must populate escalation_reason.
+- "reject" must populate rejection_rationale.
+- "approve" requires no extra arrays but still requires rationale.`;
 
     const userPrompt = `Analyse the following licensing application and return the JSON described in the system message.
 
@@ -478,6 +591,11 @@ ${JSON.stringify(applicationContext, null, 2)}`;
       const summary = typeof parsed.summary === "string" ? parsed.summary : null;
       const confidence =
         typeof parsed.confidence_score === "number" ? parsed.confidence_score : null;
+      const sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+      const decisionReport =
+        parsed.decision_report && typeof parsed.decision_report === "object"
+          ? parsed.decision_report
+          : {};
 
       await adminClient
         .from("application_ai_assessments")
@@ -489,6 +607,8 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           routing_recommendation: routing,
           missing_information: missing,
           confidence_score: confidence,
+          sections,
+          decision_report: decisionReport,
           source_payload_hash: sourcePayloadHash,
           generated_at: new Date().toISOString(),
           error_message: null,
