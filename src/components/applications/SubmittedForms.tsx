@@ -87,6 +87,12 @@ interface SubmittedFormsProps {
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
+  /**
+   * Optional baseline values per template (keyed by templateId). When provided,
+   * each form is rendered with diff highlighting against this baseline. Used
+   * by the renewal flow to show the original approved application's values.
+   */
+  originalFormsData?: Record<string, Record<string, any>>;
   /** Called when the last pending form is saved — parent should advance to next step (Documents/Payment) */
   onAllFormsCompleted?: () => void;
 }
@@ -100,6 +106,7 @@ export function SubmittedForms({
   onSave,
   saving,
   applicationStatus,
+  originalFormsData,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
   const getTimestamp = (value?: string | null) => {
