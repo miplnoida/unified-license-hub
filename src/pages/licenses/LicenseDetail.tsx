@@ -284,6 +284,7 @@ export default function LicenseDetail() {
           return;
         }
       }
+    }
     // Guard against duplicate in-flight renewals. If the licensee already has
     // a pending or in-progress renewal application for this license, surface
     // it instead of inserting a second one. The RPC is scoped to the caller's
