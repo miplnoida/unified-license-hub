@@ -189,6 +189,12 @@ export function LicenseeDashboard() {
                           {RENEWAL_STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
                         </Link>
                       </Button>
+                    ) : inProgressRenewalByLicense[lic.id] ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/post-licensee/applications/${inProgressRenewalByLicense[lic.id].id}/forms?service=Renew`}>
+                          <RefreshCw className="h-3.5 w-3.5 mr-1" />Continue Renewal
+                        </Link>
+                      </Button>
                     ) : canRenew && (
                       <Button asChild size="sm" variant="outline">
                         <Link to={`/licenses/${lic.id}?action=renew`}>
