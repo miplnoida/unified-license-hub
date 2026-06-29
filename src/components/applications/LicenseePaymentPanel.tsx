@@ -44,11 +44,13 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
   const [currency, setCurrency] = useState<string>('USD');
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [isRenewal, setIsRenewal] = useState(false);
+  const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
-    const [resolvedFees, payRes] = await Promise.all([
-      resolveApplicationFeeBreakdown(applicationId),
+    const [meta, payRes] = await Promise.all([
+      resolveApplicationFeeBreakdownMeta(applicationId),
       supabase
         .from('payments')
         .select('id, amount, status, payment_method, paid_at, created_at, transaction_ref, receipt_number, currency')
@@ -56,8 +58,10 @@ export function LicenseePaymentPanel({ applicationId, canPay = false, onPaid }: 
         .order('created_at', { ascending: false }),
     ]);
 
-    setFees(resolvedFees);
-    setTotalDue(resolvedFees.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    setFees(meta.lines);
+    setTotalDue(meta.lines.reduce((sum, f) => sum + Number(f.amount || 0), 0));
+    setIsRenewal(meta.isRenewal);
+    setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
 
     const payments = (payRes.data || []) as unknown as PaymentRow[];
     const successful = payments.find(p => p.status === 'success' || p.status === 'paid' || p.status === 'completed');
