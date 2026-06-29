@@ -108,6 +108,7 @@ function ActiveFormFiller({
         submissionId={applicationId || null}
         entityType="post_license_application"
         entityId={applicationId || null}
+        originalData={originalData}
       />
     </div>
   );
