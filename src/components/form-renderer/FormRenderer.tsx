@@ -1210,6 +1210,16 @@ export function FormRenderer({
                 })}
               </tbody>
             </table>
+            {tableDeleted.length > 0 && (
+              <div className="text-[11px] text-muted-foreground border border-dashed border-red-300 bg-red-50/40 dark:bg-red-950/20 rounded-md p-2">
+                <div className="font-medium mb-1 text-red-700 dark:text-red-200">{tableDeleted.length} row(s) removed since the original application</div>
+                {tableDeleted.map((p, di) => (
+                  <div key={di} className="truncate">
+                    {Object.values((p.original as Record<string, unknown>) || {}).slice(0, 4).map((v) => String(v ?? '')).join(' · ') || '(empty row)'}
+                  </div>
+                ))}
+              </div>
+            )}
             {!readOnly && (
               <Button variant="outline" size="sm" className="text-xs" onClick={() => onChange(field.fieldName, [...tableData, {}])}>
                 <Plus className="h-3 w-3 mr-1" /> Add Row
