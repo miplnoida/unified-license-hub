@@ -972,6 +972,7 @@ export default function ApplicationDetail() {
                         templates={formTemplateIds.map((tid, i) => ({ id: tid, name: templateNames[tid] || `Form ${i + 1}` }))}
                         formProgressMap={Object.fromEntries(formTemplateIds.map(tid => [tid, { data: formsData[tid] || {} }]))}
                         versionIdByTemplate={formVersionIds}
+                        originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                         mode="readonly"
                         loading={processing}
                         onAcknowledge={async () => { setShowReview(false); await handleSubmit(); }}

@@ -646,6 +646,7 @@ export default function PostLicenseApplicationForms() {
                       ))
                     ) as Record<string, string>),
                   }}
+                  originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
                   onEdit={(idx) => {
