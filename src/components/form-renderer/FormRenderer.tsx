@@ -78,6 +78,13 @@ interface Props {
   entityId?: string | null;
   /** External portal area for capability gating (Submit/Upload). Internal users bypass. */
   portalArea?: PortalArea;
+  /**
+   * Optional baseline values keyed by `fieldName`. When provided, each field
+   * whose current value deep-differs from the baseline is highlighted yellow
+   * with a "Changed" badge. Used by the license renewal flow to surface edits
+   * relative to the original approved application.
+   */
+  originalData?: Record<string, any>;
 }
 
 function evaluateCondition(rule: ConditionalRule, formData: Record<string, any>, allFields: FormField[]): boolean {
