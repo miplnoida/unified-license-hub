@@ -553,16 +553,13 @@ export default function NewApplication() {
   // (previously only the "Proceed to payment" button triggered this).
   useEffect(() => {
     if (!applicationId || currentStep !== 'payment') return;
-    resolveApplicationFeeBreakdown(applicationId)
-      .then((lines) => {
-        if (lines.length > 0) {
-          const breakdown = lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
-          setFeeBreakdown(breakdown);
-          setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
-        } else {
-          setFeeBreakdown([]);
-          setFeeAmount(0);
-        }
+    resolveApplicationFeeBreakdownMeta(applicationId)
+      .then((meta) => {
+        const breakdown = meta.lines.map(l => ({ name: l.name, amount: Number(l.amount) }));
+        setFeeBreakdown(breakdown);
+        setFeeAmount(breakdown.reduce((sum, f) => sum + f.amount, 0));
+        setIsRenewalApp(meta.isRenewal);
+        setRenewalFeeMissing(meta.isRenewal && !meta.hasRenewalFeeConfig);
       })
       .catch((err) => console.warn('[NewApplication] fee resolution failed:', err));
   }, [applicationId, currentStep]);
