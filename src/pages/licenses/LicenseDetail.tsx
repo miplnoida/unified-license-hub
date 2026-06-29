@@ -324,6 +324,68 @@ export default function LicenseDetail() {
         renewServiceId = ((services as any[] | null) || [])[0]?.id || null;
       }
 
+      // Locate the original approved application that produced this license.
+      // We use it to (a) reuse the SAME form templates the entity originally
+      // filled, (b) prefill all fields with the original submitted values, and
+      // (c) snapshot the original values so the renewal UI can highlight any
+      // field the licensee subsequently changes.
+      let originalAppId: string | null = license.application_id || null;
+      let originalAppData: any = null;
+      if (originalAppId) {
+        const { data: origRow } = await supabase
+          .from('applications')
+          .select('id, data')
+          .eq('id', originalAppId)
+          .maybeSingle();
+        originalAppData = (origRow as any)?.data || null;
+      }
+      if (!originalAppData) {
+        // Fallback: most-recent approved application for this licensee/sector
+        // referencing this license number.
+        const { data: fallbackRow } = await supabase
+          .from('applications')
+          .select('id, data')
+          .eq('status', 'approved')
+          .eq('sector_id' as any, license.sector_id as any)
+          .order('approved_at', { ascending: false })
+          .limit(20);
+        const matched = ((fallbackRow as any[]) || []).find(r => {
+          const d = r.data || {};
+          return (
+            d.license_number === license.license_number ||
+            d.license_id === license.id ||
+            d.issued_license_id === license.id
+          );
+        });
+        if (matched) {
+          originalAppId = matched.id;
+          originalAppData = matched.data || null;
+        }
+      }
+
+      const originalTemplateIds: string[] = Array.isArray(originalAppData?.form_template_ids)
+        ? originalAppData.form_template_ids
+        : [];
+      const originalFormsData: Record<string, any> =
+        originalAppData?.forms_data && typeof originalAppData.forms_data === 'object'
+          ? originalAppData.forms_data
+          : {};
+      const originalFormVersionIds: Record<string, string> =
+        originalAppData?.form_version_ids && typeof originalAppData.form_version_ids === 'object'
+          ? originalAppData.form_version_ids
+          : {};
+
+      // Use the original templates when available; fall back to the resolved
+      // standalone renewal template for legacy licenses with no traceable
+      // original application.
+      const templateIdsForRenewal = originalTemplateIds.length > 0
+        ? originalTemplateIds
+        : [template.id];
+
+      // Deep-clone the snapshot so future writes to forms_data don't mutate it.
+      const originalSnapshot = JSON.parse(JSON.stringify(originalFormsData));
+      const originalVersionSnapshot = JSON.parse(JSON.stringify(originalFormVersionIds));
+
       const renewalApplicationId = crypto.randomUUID();
 
       const { error } = await supabase
@@ -342,7 +404,12 @@ export default function LicenseDetail() {
             service_id: renewServiceId,
             service_name: 'Renew',
             service: 'Renew',
-            form_template_ids: [template.id],
+            form_template_ids: templateIdsForRenewal,
+            forms_data: originalSnapshot,
+            form_version_ids: originalVersionSnapshot,
+            original_application_id: originalAppId,
+            original_forms_data: originalSnapshot,
+            original_form_version_ids: originalVersionSnapshot,
             renewal_of_license_id: license.id,
             renewal_of_license_number: license.license_number,
             computed_new_valid_until: computedNewValidUntil,
