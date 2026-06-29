@@ -196,6 +196,7 @@ export function SubmittedForms({
         onSave={onSave ? handleSave : undefined}
         saving={saving}
         applicationStatus={applicationStatus}
+        originalData={originalFormsData?.[formTemplateIds[0]]}
       />
     );
   }
