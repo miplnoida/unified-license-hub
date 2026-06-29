@@ -221,6 +221,7 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
   const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
   const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
   const routing = assessment.routing_recommendation || {};
+  const sections: Section[] = Array.isArray(assessment.sections) ? assessment.sections : [];
   const groupedFindings = groupBySeverity(findings);
 
   return (
@@ -240,7 +241,51 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
         </section>
       )}
 
+      {sections.length > 0 && (
+        <>
+          <Separator />
+          <section className="space-y-2">
+            <div className="text-sm font-semibold">Section-wise review</div>
+            <div className="space-y-2">
+              {sections.map((s, i) => {
+                const status = (s.status || '').toLowerCase();
+                return (
+                  <div key={`sec-${i}`} className="rounded-md border p-3 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={SECTION_STATUS_VARIANT[status] || 'outline'}>
+                        {SECTION_STATUS_LABEL[status] || s.status || 'unknown'}
+                      </Badge>
+                      <span className="text-sm font-medium">{s.label || s.key || 'Section'}</span>
+                      {s.risk_level && (
+                        <Badge variant="outline" className="text-xs">Risk: {s.risk_level}</Badge>
+                      )}
+                    </div>
+                    {Array.isArray(s.observations) && s.observations.length > 0 && (
+                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
+                        {s.observations.map((o, idx) => <li key={idx}>{o}</li>)}
+                      </ul>
+                    )}
+                    {Array.isArray(s.evidence) && s.evidence.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Evidence: </span>{s.evidence.join('; ')}
+                      </div>
+                    )}
+                    {s.suggested_action && (
+                      <div className="text-xs">
+                        <span className="font-medium">Suggested action: </span>{s.suggested_action}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </>
+      )}
+
       <Separator />
+
+
 
       <section>
         <div className="text-sm font-semibold mb-2">Routing recommendation</div>
