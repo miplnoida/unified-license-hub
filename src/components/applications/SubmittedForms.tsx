@@ -19,9 +19,10 @@ interface SingleFormViewerProps {
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
+  originalData?: Record<string, any>;
 }
 
-function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus, originalData }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
   // Prefer the EXACT version the applicant originally submitted on — its field
