@@ -342,11 +342,11 @@ export default function LicenseDetail() {
       if (!originalAppData) {
         // Fallback: most-recent approved application for this licensee/sector
         // referencing this license number.
-        const { data: fallbackRow } = await supabase
+        const { data: fallbackRow } = await (supabase as any)
           .from('applications')
           .select('id, data')
           .eq('status', 'approved')
-          .eq('sector_id' as any, license.sector_id as any)
+          .eq('sector_id', license.sector_id)
           .order('approved_at', { ascending: false })
           .limit(20);
         const matched = ((fallbackRow as any[]) || []).find(r => {
