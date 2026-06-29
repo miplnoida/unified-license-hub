@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { CreditCard, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { logAudit } from '@/hooks/useAuditLog';
-import { resolveApplicationFeeBreakdown, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
+import { resolveApplicationFeeBreakdownMeta, type ApplicationFeeLine } from '@/lib/applicationFeeBreakdown';
 
 interface Props {
   applicationId: string;
