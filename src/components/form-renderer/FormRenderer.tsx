@@ -1161,7 +1161,8 @@ export function FormRenderer({
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {!readOnly && (
