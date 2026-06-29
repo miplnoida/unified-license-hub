@@ -215,6 +215,10 @@ export function FeeComponentsPanel({ applicationId, editable = false }: Props) {
                 </div>
               </div>
             </>
+          ) : renewalFeeMissing ? (
+            <p className="text-sm text-amber-700 dark:text-amber-300 text-center py-4 font-medium">
+              Renewal fee is not configured.
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">No fee components added yet.</p>
           )
