@@ -92,25 +92,37 @@ export default function LicenseDetail() {
   const [startingRenewal, setStartingRenewal] = useState(false);
   const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
   const [pendingRenewalAppId, setPendingRenewalAppId] = useState<string | null>(null);
+  const [inProgressRenewalAppId, setInProgressRenewalAppId] = useState<string | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
-  // Status values that mean the renewal application is still in flight and a
-  // duplicate Renew should NOT be allowed. Anything else (approved / rejected
-  // / cancelled / withdrawn) frees the licensee to start a fresh renewal.
-  // Only treat the renewal as "in progress" once it has actually been
-  // submitted. Drafts are reopenable via the duplicate-guard in startRenewal.
+  // Submitted (post-submit) renewal — duplicates blocked, opens read-only.
   const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+  // Pre-submission renewal — clicking Renew should reopen the same form
+  // instead of inserting a new draft.
+  const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
   const refreshPendingRenewal = async (licenseId: string) => {
-    const { data } = await supabase
-      .from('applications' as any)
-      .select('id, status, data, created_at')
-      .eq('data->>renewal_of_license_id', licenseId)
-      .in('status', PENDING_RENEWAL_STATUSES as any)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    const row = ((data as any[]) || [])[0];
-    setPendingRenewalAppId(row?.id || null);
+    const [pendingRes, draftRes] = await Promise.all([
+      supabase
+        .from('applications' as any)
+        .select('id, status, data, created_at')
+        .eq('data->>renewal_of_license_id', licenseId)
+        .in('status', PENDING_RENEWAL_STATUSES as any)
+        .order('created_at', { ascending: false })
+        .limit(1),
+      supabase
+        .from('applications' as any)
+        .select('id, status, data, created_at')
+        .eq('data->>renewal_of_license_id', licenseId)
+        .eq('data->>is_renewal', 'true')
+        .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
+    const pendingRow = ((pendingRes.data as any[]) || [])[0];
+    const draftRow = ((draftRes.data as any[]) || [])[0];
+    setPendingRenewalAppId(pendingRow?.id || null);
+    setInProgressRenewalAppId(draftRow?.id || null);
   };
 
   useEffect(() => {
