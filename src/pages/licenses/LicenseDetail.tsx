@@ -101,28 +101,22 @@ export default function LicenseDetail() {
   // instead of inserting a new draft.
   const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
-  const refreshPendingRenewal = async (licenseId: string) => {
-    const [pendingRes, draftRes] = await Promise.all([
-      supabase
-        .from('applications' as any)
-        .select('id, status, data, created_at')
-        .eq('data->>renewal_of_license_id', licenseId)
-        .in('status', PENDING_RENEWAL_STATUSES as any)
-        .order('created_at', { ascending: false })
-        .limit(1),
-      supabase
-        .from('applications' as any)
-        .select('id, status, data, created_at')
-        .eq('data->>renewal_of_license_id', licenseId)
-        .eq('data->>is_renewal', 'true')
-        .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
-        .order('created_at', { ascending: false })
-        .limit(1),
-    ]);
-    const pendingRow = ((pendingRes.data as any[]) || [])[0];
-    const draftRow = ((draftRes.data as any[]) || [])[0];
-    setPendingRenewalAppId(pendingRow?.id || null);
-    setInProgressRenewalAppId(draftRow?.id || null);
+  const refreshPendingRenewal = async (licenseId: string): Promise<{ pendingId: string | null; inProgressId: string | null }> => {
+    const { data, error } = await (supabase as any).rpc('get_in_flight_renewals', { license_ids: [licenseId] });
+    if (error) {
+      console.error('[LicenseDetail] get_in_flight_renewals failed', error);
+      setPendingRenewalAppId(null);
+      setInProgressRenewalAppId(null);
+      return { pendingId: null, inProgressId: null };
+    }
+    const rows = (data as any[]) || [];
+    const pending = rows.find((r) => r.is_pending);
+    const inProgress = rows.find((r) => r.is_in_progress);
+    const pendingId = pending?.application_id || null;
+    const inProgressId = inProgress?.application_id || null;
+    setPendingRenewalAppId(pendingId);
+    setInProgressRenewalAppId(inProgressId);
+    return { pendingId, inProgressId };
   };
 
   useEffect(() => {
