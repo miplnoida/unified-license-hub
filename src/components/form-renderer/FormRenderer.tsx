@@ -1183,11 +1183,18 @@ export function FormRenderer({
         input = <Input value={val} onChange={e => onChange(field.fieldName, e.target.value)} disabled={readOnly} />;
     }
 
-    // Diff-highlight: only at the top level (renderField called with formData).
-    // Repeatable entries pass a different `data` reference; we skip those to
-    // avoid false positives when there is no per-entry baseline.
-    const isTopLevel = data === formData;
-    const changed = isTopLevel && !!originalData && isFieldChanged(field.fieldName, val, originalData);
+    // Diff-highlight. When a baseline is explicitly supplied (top-level or per
+    // repeatable entry), compare against it. Tables handle their own per-row
+    // highlighting above; here we still mark the table-level container if any
+    // row differs. Files use identity-aware compare.
+    let changed = false;
+    if (baselineProvided) {
+      if (field.type === 'file') {
+        changed = isFileFieldChanged(val, baselineForField);
+      } else {
+        changed = !deepEqualField(val, baselineForField);
+      }
+    }
 
     return (
       <div
