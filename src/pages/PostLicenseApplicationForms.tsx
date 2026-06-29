@@ -490,6 +490,13 @@ export default function PostLicenseApplicationForms() {
           </div>
         </div>
 
+        {hasRenewalDiff && (
+          <div className="rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
+            This is a renewal. The forms are prefilled with values from your original approved application. Yellow fields will mark values you change.
+          </div>
+        )}
+
+
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
