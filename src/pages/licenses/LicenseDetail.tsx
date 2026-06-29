@@ -306,61 +306,134 @@ export default function LicenseDetail() {
 
     try {
       // Locate the original approved application that produced this license.
-      // Priority chain (first hit wins):
+      // Priority chain — first match wins. Each step checks both top-level
+      // columns and `data` JSON keys so legacy rows are still resolvable.
       //   1. licenses.application_id (direct FK)
-      //   2. approved app with data.license_id matching license.id
-      //   3. approved app with data.license_number matching license.license_number
-      //   4. approved app from same applicant (holder) + sector taxonomy
+      //   2. approved app with id === license.data?.application_id (if available)
+      //   3. approved/active app whose license_id column matches the license
+      //   4. approved app with data.license_id / data.issued_license_id /
+      //      data.renewal_of_license_id matching the license id
+      //   5. approved app with license_number column or data.license_number
+      //   6. approved app whose applicant/licensee/holder reference matches
+      //      AND sector/sub_sector/category match (column or data JSON)
+      //   7. Fallback: latest approved app for the same applicant + sector
       let originalAppId: string | null = license.application_id || null;
       let originalAppData: any = null;
+      const APPROVED_STATUSES = ['approved', 'active'];
 
-      if (originalAppId) {
-        const { data: origRow } = await supabase
+      const tryFetchById = async (appId: string) => {
+        const { data: row } = await supabase
           .from('applications')
           .select('id, data')
-          .eq('id', originalAppId)
+          .eq('id', appId)
           .maybeSingle();
-        originalAppData = (origRow as any)?.data || null;
-      }
+        if ((row as any)?.data) {
+          originalAppId = (row as any).id;
+          originalAppData = (row as any).data;
+        }
+      };
 
+      const tryFirstHit = async (query: any) => {
+        const { data: rows } = await query
+          .order('approved_at', { ascending: false, nullsFirst: false })
+          .limit(1);
+        const hit = ((rows as any[]) || [])[0];
+        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
+      };
+
+      // Step 1
+      if (originalAppId) await tryFetchById(originalAppId);
+
+      // Step 2 — license.data may carry an application_id pointer
       if (!originalAppData) {
-        const { data: byLicenseId } = await (supabase as any)
-          .from('applications')
-          .select('id, data, approved_at, created_at')
-          .eq('status', 'approved')
-          .or(`data->>license_id.eq.${license.id},data->>issued_license_id.eq.${license.id}`)
-          .order('approved_at', { ascending: false, nullsFirst: false })
-          .limit(1);
-        const hit = ((byLicenseId as any[]) || [])[0];
-        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
+        const dataAppId = (license as any).data?.application_id;
+        if (typeof dataAppId === 'string' && dataAppId) await tryFetchById(dataAppId);
       }
 
+      // Step 3 — applications.license_id column
+      if (!originalAppData) {
+        await tryFirstHit(
+          (supabase as any)
+            .from('applications')
+            .select('id, data, approved_at, created_at')
+            .in('status', APPROVED_STATUSES as any)
+            .eq('license_id', license.id),
+        );
+      }
+
+      // Step 4 — license id stored in data JSON
+      if (!originalAppData) {
+        await tryFirstHit(
+          (supabase as any)
+            .from('applications')
+            .select('id, data, approved_at, created_at')
+            .in('status', APPROVED_STATUSES as any)
+            .or(
+              `data->>license_id.eq.${license.id},` +
+              `data->>issued_license_id.eq.${license.id},` +
+              `data->>renewal_of_license_id.eq.${license.id}`,
+            ),
+        );
+      }
+
+      // Step 5 — match by license number (column or data JSON)
       if (!originalAppData && license.license_number) {
-        const { data: byNumber } = await (supabase as any)
-          .from('applications')
-          .select('id, data, approved_at, created_at')
-          .eq('status', 'approved')
-          .eq('data->>license_number', license.license_number)
-          .order('approved_at', { ascending: false, nullsFirst: false })
-          .limit(1);
-        const hit = ((byNumber as any[]) || [])[0];
-        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
+        await tryFirstHit(
+          (supabase as any)
+            .from('applications')
+            .select('id, data, approved_at, created_at')
+            .in('status', APPROVED_STATUSES as any)
+            .or(
+              `license_number.eq.${license.license_number},` +
+              `data->>license_number.eq.${license.license_number}`,
+            ),
+        );
       }
 
-      if (!originalAppData && license.holder_id && license.sector_id) {
-        const { data: byHolder } = await (supabase as any)
+      // Step 6 — applicant/licensee/holder reference + taxonomy match
+      if (!originalAppData && (license.holder_id || linkedLicenseeId)) {
+        const candidateIds = [license.holder_id, linkedLicenseeId].filter(Boolean) as string[];
+        const idList = candidateIds.join(',');
+        const refFilters: string[] = [];
+        candidateIds.forEach((cid) => {
+          refFilters.push(`applicant_id.eq.${cid}`);
+          refFilters.push(`data->>applicant_id.eq.${cid}`);
+          refFilters.push(`data->>licensee_id.eq.${cid}`);
+          refFilters.push(`data->>holder_id.eq.${cid}`);
+        });
+        const { data: byRef } = await (supabase as any)
           .from('applications')
           .select('id, data, sector_id, sub_sector_id, category_id, applicant_id, approved_at, created_at')
-          .eq('status', 'approved')
+          .in('status', APPROVED_STATUSES as any)
+          .or(refFilters.join(','))
+          .order('approved_at', { ascending: false, nullsFirst: false })
+          .limit(25);
+        const matchTax = (r: any) => {
+          const sec = r.sector_id || r.data?.sector_id;
+          const sub = r.sub_sector_id || r.data?.sub_sector_id;
+          const cat = r.category_id || r.data?.category_id;
+          if (license.sector_id && sec && sec !== license.sector_id) return false;
+          if (license.sub_sector_id && sub && sub !== license.sub_sector_id) return false;
+          if (license.category_id && cat && cat !== license.category_id) return false;
+          return true;
+        };
+        const matched = ((byRef as any[]) || []).find(matchTax);
+        if (matched) { originalAppId = matched.id; originalAppData = matched.data || null; }
+        void idList;
+      }
+
+      // Step 7 — last-resort: latest approved app for same applicant + sector
+      if (!originalAppData && license.holder_id && license.sector_id) {
+        const { data: fallback } = await (supabase as any)
+          .from('applications')
+          .select('id, data, approved_at')
+          .in('status', APPROVED_STATUSES as any)
           .eq('applicant_id', license.holder_id)
           .eq('sector_id', license.sector_id)
           .order('approved_at', { ascending: false, nullsFirst: false })
-          .limit(10);
-        const matched = ((byHolder as any[]) || []).find(r =>
-          (!license.sub_sector_id || r.sub_sector_id === license.sub_sector_id) &&
-          (!license.category_id || r.category_id === license.category_id)
-        );
-        if (matched) { originalAppId = matched.id; originalAppData = matched.data || null; }
+          .limit(1);
+        const hit = ((fallback as any[]) || [])[0];
+        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
       }
 
       const hasOriginal = !!originalAppData &&
