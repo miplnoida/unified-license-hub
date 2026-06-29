@@ -117,6 +117,8 @@ export default function NewApplication() {
   const [hasSuccessfulPaymentRecord, setHasSuccessfulPaymentRecord] = useState(false);
   const [feeAmount, setFeeAmount] = useState<number>(0);
   const [feeBreakdown, setFeeBreakdown] = useState<{ name: string; amount: number }[]>([]);
+  const [isRenewalApp, setIsRenewalApp] = useState(false);
+  const [renewalFeeMissing, setRenewalFeeMissing] = useState(false);
   const [showInlineReview, setShowInlineReview] = useState(false);
   const [hydratedDraftTemplates, setHydratedDraftTemplates] = useState<Array<{ id: string; name: string }>>([]);
 
