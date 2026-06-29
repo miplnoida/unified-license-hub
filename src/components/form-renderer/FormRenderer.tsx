@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows } from '@/lib/formRows';
+import { isFieldChanged } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { uploadVersionedDocument } from '@/lib/documentVersioning';
