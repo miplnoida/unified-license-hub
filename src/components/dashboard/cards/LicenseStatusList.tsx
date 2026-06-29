@@ -7,11 +7,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { LicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 
-// Only treat a renewal as "in progress" once the licensee has actually
-// submitted it. A draft/in-progress row should NOT suppress the Renew button
-// — the duplicate-guard inside LicenseDetail.startRenewal will reopen that
-// same draft if the user clicks Renew again.
+// Submitted renewals — block duplicates, link to read-only application view.
 const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+// Pre-submission renewals — reopen the same editable form instead of starting a new one.
+const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
 const STATUS_LABELS: Record<string, string> = {
   submitted: 'Renewal submitted',
@@ -70,22 +69,41 @@ export function LicenseStatusList({
   // Fetch in-flight renewal applications for these licenses so we can hide the
   // Renew button (and surface the application instead) when one already exists.
   const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
+  const [inProgressRenewalByLicense, setInProgressRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const ids = licenses.map(l => l.id);
-      if (ids.length === 0) { setPendingRenewalByLicense({}); return; }
-      const { data } = await supabase
-        .from('applications' as any)
-        .select('id, status, data')
-        .in('status', PENDING_RENEWAL_STATUSES as any);
-      const rows = (data as any[]) || [];
-      const next: Record<string, { id: string; status: string }> = {};
-      for (const r of rows) {
-        const lid = r?.data?.renewal_of_license_id;
-        if (lid && ids.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
+      if (ids.length === 0) {
+        setPendingRenewalByLicense({});
+        setInProgressRenewalByLicense({});
+        return;
       }
-      if (!cancelled) setPendingRenewalByLicense(next);
+      const [pendingRes, draftRes] = await Promise.all([
+        supabase
+          .from('applications' as any)
+          .select('id, status, data')
+          .in('status', PENDING_RENEWAL_STATUSES as any),
+        supabase
+          .from('applications' as any)
+          .select('id, status, data')
+          .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
+          .eq('data->>is_renewal', 'true'),
+      ]);
+      const pending: Record<string, { id: string; status: string }> = {};
+      for (const r of ((pendingRes.data as any[]) || [])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && ids.includes(lid) && !pending[lid]) pending[lid] = { id: r.id, status: r.status };
+      }
+      const inProgress: Record<string, { id: string; status: string }> = {};
+      for (const r of ((draftRes.data as any[]) || [])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && ids.includes(lid) && !inProgress[lid]) inProgress[lid] = { id: r.id, status: r.status };
+      }
+      if (!cancelled) {
+        setPendingRenewalByLicense(pending);
+        setInProgressRenewalByLicense(inProgress);
+      }
     })();
     return () => { cancelled = true; };
   }, [licenses.map(l => l.id).join(',')]);
@@ -146,6 +164,12 @@ export function LicenseStatusList({
                     <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1" />
                       {STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
+                    </Link>
+                  </Button>
+                ) : inProgressRenewalByLicense[lic.id] ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={`/post-licensee/applications/${inProgressRenewalByLicense[lic.id].id}/forms?service=Renew`}>
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" />Continue Renewal
                     </Link>
                   </Button>
                 ) : canRenew && (

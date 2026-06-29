@@ -92,25 +92,37 @@ export default function LicenseDetail() {
   const [startingRenewal, setStartingRenewal] = useState(false);
   const [renewalFee, setRenewalFee] = useState<RenewalFeeInfo | null>(null);
   const [pendingRenewalAppId, setPendingRenewalAppId] = useState<string | null>(null);
+  const [inProgressRenewalAppId, setInProgressRenewalAppId] = useState<string | null>(null);
   const isInternal = !!user && !portalContext.loading && (portalContext.isInternal || INTERNAL_ROLES.includes(user.role));
 
-  // Status values that mean the renewal application is still in flight and a
-  // duplicate Renew should NOT be allowed. Anything else (approved / rejected
-  // / cancelled / withdrawn) frees the licensee to start a fresh renewal.
-  // Only treat the renewal as "in progress" once it has actually been
-  // submitted. Drafts are reopenable via the duplicate-guard in startRenewal.
+  // Submitted (post-submit) renewal — duplicates blocked, opens read-only.
   const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+  // Pre-submission renewal — clicking Renew should reopen the same form
+  // instead of inserting a new draft.
+  const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
   const refreshPendingRenewal = async (licenseId: string) => {
-    const { data } = await supabase
-      .from('applications' as any)
-      .select('id, status, data, created_at')
-      .eq('data->>renewal_of_license_id', licenseId)
-      .in('status', PENDING_RENEWAL_STATUSES as any)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    const row = ((data as any[]) || [])[0];
-    setPendingRenewalAppId(row?.id || null);
+    const [pendingRes, draftRes] = await Promise.all([
+      supabase
+        .from('applications' as any)
+        .select('id, status, data, created_at')
+        .eq('data->>renewal_of_license_id', licenseId)
+        .in('status', PENDING_RENEWAL_STATUSES as any)
+        .order('created_at', { ascending: false })
+        .limit(1),
+      supabase
+        .from('applications' as any)
+        .select('id, status, data, created_at')
+        .eq('data->>renewal_of_license_id', licenseId)
+        .eq('data->>is_renewal', 'true')
+        .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
+    const pendingRow = ((pendingRes.data as any[]) || [])[0];
+    const draftRow = ((draftRes.data as any[]) || [])[0];
+    setPendingRenewalAppId(pendingRow?.id || null);
+    setInProgressRenewalAppId(draftRow?.id || null);
   };
 
   useEffect(() => {
@@ -302,17 +314,19 @@ export default function LicenseDetail() {
       navigate(`/applications/${existingRow.id}?tab=form&view=submitted`);
       return;
     }
-    // Reopen an existing draft renewal for this license instead of creating a duplicate.
+    // Reopen any existing pre-submission renewal (draft or in_progress) for
+    // this license instead of inserting a duplicate.
     const { data: existingDraft } = await supabase
       .from('applications' as any)
       .select('id')
-      .eq('status', 'draft')
+      .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
       .eq('data->>renewal_of_license_id', license.id)
       .eq('data->>is_renewal', 'true')
       .order('created_at', { ascending: false })
       .limit(1);
     const draftRow = ((existingDraft as any[]) || [])[0];
     if (draftRow?.id) {
+      setInProgressRenewalAppId(draftRow.id);
       toast.info('A renewal form is already in progress for this license — reopening it.');
       navigate(`/post-licensee/applications/${draftRow.id}/forms?service=Renew`);
       return;
@@ -583,6 +597,11 @@ export default function LicenseDetail() {
       navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`);
       return;
     }
+    if (inProgressRenewalAppId) {
+      toast.info('A renewal form is already in progress for this license — reopening it.');
+      navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`);
+      return;
+    }
     if (isPastGrace) {
       startRenewal();
     } else if (isWithinGrace) {
@@ -787,6 +806,10 @@ export default function LicenseDetail() {
                           <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
                           </Button>
+                        ) : inProgressRenewalAppId ? (
+                          <Button variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                            <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
+                          </Button>
                         ) : (
                           <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
                             {startingRenewal ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
@@ -805,6 +828,10 @@ export default function LicenseDetail() {
                       pendingRenewalAppId ? (
                         <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                           <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                        </Button>
+                      ) : inProgressRenewalAppId ? (
+                        <Button variant="outline" onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                          <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                         </Button>
                       ) : (
                         <Button variant="outline" onClick={startRenewal} disabled={processing || startingRenewal}>
@@ -835,6 +862,10 @@ export default function LicenseDetail() {
                     {pendingRenewalAppId ? (
                       <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                         <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
+                      </Button>
+                    ) : inProgressRenewalAppId ? (
+                      <Button onClick={() => navigate(`/post-licensee/applications/${inProgressRenewalAppId}/forms?service=Renew`)}>
+                        <RefreshCw className="h-4 w-4 mr-1" />Continue Renewal
                       </Button>
                     ) : (
                       <Button onClick={startRenewal} disabled={startingRenewal}>

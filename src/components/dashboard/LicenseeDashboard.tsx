@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 // they should land on the read-only ApplicationDetail with submitted forms
 // and full history (activity log).
 const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 const RENEWAL_STATUS_LABELS: Record<string, string> = {
   submitted: 'Renewal submitted',
   under_review: 'Renewal under review',
@@ -78,20 +79,40 @@ export function LicenseeDashboard() {
     [data?.licenses.list],
   );
   const [pendingRenewalByLicense, setPendingRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
+  const [inProgressRenewalByLicense, setInProgressRenewalByLicense] = useState<Record<string, { id: string; status: string }>>({});
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (licenseIds.length === 0) { setPendingRenewalByLicense({}); return; }
-      const { data: rows } = await supabase
-        .from('applications')
-        .select('id, status, data')
-        .in('status', PENDING_RENEWAL_STATUSES as any);
-      const next: Record<string, { id: string; status: string }> = {};
-      for (const r of (rows || []) as any[]) {
-        const lid = r?.data?.renewal_of_license_id;
-        if (lid && licenseIds.includes(lid) && !next[lid]) next[lid] = { id: r.id, status: r.status };
+      if (licenseIds.length === 0) {
+        setPendingRenewalByLicense({});
+        setInProgressRenewalByLicense({});
+        return;
       }
-      if (!cancelled) setPendingRenewalByLicense(next);
+      const [pendingRes, draftRes] = await Promise.all([
+        supabase
+          .from('applications')
+          .select('id, status, data')
+          .in('status', PENDING_RENEWAL_STATUSES as any),
+        supabase
+          .from('applications')
+          .select('id, status, data')
+          .in('status', IN_PROGRESS_RENEWAL_STATUSES as any)
+          .eq('data->>is_renewal', 'true'),
+      ]);
+      const pending: Record<string, { id: string; status: string }> = {};
+      for (const r of ((pendingRes.data || []) as any[])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !pending[lid]) pending[lid] = { id: r.id, status: r.status };
+      }
+      const inProgress: Record<string, { id: string; status: string }> = {};
+      for (const r of ((draftRes.data || []) as any[])) {
+        const lid = r?.data?.renewal_of_license_id;
+        if (lid && licenseIds.includes(lid) && !inProgress[lid]) inProgress[lid] = { id: r.id, status: r.status };
+      }
+      if (!cancelled) {
+        setPendingRenewalByLicense(pending);
+        setInProgressRenewalByLicense(inProgress);
+      }
     })();
     return () => { cancelled = true; };
   }, [licenseIds]);
@@ -166,6 +187,12 @@ export function LicenseeDashboard() {
                         <Link to={`/applications/${pendingRenewalByLicense[lic.id].id}?tab=form&view=submitted`}>
                           <RefreshCw className="h-3.5 w-3.5 mr-1" />
                           {RENEWAL_STATUS_LABELS[pendingRenewalByLicense[lic.id].status] || 'Renewal in progress'}
+                        </Link>
+                      </Button>
+                    ) : inProgressRenewalByLicense[lic.id] ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/post-licensee/applications/${inProgressRenewalByLicense[lic.id].id}/forms?service=Renew`}>
+                          <RefreshCw className="h-3.5 w-3.5 mr-1" />Continue Renewal
                         </Link>
                       </Button>
                     ) : canRenew && (
