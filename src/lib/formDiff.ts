@@ -59,3 +59,55 @@ export function isFieldChanged(
   if (!originalData) return false;
   return !deepEqualField(currentValue, originalData[fieldName]);
 }
+
+/** Returns the original value for a fieldName, or undefined when baseline is missing. */
+export function pickFieldFromOriginal(
+  originalData: Record<string, unknown> | undefined | null,
+  fieldName: string,
+): unknown {
+  if (!originalData) return undefined;
+  return originalData[fieldName];
+}
+
+/** Compares two table rows for diff highlighting. */
+export function isRowChanged(currentRow: unknown, originalRow: unknown): boolean {
+  return !deepEqualField(currentRow, originalRow);
+}
+
+/** Compares two repeatable-section entries for diff highlighting. */
+export function isRepeatableEntryChanged(currentEntry: unknown, originalEntry: unknown): boolean {
+  return !deepEqualField(currentEntry, originalEntry);
+}
+
+/**
+ * File-aware comparison. Files are considered the same when they reference the
+ * same underlying upload (uploadId), document group + version, file path, or
+ * — as a last resort — the same display name + size. Supports single-file
+ * objects and arrays (allowMultiple).
+ */
+export function isFileFieldChanged(current: unknown, original: unknown): boolean {
+  if (isEmpty(current) && isEmpty(original)) return false;
+  if (isEmpty(current) !== isEmpty(original)) return true;
+
+  const sameOne = (a: any, b: any): boolean => {
+    if (!a || !b) return false;
+    if (a.uploadId && b.uploadId) return a.uploadId === b.uploadId;
+    if (a.groupId && b.groupId) return a.groupId === b.groupId && (a.version ?? null) === (b.version ?? null);
+    if (a.filePath && b.filePath) return a.filePath === b.filePath;
+    return (a.name === b.name) && ((a.size ?? null) === (b.size ?? null));
+  };
+
+  if (Array.isArray(current) && Array.isArray(original)) {
+    if (current.length !== original.length) return true;
+    for (let i = 0; i < current.length; i += 1) {
+      if (!sameOne(current[i], original[i])) return true;
+    }
+    return false;
+  }
+
+  if (typeof current === 'object' && typeof original === 'object') {
+    return !sameOne(current as any, original as any);
+  }
+
+  return current !== original;
+}

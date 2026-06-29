@@ -260,11 +260,6 @@ export default function LicenseDetail() {
       }
       return;
     }
-    const template = resolveRenewalTemplate();
-    if (!template) {
-      toast.error('No renewal form is configured for this license.');
-      return;
-    }
     const renewalLicenseeId = linkedLicenseeId || resolvedLicenseeId || null;
     const isLicenseHolder = !!license.holder_id && license.holder_id === user.id;
     if (!isInternal) {
@@ -310,11 +305,71 @@ export default function LicenseDetail() {
     setStartingRenewal(true);
 
     try {
-      // Resolve a "Renew" service id scoped to this license's sub-sector so the
-      // backend fee + workflow resolvers can match this renewal as a normal
-      // post-license application.
-      let renewServiceId: string | null = (template as any).service_id || null;
-      if (!renewServiceId && license.sub_sector_id) {
+      // Locate the original approved application that produced this license.
+      // Priority chain (first hit wins):
+      //   1. licenses.application_id (direct FK)
+      //   2. approved app with data.license_id matching license.id
+      //   3. approved app with data.license_number matching license.license_number
+      //   4. approved app from same applicant (holder) + sector taxonomy
+      let originalAppId: string | null = license.application_id || null;
+      let originalAppData: any = null;
+
+      if (originalAppId) {
+        const { data: origRow } = await supabase
+          .from('applications')
+          .select('id, data')
+          .eq('id', originalAppId)
+          .maybeSingle();
+        originalAppData = (origRow as any)?.data || null;
+      }
+
+      if (!originalAppData) {
+        const { data: byLicenseId } = await (supabase as any)
+          .from('applications')
+          .select('id, data, approved_at, created_at')
+          .eq('status', 'approved')
+          .or(`data->>license_id.eq.${license.id},data->>issued_license_id.eq.${license.id}`)
+          .order('approved_at', { ascending: false, nullsFirst: false })
+          .limit(1);
+        const hit = ((byLicenseId as any[]) || [])[0];
+        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
+      }
+
+      if (!originalAppData && license.license_number) {
+        const { data: byNumber } = await (supabase as any)
+          .from('applications')
+          .select('id, data, approved_at, created_at')
+          .eq('status', 'approved')
+          .eq('data->>license_number', license.license_number)
+          .order('approved_at', { ascending: false, nullsFirst: false })
+          .limit(1);
+        const hit = ((byNumber as any[]) || [])[0];
+        if (hit) { originalAppId = hit.id; originalAppData = hit.data || null; }
+      }
+
+      if (!originalAppData && license.holder_id && license.sector_id) {
+        const { data: byHolder } = await (supabase as any)
+          .from('applications')
+          .select('id, data, sector_id, sub_sector_id, category_id, applicant_id, approved_at, created_at')
+          .eq('status', 'approved')
+          .eq('applicant_id', license.holder_id)
+          .eq('sector_id', license.sector_id)
+          .order('approved_at', { ascending: false, nullsFirst: false })
+          .limit(10);
+        const matched = ((byHolder as any[]) || []).find(r =>
+          (!license.sub_sector_id || r.sub_sector_id === license.sub_sector_id) &&
+          (!license.category_id || r.category_id === license.category_id)
+        );
+        if (matched) { originalAppId = matched.id; originalAppData = matched.data || null; }
+      }
+
+      const hasOriginal = !!originalAppData &&
+        Array.isArray(originalAppData?.form_template_ids) &&
+        originalAppData.form_template_ids.length > 0;
+
+      // Fee/workflow resolution requires a "Renew" service id when present.
+      let renewServiceId: string | null = null;
+      if (license.sub_sector_id) {
         const { data: services } = await supabase
           .from('services' as any)
           .select('id')
@@ -324,100 +379,77 @@ export default function LicenseDetail() {
         renewServiceId = ((services as any[] | null) || [])[0]?.id || null;
       }
 
-      // Locate the original approved application that produced this license.
-      // We use it to (a) reuse the SAME form templates the entity originally
-      // filled, (b) prefill all fields with the original submitted values, and
-      // (c) snapshot the original values so the renewal UI can highlight any
-      // field the licensee subsequently changes.
-      let originalAppId: string | null = license.application_id || null;
-      let originalAppData: any = null;
-      if (originalAppId) {
-        const { data: origRow } = await supabase
-          .from('applications')
-          .select('id, data')
-          .eq('id', originalAppId)
-          .maybeSingle();
-        originalAppData = (origRow as any)?.data || null;
-      }
-      if (!originalAppData) {
-        // Fallback: most-recent approved application for this licensee/sector
-        // referencing this license number.
-        const { data: fallbackRow } = await (supabase as any)
-          .from('applications')
-          .select('id, data')
-          .eq('status', 'approved')
-          .eq('sector_id', license.sector_id)
-          .order('approved_at', { ascending: false })
-          .limit(20);
-        const matched = ((fallbackRow as any[]) || []).find(r => {
-          const d = r.data || {};
-          return (
-            d.license_number === license.license_number ||
-            d.license_id === license.id ||
-            d.issued_license_id === license.id
-          );
-        });
-        if (matched) {
-          originalAppId = matched.id;
-          originalAppData = matched.data || null;
+      let templateIdsForRenewal: string[] = [];
+      let prefillFormsData: Record<string, any> = {};
+      let prefillVersionIds: Record<string, string> = {};
+      let originalSnapshot: Record<string, any> | null = null;
+      let originalVersionSnapshot: Record<string, string> | null = null;
+      let originalTemplateIdsSnapshot: string[] | null = null;
+      let legacyFallback = false;
+
+      if (hasOriginal) {
+        const origTemplateIds: string[] = originalAppData.form_template_ids;
+        const origForms: Record<string, any> = (originalAppData.forms_data && typeof originalAppData.forms_data === 'object')
+          ? originalAppData.forms_data : {};
+        const origVersions: Record<string, string> = (originalAppData.form_version_ids && typeof originalAppData.form_version_ids === 'object')
+          ? originalAppData.form_version_ids : {};
+
+        templateIdsForRenewal = origTemplateIds;
+        prefillFormsData = JSON.parse(JSON.stringify(origForms));
+        prefillVersionIds = JSON.parse(JSON.stringify(origVersions));
+        originalSnapshot = JSON.parse(JSON.stringify(origForms));
+        originalVersionSnapshot = JSON.parse(JSON.stringify(origVersions));
+        originalTemplateIdsSnapshot = [...origTemplateIds];
+        if (!renewServiceId) renewServiceId = originalAppData.service_id || null;
+      } else {
+        // Legacy fallback: try the standalone renewal template, but do not block.
+        legacyFallback = true;
+        const template = resolveRenewalTemplate();
+        if (template) {
+          templateIdsForRenewal = [template.id];
+          if (!renewServiceId) renewServiceId = (template as any).service_id || null;
+        } else {
+          templateIdsForRenewal = [];
         }
+        toast.info('Original approved application could not be located. This renewal will use the standard renewal form if available.');
       }
-
-      const originalTemplateIds: string[] = Array.isArray(originalAppData?.form_template_ids)
-        ? originalAppData.form_template_ids
-        : [];
-      const originalFormsData: Record<string, any> =
-        originalAppData?.forms_data && typeof originalAppData.forms_data === 'object'
-          ? originalAppData.forms_data
-          : {};
-      const originalFormVersionIds: Record<string, string> =
-        originalAppData?.form_version_ids && typeof originalAppData.form_version_ids === 'object'
-          ? originalAppData.form_version_ids
-          : {};
-
-      // Use the original templates when available; fall back to the resolved
-      // standalone renewal template for legacy licenses with no traceable
-      // original application.
-      const templateIdsForRenewal = originalTemplateIds.length > 0
-        ? originalTemplateIds
-        : [template.id];
-
-      // Deep-clone the snapshot so future writes to forms_data don't mutate it.
-      const originalSnapshot = JSON.parse(JSON.stringify(originalFormsData));
-      const originalVersionSnapshot = JSON.parse(JSON.stringify(originalFormVersionIds));
 
       const renewalApplicationId = crypto.randomUUID();
 
+      const insertPayload: any = {
+        id: renewalApplicationId,
+        applicant_id: user.id,
+        license_type: license.license_type,
+        status: 'draft',
+        data: {
+          ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
+          type: 'post_license',
+          sector_id: license.sector_id,
+          sub_sector_id: license.sub_sector_id,
+          category_id: license.category_id,
+          service_id: renewServiceId,
+          service_name: 'Renew',
+          service: 'Renew',
+          form_template_ids: templateIdsForRenewal,
+          forms_data: prefillFormsData,
+          form_version_ids: prefillVersionIds,
+          ...(originalAppId ? { original_application_id: originalAppId } : {}),
+          ...(originalSnapshot ? { original_forms_data: originalSnapshot } : {}),
+          ...(originalVersionSnapshot ? { original_form_version_ids: originalVersionSnapshot } : {}),
+          ...(originalTemplateIdsSnapshot ? { original_form_template_ids: originalTemplateIdsSnapshot } : {}),
+          legacy_renewal_fallback: legacyFallback,
+          renewal_of_license_id: license.id,
+          renewal_of_license_number: license.license_number,
+          computed_new_valid_until: computedNewValidUntil,
+          previous_valid_until: license.valid_until,
+          is_renewal: true,
+        },
+        regulator_id: activeRegulator?.id || null,
+      };
+
       const { error } = await supabase
         .from('applications')
-        .insert({
-          id: renewalApplicationId,
-          applicant_id: user.id,
-          license_type: license.license_type,
-          status: 'draft',
-          data: {
-            ...(renewalLicenseeId ? { licensee_id: renewalLicenseeId } : {}),
-            type: 'post_license',
-            sector_id: license.sector_id,
-            sub_sector_id: license.sub_sector_id,
-            category_id: license.category_id,
-            service_id: renewServiceId,
-            service_name: 'Renew',
-            service: 'Renew',
-            form_template_ids: templateIdsForRenewal,
-            forms_data: originalSnapshot,
-            form_version_ids: originalVersionSnapshot,
-            original_application_id: originalAppId,
-            original_forms_data: originalSnapshot,
-            original_form_version_ids: originalVersionSnapshot,
-            renewal_of_license_id: license.id,
-            renewal_of_license_number: license.license_number,
-            computed_new_valid_until: computedNewValidUntil,
-            previous_valid_until: license.valid_until,
-            is_renewal: true,
-          },
-          regulator_id: activeRegulator?.id || null,
-        } as any)
+        .insert(insertPayload as any)
         .throwOnError();
 
       if (error) throw error;
@@ -429,7 +461,8 @@ export default function LicenseDetail() {
         newValue: {
           application_id: renewalApplicationId,
           new_valid_until: computedNewValidUntil,
-          form_template_id: template.id,
+          original_application_id: originalAppId,
+          legacy_renewal_fallback: legacyFallback,
         },
       });
 

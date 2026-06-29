@@ -440,6 +440,7 @@ export default function PostLicenseApplicationForms() {
   const originalFormsData: Record<string, Record<string, any>> | undefined =
     (appData?.data as any)?.original_forms_data || undefined;
   const isRenewalApplication: boolean = !!(appData?.data as any)?.is_renewal;
+  const legacyRenewalFallback: boolean = !!(appData?.data as any)?.legacy_renewal_fallback;
   const hasRenewalDiff =
     isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
 
@@ -492,9 +493,16 @@ export default function PostLicenseApplicationForms() {
 
         {hasRenewalDiff && (
           <div className="rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
-            This is a renewal. The forms are prefilled with values from your original approved application. Yellow fields will mark values you change.
+            This is a renewal. The forms are prefilled with values from your original approved application. Yellow fields indicate changes made compared to the original approved application.
           </div>
         )}
+
+        {isRenewalApplication && legacyRenewalFallback && (
+          <div className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+            Original approved application could not be located. This renewal is using the standard renewal form.
+          </div>
+        )}
+
 
 
         <Card className="border-primary/20 bg-primary/5">
@@ -638,6 +646,7 @@ export default function PostLicenseApplicationForms() {
                       ))
                     ) as Record<string, string>),
                   }}
+                  originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                   mode={reviewSettings?.review_mode || 'readonly'}
                   loading={submitting}
                   onEdit={(idx) => {

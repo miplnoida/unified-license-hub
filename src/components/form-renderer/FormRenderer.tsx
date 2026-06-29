@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import type { FormSection, FormField, FormRow, ConditionalRule } from '@/types/formBuilder';
 import { migrateSectionsToRows } from '@/lib/formRows';
-import { isFieldChanged } from '@/lib/formDiff';
+import { isFieldChanged, deepEqualField, isFileFieldChanged } from '@/lib/formDiff';
 import { evaluateFormula } from '@/lib/safeEval';
 import { uploadFormFile, deleteFormFile, refreshFormFileUrl, type FormFileData } from '@/lib/formFileUpload';
 import { uploadVersionedDocument } from '@/lib/documentVersioning';
@@ -738,7 +738,13 @@ export function FormRenderer({
     });
   };
 
-  const renderField = (field: FormField, data: Record<string, any>, onChange: (fieldName: string, val: any) => void) => {
+  const renderField = (
+    field: FormField,
+    data: Record<string, any>,
+    onChange: (fieldName: string, val: any) => void,
+    baselineForField?: unknown,
+    baselineProvided: boolean = false,
+  ) => {
     if (!isFieldVisible(field, data, allFields)) return null;
     const val = data[field.fieldName] ?? field.defaultValue ?? '';
     const required = isFieldRequired(field, data, allFields);
@@ -997,6 +1003,8 @@ export function FormRenderer({
         break;
       case 'table':
         const tableData = Array.isArray(val) ? val : [{}];
+        const tableBaseline: any[] | undefined =
+          baselineProvided && Array.isArray(baselineForField) ? (baselineForField as any[]) : undefined;
         input = (
           <div className="space-y-2 overflow-x-auto">
             <table className="w-full text-sm border">
@@ -1009,8 +1017,16 @@ export function FormRenderer({
                 </tr>
               </thead>
               <tbody>
-                {tableData.map((row: Record<string, any>, rowIdx: number) => (
-                  <tr key={rowIdx} className="border-b">
+                {tableData.map((row: Record<string, any>, rowIdx: number) => {
+                  const baselineRow = tableBaseline ? tableBaseline[rowIdx] : undefined;
+                  const rowChanged = baselineProvided && !deepEqualField(row, baselineRow);
+                  return (
+                  <tr key={rowIdx} className={rowChanged ? 'border-b bg-yellow-50 dark:bg-yellow-950/30' : 'border-b'}>
+                    {rowChanged && (
+                      <td className="p-1 align-middle">
+                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                      </td>
+                    )}
                     {(field.tableColumns || []).map(col => (
                       <td key={col.id} className="p-1">
                         {col.type === 'file' ? (
@@ -1145,7 +1161,8 @@ export function FormRenderer({
                       </td>
                     )}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {!readOnly && (
@@ -1166,11 +1183,18 @@ export function FormRenderer({
         input = <Input value={val} onChange={e => onChange(field.fieldName, e.target.value)} disabled={readOnly} />;
     }
 
-    // Diff-highlight: only at the top level (renderField called with formData).
-    // Repeatable entries pass a different `data` reference; we skip those to
-    // avoid false positives when there is no per-entry baseline.
-    const isTopLevel = data === formData;
-    const changed = isTopLevel && !!originalData && isFieldChanged(field.fieldName, val, originalData);
+    // Diff-highlight. When a baseline is explicitly supplied (top-level or per
+    // repeatable entry), compare against it. Tables handle their own per-row
+    // highlighting above; here we still mark the table-level container if any
+    // row differs. Files use identity-aware compare.
+    let changed = false;
+    if (baselineProvided) {
+      if (field.type === 'file') {
+        changed = isFileFieldChanged(val, baselineForField);
+      } else {
+        changed = !deepEqualField(val, baselineForField);
+      }
+    }
 
     return (
       <div
@@ -1355,14 +1379,44 @@ export function FormRenderer({
           {!currentSection.isRepeatable ? (
             <RowsGrid
               rows={currentSection.rows || []}
-              renderField={(field) => renderField(field, formData, updateField)}
+              renderField={(field) => renderField(
+                field,
+                formData,
+                updateField,
+                originalData ? originalData[field.fieldName] : undefined,
+                !!originalData,
+              )}
             />
           ) : (
             <div className="space-y-4">
-              {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => (
-                <Card key={entryIdx} className="border-dashed">
+              {(repeatableData[currentSection.id] || [{}]).map((entry, entryIdx) => {
+                const baselineEntries: any[] | undefined = (() => {
+                  if (!originalData) return undefined;
+                  const rep = (originalData as any).__repeatable;
+                  if (rep && Array.isArray(rep[currentSection.id])) return rep[currentSection.id];
+                  const flat = (originalData as any)[`_repeatable_${currentSection.id}`];
+                  if (Array.isArray(flat)) return flat;
+                  return undefined;
+                })();
+                const baselineEntry = baselineEntries ? baselineEntries[entryIdx] : undefined;
+                const entryChanged =
+                  !!baselineEntries && !deepEqualField(entry, baselineEntry);
+                return (
+                <Card
+                  key={entryIdx}
+                  className={
+                    entryChanged
+                      ? 'border-dashed border-yellow-400 bg-yellow-50/40 dark:bg-yellow-950/20'
+                      : 'border-dashed'
+                  }
+                >
                   <CardHeader className="py-2 px-4 flex-row items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Entry {entryIdx + 1}</span>
+                    <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                      Entry {entryIdx + 1}
+                      {entryChanged && (
+                        <Badge variant="outline" className="text-[10px] text-yellow-800 border-yellow-500 bg-yellow-100/70 dark:text-yellow-200">Changed</Badge>
+                      )}
+                    </span>
                     {entryIdx > 0 && !readOnly && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeRepeatableEntry(currentSection.id, entryIdx)}>
                         <Trash2 className="h-3 w-3" />
@@ -1372,11 +1426,18 @@ export function FormRenderer({
                   <CardContent className="pb-4">
                     <RowsGrid
                       rows={currentSection.rows || []}
-                      renderField={(field) => renderField(field, entry, (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v))}
+                      renderField={(field) => renderField(
+                        field,
+                        entry,
+                        (fn, v) => updateRepeatableField(currentSection.id, entryIdx, fn, v),
+                        baselineEntry ? (baselineEntry as any)[field.fieldName] : undefined,
+                        !!baselineEntries,
+                      )}
                     />
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
               {!readOnly && (
                 <Button variant="outline" size="sm" onClick={() => addRepeatableEntry(currentSection.id)}>
                   <Plus className="h-4 w-4 mr-1" /> Add Another Entry

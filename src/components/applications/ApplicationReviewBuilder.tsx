@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { isAttachmentValue } from '@/components/registration/AttachmentDisplay';
 import type { FormSection, FormField, ConditionalRule } from '@/types/formBuilder';
 import { isDisplayOnlyField, resolveDisplayKind, resolveDisplayOnlyFieldText } from '@/lib/registrationDisplayTypes';
+import { deepEqualField } from '@/lib/formDiff';
 
 interface TemplateLite {
   id: string;
@@ -22,6 +23,12 @@ interface Props {
   onEdit?: (templateIndex: number) => void;
   title?: string;
   description?: string;
+  /**
+   * Renewal flow: baseline data per template (keyed by templateId). When
+   * provided, each field is compared against this baseline and rendered with
+   * a "Changed" badge + the prior value when it differs.
+   */
+  originalFormsData?: Record<string, Record<string, any>>;
 }
 
 /**
@@ -35,7 +42,7 @@ export function ApplicationReviewBuilder(props: Props) {
 }
 
 function ReviewBuilderInner({
-  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description,
+  templates, formProgressMap, versionIdByTemplate, mode, loading, onAcknowledge, onEdit, title, description, originalFormsData,
 }: Props) {
   // Review must use the pinned form version (versionIdByTemplate) used to fill the application
   // to avoid mismatched dynamic field keys. Latest is only a fallback for legacy/no-pinned cases.
@@ -47,8 +54,9 @@ function ReviewBuilderInner({
     return templates.map((t, idx) => {
       const { sections: secs, versionLabel } = templateSections[idx] || { sections: [], versionLabel: null };
       const data = formProgressMap[t.id]?.data || {};
+      const originalData = originalFormsData?.[t.id] || null;
       const allFields = secs.flatMap((sec: FormSection) => sec.fields || []);
-      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string }> = [];
+      const fields: Array<{ label: string; value: any; type?: 'attachment' | 'display' | string; displayKind?: 'heading' | 'info' | 'divider'; headingLevel?: 1 | 2 | 3 | 4 | 5 | 6; placeholder?: string; defaultValue?: string; helpText?: string; originalValue?: any; changed?: boolean }> = [];
 
       secs.forEach((sec: FormSection) => {
         if (!isConditionalTargetVisible(sec.conditionalLogic, data, allFields)) return;
@@ -83,10 +91,16 @@ function ReviewBuilderInner({
             });
           }
           const formatted = formatValue(raw, f);
+          const originalRaw = originalData ? resolveDynamicFieldValue(originalData, f) : undefined;
+          const originalFormatted = originalData ? formatValue(originalRaw, f) : undefined;
+          const isAttachment = f.type === 'file' || isAttachmentValue(formatted);
+          const changed = !!originalData && !deepEqualField(raw, originalRaw);
           fields.push({
             label: f.label || f.fieldName,
             value: formatted,
-            type: f.type === 'file' || isAttachmentValue(formatted) ? 'attachment' : undefined,
+            type: isAttachment ? 'attachment' : undefined,
+            originalValue: originalFormatted,
+            changed,
           });
         });
       });
@@ -105,7 +119,7 @@ function ReviewBuilderInner({
 
       return { title: t.name, fields };
     });
-  }, [templates, templateSections, formProgressMap]);
+  }, [templates, templateSections, formProgressMap, originalFormsData]);
 
   return (
     <ReviewAcknowledgement

@@ -107,6 +107,7 @@ export default function ApplicationDetail() {
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
   const originalFormsData: Record<string, Record<string, any>> | undefined = appData?.original_forms_data || undefined;
   const isRenewalApplication: boolean = !!appData?.is_renewal;
+  const legacyRenewalFallback: boolean = !!appData?.legacy_renewal_fallback;
   const hasRenewalDiff = isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
   const hasSubmittedForms = formTemplateIds.length > 0;
 
@@ -666,7 +667,12 @@ export default function ApplicationDetail() {
                     <>
                       {hasRenewalDiff && (
                         <div className="mb-3 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
-                          Yellow fields were changed from the original approved application.
+                          Yellow fields indicate changes made compared to the original approved application.
+                        </div>
+                      )}
+                      {isRenewalApplication && legacyRenewalFallback && (
+                        <div className="mb-3 rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-900 dark:text-amber-200">
+                          Original approved application could not be located. This renewal is using the standard renewal form.
                         </div>
                       )}
                     <SubmittedForms
@@ -972,6 +978,7 @@ export default function ApplicationDetail() {
                         templates={formTemplateIds.map((tid, i) => ({ id: tid, name: templateNames[tid] || `Form ${i + 1}` }))}
                         formProgressMap={Object.fromEntries(formTemplateIds.map(tid => [tid, { data: formsData[tid] || {} }]))}
                         versionIdByTemplate={formVersionIds}
+                        originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                         mode="readonly"
                         loading={processing}
                         onAcknowledge={async () => { setShowReview(false); await handleSubmit(); }}
