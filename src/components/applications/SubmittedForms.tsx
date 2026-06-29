@@ -70,6 +70,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
         saving={saving}
         showFullTabTitles
         portalArea="licensing"
+        originalData={originalData}
       />
     </div>
   );
