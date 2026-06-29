@@ -7,11 +7,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { LicenseExpiryStatus } from '@/hooks/useLicenseExpiryStatus';
 
-// Only treat a renewal as "in progress" once the licensee has actually
-// submitted it. A draft/in-progress row should NOT suppress the Renew button
-// — the duplicate-guard inside LicenseDetail.startRenewal will reopen that
-// same draft if the user clicks Renew again.
+// Submitted renewals — block duplicates, link to read-only application view.
 const PENDING_RENEWAL_STATUSES = ['submitted', 'under_review', 'query_raised', 'resubmission_requested'];
+// Pre-submission renewals — reopen the same editable form instead of starting a new one.
+const IN_PROGRESS_RENEWAL_STATUSES = ['draft', 'in_progress'];
 
 const STATUS_LABELS: Record<string, string> = {
   submitted: 'Renewal submitted',
