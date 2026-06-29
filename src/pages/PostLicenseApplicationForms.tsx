@@ -44,6 +44,7 @@ function ActiveFormFiller({
   onChange,
   applicationId,
   versionLocked = false,
+  originalData,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -53,6 +54,7 @@ function ActiveFormFiller({
   onChange?: (data: Record<string, any>, versionId: string | null) => void;
   applicationId?: string;
   versionLocked?: boolean;
+  originalData?: Record<string, any>;
 }) {
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
