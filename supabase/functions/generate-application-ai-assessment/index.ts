@@ -591,6 +591,11 @@ ${JSON.stringify(applicationContext, null, 2)}`;
       const summary = typeof parsed.summary === "string" ? parsed.summary : null;
       const confidence =
         typeof parsed.confidence_score === "number" ? parsed.confidence_score : null;
+      const sections = Array.isArray(parsed.sections) ? parsed.sections : [];
+      const decisionReport =
+        parsed.decision_report && typeof parsed.decision_report === "object"
+          ? parsed.decision_report
+          : {};
 
       await adminClient
         .from("application_ai_assessments")
@@ -602,6 +607,8 @@ ${JSON.stringify(applicationContext, null, 2)}`;
           routing_recommendation: routing,
           missing_information: missing,
           confidence_score: confidence,
+          sections,
+          decision_report: decisionReport,
           source_payload_hash: sourcePayloadHash,
           generated_at: new Date().toISOString(),
           error_message: null,
