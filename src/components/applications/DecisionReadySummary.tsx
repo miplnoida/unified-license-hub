@@ -308,7 +308,14 @@ export function DecisionReadySummary({
           </div>
         ) : (
           <>
+            <DecisionReportBlock
+              assessment={assessment}
+              applicationId={application.id}
+              onChange={setAssessment}
+            />
+
             {/* Case Snapshot */}
+
             <section className="rounded-md border p-3 space-y-2">
               <div className="text-sm font-semibold">Case Snapshot</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
