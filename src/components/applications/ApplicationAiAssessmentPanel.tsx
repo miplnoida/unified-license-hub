@@ -35,6 +35,17 @@ interface Routing {
   confidence?: number;
 }
 
+interface Section {
+  key?: string;
+  label?: string;
+  status?: string;
+  risk_level?: string;
+  observations?: string[];
+  evidence?: string[];
+  suggested_action?: string;
+  links?: Array<{ type?: string; id?: string; label?: string }>;
+}
+
 interface Assessment {
   id: string;
   status: string;
@@ -50,7 +61,22 @@ interface Assessment {
   generated_at: string | null;
   error_message: string | null;
   created_at: string;
+  sections?: Section[];
+  decision_report?: Record<string, unknown> | null;
 }
+
+const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  pass: 'secondary',
+  concern: 'outline',
+  missing_info: 'default',
+  high_risk: 'destructive',
+};
+const SECTION_STATUS_LABEL: Record<string, string> = {
+  pass: 'Pass',
+  concern: 'Concern',
+  missing_info: 'Missing Info',
+  high_risk: 'High Risk',
+};
 
 const ROUTE_LABELS: Record<string, string> = {
   standard_review: 'Continue current workflow',
