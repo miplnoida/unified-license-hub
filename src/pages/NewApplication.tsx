@@ -32,7 +32,7 @@ import { ApplicationReviewBuilder } from '@/components/applications/ApplicationR
 import { useReviewSettings } from '@/hooks/useReviewSettings';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePpoc } from '@/contexts/PpocContext';
-import { resolveApplicationFeeBreakdown } from '@/lib/applicationFeeBreakdown';
+import { resolveApplicationFeeBreakdown, resolveApplicationFeeBreakdownMeta } from '@/lib/applicationFeeBreakdown';
 
 type WizardStep = 'selection' | 'forms' | 'filling' | 'documents' | 'payment' | 'review';
 type FormStatus = 'not_started' | 'in_progress' | 'completed' | 'needs_update';
