@@ -44,6 +44,7 @@ function ActiveFormFiller({
   onChange,
   applicationId,
   versionLocked = false,
+  originalData,
 }: {
   templateId: string;
   initialData: Record<string, any>;
@@ -53,6 +54,7 @@ function ActiveFormFiller({
   onChange?: (data: Record<string, any>, versionId: string | null) => void;
   applicationId?: string;
   versionLocked?: boolean;
+  originalData?: Record<string, any>;
 }) {
   const { data: resolved, isLoading: rLoading, error: rError } = useResolveAppFormVersion(
     applicationId || null,
@@ -106,6 +108,7 @@ function ActiveFormFiller({
         submissionId={applicationId || null}
         entityType="post_license_application"
         entityId={applicationId || null}
+        originalData={originalData}
       />
     </div>
   );
@@ -434,6 +437,12 @@ export default function PostLicenseApplicationForms() {
     );
   }
 
+  const originalFormsData: Record<string, Record<string, any>> | undefined =
+    (appData?.data as any)?.original_forms_data || undefined;
+  const isRenewalApplication: boolean = !!(appData?.data as any)?.is_renewal;
+  const hasRenewalDiff =
+    isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
+
   if (activeFormTemplateId && activeTemplate) {
     return (
       <DashboardLayout>
@@ -447,6 +456,11 @@ export default function PostLicenseApplicationForms() {
               <p className="text-muted-foreground text-sm">Complete this form and submit</p>
             </div>
           </div>
+          {hasRenewalDiff && (
+            <div className="rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
+              Yellow fields were changed from the original approved application.
+            </div>
+          )}
           <ActiveFormFiller
             templateId={activeTemplate.id}
             initialData={formProgressMap[activeTemplate.id]?.data || {}}
@@ -456,6 +470,7 @@ export default function PostLicenseApplicationForms() {
             onChange={handleLiveChange}
             applicationId={applicationId}
             versionLocked={formProgressMap[activeTemplate.id]?.status === 'completed'}
+            originalData={hasRenewalDiff ? originalFormsData?.[activeTemplate.id] : undefined}
           />
         </div>
       </DashboardLayout>
@@ -474,6 +489,13 @@ export default function PostLicenseApplicationForms() {
             <p className="text-muted-foreground">Application ID: {applicationId?.substring(0, 8).toUpperCase()}</p>
           </div>
         </div>
+
+        {hasRenewalDiff && (
+          <div className="rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
+            This is a renewal. The forms are prefilled with values from your original approved application. Yellow fields will mark values you change.
+          </div>
+        )}
+
 
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-4">

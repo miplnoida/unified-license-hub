@@ -105,6 +105,9 @@ export default function ApplicationDetail() {
   const formTemplateIds: string[] = appData?.form_template_ids || [];
   const formsData: Record<string, Record<string, any>> = appData?.forms_data || {};
   const formVersionIds: Record<string, string> = appData?.form_version_ids || {};
+  const originalFormsData: Record<string, Record<string, any>> | undefined = appData?.original_forms_data || undefined;
+  const isRenewalApplication: boolean = !!appData?.is_renewal;
+  const hasRenewalDiff = isRenewalApplication && !!originalFormsData && Object.keys(originalFormsData).length > 0;
   const hasSubmittedForms = formTemplateIds.length > 0;
 
   useEffect(() => {
@@ -660,10 +663,17 @@ export default function ApplicationDetail() {
               {hasSubmittedForms && (
                 <TabsContent value="form" className="mt-4">
                   {activeTab === 'form' && (
+                    <>
+                      {hasRenewalDiff && (
+                        <div className="mb-3 rounded-md border border-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2 text-xs text-yellow-900 dark:text-yellow-200">
+                          Yellow fields were changed from the original approved application.
+                        </div>
+                      )}
                     <SubmittedForms
                       formTemplateIds={formTemplateIds}
                       formsData={formsData}
                       formVersionIds={formVersionIds}
+                      originalFormsData={hasRenewalDiff ? originalFormsData : undefined}
                       formMeta={(appData.form_meta as Record<string, { saved_at?: string | null; submitted_at?: string | null; updated_at?: string | null; created_at?: string | null }>) || {}}
                       applicationStatus={app.status}
                       editable={!forceReadOnlyView && isOwner && (app.status === 'draft' || app.status === 'in_progress' || app.status === 'resubmission_requested' || app.status === 'query_raised')}
@@ -714,6 +724,7 @@ export default function ApplicationDetail() {
                         setActiveTab(next);
                       }}
                     />
+                    </>
                   )}
                 </TabsContent>
               )}

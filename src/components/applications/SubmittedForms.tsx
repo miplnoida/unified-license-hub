@@ -19,9 +19,10 @@ interface SingleFormViewerProps {
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
+  originalData?: Record<string, any>;
 }
 
-function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus }: SingleFormViewerProps) {
+function SingleFormViewer({ templateId, formData, versionId, editable, onSave, saving, applicationStatus, originalData }: SingleFormViewerProps) {
   const { data: template, isLoading: tLoading } = useFormTemplate(templateId);
   const { data: latestVersion, isLoading: lvLoading } = useLatestPublishedVersion(templateId);
   // Prefer the EXACT version the applicant originally submitted on — its field
@@ -69,6 +70,7 @@ function SingleFormViewer({ templateId, formData, versionId, editable, onSave, s
         saving={saving}
         showFullTabTitles
         portalArea="licensing"
+        originalData={originalData}
       />
     </div>
   );
@@ -85,6 +87,12 @@ interface SubmittedFormsProps {
   onSave?: (templateId: string, data: Record<string, any>, versionId?: string | null) => Promise<void>;
   saving?: boolean;
   applicationStatus?: string;
+  /**
+   * Optional baseline values per template (keyed by templateId). When provided,
+   * each form is rendered with diff highlighting against this baseline. Used
+   * by the renewal flow to show the original approved application's values.
+   */
+  originalFormsData?: Record<string, Record<string, any>>;
   /** Called when the last pending form is saved — parent should advance to next step (Documents/Payment) */
   onAllFormsCompleted?: () => void;
 }
@@ -98,6 +106,7 @@ export function SubmittedForms({
   onSave,
   saving,
   applicationStatus,
+  originalFormsData,
   onAllFormsCompleted,
 }: SubmittedFormsProps) {
   const getTimestamp = (value?: string | null) => {
@@ -187,6 +196,7 @@ export function SubmittedForms({
         onSave={onSave ? handleSave : undefined}
         saving={saving}
         applicationStatus={applicationStatus}
+        originalData={originalFormsData?.[formTemplateIds[0]]}
       />
     );
   }
@@ -256,6 +266,7 @@ export function SubmittedForms({
                   onSave={onSave ? handleSave : undefined}
                   saving={saving}
                   applicationStatus={applicationStatus}
+                  originalData={originalFormsData?.[tid]}
                 />
               </AccordionContent>
             </AccordionItem>

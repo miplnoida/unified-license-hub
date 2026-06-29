@@ -1,41 +1,83 @@
+## Goal
+
+When a licensee renews, the renewal flow should use the **same form templates and pre-fill the same field values** as the originally approved license application. Any field whose current value differs from the original is highlighted yellow with a "Changed" badge — both for the applicant while editing and for internal reviewers viewing the submitted renewal.
+
+All existing non-renewal logic (new applications, post-license services other than renew, drafts, payments, documents, workflow, AI assessment, resubmission, route guards) stays untouched.
+
+---
+
 ## Scope
 
-The Applicant Portal enhancement is functionally in place. Code review against the spec identified two concrete gaps and one verification gap. This plan closes them without rebuilding anything.
+### 1. Renewal creation — `src/pages/licenses/LicenseDetail.tsx` (`startRenewal`)
 
-## Remaining Gaps to Fix
+Today this resolves a single dedicated "Renewal" form template and writes only that template id into the new application. Change it so that:
 
-### 1. Track Application button missing on Registration Success
-`src/pages/registration/RegistrationSuccess.tsx` does not pass `trackHref` to `SubmissionAcknowledgement`, so the "Track Application" CTA never renders.
+- Look up the **original approved application** for this license:
+  - First by `licenses.application_id` if present.
+  - Fallback: query `applications` where `data->>'license_id'` (or matching license number / applicant + sector) corresponds to this license, `status = 'approved'`, most recent.
+- Read `form_template_ids`, `forms_data`, and `form_version_ids` from that application's `data` JSON.
+- Persist on the new renewal application's `data`:
+  - `form_template_ids`: copied from original (NOT the standalone renewal template).
+  - `forms_data`: copied from original (becomes the prefilled current values).
+  - `form_version_ids`: copied from original.
+  - `original_application_id`: id of the source application.
+  - `original_forms_data`: deep copy of the original `forms_data` (immutable snapshot for diffing).
+  - `original_form_version_ids`: copy of source version ids.
+  - Keep existing `renewal_of_license_id`, `is_renewal`, `service: 'Renew'`, computed `valid_until`, and `service_id` logic — fee + workflow resolution is unchanged.
+- If no original application can be located (legacy licenses), fall back to today's behavior: use the resolved renewal template with empty data, no snapshot, no highlighting. Surface a small "original application data not available" note (still allows renewal).
 
-**Fix:** pass `trackHref="/registration/status"` (existing route) so the button appears.
+### 2. Applicant renewal editor — `src/pages/PostLicenseApplicationForms.tsx`
 
-### 2. Recent Activity is single-event-per-application
-`RecentActivityPanel.tsx` derives one row per application from `recent_applications`. The spec lists multi-event verbs (Draft Saved, Submitted, Info Requested, Returned, Resubmitted, Approved, Rejected, License Issued).
+- Detect renewal mode from `appData.data.is_renewal === true` and presence of `original_forms_data`.
+- Pass `originalData={originalFormsData[templateId] || {}}` into `<ActiveFormFiller>` → `<FormRenderer>`.
+- Add a legend banner above the form list and inside the active form view: *"Yellow fields were changed from the original approved application."* (Only when renewal + snapshot exist.)
 
-**Fix:** switch the panel's data source to the existing `audit_logs` table (already used elsewhere), filtered by the current applicant's user_id, ordered `created_at desc`, limit 15. Map known `action` values to friendly verbs. Keep the existing empty state. No new tables, no edge functions, no schema changes.
+### 3. FormRenderer diff highlighting — `src/components/form-renderer/FormRenderer.tsx`
 
-### 3. Live verification on an applicant session
-Previous verification ran as `super_admin` (which routes to SupervisoryDashboard). The applicant-side dashboard, Continue Draft, Action Required → Continue, RegistrationSuccess, and responsive layout were not exercised against the running app.
+- New optional prop: `originalData?: Record<string, any>`.
+- Helper `isFieldChanged(fieldName, currentValue, originalValue)` using a deep-equal compare (normalize `undefined`/`null`/`''` as equivalent empty; arrays compared by stable JSON; objects recursively; trims strings). Reuse for repeatable/group fields by comparing the array entry as a whole.
+- Wrap each rendered field container (the existing field wrapper that hosts label + input) with conditional classes when changed:
+  - `border border-yellow-400 bg-yellow-50 rounded-md p-2`
+  - Append a `<Badge variant="outline" className="text-yellow-700 border-yellow-400">Changed</Badge>` next to the label.
+- Applies to all input types currently rendered (text, number, decimal, email, phone, date, textarea, select, multi_select, radio, checkbox, file, table rows, repeatable sections). For tables/repeatables the whole row/entry is highlighted when its serialized value differs.
+- Live: because `data` state already updates per keystroke, highlight recomputes automatically; reverting restores the original style.
+- When `originalData` is not provided, behavior is identical to today (no visual change, no perf cost beyond a cheap undefined check).
 
-**Fix:** run a Playwright pass once an applicant/pre-licensee session is available, capturing screenshots of:
-- `/` applicant dashboard (banner, 7 cards, Required Forms, Action Required, Timeline, Recent Activity, My Licenses)
-- Continue Draft → `/applications/:id/continue`
-- Action Required Continue → `/applications/:id`
-- `/registration/success` showing all CTAs incl. Track Application
-- Tablet (768) and mobile (390) viewports for layout regression
-- Console + network panels for errors / duplicate requests
+### 4. Internal reviewer view — `src/components/applications/SubmittedForms.tsx` + `src/pages/applications/ApplicationDetail.tsx`
 
-## Files To Change
+- `ApplicationDetail` already reads `appData.forms_data`. Also read `appData.original_forms_data` and `appData.is_renewal`, pass as new props `originalFormsData` and `isRenewal` to `<SubmittedForms>`.
+- `SubmittedForms` / `SingleFormViewer` accept `originalFormsData` and forward `originalData={originalFormsData?.[templateId] || {}}` into `<FormRenderer readOnly />`.
+- Read-only mode already disables inputs; the same yellow wrapper + "Changed" badge still renders, giving the reviewer the same visual diff.
+- Show the legend banner above the forms when renewal + snapshot are present. Leave all surrounding tabs (Workflow, AI Assessment, Activity, Documents, Fees, Decision Summary) untouched.
 
-- `src/pages/registration/RegistrationSuccess.tsx` — add `trackHref` prop.
-- `src/components/dashboard/applicant/RecentActivityPanel.tsx` — swap data source to `audit_logs` (read-only query via existing supabase client), add action→verb map, keep empty state.
+### 5. Backward compatibility
 
-No other files are touched. No DB migrations. No new routes. No permission changes.
+- Legacy renewals already in flight (no `original_forms_data`): renewal form opens, no highlighting, no legend, no errors. Same as today.
+- Non-renewal applications: no `originalData` prop, no diff UI, behavior identical.
+- The new fields on `applications.data` are JSONB additions — no migration required.
 
-## Out of Scope (intentionally not changed)
+---
 
-Registration form builder, workflow engine, RFI/resubmission/return-for-correction actions, renewal flow, document upload, permissions, route guards, edge functions, `useApplicantMetrics`, `useApplicantLicenses`, `LicenseStatusList`, `ApplicantDashboard` layout, `RequiredFormsList`, `ActionRequiredList`, `ApplicationTimeline`, `SubmissionAcknowledgement` shared component.
+## Files to change
 
-## Verification & Final Report
+```text
+src/pages/licenses/LicenseDetail.tsx         # fetch original app, snapshot into renewal
+src/pages/PostLicenseApplicationForms.tsx    # pass originalData + legend
+src/components/form-renderer/FormRenderer.tsx # originalData prop + diff highlight + Changed badge
+src/components/applications/SubmittedForms.tsx # accept + forward originalFormsData
+src/pages/applications/ApplicationDetail.tsx  # read original_forms_data, pass through
+src/lib/formDiff.ts                          # new: deepEqualField helper
+```
 
-After the two edits, run the Playwright pass above (requires applicant session — if `LOVABLE_BROWSER_AUTH_STATUS` is `signed_out`, will request the user sign in as an applicant in preview). Then produce the 6-section report (Implemented / Connected to Live Data / Manual Tests / Regression / Remaining Gaps / Completion Status) and only mark COMPLETE if every Playwright check passes with no console errors, no failed requests, and no layout breakage.
+No DB migration, no edge function changes, no route changes, no permission changes.
+
+---
+
+## Verification
+
+Once built I will:
+1. Open a license with an approved original application → click Renew → confirm the renewal form lists the same templates with original answers prefilled. Edit a field → yellow + "Changed" badge appears; revert → highlight disappears.
+2. Save draft, reopen — highlight state persists based on stored data vs snapshot.
+3. Submit renewal → open `/applications/:id` as internal user → "Submitted Forms" tab shows the same diff with yellow + "Changed" badges, read-only.
+4. Renew a license with no resolvable original application → renewal still opens with the legacy renewal template, no legend, no errors.
+5. Open a normal (non-renewal) draft and submitted application → no visual change vs today.
