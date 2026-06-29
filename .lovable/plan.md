@@ -1,61 +1,42 @@
-# Plan: Section-wise AI Analyst Review & Decision-Ready Report
 
-## Scope
+## Status assessment
 
-Enhance the AI assessment so it produces a **section-wise review** plus a **consolidated decision-ready report** with a recommended action, and let analysts **accept or override** the recommendation with a mandatory justification. Workflow / approval / payment / document / submission code stays untouched — the final action still happens in the Workflow panel.
+After reviewing the codebase, the AI Analyst Review + Decision-Ready Summary feature is **largely in place**:
 
-## Data Model
+- **Migration** (`20260629131505_*.sql`): adds `sections`, `decision_report`, `analyst_decision`, `analyst_decision_action`, `analyst_justification`, `analyst_decision_by`, `analyst_decision_at` — additive, `IF NOT EXISTS`, safe defaults.
+- **Edge function** (`generate-application-ai-assessment/index.ts`): `PROMPT_VERSION = v2`, includes `SECTION_KEYS`, generates `sections[]` + `decision_report{}` (executive summary, recommended_action, rationale, conditions, questions, escalation/rejection rationale, top_risks, compliance_concerns, suggested_next_workflow_action), persists both.
+- **Frontend AI panel** (`ApplicationAiAssessmentPanel.tsx`): renders section-wise cards with status, risk, observations, evidence, suggested action; falls back to legacy findings.
+- **Frontend Decision-Ready Summary** (`DecisionReadySummary.tsx`): `DecisionReportBlock` is defined (line 572), renders recommended-action badge, confidence, exec summary, rationale, conditions/questions/escalation/rejection, section-wise findings, top risks, compliance, missing info, suggested next workflow action. Analyst Accept / Override + justification dialog + audit log via `logAudit` are wired.
 
-Migration on `public.application_ai_assessments` — additive only, backward compatible:
+## Outstanding work
 
-- `sections jsonb NOT NULL DEFAULT '[]'::jsonb` — array of `{ key, label, status, risk_level, observations[], evidence[], suggested_action, links[] }`. `status ∈ pass | concern | missing_info | high_risk`.
-- `decision_report jsonb NOT NULL DEFAULT '{}'::jsonb` — `{ executive_summary, recommended_action, rationale, suggested_conditions[], suggested_questions[], escalation_reason, rejection_rationale, top_risks[], compliance_concerns[], suggested_next_workflow_action }`. `recommended_action ∈ approve | approve_with_conditions | request_more_information | escalate | reject`.
-- `analyst_decision text` (`accepted | overridden | null`), `analyst_decision_action text`, `analyst_justification text`, `analyst_decision_by uuid`, `analyst_decision_at timestamptz`.
+1. **Runtime error "`DecisionReportBlock is not defined`"** — the symbol is now defined in the same module, so this is a stale HMR error from the earlier turn when it was referenced before being added. Trigger a fresh build/restart and re-open the page to confirm it clears. If it persists, the only plausible cause is a transient parse failure: re-view the file end-to-end and fix.
 
-Old rows render safely because new columns default to empty / null and UI checks for presence.
+2. **Verification pass (no claim of "complete" until all pass):**
+   - TypeScript build (`tsgo --noEmit`) passes.
+   - Deploy edge function `generate-application-ai-assessment` and run it against a real application via the Regenerate button.
+   - DB read confirms `sections` + `decision_report` populated and `analyst_decision_*` round-trips on Accept and Override.
+   - Audit log row created on both Accept and Override.
+   - Playwright smoke on `/applications/<id>`:
+     - normal complete application — section cards + recommended-action badge render
+     - missing-documents application — `missing_information` and `missing_info` section status surface
+     - high-risk application — `high_risk` status and `top_risks` render; recommended_action skews to escalate/reject
+     - application with RFI history — RFI pairs render unchanged; AI rationale references them
+     - application with no AI assessment — fallback CTA renders, no crash
+     - legacy assessment row (no `sections` / `decision_report`) — old findings + "Regenerate" fallback message render, no crash
+   - Confirm Workflow panel, Payments, Documents, Forms, Approvals UIs are unchanged (no edits to those files in this iteration).
 
-## Edge Function (`generate-application-ai-assessment`)
+3. **No further code changes expected** unless verification surfaces a bug. If a test reveals a gap (e.g. legacy row crash, edge-function JSON shape drift, audit log not written) — fix it in place and re-run that scenario.
 
-- Also load: `payments` (already), workflow `approval_actions` + `workflow_instances` (RFI / workflow history), and the same `submitted_forms` + `documents` already loaded.
-- Build a richer `applicationContext` that explicitly tags sections: `application_details`, `submitted_forms` (grouped by template + section), `documents`, `fees_payment`, `rfi_history` (derived from `approval_actions`), `workflow_sla_history`, `compliance_notes`, `risk_indicators`.
-- Update system prompt + JSON schema to require both `sections[]` and `decision_report{}` with the fields above, in addition to existing `summary / findings / risks / routing_recommendation / missing_information / confidence_score`.
-- Bump `PROMPT_VERSION` to `v2`; keep `MODEL_NAME` = `google/gemini-2.5-flash`.
-- On success, write `sections` and `decision_report` alongside existing fields. On parse failure keep current failure behavior.
+## Out of scope
 
-## Frontend
+- No changes to workflow state machine, approval, payment, document, or submission code.
+- No removal/renaming of existing columns or fields.
+- Final action authority stays in the Workflow panel; AI Accept/Override only records analyst position + audit row.
 
-**`ApplicationAiAssessmentPanel.tsx`** — render sections when present:
-- For each section: status badge (color by `pass/concern/missing_info/high_risk`), risk level, observations, evidence, suggested analyst action, and links list (rendered as buttons that scroll to / switch to the relevant tab via existing `onJumpToFormsTab`-style props; documents link opens DocumentList tab).
-- Fall back to current findings/risks view when `sections` is empty (old rows).
-- Keep existing "Regenerate" button; show `prompt_version`, `model_name`, `generated_at`.
+## Technical notes
 
-**`DecisionReadySummary.tsx`** — add a "Decision-Ready Report" block above the existing snapshot when `decision_report` exists:
-- Big **Recommended Action** badge (color-coded), confidence score, executive summary, rationale.
-- Section-wise mini-cards (reuses section data), top risks, missing info, compliance concerns, suggested next workflow action.
-- AI-advisory warning banner (already present).
-- **Analyst controls**:
-  - "Accept recommendation" button → writes `analyst_decision='accepted'` (no justification required) + audit log via existing `logAudit`.
-  - "Override recommendation" button → opens existing `OverrideJustificationDialog`; on confirm writes `analyst_decision='overridden'`, `analyst_justification`, `analyst_decision_action` (analyst-picked action), `analyst_decision_by`, `analyst_decision_at` + audit log.
-  - Shows current accepted/overridden state with who/when.
-- Explicit note that this does NOT change workflow status — analyst must still act in Workflow panel.
-
-No changes to `WorkflowPanel`, payments, documents, submission, or routing.
-
-## Regeneration
-
-Existing "Regenerate" flow already re-invokes the edge function, which now reads latest forms / documents / payments / RFIs / workflow history each call. Stamp generated_at + prompt_version (already done).
-
-## Test cases (manual, after deploy)
-
-1. Normal complete application — sections all `pass`, recommended `approve` / `approve_with_conditions`.
-2. App missing documents / required info — sections flag `missing_info`, recommended `request_more_information` with suggested_questions populated.
-3. High-risk application — `high_risk` section status, recommended `escalate` or `reject` with rationale.
-4. App with RFI / query history — RFI section populated from `approval_actions`.
-5. App with no AI assessment — UI renders empty state, no crash.
-
-## Acceptance
-
-- Section-wise output rendered; old rows still render.
-- Recommended action badge + rationale visible.
-- Accept / override works, audit row written, no workflow status change.
-- Workflow / payments / forms / documents pages unchanged.
+- Migration is `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` only — re-runnable, no data loss.
+- Edge function writes both legacy fields (`findings`, `risks`, `routing_recommendation`) and new fields, so old UI paths keep working.
+- `DecisionReportBlock` gracefully handles `decision_report = {}` and `sections = []` (legacy rows) with a "Regenerate" prompt.
+- Stale runtime error is resolved by a fresh Vite rebuild; no source edit needed unless re-verification still shows the error.
