@@ -2201,9 +2201,18 @@ export default function NewApplication() {
                           <span className="text-lg font-bold text-primary">${feeAmount.toFixed(2)}</span>
                         </div>
                       </>
+                    ) : renewalFeeMissing ? (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                        <p className="font-semibold">Renewal fee is not configured.</p>
+                        <p className="mt-1 text-amber-800 dark:text-amber-300">
+                          Contact the regulator to configure the renewal fee for this license. You cannot proceed to submit until the renewal fee is set up.
+                        </p>
+                      </div>
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-2">
-                        No fees configured for this category. You may proceed without payment.
+                        {isRenewalApp
+                          ? 'No renewal fee is required for this license. You may proceed without payment.'
+                          : 'No fees configured for this category. You may proceed without payment.'}
                       </p>
                     )}
                   </div>
