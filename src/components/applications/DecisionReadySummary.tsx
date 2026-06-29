@@ -622,8 +622,8 @@ function DecisionReportBlock({
         analyst_decision_by: user?.id ?? null,
         analyst_decision_at: now,
       };
-      const { error } = await supabase
-        .from('application_ai_assessments' as never)
+      const { error } = await (supabase as any)
+        .from('application_ai_assessments')
         .update(update)
         .eq('id', assessment.id);
       if (error) throw error;
