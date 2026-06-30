@@ -288,14 +288,14 @@ export async function handler(req: Request): Promise<Response> {
 
     if (signatory.configured && signatory.signatureImageError) {
       return json(req, 200, {
-        error: "Configured signatory signature image could not be loaded. Please re-upload the signature image.",
+        error: `Configured signature image could not be embedded (${signatory.signatureImageError}). Please re-upload a standard non-interlaced PNG or a JPG.`,
         code: "SIGNATURE_IMAGE_UNAVAILABLE",
         details: signatory.signatureImageError,
       });
     }
     if (signatory.configured && signatory.sealImageError) {
       return json(req, 200, {
-        error: "Configured signatory seal image could not be loaded. Please re-upload the seal image or remove it.",
+        error: `Configured seal image could not be embedded (${signatory.sealImageError}). Please re-upload a standard non-interlaced PNG or a JPG, or remove the seal.`,
         code: "SEAL_IMAGE_UNAVAILABLE",
         details: signatory.sealImageError,
       });
