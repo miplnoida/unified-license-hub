@@ -1,44 +1,33 @@
-## Fix: Include `previous_valid_until` and `new_valid_until` in `approve-pre-licensee` renewal response
+# Fix: Digital signature box not accepting strokes
 
-### Scope
-Edit only `supabase/functions/approve-pre-licensee/index.ts` (renewal branch). No SQL, no UI, no workflow, no notification logic changes.
+## Problem
+On the application detail page, when a workflow action requires a digital signature, the signature canvas appears but the user cannot draw in it.
 
-### Change
-In the renewal branch, after resolving the original license:
+## Root cause
+`WorkflowActionPreviewDialog.tsx` initializes the canvas inside a `useEffect` that depends only on `[open, requireSignature]`. The effect runs immediately when the dialog opens, but at that moment Radix's `DialogContent` is still animating in and `canvas.offsetWidth` / `offsetHeight` are `0`. The code then sets:
 
-1. Expand the existing license fetch to also select `valid_from` and `valid_until`:
-   ```ts
-   .select("id, license_number, valid_from, valid_until")
-   ```
-2. Read renewal metadata from `appData`:
-   - `renewed_valid_until = appData.renewed_valid_until ?? null`
-   - `previous_valid_until = appData.previous_valid_until ?? null` (leave null if absent — no guessing)
-3. Compute `new_valid_until = renewed_valid_until ?? rLicense.valid_until`.
-4. Include the new fields in the existing success JSON response:
-   ```ts
-   return jsonResponse(req, 200, {
-     success: true,
-     renewal: true,
-     message: "License renewed",
-     license_number: rLicense.license_number,
-     license_id: rLicense.id,
-     licensee_id: rLicensee.id,
-     valid_from: rLicense.valid_from,
-     valid_until: rLicense.valid_until,
-     previous_valid_until,
-     new_valid_until,
-     web_user_created: false,
-   });
-   ```
+```
+canvas.width  = canvas.offsetWidth  * dpr   // → 0
+canvas.height = canvas.offsetHeight * dpr   // → 0
+```
 
-### Not changed
-- `provision_application_entity` SQL (already returns these — this fix just makes the edge function propagate them).
-- `perform-workflow-action` (already dispatches `license.renewed` with payload from RPC result; this just ensures the post-provisioning response is consistent).
-- Any non-renewal branch.
-- Renewal calculation, license/licensee writes, audit logging.
+A zero-sized backing buffer means strokes have nowhere to render, and pointer events on a 0×0 drawable surface produce no visible ink. The effect never re-runs after layout settles, so the canvas stays unusable for the lifetime of the dialog.
 
-### Acceptance verification
-- Trigger final approval of a renewal application.
-- Inspect `approve-pre-licensee` response: contains populated `previous_valid_until` and `new_valid_until`.
-- `notification_dispatch_log` row for `license.renewed` shows both fields populated (not undefined/null when metadata is present).
-- Non-renewal approvals unchanged.
+## Fix (scoped, presentation-layer only)
+Edit only `src/components/applications/WorkflowActionPreviewDialog.tsx`:
+
+1. Extract the canvas init (size, white fill, stroke style) into a small `initCanvas()` helper that reads the current `offsetWidth/offsetHeight` and bails when either is `0`.
+2. Replace the one-shot init with a `ResizeObserver` on the canvas element so `initCanvas()` runs the first time the canvas actually has non-zero dimensions (and again if the dialog is resized). Preserve any already-drawn ink across resizes by snapshotting `toDataURL()` before resize and re-drawing via `drawImage` after, so the in-progress signature is not lost.
+3. Keep pointer event registration as-is, but only attach handlers after the first successful init so early `pointerdown` events on a 0×0 canvas are ignored cleanly.
+4. Leave everything else untouched: `signatureDataUrl` state, `sigHasInk`, `clearSignature`, `handleConfirm`, `signatureMissing` gating, props, parent wiring in `WorkflowPanel.tsx`, and the edge-function signature persistence path.
+
+## Out of scope (do NOT change)
+- `WorkflowPanel.tsx`, `perform-workflow-action`, `perform_workflow_transition` RPC.
+- Signature storage / audit record format.
+- Renewal flow, notifications, RLS, or any backend SQL.
+
+## Acceptance
+- Opening any workflow action that requires a signature renders a usable canvas; strokes appear immediately on first pointer down, even on the first open after a fresh page load.
+- `Clear` still resets the canvas and disables `Confirm & Send` until re-signed.
+- Confirming sends a non-empty `signature_data_url` to `perform-workflow-action` exactly as before.
+- No regression for actions that do not require a signature.
