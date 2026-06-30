@@ -1331,3 +1331,24 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
   );
 }
 
+interface LegalNotesMountProps {
+  applicationId: string;
+  workflowInstanceId: string | null;
+  currentStepId: string | null;
+  currentStepIsLegal: boolean;
+  workflowHasLegalStep: boolean;
+}
+
+function LegalNotesMount(props: LegalNotesMountProps) {
+  const { data: isLegalReviewer = false } = useIsLegalComplianceUser();
+  return (
+    <div className="mt-4">
+      <LegalComplianceNotesSection
+        {...props}
+        isLegalReviewer={isLegalReviewer}
+      />
+    </div>
+  );
+}
+
+
