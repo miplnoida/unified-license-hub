@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, Sparkles, RefreshCw, AlertTriangle, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatEvidenceList } from '@/lib/evidenceLabel';
 
 interface Props {
   applicationId: string;
@@ -267,7 +268,7 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
                     )}
                     {Array.isArray(s.evidence) && s.evidence.length > 0 && (
                       <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Evidence: </span>{s.evidence.join('; ')}
+                        <span className="font-medium">Evidence: </span>{formatEvidenceList(s.evidence).join('; ')}
                       </div>
                     )}
                     {s.suggested_action && (
@@ -331,7 +332,7 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
                         {Array.isArray(f.evidence) && f.evidence.length > 0 && (
                           <div className="text-xs text-muted-foreground">
                             <span className="font-medium">Evidence: </span>
-                            {f.evidence.join('; ')}
+                            {formatEvidenceList(f.evidence).join('; ')}
                           </div>
                         )}
                         {f.analyst_action && (
@@ -380,7 +381,7 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
                 {Array.isArray(r.evidence) && r.evidence.length > 0 && (
                   <div className="text-xs text-muted-foreground">
                     <span className="font-medium">Evidence: </span>
-                    {r.evidence.join('; ')}
+                    {formatEvidenceList(r.evidence).join('; ')}
                   </div>
                 )}
               </div>
