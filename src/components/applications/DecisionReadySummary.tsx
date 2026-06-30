@@ -22,11 +22,19 @@ import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 const RECOMMENDED_ACTION_LABEL: Record<string, string> = {
   approve: 'Approve',
-  approve_with_conditions: 'Approve with conditions',
-  request_more_information: 'Request more information',
+  approve_with_conditions: 'Approve with Conditions',
+  request_more_information: 'Request More Information',
+  request_more_info: 'Request More Information',
   escalate: 'Escalate',
   reject: 'Reject',
+  review_for_rejection: 'Review for Rejection',
+  reject_review: 'Review for Rejection',
+  continue_review: 'Continue Review',
+  standard_review: 'Continue Review',
+  senior_analyst: 'Escalate to Senior Analyst',
+  enhanced_due_diligence: 'Enhanced Due Diligence',
 };
+
 const RECOMMENDED_ACTION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   approve: 'default',
   approve_with_conditions: 'secondary',
