@@ -1,97 +1,106 @@
-# Internal Form Integration for License Actions
 
-Gate Suspend / Revoke / Cancel / Reinstate on License Detail behind a configurable internal form, persist the response, and let admins manage the action→form mapping. Renewal, certificates, AI, workflow engine, applicant portal, and the existing notification dispatcher stay untouched.
+# License Action Forms — Full Implementation & Verification
 
-## 1. Database changes (single migration)
+The base scaffolding (migration, edge function, dialog, admin page, viewer) already exists from the previous pass. This plan closes the remaining gaps so the feature is end-to-end complete, verified, and free of regressions.
 
-**a. Extend `form_templates.form_type`** — drop the existing CHECK and re-add allowing the new value `internal_license_action` alongside existing types (`pre_license`, `post_license`, and anything else already used). Existing rows unaffected.
+## 1. Backend (edge function `perform-license-action`)
 
-**b. New table `public.license_action_form_configs`** (with full GRANT + RLS):
+Audit and harden the existing function:
+- Confirm JWT validation + internal-role check (`admin`, `reviewer`, `approver`, `supervisor`) via `has_role`.
+- Reload license + taxonomy server-side; never trust client taxonomy.
+- Call `resolve_license_action_form`; if required and no `form_response_id` → return `{ error:'FORM_REQUIRED', code:'FORM_REQUIRED', template_id }`.
+- Verify supplied `form_response_id` matches resolved template, `status='submitted'`, `entity_type='license_action'`, and owner = caller.
+- Insert `license_actions` row with `form_response_id`, `form_template_id`, `form_version_id`, performer, reason, old/new status.
+- Update `licenses.status`; mirror to `licensees` only for revoked/cancelled (preserve current behavior).
+- After action row exists: patch `form_responses.entity_id` to the new `action_id` so the response is linked to the action (not the license).
+- Write `audit_logs` entry (`license.<action>`, old/new value, metadata includes form_response_id + template_id).
+- Dispatch notification via `dispatch-notification-event` with payload tokens: `license_*`, `licensee_*`, `action_type`, `action_date`, `form_response_id`, `form_template_name`. Notification dispatch happens ONLY after the status update + audit log succeed.
+- Renewal path untouched.
 
-```text
-id, regulator_id?, sector_id?, sub_sector_id?, category_id?,
-license_action_type text CHECK in (suspension, revocation, cancellation,
-                                   reinstatement, status_change),
-form_template_id -> form_templates(id),
-is_required bool default true,
-is_active bool default true,
-created_at, updated_at
-```
-- RLS: authenticated read; only admins (`has_role(auth.uid(),'admin')`) write.
-- Index on `(license_action_type, is_active)`.
+## 2. Database
 
-**c. Add nullable columns to `license_actions`**: `form_response_id uuid`, `form_template_id uuid`, `form_version_id uuid`. Backfill stays NULL.
+Single follow-up migration (only if gaps remain after re-reading the prior one):
+- Ensure `form_templates.form_type` CHECK allows `internal_license_action`.
+- Confirm `resolve_license_action_form` priority order: category → sub_sector → sector → regulator → global; returns single best match with `is_active=true`.
+- Ensure RLS on `license_action_form_configs` (admin write, authenticated read) and on `form_responses` (internal roles can read where `entity_type='license_action'`).
+- Add index `(license_action_type, is_active)` if missing.
 
-**d. RPC `public.resolve_license_action_form(_action_type text, _regulator_id uuid, _sector_id uuid, _sub_sector_id uuid, _category_id uuid)`** — SECURITY DEFINER, returns the best-match active config row using the priority: category → sub_sector → sector → regulator → global. Lets the client know if a form is required and which template to load before opening the modal.
+## 3. Frontend — License Detail
 
-## 2. Edge Function `perform-license-action`
+`src/pages/licenses/LicenseDetail.tsx`:
+- Remove any remaining direct `supabase.from('license_actions').insert/update` and direct `licenses.status` updates for suspend/revoke/cancel/reinstate/status-change. All go through `LicenseActionDialog` → edge function.
+- Keep renewal and certificate buttons untouched.
+- Action History table: add "Internal Form" column. When `form_response_id` present, show **View Form** button that opens `LicenseActionFormViewer` in a read-only dialog.
 
-New function in `supabase/functions/perform-license-action/index.ts`. Owns the entire state transition so the client cannot bypass it.
+`src/components/licenses/LicenseActionDialog.tsx`:
+- Resolve form via RPC on open.
+- If required + template published → render `FormRenderer`; on submit, insert `form_responses` (status=submitted, entity_type='license_action', entity_id=license.id placeholder), then call edge function with the new `form_response_id`. Edge function re-points entity_id to action id.
+- If required + no published version or no config → block with clear admin guidance.
+- If not required → allow reason-only submission via edge function.
+- Disable close while submitting; toast on success/failure; surface `FORM_REQUIRED`.
 
-Body: `{ license_id, action_type, new_status, reason?, form_response_id? }`.
+## 4. Frontend — Form Builder
 
-Flow:
-1. Auth: validate JWT; load profile; assert internal role (admin/reviewer/approver/supervisor) via `has_role`.
-2. Load license + taxonomy (sector/sub_sector/category/regulator).
-3. Call `resolve_license_action_form`. If `is_required` and no `form_response_id` → 200 with `{ error: 'FORM_REQUIRED', template_id }`.
-4. If a `form_response_id` is supplied, verify it belongs to the caller, matches the resolved template, has `status='submitted'`, and `entity_type='license_action'`.
-5. Enforce existing reason rule for mandatory-reason actions.
-6. Insert `license_actions` row (including `form_response_id`, `form_template_id`, `form_version_id`).
-7. Update `licenses.status`; mirror to `licensees` for revoked/cancelled (preserve current behavior).
-8. Append to `audit_logs` via existing pattern.
-9. Dispatch the matching `license.*` notification event with the existing payload plus `form_response_id`, `form_template_name`, `licensee_id`, `licensee_name`, `action_type`, `action_date`.
-10. Return `{ ok: true, action_id }`.
+- Add `internal_license_action` as a selectable `form_type` in the template create/edit screen and in the template-list filter.
+- Template listing shows the new type label.
+- No second builder — reuse existing builder UI.
 
-Renewal stays on its current path — this function only handles suspension/revocation/cancellation/reinstatement/status_change.
+## 5. Admin — License Action Forms page
 
-## 3. Frontend — License Detail modal flow
-
-Edit `src/pages/licenses/LicenseDetail.tsx`:
-- Replace inline reason textarea + direct action buttons with a single `LicenseActionDialog` opened per action type. Existing renewal button + certificate buttons are untouched.
-- New component `src/components/licenses/LicenseActionDialog.tsx`:
-  - On open: call `resolve_license_action_form` RPC.
-  - If a template is required: render the existing `FormRenderer` for that template/version inside the dialog (reusing `src/components/form-renderer/FormRenderer.tsx`); also show reason field when the action requires one.
-  - Submit handler: write a `form_responses` row (`entity_type='license_action'`, `entity_id=<uuid placeholder>` — we use a generated UUID we’ll also pass as the action’s own id, OR submit response first, then call function and update entity_id post-hoc; chosen approach: insert response first with a temp `entity_id` equal to `license.id`, then patch `entity_id` to the created `action_id` after the function returns).
-  - Call `supabase.functions.invoke('perform-license-action', ...)` with the `form_response_id`.
-  - Handle `FORM_REQUIRED` / validation errors with toasts.
-- On success: refresh license + actions list, close modal, toast.
-- Action history table gets a new column “Internal Form” showing **View Submitted Form** when `form_response_id` is present, opening a read-only `FormRenderer` dialog.
-
-Remove the direct `supabase.from('license_actions').insert/update` path from this page — it now only calls the edge function.
-
-## 4. Admin configuration UI
-
-New page `src/pages/admin/LicenseActionFormsPage.tsx` (route `/admin/license-action-forms`, added to admin routes + Settings/admin nav under existing License or Settings group):
-- Table of `license_action_form_configs` rows with filters by action type and scope.
-- Create/Edit dialog with: action type, regulator/sector/sub-sector/category (optional, cascading), form template (filtered to `form_type in ('internal_license_action', 'post_license')` so existing internal-style templates remain usable), required toggle, active toggle.
+`src/pages/admin/LicenseActionFormsPage.tsx` at `/admin/license-action-forms`:
 - Admin-only route guard.
+- Table with filters: action type, scope level, active.
+- Create/Edit dialog: action type, optional regulator/sector/sub-sector/category (cascading), template (filtered to `internal_license_action` + `post_license`), `is_required`, `is_active`.
+- Activate/deactivate toggle inline.
+- Delete with confirm.
+- Sidebar nav entry under Admin.
 
-Form Builder gets `internal_license_action` exposed as a new selectable `form_type` in the existing template create/edit screen — no second builder.
+## 6. Notifications
 
-## 5. Notifications
+- Remove any client-side license-status notification dispatch — backend only.
+- Reuse keys: `license.suspended`, `license.revoked`, `license.cancelled`, `license.reinstated`, `license.status_changed`.
+- Extend payload with new tokens (additive; existing templates keep working).
 
-Backend dispatch only (removed from client). Event keys reused unchanged:
-`license.suspended`, `license.revoked`, `license.cancelled`, `license.reinstated`, `license.status_changed`. Existing templates and recipient rules continue to work; new optional tokens (`form_response_id`, `form_template_name`, `licensee_id`, `licensee_name`, `action_date`) are additive.
+## 7. Audit Logs
 
-## 6. Security / RLS
+- Edge function writes `audit_logs` for every action with old/new status and form linkage.
+- Form submission also logged (entity_type=`form_response`, action=`submit`) by the function after insert.
 
-- `license_action_form_configs`: admin write, authenticated read.
-- `form_responses` for `entity_type='license_action'`: rely on existing policies (owner + admin). Add an extra policy permitting internal-role users to read responses where `entity_type='license_action'` so reviewers/approvers can view history.
-- Edge function is the only write path that touches `licenses.status` for these actions — frontend RLS for `licenses` remains as is; we don't loosen it.
+## 8. Types & cleanup
 
-## 7. Out of scope (explicitly unchanged)
+- Regenerate `src/integrations/supabase/types.ts` after migration approval.
+- Remove `(supabase as any).rpc(...)` cast in `LicenseActionDialog` and any other `as any` introduced for this feature.
 
-Renewal flow, `generate-license-certificate`, AI assessments, workflow approval engine, return/application/registration flows, applicant portal, notification dispatcher internals.
+## 9. Verification (must all pass before declaring done)
 
-## 8. Acceptance verification
+Automated:
+- Vitest: `resolve_license_action_form` priority order (mocked supabase); dialog gating (FORM_REQUIRED path; reason-only path; published-version-missing path); admin page CRUD reducer.
+- Edge function deno test: role check rejects non-internal; FORM_REQUIRED returned when required; happy path inserts action, updates license, links response, writes audit, dispatches notification.
 
-Manual + targeted tests:
-- Vitest for `resolve_license_action_form` priority (via mocked supabase) and for the dialog gating logic.
-- Smoke: configure a required form for `suspension`, attempt suspend without form → blocked; with form → action recorded, status changes, action history shows form link, licensee gets notification.
-- Confirm renewal and certificate buttons still work; existing post_license forms still load.
+Manual end-to-end (documented in `docs/license-action-forms.md`):
+1. Create internal form template (type `internal_license_action`), publish version.
+2. Configure global mapping for `suspension` → that template, required=true.
+3. As reviewer, open license → Suspend → modal forces form → submit → license status flips to suspended → action history shows row with View Form → notification log shows dispatched event.
+4. Attempt to bypass by calling `supabase.from('licenses').update({status:'suspended'})` from console → blocked by RLS.
+5. Configure category-level override → verify it wins over global.
+6. Renewal flow unchanged; certificate generation unchanged; AI assessment unchanged; existing workflows unchanged.
 
-## Technical notes
+Build: `tsgo` and vitest run clean. No `as any` regressions. No console errors in preview.
 
-- File touches: 1 new migration; 1 new edge function; new `LicenseActionDialog.tsx`; edits to `LicenseDetail.tsx`; new `LicenseActionFormsPage.tsx` + route entry; small edit to Form Builder template-type selector; minor type regen after migration approval.
-- Reuse: `FormRenderer`, `form_templates` / `form_versions` / `form_fields`, `form_responses`, `dispatch-notification-event`, `logAudit`, existing `has_role`.
-- No changes to `supabase/config.toml` required (edge function defaults).
+## 10. Out of scope (unchanged)
+
+Renewal, certificates, AI assessments, workflow engine, returns, registration, applicant portal, notification dispatcher internals.
+
+## Files touched
+
+- `supabase/functions/perform-license-action/index.ts` (harden, link response, audit, notify)
+- `supabase/migrations/<new>.sql` (only if gaps found)
+- `src/components/licenses/LicenseActionDialog.tsx` (remove casts, polish)
+- `src/components/licenses/LicenseActionFormViewer.tsx` (read-only viewer)
+- `src/pages/licenses/LicenseDetail.tsx` (remove direct writes, add Internal Form column)
+- `src/pages/admin/LicenseActionFormsPage.tsx` (CRUD complete)
+- `src/components/form-builder/*` (expose `internal_license_action` type)
+- `src/config/navigation.tsx`, `src/routes/adminRoutes.tsx` (nav + route)
+- `src/integrations/supabase/types.ts` (regen)
+- New tests under `src/test/` and `supabase/functions/perform-license-action/index_test.ts`
+- `docs/license-action-forms.md` (verification steps)
