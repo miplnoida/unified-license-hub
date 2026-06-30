@@ -879,6 +879,16 @@ export default function LicenseDetail() {
                         <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString()}</p>
                         <p className="text-xs">{a.old_status} → {a.new_status}</p>
                         {a.reason && <p className="text-xs text-muted-foreground italic mt-1">"{a.reason}"</p>}
+                        {a.form_response_id && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto px-0 py-0 mt-1 text-xs"
+                            onClick={() => navigate(`/admin/forms/responses/${a.form_response_id}`)}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />View submitted form
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -888,6 +898,22 @@ export default function LicenseDetail() {
           </div>
         </div>
       </div>
+      <LicenseActionDialog
+        open={!!actionDialog}
+        onOpenChange={(v) => { if (!v) setActionDialog(null); }}
+        license={{
+          id: license.id,
+          license_number: license.license_number,
+          license_type: license.license_type,
+          sector_id: license.sector_id,
+          sub_sector_id: license.sub_sector_id,
+          category_id: license.category_id,
+          regulator_id: activeRegulator?.id ?? null,
+        }}
+        config={actionDialog}
+        onCompleted={refreshAfterAction}
+      />
     </DashboardLayout>
   );
 }
+
