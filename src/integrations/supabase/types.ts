@@ -8089,6 +8089,7 @@ export type Database = {
         | "pre_licensee"
         | "licensee_primary"
         | "licensee_secondary"
+        | "legal_compliance"
       compliance_audit_action:
         | "CREATE"
         | "UPDATE"
@@ -8271,6 +8272,7 @@ export const Constants = {
         "pre_licensee",
         "licensee_primary",
         "licensee_secondary",
+        "legal_compliance",
       ],
       compliance_audit_action: [
         "CREATE",
