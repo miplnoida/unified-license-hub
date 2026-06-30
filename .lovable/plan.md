@@ -1,33 +1,39 @@
-# Fix: Digital signature box not accepting strokes
+## Plan
 
-## Problem
-On the application detail page, when a workflow action requires a digital signature, the signature canvas appears but the user cannot draw in it.
+Fix only the workflow-action signature capture area so reviewers can either draw a signature in the canvas or upload a signature image before confirming the action.
 
-## Root cause
-`WorkflowActionPreviewDialog.tsx` initializes the canvas inside a `useEffect` that depends only on `[open, requireSignature]`. The effect runs immediately when the dialog opens, but at that moment Radix's `DialogContent` is still animating in and `canvas.offsetWidth` / `offsetHeight` are `0`. The code then sets:
+## Scope
 
-```
-canvas.width  = canvas.offsetWidth  * dpr   // → 0
-canvas.height = canvas.offsetHeight * dpr   // → 0
-```
+- Update `WorkflowActionPreviewDialog.tsx` only.
+- Keep the existing `signature_data_url` contract unchanged so workflow actions, audit records, notifications, and backend behavior continue to receive one data URL.
+- Do not change workflow logic, approval logic, database schema, notifications, AI, or unrelated UI.
 
-A zero-sized backing buffer means strokes have nowhere to render, and pointer events on a 0×0 drawable surface produce no visible ink. The effect never re-runs after layout settles, so the canvas stays unusable for the lifetime of the dialog.
+## Implementation
 
-## Fix (scoped, presentation-layer only)
-Edit only `src/components/applications/WorkflowActionPreviewDialog.tsx`:
+1. **Make canvas drawing reliable**
+   - Initialize the canvas after layout is available using a robust sizing path.
+   - Handle pointer down/move/up/cancel events consistently.
+   - Convert pointer coordinates using the canvas bounding rect so drawing works in the dialog and at different device pixel ratios.
+   - Ensure the first click/touch produces visible ink immediately.
 
-1. Extract the canvas init (size, white fill, stroke style) into a small `initCanvas()` helper that reads the current `offsetWidth/offsetHeight` and bails when either is `0`.
-2. Replace the one-shot init with a `ResizeObserver` on the canvas element so `initCanvas()` runs the first time the canvas actually has non-zero dimensions (and again if the dialog is resized). Preserve any already-drawn ink across resizes by snapshotting `toDataURL()` before resize and re-drawing via `drawImage` after, so the in-progress signature is not lost.
-3. Keep pointer event registration as-is, but only attach handlers after the first successful init so early `pointerdown` events on a 0×0 canvas are ignored cleanly.
-4. Leave everything else untouched: `signatureDataUrl` state, `sigHasInk`, `clearSignature`, `handleConfirm`, `signatureMissing` gating, props, parent wiring in `WorkflowPanel.tsx`, and the edge-function signature persistence path.
+2. **Add signature upload option**
+   - Add an image file input near the signature box.
+   - Accept common image types (`png`, `jpg`, `jpeg`, `webp`).
+   - Read the uploaded file as a data URL and set it as the same `signatureDataUrl` currently submitted to the action handler.
+   - Mark the signature as present when upload succeeds.
+   - Keep `Confirm & Send` disabled until either a drawn or uploaded signature exists.
 
-## Out of scope (do NOT change)
-- `WorkflowPanel.tsx`, `perform-workflow-action`, `perform_workflow_transition` RPC.
-- Signature storage / audit record format.
-- Renewal flow, notifications, RLS, or any backend SQL.
+3. **Clear behavior**
+   - Keep the existing Clear button.
+   - Clear both drawn signature state and uploaded signature state.
+   - Reset the canvas back to a blank white signature surface.
 
-## Acceptance
-- Opening any workflow action that requires a signature renders a usable canvas; strokes appear immediately on first pointer down, even on the first open after a fresh page load.
-- `Clear` still resets the canvas and disables `Confirm & Send` until re-signed.
-- Confirming sends a non-empty `signature_data_url` to `perform-workflow-action` exactly as before.
-- No regression for actions that do not require a signature.
+4. **Validation and user feedback**
+   - Reject non-image files with a toast/error message.
+   - Show a small uploaded-image preview or filename so the user can confirm the upload was accepted.
+
+5. **Verify**
+   - Test that drawing in the canvas enables `Confirm & Send`.
+   - Test that uploading an image enables `Confirm & Send`.
+   - Test that Clear disables `Confirm & Send` again.
+   - Confirm the existing `onConfirm(..., signatureDataUrl)` path remains unchanged.
