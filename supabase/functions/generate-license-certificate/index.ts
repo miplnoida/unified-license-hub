@@ -81,15 +81,32 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
     }
   }
 
+  async function validateEmbeddable(bytes: Uint8Array, mime: string): Promise<string | null> {
+    try {
+      const probe = await PDFDocument.create();
+      if (mime === "image/png") await probe.embedPng(bytes);
+      else await probe.embedJpg(bytes);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "image cannot be decoded as PNG/JPG";
+    }
+  }
+
   if (value.signature_image_path) {
     const sig = await fetchAsset(String(value.signature_image_path));
-    if ("bytes" in sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
-    else { out.signatureImageError = sig.error; }
+    if ("bytes" in sig) {
+      const decodeErr = await validateEmbeddable(sig.bytes, sig.mime);
+      if (decodeErr) out.signatureImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
+      else { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    } else { out.signatureImageError = sig.error; }
   }
   if (value.seal_image_path) {
     const seal = await fetchAsset(String(value.seal_image_path));
-    if ("bytes" in seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
-    else { out.sealImageError = seal.error; }
+    if ("bytes" in seal) {
+      const decodeErr = await validateEmbeddable(seal.bytes, seal.mime);
+      if (decodeErr) out.sealImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
+      else { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    } else { out.sealImageError = seal.error; }
   }
 
   return out;
@@ -150,7 +167,7 @@ async function buildCertificatePdf(opts: {
   const blockLeft = width - 280;
   const lineY = 130;
 
-  // Signature image (above the line)
+  // Signature image (above the line) — fail loudly if embed/draw fails
   if (opts.signatory.configured && opts.signatory.signatureBytes && opts.signatory.signatureMime) {
     try {
       const img = opts.signatory.signatureMime === "image/png"
@@ -160,10 +177,12 @@ async function buildCertificatePdf(opts: {
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
       const w = img.width * scale, h = img.height * scale;
       page.drawImage(img, { x: blockLeft + (200 - w) / 2, y: lineY + 8, width: w, height: h });
-    } catch { /* ignore embed errors */ }
+    } catch (e) {
+      throw new Error(`SIGNATURE_IMAGE_EMBED_FAILED:${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
-  // Seal (optional) — offset to the right of signatory block
+  // Seal (optional) — fail loudly if embed/draw fails
   if (opts.signatory.configured && opts.signatory.sealBytes && opts.signatory.sealMime) {
     try {
       const img = opts.signatory.sealMime === "image/png"
@@ -173,7 +192,9 @@ async function buildCertificatePdf(opts: {
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
       const w = img.width * scale, h = img.height * scale;
       page.drawImage(img, { x: blockRight + 10, y: lineY - 10, width: w, height: h });
-    } catch { /* ignore embed errors */ }
+    } catch (e) {
+      throw new Error(`SEAL_IMAGE_EMBED_FAILED:${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   page.drawLine({ start: { x: blockLeft, y: lineY }, end: { x: blockRight, y: lineY }, thickness: 1, color: rgb(0, 0, 0) });
@@ -271,15 +292,35 @@ export async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const pdf = await buildCertificatePdf({
-      entityName,
-      licenseType: license.license_type,
-      licenseNumber: license.license_number,
-      issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
-      expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
-      signatory,
-      cryptoSigned,
-    });
+    let pdf: Uint8Array;
+    try {
+      pdf = await buildCertificatePdf({
+        entityName,
+        licenseType: license.license_type,
+        licenseNumber: license.license_number,
+        issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
+        expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
+        signatory,
+        cryptoSigned,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith("SIGNATURE_IMAGE_EMBED_FAILED:")) {
+        return json(req, 200, {
+          error: "Configured signature image was loaded but could not be embedded in the PDF. Please upload a valid PNG or JPG signature image.",
+          code: "SIGNATURE_IMAGE_EMBED_FAILED",
+          details: msg.slice("SIGNATURE_IMAGE_EMBED_FAILED:".length),
+        });
+      }
+      if (msg.startsWith("SEAL_IMAGE_EMBED_FAILED:")) {
+        return json(req, 200, {
+          error: "Configured seal image was loaded but could not be embedded in the PDF. Please upload a valid PNG or JPG seal image or remove it.",
+          code: "SEAL_IMAGE_EMBED_FAILED",
+          details: msg.slice("SEAL_IMAGE_EMBED_FAILED:".length),
+        });
+      }
+      throw e;
+    }
 
     const fingerprint = cryptoSigned ? await sha256Hex(pdf) : null;
 
