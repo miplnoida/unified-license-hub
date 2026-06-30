@@ -14,7 +14,7 @@
  * If there are no configured notifications, the dialog simply confirms the
  * action with a "no email is configured" notice — it does NOT block actions.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,9 +24,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser } from 'lucide-react';
+import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser, Upload } from 'lucide-react';
 import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
+import { toast } from 'sonner';
 
 export interface ActionNotificationOverride {
   binding_id: string;
@@ -358,13 +359,17 @@ export function WorkflowActionPreviewDialog({
 
   // ─── Digital signature capture (only when requireSignature) ───
   const sigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sigFileInputRef = useRef<HTMLInputElement | null>(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [sigHasInk, setSigHasInk] = useState(false);
+  const [uploadedSignatureName, setUploadedSignatureName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSignatureDataUrl(null);
       setSigHasInk(false);
+      setUploadedSignatureName(null);
+      if (sigFileInputRef.current) sigFileInputRef.current.value = '';
     }
   }, [open]);
 
@@ -372,18 +377,20 @@ export function WorkflowActionPreviewDialog({
     if (!open || !requireSignature) return;
     const canvas = sigCanvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     let initialized = false;
     let drawing = false;
     let lastX = 0, lastY = 0;
+    const inkColor = '#0f172a';
+    const backgroundColor = '#ffffff';
 
     const initCanvas = () => {
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.round(rect.width || canvas.clientWidth || canvas.offsetWidth);
+      const h = Math.round(rect.height || canvas.clientHeight || canvas.offsetHeight);
       if (!w || !h) return false;
       const dpr = window.devicePixelRatio || 1;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return false;
 
       // Preserve any existing ink across resizes
       let prev: string | null = null;
@@ -393,14 +400,13 @@ export function WorkflowActionPreviewDialog({
 
       canvas.width = w * dpr;
       canvas.height = h * dpr;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-      ctx.fillStyle = '#ffffff';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = backgroundColor;
       ctx.fillRect(0, 0, w, h);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.lineWidth = 2;
-      ctx.strokeStyle = '#0f172a';
+      ctx.strokeStyle = inkColor;
 
       if (prev) {
         const img = new Image();
@@ -418,14 +424,26 @@ export function WorkflowActionPreviewDialog({
     };
     const onDown = (e: PointerEvent) => {
       if (!initialized && !initCanvas()) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       drawing = true;
       const { x, y } = posFromEvent(e);
       lastX = x; lastY = y;
+      setUploadedSignatureName(null);
+      if (sigFileInputRef.current) sigFileInputRef.current.value = '';
+      ctx.beginPath();
+      ctx.fillStyle = inkColor;
+      ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = inkColor;
+      setSigHasInk(true);
       try { canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
       e.preventDefault();
     };
     const onMove = (e: PointerEvent) => {
       if (!drawing) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
       const { x, y } = posFromEvent(e);
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
@@ -446,6 +464,7 @@ export function WorkflowActionPreviewDialog({
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointerleave', onUp);
+    canvas.addEventListener('pointercancel', onUp);
 
     // Try immediate init; if dialog is still animating in (0×0), ResizeObserver
     // will fire as soon as the canvas gets real dimensions.
@@ -459,17 +478,54 @@ export function WorkflowActionPreviewDialog({
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
     };
   }, [open, requireSignature]);
 
 
+  const handleSignatureUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+    if (!allowedTypes.has(file.type)) {
+      toast.error('Please upload a PNG, JPG, JPEG, or WebP signature image.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        toast.error('Unable to read the signature image.');
+        return;
+      }
+      setSignatureDataUrl(reader.result);
+      setSigHasInk(true);
+      setUploadedSignatureName(file.name);
+    };
+    reader.onerror = () => {
+      toast.error('Unable to read the signature image.');
+      event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+  };
+
+
   const clearSignature = () => {
     const canvas = sigCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.round(rect.width || canvas.clientWidth || canvas.offsetWidth);
+        const h = Math.round(rect.height || canvas.clientHeight || canvas.offsetHeight);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+      }
+    }
+    if (sigFileInputRef.current) sigFileInputRef.current.value = '';
+    setUploadedSignatureName(null);
     setSigHasInk(false);
     setSignatureDataUrl(null);
   };
@@ -596,6 +652,42 @@ export function WorkflowActionPreviewDialog({
                 className="w-full h-40 rounded border border-border bg-white touch-none cursor-crosshair"
                 style={{ touchAction: 'none' }}
               />
+              <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Upload digital signature</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, JPEG, or WebP image.</p>
+                </div>
+                <input
+                  ref={sigFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={handleSignatureUpload}
+                  disabled={processing}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => sigFileInputRef.current?.click()}
+                  disabled={processing}
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1" /> Upload
+                </Button>
+              </div>
+              {uploadedSignatureName && signatureDataUrl && (
+                <div className="rounded-md border bg-background p-2">
+                  <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+                    <span className="font-medium">Uploaded signature</span>
+                    <span className="truncate text-muted-foreground">{uploadedSignatureName}</span>
+                  </div>
+                  <img
+                    src={signatureDataUrl}
+                    alt="Uploaded digital signature preview"
+                    className="max-h-24 w-full rounded border border-border object-contain"
+                  />
+                </div>
+              )}
               {signatureMissing && (
                 <p className="text-xs text-destructive">Please sign above before confirming.</p>
               )}
