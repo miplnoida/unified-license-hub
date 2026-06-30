@@ -1,30 +1,35 @@
 ## Problem
 
-When an admin selects **Legal/Compliance Reviewer** as the approver of a workflow step, the database trigger `validate_approval_step_role` rejects it with:
+`APPROVER_ROLE_NOT_FOUND: roles.id=b440775e-29a6-439a-9736-ca7fd21e05a4 does not exist`
+
+When the user edits the **Post Application Workflow → Legal/Compliance Review** step and changes the assigned role, the save fails.
+
+Root cause: the previous dedup migration repointed `approval_steps.approver_role_id` and `user_dynamic_roles` to the canonical Legal/Compliance Reviewer row, but it did **not** clean stale role IDs stored inside `approval_steps.approver_config.role_ids` (JSONB). One step still carries the deleted duplicate role id in that array:
 
 ```
-INVALID_ROLE_MAPPING: role "Legal / Compliance Reviewer" has system_role=analyst but is not the built-in Analyst role
+approver_config.role_ids = [
+  "670c341e-...",                          -- another role
+  "b440775e-29a6-439a-9736-ca7fd21e05a4",  -- DELETED duplicate (causes the error)
+  "ebbd4d90-...-fe3403c0f35d"              -- canonical Legal/Compliance Reviewer
+]
 ```
 
-Cause: the role was seeded with `system_role='analyst'` (because `app_role` had no legal/compliance value), but the validator only allows `system_role='analyst'` for the built-in Analyst role. There are also two duplicate seed rows (`Legal/Compliance Reviewer` and `Legal / Compliance Reviewer`).
+When `ApproverConfigEditor` saves, the update path validates every id in `role_ids` and rejects the request because the deleted id no longer exists in `roles`.
 
-## Fix — single migration, no UI/business-logic changes
+## Fix — one migration, no UI/business-logic changes
 
-1. **Extend the `app_role` enum** with a new value `legal_compliance` (additive; safe for every existing check — `has_role`, `user_can_act_on_workflow_step`, RLS, etc. ignore unknown roles).
-2. **Re-seed the canonical role**:
-   - Keep one row: `name = 'Legal/Compliance Reviewer'`, `system_role = 'legal_compliance'`, `is_system = true`, `role_type = 'internal'`.
-   - Delete the duplicate `'Legal / Compliance Reviewer'` row after re-pointing any `user_dynamic_roles` / `approval_steps.approver_role_id` references to the canonical id (guarded so it's a no-op if none exist).
-3. **Update `is_legal_compliance_user`** to match by `system_role = 'legal_compliance'` instead of by name string, so future renames don't break it. Names matched today still work because the canonical row is renamed/kept.
-4. Re-run any backfill of `approver_role` on existing legal/compliance approval_steps so the derived `app_role` column matches the new `system_role`.
+1. **Sweep `approval_steps.approver_config.role_ids`** across all rows and remove any ids that no longer exist in `public.roles`. Dedupe the resulting array. Leave the column untouched when nothing needs removing.
+2. Same sweep for `approver_config.user_ids` against `profiles.id` (defensive — same class of stale-reference bug, scoped to JSONB only). No-op if nothing stale.
+3. If `approver_role_id` itself points to a missing role on any step (shouldn't after the last migration, but guard), null it out and log via `RAISE NOTICE` so the step falls back to whatever remains in `role_ids`.
 
-## Out of scope (unchanged)
-
-- No edits to the workflow engine, `perform-workflow-action`, RLS for `application_legal_notes`, the workflow builder UI, or the legal notes UI.
-- No change to how non-legal steps validate.
+No changes to:
+- `ApproverConfigEditor`, `WorkflowList`, or any other UI
+- `perform-workflow-action`, workflow engine, RLS, or legal-notes flow
+- The `roles` / `user_dynamic_roles` / triggers — they're already correct after the previous migration
 
 ## Acceptance
 
-- Saving a workflow step with approver = Legal/Compliance Reviewer succeeds.
-- Existing Legal/Compliance step rows continue to load and gate actions to legal users.
-- All other approver roles still validate exactly as before.
-- Only one Legal/Compliance Reviewer row exists in `roles`.
+- Editing the Post Application Workflow → Legal/Compliance Review step and changing the assigned role saves successfully.
+- The stale id `b440775e-…` is gone from every `approver_config.role_ids`.
+- No other workflow step references a non-existent role or user id.
+- All other steps load and save exactly as before.
