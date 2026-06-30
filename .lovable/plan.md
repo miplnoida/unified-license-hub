@@ -1,17 +1,1 @@
-## Fix tab value mismatch in ApplicationDetail
-
-**File:** `src/pages/applications/ApplicationDetail.tsx`
-
-**Change (line 852):**
-```diff
-- onJumpToFormsTab={() => setActiveTab('forms')}
-+ onJumpToFormsTab={() => setActiveTab('form')}
-```
-
-The Submitted Forms `TabsTrigger` (line 595) and `TabsContent` (line 665) both use `value="form"`, but the callback was passing `'forms'`, so clicking "View full responses" in the Decision-Ready Summary did nothing.
-
-**Verification:**
-- Run `tsgo --noEmit` to confirm it still compiles.
-- Confirm the callback string matches the `TabsTrigger`/`TabsContent` value (`form`).
-
-No other files or behaviors touched.
+UI-only change. Add `src/lib/evidenceLabel.ts` with `formatEvidence(raw)` that strips `application_data.forms_data.` prefix, UUID segments, and `.url/.value/.id/.path/.file/.filename` suffixes; converts snake_case to Title Case while preserving acronyms (AML, CFT, KYC, FATF, PEP, UBO, ID, PAN, GST, NOC, MOA, AOA, CIN); applies a known-label map (payment_receipt → "Payment Receipt", aml_cft_documents → "AML/CFT Documents", business_plan_documents → "Business Plan", premises_documents → "Premises Documents", paid_up_capital_evidence → "Paid-up Capital Evidence", corporate_structure_documents → "Corporate Structure Documents", etc.); appends " uploaded" when a file-ish suffix was stripped or the key ends in `_document(s)/_evidence/_receipt/_proof/_certificate`; returns the original string unchanged when it isn't a dotted path (so free-text evidence is preserved). Update `ApplicationAiAssessmentPanel.tsx` and `DecisionReadySummary.tsx` to map every evidence array item through `formatEvidence` before joining for display. No changes to edge function, DB, AI prompt/output, findings/risks/routing/decision-report logic, or accept/override. Verify with `tsgo --noEmit` and a visual check on the current application.
