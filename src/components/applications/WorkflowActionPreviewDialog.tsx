@@ -478,6 +478,7 @@ export function WorkflowActionPreviewDialog({
       const { x, y } = posFromEvent(e);
       lastX = x; lastY = y;
       setUploadedSignatureName(null);
+      setSignatureUploadError(null);
       if (sigFileInputRef.current) sigFileInputRef.current.value = '';
       ctx.beginPath();
       ctx.fillStyle = SIGNATURE_INK_COLOR;
