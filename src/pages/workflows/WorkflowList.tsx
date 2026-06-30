@@ -1844,7 +1844,29 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
               </div>
             </div>
 
-            {/* Step entry notifications */}
+            {/* Legal/Compliance Review stage */}
+            <div className="flex items-start gap-3">
+              <Switch
+                id={`legal-stage-${step.id}`}
+                checked={!!(step as any).is_legal_compliance_stage}
+                onCheckedChange={(v) => {
+                  Promise.resolve(onUpdate(step.id, { is_legal_compliance_stage: !!v } as any)).catch((e: any) =>
+                    toast.error(e?.message || 'Failed to update legal/compliance setting'),
+                  );
+                }}
+                aria-label="Mark step as Legal/Compliance Review"
+              />
+              <div className="flex-1">
+                <Label htmlFor={`legal-stage-${step.id}`} className="text-xs cursor-pointer">
+                  Legal/Compliance Review stage
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Only users with the Legal/Compliance role can act on this step. Reviewers can record restricted legal notes visible to downstream approvers.
+                </p>
+              </div>
+            </div>
+
+
             <StepEntryNotificationsEditor stepId={step.id} />
 
             {/* Per-action editor (replaces legacy allowed_actions checkboxes) */}
