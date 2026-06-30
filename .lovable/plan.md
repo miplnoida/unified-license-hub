@@ -1,35 +1,20 @@
 ## Problem
 
-`APPROVER_ROLE_NOT_FOUND: roles.id=b440775e-29a6-439a-9736-ca7fd21e05a4 does not exist`
+`workflow_templates.name` allows duplicates. There are already 2 rows named "Commercial Bank Pre Licensee template". User wants duplicate names blocked on save with a clear error.
 
-When the user edits the **Post Application Workflow → Legal/Compliance Review** step and changes the assigned role, the save fails.
+## Fix
 
-Root cause: the previous dedup migration repointed `approval_steps.approver_role_id` and `user_dynamic_roles` to the canonical Legal/Compliance Reviewer row, but it did **not** clean stale role IDs stored inside `approval_steps.approver_config.role_ids` (JSONB). One step still carries the deleted duplicate role id in that array:
+Two layers, both narrowly scoped:
 
-```
-approver_config.role_ids = [
-  "670c341e-...",                          -- another role
-  "b440775e-29a6-439a-9736-ca7fd21e05a4",  -- DELETED duplicate (causes the error)
-  "ebbd4d90-...-fe3403c0f35d"              -- canonical Legal/Compliance Reviewer
-]
-```
+1. **DB migration** — add a case-insensitive unique index on `workflow_templates(lower(name))`. Pre-step: dedupe the existing two duplicate rows by renaming the older one to `<name> (duplicate)` so the unique index can be created without dropping data. No other schema changes.
 
-When `ApproverConfigEditor` saves, the update path validates every id in `role_ids` and rejects the request because the deleted id no longer exists in `roles`.
+2. **UI guard in `WorkflowList.tsx` `handleSaveAsTemplate`** — before insert, query `workflow_templates` for a case-insensitive name match and `toast.error('A template with this name already exists')` if found. Also catch the Postgres `23505` unique-violation from the insert and show the same friendly message instead of the raw error.
 
-## Fix — one migration, no UI/business-logic changes
-
-1. **Sweep `approval_steps.approver_config.role_ids`** across all rows and remove any ids that no longer exist in `public.roles`. Dedupe the resulting array. Leave the column untouched when nothing needs removing.
-2. Same sweep for `approver_config.user_ids` against `profiles.id` (defensive — same class of stale-reference bug, scoped to JSONB only). No-op if nothing stale.
-3. If `approver_role_id` itself points to a missing role on any step (shouldn't after the last migration, but guard), null it out and log via `RAISE NOTICE` so the step falls back to whatever remains in `role_ids`.
-
-No changes to:
-- `ApproverConfigEditor`, `WorkflowList`, or any other UI
-- `perform-workflow-action`, workflow engine, RLS, or legal-notes flow
-- The `roles` / `user_dynamic_roles` / triggers — they're already correct after the previous migration
+Out of scope: no changes to template snapshot shape, template list UI, workflow CRUD, or any other duplicate-check logic.
 
 ## Acceptance
 
-- Editing the Post Application Workflow → Legal/Compliance Review step and changing the assigned role saves successfully.
-- The stale id `b440775e-…` is gone from every `approver_config.role_ids`.
-- No other workflow step references a non-existent role or user id.
-- All other steps load and save exactly as before.
+- Saving "As Template" with a name that already exists (any casing, trimmed) shows "A template with this name already exists" and does not insert.
+- New unique names still save.
+- Existing duplicate row is renamed once so the unique index can be created.
+- Deleting and re-saving with the same name works.
