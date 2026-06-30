@@ -24,6 +24,7 @@ import { useStepActions, type StepAction } from '@/hooks/useStepActions';
 import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/components/applications/WorkflowActionPreviewDialog';
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
+import { LegalComplianceNotesSection } from '@/components/applications/LegalComplianceNotesSection';
 
 function StepSlaBadge({
   startedAt,
@@ -1296,6 +1297,26 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
           </div>
         </DialogContent>
       </Dialog>
+
+      {isInternal && entityType === 'application' && steps.some(s => (s as any).is_legal_compliance_stage) && (
+        <div className="mt-4">
+          <LegalComplianceNotesSection
+            applicationId={applicationId}
+            workflowInstanceId={liveInstance?.id ?? null}
+            currentStepId={currentStep?.id ?? null}
+            currentStepIsLegal={!!(currentStep as any)?.is_legal_compliance_stage}
+            workflowHasLegalStep={steps.some(s => (s as any).is_legal_compliance_stage)}
+            isLegalReviewer={
+              Object.entries(dynamicRolesMap).some(
+                ([id, name]) =>
+                  (canActResult?.actor_dynamic_role_ids ?? []).includes(id) &&
+                  /legal\s*\/?\s*compliance/i.test(String(name)),
+              )
+            }
+          />
+        </div>
+      )}
+
 
       {/* Email preview & edit dialog — shown before any workflow action runs. */}
       {previewState && currentStep && (
