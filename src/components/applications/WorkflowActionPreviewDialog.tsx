@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser, Upload } from 'lucide-react';
 import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
-import { toast } from 'sonner';
+
 
 export interface ActionNotificationOverride {
   binding_id: string;
