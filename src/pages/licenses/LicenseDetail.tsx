@@ -915,6 +915,11 @@ export default function LicenseDetail() {
         config={actionDialog}
         onCompleted={refreshAfterAction}
       />
+      <LicenseActionFormViewer
+        open={!!viewResponseId}
+        onOpenChange={(v) => { if (!v) setViewResponseId(null); }}
+        responseId={viewResponseId}
+      />
     </DashboardLayout>
   );
 }
