@@ -374,28 +374,54 @@ export function WorkflowActionPreviewDialog({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    // Reset canvas
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#0f172a';
 
+    let initialized = false;
     let drawing = false;
     let lastX = 0, lastY = 0;
+
+    const initCanvas = () => {
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      if (!w || !h) return false;
+      const dpr = window.devicePixelRatio || 1;
+
+      // Preserve any existing ink across resizes
+      let prev: string | null = null;
+      if (initialized) {
+        try { prev = canvas.toDataURL('image/png'); } catch { prev = null; }
+      }
+
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#0f172a';
+
+      if (prev) {
+        const img = new Image();
+        img.onload = () => { try { ctx.drawImage(img, 0, 0, w, h); } catch { /* ignore */ } };
+        img.src = prev;
+      }
+
+      initialized = true;
+      return true;
+    };
+
     const posFromEvent = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
     const onDown = (e: PointerEvent) => {
+      if (!initialized && !initCanvas()) return;
       drawing = true;
       const { x, y } = posFromEvent(e);
       lastX = x; lastY = y;
-      canvas.setPointerCapture(e.pointerId);
+      try { canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
       e.preventDefault();
     };
     const onMove = (e: PointerEvent) => {
@@ -413,20 +439,29 @@ export function WorkflowActionPreviewDialog({
       if (!drawing) return;
       drawing = false;
       try { canvas.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-      // Snapshot after stroke ends
       try { setSignatureDataUrl(canvas.toDataURL('image/png')); } catch { /* ignore */ }
     };
+
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointerleave', onUp);
+
+    // Try immediate init; if dialog is still animating in (0×0), ResizeObserver
+    // will fire as soon as the canvas gets real dimensions.
+    initCanvas();
+    const ro = new ResizeObserver(() => { initCanvas(); });
+    ro.observe(canvas);
+
     return () => {
+      ro.disconnect();
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointerleave', onUp);
     };
   }, [open, requireSignature]);
+
 
   const clearSignature = () => {
     const canvas = sigCanvasRef.current;
