@@ -375,6 +375,7 @@ export function WorkflowActionPreviewDialog({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [sigHasInk, setSigHasInk] = useState(false);
   const [uploadedSignatureName, setUploadedSignatureName] = useState<string | null>(null);
+  const [signatureUploadError, setSignatureUploadError] = useState<string | null>(null);
 
   const setSignatureCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
     sigCanvasRef.current = node;
