@@ -215,19 +215,18 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
   const [isRequired, setIsRequired] = useState(initial?.is_required ?? true);
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
 
-  // reset when opening
-  useState(() => undefined);
-  if (open && initial && actionType !== initial.license_action_type) {
-    // reset to initial when switching rows
-    setActionType(initial.license_action_type);
-    setTemplateId(initial.form_template_id);
-    setRegulatorId(initial.regulator_id || 'any');
-    setSectorId(initial.sector_id || 'any');
-    setSubSectorId(initial.sub_sector_id || 'any');
-    setCategoryId(initial.category_id || 'any');
-    setIsRequired(initial.is_required);
-    setIsActive(initial.is_active);
-  }
+  useEffect(() => {
+    if (!open) return;
+    setActionType(initial?.license_action_type || 'suspension');
+    setTemplateId(initial?.form_template_id || '');
+    setRegulatorId(initial?.regulator_id || 'any');
+    setSectorId(initial?.sector_id || 'any');
+    setSubSectorId(initial?.sub_sector_id || 'any');
+    setCategoryId(initial?.category_id || 'any');
+    setIsRequired(initial?.is_required ?? true);
+    setIsActive(initial?.is_active ?? true);
+  }, [open, initial?.id]);
+
 
   const filteredSubSectors = sectorId === 'any' ? subSectors : subSectors.filter(s => s.sector_id === sectorId);
   const filteredCategories = subSectorId === 'any' ? categories : categories.filter(c => c.sub_sector_id === subSectorId);
