@@ -8163,6 +8163,10 @@ export type Database = {
         Args: { _object_name: string }
         Returns: boolean
       }
+      user_has_permission: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: boolean
+      }
       user_licensee_id: { Args: { _user_id: string }; Returns: string }
       workflow_diagnostic_for_application: {
         Args: { _application_id: string }
