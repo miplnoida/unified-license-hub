@@ -226,33 +226,51 @@ export async function handler(req: Request): Promise<Response> {
             },
           },
         });
-        if ((provJson as any).license_id) {
+        const isRenewalResult = (provJson as any).renewal === true;
+        if (isRenewalResult && (provJson as any).license_id) {
           await admin.functions.invoke("dispatch-notification-event", {
             body: {
-              event_key: "license.created",
+              event_key: "license.renewed",
               entity_type: "license",
               entity_id: (provJson as any).license_id,
               payload: {
                 application_id,
                 license_number: (provJson as any).license_number,
                 licensee_id: (provJson as any).licensee_id,
+                previous_valid_until: (provJson as any).previous_valid_until,
+                new_valid_until: (provJson as any).new_valid_until,
               },
             },
           });
-        }
-        if ((provJson as any).licensee_id) {
-          await admin.functions.invoke("dispatch-notification-event", {
-            body: {
-              event_key: "licensee.created",
-              entity_type: "licensee",
-              entity_id: (provJson as any).licensee_id,
-              payload: {
-                licensee_id: (provJson as any).licensee_id,
-                licensee_name: (provJson as any).licensee_name,
-                application_id,
+        } else {
+          if ((provJson as any).license_id) {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: "license.created",
+                entity_type: "license",
+                entity_id: (provJson as any).license_id,
+                payload: {
+                  application_id,
+                  license_number: (provJson as any).license_number,
+                  licensee_id: (provJson as any).licensee_id,
+                },
               },
-            },
-          });
+            });
+          }
+          if ((provJson as any).licensee_id) {
+            await admin.functions.invoke("dispatch-notification-event", {
+              body: {
+                event_key: "licensee.created",
+                entity_type: "licensee",
+                entity_id: (provJson as any).licensee_id,
+                payload: {
+                  licensee_id: (provJson as any).licensee_id,
+                  licensee_name: (provJson as any).licensee_name,
+                  application_id,
+                },
+              },
+            });
+          }
         }
       } catch (dispatchErr) {
         console.warn("dispatch final approval failed:", dispatchErr);
