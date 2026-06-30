@@ -83,11 +83,13 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
 
   if (value.signature_image_path) {
     const sig = await fetchAsset(String(value.signature_image_path));
-    if (sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    if ("bytes" in sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    else { out.signatureImageError = sig.error; }
   }
   if (value.seal_image_path) {
     const seal = await fetchAsset(String(value.seal_image_path));
-    if (seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    if ("bytes" in seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    else { out.sealImageError = seal.error; }
   }
 
   return out;
