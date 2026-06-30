@@ -25,6 +25,7 @@ import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
 import { LegalComplianceNotesSection } from '@/components/applications/LegalComplianceNotesSection';
+import { useIsLegalComplianceUser } from '@/hooks/useApplicationLegalNotes';
 
 function StepSlaBadge({
   startedAt,
