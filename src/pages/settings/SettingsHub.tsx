@@ -81,6 +81,12 @@ const settingsCards: SettingsCard[] = [
     icon: <RefreshCw className="h-6 w-6" />,
     href: '/settings/license-expiry',
   },
+  {
+    title: 'Certificate Signatory',
+    description: 'Authorized signatory name, title, signature image, and seal shown on certificates.',
+    icon: <PenLine className="h-6 w-6" />,
+    href: '/settings/certificate-signatory',
+  },
 ];
 
 export default function SettingsHub() {
