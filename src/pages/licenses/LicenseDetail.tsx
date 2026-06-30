@@ -57,6 +57,8 @@ interface LicenseAction {
   old_status: string;
   new_status: string;
   created_at: string;
+  form_response_id?: string | null;
+  form_template_id?: string | null;
 }
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
