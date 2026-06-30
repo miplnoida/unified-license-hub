@@ -365,9 +365,15 @@ export function WorkflowActionPreviewDialog({
   const sigFileInputRef = useRef<HTMLInputElement | null>(null);
   const sigCanvasInitializedRef = useRef(false);
   const sigPresentRef = useRef(false);
+  const [sigCanvasNode, setSigCanvasNode] = useState<HTMLCanvasElement | null>(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [sigHasInk, setSigHasInk] = useState(false);
   const [uploadedSignatureName, setUploadedSignatureName] = useState<string | null>(null);
+
+  const setSignatureCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    sigCanvasRef.current = node;
+    setSigCanvasNode(node);
+  }, []);
 
   const getCanvasCssSize = useCallback((canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -445,7 +451,7 @@ export function WorkflowActionPreviewDialog({
 
   useEffect(() => {
     if (!open || !requireSignature) return;
-    const canvas = sigCanvasRef.current;
+    const canvas = sigCanvasNode;
     if (!canvas) return;
     let drawing = false;
     let lastX = 0, lastY = 0;
@@ -525,7 +531,7 @@ export function WorkflowActionPreviewDialog({
       canvas.removeEventListener('pointerleave', onUp);
       canvas.removeEventListener('pointercancel', onUp);
     };
-  }, [applyCanvasDefaults, commitCanvasSignature, initSignatureCanvas, open, requireSignature]);
+  }, [applyCanvasDefaults, commitCanvasSignature, initSignatureCanvas, open, requireSignature, sigCanvasNode]);
 
 
   const handleSignatureUpload = (event: ChangeEvent<HTMLInputElement>) => {
@@ -731,7 +737,7 @@ export function WorkflowActionPreviewDialog({
                 Sign inside the box below to confirm this action. Your signature will be stored with the audit record.
               </p>
               <canvas
-                ref={sigCanvasRef}
+                ref={setSignatureCanvasRef}
                 className="w-full h-40 rounded border border-border bg-white touch-none cursor-crosshair"
                 style={{ touchAction: 'none' }}
               />
