@@ -886,7 +886,7 @@ export default function LicenseDetail() {
                             variant="link"
                             size="sm"
                             className="h-auto px-0 py-0 mt-1 text-xs"
-                            onClick={() => navigate(`/admin/forms/responses/${a.form_response_id}`)}
+                            onClick={() => setViewResponseId(a.form_response_id!)}
                           >
                             <FileText className="h-3 w-3 mr-1" />View submitted form
                           </Button>
