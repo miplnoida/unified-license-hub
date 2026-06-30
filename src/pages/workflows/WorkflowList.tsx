@@ -1848,7 +1848,7 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
             <div className="flex items-start gap-3">
               <Switch
                 id={`legal-stage-${step.id}`}
-                checked={!!(step as any).is_legal_compliance_stage}
+                checked={!!step.is_legal_compliance_stage}
                 onCheckedChange={(v) => {
                   Promise.resolve(onUpdate(step.id, { is_legal_compliance_stage: !!v } as any)).catch((e: any) =>
                     toast.error(e?.message || 'Failed to update legal/compliance setting'),
