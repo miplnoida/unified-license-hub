@@ -10,14 +10,10 @@ import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
  * Renewal is intentionally NOT handled here — that flow lives elsewhere.
  */
 
-const INTERNAL_ROLES = new Set([
-  "super_admin",
-  "admin",
-  "supervisor",
-  "analyst",
-  "licensing_officer",
-  "legal_compliance",
-]);
+// Authorization is delegated to the centralized `user_has_permission` RPC
+// (mirrors the same logic used by useUserDynamicPermissions on the frontend).
+const REQUIRED_PERMISSION_MODULE = "license_management";
+const REQUIRED_PERMISSION_ACTION = "manage_license_actions";
 
 const ALLOWED_ACTIONS = new Set([
   "suspension",
