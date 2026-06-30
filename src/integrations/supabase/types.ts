@@ -184,6 +184,62 @@ export type Database = {
           },
         ]
       }
+      application_legal_notes: {
+        Row: {
+          actor_id: string
+          application_id: string
+          concern_severity: string | null
+          created_at: string
+          has_legal_concern: boolean
+          id: string
+          note_text: string
+          recommendation: string
+          recommended_conditions: string | null
+          restricted: boolean
+          step_id: string | null
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          application_id: string
+          concern_severity?: string | null
+          created_at?: string
+          has_legal_concern?: boolean
+          id?: string
+          note_text: string
+          recommendation: string
+          recommended_conditions?: string | null
+          restricted?: boolean
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          application_id?: string
+          concern_severity?: string | null
+          created_at?: string
+          has_legal_concern?: boolean
+          id?: string
+          note_text?: string
+          recommendation?: string
+          recommended_conditions?: string | null
+          restricted?: boolean
+          step_id?: string | null
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_legal_notes_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "approval_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           ack_at: string | null
@@ -552,6 +608,7 @@ export type Database = {
           escalation_after_hours: number | null
           escalation_role: string | null
           id: string
+          is_legal_compliance_stage: boolean
           is_required: boolean
           name: string
           require_digital_signature: boolean
@@ -578,6 +635,7 @@ export type Database = {
           escalation_after_hours?: number | null
           escalation_role?: string | null
           id?: string
+          is_legal_compliance_stage?: boolean
           is_required?: boolean
           name: string
           require_digital_signature?: boolean
@@ -604,6 +662,7 @@ export type Database = {
           escalation_after_hours?: number | null
           escalation_role?: string | null
           id?: string
+          is_legal_compliance_stage?: boolean
           is_required?: boolean
           name?: string
           require_digital_signature?: boolean
@@ -7352,6 +7411,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_application_legal_notes: {
+        Args: { _application_id: string; _user_id: string }
+        Returns: boolean
+      }
       cancel_application: {
         Args: { _application_id: string; _reason?: string }
         Returns: Json
@@ -7735,6 +7798,7 @@ export type Database = {
         Returns: boolean
       }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
+      is_legal_compliance_user: { Args: { _user_id: string }; Returns: boolean }
       is_primary_user_of: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
@@ -7769,6 +7833,15 @@ export type Database = {
       }
       log_document_batch_action: {
         Args: { _action: string; _details?: Json; _group_id: string }
+        Returns: undefined
+      }
+      log_restricted_legal_note_denial: {
+        Args: {
+          _application_id: string
+          _note_id: string
+          _reason: string
+          _source: string
+        }
         Returns: undefined
       }
       log_security_event: {
@@ -7897,6 +7970,10 @@ export type Database = {
         Returns: undefined
       }
       repair_application_workflow: {
+        Args: { _application_id: string }
+        Returns: Json
+      }
+      request_legal_notes_access: {
         Args: { _application_id: string }
         Returns: Json
       }
