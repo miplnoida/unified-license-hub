@@ -1,42 +1,32 @@
-# Fix: Signature image silently missing from certificate
+# Fix: "Signatory signature image could not be loaded"
 
-Only file changed: `supabase/functions/generate-license-certificate/index.ts`. No UI, workflow, signing, versioning, or download changes.
+## What's actually happening
 
-## 1. Embed signature with hard failure
+- `site_settings.license_certificate_signatory` is correctly set with `signature_image_path = signature/signature-1782819577809.png`.
+- That object exists in the `certificate-assets` bucket (23,705 bytes, mimetype `image/png`).
+- The edge function downloads it via service role (works) and then runs the new `validateEmbeddable` probe added in the previous turn. The probe is throwing — `pdf-lib.embedPng` rejects this particular PNG (typical causes: interlaced PNG, 16-bit depth, or a JPG that was renamed to `.png`). That's why the friendly "could not be loaded" message appears even though the file itself downloads fine.
 
-In `buildCertificatePdf`, replace the current try/catch-and-ignore block for the signature image with logic that throws a typed error when embedding or drawing fails:
+## Fix (single file: `supabase/functions/generate-license-certificate/index.ts`)
 
-- If `signatory.configured && signatureBytes && signatureMime`:
-  - Attempt `embedPng` / `embedJpg` based on mime.
-  - Attempt `drawImage`.
-  - On any thrown error, throw `new Error("SIGNATURE_IMAGE_EMBED_FAILED:<original message>")`.
-- If the bytes/mime are missing while `configured === true` and a `signature_image_path` was set in config, that is already handled upstream by `SIGNATURE_IMAGE_UNAVAILABLE`.
+1. **Detect format by magic bytes, not by filename / storage mime.** In `fetchAsset`:
+   - `89 50 4E 47` → treat as `image/png`
+   - `FF D8 FF` → treat as `image/jpeg`
+   - otherwise reject with "unsupported image type (only PNG/JPG)".
+   This catches files mis-uploaded with the wrong extension.
 
-## 2. Surface the error from the handler
+2. **Try both embed methods before giving up.** In `validateEmbeddable` and at draw time:
+   - First try the method matching the detected mime.
+   - On failure, try the other (`embedJpg` ↔ `embedPng`). If that succeeds, use it and update the stored `signatureMime` for the draw step.
+   - Only if both fail, return the pdf-lib error message verbatim.
 
-In the `generate` branch, wrap `buildCertificatePdf` in try/catch. When the error message starts with `SIGNATURE_IMAGE_EMBED_FAILED:`, return:
+3. **Surface the actual pdf-lib reason to the client.** When `SIGNATURE_IMAGE_UNAVAILABLE` / `SIGNATURE_IMAGE_EMBED_FAILED` fires, include the underlying decode error in `details` (already wired) and extend the friendly `error` text to: "Configured signature image could not be embedded (<reason>). Please re-upload a standard non-interlaced PNG or a JPG."
 
-```json
-{
-  "error": "Configured signature image was loaded but could not be embedded in the PDF. Please upload a valid PNG or JPG signature image.",
-  "code": "SIGNATURE_IMAGE_EMBED_FAILED",
-  "details": "<original embed error>"
-}
-```
+4. **Same treatment for the seal image path.**
 
-Status stays HTTP 200 (existing convention). No certificate row, no storage upload happens on this path.
-
-Apply the same pattern for the seal image: throw `SEAL_IMAGE_EMBED_FAILED` and return code `SEAL_IMAGE_EMBED_FAILED` with a parallel friendly message.
-
-## 3. Tighten upload-time validation in `loadSignatoryConfig`
-
-`fetchAsset` already rejects non-PNG/JPG. Additionally, after a successful download, do a structural sanity check by attempting `PDFDocument.create()` + `embedPng/embedJpg` against the bytes inside `loadSignatoryConfig`. If it fails, return `{ error: "image cannot be decoded as PNG/JPG" }` so the existing `SIGNATURE_IMAGE_UNAVAILABLE` / `SEAL_IMAGE_UNAVAILABLE` path fires before generation proceeds. This catches corrupt files early with a clear message instead of relying on the embed step.
-
-(Admin-side `CertificateSignatorySettings.tsx` already restricts to PNG/JPG and <2MB; no change requested there.)
+No UI changes, no schema changes, no workflow/signing/versioning/download changes. After deploy, regenerating the certificate should either embed the signature successfully or return a precise reason the user can act on.
 
 ## Acceptance
 
-- Regenerated PDF shows signature image above the signatory line when a valid PNG/JPG is configured.
-- Corrupt or unembeddable image → generation fails with `SIGNATURE_IMAGE_EMBED_FAILED` (or `SIGNATURE_IMAGE_UNAVAILABLE` if caught earlier) and a friendly message; no PDF is written.
-- Signatory name/title still render in the success path.
-- Workflow signatures, signing keys, versioning, download, renewals untouched.
+- Valid standard PNG/JPG signatures embed and render on the regenerated PDF.
+- A renamed/mis-typed file still embeds (because we detect by magic bytes).
+- An interlaced/16-bit/corrupt image returns a clear message naming the pdf-lib reason, instead of a generic "could not be loaded".
