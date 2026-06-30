@@ -766,23 +766,14 @@ export default function LicenseDetail() {
               <Card>
                 <CardHeader><CardTitle>License Actions</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label>Justification / Notes <span className="text-destructive">*</span></Label>
-                    <Textarea
-                      value={reason}
-                      onChange={e => setReason(e.target.value)}
-                      placeholder={`Required for revoke/suspend/cancel (min ${MIN_REASON_LEN} characters)...`}
-                      rows={3}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {reason.trim().length}/{MIN_REASON_LEN}+ characters
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Select an action below. If an internal form is configured for the action it will be required before the license status changes.
+                  </p>
                   <div className="flex gap-2 flex-wrap">
                     {license.status === 'active' && (
                       <>
-                        <Button variant="outline" onClick={() => handleAction('suspension', 'suspended')} disabled={revokeDisabled}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
-                        <Button variant="destructive" onClick={() => handleAction('revocation', 'revoked')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
+                        <Button variant="outline" onClick={() => openAction('suspension')} disabled={processing}><PauseCircle className="h-4 w-4 mr-1" />Suspend</Button>
+                        <Button variant="destructive" onClick={() => openAction('revocation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Revoke</Button>
                         {pendingRenewalAppId ? (
                           <Button variant="outline" onClick={() => navigate(`/applications/${pendingRenewalAppId}?tab=form&view=submitted`)}>
                             <RefreshCw className="h-4 w-4 mr-1" />Renewal in progress
@@ -801,8 +792,8 @@ export default function LicenseDetail() {
                     )}
                     {license.status === 'suspended' && (
                       <>
-                        <Button onClick={() => handleAction('reinstatement', 'active')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
-                        <Button variant="destructive" onClick={() => handleAction('cancellation', 'cancelled')} disabled={revokeDisabled}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
+                        <Button onClick={() => openAction('reinstatement')} disabled={processing}><RotateCcw className="h-4 w-4 mr-1" />Reinstate</Button>
+                        <Button variant="destructive" onClick={() => openAction('cancellation')} disabled={processing}><XCircle className="h-4 w-4 mr-1" />Cancel</Button>
                       </>
                     )}
                     {license.status === 'expired' && (
@@ -825,6 +816,7 @@ export default function LicenseDetail() {
                 </CardContent>
               </Card>
             )}
+
 
             {/* Renewal panel visible to license holder only after grace period has ended */}
             {!isInternal && license.valid_until && isPastGrace && (() => {
