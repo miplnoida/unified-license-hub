@@ -743,6 +743,12 @@ export default function LicenseDetail() {
                 {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
                 Signed Certificate
               </Button>
+              {isInternal && (
+                <Button variant="outline" size="sm" onClick={regenerateCertificate} disabled={downloading}>
+                  {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                  Regenerate Certificate
+                </Button>
+              )}
               <LicenseStatusBadge status={license.status} validUntil={license.valid_until} gracePeriodDays={graceDays} />
             </div>
           }
