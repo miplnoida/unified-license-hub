@@ -636,6 +636,7 @@ export function WorkflowActionPreviewDialog({
     initSignatureCanvas(true);
     if (sigFileInputRef.current) sigFileInputRef.current.value = '';
     setUploadedSignatureName(null);
+    setSignatureUploadError(null);
     setSigHasInk(false);
     setSignatureDataUrl(null);
   };
