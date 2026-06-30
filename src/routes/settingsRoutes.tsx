@@ -35,5 +35,6 @@ export const settingsRoutes = (
     <Route path="/settings/data" element={<S><DataManagementSettings /></S>} />
     <Route path="/settings/applications" element={<S><ApplicationFormSettings /></S>} />
     <Route path="/settings/license-expiry" element={<S><LicenseExpirySettings /></S>} />
+    <Route path="/settings/certificate-signatory" element={<S><CertificateSignatorySettings /></S>} />
   </>
 );
