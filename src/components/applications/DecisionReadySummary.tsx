@@ -249,31 +249,8 @@ export function DecisionReadySummary({
     firstStepStartedAt: application.submitted_at || application.created_at,
   }) : null;
 
-  // RFI pairing
-  const rfiEntries = useMemo(() => {
-    const sorted = [...events].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    );
-    const out: Array<{
-      request: TimelineEvent;
-      response: TimelineEvent | null;
-    }> = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const ev = sorted[i];
-      if (!RFI_ACTIONS.has(ev.action)) continue;
-      const response = sorted.slice(i + 1).find((e) => RESPONSE_ACTIONS.has(e.action)) || null;
-      out.push({ request: ev, response });
-    }
-    return out;
-  }, [events]);
 
-  const noteEntries = useMemo(
-    () =>
-      events.filter(
-        (e) => e.comments && e.comments.trim().length > 0 && !RFI_ACTIONS.has(e.action) && !RESPONSE_ACTIONS.has(e.action),
-      ),
-    [events],
-  );
+
 
   const findings = Array.isArray(assessment?.findings) ? assessment.findings : [];
   const risks = Array.isArray(assessment?.risks) ? assessment.risks : [];
