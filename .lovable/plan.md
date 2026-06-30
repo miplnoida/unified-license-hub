@@ -1,37 +1,35 @@
-Scope: `src/components/applications/DecisionReadySummary.tsx` only. No backend/AI/workflow changes.
+## Root cause
 
-## Changes
+When any auth user is created, the database trigger `public.handle_new_user` always inserts a row into `public.user_roles` with role `'applicant'` (it intentionally downgrades any non-public role for safety against self-signup).
 
-### 1. Remove three sections (UI only, data untouched)
-- Delete the **RFIs & Responses** section (lines ~447–486).
-- Delete the **Notes & Remarks** section (lines ~488–511).
-- Delete the **Submitted Responses** section (lines ~513–544), including the `View full responses` button.
-- Remove now-unused helpers: `rfiEntries`, `noteEntries`, `RFI_ACTIONS`, `RESPONSE_ACTIONS`, the `events` and `templateNames` derivations inside the component (props kept in the interface to avoid touching the parent — `onJumpToFormsTab`, `templateNames`, `events` remain on the `Props` type, just unused).
-- Remove `formTemplateIds` / `formsData` reads since they were only used by Submitted Responses (the AI/Risk flags `Forms: {formTemplateIds.length}` badge stays — keep `formTemplateIds` for that single use).
+The `create-web-user` edge function (used by Admin → Employee Management → Create) only writes the selected dynamic roles into `user_dynamic_roles`. It never reconciles `user_roles`. So after creation, the new employee ends up with:
 
-### 2. Broader suggested-action resolution in `DecisionReportBlock`
-Expand `RECOMMENDED_ACTION_LABEL` map to include all required friendly labels:
-```
-approve, approve_with_conditions, request_more_information, request_more_info,
-escalate, reject, review_for_rejection, reject_review, continue_review,
-standard_review, senior_analyst, enhanced_due_diligence
-```
+- `user_roles`: `applicant` (from the trigger)
+- `user_dynamic_roles`: the role(s) the admin picked
 
-Replace the current `recommended` derivation with a priority resolver:
-1. `assessment.decision_report.recommended_action`
-2. `assessment.routing_recommendation.recommended_action`
-3. `assessment.routing_recommendation.recommended_route`
+On login, the UI reads both sources and shows the selected role **plus** "Applicant".
 
-Normalize to lowercase and look up the label. `hasRecommendation` = label found.
+Verified in DB for `ratnpriyaemp@yopmail.com` (`67ef83ff-…`): `user_roles` contains both `applicant` and `admin`. The `admin` entry was added later when the record was edited — the edit handler in `UserManagement.tsx` already reconciles `user_roles` correctly. Only the create path is broken.
 
-- If recommendation found: keep the existing prominent "Suggested next action: <Label>" row at top + advisory note ("This is AI guidance only. Take the final action from the Workflow panel.").
-- If not: show "No suggested next action is available. Regenerate the AI Analyst Assessment to get an updated recommendation."
+## Fix (single edge function change)
 
-### 3. Constraints preserved
-- No Accept / Override / dropdown controls (already removed previously).
-- Existing report body (executive summary, rationale, conditions, questions, escalation/rejection rationale, sections, risks, compliance, missing info, next workflow action, confidence/prompt badges) is unchanged.
-- Conditions/questions/escalation/rejection rendering remains keyed off `recommended` value but will simply not show for the new routing-only values — acceptable since the underlying `decision_report` fields are absent in those cases.
+Update `supabase/functions/create-web-user/index.ts` so that, after the auth user is created and `user_dynamic_roles` rows are inserted, it reconciles `user_roles` the same way the edit handler does:
 
-## Verification
-- `bunx tsgo --noEmit` passes.
-- Visually: old assessment with only `routing_recommendation` shows a friendly "Suggested next action"; new assessment with `decision_report.recommended_action` still shows correctly; the three removed sections are gone.
+1. After inserting `user_dynamic_roles`, fetch `roles.system_role` for all `dynamicRoleIds`.
+2. Build a de-duplicated list of valid `app_role` values from those `system_role`s (fallback to the existing `effectiveRole` baseline if a role has no `system_role`).
+3. `DELETE FROM user_roles WHERE user_id = <new_user_id>` (removes the trigger's auto-inserted `applicant`).
+4. `INSERT` one row per unique system role into `user_roles`.
+5. Skip step 3–4 only when no dynamic roles were provided (e.g. licensee primary/secondary creation paths that already rely on `effectiveRole` — for those, also delete the trigger row and insert the single `effectiveRole` so behavior is consistent and never leaves a stray `applicant`).
+
+## Out of scope
+
+- No change to the DB trigger (kept as the safe default for self-signup).
+- No change to `UserManagement.tsx`, the edit flow, or any UI.
+- No change to `user_dynamic_roles` schema, RLS, or the role-display logic.
+
+## Acceptance
+
+- A newly created employee has **no** `applicant` row in `user_roles` unless that was actually the selected role.
+- The user's displayed roles after first login match exactly what the admin selected.
+- Existing edit/update behavior is unchanged.
+- Existing affected user (`ratnpriyaemp@yopmail.com`) can be cleaned up manually via a one-off SQL `DELETE FROM user_roles WHERE user_id = '67ef83ff-3502-473a-9200-c4eb11f7426d' AND role = 'applicant';` after the fix is deployed (optional, mention to user).
