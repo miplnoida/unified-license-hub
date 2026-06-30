@@ -509,10 +509,10 @@ export function WorkflowActionPreviewDialog({
     // Try immediate init; if dialog layout is not ready yet, retry on the next
     // animation frame and via ResizeObserver. Never repaint after signature.
     tryInit();
-    const ro = new ResizeObserver(() => { initCanvas(); });
     const initCanvas = () => {
       if (!sigPresentRef.current) initSignatureCanvas();
     };
+    const ro = new ResizeObserver(() => { initCanvas(); });
     ro.observe(canvas);
 
     return () => {
