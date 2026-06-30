@@ -519,19 +519,20 @@ function DecisionReportBlock({
       {hasRecommendation ? (
         <div className="rounded-md border bg-background p-2.5 flex items-center gap-2 flex-wrap">
           <Badge variant={RECOMMENDED_ACTION_VARIANT[recommended] || 'outline'}>
-            Suggested action: {recommendedLabel}
+            Suggested next action: {recommendedLabel}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            This is advisory only. Take the final action from the Workflow panel.
+            This is AI guidance only. Take the final action from the Workflow panel.
           </span>
         </div>
       ) : (
         <div className="rounded-md border border-dashed bg-background p-2.5">
           <p className="text-sm text-muted-foreground">
-            No decision-ready recommendation is available for this assessment. Regenerate the AI Analyst Assessment to get a suggested next action.
+            No suggested next action is available. Regenerate the AI Analyst Assessment to get an updated recommendation.
           </p>
         </div>
       )}
+
 
       {!hasReport ? (
         <p className="text-sm text-muted-foreground">
