@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertTriangle, Loader2, Mail, RotateCcw, Send, PenLine, Eraser, Upload } from 'lucide-react';
 import { getDefaultEventForAction, RECIPIENT_LABELS, type ActionNotificationRecipientType, type WorkflowEntityKind } from '@/hooks/useActionNotifications';
 import type { WorkflowActionType } from '@/hooks/useWorkflowEngine';
-import { toast } from 'sonner';
+
 
 export interface ActionNotificationOverride {
   binding_id: string;
@@ -80,6 +80,12 @@ interface BindingDiagnostic {
 
 const SIGNATURE_INK_COLOR = '#0f172a';
 const SIGNATURE_BACKGROUND_COLOR = '#ffffff';
+const SIGNATURE_MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+const SIGNATURE_MAX_WIDTH = 1200;
+const SIGNATURE_MAX_HEIGHT = 400;
+const SIGNATURE_RECOMMENDED = '600 × 200 px';
+const SIGNATURE_HELP_TEXT = `Recommended ${SIGNATURE_RECOMMENDED} (max ${SIGNATURE_MAX_WIDTH} × ${SIGNATURE_MAX_HEIGHT} px), under 2 MB. PNG, JPG, JPEG, or WebP.`;
+const SIGNATURE_ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 /** Minimal `{{token}}` substitution mirroring the dispatch render function. */
 function render(template: string | null | undefined, vars: Record<string, any>): string {
@@ -369,6 +375,7 @@ export function WorkflowActionPreviewDialog({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [sigHasInk, setSigHasInk] = useState(false);
   const [uploadedSignatureName, setUploadedSignatureName] = useState<string | null>(null);
+  const [signatureUploadError, setSignatureUploadError] = useState<string | null>(null);
 
   const setSignatureCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
     sigCanvasRef.current = node;
@@ -443,6 +450,7 @@ export function WorkflowActionPreviewDialog({
       setSignatureDataUrl(null);
       setSigHasInk(false);
       setUploadedSignatureName(null);
+      setSignatureUploadError(null);
       sigPresentRef.current = false;
       sigCanvasInitializedRef.current = false;
       if (sigFileInputRef.current) sigFileInputRef.current.value = '';
@@ -470,6 +478,7 @@ export function WorkflowActionPreviewDialog({
       const { x, y } = posFromEvent(e);
       lastX = x; lastY = y;
       setUploadedSignatureName(null);
+      setSignatureUploadError(null);
       if (sigFileInputRef.current) sigFileInputRef.current.value = '';
       ctx.beginPath();
       ctx.fillStyle = SIGNATURE_INK_COLOR;
@@ -535,46 +544,57 @@ export function WorkflowActionPreviewDialog({
 
 
   const handleSignatureUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
 
-    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
-    if (!allowedTypes.has(file.type)) {
-      toast.error('Please upload a PNG, JPG, JPEG, or WebP signature image.');
-      event.target.value = '';
+    const resetInput = () => { input.value = ''; };
+    const fail = (message: string) => {
+      setSignatureUploadError(message);
+      setSignatureDataUrl(null);
+      setSigHasInk(false);
+      setUploadedSignatureName(null);
+      sigPresentRef.current = false;
+      resetInput();
+    };
+
+    if (!SIGNATURE_ALLOWED_TYPES.has(file.type)) {
+      fail('Unsupported file type. Please upload a PNG, JPG, JPEG, or WebP image.');
+      return;
+    }
+    if (file.size > SIGNATURE_MAX_FILE_BYTES) {
+      const actualMb = (file.size / (1024 * 1024)).toFixed(2);
+      fail(`This image is ${actualMb} MB. Please upload a signature under 2 MB (recommended ${SIGNATURE_RECOMMENDED}).`);
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== 'string') {
-        toast.error('Unable to read the signature image.');
+        fail('Unable to read the signature image. Please try a different file.');
         return;
       }
       const sourceDataUrl = reader.result;
-      const canvas = sigCanvasRef.current;
-
-      const acceptUploadedSignature = (dataUrl: string) => {
-        sigPresentRef.current = true;
-        setSignatureDataUrl(dataUrl);
-        setSigHasInk(true);
-        setUploadedSignatureName(file.name);
-      };
-
-      if (!canvas || !initSignatureCanvas(true)) {
-        acceptUploadedSignature(sourceDataUrl);
-        return;
-      }
-
-      const ctx = canvas.getContext('2d');
-      const size = getCanvasCssSize(canvas);
-      if (!ctx || !size) {
-        acceptUploadedSignature(sourceDataUrl);
-        return;
-      }
 
       const img = new Image();
       img.onload = () => {
+        if (img.width > SIGNATURE_MAX_WIDTH || img.height > SIGNATURE_MAX_HEIGHT) {
+          fail(`This image is ${img.width} × ${img.height} px. Please upload a signature no larger than ${SIGNATURE_MAX_WIDTH} × ${SIGNATURE_MAX_HEIGHT} px (recommended ${SIGNATURE_RECOMMENDED}).`);
+          return;
+        }
+
+        const canvas = sigCanvasRef.current;
+        if (!canvas || !initSignatureCanvas(true)) {
+          fail('Unable to prepare the signature canvas. Please try again.');
+          return;
+        }
+        const ctx = canvas.getContext('2d');
+        const size = getCanvasCssSize(canvas);
+        if (!ctx || !size) {
+          fail('Unable to prepare the signature canvas. Please try again.');
+          return;
+        }
+
         ctx.fillStyle = SIGNATURE_BACKGROUND_COLOR;
         ctx.fillRect(0, 0, size.width, size.height);
         const padding = 12;
@@ -587,21 +607,28 @@ export function WorkflowActionPreviewDialog({
         const dy = (size.height - drawHeight) / 2;
         ctx.drawImage(img, dx, dy, drawWidth, drawHeight);
         applyCanvasDefaults(ctx);
+
+        let normalized: string;
         try {
-          acceptUploadedSignature(canvas.toDataURL('image/png'));
+          normalized = canvas.toDataURL('image/png');
         } catch {
-          acceptUploadedSignature(sourceDataUrl);
+          fail('Unable to process this signature image. Please try a different file.');
+          return;
         }
+
+        setSignatureUploadError(null);
+        sigPresentRef.current = true;
+        setSignatureDataUrl(normalized);
+        setSigHasInk(true);
+        setUploadedSignatureName(file.name);
       };
-      img.onerror = () => acceptUploadedSignature(sourceDataUrl);
+      img.onerror = () => fail('This file could not be read as an image. Please upload a valid PNG, JPG, JPEG, or WebP.');
       img.src = sourceDataUrl;
     };
-    reader.onerror = () => {
-      toast.error('Unable to read the signature image.');
-      event.target.value = '';
-    };
+    reader.onerror = () => fail('Unable to read the signature image. Please try a different file.');
     reader.readAsDataURL(file);
   };
+
 
 
   const clearSignature = () => {
@@ -609,6 +636,7 @@ export function WorkflowActionPreviewDialog({
     initSignatureCanvas(true);
     if (sigFileInputRef.current) sigFileInputRef.current.value = '';
     setUploadedSignatureName(null);
+    setSignatureUploadError(null);
     setSigHasInk(false);
     setSignatureDataUrl(null);
   };
@@ -744,7 +772,7 @@ export function WorkflowActionPreviewDialog({
               <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-medium">Upload digital signature</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, JPEG, or WebP image.</p>
+                  <p className="text-xs text-muted-foreground">{SIGNATURE_HELP_TEXT}</p>
                 </div>
                 <input
                   ref={sigFileInputRef}
@@ -764,6 +792,12 @@ export function WorkflowActionPreviewDialog({
                   <Upload className="h-3.5 w-3.5 mr-1" /> Upload
                 </Button>
               </div>
+              {signatureUploadError && (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>{signatureUploadError}</span>
+                </div>
+              )}
               {uploadedSignatureName && signatureDataUrl && (
                 <div className="rounded-md border bg-background p-2 space-y-2">
                   <p className="text-xs font-medium text-success">
