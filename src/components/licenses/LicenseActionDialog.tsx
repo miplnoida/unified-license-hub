@@ -62,7 +62,7 @@ export default function LicenseActionDialog({ open, onOpenChange, license, confi
     let alive = true;
     setResolving(true);
     (async () => {
-      const { data, error } = await (supabase as any).rpc('resolve_license_action_form', {
+      const { data, error } = await supabase.rpc('resolve_license_action_form', {
         _action_type: config.actionType,
         _regulator_id: license.regulator_id ?? null,
         _sector_id: license.sector_id,
@@ -74,7 +74,7 @@ export default function LicenseActionDialog({ open, onOpenChange, license, confi
         toast.error(`Could not resolve action form: ${error.message}`);
         setResolved({ templateId: null, required: false });
       } else {
-        const row = (data as any[] | null)?.[0] || null;
+        const row = (data ?? [])[0] || null;
         setResolved({
           templateId: row?.form_template_id || null,
           required: !!row?.is_required,
