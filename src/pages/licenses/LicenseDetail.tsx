@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { LicenseStatus, INTERNAL_ROLES } from '@/types/platform';
 import { Loader2, PauseCircle, XCircle, RotateCcw, RefreshCw, AlertTriangle, Ban, FileDown, FileText } from 'lucide-react';
 import LicenseActionDialog, { type LicenseActionConfig } from '@/components/licenses/LicenseActionDialog';
+import LicenseActionFormViewer from '@/components/licenses/LicenseActionFormViewer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 import { LicenseStatusBadge } from '@/lib/licenseStatusBadge';
