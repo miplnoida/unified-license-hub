@@ -22,11 +22,19 @@ import { formatTaxonomyLabel } from '@/lib/formatTaxonomyLabel';
 
 const RECOMMENDED_ACTION_LABEL: Record<string, string> = {
   approve: 'Approve',
-  approve_with_conditions: 'Approve with conditions',
-  request_more_information: 'Request more information',
+  approve_with_conditions: 'Approve with Conditions',
+  request_more_information: 'Request More Information',
+  request_more_info: 'Request More Information',
   escalate: 'Escalate',
   reject: 'Reject',
+  review_for_rejection: 'Review for Rejection',
+  reject_review: 'Review for Rejection',
+  continue_review: 'Continue Review',
+  standard_review: 'Continue Review',
+  senior_analyst: 'Escalate to Senior Analyst',
+  enhanced_due_diligence: 'Enhanced Due Diligence',
 };
+
 const RECOMMENDED_ACTION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   approve: 'default',
   approve_with_conditions: 'secondary',
@@ -241,31 +249,8 @@ export function DecisionReadySummary({
     firstStepStartedAt: application.submitted_at || application.created_at,
   }) : null;
 
-  // RFI pairing
-  const rfiEntries = useMemo(() => {
-    const sorted = [...events].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    );
-    const out: Array<{
-      request: TimelineEvent;
-      response: TimelineEvent | null;
-    }> = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const ev = sorted[i];
-      if (!RFI_ACTIONS.has(ev.action)) continue;
-      const response = sorted.slice(i + 1).find((e) => RESPONSE_ACTIONS.has(e.action)) || null;
-      out.push({ request: ev, response });
-    }
-    return out;
-  }, [events]);
 
-  const noteEntries = useMemo(
-    () =>
-      events.filter(
-        (e) => e.comments && e.comments.trim().length > 0 && !RFI_ACTIONS.has(e.action) && !RESPONSE_ACTIONS.has(e.action),
-      ),
-    [events],
-  );
+
 
   const findings = Array.isArray(assessment?.findings) ? assessment.findings : [];
   const risks = Array.isArray(assessment?.risks) ? assessment.risks : [];
@@ -444,104 +429,8 @@ export function DecisionReadySummary({
               </Accordion>
             </section>
 
-            {/* RFIs & Responses */}
-            <section className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">RFIs &amp; Responses</div>
-                <Badge variant="outline">{rfiEntries.length}</Badge>
-              </div>
-              {rfiEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No information requests recorded.</p>
-              ) : (
-                <div className="space-y-2">
-                  {rfiEntries.map(({ request, response }) => (
-                    <div key={request.id} className="rounded border p-2 text-xs space-y-1">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <Badge variant="outline">{request.action.replace(/_/g, ' ')}</Badge>
-                        <Badge variant={response ? 'default' : 'destructive'}>
-                          {response ? 'Responded' : 'Open'}
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          {new Date(request.created_at).toLocaleString()} · by {request.actor_email || 'Unknown'}
-                        </span>
-                      </div>
-                      {request.comments && <p className="text-muted-foreground">{request.comments}</p>}
-                      {response && (
-                        <div className="mt-1 pt-1 border-t">
-                          <div className="flex flex-wrap gap-2 items-center">
-                            <Badge variant="secondary">{response.action.replace(/_/g, ' ')}</Badge>
-                            <span className="text-muted-foreground">
-                              {new Date(response.created_at).toLocaleString()} · by {response.actor_email || 'Unknown'}
-                            </span>
-                          </div>
-                          {response.comments && (
-                            <p className="text-muted-foreground mt-1">{response.comments}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
 
-            {/* Notes & Remarks */}
-            <section className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">Notes &amp; Remarks</div>
-                <Badge variant="outline">{noteEntries.length}</Badge>
-              </div>
-              {noteEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No legal notes recorded.</p>
-              ) : (
-                <div className="space-y-2 max-h-64 overflow-auto">
-                  {noteEntries.map((e) => (
-                    <div key={e.id} className="rounded border p-2 text-xs space-y-1">
-                      <div className="flex gap-2 items-center flex-wrap">
-                        <Badge variant="outline">{e.action.replace(/_/g, ' ')}</Badge>
-                        <span className="text-muted-foreground">
-                          {new Date(e.created_at).toLocaleString()} · {e.actor_email || 'Unknown'}
-                        </span>
-                      </div>
-                      <p className="text-muted-foreground whitespace-pre-line">{e.comments}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
 
-            {/* Submitted Responses */}
-            <section className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold">Submitted Responses</div>
-                {onJumpToFormsTab && (
-                  <Button size="sm" variant="ghost" onClick={onJumpToFormsTab}>
-                    View full responses
-                  </Button>
-                )}
-              </div>
-              {formTemplateIds.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No forms submitted.</p>
-              ) : (
-                <ul className="text-sm space-y-1">
-                  {formTemplateIds.map((tid) => {
-                    const fields = formsData?.[tid] || {};
-                    const filled = Object.values(fields).filter(
-                      (v) => v !== null && v !== undefined && v !== '',
-                    ).length;
-                    const total = Object.keys(fields).length;
-                    return (
-                      <li key={tid} className="flex items-center justify-between gap-2">
-                        <span className="truncate">{templateNames[tid] || tid}</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {filled}/{total} fields
-                        </Badge>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
 
             <Separator />
             <p className="text-[11px] text-muted-foreground">
@@ -583,9 +472,16 @@ function DecisionReportBlock({
 
   const report = (assessment.decision_report || {}) as Record<string, any>;
   const sections: any[] = Array.isArray(assessment.sections) ? assessment.sections : [];
-  const recommended = String(report.recommended_action || '').toLowerCase();
+  const routing = (assessment.routing_recommendation || {}) as Record<string, any>;
+  const recommendedRaw =
+    report.recommended_action ||
+    routing.recommended_action ||
+    routing.recommended_route ||
+    '';
+  const recommended = String(recommendedRaw).toLowerCase();
   const hasRecommendation = Boolean(recommended && RECOMMENDED_ACTION_LABEL[recommended]);
   const recommendedLabel = hasRecommendation ? RECOMMENDED_ACTION_LABEL[recommended] : '';
+
   const confidence = typeof assessment.confidence_score === 'number' ? assessment.confidence_score : null;
   const topRisks: string[] = Array.isArray(report.top_risks) ? report.top_risks : [];
   const compliance: string[] = Array.isArray(report.compliance_concerns) ? report.compliance_concerns : [];
@@ -623,19 +519,20 @@ function DecisionReportBlock({
       {hasRecommendation ? (
         <div className="rounded-md border bg-background p-2.5 flex items-center gap-2 flex-wrap">
           <Badge variant={RECOMMENDED_ACTION_VARIANT[recommended] || 'outline'}>
-            Suggested action: {recommendedLabel}
+            Suggested next action: {recommendedLabel}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            This is advisory only. Take the final action from the Workflow panel.
+            This is AI guidance only. Take the final action from the Workflow panel.
           </span>
         </div>
       ) : (
         <div className="rounded-md border border-dashed bg-background p-2.5">
           <p className="text-sm text-muted-foreground">
-            No decision-ready recommendation is available for this assessment. Regenerate the AI Analyst Assessment to get a suggested next action.
+            No suggested next action is available. Regenerate the AI Analyst Assessment to get an updated recommendation.
           </p>
         </div>
       )}
+
 
       {!hasReport ? (
         <p className="text-sm text-muted-foreground">
