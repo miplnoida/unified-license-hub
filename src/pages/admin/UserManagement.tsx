@@ -351,10 +351,21 @@ export default function UserManagement() {
         setCredentialsDialog(true);
         loadUsers();
       } else {
-        toast.error(res.data?.error || 'Failed to create user');
+        // Edge function returned non-2xx; try to extract the real error message from the response body
+        let detail: string | undefined = res.data?.error;
+        const ctx: any = (res.error as any)?.context;
+        if (!detail && ctx && typeof ctx.json === 'function') {
+          try { const body = await ctx.json(); detail = body?.error; } catch { /* ignore */ }
+        }
+        toast.error(detail || res.error?.message || 'Failed to create user');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create user');
+      let detail: string | undefined;
+      const ctx: any = err?.context;
+      if (ctx && typeof ctx.json === 'function') {
+        try { const body = await ctx.json(); detail = body?.error; } catch { /* ignore */ }
+      }
+      toast.error(detail || err?.message || 'Failed to create user');
     }
     setSaving(false);
   };
