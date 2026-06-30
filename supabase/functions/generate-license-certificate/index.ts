@@ -5,10 +5,15 @@
 //   { mode: "generate", license_id }  -> creates a new version of the certificate
 //   { mode: "download", license_id }  -> returns a short-lived signed URL of the latest version
 //
-// Signing: if LICENSE_SIGNING_KEY_PEM + LICENSE_SIGNING_CERT_PEM are configured,
-// the PDF is signed (placeholder: signature fingerprint stored). If not, a
-// watermark "Signature pending - signing key not configured" is added so the
-// feature works out-of-the-box; record is_signed=false.
+// Authorized Signatory: visible signatory (name, title, signature image, optional
+// seal image) is sourced from the admin-managed `site_settings` row
+// `license_certificate_signatory`. Falls back to LICENSE_SIGNATORY_NAME /
+// LICENSE_SIGNATORY_TITLE env vars for text only when no active config exists.
+//
+// Cryptographic signing remains independent: if LICENSE_SIGNING_KEY_PEM +
+// LICENSE_SIGNING_CERT_PEM are configured, a SHA-256 fingerprint is stored and a
+// small "Digitally signed" label is rendered. Missing signing keys no longer
+// render any user-visible message.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
@@ -21,15 +26,76 @@ function json(req: Request, status: number, body: Record<string, unknown>) {
   });
 }
 
+type SignatoryConfig = {
+  name: string;
+  title: string;
+  signatureBytes?: Uint8Array;
+  signatureMime?: string;
+  sealBytes?: Uint8Array;
+  sealMime?: string;
+  configured: boolean;
+};
+
+async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Promise<SignatoryConfig> {
+  const fallback: SignatoryConfig = {
+    name: Deno.env.get("LICENSE_SIGNATORY_NAME") || "",
+    title: Deno.env.get("LICENSE_SIGNATORY_TITLE") || "",
+    configured: false,
+  };
+
+  const { data } = await admin
+    .from("site_settings")
+    .select("value")
+    .eq("key", "license_certificate_signatory")
+    .maybeSingle();
+
+  const value = (data?.value || {}) as any;
+  if (!value || value.is_active !== true || !value.name || !value.title) {
+    return fallback;
+  }
+
+  const out: SignatoryConfig = {
+    name: String(value.name),
+    title: String(value.title),
+    configured: true,
+  };
+
+  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | null> {
+    try {
+      const { data: file, error } = await admin.storage.from("certificate-assets").download(path);
+      if (error || !file) return null;
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const lower = path.toLowerCase();
+      const mime = lower.endsWith(".png") ? "image/png"
+        : (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) ? "image/jpeg"
+        : (file as any).type || "";
+      if (mime !== "image/png" && mime !== "image/jpeg") return null;
+      return { bytes: buf, mime };
+    } catch {
+      return null;
+    }
+  }
+
+  if (value.signature_image_path) {
+    const sig = await fetchAsset(String(value.signature_image_path));
+    if (sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+  }
+  if (value.seal_image_path) {
+    const seal = await fetchAsset(String(value.seal_image_path));
+    if (seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+  }
+
+  return out;
+}
+
 async function buildCertificatePdf(opts: {
   entityName: string;
   licenseType: string;
   licenseNumber: string;
   issueDate: string;
   expiryDate: string;
-  signatoryName: string;
-  signatoryTitle: string;
-  signed: boolean;
+  signatory: SignatoryConfig;
+  cryptoSigned: boolean;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`License Certificate ${opts.licenseNumber}`);
@@ -40,7 +106,6 @@ async function buildCertificatePdf(opts: {
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  // Border
   page.drawRectangle({ x: 30, y: 30, width: width - 60, height: height - 60, borderColor: rgb(0.12, 0.23, 0.54), borderWidth: 3 });
   page.drawRectangle({ x: 40, y: 40, width: width - 80, height: height - 80, borderColor: rgb(0.09, 0.64, 0.29), borderWidth: 1 });
 
@@ -73,19 +138,50 @@ async function buildCertificatePdf(opts: {
   label("Expiry Date", leftX, y); value(opts.expiryDate || "No Expiry", leftX, y - 18);
   label("Status", rightX, y); value("Active", rightX, y - 18);
 
-  // Signatory
-  const sigY = 120;
-  page.drawLine({ start: { x: width - 280, y: sigY + 30 }, end: { x: width - 80, y: sigY + 30 }, thickness: 1, color: rgb(0, 0, 0) });
-  page.drawText(opts.signatoryName, { x: width - 280, y: sigY + 10, size: 12, font: bold });
-  page.drawText(opts.signatoryTitle, { x: width - 280, y: sigY - 5, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
-  page.drawText("Authorized Signatory", { x: width - 280, y: sigY - 20, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
+  // Signatory block (right side)
+  const blockRight = width - 80;
+  const blockLeft = width - 280;
+  const lineY = 130;
 
-  if (!opts.signed) {
-    // Watermark
-    page.drawText("Signature pending — signing key not configured", {
-      x: 80, y: 60, size: 9, font, color: rgb(0.7, 0.2, 0.2),
-    });
+  // Signature image (above the line)
+  if (opts.signatory.configured && opts.signatory.signatureBytes && opts.signatory.signatureMime) {
+    try {
+      const img = opts.signatory.signatureMime === "image/png"
+        ? await doc.embedPng(opts.signatory.signatureBytes)
+        : await doc.embedJpg(opts.signatory.signatureBytes);
+      const maxW = 180, maxH = 60;
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = img.width * scale, h = img.height * scale;
+      page.drawImage(img, { x: blockLeft + (200 - w) / 2, y: lineY + 8, width: w, height: h });
+    } catch { /* ignore embed errors */ }
+  }
+
+  // Seal (optional) — offset to the right of signatory block
+  if (opts.signatory.configured && opts.signatory.sealBytes && opts.signatory.sealMime) {
+    try {
+      const img = opts.signatory.sealMime === "image/png"
+        ? await doc.embedPng(opts.signatory.sealBytes)
+        : await doc.embedJpg(opts.signatory.sealBytes);
+      const maxW = 90, maxH = 90;
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+      const w = img.width * scale, h = img.height * scale;
+      page.drawImage(img, { x: blockRight + 10, y: lineY - 10, width: w, height: h });
+    } catch { /* ignore embed errors */ }
+  }
+
+  page.drawLine({ start: { x: blockLeft, y: lineY }, end: { x: blockRight, y: lineY }, thickness: 1, color: rgb(0, 0, 0) });
+
+  if (opts.signatory.configured) {
+    page.drawText(opts.signatory.name, { x: blockLeft, y: lineY - 18, size: 12, font: bold });
+    page.drawText(opts.signatory.title, { x: blockLeft, y: lineY - 33, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+    page.drawText("Authorized Signatory", { x: blockLeft, y: lineY - 48, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
   } else {
+    page.drawText("Authorized signatory not configured", {
+      x: blockLeft, y: lineY - 18, size: 10, font, color: rgb(0.55, 0.55, 0.55),
+    });
+  }
+
+  if (opts.cryptoSigned) {
     page.drawText("Digitally signed", {
       x: 80, y: 60, size: 9, font: bold, color: rgb(0.09, 0.64, 0.29),
     });
@@ -138,7 +234,6 @@ export async function handler(req: Request): Promise<Response> {
       .maybeSingle();
     if (licErr || !license) return json(req, 200, { error: "License not found" });
 
-    // Entity name resolution
     const { data: licenseeRow } = await admin
       .from("licensees").select("name").eq("license_id", license.id).maybeSingle();
     let entityName = licenseeRow?.name || "";
@@ -150,9 +245,9 @@ export async function handler(req: Request): Promise<Response> {
 
     const signingKey = Deno.env.get("LICENSE_SIGNING_KEY_PEM") || "";
     const signingCert = Deno.env.get("LICENSE_SIGNING_CERT_PEM") || "";
-    const signed = !!(signingKey && signingCert);
-    const signatoryName = Deno.env.get("LICENSE_SIGNATORY_NAME") || "Authorized Officer";
-    const signatoryTitle = Deno.env.get("LICENSE_SIGNATORY_TITLE") || "Director, Licensing";
+    const cryptoSigned = !!(signingKey && signingCert);
+
+    const signatory = await loadSignatoryConfig(admin);
 
     const pdf = await buildCertificatePdf({
       entityName,
@@ -160,14 +255,12 @@ export async function handler(req: Request): Promise<Response> {
       licenseNumber: license.license_number,
       issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
       expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
-      signatoryName,
-      signatoryTitle,
-      signed,
+      signatory,
+      cryptoSigned,
     });
 
-    const fingerprint = signed ? await sha256Hex(pdf) : null;
+    const fingerprint = cryptoSigned ? await sha256Hex(pdf) : null;
 
-    // Determine next version
     const { data: existing } = await admin
       .from("license_certificates").select("version").eq("license_id", license.id)
       .order("version", { ascending: false }).limit(1).maybeSingle();
@@ -185,11 +278,11 @@ export async function handler(req: Request): Promise<Response> {
         license_id: license.id,
         file_path: filePath,
         version: nextVersion,
-        signatory_name: signatoryName,
-        signatory_title: signatoryTitle,
+        signatory_name: signatory.name || null,
+        signatory_title: signatory.title || null,
         signature_fingerprint: fingerprint,
-        is_signed: signed,
-        metadata: { entity_name: entityName },
+        is_signed: cryptoSigned,
+        metadata: { entity_name: entityName, signatory_configured: signatory.configured },
       })
       .select("id, file_path, version, is_signed")
       .single();
