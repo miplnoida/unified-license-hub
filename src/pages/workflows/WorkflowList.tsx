@@ -694,8 +694,22 @@ export default function WorkflowList() {
       return;
     }
 
+    const trimmedName = String(name).trim();
+
+    // Pre-check: block duplicate template names (case-insensitive).
+    const { data: existing, error: dupErr } = await supabase
+      .from('workflow_templates' as any)
+      .select('id')
+      .ilike('name', trimmedName)
+      .limit(1);
+    if (dupErr) { toast.error(dupErr.message); return; }
+    if (existing && existing.length > 0) {
+      toast.error('A template with this name already exists');
+      return;
+    }
+
     const payload = {
-      name: String(name).trim(),
+      name: trimmedName,
       description: selectedWorkflow.description,
       entity_type: selectedWorkflow.entity_type,
       // Snapshot is v2; per-step it also carries `approver_role` so the
@@ -703,7 +717,14 @@ export default function WorkflowList() {
       steps: snapshot.steps,
     };
     const { error } = await supabase.from('workflow_templates' as any).insert(payload as any);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      if ((error as any).code === '23505') {
+        toast.error('A template with this name already exists');
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
     qc.invalidateQueries({ queryKey: ['workflow_templates'] });
     toast.success('Template saved');
   };
