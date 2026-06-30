@@ -65,7 +65,7 @@ export default function LicenseActionFormViewer({ open, onOpenChange, responseId
             <FormRenderer
               formName={template?.name || 'Submitted Form'}
               sections={sections}
-              initialData={response.response_data || {}}
+              initialData={(response.response_data as Record<string, unknown>) || {}}
               onSaveDraft={() => undefined}
               onSubmit={() => undefined}
               readOnly
