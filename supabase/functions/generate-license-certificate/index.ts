@@ -34,6 +34,9 @@ type SignatoryConfig = {
   sealBytes?: Uint8Array;
   sealMime?: string;
   configured: boolean;
+  // When config references an image path but loading failed
+  signatureImageError?: string;
+  sealImageError?: string;
 };
 
 async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Promise<SignatoryConfig> {
@@ -60,29 +63,33 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
     configured: true,
   };
 
-  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | null> {
+  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | { error: string }> {
     try {
       const { data: file, error } = await admin.storage.from("certificate-assets").download(path);
-      if (error || !file) return null;
+      if (error || !file) return { error: error?.message || "not found" };
       const buf = new Uint8Array(await file.arrayBuffer());
       const lower = path.toLowerCase();
       const mime = lower.endsWith(".png") ? "image/png"
         : (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) ? "image/jpeg"
         : (file as any).type || "";
-      if (mime !== "image/png" && mime !== "image/jpeg") return null;
+      if (mime !== "image/png" && mime !== "image/jpeg") {
+        return { error: "unsupported image type (only PNG/JPG)" };
+      }
       return { bytes: buf, mime };
-    } catch {
-      return null;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "download failed" };
     }
   }
 
   if (value.signature_image_path) {
     const sig = await fetchAsset(String(value.signature_image_path));
-    if (sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    if ("bytes" in sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    else { out.signatureImageError = sig.error; }
   }
   if (value.seal_image_path) {
     const seal = await fetchAsset(String(value.seal_image_path));
-    if (seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    if ("bytes" in seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    else { out.sealImageError = seal.error; }
   }
 
   return out;
@@ -248,6 +255,21 @@ export async function handler(req: Request): Promise<Response> {
     const cryptoSigned = !!(signingKey && signingCert);
 
     const signatory = await loadSignatoryConfig(admin);
+
+    if (signatory.configured && signatory.signatureImageError) {
+      return json(req, 200, {
+        error: "Configured signatory signature image could not be loaded. Please re-upload the signature image.",
+        code: "SIGNATURE_IMAGE_UNAVAILABLE",
+        details: signatory.signatureImageError,
+      });
+    }
+    if (signatory.configured && signatory.sealImageError) {
+      return json(req, 200, {
+        error: "Configured signatory seal image could not be loaded. Please re-upload the seal image or remove it.",
+        code: "SEAL_IMAGE_UNAVAILABLE",
+        details: signatory.sealImageError,
+      });
+    }
 
     const pdf = await buildCertificatePdf({
       entityName,
