@@ -671,61 +671,25 @@ export default function LicenseDetail() {
   };
 
 
-  const handleAction = async (actionType: string, newStatus: LicenseStatus) => {
-    if (!license || !user) return;
-    if (MANDATORY_REASON_ACTIONS.has(actionType) && reason.trim().length < MIN_REASON_LEN) {
-      toast.error(`Please provide a justification of at least ${MIN_REASON_LEN} characters.`);
-      return;
-    }
-    setProcessing(true);
-    const oldStatus = license.status;
+  const [actionDialog, setActionDialog] = useState<LicenseActionConfig | null>(null);
 
-    await supabase.from('license_actions' as any).insert({
-      license_id: license.id, action_type: actionType, actor_id: user.id,
-      reason: reason || null, old_status: oldStatus, new_status: newStatus,
-    } as any);
+  const ACTION_CONFIGS: Record<string, LicenseActionConfig> = {
+    suspension:    { actionType: 'suspension',    newStatus: 'suspended', title: 'Suspend License',   submitLabel: 'Submit & Suspend',   requireReason: true },
+    revocation:    { actionType: 'revocation',    newStatus: 'revoked',   title: 'Revoke License',    submitLabel: 'Submit & Revoke',    destructive: true, requireReason: true },
+    cancellation:  { actionType: 'cancellation',  newStatus: 'cancelled', title: 'Cancel License',    submitLabel: 'Submit & Cancel',    destructive: true, requireReason: true },
+    reinstatement: { actionType: 'reinstatement', newStatus: 'active',    title: 'Reinstate License', submitLabel: 'Submit & Reinstate', requireReason: false },
+  };
 
-    await supabase.from('licenses' as any).update({ status: newStatus, updated_at: new Date().toISOString() } as any).eq('id', license.id);
+  const openAction = (key: keyof typeof ACTION_CONFIGS) => setActionDialog(ACTION_CONFIGS[key]);
 
-    // Mirror revocation/cancellation onto the linked licensee row
-    if (newStatus === 'revoked' || newStatus === 'cancelled') {
-      await supabase.from('licensees' as any).update({ status: newStatus } as any).eq('license_id', license.id);
-    }
-
-    await logAudit({ action: `license_${actionType}`, entityType: 'license', entityId: license.id, oldValue: { status: oldStatus }, newValue: { status: newStatus, reason } });
-
-    const eventKeyMap: Record<string, string> = {
-      suspension: 'license.suspended',
-      revocation: 'license.revoked',
-      renewal: 'license.renewed',
-      reinstatement: 'license.reinstated',
-      cancellation: 'license.cancelled',
-    };
-    const eventKey = eventKeyMap[actionType] || 'license.status_changed';
-    dispatchNotificationEvent({
-      event_key: eventKey,
-      entity_type: 'license',
-      entity_id: license.id,
-      payload: {
-        license_id: license.id,
-        license_number: license.license_number,
-        license_type: license.license_type,
-        old_status: oldStatus,
-        new_status: newStatus,
-        reason: reason || '',
-        valid_until: license.valid_until ? new Date(license.valid_until).toISOString().slice(0, 10) : '',
-        holder_user_id: license.holder_id,
-      },
-    });
-
-    toast.success(`License ${actionType} successful`);
-    setLicense(prev => prev ? { ...prev, status: newStatus } : prev);
-    setReason('');
-    setProcessing(false);
-
+  const refreshAfterAction = async () => {
+    if (!license) return;
+    const { data: lic } = await supabase.from('licenses' as any).select('*').eq('id', license.id).single();
+    if (lic) setLicense(lic as any);
     const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
     if (acts) setActions(acts as any);
   };
+
 
   if (loading) return <DashboardLayout><div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></DashboardLayout>;
   if (!license) return <DashboardLayout><div className="text-center py-12 text-muted-foreground">License not found</div></DashboardLayout>;
