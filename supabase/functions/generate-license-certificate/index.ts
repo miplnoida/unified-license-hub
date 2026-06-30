@@ -34,6 +34,9 @@ type SignatoryConfig = {
   sealBytes?: Uint8Array;
   sealMime?: string;
   configured: boolean;
+  // When config references an image path but loading failed
+  signatureImageError?: string;
+  sealImageError?: string;
 };
 
 async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Promise<SignatoryConfig> {
@@ -60,19 +63,21 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
     configured: true,
   };
 
-  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | null> {
+  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | { error: string }> {
     try {
       const { data: file, error } = await admin.storage.from("certificate-assets").download(path);
-      if (error || !file) return null;
+      if (error || !file) return { error: error?.message || "not found" };
       const buf = new Uint8Array(await file.arrayBuffer());
       const lower = path.toLowerCase();
       const mime = lower.endsWith(".png") ? "image/png"
         : (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) ? "image/jpeg"
         : (file as any).type || "";
-      if (mime !== "image/png" && mime !== "image/jpeg") return null;
+      if (mime !== "image/png" && mime !== "image/jpeg") {
+        return { error: "unsupported image type (only PNG/JPG)" };
+      }
       return { bytes: buf, mime };
-    } catch {
-      return null;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "download failed" };
     }
   }
 
