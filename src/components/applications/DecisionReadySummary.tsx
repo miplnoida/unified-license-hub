@@ -472,9 +472,16 @@ function DecisionReportBlock({
 
   const report = (assessment.decision_report || {}) as Record<string, any>;
   const sections: any[] = Array.isArray(assessment.sections) ? assessment.sections : [];
-  const recommended = String(report.recommended_action || '').toLowerCase();
+  const routing = (assessment.routing_recommendation || {}) as Record<string, any>;
+  const recommendedRaw =
+    report.recommended_action ||
+    routing.recommended_action ||
+    routing.recommended_route ||
+    '';
+  const recommended = String(recommendedRaw).toLowerCase();
   const hasRecommendation = Boolean(recommended && RECOMMENDED_ACTION_LABEL[recommended]);
   const recommendedLabel = hasRecommendation ? RECOMMENDED_ACTION_LABEL[recommended] : '';
+
   const confidence = typeof assessment.confidence_score === 'number' ? assessment.confidence_score : null;
   const topRisks: string[] = Array.isArray(report.top_risks) ? report.top_risks : [];
   const compliance: string[] = Array.isArray(report.compliance_concerns) ? report.compliance_concerns : [];
