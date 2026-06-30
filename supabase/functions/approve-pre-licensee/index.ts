@@ -68,13 +68,50 @@ export async function handler(req: Request): Promise<Response> {
     // bypass workflow.
     const { data: app, error: appErr } = await admin
       .from("applications")
-      .select("id, applicant_id, application_number, status, license_type")
+      .select("id, applicant_id, application_number, status, license_type, data")
       .eq("id", application_id)
       .single();
     if (appErr || !app) return errorResponse(req, 404, "Application not found", "NOT_FOUND");
 
     if (app.status !== "approved") {
       return errorResponse(req, 409, "Application is not approved — cannot provision user", "NOT_APPROVED");
+    }
+
+    const appData = (app.data ?? {}) as Record<string, any>;
+    const isRenewal = appData.is_renewal === true && !!appData.renewal_of_license_id;
+
+    // Renewal: resolve the existing license/licensee; do NOT create a new user or entity.
+    if (isRenewal) {
+      const { data: rLicense } = await admin
+        .from("licenses")
+        .select("id, license_number")
+        .eq("id", appData.renewal_of_license_id)
+        .maybeSingle();
+      if (!rLicense) return errorResponse(req, 409, "Original license not found for renewal", "RENEWAL_LICENSE_MISSING");
+
+      const { data: rLicensee } = await admin
+        .from("licensees")
+        .select("id, name")
+        .eq("license_id", rLicense.id)
+        .maybeSingle();
+      if (!rLicensee) return errorResponse(req, 409, "Licensee not found for renewed license", "NO_LICENSEE");
+
+      // Regenerate certificate with updated expiry. Best-effort.
+      try {
+        await admin.functions.invoke("generate-license-certificate", {
+          body: { mode: "generate", license_id: rLicense.id },
+        });
+      } catch (e) { console.error("generate-license-certificate (renewal) failed:", e); }
+
+      return jsonResponse(req, 200, {
+        success: true,
+        renewal: true,
+        message: "License renewed",
+        license_number: rLicense.license_number,
+        license_id: rLicense.id,
+        licensee_id: rLicensee.id,
+        web_user_created: false,
+      });
     }
 
     // License + licensee must already exist (created atomically by the approval RPC).
@@ -91,6 +128,7 @@ export async function handler(req: Request): Promise<Response> {
       .eq("license_id", license.id)
       .maybeSingle();
     if (!licensee) return errorResponse(req, 409, "Licensee not found for approved license", "NO_LICENSEE");
+
 
     // Resolve applicant identity for user provisioning.
     let applicantEmail = "";
