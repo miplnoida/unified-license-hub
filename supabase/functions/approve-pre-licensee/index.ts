@@ -84,7 +84,7 @@ export async function handler(req: Request): Promise<Response> {
     if (isRenewal) {
       const { data: rLicense } = await admin
         .from("licenses")
-        .select("id, license_number")
+        .select("id, license_number, valid_from, valid_until")
         .eq("id", appData.renewal_of_license_id)
         .maybeSingle();
       if (!rLicense) return errorResponse(req, 409, "Original license not found for renewal", "RENEWAL_LICENSE_MISSING");
@@ -103,6 +103,10 @@ export async function handler(req: Request): Promise<Response> {
         });
       } catch (e) { console.error("generate-license-certificate (renewal) failed:", e); }
 
+      const renewedValidUntil = (appData.renewed_valid_until as string | undefined) ?? null;
+      const previousValidUntil = (appData.previous_valid_until as string | undefined) ?? null;
+      const newValidUntil = renewedValidUntil ?? rLicense.valid_until ?? null;
+
       return jsonResponse(req, 200, {
         success: true,
         renewal: true,
@@ -110,6 +114,10 @@ export async function handler(req: Request): Promise<Response> {
         license_number: rLicense.license_number,
         license_id: rLicense.id,
         licensee_id: rLicensee.id,
+        valid_from: rLicense.valid_from,
+        valid_until: rLicense.valid_until,
+        previous_valid_until: previousValidUntil,
+        new_valid_until: newValidUntil,
         web_user_created: false,
       });
     }
