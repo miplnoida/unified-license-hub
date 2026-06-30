@@ -149,10 +149,10 @@ export default function LicenseActionDialog({ open, onOpenChange, license, confi
         toast.error(insErr?.message || 'Could not save form response');
         return;
       }
-      const ok = await callBackend((inserted as any).id);
+      const ok = await callBackend(inserted.id);
       if (!ok) {
         // best-effort cleanup so a stale response isn't left dangling
-        await supabase.from('form_responses').delete().eq('id', (inserted as any).id);
+        await supabase.from('form_responses').delete().eq('id', inserted.id);
       }
     } finally {
       setSubmitting(false);
