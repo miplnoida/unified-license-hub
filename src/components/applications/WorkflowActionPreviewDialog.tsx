@@ -450,6 +450,7 @@ export function WorkflowActionPreviewDialog({
       setSignatureDataUrl(null);
       setSigHasInk(false);
       setUploadedSignatureName(null);
+      setSignatureUploadError(null);
       sigPresentRef.current = false;
       sigCanvasInitializedRef.current = false;
       if (sigFileInputRef.current) sigFileInputRef.current.value = '';
