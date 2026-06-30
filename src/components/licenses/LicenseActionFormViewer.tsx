@@ -24,7 +24,7 @@ export default function LicenseActionFormViewer({ open, onOpenChange, responseId
         .eq('id', responseId)
         .maybeSingle();
       if (error) throw error;
-      return data as any;
+      return data;
     },
   });
 
@@ -37,7 +37,7 @@ export default function LicenseActionFormViewer({ open, onOpenChange, responseId
         .select('name')
         .eq('id', response!.template_id)
         .maybeSingle();
-      return data as any;
+      return data;
     },
   });
 
