@@ -772,7 +772,7 @@ export function WorkflowActionPreviewDialog({
               <div className="flex flex-col gap-2 rounded-md border border-dashed border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-medium">Upload digital signature</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG, JPEG, or WebP image.</p>
+                  <p className="text-xs text-muted-foreground">{SIGNATURE_HELP_TEXT}</p>
                 </div>
                 <input
                   ref={sigFileInputRef}
@@ -792,6 +792,12 @@ export function WorkflowActionPreviewDialog({
                   <Upload className="h-3.5 w-3.5 mr-1" /> Upload
                 </Button>
               </div>
+              {signatureUploadError && (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>{signatureUploadError}</span>
+                </div>
+              )}
               {uploadedSignatureName && signatureDataUrl && (
                 <div className="rounded-md border bg-background p-2 space-y-2">
                   <p className="text-xs font-medium text-success">
