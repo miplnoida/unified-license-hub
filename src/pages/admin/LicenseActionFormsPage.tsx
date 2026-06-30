@@ -49,10 +49,12 @@ export default function LicenseActionFormsPage() {
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [creating, setCreating] = useState(false);
 
-  // Show internal + post_license templates (post_license already exists project-wide).
+  // Internal forms (including legacy "internal" and the new "internal_license_action"),
+  // plus post_license templates which are also valid here.
+  const { data: tplInternalLA = [] } = useFormTemplates('internal_license_action');
   const { data: tplInternal = [] } = useFormTemplates('internal');
   const { data: tplPost = [] } = useFormTemplates('post_license');
-  const templates = [...tplInternal, ...tplPost];
+  const templates = [...tplInternalLA, ...tplInternal, ...tplPost];
 
   const { data: sectors = [] } = useQuery({
     queryKey: ['sectors-all'],
