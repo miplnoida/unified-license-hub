@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useNavigate } from 'react-router-dom';
 import {
   Settings, CreditCard, CalendarClock, Bell, Shield, Globe,
-  Database, Mail, Palette, FileText, RefreshCw,
+  Database, Mail, Palette, FileText, RefreshCw, PenLine,
 } from 'lucide-react';
 
 interface SettingsCard {
