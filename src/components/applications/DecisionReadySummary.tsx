@@ -5,16 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ClipboardCheck, Info, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ClipboardCheck, Info, Loader2, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { SlaProgressPanel } from '@/components/workflows/SlaIndicator';
-import OverrideJustificationDialog from '@/components/audit/OverrideJustificationDialog';
-import { logAudit } from '@/hooks/useAuditLog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import {
   getWorkflowSlaStepConfig,
   resolveCurrentStepStartedAt,
