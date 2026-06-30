@@ -15,6 +15,7 @@ const IntegrationSettings = lazy(() => import('@/pages/settings/IntegrationSetti
 const DataManagementSettings = lazy(() => import('@/pages/settings/DataManagementSettings'));
 const ApplicationFormSettings = lazy(() => import('@/pages/settings/ApplicationFormSettings'));
 const LicenseExpirySettings = lazy(() => import('@/pages/settings/LicenseExpirySettings'));
+const CertificateSignatorySettings = lazy(() => import('@/pages/settings/CertificateSignatorySettings'));
 
 function S({ children }: { children: React.ReactNode }) {
   return <P><SettingsRoute>{children}</SettingsRoute></P>;
