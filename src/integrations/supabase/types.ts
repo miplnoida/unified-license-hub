@@ -7811,6 +7811,10 @@ export type Database = {
         }
         Returns: Json
       }
+      perform_manual_application_approval: {
+        Args: { _actor_id?: string; _application_id: string; _comments: string }
+        Returns: Json
+      }
       perform_registration_workflow_transition: {
         Args: {
           _action_type: string
