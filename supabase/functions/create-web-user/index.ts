@@ -147,6 +147,40 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Reconcile user_roles to match the actual selection.
+      // The on_auth_user_created trigger auto-inserts an 'applicant' row
+      // (safe default for self-signup). For admin-created accounts we must
+      // replace it with the correct system_role(s) derived from the
+      // selected dynamic roles, otherwise the user ends up with both the
+      // chosen role AND 'applicant'.
+      try {
+        let systemRoles: string[] = [];
+        if (dynamicRoleIds.length > 0) {
+          const { data: roleRows } = await supabaseAdmin
+            .from("roles")
+            .select("system_role")
+            .in("id", dynamicRoleIds);
+          systemRoles = ((roleRows as any[]) || [])
+            .map((r) => (r?.system_role && String(r.system_role).trim()) || effectiveRole)
+            .filter((v: any) => typeof v === 'string' && v.length > 0);
+        } else if (effectiveRole) {
+          systemRoles = [effectiveRole];
+        }
+        // De-duplicate
+        const uniqueRoles = Array.from(new Set(systemRoles));
+
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", userData.user.id);
+        if (uniqueRoles.length > 0) {
+          const urRows = uniqueRoles.map((r) => ({ user_id: userData.user!.id, role: r as any }));
+          const { error: urError } = await supabaseAdmin.from("user_roles").insert(urRows);
+          if (urError) {
+            console.error("Failed to insert user_roles:", urError.message);
+          }
+        }
+      } catch (rolesErr) {
+        console.error("Failed to reconcile user_roles:", rolesErr);
+      }
+
       // Send credentials email
       if (send_email) {
         try {
