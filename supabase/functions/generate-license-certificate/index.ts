@@ -256,6 +256,21 @@ export async function handler(req: Request): Promise<Response> {
 
     const signatory = await loadSignatoryConfig(admin);
 
+    if (signatory.configured && signatory.signatureImageError) {
+      return json(req, 200, {
+        error: "Configured signatory signature image could not be loaded. Please re-upload the signature image.",
+        code: "SIGNATURE_IMAGE_UNAVAILABLE",
+        details: signatory.signatureImageError,
+      });
+    }
+    if (signatory.configured && signatory.sealImageError) {
+      return json(req, 200, {
+        error: "Configured signatory seal image could not be loaded. Please re-upload the seal image or remove it.",
+        code: "SEAL_IMAGE_UNAVAILABLE",
+        details: signatory.sealImageError,
+      });
+    }
+
     const pdf = await buildCertificatePdf({
       entityName,
       licenseType: license.license_type,
