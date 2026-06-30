@@ -31,7 +31,7 @@ export function useLegalNotesAccess(applicationId: string | undefined, enabled: 
     queryKey: ['legal_notes_access', applicationId],
     enabled: !!applicationId && enabled,
     queryFn: async (): Promise<boolean> => {
-      const { data, error } = await supabase.rpc('request_legal_notes_access' as any, {
+      const { data, error } = await supabase.rpc('request_legal_notes_access', {
         _application_id: applicationId!,
       });
       if (error) return false;
@@ -41,13 +41,32 @@ export function useLegalNotesAccess(applicationId: string | undefined, enabled: 
   });
 }
 
+/**
+ * Server-side check: is the current user a Legal/Compliance reviewer?
+ * Backed by SECURITY DEFINER RPC `is_legal_compliance_user`.
+ */
+export function useIsLegalComplianceUser(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['is_legal_compliance_user'],
+    enabled,
+    queryFn: async (): Promise<boolean> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data, error } = await supabase.rpc('is_legal_compliance_user', { _user_id: user.id });
+      if (error) return false;
+      return !!data;
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useLegalNotes(applicationId: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: ['application_legal_notes', applicationId],
     enabled: !!applicationId && enabled,
     queryFn: async (): Promise<LegalNote[]> => {
       const { data, error } = await supabase
-        .from('application_legal_notes' as any)
+        .from('application_legal_notes')
         .select('*')
         .eq('application_id', applicationId!)
         .order('created_at', { ascending: false });
@@ -73,13 +92,13 @@ export function useCreateLegalNote(applicationId: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not signed in');
       const { data, error } = await supabase
-        .from('application_legal_notes' as any)
+        .from('application_legal_notes')
         .insert({
           application_id: applicationId,
           actor_id: user.id,
           restricted: true,
           ...input,
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
@@ -90,3 +109,4 @@ export function useCreateLegalNote(applicationId: string) {
     },
   });
 }
+
