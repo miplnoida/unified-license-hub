@@ -337,12 +337,24 @@ export default function ApplicationDetail() {
               : `Application approved. User provisioning will be retried — reset password from Employee Management if needed.`
           );
         } else {
-          toast.success(
-            licenseNumber
-              ? `Application approved! License: ${licenseNumber}`
-              : 'Application approved!'
-          );
+          const isRenewal = isRenewalApplication || (rpcData as any)?.renewal === true;
+          const validUntilRaw = (rpcData as any)?.valid_until;
+          const validUntil = validUntilRaw ? new Date(validUntilRaw).toLocaleDateString() : null;
+          if (isRenewal) {
+            toast.success(
+              validUntil
+                ? `License renewed${licenseNumber ? ` (${licenseNumber})` : ''} — new expiry: ${validUntil}`
+                : `License renewed${licenseNumber ? ` (${licenseNumber})` : ''}`
+            );
+          } else {
+            toast.success(
+              licenseNumber
+                ? `Application approved! License: ${licenseNumber}`
+                : 'Application approved!'
+            );
+          }
         }
+
         setActionComment('');
         loadData();
         setProcessing(false);
