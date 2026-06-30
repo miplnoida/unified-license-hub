@@ -2770,11 +2770,95 @@ export type Database = {
           },
         ]
       }
+      license_action_form_configs: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          form_template_id: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          license_action_type: string
+          regulator_id: string | null
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          form_template_id: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          license_action_type: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          form_template_id?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          license_action_type?: string
+          regulator_id?: string | null
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_action_form_configs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_action_form_configs_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_action_form_configs_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_action_form_configs_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_action_form_configs_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_actions: {
         Row: {
           action_type: string
           actor_id: string
           created_at: string
+          form_response_id: string | null
+          form_template_id: string | null
+          form_version_id: string | null
           id: string
           license_id: string
           metadata: Json | null
@@ -2786,6 +2870,9 @@ export type Database = {
           action_type: string
           actor_id: string
           created_at?: string
+          form_response_id?: string | null
+          form_template_id?: string | null
+          form_version_id?: string | null
           id?: string
           license_id: string
           metadata?: Json | null
@@ -2797,6 +2884,9 @@ export type Database = {
           action_type?: string
           actor_id?: string
           created_at?: string
+          form_response_id?: string | null
+          form_template_id?: string | null
+          form_version_id?: string | null
           id?: string
           license_id?: string
           metadata?: Json | null
@@ -7992,6 +8082,21 @@ export type Database = {
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
+      }
+      resolve_license_action_form: {
+        Args: {
+          _action_type: string
+          _category_id: string
+          _regulator_id: string
+          _sector_id: string
+          _sub_sector_id: string
+        }
+        Returns: {
+          form_template_id: string
+          id: string
+          is_required: boolean
+          match_score: number
+        }[]
       }
       resolve_registration_workflow: {
         Args: { _sector_id: string }
