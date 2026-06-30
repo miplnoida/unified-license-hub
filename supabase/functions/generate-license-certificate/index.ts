@@ -81,15 +81,32 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
     }
   }
 
+  async function validateEmbeddable(bytes: Uint8Array, mime: string): Promise<string | null> {
+    try {
+      const probe = await PDFDocument.create();
+      if (mime === "image/png") await probe.embedPng(bytes);
+      else await probe.embedJpg(bytes);
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "image cannot be decoded as PNG/JPG";
+    }
+  }
+
   if (value.signature_image_path) {
     const sig = await fetchAsset(String(value.signature_image_path));
-    if ("bytes" in sig) { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
-    else { out.signatureImageError = sig.error; }
+    if ("bytes" in sig) {
+      const decodeErr = await validateEmbeddable(sig.bytes, sig.mime);
+      if (decodeErr) out.signatureImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
+      else { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+    } else { out.signatureImageError = sig.error; }
   }
   if (value.seal_image_path) {
     const seal = await fetchAsset(String(value.seal_image_path));
-    if ("bytes" in seal) { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
-    else { out.sealImageError = seal.error; }
+    if ("bytes" in seal) {
+      const decodeErr = await validateEmbeddable(seal.bytes, seal.mime);
+      if (decodeErr) out.sealImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
+      else { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+    } else { out.sealImageError = seal.error; }
   }
 
   return out;
