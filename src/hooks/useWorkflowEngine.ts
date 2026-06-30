@@ -157,6 +157,7 @@ export interface WorkflowStep {
   sla_breach_template_id: string | null;
   condition: any | null;
   require_digital_signature: boolean;
+  is_legal_compliance_stage?: boolean;
   created_at: string;
 }
 

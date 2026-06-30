@@ -25,6 +25,7 @@ import { WorkflowActionPreviewDialog, type ActionNotificationOverride } from '@/
 import { SlaStatusBadge, SlaProgressPanel } from '@/components/workflows/SlaIndicator';
 import { useWorkflowSLA } from '@/hooks/useWorkflowSLA';
 import { LegalComplianceNotesSection } from '@/components/applications/LegalComplianceNotesSection';
+import { useIsLegalComplianceUser } from '@/hooks/useApplicationLegalNotes';
 
 function StepSlaBadge({
   startedAt,
@@ -1298,23 +1299,14 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
         </DialogContent>
       </Dialog>
 
-      {isInternal && entityType === 'application' && steps.some(s => (s as any).is_legal_compliance_stage) && (
-        <div className="mt-4">
-          <LegalComplianceNotesSection
-            applicationId={applicationId}
-            workflowInstanceId={liveInstance?.id ?? null}
-            currentStepId={currentStep?.id ?? null}
-            currentStepIsLegal={!!(currentStep as any)?.is_legal_compliance_stage}
-            workflowHasLegalStep={steps.some(s => (s as any).is_legal_compliance_stage)}
-            isLegalReviewer={
-              Object.entries(dynamicRolesMap).some(
-                ([id, name]) =>
-                  (canActResult?.actor_dynamic_role_ids ?? []).includes(id) &&
-                  /legal\s*\/?\s*compliance/i.test(String(name)),
-              )
-            }
-          />
-        </div>
+      {isInternal && entityType === 'application' && steps.some(s => s.is_legal_compliance_stage) && (
+        <LegalNotesMount
+          applicationId={applicationId}
+          workflowInstanceId={liveInstance?.id ?? null}
+          currentStepId={currentStep?.id ?? null}
+          currentStepIsLegal={!!currentStep?.is_legal_compliance_stage}
+          workflowHasLegalStep={steps.some(s => s.is_legal_compliance_stage)}
+        />
       )}
 
 
@@ -1338,4 +1330,25 @@ function WorkflowPanelContent({ applicationId, workflowId, applicationStatus, on
     </Card>
   );
 }
+
+interface LegalNotesMountProps {
+  applicationId: string;
+  workflowInstanceId: string | null;
+  currentStepId: string | null;
+  currentStepIsLegal: boolean;
+  workflowHasLegalStep: boolean;
+}
+
+function LegalNotesMount(props: LegalNotesMountProps) {
+  const { data: isLegalReviewer = false } = useIsLegalComplianceUser();
+  return (
+    <div className="mt-4">
+      <LegalComplianceNotesSection
+        {...props}
+        isLegalReviewer={isLegalReviewer}
+      />
+    </div>
+  );
+}
+
 

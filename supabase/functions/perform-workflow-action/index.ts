@@ -108,13 +108,45 @@ export async function handler(req: Request): Promise<Response> {
           .maybeSingle(),
         admin
           .from("approval_steps")
-          .select("require_digital_signature")
+          .select("require_digital_signature, is_legal_compliance_stage")
           .eq("id", step_id)
           .maybeSingle(),
       ]);
       const needsSig = (cfgRow as any)?.require_digital_signature || (stepRow as any)?.require_digital_signature;
       if (needsSig && !signature_data_url) {
         return errorResponse(req, 422, "Digital signature is required for this action.", "SIGNATURE_REQUIRED");
+      }
+
+      // Legal/Compliance stage enforcement — only Legal/Compliance reviewers may act on a legal stage.
+      if ((stepRow as any)?.is_legal_compliance_stage === true) {
+        const { data: isLegal } = await admin.rpc("is_legal_compliance_user", { _user_id: caller.id });
+        if (!isLegal) {
+          try {
+            await admin.from("audit_logs").insert({
+              user_id: caller.id,
+              action: "legal_stage_action_denied",
+              entity_type: "application",
+              entity_id: application_id,
+              metadata: {
+                user_id: caller.id,
+                application_id,
+                workflow_instance_id: instance_id ?? null,
+                step_id,
+                action_type: raw_action,
+                reason: "actor_not_legal_compliance_user",
+                timestamp: new Date().toISOString(),
+              },
+            });
+          } catch (e) {
+            console.warn("legal_stage_action_denied audit log failed:", e);
+          }
+          return errorResponse(
+            req,
+            403,
+            "This step requires the Legal/Compliance role. You are not authorized to act on this step.",
+            "LEGAL_STAGE_FORBIDDEN",
+          );
+        }
       }
     }
 
