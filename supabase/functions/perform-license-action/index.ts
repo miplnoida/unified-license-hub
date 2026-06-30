@@ -10,14 +10,10 @@ import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
  * Renewal is intentionally NOT handled here — that flow lives elsewhere.
  */
 
-const INTERNAL_ROLES = new Set([
-  "super_admin",
-  "admin",
-  "supervisor",
-  "analyst",
-  "licensing_officer",
-  "legal_compliance",
-]);
+// Authorization is delegated to the centralized `user_has_permission` RPC
+// (mirrors the same logic used by useUserDynamicPermissions on the frontend).
+const REQUIRED_PERMISSION_MODULE = "license_management";
+const REQUIRED_PERMISSION_ACTION = "manage_license_actions";
 
 const ALLOWED_ACTIONS = new Set([
   "suspension",
@@ -66,14 +62,18 @@ export async function handler(req: Request): Promise<Response> {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Check caller is internal
-    const { data: rolesRows } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-    const callerRoles = new Set((rolesRows || []).map((r: any) => r.role as string));
-    const isInternal = [...callerRoles].some((r) => INTERNAL_ROLES.has(r));
-    if (!isInternal) return jsonResponse(req, 200, { error: "Internal role required", code: "FORBIDDEN" });
+    // Check caller has the centralized "manage_license_actions" permission
+    const { data: allowed, error: permErr } = await admin.rpc("user_has_permission", {
+      _user_id: caller.id,
+      _module: REQUIRED_PERMISSION_MODULE,
+      _action: REQUIRED_PERMISSION_ACTION,
+    });
+    if (permErr) {
+      return jsonResponse(req, 200, { error: permErr.message, code: "PERMISSION_CHECK_FAILED" });
+    }
+    if (!allowed) {
+      return jsonResponse(req, 200, { error: "You do not have permission to perform license actions", code: "FORBIDDEN" });
+    }
 
     let body: any;
     try { body = await req.json(); } catch { body = {}; }

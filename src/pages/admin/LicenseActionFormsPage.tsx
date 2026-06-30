@@ -77,7 +77,7 @@ export default function LicenseActionFormsPage() {
     queryKey: ['license_action_form_configs'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('license_action_form_configs' as any)
+        .from('license_action_form_configs')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -98,10 +98,10 @@ export default function LicenseActionFormsPage() {
         is_active: input.is_active ?? true,
       };
       if (input.id) {
-        const { error } = await supabase.from('license_action_form_configs' as any).update(payload).eq('id', input.id);
+        const { error } = await supabase.from('license_action_form_configs').update(payload).eq('id', input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('license_action_form_configs' as any).insert({ ...payload, created_by: user?.id });
+        const { error } = await supabase.from('license_action_form_configs').insert({ ...payload, created_by: user?.id });
         if (error) throw error;
       }
     },
@@ -115,7 +115,7 @@ export default function LicenseActionFormsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('license_action_form_configs' as any).delete().eq('id', id);
+      const { error } = await supabase.from('license_action_form_configs').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
