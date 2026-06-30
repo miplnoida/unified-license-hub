@@ -1,56 +1,44 @@
-## Diagnosis
+## Goal
 
-The renewal logic in `public.provision_application_entity` and `supabase/functions/approve-pre-licensee/index.ts` is already correct in the current codebase (migration `20260630073939…`, edge function already renewal-aware). I verified the deployed `provision_application_entity` contains the renewal branch.
+Make `public.provision_application_entity` the single source of truth for renewal handling so final approval extends the existing license instead of creating a new one — and keep `approve-pre-licensee` renewal-safe. Prior migrations partly addressed this; this plan consolidates the RPC to match the exact contract in the brief and verifies the edge function + notifications.
 
-However, real data confirms the bug still bit the user once **before** the fix landed:
+## Changes
 
-- Renewal application `APP-2026-000099` (data has `is_renewal=true`, `renewal_of_license_id=7a5b3197…`, `computed_new_valid_until=2027-06-28`) was approved at `2026-06-30 06:54:37`.
-- That approval ran the **old** `provision_application_entity`, which created a brand-new license `LIC-2026-000015` (`application_id=APP-2026-000099`, `valid_until=2027-06-30`) instead of extending `LIC-2026-000014` (`valid_until` still `2024-01-01`, status `expired`).
-- The renewal migration was deployed minutes later (`07:39:39`), so any *future* renewal approval will now correctly extend the original license. There's no draft renewal test case left that exercises it; `APP-2026-000100` is the only remaining draft renewal.
+### 1. Migration — rewrite renewal branch in `public.provision_application_entity(_application_id uuid)`
 
-The user's report is therefore about **two** things that need finishing:
+Keep the function signature and the entire non-renewal code path byte-identical. Only the renewal branch (executed when `COALESCE(v_app_data->>'is_renewal','false')='true' AND NULLIF(v_app_data->>'renewal_of_license_id','') IS NOT NULL`) is rewritten to follow the brief exactly:
 
-1. The historical mis-provisioned renewal still has a duplicate license + wrong original-license state.
-2. The current renewal RPC is correct but only protects against double-extension by comparing target `valid_until` ≥ existing — that's fragile when expiry config changes between retries. The brief asks for an explicit "already renewed" marker on the application.
+1. **Idempotency short-circuit (first):** If `v_app_data->>'renewed_license_id'` matches `renewal_of_license_id` and `v_app_data ? 'renewed_valid_until'`, re-read existing license + licensee and return the renewal payload immediately. No writes, no audit.
+2. **Lock existing license:** `SELECT … FROM public.licenses WHERE id = (v_app_data->>'renewal_of_license_id')::uuid FOR UPDATE`. If missing, `RAISE EXCEPTION` with `RENEWAL_LICENSE_NOT_FOUND` (mapped to a `{success:false, http:404, code:'RENEWAL_LICENSE_NOT_FOUND'}` JSON return, matching the existing error-return shape used elsewhere in this function).
+3. **Resolve new expiry** in this priority:
+   - `v_app_data->>'computed_new_valid_until'::timestamptz` if it parses.
+   - Otherwise read `site_settings.value WHERE key='license_expiry'`, support both old flat shape (`{period_days}`) and new shape (`{default, rules[]}`), score rules by `category(4) + sub_sector(2) + sector(1)` against the application's taxonomy, highest wins, fall back to `default.period_days`, final fallback `365`.
+   - **Base date:** `GREATEST(now(), COALESCE(existing.valid_until, now()))` then add `period_days`.
+4. **Update existing license only:** `UPDATE public.licenses SET valid_until=v_new_valid_until, status='active', updated_at=now() WHERE id=v_existing_license.id`. No `INSERT` into `licenses` or `licensees` on this branch.
+5. **Resolve existing licensee** via `SELECT id FROM public.licensees WHERE license_id=v_existing_license.id LIMIT 1`.
+6. **Stamp the application** with the marker via `jsonb_set` chain for `renewal_processed_at`, `renewed_license_id`, `renewed_valid_until` (merge-only — never overwrite other keys).
+7. **Audit log** `action='license_renewed'` with `entity_type='license'`, `entity_id=existing license id`, and `new_value` JSON containing renewal application id, license id + number, previous_valid_until, new_valid_until, licensee id.
+8. **Return** the exact JSON shape from the brief: `{success, http:200, renewal:true, application_id, license_id, license_number, licensee_id, applicant_id, previous_valid_until, new_valid_until}`.
 
-## Changes (backend only — no UI / workflow / payment / notifications behavior changes)
+Non-renewal path is untouched — same inserts, same audit, same return payload, so callers (`perform_final_workflow_approval`, `perform_manual_application_approval`, `approve-pre-licensee`) keep working.
 
-### 1. Migration — strengthen renewal idempotency in `public.provision_application_entity`
+### 2. `supabase/functions/approve-pre-licensee/index.ts`
 
-Keep all existing structure, only adjust the renewal branch:
+Already renewal-safe in the current codebase (renewal branch resolves the existing license via `data.renewal_of_license_id`, skips auth user creation, skips licensee creation, returns `renewal:true`). I will re-verify against the rewritten RPC shape and adjust only if a field name drifts — no behavioral changes planned.
 
-- After loading `v_app_data`, check `v_app_data ? 'renewal_processed_at'`. If present:
-  - Resolve the existing license and licensee from `renewal_of_license_id` and `data->>'renewed_license_id'` and return the renewal-result jsonb immediately. No DB writes, no audit, no second extension.
-- When the renewal branch performs the `UPDATE … licenses` extension successfully, also:
-  - `UPDATE public.applications SET data = data || jsonb_build_object('renewal_processed_at', now()::text, 'renewed_license_id', v_existing_license.id::text, 'renewed_valid_until', v_new_valid_until::text) WHERE id = _application_id`. Merge-only — never overwrite unrelated keys.
-- The existing "target ≥ existing" early-out is removed in favor of the explicit marker, so config drift between retries can't accidentally re-extend.
-- All other branches (non-renewal, payment/approval gates, audit log `license_renewed`) stay byte-identical to today.
+### 3. Notifications — skip created-entity events on renewal
 
-### 2. Migration — one-shot data repair for the already-broken renewal
+Audit `perform_final_workflow_approval` (and any post-approval dispatch in `perform-workflow-action` / `approve-pre-licensee`) for `license.created` / `licensee.created` (or equivalent) dispatches. Wrap each in `if (!result.renewal)` (or the SQL equivalent `IF NOT (v_provision_result->>'renewal')::boolean THEN …`). Renewal-specific notifications (`license.renewed`, `license.renewal_approved`) remain as-is.
 
-In the same migration, run a guarded `DO $$ … $$` block that ONLY fires when the broken state still matches today's snapshot:
+### 4. Explicit non-changes
 
-- Find applications where `data->>'is_renewal'='true'`, `status='approved'`, `data ? 'renewal_processed_at'` is false, and a license row exists with `application_id = applications.id` (i.e. a duplicate was created).
-- For each:
-  - Capture the bad license id (`bad_license_id`) and the original license id (`orig_id = data->>'renewal_of_license_id'`).
-  - `UPDATE licenses SET valid_until = COALESCE((data->>'computed_new_valid_until')::timestamptz, valid_until), status='active', updated_at=now() WHERE id = orig_id` — only if `orig_id` exists.
-  - Delete the duplicate licensee (`DELETE FROM licensees WHERE license_id = bad_license_id`) and then the duplicate license (`DELETE FROM licenses WHERE id = bad_license_id`). Skipped if any FK from `license_certificates`, `license_renewals`, `supervisory_plans`, etc. references it — in that case we re-point those rows to `orig_id` first (the migration enumerates each table explicitly so nothing is missed; rows that can't be safely re-pointed cause the block to RAISE NOTICE and skip that record rather than crash the whole migration).
-  - Stamp the application with `renewal_processed_at` / `renewed_license_id` / `renewed_valid_until` so the new idempotency check covers it going forward.
-  - Insert an `audit_logs` row `action='license_renewed'` capturing `previous_valid_until` (the old `2024-01-01`) and `new_valid_until`, plus `repair=true` in `new_value` for traceability.
+`perform_final_workflow_approval`, `perform_manual_application_approval`, `perform-workflow-action`, `verify-and-submit`, renewal form UI, payment flow, AI assessment, certificate generator, RLS, GRANTs, reporting — untouched.
 
-This block is bounded by the WHERE clause; on a clean DB or after it runs once it's a no-op.
+## Acceptance verification (run after migration approval)
 
-### 3. `supabase/functions/approve-pre-licensee/index.ts`
+- `APP-2026-000099` already repaired by prior migration; calling provisioning again on it returns the existing `LIC-2026-000014` payload with no writes (marker short-circuit).
+- `APP-2026-000100` (draft renewal) once approved: zero new `licenses` / `licensees` rows, `LIC-…` original gets `valid_until` extended and `status='active'`, one `license_renewed` audit row, application stamped with `renewal_processed_at`.
+- Re-running approval on `APP-2026-000100` returns the same payload, writes nothing, expiry not extended twice.
+- Renewal with `computed_new_valid_until` removed from `data`: falls through to `site_settings.license_expiry` resolution and then to 365-day default.
+- A fresh non-renewal approval (any pending application) still inserts one `licenses` + one `licensees` row with identical payload shape to today.
 
-Already renewal-safe (early-returns on renewal without creating a user/entity). No code change required; I'll verify once more during implementation and leave it untouched if so.
-
-### 4. Non-changes (explicit)
-
-`perform_final_workflow_approval`, `perform_manual_application_approval`, `perform-workflow-action`, `verify-and-submit`, frontend renewal form, notifications dispatcher, AI assessment, certificate generator, RLS, GRANTs, payment flow — all untouched.
-
-## Acceptance verification
-
-- Approve `APP-2026-000100` (the remaining draft renewal once the user submits/pays it): original license row updated in place, no new `licenses` row, audit row `license_renewed` written, `applications.data.renewal_processed_at` set.
-- Calling final/manual approval again on `APP-2026-000099` or `APP-2026-000100` is a no-op (marker check), returns the existing license/licensee ids.
-- After migration runs: `LIC-2026-000014` shows `valid_until=2027-06-28`, `status='active'`; `LIC-2026-000015` and its licensee no longer exist (or are re-pointed if FKs require it); `APP-2026-000099.data` carries the `renewal_processed_at` marker.
-- Fresh non-renewal approvals continue to insert into `licenses`/`licensees` exactly as today.
