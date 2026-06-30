@@ -102,7 +102,12 @@ export default function ApprovedLicensees() {
       });
 
       if (res.error) {
-        toast.error('Failed to generate license: ' + res.error.message);
+        let detail: string | undefined;
+        const ctx: any = (res.error as any)?.context;
+        if (ctx && typeof ctx.json === 'function') {
+          try { const body = await ctx.json(); detail = body?.error; } catch { /* ignore */ }
+        }
+        toast.error('Failed to generate license: ' + (detail || res.error.message));
       } else if (res.data?.success) {
         toast.success(`License ${res.data.license_number} generated successfully`);
         await loadData();

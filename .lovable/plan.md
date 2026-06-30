@@ -1,35 +1,66 @@
 ## Root cause
 
-When any auth user is created, the database trigger `public.handle_new_user` always inserts a row into `public.user_roles` with role `'applicant'` (it intentionally downgrades any non-public role for safety against self-signup).
+The error is coming from the **"Review Actions" (manual approve) panel** on the Application Detail page (`src/pages/applications/ApplicationDetail.tsx`, `handleStageTransition`, line ~299), not from the Workflow panel.
 
-The `create-web-user` edge function (used by Admin → Employee Management → Create) only writes the selected dynamic roles into `user_dynamic_roles`. It never reconciles `user_roles`. So after creation, the new employee ends up with:
+Edge logs confirm it: the only failing recent edge calls are two `POST /functions/v1/approve-pre-licensee → 409` requests. There were no calls to `perform-workflow-action`, so the click went straight to `approve-pre-licensee`.
 
-- `user_roles`: `applicant` (from the trigger)
-- `user_dynamic_roles`: the role(s) the admin picked
+What's broken: `supabase/functions/approve-pre-licensee/index.ts` was refactored to be **provisioning-only**. It now requires the application to already be `status = 'approved'` and to already have an associated `licenses` + `licensees` row (created atomically by the `perform_final_workflow_approval` RPC). When called directly from the manual UI:
 
-On login, the UI reads both sources and shows the selected role **plus** "Applicant".
+1. The app is still `submitted` / `under_review` (workflow never ran, or wasn't configured).
+2. The function returns `409 NOT_APPROVED` (or `NO_LICENSE` / `NO_LICENSEE`).
+3. `supabase-js` surfaces the non-2xx as the generic toast **"Edge Function returned a non-2xx status code"**.
 
-Verified in DB for `ratnpriyaemp@yopmail.com` (`67ef83ff-…`): `user_roles` contains both `applicant` and `admin`. The `admin` entry was added later when the record was edited — the edit handler in `UserManagement.tsx` already reconciles `user_roles` correctly. Only the create path is broken.
+The manual UI shows up because `showManualActions = workflowChecked && workflowOn === false && …` — i.e. no workflow is configured/active for that application's request type, so the user sees the "Workflow is not active/configured" Approve / Reject / Resubmit buttons. They click Approve, and the call fails.
 
-## Fix (single edge function change)
+Why "step 1" wording: the failing application is the first in your queue / first action you tried; there is no actual workflow step. The manual panel says "Approval workflow is not active for this request type".
 
-Update `supabase/functions/create-web-user/index.ts` so that, after the auth user is created and `user_dynamic_roles` rows are inserted, it reconciles `user_roles` the same way the edit handler does:
+The same broken assumption exists in two more places that still call `approve-pre-licensee` expecting it to do the approval itself:
+- `src/components/applications/PaymentVerificationDialog.tsx` (line ~111)
+- `src/pages/admin/ApprovedLicensees.tsx` (line ~100) — this one already partly works because it first runs `reset_application_for_provisioning` to put the app back into `approved`, but only for already-approved apps.
 
-1. After inserting `user_dynamic_roles`, fetch `roles.system_role` for all `dynamicRoleIds`.
-2. Build a de-duplicated list of valid `app_role` values from those `system_role`s (fallback to the existing `effectiveRole` baseline if a role has no `system_role`).
-3. `DELETE FROM user_roles WHERE user_id = <new_user_id>` (removes the trigger's auto-inserted `applicant`).
-4. `INSERT` one row per unique system role into `user_roles`.
-5. Skip step 3–4 only when no dynamic roles were provided (e.g. licensee primary/secondary creation paths that already rely on `effectiveRole` — for those, also delete the trigger row and insert the single `effectiveRole` so behavior is consistent and never leaves a stray `applicant`).
+## Fix
+
+Two parts: a new trusted RPC for the manual / no-workflow approval, and tightening the UI + error toasts.
+
+### 1. New SQL RPC `perform_manual_application_approval(_application_id, _comments, _actor_id)`
+
+A `SECURITY DEFINER` function that mirrors what `perform_final_workflow_approval` does, minus the workflow-instance/step bookkeeping. In one transaction:
+
+- Validate the caller is internal staff (super_admin / admin / supervisor / licensing_officer) via `has_role` / `get_user_role`.
+- Validate the app exists and is in an approvable status (`submitted`, `under_review`, `review`, `pending_review`); reject otherwise with a structured `{error, code, http}` payload.
+- Bypass the workflow-mutation lock trigger (set `app.workflow_mutation_context`, same pattern `reject_application_action` uses).
+- `UPDATE applications SET status='approved', approved_at=now(), approved_by=_actor_id WHERE id=_application_id`.
+- Insert the `licenses` row (license_number via the existing sequence/helper used by `perform_final_workflow_approval`) and the `licensees` row linked to it.
+- Insert an `approval_actions` row (action_type='approve', comments).
+- Insert an `audit_logs` row and an in-app `notifications` row to the applicant.
+- Return `{ success: true, application_number, license_id, license_number, licensee_id }`.
+
+GRANT EXECUTE to `authenticated` (the function itself enforces the role check).
+
+### 2. Wire the manual UI to the new RPC
+
+In `src/pages/applications/ApplicationDetail.tsx → handleStageTransition`:
+
+- For `newStatus === 'approved'`, replace the direct `approve-pre-licensee` invoke with:
+  1. `supabase.rpc('perform_manual_application_approval', { _application_id, _comments })`.
+  2. If that returns success, then call `supabase.functions.invoke('approve-pre-licensee', { body: { application_id } })` for auth-user provisioning. Provisioning failure must **not** fail the action — surface it as a warning toast ("Application approved. User provisioning will be retried — please reset password from Employee Management if needed"), exactly like `perform-workflow-action` does.
+- Improve the error toast: parse `error.context.json()` to show the real server error instead of the generic "non-2xx" message (same pattern already used in `WorkflowPanel.executeAction` and the recently-fixed `UserManagement.handleCreate`).
+
+### 3. Same error-surfacing fix in the other two callers
+
+`PaymentVerificationDialog.tsx` and `ApprovedLicensees.tsx`: read `res.error.context.json()` and show the real `error` field, so we never see the generic non-2xx string again.
 
 ## Out of scope
 
-- No change to the DB trigger (kept as the safe default for self-signup).
-- No change to `UserManagement.tsx`, the edit flow, or any UI.
-- No change to `user_dynamic_roles` schema, RLS, or the role-display logic.
+- `approve-pre-licensee` itself is **not** changed — its provisioning-only contract is correct.
+- No change to the workflow path (`perform-workflow-action` + `perform_final_workflow_approval`).
+- No change to RLS / GRANTs on existing tables (the new RPC handles its own auth).
+- No UI re-layout or copy changes beyond the error toast and the warning-on-provisioning-failure case.
 
 ## Acceptance
 
-- A newly created employee has **no** `applicant` row in `user_roles` unless that was actually the selected role.
-- The user's displayed roles after first login match exactly what the admin selected.
-- Existing edit/update behavior is unchanged.
-- Existing affected user (`ratnpriyaemp@yopmail.com`) can be cleaned up manually via a one-off SQL `DELETE FROM user_roles WHERE user_id = '67ef83ff-3502-473a-9200-c4eb11f7426d' AND role = 'applicant';` after the fix is deployed (optional, mention to user).
+- Internal user clicks **Approve** in the Manual "Review Actions" panel → application moves to `approved`, license + licensee are created, web user is provisioned, success toast shows the license number.
+- If provisioning fails, the user still sees a success message with a warning, not a red "non-2xx" error.
+- Any real server-side rejection (insufficient permission, app in wrong state, missing applicant email) is shown as a clear message, not the generic non-2xx string.
+- WorkflowPanel approval flow is unchanged.
+- Existing `ApprovedLicensees` "Generate License" flow still works for already-approved apps.
