@@ -292,15 +292,35 @@ export async function handler(req: Request): Promise<Response> {
       });
     }
 
-    const pdf = await buildCertificatePdf({
-      entityName,
-      licenseType: license.license_type,
-      licenseNumber: license.license_number,
-      issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
-      expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
-      signatory,
-      cryptoSigned,
-    });
+    let pdf: Uint8Array;
+    try {
+      pdf = await buildCertificatePdf({
+        entityName,
+        licenseType: license.license_type,
+        licenseNumber: license.license_number,
+        issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
+        expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
+        signatory,
+        cryptoSigned,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith("SIGNATURE_IMAGE_EMBED_FAILED:")) {
+        return json(req, 200, {
+          error: "Configured signature image was loaded but could not be embedded in the PDF. Please upload a valid PNG or JPG signature image.",
+          code: "SIGNATURE_IMAGE_EMBED_FAILED",
+          details: msg.slice("SIGNATURE_IMAGE_EMBED_FAILED:".length),
+        });
+      }
+      if (msg.startsWith("SEAL_IMAGE_EMBED_FAILED:")) {
+        return json(req, 200, {
+          error: "Configured seal image was loaded but could not be embedded in the PDF. Please upload a valid PNG or JPG seal image or remove it.",
+          code: "SEAL_IMAGE_EMBED_FAILED",
+          details: msg.slice("SEAL_IMAGE_EMBED_FAILED:".length),
+        });
+      }
+      throw e;
+    }
 
     const fingerprint = cryptoSigned ? await sha256Hex(pdf) : null;
 
