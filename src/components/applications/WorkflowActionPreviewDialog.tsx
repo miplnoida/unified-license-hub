@@ -80,6 +80,12 @@ interface BindingDiagnostic {
 
 const SIGNATURE_INK_COLOR = '#0f172a';
 const SIGNATURE_BACKGROUND_COLOR = '#ffffff';
+const SIGNATURE_MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+const SIGNATURE_MAX_WIDTH = 1200;
+const SIGNATURE_MAX_HEIGHT = 400;
+const SIGNATURE_RECOMMENDED = '600 × 200 px';
+const SIGNATURE_HELP_TEXT = `Recommended ${SIGNATURE_RECOMMENDED} (max ${SIGNATURE_MAX_WIDTH} × ${SIGNATURE_MAX_HEIGHT} px), under 2 MB. PNG, JPG, JPEG, or WebP.`;
+const SIGNATURE_ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 /** Minimal `{{token}}` substitution mirroring the dispatch render function. */
 function render(template: string | null | undefined, vars: Record<string, any>): string {
