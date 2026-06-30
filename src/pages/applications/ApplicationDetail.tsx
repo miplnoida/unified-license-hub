@@ -849,7 +849,7 @@ export default function ApplicationDetail() {
                 events={events}
                 templateNames={templateNames}
                 paymentComplete={paymentComplete}
-                onJumpToFormsTab={() => setActiveTab('forms')}
+                onJumpToFormsTab={() => setActiveTab('form')}
               />
             )}
 
