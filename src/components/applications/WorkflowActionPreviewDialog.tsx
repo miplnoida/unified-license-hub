@@ -78,6 +78,9 @@ interface BindingDiagnostic {
   templateExistsAndActive: boolean;
 }
 
+const SIGNATURE_INK_COLOR = '#0f172a';
+const SIGNATURE_BACKGROUND_COLOR = '#ffffff';
+
 /** Minimal `{{token}}` substitution mirroring the dispatch render function. */
 function render(template: string | null | undefined, vars: Record<string, any>): string {
   if (!template) return '';
@@ -365,8 +368,6 @@ export function WorkflowActionPreviewDialog({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [sigHasInk, setSigHasInk] = useState(false);
   const [uploadedSignatureName, setUploadedSignatureName] = useState<string | null>(null);
-  const inkColor = '#0f172a';
-  const backgroundColor = '#ffffff';
 
   const getCanvasCssSize = useCallback((canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
@@ -380,8 +381,8 @@ export function WorkflowActionPreviewDialog({
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 2.25;
-    ctx.strokeStyle = inkColor;
-    ctx.fillStyle = inkColor;
+    ctx.strokeStyle = SIGNATURE_INK_COLOR;
+    ctx.fillStyle = SIGNATURE_INK_COLOR;
   }, []);
 
   const initSignatureCanvas = useCallback((force = false) => {
@@ -411,7 +412,7 @@ export function WorkflowActionPreviewDialog({
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = backgroundColor;
+    ctx.fillStyle = SIGNATURE_BACKGROUND_COLOR;
     ctx.fillRect(0, 0, size.width, size.height);
     applyCanvasDefaults(ctx);
     sigCanvasInitializedRef.current = true;
@@ -465,10 +466,10 @@ export function WorkflowActionPreviewDialog({
       setUploadedSignatureName(null);
       if (sigFileInputRef.current) sigFileInputRef.current.value = '';
       ctx.beginPath();
-      ctx.fillStyle = inkColor;
+      ctx.fillStyle = SIGNATURE_INK_COLOR;
       ctx.arc(x, y, 1.6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = inkColor;
+      ctx.strokeStyle = SIGNATURE_INK_COLOR;
       commitCanvasSignature();
       try { canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
       e.preventDefault();
@@ -568,7 +569,7 @@ export function WorkflowActionPreviewDialog({
 
       const img = new Image();
       img.onload = () => {
-        ctx.fillStyle = backgroundColor;
+        ctx.fillStyle = SIGNATURE_BACKGROUND_COLOR;
         ctx.fillRect(0, 0, size.width, size.height);
         const padding = 12;
         const maxWidth = Math.max(1, size.width - padding * 2);
