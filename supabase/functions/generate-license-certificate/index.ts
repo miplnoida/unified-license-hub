@@ -63,54 +63,63 @@ async function loadSignatoryConfig(admin: ReturnType<typeof createClient>): Prom
     configured: true,
   };
 
-  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: string } | { error: string }> {
+  function sniffMime(buf: Uint8Array): "image/png" | "image/jpeg" | null {
+    if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png";
+    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+    return null;
+  }
+
+  async function fetchAsset(path: string): Promise<{ bytes: Uint8Array; mime: "image/png" | "image/jpeg" } | { error: string }> {
     try {
       const { data: file, error } = await admin.storage.from("certificate-assets").download(path);
       if (error || !file) return { error: error?.message || "not found" };
       const buf = new Uint8Array(await file.arrayBuffer());
-      const lower = path.toLowerCase();
-      const mime = lower.endsWith(".png") ? "image/png"
-        : (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) ? "image/jpeg"
-        : (file as any).type || "";
-      if (mime !== "image/png" && mime !== "image/jpeg") {
-        return { error: "unsupported image type (only PNG/JPG)" };
-      }
+      const mime = sniffMime(buf);
+      if (!mime) return { error: "unsupported image type (only PNG/JPG accepted)" };
       return { bytes: buf, mime };
     } catch (e) {
       return { error: e instanceof Error ? e.message : "download failed" };
     }
   }
 
-  async function validateEmbeddable(bytes: Uint8Array, mime: string): Promise<string | null> {
-    try {
-      const probe = await PDFDocument.create();
-      if (mime === "image/png") await probe.embedPng(bytes);
-      else await probe.embedJpg(bytes);
-      return null;
-    } catch (e) {
-      return e instanceof Error ? e.message : "image cannot be decoded as PNG/JPG";
+  // Try the preferred embed first; fall back to the other. Returns the mime that worked,
+  // or an error string if both fail.
+  async function tryEmbed(bytes: Uint8Array, preferred: "image/png" | "image/jpeg"): Promise<{ mime: "image/png" | "image/jpeg" } | { error: string }> {
+    const probe = await PDFDocument.create();
+    const order: Array<"image/png" | "image/jpeg"> = preferred === "image/png" ? ["image/png", "image/jpeg"] : ["image/jpeg", "image/png"];
+    let lastErr = "";
+    for (const m of order) {
+      try {
+        if (m === "image/png") await probe.embedPng(bytes);
+        else await probe.embedJpg(bytes);
+        return { mime: m };
+      } catch (e) {
+        lastErr = e instanceof Error ? e.message : String(e);
+      }
     }
+    return { error: lastErr || "image cannot be decoded as PNG/JPG" };
   }
 
   if (value.signature_image_path) {
     const sig = await fetchAsset(String(value.signature_image_path));
     if ("bytes" in sig) {
-      const decodeErr = await validateEmbeddable(sig.bytes, sig.mime);
-      if (decodeErr) out.signatureImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
-      else { out.signatureBytes = sig.bytes; out.signatureMime = sig.mime; }
+      const result = await tryEmbed(sig.bytes, sig.mime);
+      if ("error" in result) out.signatureImageError = result.error;
+      else { out.signatureBytes = sig.bytes; out.signatureMime = result.mime; }
     } else { out.signatureImageError = sig.error; }
   }
   if (value.seal_image_path) {
     const seal = await fetchAsset(String(value.seal_image_path));
     if ("bytes" in seal) {
-      const decodeErr = await validateEmbeddable(seal.bytes, seal.mime);
-      if (decodeErr) out.sealImageError = `image cannot be decoded as PNG/JPG: ${decodeErr}`;
-      else { out.sealBytes = seal.bytes; out.sealMime = seal.mime; }
+      const result = await tryEmbed(seal.bytes, seal.mime);
+      if ("error" in result) out.sealImageError = result.error;
+      else { out.sealBytes = seal.bytes; out.sealMime = result.mime; }
     } else { out.sealImageError = seal.error; }
   }
 
   return out;
 }
+
 
 async function buildCertificatePdf(opts: {
   entityName: string;
@@ -279,14 +288,14 @@ export async function handler(req: Request): Promise<Response> {
 
     if (signatory.configured && signatory.signatureImageError) {
       return json(req, 200, {
-        error: "Configured signatory signature image could not be loaded. Please re-upload the signature image.",
+        error: `Configured signature image could not be embedded (${signatory.signatureImageError}). Please re-upload a standard non-interlaced PNG or a JPG.`,
         code: "SIGNATURE_IMAGE_UNAVAILABLE",
         details: signatory.signatureImageError,
       });
     }
     if (signatory.configured && signatory.sealImageError) {
       return json(req, 200, {
-        error: "Configured signatory seal image could not be loaded. Please re-upload the seal image or remove it.",
+        error: `Configured seal image could not be embedded (${signatory.sealImageError}). Please re-upload a standard non-interlaced PNG or a JPG, or remove the seal.`,
         code: "SEAL_IMAGE_UNAVAILABLE",
         details: signatory.sealImageError,
       });
