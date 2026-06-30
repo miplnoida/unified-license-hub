@@ -167,7 +167,7 @@ async function buildCertificatePdf(opts: {
   const blockLeft = width - 280;
   const lineY = 130;
 
-  // Signature image (above the line)
+  // Signature image (above the line) — fail loudly if embed/draw fails
   if (opts.signatory.configured && opts.signatory.signatureBytes && opts.signatory.signatureMime) {
     try {
       const img = opts.signatory.signatureMime === "image/png"
@@ -177,10 +177,12 @@ async function buildCertificatePdf(opts: {
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
       const w = img.width * scale, h = img.height * scale;
       page.drawImage(img, { x: blockLeft + (200 - w) / 2, y: lineY + 8, width: w, height: h });
-    } catch { /* ignore embed errors */ }
+    } catch (e) {
+      throw new Error(`SIGNATURE_IMAGE_EMBED_FAILED:${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
-  // Seal (optional) — offset to the right of signatory block
+  // Seal (optional) — fail loudly if embed/draw fails
   if (opts.signatory.configured && opts.signatory.sealBytes && opts.signatory.sealMime) {
     try {
       const img = opts.signatory.sealMime === "image/png"
@@ -190,7 +192,9 @@ async function buildCertificatePdf(opts: {
       const scale = Math.min(maxW / img.width, maxH / img.height, 1);
       const w = img.width * scale, h = img.height * scale;
       page.drawImage(img, { x: blockRight + 10, y: lineY - 10, width: w, height: h });
-    } catch { /* ignore embed errors */ }
+    } catch (e) {
+      throw new Error(`SEAL_IMAGE_EMBED_FAILED:${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   page.drawLine({ start: { x: blockLeft, y: lineY }, end: { x: blockRight, y: lineY }, thickness: 1, color: rgb(0, 0, 0) });
