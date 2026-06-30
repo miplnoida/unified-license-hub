@@ -673,6 +673,7 @@ export default function LicenseDetail() {
 
 
   const [actionDialog, setActionDialog] = useState<LicenseActionConfig | null>(null);
+  const [viewResponseId, setViewResponseId] = useState<string | null>(null);
 
   const ACTION_CONFIGS: Record<string, LicenseActionConfig> = {
     suspension:    { actionType: 'suspension',    newStatus: 'suspended', title: 'Suspend License',   submitLabel: 'Submit & Suspend',   requireReason: true },
