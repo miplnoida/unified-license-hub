@@ -29,6 +29,7 @@ const RegistrationFormBuilder = lazy(() => import('@/pages/admin/RegistrationFor
 const RegistrationFormPreviewPage = lazy(() => import('@/pages/admin/RegistrationFormPreviewPage'));
 const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
+const LicenseActionFormsPage = lazy(() => import('@/pages/admin/LicenseActionFormsPage'));
 
 
 
