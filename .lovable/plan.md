@@ -1,30 +1,35 @@
 ## Goal
-Hide the "Regulator" concept from the License Action Form mapping UI (`/admin/license-action-forms`), while keeping regulator scoping intact under the hood so existing data and the backend resolver keep working.
+On `/admin/license-action-forms`:
+1. Restrict the **Form Template** dropdown to internal forms only.
+2. Prevent creating (or editing into) duplicate mappings.
 
 ## Scope
-UI-only change in `src/pages/admin/LicenseActionFormsPage.tsx`. No DB, RPC, edge function, or `LicenseActionDialog` changes.
+UI-only in `src/pages/admin/LicenseActionFormsPage.tsx`. No DB migration.
 
 ## Changes
 
-**1. Edit/Create dialog — remove the Regulator field**
-- Remove the `<Label>Regulator</Label>` + `<Select>` block (lines ~283–292).
-- Remove `regulatorId` state, its `useEffect` reset, and the `regulators` prop from `EditDialog`.
-- On save, auto-set `regulator_id` from the currently active regulator (`useRegulator().activeRegulatorId`) instead of the dropdown. Fallback to `null` if none is active. This preserves the multi-regulator scoping model transparently.
+**1. Form Template list — internal only**
+- Drop the `post_license` templates. Keep only `internal_license_action` and legacy `internal` templates:
+  ```
+  const templates = [...tplInternalLA, ...tplInternal];
+  ```
+- Remove the `useFormTemplates('post_license')` call.
+- The `(form_type)` hint next to each option stays so admins can still distinguish legacy `internal` from `internal_license_action`.
 
-**2. Mapping list row — hide the "Reg: …" chip**
-- Remove the `Reg: {lookupName(regulators, r.regulator_id)} ·` fragment (line ~163) from each row's meta line. Keep Action / Sector / Sub / Category / Required chips.
-
-**3. Parent page cleanup**
-- Keep the `regulators` query only if still needed elsewhere; otherwise drop it and stop passing `regulators` to `EditDialog`.
-- Import and use `useRegulator` to source `activeRegulatorId` for the save payload.
+**2. Duplicate prevention**
+- Define a duplicate as: same `license_action_type` **and** same taxonomy tuple (`sector_id`, `sub_sector_id`, `category_id`) **and** same `regulator_id` (the auto-assigned active regulator).
+- Rationale: this matches the resolver's matching key — two rows with the same action + scope would be ambiguous.
+- Implementation:
+  - In `LicenseActionFormsPage`, before calling `saveMutation.mutate`, scan the existing `rows` for a match on those four fields, excluding the row currently being edited (`editing?.id`).
+  - If a match exists, show `toast.error('A mapping for this action and scope already exists.')` and abort — do not open a network call.
+- Note: `form_template_id` is intentionally NOT part of the duplicate key — changing only the template on the same scope is still a duplicate (admin should edit the existing row instead).
 
 ## Out of scope
-- No changes to `license_action_form_configs` schema.
-- No changes to `resolve_license_action_form` RPC or `perform-license-action` edge function — they continue to accept and honor `regulator_id`.
-- No changes to `LicenseActionDialog` — it already passes the license's `regulator_id` at resolution time.
-- Existing mapping rows keep whatever `regulator_id` they already have; nothing is migrated.
+- No DB unique constraint (kept as UI guard only to avoid a migration; safe because this is an admin-only screen).
+- No change to resolver, edge function, or `LicenseActionDialog`.
+- No change to the templates shown elsewhere in the app.
 
 ## Verification
-- `/admin/license-action-forms`: no "Regulator" dropdown in the create/edit dialog and no "Reg: …" text on rows.
-- Creating a new mapping while a regulator is active stores that regulator's id (visible via DB read); the row displays and is respected at action time.
-- Suspend/Revoke on a license still resolves the correct form for the license's regulator.
+- Template dropdown lists only internal / internal-license-action forms; no post-license entries.
+- Attempting to save a second mapping with the same action + sector + sub-sector + category (under the current active regulator) shows a toast and does not create a row.
+- Editing an existing row without changing its scope still saves normally.
