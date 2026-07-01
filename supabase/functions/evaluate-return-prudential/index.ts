@@ -200,8 +200,9 @@ Deno.serve(async (req) => {
 
     // Load return + config linkage
     const { data: rf, error: rfErr } = await admin.from("returns_filed")
-      .select("id, licensee_id, return_configuration_id, period_end")
+      .select("id, entity_id, on_behalf_of_licensee_id, return_configuration_id, period_end_date")
       .eq("id", return_id).maybeSingle();
+
     if (rfErr || !rf) return new Response(JSON.stringify({ error: "Return not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
     const cfg = rf.return_configuration_id;
 
