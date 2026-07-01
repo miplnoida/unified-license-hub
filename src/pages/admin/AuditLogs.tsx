@@ -222,7 +222,7 @@ export default function AuditLogs() {
                     })}
                     {filtered.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                           No audit logs found
                         </TableCell>
                       </TableRow>
