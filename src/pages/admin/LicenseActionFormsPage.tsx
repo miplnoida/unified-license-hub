@@ -51,12 +51,10 @@ export default function LicenseActionFormsPage() {
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [creating, setCreating] = useState(false);
 
-  // Internal forms (including legacy "internal" and the new "internal_license_action"),
-  // plus post_license templates which are also valid here.
+  // Internal forms only (new "internal_license_action" + legacy "internal").
   const { data: tplInternalLA = [] } = useFormTemplates('internal_license_action');
   const { data: tplInternal = [] } = useFormTemplates('internal');
-  const { data: tplPost = [] } = useFormTemplates('post_license');
-  const templates = [...tplInternalLA, ...tplInternal, ...tplPost];
+  const templates = [...tplInternalLA, ...tplInternal];
 
   const { data: sectors = [] } = useQuery({
     queryKey: ['sectors-all'],
@@ -185,7 +183,18 @@ export default function LicenseActionFormsPage() {
         subSectors={subSectors as any[]}
         categories={categories as any[]}
         onClose={() => { setEditing(null); setCreating(false); }}
-        onSave={(v) => saveMutation.mutate({ ...v, id: editing?.id, regulator_id: activeRegulatorId })}
+        onSave={(v) => {
+          const dup = rows.find(r =>
+            r.id !== editing?.id &&
+            r.license_action_type === v.license_action_type &&
+            (r.sector_id || null) === (v.sector_id || null) &&
+            (r.sub_sector_id || null) === (v.sub_sector_id || null) &&
+            (r.category_id || null) === (v.category_id || null) &&
+            (r.regulator_id || null) === (activeRegulatorId || null)
+          );
+          if (dup) { toast.error('A mapping for this action and scope already exists.'); return; }
+          saveMutation.mutate({ ...v, id: editing?.id, regulator_id: activeRegulatorId });
+        }}
         saving={saveMutation.isPending}
       />
     </DashboardLayout>
