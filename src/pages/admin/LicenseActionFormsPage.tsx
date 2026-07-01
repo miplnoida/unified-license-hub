@@ -46,6 +46,7 @@ interface ConfigRow {
 
 export default function LicenseActionFormsPage() {
   const { user } = useAuth();
+  const { activeRegulatorId } = useRegulator();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [creating, setCreating] = useState(false);
