@@ -967,8 +967,8 @@ export function useUpdateTemplateStatus() {
 
       // Draft exists → snapshot it as a NEW published version. We never
       // overwrite or delete prior published versions (multi-active support).
-      const draftSections = (latestDraft.schema_snapshot || []) as FormSection[];
-      const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
+      const draftSections     = normalizeSchemaSnapshot(latestDraft?.schema_snapshot);
+      const publishedSections = normalizeSchemaSnapshot(lastPublished?.schema_snapshot);
 
 
 
