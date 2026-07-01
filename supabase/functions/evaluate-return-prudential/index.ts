@@ -206,12 +206,16 @@ Deno.serve(async (req) => {
     if (rfErr || !rf) return new Response(JSON.stringify({ error: "Return not found" }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
     const cfg = rf.return_configuration_id;
 
-    // Load form data → { [formTemplateId]: { fieldKey: value } }
-    const { data: fd = [] } = await admin.from("return_form_data").select("form_template_id, form_data").eq("return_id", return_id);
+    // Load normalized form data → { [formTemplateId]: { fieldKey: value } }
+    const { data: fd = [], error: fdErr } = await admin.from("return_form_data")
+      .select("form_id, field_name, field_value")
+      .eq("return_id", return_id);
+    if (fdErr) throw fdErr;
     const data: FormData = {};
     for (const row of (fd as any[])) {
-      if (!row.form_template_id) continue;
-      data[row.form_template_id] = (row.form_data ?? {}) as Record<string, unknown>;
+      if (!row.form_id || !row.field_name) continue;
+      if (!data[row.form_id]) data[row.form_id] = {};
+      data[row.form_id][row.field_name] = row.field_value ?? "";
     }
 
     // Load rules, ratios, thresholds
