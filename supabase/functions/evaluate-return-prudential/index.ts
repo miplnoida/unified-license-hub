@@ -260,9 +260,10 @@ Deno.serve(async (req) => {
       let null_reason: string | null = cycleError;
       try {
         if (cycleError) throw new Error(cycleError);
-        // Substitute referenced ratios first, then field tokens.
-        const withRefs = substituteRatioRefs(r.formula, computedValues);
-        const resolvedFormula = resolve(withRefs, data);
+        // Resolve field tokens first so ratio substitution can safely
+        // insert numeric literals without colliding with `formId.fieldKey` grammar.
+        const withFields = resolve(r.formula, data);
+        const resolvedFormula = substituteRatioRefs(withFields, computedValues);
         // Missing input detection on original formula
         const tokens = String(r.formula).match(/([A-Za-z_][A-Za-z0-9_.-]*)/g) || [];
         let hasMissing = false;
