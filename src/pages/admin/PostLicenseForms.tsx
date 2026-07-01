@@ -187,7 +187,7 @@ export default function PostLicenseForms() {
                     <TableHead>Sub-Sector</TableHead>
                     <TableHead>Form Name</TableHead>
                     <TableHead>Service</TableHead>
-                    <TableHead>Reusable</TableHead>
+                    {/* <TableHead>Reusable</TableHead> */}
                     <TableHead>Status</TableHead>
                     <TableHead>Created Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
