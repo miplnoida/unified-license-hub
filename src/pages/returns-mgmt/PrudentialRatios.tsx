@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Plus, Edit, Trash2, UploadCloud, History, Archive, Undo2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useRatios, useUpsertRatio, useDeleteRatio } from '@/hooks/usePrudentialConfig';
@@ -33,10 +34,45 @@ const empty: Partial<PrudentialRatio> = { display_format: 'decimal', is_active: 
 export default function PrudentialRatios() {
   const [selected, setSelected] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<PrudentialRatio> | null>(null);
+  const [historyRatio, setHistoryRatio] = useState<PrudentialRatio | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useConfigs();
   const { data: rows = [], isLoading } = useRatios(selected);
   const upsert = useUpsertRatio();
   const del = useDeleteRatio();
+
+  const openHistory = async (r: PrudentialRatio) => {
+    setHistoryRatio(r);
+    const { data } = await (supabase as any)
+      .from('prudential_ratio_versions')
+      .select('version,published_at,published_by,formula,display_format')
+      .eq('ratio_id', r.id)
+      .order('version', { ascending: false });
+    setVersions(data ?? []);
+  };
+
+  const publish = async (r: PrudentialRatio) => {
+    const { error } = await (supabase as any).rpc('publish_prudential_ratio', { _ratio_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'New ratio version published', timer: 1400, showConfirmButton: false });
+  };
+
+  const rollback = async (ratio_id: string, to_version: number) => {
+    const ok = await Swal.fire({ title: `Rollback to v${to_version}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Rollback' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('rollback_prudential_ratio', { _ratio_id: ratio_id, _to_version: to_version });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
+    setHistoryRatio(null);
+  };
+
+  const archive = async (r: PrudentialRatio) => {
+    const ok = await Swal.fire({ title: 'Archive ratio?', text: r.label, icon: 'warning', showCancelButton: true, confirmButtonText: 'Archive' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('archive_prudential_ratio', { _ratio_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Ratio archived', timer: 1200, showConfirmButton: false });
+  };
 
   const columns = useMemo<Column<PrudentialRatio>[]>(() => [
     { key: 'label', label: 'Ratio' },
@@ -44,14 +80,18 @@ export default function PrudentialRatios() {
     { key: 'formula', label: 'Formula', render: (r) => <code className="text-xs bg-muted px-2 py-1 rounded">{r.formula}</code> },
     { key: 'metric_key', label: 'Metric', render: (r) => r.metric_key ? <Badge variant="outline">{r.metric_key}</Badge> : '—' },
     { key: 'display_format', label: 'Format', render: (r) => <Badge variant="outline">{r.display_format}</Badge> },
+    { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
     { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge> },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archive(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete ratio?', text: r.label, icon: 'warning', showCancelButton: true });
           if (ok.isConfirmed) del.mutate(r.id);
-        }}><Trash2 className="h-4 w-4" /></Button>
+        }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
   ], [del]);
@@ -133,6 +173,35 @@ export default function PrudentialRatios() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!historyRatio} onOpenChange={(o) => !o && setHistoryRatio(null)}>
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Version history — {historyRatio?.label}</SheetTitle></SheetHeader>
+          <div className="mt-4 space-y-3">
+            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versions.map((v: any, idx: number) => {
+              const isCurrent = idx === 0;
+              return (
+                <div key={v.version} className="border rounded p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">v{v.version}{isCurrent && <Badge className="ml-2">current</Badge>}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                      {!isCurrent && historyRatio && (
+                        <Button size="sm" variant="outline" onClick={() => rollback(historyRatio.id, v.version)}>
+                          <Undo2 className="h-3 w-3 mr-1" /> Rollback
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.formula}</code>
+                  <div className="text-xs text-muted-foreground">Format: {v.display_format}</div>
+                </div>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }

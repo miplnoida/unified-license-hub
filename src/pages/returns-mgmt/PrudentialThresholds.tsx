@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Plus, Edit, Trash2, UploadCloud, History, Archive, Undo2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useThresholds, useUpsertThreshold, useDeleteThreshold } from '@/hooks/usePrudentialConfig';
@@ -32,10 +33,45 @@ const empty: Partial<PrudentialThreshold> = { comparator: '>=', is_active: true 
 export default function PrudentialThresholds() {
   const [selected, setSelected] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<PrudentialThreshold> | null>(null);
+  const [historyThreshold, setHistoryThreshold] = useState<PrudentialThreshold | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useConfigs();
   const { data: rows = [], isLoading } = useThresholds(selected);
   const upsert = useUpsertThreshold();
   const del = useDeleteThreshold();
+
+  const openHistory = async (t: PrudentialThreshold) => {
+    setHistoryThreshold(t);
+    const { data } = await (supabase as any)
+      .from('prudential_threshold_versions')
+      .select('version,warn_value,breach_value,upper_value,comparator,unit,effective_from,effective_to,published_at')
+      .eq('threshold_id', t.id)
+      .order('version', { ascending: false });
+    setVersions(data ?? []);
+  };
+
+  const publish = async (t: PrudentialThreshold) => {
+    const { error } = await (supabase as any).rpc('publish_prudential_threshold', { _threshold_id: t.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'New threshold version published', timer: 1400, showConfirmButton: false });
+  };
+
+  const rollback = async (threshold_id: string, to_version: number) => {
+    const ok = await Swal.fire({ title: `Rollback to v${to_version}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Rollback' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('rollback_prudential_threshold', { _threshold_id: threshold_id, _to_version: to_version });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
+    setHistoryThreshold(null);
+  };
+
+  const archive = async (t: PrudentialThreshold) => {
+    const ok = await Swal.fire({ title: 'Archive threshold?', text: t.label, icon: 'warning', showCancelButton: true, confirmButtonText: 'Archive' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('archive_prudential_threshold', { _threshold_id: t.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Threshold archived', timer: 1200, showConfirmButton: false });
+  };
 
   const columns = useMemo<Column<PrudentialThreshold>[]>(() => [
     { key: 'label', label: 'Metric' },
@@ -48,14 +84,18 @@ export default function PrudentialThresholds() {
     { key: 'warn_value', label: 'Warn' },
     { key: 'breach_value', label: 'Breach' },
     { key: 'unit', label: 'Unit' },
+    { key: 'current_version', label: 'v', render: (r: any) => <Badge variant="outline">v{r.current_version ?? 1}</Badge> },
     { key: 'is_active', label: 'Status', render: (r) => <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge> },
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archive(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete threshold?', text: r.label, icon: 'warning', showCancelButton: true });
           if (ok.isConfirmed) del.mutate(r.id);
-        }}><Trash2 className="h-4 w-4" /></Button>
+        }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
   ], [del]);
@@ -131,6 +171,42 @@ export default function PrudentialThresholds() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!historyThreshold} onOpenChange={(o) => !o && setHistoryThreshold(null)}>
+        <SheetContent className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Version history — {historyThreshold?.label}</SheetTitle></SheetHeader>
+          <div className="mt-4 space-y-3">
+            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versions.map((v: any) => {
+              const isCurrent = !v.effective_to;
+              return (
+                <div key={v.version} className="border rounded p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">v{v.version}{isCurrent && <Badge className="ml-2">current</Badge>}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                      {!isCurrent && historyThreshold && (
+                        <Button size="sm" variant="outline" onClick={() => rollback(historyThreshold.id, v.version)}>
+                          <Undo2 className="h-3 w-3 mr-1" /> Rollback
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs">
+                    {v.comparator === 'between'
+                      ? <>Between <b>{v.warn_value}</b> and <b>{v.upper_value}</b></>
+                      : <>x <b>{v.comparator}</b> {v.breach_value ?? v.warn_value} (warn {v.warn_value ?? '—'} / breach {v.breach_value ?? '—'})</>}
+                    {v.unit && <> · {v.unit}</>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Effective {v.effective_from}{v.effective_to ? ` → ${v.effective_to}` : ' → current'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }
