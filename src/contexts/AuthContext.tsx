@@ -183,9 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Log BEFORE signOut so auth.uid() is still available server-side.
+    const currentUserId = session?.user?.id;
+    if (currentUserId) {
+      await logLogout(currentUserId).catch(() => {});
+    }
     clear2FAState();
-    // Clear per-user registration approval cache so another user signing in
-    // on this browser doesn't inherit the previous user's status.
     try {
       Object.keys(sessionStorage)
         .filter((k) => k.startsWith('registration_approval_cache:'))
@@ -196,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-  }, [clear2FAState]);
+  }, [clear2FAState, session]);
 
 
   const requires2FA = !!session && !!user?.twoFactorEnabled;
