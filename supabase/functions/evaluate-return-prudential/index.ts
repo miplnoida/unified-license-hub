@@ -53,6 +53,62 @@ function cmp(l: number, op: string, r: number) {
   return false;
 }
 
+// ---- Boolean composition (AND/OR/&&/||) with proper precedence ------------
+function stripOuterParens(expr: string): string {
+  let s = expr.trim();
+  while (s.length >= 2 && s.startsWith("(") && s.endsWith(")")) {
+    let depth = 0, matched = true;
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === "(") depth++;
+      else if (s[i] === ")") { depth--; if (depth === 0 && i < s.length - 1) { matched = false; break; } }
+    }
+    if (!matched) break;
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+function splitTopLevel(expr: string, sep: RegExp): string[] {
+  const re = new RegExp(sep.source, sep.flags.includes("g") ? sep.flags : sep.flags + "g");
+  const parts: string[] = [];
+  let depth = 0, last = 0, i = 0;
+  while (i < expr.length) {
+    const c = expr[i];
+    if (c === "(") { depth++; i++; continue; }
+    if (c === ")") { depth--; i++; continue; }
+    if (depth === 0) {
+      re.lastIndex = i;
+      const m = re.exec(expr);
+      if (m && m.index === i) { parts.push(expr.slice(last, i)); i = last = i + m[0].length; continue; }
+    }
+    i++;
+  }
+  parts.push(expr.slice(last));
+  return parts.map((p) => p.trim()).filter((p) => p.length > 0);
+}
+const OR_RE = /\s+OR\s+|\|\|/gi;
+const AND_RE = /\s+AND\s+|&&/gi;
+function evalBoolean(expr: string, atom: (e: string) => boolean): boolean {
+  const s = stripOuterParens(expr);
+  const or = splitTopLevel(s, OR_RE);
+  if (or.length > 1) return or.some((p) => evalBoolean(p, atom));
+  const and = splitTopLevel(s, AND_RE);
+  if (and.length > 1) return and.every((p) => evalBoolean(p, atom));
+  return atom(stripOuterParens(s));
+}
+function evalPredicate(expr: string, data: FormData, fid: string | null): boolean {
+  const atom = (e: string): boolean => {
+    const c = splitCmp(e);
+    if (c) {
+      const l = safeArith(resolve(c.lhs, data, fid));
+      const r = safeArith(resolve(c.rhs, data, fid));
+      return cmp(l, c.op, r);
+    }
+    const v = safeArith(resolve(e, data, fid));
+    return v !== 0 && !Number.isNaN(v);
+  };
+  return evalBoolean(expr, atom);
+}
+
 function evalRule(rule: any, data: FormData) {
   const fid = rule.form_id ?? null;
   try {
@@ -70,10 +126,8 @@ function evalRule(rule: any, data: FormData) {
     }
     if (rule.rule_type === "required_if") {
       const [cond, target] = String(rule.expression).split("=>").map((s: string) => s.trim());
-      const c = splitCmp(cond);
-      const truthy = c
-        ? cmp(safeArith(resolve(c.lhs, data, fid)), c.op, safeArith(resolve(c.rhs, data, fid)))
-        : !!safeArith(resolve(cond, data, fid));
+      if (!cond || !target) return { passed: false, message: rule.error_message || "Invalid required_if" };
+      const truthy = evalPredicate(cond, data, fid);
       if (!truthy) return { passed: true, message: "" };
       const [ta, tb] = target.split(".");
       const key = tb ?? ta;
@@ -83,19 +137,43 @@ function evalRule(rule: any, data: FormData) {
         ? { passed: false, message: rule.error_message }
         : { passed: true, message: "" };
     }
-    const c = splitCmp(rule.expression);
-    if (c) {
-      const l = safeArith(resolve(c.lhs, data, fid));
-      const r = safeArith(resolve(c.rhs, data, fid));
-      return cmp(l, c.op, r) ? { passed: true, message: "" } : { passed: false, message: rule.error_message };
-    }
-    const v = safeArith(resolve(rule.expression, data, fid));
-    return v !== 0 && !Number.isNaN(v)
+    return evalPredicate(rule.expression, data, fid)
       ? { passed: true, message: "" }
       : { passed: false, message: rule.error_message };
   } catch (e) {
     return { passed: false, message: rule.error_message || (e as Error).message };
   }
+}
+
+// ---- Ratio-of-ratio dependencies -----------------------------------------
+function ratioRefs(formula: string): string[] {
+  return Array.from(String(formula).matchAll(/\$([A-Za-z0-9_-]+)/g)).map((m) => m[1]);
+}
+function substituteRatioRefs(formula: string, values: Map<string, number>): string {
+  return String(formula).replace(/\$([A-Za-z0-9_-]+)/g, (_m, key: string) => {
+    const v = values.get(key);
+    return v !== undefined && Number.isFinite(v) ? String(v) : "0";
+  });
+}
+function topoOrderRatios(ratios: any[]): any[] {
+  const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
+  const visited = new Set<string>();
+  const stack = new Set<string>();
+  const out: any[] = [];
+  const visit = (r: any) => {
+    if (visited.has(r.ratio_key)) return;
+    if (stack.has(r.ratio_key)) throw new Error(`Circular ratio dependency at "${r.ratio_key}"`);
+    stack.add(r.ratio_key);
+    for (const dep of ratioRefs(r.formula)) {
+      const d = byKey.get(dep);
+      if (d) visit(d);
+    }
+    stack.delete(r.ratio_key);
+    visited.add(r.ratio_key);
+    out.push(r);
+  };
+  for (const r of ratios) visit(r);
+  return out;
 }
 
 Deno.serve(async (req) => {
