@@ -86,6 +86,31 @@ function splitComparison(expr: string): { lhs: string; op: CmpOp; rhs: string } 
   return null;
 }
 
+/**
+ * Evaluate a single boolean predicate — either a comparison, or an
+ * arithmetic-truthy check, or a boolean composition of those.
+ */
+function evalBooleanPredicate(
+  expression: string,
+  data: ReturnFormData,
+  defaultFormId: string | null,
+): boolean {
+  const evalAtom = (atom: string): boolean => {
+    const cmp = splitComparison(atom);
+    if (cmp) {
+      const l = evalArith(cmp.lhs, data, defaultFormId);
+      const r = evalArith(cmp.rhs, data, defaultFormId);
+      return compare(l, cmp.op, r);
+    }
+    const v = evalArith(atom, data, defaultFormId);
+    return v !== 0 && !Number.isNaN(v);
+  };
+  if (hasBooleanOperator(expression)) {
+    return evaluateBoolean(expression, evalAtom);
+  }
+  return evalAtom(expression);
+}
+
 export function evaluateRule(rule: ValidationRule, data: ReturnFormData): ValidationResult {
   const defaultFormId = rule.form_id;
   const fail = (message: string): ValidationResult => ({
