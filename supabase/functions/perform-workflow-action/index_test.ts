@@ -61,3 +61,13 @@ Deno.test("perform-workflow-action: action allowlist excludes synthetic actions"
   if (list.includes("request_info")) throw new Error("request_info must not be in ACCEPTED_ACTIONS");
   if (list.includes("delegate")) throw new Error("delegate must not be in ACCEPTED_ACTIONS");
 });
+
+Deno.test("perform-workflow-action: audit writes use approved RPC helpers", async () => {
+  const src = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+  if (/\.from\(["']audit_logs["']\)\.insert/.test(src)) {
+    throw new Error("perform-workflow-action must not insert directly into audit_logs");
+  }
+  if (!src.includes("logComplianceAudit") || !src.includes("logSecurityEvent")) {
+    throw new Error("perform-workflow-action must use shared audit helpers");
+  }
+});
