@@ -187,7 +187,7 @@ export default function PostLicenseForms() {
                     <TableHead>Sub-Sector</TableHead>
                     <TableHead>Form Name</TableHead>
                     <TableHead>Service</TableHead>
-                    <TableHead>Reusable</TableHead>
+                    {/* <TableHead>Reusable</TableHead> */}
                     <TableHead>Status</TableHead>
                     <TableHead>Created Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -195,18 +195,18 @@ export default function PostLicenseForms() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No form templates found.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No form templates found.</TableCell></TableRow>
                   ) : filtered.map((tpl) => (
                     <TableRow key={tpl.id}>
                       <TableCell>{tpl.sector_name || tpl.sector || '—'}</TableCell>
                       <TableCell>{tpl.sub_sector_name || tpl.sub_sector || '—'}</TableCell>
                       <TableCell className="font-medium">{tpl.name}</TableCell>
                       <TableCell>{tpl.service_name || tpl.service || '—'}</TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
                           {tpl.is_reusable ? 'Yes' : 'No'}
                         </Badge>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <Select value={tpl.status} onValueChange={(val) => requestStatusChange(tpl, val)}>
                           <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">

@@ -507,7 +507,7 @@ export default function FormManagement() {
                             <TableHead>Form Name</TableHead>
                             <TableHead>Service</TableHead>
                             {activeTab === 'returns' && <TableHead>Return Type</TableHead>}
-                            <TableHead>Reusable</TableHead>
+                            {/* <TableHead>Reusable</TableHead> */}
                             <TableHead>Status</TableHead>
                             <TableHead>Version</TableHead>
                             <TableHead>Created Date</TableHead>
@@ -516,7 +516,7 @@ export default function FormManagement() {
                         </TableHeader>
                         <TableBody>
                           {filtered.length === 0 ? (
-                            <TableRow><TableCell colSpan={activeTab === 'returns' ? 12 : 11} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={activeTab === 'returns' ? 11 : 10} className="text-center text-muted-foreground py-8">No {ft.label.toLowerCase()} form templates found.</TableCell></TableRow>
                           ) : filtered.map((tpl) => (
                             <TableRow key={tpl.id} className={selectedIds.has(tpl.id) ? 'bg-muted/50' : ''}>
                               <TableCell>
@@ -536,11 +536,11 @@ export default function FormManagement() {
                                   <span className="text-sm">{(tpl as any).return_type_name || '—'}</span>
                                 </TableCell>
                               )}
-                              <TableCell>
+                              {/* <TableCell>
                                 <Badge variant={tpl.is_reusable ? 'default' : 'secondary'} className="text-[10px]">
                                   {tpl.is_reusable ? 'Yes' : 'No'}
                                 </Badge>
-                              </TableCell>
+                              </TableCell> */}
                               <TableCell>
                                 <Select value={tpl.status} onValueChange={(val) => requestStatusChange(tpl, val)}>
                                   <SelectTrigger className="w-[130px] h-8 border-0 bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:ml-1">
