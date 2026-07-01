@@ -4165,9 +4165,51 @@ export type Database = {
           },
         ]
       }
+      prudential_ratio_versions: {
+        Row: {
+          display_format: string | null
+          effective_from: string
+          formula: string
+          id: string
+          published_at: string
+          published_by: string | null
+          ratio_id: string
+          version: number
+        }
+        Insert: {
+          display_format?: string | null
+          effective_from?: string
+          formula: string
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          ratio_id: string
+          version: number
+        }
+        Update: {
+          display_format?: string | null
+          effective_from?: string
+          formula?: string
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          ratio_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_ratio_versions_ratio_id_fkey"
+            columns: ["ratio_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_ratios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_ratios: {
         Row: {
           created_at: string
+          current_version: number
           display_format: string
           formula: string
           id: string
@@ -4180,6 +4222,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_version?: number
           display_format?: string
           formula: string
           id?: string
@@ -4192,6 +4235,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_version?: number
           display_format?: string
           formula?: string
           id?: string
@@ -4212,16 +4256,74 @@ export type Database = {
           },
         ]
       }
+      prudential_threshold_versions: {
+        Row: {
+          breach_value: number | null
+          comparator: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          published_at: string
+          published_by: string | null
+          threshold_id: string
+          unit: string | null
+          upper_value: number | null
+          version: number
+          warn_value: number | null
+        }
+        Insert: {
+          breach_value?: number | null
+          comparator: string
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          threshold_id: string
+          unit?: string | null
+          upper_value?: number | null
+          version: number
+          warn_value?: number | null
+        }
+        Update: {
+          breach_value?: number | null
+          comparator?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          published_at?: string
+          published_by?: string | null
+          threshold_id?: string
+          unit?: string | null
+          upper_value?: number | null
+          version?: number
+          warn_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_threshold_versions_threshold_id_fkey"
+            columns: ["threshold_id"]
+            isOneToOne: false
+            referencedRelation: "prudential_thresholds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prudential_thresholds: {
         Row: {
           breach_value: number | null
           comparator: string
           created_at: string
+          current_version: number
+          effective_from: string
+          effective_to: string | null
           id: string
           is_active: boolean
           label: string
           metric_key: string
           return_config_id: string
+          return_type_id: string | null
+          sector_id: string | null
           unit: string | null
           updated_at: string
           upper_value: number | null
@@ -4231,11 +4333,16 @@ export type Database = {
           breach_value?: number | null
           comparator: string
           created_at?: string
+          current_version?: number
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           label: string
           metric_key: string
           return_config_id: string
+          return_type_id?: string | null
+          sector_id?: string | null
           unit?: string | null
           updated_at?: string
           upper_value?: number | null
@@ -4245,11 +4352,16 @@ export type Database = {
           breach_value?: number | null
           comparator?: string
           created_at?: string
+          current_version?: number
+          effective_from?: string
+          effective_to?: string | null
           id?: string
           is_active?: boolean
           label?: string
           metric_key?: string
           return_config_id?: string
+          return_type_id?: string | null
+          sector_id?: string | null
           unit?: string | null
           updated_at?: string
           upper_value?: number | null
@@ -5661,9 +5773,11 @@ export type Database = {
           computed_at: string
           computed_by: string | null
           display_format: string | null
+          formula_snapshot: string | null
           id: string
           label: string | null
           ratio_key: string
+          ratio_version: number | null
           return_config_id: string | null
           return_id: string
           value: number | null
@@ -5672,9 +5786,11 @@ export type Database = {
           computed_at?: string
           computed_by?: string | null
           display_format?: string | null
+          formula_snapshot?: string | null
           id?: string
           label?: string | null
           ratio_key: string
+          ratio_version?: number | null
           return_config_id?: string | null
           return_id: string
           value?: number | null
@@ -5683,9 +5799,11 @@ export type Database = {
           computed_at?: string
           computed_by?: string | null
           display_format?: string | null
+          formula_snapshot?: string | null
           id?: string
           label?: string | null
           ratio_key?: string
+          ratio_version?: number | null
           return_config_id?: string | null
           return_id?: string
           value?: number | null
@@ -6357,7 +6475,9 @@ export type Database = {
           notified: boolean
           return_config_id: string | null
           return_id: string
+          risk_level: string | null
           threshold_value: number | null
+          threshold_version: number | null
           value: number | null
         }
         Insert: {
@@ -6369,7 +6489,9 @@ export type Database = {
           notified?: boolean
           return_config_id?: string | null
           return_id: string
+          risk_level?: string | null
           threshold_value?: number | null
+          threshold_version?: number | null
           value?: number | null
         }
         Update: {
@@ -6381,7 +6503,9 @@ export type Database = {
           notified?: boolean
           return_config_id?: string | null
           return_id?: string
+          risk_level?: string | null
           threshold_value?: number | null
+          threshold_version?: number | null
           value?: number | null
         }
         Relationships: []
@@ -6416,10 +6540,49 @@ export type Database = {
         }
         Relationships: []
       }
+      return_validation_rule_versions: {
+        Row: {
+          definition: Json
+          id: string
+          is_current: boolean
+          published_at: string
+          published_by: string | null
+          rule_id: string
+          version: number
+        }
+        Insert: {
+          definition: Json
+          id?: string
+          is_current?: boolean
+          published_at?: string
+          published_by?: string | null
+          rule_id: string
+          version: number
+        }
+        Update: {
+          definition?: Json
+          id?: string
+          is_current?: boolean
+          published_at?: string
+          published_by?: string | null
+          rule_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_validation_rule_versions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "return_validation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_validation_rules: {
         Row: {
           created_at: string
           created_by: string | null
+          current_version: number
           error_message: string
           expression: string
           field_refs: Json
@@ -6436,6 +6599,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          current_version?: number
           error_message: string
           expression: string
           field_refs?: Json
@@ -6452,6 +6616,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          current_version?: number
           error_message?: string
           expression?: string
           field_refs?: Json
@@ -6475,6 +6640,51 @@ export type Database = {
           },
         ]
       }
+      return_validation_run_log: {
+        Row: {
+          batch_id: string
+          context: string
+          executed_at: string
+          executed_by: string | null
+          id: string
+          message: string | null
+          passed: boolean
+          return_id: string
+          rule_id: string | null
+          rule_name: string | null
+          rule_version: number | null
+          severity: string
+        }
+        Insert: {
+          batch_id: string
+          context?: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          message?: string | null
+          passed: boolean
+          return_id: string
+          rule_id?: string | null
+          rule_name?: string | null
+          rule_version?: number | null
+          severity: string
+        }
+        Update: {
+          batch_id?: string
+          context?: string
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          message?: string | null
+          passed?: boolean
+          return_id?: string
+          rule_id?: string | null
+          rule_name?: string | null
+          rule_version?: number | null
+          severity?: string
+        }
+        Relationships: []
+      }
       returns_filed: {
         Row: {
           created_at: string
@@ -6483,6 +6693,7 @@ export type Database = {
           due_date: string | null
           entity_id: string | null
           id: string
+          latest_validation_batch_id: string | null
           on_behalf_of_licensee_id: string | null
           ontime_status:
             | Database["public"]["Enums"]["ontime_status_enum"]
@@ -6510,6 +6721,7 @@ export type Database = {
           due_date?: string | null
           entity_id?: string | null
           id?: string
+          latest_validation_batch_id?: string | null
           on_behalf_of_licensee_id?: string | null
           ontime_status?:
             | Database["public"]["Enums"]["ontime_status_enum"]
@@ -6537,6 +6749,7 @@ export type Database = {
           due_date?: string | null
           entity_id?: string | null
           id?: string
+          latest_validation_batch_id?: string | null
           on_behalf_of_licensee_id?: string | null
           ontime_status?:
             | Database["public"]["Enums"]["ontime_status_enum"]
@@ -7788,6 +8001,15 @@ export type Database = {
         Args: { p_email: string }
         Returns: boolean
       }
+      classify_ratio_risk: {
+        Args: {
+          _breach: number
+          _comparator: string
+          _value: number
+          _warn: number
+        }
+        Returns: string
+      }
       complete_or_get_application_payment: {
         Args: { _amount?: number; _application_id: string }
         Returns: Json
@@ -8260,6 +8482,10 @@ export type Database = {
         }
         Returns: string
       }
+      log_validation_run: {
+        Args: { _context?: string; _results: Json; _return_id: string }
+        Returns: string
+      }
       mark_application_in_progress: {
         Args: { _application_id: string }
         Returns: Json
@@ -8340,6 +8566,12 @@ export type Database = {
         Args: { _application_id: string }
         Returns: Json
       }
+      publish_prudential_ratio: { Args: { _ratio_id: string }; Returns: number }
+      publish_prudential_threshold: {
+        Args: { _effective_from?: string; _threshold_id: string }
+        Returns: number
+      }
+      publish_validation_rule: { Args: { _rule_id: string }; Returns: number }
       publish_workflow_version: {
         Args: { _notes?: string; _workflow_id: string }
         Returns: {
@@ -8415,6 +8647,40 @@ export type Database = {
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
+      }
+      resolve_effective_threshold: {
+        Args: {
+          _as_of?: string
+          _metric_key: string
+          _return_config_id: string
+          _return_type_id?: string
+          _sector_id?: string
+        }
+        Returns: {
+          breach_value: number | null
+          comparator: string
+          created_at: string
+          current_version: number
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string
+          return_config_id: string
+          return_type_id: string | null
+          sector_id: string | null
+          unit: string | null
+          updated_at: string
+          upper_value: number | null
+          warn_value: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "prudential_thresholds"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       resolve_license_action_form: {
         Args: {

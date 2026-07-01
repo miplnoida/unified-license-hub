@@ -10,12 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, History, UploadCloud } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
 import type { ValidationRule } from '@/lib/returnsValidation';
 import Swal from 'sweetalert2';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 function useReturnConfigurationOptions() {
   return useQuery({
@@ -37,10 +38,29 @@ const emptyRule: Partial<ValidationRule> = {
 export default function ManageValidations() {
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<ValidationRule> | null>(null);
+  const [historyRule, setHistoryRule] = useState<ValidationRule | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useReturnConfigurationOptions();
   const { data: rules = [], isLoading } = useValidationRules(selectedConfig);
   const upsert = useUpsertValidationRule();
   const del = useDeleteValidationRule();
+
+  const openHistory = async (r: ValidationRule) => {
+    setHistoryRule(r);
+    const { data } = await (supabase as any)
+      .from('return_validation_rule_versions')
+      .select('version,published_at,published_by,is_current,definition')
+      .eq('rule_id', r.id)
+      .order('version', { ascending: false });
+    setVersions(data ?? []);
+  };
+
+  const publish = async (r: ValidationRule) => {
+    const { error } = await (supabase as any).rpc('publish_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'New rule version published', timer: 1400, showConfirmButton: false });
+  };
+
 
   const columns = useMemo<Column<ValidationRule>[]>(() => [
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
@@ -53,13 +73,18 @@ export default function ManageValidations() {
     { key: 'is_active', label: 'Status', render: (r) => (
       <Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'active' : 'inactive'}</Badge>
     )},
+    { key: 'current_version', label: 'v', render: (r: any) => (
+      <Badge variant="outline">v{r.current_version ?? 1}</Badge>
+    )},
     { key: 'actions', label: '', render: (r) => (
       <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)}><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
           if (ok.isConfirmed) del.mutate(r.id);
-        }}><Trash2 className="h-4 w-4" /></Button>
+        }} title="Delete"><Trash2 className="h-4 w-4" /></Button>
       </div>
     )},
   ], [del]);
@@ -194,6 +219,25 @@ export default function ManageValidations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!historyRule} onOpenChange={(o) => !o && setHistoryRule(null)}>
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Version history — {historyRule?.name}</SheetTitle></SheetHeader>
+          <div className="mt-4 space-y-3">
+            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versions.map((v: any) => (
+              <div key={v.version} className="border rounded p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
+                  <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                </div>
+                <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
+                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }
