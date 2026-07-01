@@ -162,15 +162,44 @@ Deno.serve(async (req) => {
       batch_id = (batch as string) || null;
     } catch (_) { /* log optional */ }
 
-    // Compute ratios + persist with formula snapshot + version
-    const computed: Array<{ ratio_key: string; label: string; value: number | null; display_format: string; metric_key: string | null; version: number; formula: string }> = [];
+    // Compute ratios + persist with formula snapshot + version.
+    // Detect division-by-zero and missing inputs so we can persist a null_reason.
+    type Computed = { ratio_key: string; label: string; value: number | null; display_format: string; metric_key: string | null; version: number; formula: string; null_reason: string | null };
+    const computed: Computed[] = [];
     for (const r of ratios as any[]) {
+      let value: number | null = null;
+      let null_reason: string | null = null;
       try {
-        const v = safeArith(resolve(r.formula, data));
-        computed.push({ ratio_key: r.ratio_key, label: r.label, value: Number.isFinite(v) ? v : null, display_format: r.display_format, metric_key: r.metric_key, version: r.current_version ?? 1, formula: r.formula });
-      } catch {
-        computed.push({ ratio_key: r.ratio_key, label: r.label, value: null, display_format: r.display_format, metric_key: r.metric_key, version: r.current_version ?? 1, formula: r.formula });
+        const resolvedFormula = resolve(r.formula, data);
+        // Missing input detection: an operand resolved to "0" from a genuinely
+        // absent field is a distinct problem class. We treat any explicit
+        // undefined/null/"" on a referenced token as missing_input.
+        const tokens = String(r.formula).match(/([A-Za-z_][A-Za-z0-9_.-]*)/g) || [];
+        let hasMissing = false;
+        for (const tk of tokens) {
+          const [a, b] = tk.split(".");
+          const fid = b ? a : null; const key = b ?? a;
+          if (!fid && !b) continue;
+          const raw = fid ? data[fid]?.[key] : undefined;
+          if (raw === undefined || raw === null || raw === "") { hasMissing = true; break; }
+        }
+        // Division by zero detection: catch `/ 0` in the resolved formula.
+        if (/\/\s*0(?:\.0+)?\b/.test(resolvedFormula)) {
+          null_reason = "division_by_zero";
+        } else {
+          const v = safeArith(resolvedFormula);
+          if (Number.isFinite(v)) value = v;
+          else null_reason = "non_numeric";
+        }
+        if (value === null && !null_reason && hasMissing) null_reason = "missing_input";
+      } catch (_e) {
+        null_reason = "computation_error";
       }
+      computed.push({
+        ratio_key: r.ratio_key, label: r.label, value,
+        display_format: r.display_format, metric_key: r.metric_key,
+        version: r.current_version ?? 1, formula: r.formula, null_reason,
+      });
     }
     for (const c of computed) {
       await admin.rpc("record_return_ratio", {
@@ -179,12 +208,14 @@ Deno.serve(async (req) => {
       });
       try {
         await admin.from("return_calculated_ratios")
-          .update({ ratio_version: c.version, formula_snapshot: c.formula })
+          .update({ ratio_version: c.version, formula_snapshot: c.formula, null_reason: c.null_reason })
           .eq("return_id", return_id).eq("ratio_key", c.ratio_key);
       } catch (_) { /* enrichment optional */ }
     }
 
-    // Detect breaches with Green/Amber/Red classification
+    // Detect breaches with Green/Amber/Red classification.
+    // Supports comparators: <, >, <=, >=, =, between (warn range = warn_value..upper_value),
+    // and outside (breach when v < warn_value OR v > upper_value).
     const thByKey = new Map((thresholds as any[]).map((t) => [t.metric_key, t]));
     const breaches: Array<{ metric_key: string; level: "warn" | "breach"; risk_level: "amber" | "red"; value: number; threshold_value: number; comparator: string; threshold_version: number }> = [];
     for (const c of computed) {
@@ -194,10 +225,21 @@ Deno.serve(async (req) => {
       const v = c.value;
       const check = (limit: number | null) => {
         if (limit == null) return false;
-        if (t.comparator === ">=" || t.comparator === ">") return v >= limit;
-        if (t.comparator === "<=" || t.comparator === "<") return v <= limit;
-        if (t.comparator === "between") { if (t.upper_value == null) return false; return v < limit || v > t.upper_value; }
-        return false;
+        switch (t.comparator) {
+          case ">":  return v >  limit;
+          case ">=": return v >= limit;
+          case "<":  return v <  limit;
+          case "<=": return v <= limit;
+          case "=":
+          case "==": return v === limit;
+          case "between":
+            if (t.upper_value == null) return false;
+            return v < limit || v > t.upper_value;
+          case "outside":
+            if (t.upper_value == null) return false;
+            return v < limit || v > t.upper_value;
+          default:   return false;
+        }
       };
       if (check(t.breach_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "breach", risk_level: "red", value: v, threshold_value: t.breach_value, comparator: t.comparator, threshold_version: t.current_version ?? 1 });
       else if (check(t.warn_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "warn", risk_level: "amber", value: v, threshold_value: t.warn_value, comparator: t.comparator, threshold_version: t.current_version ?? 1 });
