@@ -38,10 +38,29 @@ const emptyRule: Partial<ValidationRule> = {
 export default function ManageValidations() {
   const [selectedConfig, setSelectedConfig] = useState<string | undefined>();
   const [editing, setEditing] = useState<Partial<ValidationRule> | null>(null);
+  const [historyRule, setHistoryRule] = useState<ValidationRule | null>(null);
+  const [versions, setVersions] = useState<any[]>([]);
   const { data: configs = [] } = useReturnConfigurationOptions();
   const { data: rules = [], isLoading } = useValidationRules(selectedConfig);
   const upsert = useUpsertValidationRule();
   const del = useDeleteValidationRule();
+
+  const openHistory = async (r: ValidationRule) => {
+    setHistoryRule(r);
+    const { data } = await (supabase as any)
+      .from('return_validation_rule_versions')
+      .select('version,published_at,published_by,is_current,definition')
+      .eq('rule_id', r.id)
+      .order('version', { ascending: false });
+    setVersions(data ?? []);
+  };
+
+  const publish = async (r: ValidationRule) => {
+    const { error } = await (supabase as any).rpc('publish_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'New rule version published', timer: 1400, showConfirmButton: false });
+  };
+
 
   const columns = useMemo<Column<ValidationRule>[]>(() => [
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
