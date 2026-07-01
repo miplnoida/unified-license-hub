@@ -264,7 +264,17 @@ export default function FillReturnPage() {
   }, []);
 
   const handleSave = useCallback(async (auto = false) => {
-    if (!id || saving) return;
+    if (import.meta.env.DEV) {
+      console.debug('[FillReturn] save click', { id, saving, forms: Object.keys(allData).length, auto });
+    }
+    if (!id) {
+      if (!auto) toast.error('Return id missing — reload the page and try again.');
+      return;
+    }
+    if (saving) {
+      if (!auto) toast.message('A save is already in progress...');
+      return;
+    }
     setSaving(true);
     try {
       for (const [formId, dataMap] of Object.entries(allData)) {
@@ -287,10 +297,12 @@ export default function FillReturnPage() {
       setLastSaved(new Date());
       if (!auto) toast.success('Draft saved');
     } catch (e: any) {
-      toast.error(e.message);
+      console.error('[FillReturn] save failed', e);
+      toast.error(e?.message || 'Failed to save draft');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-  }, [id, allData, returnData, saving]);
+  }, [id, allData, returnData, saving, versionByForm, saveFormData, updateReturn, insertAudit, user?.id]);
 
   const handleSubmit = async (ackText?: string) => {
     if (submitting) return;
