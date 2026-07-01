@@ -82,6 +82,7 @@ export const dashboardRoutes = (
 
     <Route path="/returns-management" element={<M module="returns_management"><ViewReturns /></M>} />
     <Route path="/returns-management/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
+    <Route path="/returns-management/:id/analysis" element={<M module="returns_management"><ReturnAnalysis /></M>} />
 
     <Route path="/compliance/returns" element={<EP area="returns" capability="can_view_status"><ComplianceReturns /></EP>} />
     <Route path="/compliance/returns/submit" element={<EP area="returns" capability="can_submit_returns"><ReturnSubmission /></EP>} />
