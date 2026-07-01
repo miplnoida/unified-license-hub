@@ -147,9 +147,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
+    if (error) {
+      // Log failed sign-in as a security event (best-effort).
+      logSecurityEvent('AUTH_FAILED', { target_resource: 'auth.session', detail: { email, message: error.message } }).catch(() => {});
+      return { error: error.message };
+    }
     const authUserId = data.user?.id;
     if (!authUserId) return { requires2FA: false };
+
+    // Fire-and-forget audit of successful login.
+    logLogin(email).catch(() => {});
 
     const [{ data: profile }, { data: preProfile }] = await Promise.all([
       supabase.from('profiles').select('two_factor_enabled').eq('id', authUserId).maybeSingle(),
