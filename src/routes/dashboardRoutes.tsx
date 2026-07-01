@@ -31,6 +31,7 @@ const ReportsDashboard = lazy(() => import('@/pages/reports/ReportsDashboard'));
 const FormDetail = lazy(() => import('@/pages/FormDetail'));
 const ViewReturns = lazy(() => import('@/pages/returns-mgmt/ViewReturns'));
 const ReturnDetail = lazy(() => import('@/pages/returns-mgmt/ReturnDetail'));
+const ReturnAnalysis = lazy(() => import('@/pages/returns-mgmt/ReturnAnalysis'));
 const Profile = lazy(() => import('@/pages/Profile'));
 const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
