@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session } from '@supabase/supabase-js';
 import { PlatformUser } from '@/types/platform';
 import { fetchPlatformUser } from '@/lib/authHelpers';
+import { logLogin, logLogout, logSecurityEvent } from '@/lib/complianceAudit';
 
 export type MfaStatus = 'not_required' | 'pending' | 'verified';
 
