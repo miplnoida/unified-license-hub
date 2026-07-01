@@ -54,7 +54,6 @@ export default function CreateReturnPage() {
   const selectedConfig = configs.find(c => c.id === configId);
   const typeName = selectedConfig?.return_types?.name || '';
 
-  const activeConfigs = configs.filter(c => c.status === 'active');
   const selectedLicenseeName = mappedLicensees.find(l => l.licensee_id === selectedLicenseeId)?.licensee_name;
   // Resolve the entity to file the return for:
   //   - acting as PPOC → the mapped licensee
@@ -62,6 +61,39 @@ export default function CreateReturnPage() {
   const effectiveLicenseeId = isActingAsPpoc
     ? selectedLicenseeId
     : (selectedLicenseeId || ownLicenseeId || profile?.licensee_id || null);
+
+  // Load the effective licensee's sector/sub-sector so we can scope the
+  // configuration dropdown to only those relevant to this entity.
+  const { data: licenseeScope } = useQuery({
+    queryKey: ['licensee_scope', effectiveLicenseeId],
+    enabled: !!effectiveLicenseeId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('licensees')
+        .select('sector_id, sub_sector_id')
+        .eq('id', effectiveLicenseeId!)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const activeConfigs = configs.filter(c => {
+    if (c.status !== 'active') return false;
+    if (!licenseeScope) return false;
+    if (c.sector_id && c.sector_id !== licenseeScope.sector_id) return false;
+    if ((c as any).subsector_id && (c as any).subsector_id !== licenseeScope.sub_sector_id) return false;
+    return true;
+  });
+
+  // If the previously selected config is no longer available (e.g. after
+  // switching licensee via the header), clear the selection & period.
+  useEffect(() => {
+    if (configId && !activeConfigs.find(c => c.id === configId)) {
+      setConfigId('');
+      setPeriod('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveLicenseeId, licenseeScope?.sector_id, licenseeScope?.sub_sector_id]);
 
   const periodOptions = useMemo(() => {
     if (typeName === 'Annual') return ['Annual'];
@@ -234,10 +266,10 @@ export default function CreateReturnPage() {
 
                 {activeConfigs.length === 0 ? (
                   <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
-                    <p className="font-medium">No return form is currently configured.</p>
+                    <p className="font-medium">No return form is currently configured for your sector.</p>
                     <p className="mt-1 text-amber-800">
                       An admin must configure a return form (Sector, Sub-Sector and Return Type) from
-                      <strong> Admin → Form Management → Returns </strong> and link it to a return configuration before you can file a return.
+                      <strong> Admin → Form Management → Returns </strong> and link it to a return configuration matching your entity's sector before you can file a return.
                     </p>
                   </div>
                 ) : (
