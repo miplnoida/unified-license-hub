@@ -7104,6 +7104,7 @@ export type Database = {
           object_type: string | null
           occurred_at: string | null
           source: string | null
+          user_agent: string | null
           user_id: string | null
         }
         Relationships: []
