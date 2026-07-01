@@ -297,11 +297,14 @@ Deno.serve(async (req) => {
     }
 
     // Generate the consolidated analysis row (best-effort — never fails the evaluator).
-    try {
-      await admin.functions.invoke("generate-return-analysis", {
-        body: { return_id, compute_ai_summary: true },
-      });
-    } catch (_) { /* analysis is optional in the evaluator response */ }
+    // Only run on the authoritative post-submit pass (skip pre-submit gating calls).
+    if (dispatch_notifications) {
+      try {
+        await admin.functions.invoke("generate-return-analysis", {
+          body: { return_id, compute_ai_summary: true },
+        });
+      } catch (_) { /* analysis is optional in the evaluator response */ }
+    }
 
     return new Response(JSON.stringify({
       ok: true,
