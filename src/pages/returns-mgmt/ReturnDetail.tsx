@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import { resolveReturnWorkflow } from '@/lib/returnWorkflowResolver';
 import { ReturnWorkflowPanel } from '@/components/returns/ReturnWorkflowPanel';
+import { ReturnValidationAndRatiosPanel } from '@/components/returns/ReturnValidationAndRatiosPanel';
 import { useWorkflowInstances } from '@/hooks/useWorkflowEngine';
 import {
   logReturnActivity,
@@ -533,6 +534,13 @@ export default function ReturnDetail() {
                 )}
               </CardContent>
             </Card>
+
+            <ReturnValidationAndRatiosPanel
+              returnId={returnData.id}
+              returnConfigId={returnData.return_configuration_id}
+              formData={valuesByForm}
+            />
+
 
             {workflowEnabled ? (
               <ReturnWorkflowPanel

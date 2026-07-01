@@ -42,6 +42,10 @@ const LateFeesPage = lazy(() => import('@/pages/admin/returns/LateFeesPage'));
 const NotifTemplatesPage = lazy(() => import('@/pages/admin/returns/NotifTemplatesPage'));
 const NotifLogPage = lazy(() => import('@/pages/admin/returns/NotifLogPage'));
 const ScheduleCalendarPage = lazy(() => import('@/pages/admin/returns/ScheduleCalendarPage'));
+const ManageValidations = lazy(() => import('@/pages/returns-mgmt/ManageValidations'));
+const PrudentialThresholds = lazy(() => import('@/pages/returns-mgmt/PrudentialThresholds'));
+const PrudentialRatios = lazy(() => import('@/pages/returns-mgmt/PrudentialRatios'));
+const PrudentialAnalytics = lazy(() => import('@/pages/returns-mgmt/PrudentialAnalytics'));
 
 function A({ children }: { children: React.ReactNode }) {
   return <P><AdminRoute>{children}</AdminRoute></P>;
@@ -104,5 +108,9 @@ export const adminRoutes = (
     <Route path="/admin/returns/notifications/templates" element={<M module="returns_management"><NotifTemplatesPage /></M>} />
     <Route path="/admin/returns/notifications/log" element={<M module="returns_management"><NotifLogPage /></M>} />
     <Route path="/admin/returns/schedule" element={<M module="returns_management"><ScheduleCalendarPage /></M>} />
+    <Route path="/admin/returns/validations" element={<M module="returns_management"><ManageValidations /></M>} />
+    <Route path="/admin/returns/prudential/thresholds" element={<M module="returns_management"><PrudentialThresholds /></M>} />
+    <Route path="/admin/returns/prudential/ratios" element={<M module="returns_management"><PrudentialRatios /></M>} />
+    <Route path="/admin/returns/prudential/analytics" element={<M module="returns_management"><PrudentialAnalytics /></M>} />
   </>
 );

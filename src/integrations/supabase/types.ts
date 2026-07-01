@@ -4165,6 +4165,106 @@ export type Database = {
           },
         ]
       }
+      prudential_ratios: {
+        Row: {
+          created_at: string
+          display_format: string
+          formula: string
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string | null
+          ratio_key: string
+          return_config_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_format?: string
+          formula: string
+          id?: string
+          is_active?: boolean
+          label: string
+          metric_key?: string | null
+          ratio_key: string
+          return_config_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_format?: string
+          formula?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          metric_key?: string | null
+          ratio_key?: string
+          return_config_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_ratios_return_config_id_fkey"
+            columns: ["return_config_id"]
+            isOneToOne: false
+            referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prudential_thresholds: {
+        Row: {
+          breach_value: number | null
+          comparator: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          metric_key: string
+          return_config_id: string
+          unit: string | null
+          updated_at: string
+          upper_value: number | null
+          warn_value: number | null
+        }
+        Insert: {
+          breach_value?: number | null
+          comparator: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          metric_key: string
+          return_config_id: string
+          unit?: string | null
+          updated_at?: string
+          upper_value?: number | null
+          warn_value?: number | null
+        }
+        Update: {
+          breach_value?: number | null
+          comparator?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          metric_key?: string
+          return_config_id?: string
+          unit?: string | null
+          updated_at?: string
+          upper_value?: number | null
+          warn_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prudential_thresholds_return_config_id_fkey"
+            columns: ["return_config_id"]
+            isOneToOne: false
+            referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           amount: number
@@ -5556,6 +5656,42 @@ export type Database = {
           },
         ]
       }
+      return_calculated_ratios: {
+        Row: {
+          computed_at: string
+          computed_by: string | null
+          display_format: string | null
+          id: string
+          label: string | null
+          ratio_key: string
+          return_config_id: string | null
+          return_id: string
+          value: number | null
+        }
+        Insert: {
+          computed_at?: string
+          computed_by?: string | null
+          display_format?: string | null
+          id?: string
+          label?: string | null
+          ratio_key: string
+          return_config_id?: string | null
+          return_id: string
+          value?: number | null
+        }
+        Update: {
+          computed_at?: string
+          computed_by?: string | null
+          display_format?: string | null
+          id?: string
+          label?: string | null
+          ratio_key?: string
+          return_config_id?: string | null
+          return_id?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
       return_comments: {
         Row: {
           comment_text: string
@@ -6211,6 +6347,45 @@ export type Database = {
           },
         ]
       }
+      return_threshold_breaches: {
+        Row: {
+          comparator: string | null
+          detected_at: string
+          id: string
+          level: string
+          metric_key: string
+          notified: boolean
+          return_config_id: string | null
+          return_id: string
+          threshold_value: number | null
+          value: number | null
+        }
+        Insert: {
+          comparator?: string | null
+          detected_at?: string
+          id?: string
+          level: string
+          metric_key: string
+          notified?: boolean
+          return_config_id?: string | null
+          return_id: string
+          threshold_value?: number | null
+          value?: number | null
+        }
+        Update: {
+          comparator?: string | null
+          detected_at?: string
+          id?: string
+          level?: string
+          metric_key?: string
+          notified?: boolean
+          return_config_id?: string | null
+          return_id?: string
+          threshold_value?: number | null
+          value?: number | null
+        }
+        Relationships: []
+      }
       return_types: {
         Row: {
           code: string
@@ -6240,6 +6415,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      return_validation_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string
+          expression: string
+          field_refs: Json
+          form_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          return_config_id: string
+          rule_type: string
+          scope: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message: string
+          expression: string
+          field_refs?: Json
+          form_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          return_config_id: string
+          rule_type: string
+          scope: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string
+          expression?: string
+          field_refs?: Json
+          form_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          return_config_id?: string
+          rule_type?: string
+          scope?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "return_validation_rules_return_config_id_fkey"
+            columns: ["return_config_id"]
+            isOneToOne: false
+            referencedRelation: "return_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       returns_filed: {
         Row: {
@@ -7631,6 +7865,10 @@ export type Database = {
         Returns: Json
       }
       delete_ppoc_mapping: { Args: { _mapping_id: string }; Returns: Json }
+      evaluate_return_validations: {
+        Args: { _form_data?: Json; _return_id: string }
+        Returns: Json
+      }
       expire_delegation_rules: { Args: never; Returns: number }
       external_can_access_application: {
         Args: { _application_id: string; _capability: string; _user_id: string }
@@ -8031,6 +8269,10 @@ export type Database = {
         Args: { _role: string }
         Returns: string[]
       }
+      peer_ratio_snapshot: {
+        Args: { _period_end: string; _ratio_key: string; _sector_id?: string }
+        Returns: Json
+      }
       perform_final_workflow_approval: {
         Args: {
           _actor_id: string
@@ -8117,6 +8359,29 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      recompute_return_ratios: { Args: { _return_id: string }; Returns: Json }
+      record_return_breach: {
+        Args: {
+          _comparator: string
+          _level: string
+          _metric_key: string
+          _return_id: string
+          _threshold_value: number
+          _value: number
+        }
+        Returns: string
+      }
+      record_return_ratio: {
+        Args: {
+          _computed_by?: string
+          _display_format: string
+          _label: string
+          _ratio_key: string
+          _return_id: string
+          _value: number
+        }
+        Returns: string
       }
       reject_application_action: {
         Args: { _application_id: string; _comments: string }

@@ -1,69 +1,110 @@
-## Problem found
 
-The audit data exists, but the admin page is not showing the complete trail:
+# Prudential Returns — Completion Plan
 
-- `compliance_audit_logs`: 3 rows
-- `security_event_logs`: 3 rows
-- `audit_logs`: 551 legacy rows
-- `audit_timeline`: correctly merges all 557 rows
+Extend the existing Returns module without redesigning. All changes are additive: new tables, new components mounted inside existing pages, and new notification event keys wired into the existing dispatcher.
 
-The current `/admin/compliance-audit-logs` page reads only `compliance_audit_logs`, so it hides the 551 older legacy rows. Also, some server-side functions still write directly to `audit_logs`; because direct audit table inserts were revoked from user roles and the hardening relies on RPCs/triggers, those writes need to be routed through the approved audit functions or bridged safely.
+## 1. Configurable Validation Rules (business + cross-field)
 
-## Implementation plan
+Replace the current mock `ManageValidations.tsx` with a real CRUD backed by a new table.
 
-1. **Bridge the audit UI to the unified timeline**
-   - Update `/admin/compliance-audit-logs` to read from `audit_timeline` instead of only `compliance_audit_logs`.
-   - Keep all existing tabs and filters, but make “All Entries” include legacy, compliance, and security sources.
-   - Add a source column/badge so admins can see whether a row came from `legacy`, `compliance`, or `security`.
-   - Keep `/admin/audit-logs` working for backward compatibility.
+**New table** `return_validation_rules`
+- return_config_id, form_id (nullable = cross-form), scope (`field` | `cross_field` | `cross_form`)
+- rule_type (`range` | `comparison` | `pattern` | `expression` | `required_if`)
+- expression (safe-eval string reusing `src/lib/safeEval.ts`)
+- severity (`error` | `warning`), error_message, field_refs jsonb, is_active
+- Grants + RLS: admins manage, entity users evaluate via RPC only.
 
-2. **Preserve old activity records visibly**
-   - Ensure the current admin audit screen shows the 551 existing `audit_logs` rows through `audit_timeline`.
-   - Ensure case/object filters work across both legacy `entity_type/entity_id` and new `object_type/object_id` columns via the unified view.
+**Evaluator** `src/lib/returnsValidation.ts`
+- `evaluateReturn(returnId, formData): { errors, warnings }[]` using existing `safeEval` for expressions and referencing fields via `formId.fieldKey` tokens.
+- Called from `FillReturnPage` on Save/Next and from `verify-and-submit` edge function server-side (authoritative).
 
-3. **Fix audit creation paths**
-   - Replace direct server-side inserts into `audit_logs` in edge functions with the approved audit RPCs/shared helper.
-   - At minimum patch the currently confirmed direct writers:
-     - `perform-workflow-action`
-     - `perform-license-action`
-   - Add/adjust a shared function audit helper so future edge functions log through `log_compliance_audit` / `log_security_event` consistently.
+## 2. Validation Result Panel
 
-4. **Database permission repair**
-   - Add a migration to clean up audit RPC grants:
-     - remove public/anonymous execute access from `log_compliance_audit` and `log_security_event`
-     - keep execute access for authenticated users and service role
-   - Keep audit tables append-only: no authenticated update/delete, immutability triggers stay in place.
-   - If needed, add a compatibility RPC for server-side legacy activity events that inserts into `audit_logs` without reopening direct table inserts.
+New `src/components/returns/ValidationResultPanel.tsx`
+- Grouped errors/warnings; each row has a "Go to field" button that switches the FillReturn tab and scrolls/focuses the field via existing `FormRenderer` field ids.
+- Mounted inside `FillReturnPage` (side panel, collapsible) and `ReturnReviewPanel` (blocks submission when errors > 0).
 
-5. **Tests**
-   - Update/add frontend tests proving `ComplianceAuditLogs` queries `audit_timeline` and can render mixed legacy/compliance/security rows.
-   - Add edge/helper tests proving workflow/license actions use audit RPCs rather than direct audit table inserts.
-   - Extend audit RPC tests for permission expectations and unified export logging.
+## 3. Supervisor Validation Summary
 
-6. **Verification**
-   - Query the backend to confirm `audit_timeline` returns legacy + compliance + security counts.
-   - Verify the preview route `/admin/compliance-audit-logs` loads old records.
-   - Run targeted audit tests.
-   - Run the full test suite if feasible.
-   - Run a production build/typecheck through the normal harness.
+Add a `ValidationSummaryCard` to `pages/returns-mgmt/ReturnDetail.tsx` showing:
+- Last validation run, error/warning counts, rule breakdown, override history.
+- Uses same evaluator over stored `return_form_data`.
 
-## Final report after implementation
+## 4. Configurable Prudential Thresholds
 
-I will report:
+**New table** `prudential_thresholds`
+- return_config_id, metric_key, label, comparator (`>=` | `<=` | `between`), warn_value, breach_value, unit, is_active.
+- Admin UI: new tab `PrudentialThresholds.tsx` under `returns-mgmt` reusing `DataTableShell` + dialog patterns from `ManageValidations`.
 
-- Files changed
-- Database objects added/updated
-- RPCs updated
-- Triggers affected
-- Tables/views modified
-- Edge functions updated
-- Frontend components updated
-- Tests added/executed
-- Test results
-- Build result
-- Remaining issues
-- Audit Coverage (%)
-- Security Coverage (%)
-- Production Ready: YES/NO
+## 5. Automatic Ratio Calculations
 
-Production Ready will be marked **NO** unless implementation and verification both pass.
+**New table** `prudential_ratios`
+- return_config_id, ratio_key, label, formula (safe-eval expression over field tokens), display_format.
+- Evaluated by `src/lib/returnsRatios.ts` at submit-time and on-demand in ReturnDetail.
+- Results persisted to new `return_calculated_ratios` (return_id, ratio_key, value, computed_at) — write via SECURITY DEFINER RPC `recompute_return_ratios(return_id)` invoked by `verify-and-submit` and by supervisor "Recompute" button.
+
+## 6. Threshold Breach Detection & Alerts
+
+- After ratio computation, compare each ratio to matching threshold; insert rows into new `return_threshold_breaches` (return_id, metric_key, level `warn`|`breach`, value, threshold, detected_at).
+- Reuse existing `log_compliance_audit_as_actor` to record `THRESHOLD_BREACH` events.
+- Fire notification events `return.breach_warning` / `return.breach_critical`.
+
+## 7. Trend & Peer Comparison Analytics
+
+- New page `pages/returns-mgmt/PrudentialAnalytics.tsx` with two Recharts panels (reusing existing chart patterns):
+  - **Trend**: ratio value over historical returns for a licensee.
+  - **Peer**: same ratio across licensees in the same sector/sub-sector for the current period (aggregated via a SECURITY DEFINER RPC `peer_ratio_snapshot(period_end, ratio_key, sector_id)` returning min/median/p90/max + caller value).
+- Linked from ReturnDetail and Regulator dashboard.
+
+## 8. Enhanced Version History & Audit Trail
+
+- Extend `return_form_versions` usage: on every submit/resubmit snapshot `return_form_data` + computed ratios; add diff view in ReturnDetail reusing `src/lib/formDiff.ts`.
+- All state changes already write to `compliance_audit_logs`; add explicit events: `RETURN_VALIDATED`, `RATIOS_COMPUTED`, `THRESHOLD_BREACH`, `VERSION_SNAPSHOT`, `VALIDATION_OVERRIDDEN` (justification ≥10 chars via existing `OverrideJustificationDialog`).
+- Timeline tab in ReturnDetail queries `audit_timeline` view filtered to the return.
+
+## 9. Notifications
+
+Register new event keys in `notification_event_configs` and templates in `return_notification_templates`:
+- `return.validation_failed`, `return.validation_passed`
+- `return.submitted`, `return.approved`, `return.rejected` (wire missing ones)
+- `return.overdue` (daily job in existing `run-scheduled-reports` / new cron on `compliance_returns` where `due_date < now() AND status IN ('pending','draft')`)
+- `return.breach_warning`, `return.breach_critical`
+
+All dispatched via existing `dispatch-notification-event` from server-side (edge functions and cron), never client-only.
+
+## Technical details
+
+**Migrations (single batch)**
+1. `return_validation_rules`, `prudential_thresholds`, `prudential_ratios`, `return_calculated_ratios`, `return_threshold_breaches` — each with GRANT + RLS (admins full; authenticated SELECT scoped through existing licensee visibility helpers).
+2. RPCs (SECURITY DEFINER, `search_path = public`):
+   - `evaluate_return_validations(_return_id uuid)`
+   - `recompute_return_ratios(_return_id uuid)`
+   - `peer_ratio_snapshot(_period_end date, _ratio_key text, _sector_id uuid)`
+3. Immutability trigger reused from existing audit pattern for `return_calculated_ratios` and `return_threshold_breaches` (no UPDATE/DELETE by non-service roles).
+
+**Edge functions**
+- `verify-and-submit`: after workflow transition, call `evaluate_return_validations` (block on errors), then `recompute_return_ratios`, then dispatch notifications for pass/fail + any breaches.
+- New cron caller (`overdue-returns-sweep`) scheduled via pg_cron using existing notification pattern.
+
+**Frontend**
+- `ManageValidations.tsx`: replace mock data with real hooks (`useReturnValidationRules`).
+- New pages: `PrudentialThresholds.tsx`, `PrudentialRatios.tsx`, `PrudentialAnalytics.tsx` under `returns-mgmt`.
+- New components: `ValidationResultPanel`, `ValidationSummaryCard`, `RatioBreachBadges`, `RatioTrendChart`, `PeerComparisonChart`.
+- Wire into: `FillReturnPage`, `ReturnReviewPanel`, `ReturnDetail`, admin sidebar (existing `navigation.tsx`).
+
+**Tests (Vitest)**
+- `returnsValidation.test.ts` — expression evaluator + severity gating.
+- `returnsRatios.test.ts` — formula parsing + persistence.
+- `thresholdBreach.test.ts` — comparator logic + notification dispatch call.
+- `overdueReturnsSweep.test.ts` — SQL selection window.
+- `validationResultPanel.test.tsx` — navigation-to-field behavior.
+- Extend `auditSourceCoverage.test.ts` with new event types.
+
+**Non-goals / preserved**
+- No changes to existing workflow engine, RBAC, or form builder internals.
+- No schema changes to `compliance_returns`, `returns_filed`, `return_form_data`, `return_form_versions` beyond additive relations.
+- Existing tests continue to pass; new features are gated behind admin-configured rows so unconfigured returns behave exactly as today.
+
+## Deliverable
+
+Working, migration-backed, server-enforced prudential returns layer with UI parity to existing admin patterns and full notification + audit coverage. All new tables carry GRANT + RLS in the same migration; all evaluators run server-side authoritatively with client mirrors for UX only.
