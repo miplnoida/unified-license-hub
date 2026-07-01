@@ -1108,11 +1108,16 @@ export function useUpdateTemplateStatus() {
       // Best-effort: announce upcoming version if it's scheduled for the future.
       try { await notifyUpcomingVersionIfNeeded(newVid); } catch (_) { /* non-blocking */ }
     },
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
+      if (variables?.status === 'published') {
+        try { await ensureReturnConfigForTemplate(variables.id); } catch (_) { /* non-blocking */ }
+      }
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
       queryClient.invalidateQueries({ queryKey: ['form_fields'] });
       queryClient.invalidateQueries({ queryKey: ['field_conditions'] });
+      queryClient.invalidateQueries({ queryKey: ['return_configs'] });
+      queryClient.invalidateQueries({ queryKey: ['return_config_forms'] });
     },
   });
 }
