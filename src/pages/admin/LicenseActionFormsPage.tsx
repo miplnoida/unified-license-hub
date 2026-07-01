@@ -184,9 +184,8 @@ export default function LicenseActionFormsPage() {
         sectors={sectors as any[]}
         subSectors={subSectors as any[]}
         categories={categories as any[]}
-        regulators={regulators as any[]}
         onClose={() => { setEditing(null); setCreating(false); }}
-        onSave={(v) => saveMutation.mutate({ ...v, id: editing?.id })}
+        onSave={(v) => saveMutation.mutate({ ...v, id: editing?.id, regulator_id: activeRegulatorId })}
         saving={saveMutation.isPending}
       />
     </DashboardLayout>
