@@ -26,20 +26,24 @@ export async function logComplianceAudit(
     metadata?: Record<string, unknown> | null;
   },
 ): Promise<void> {
-  const { error } = await client.rpc('log_compliance_audit_as_actor', {
-    _actor_id: args.actorId,
-    _action_type: args.actionType,
-    _object_type: args.objectType,
-    _object_id: args.objectId ?? null,
-    _before_value: args.beforeValue ?? null,
-    _after_value: args.afterValue ?? null,
-    _justification: args.justification ?? null,
-    _ai_model_version: args.aiModelVersion ?? null,
-    _ip_address: args.ipAddress ?? null,
-    _user_agent: args.userAgent ?? null,
-    _metadata: bestEffortMetadata(args.metadata),
-  });
-  if (error) console.warn('[audit] compliance audit failed:', error.message ?? error);
+  try {
+    const { error } = await client.rpc('log_compliance_audit_as_actor', {
+      _actor_id: args.actorId,
+      _action_type: args.actionType,
+      _object_type: args.objectType,
+      _object_id: args.objectId ?? null,
+      _before_value: args.beforeValue ?? null,
+      _after_value: args.afterValue ?? null,
+      _justification: args.justification ?? null,
+      _ai_model_version: args.aiModelVersion ?? null,
+      _ip_address: args.ipAddress ?? null,
+      _user_agent: args.userAgent ?? null,
+      _metadata: bestEffortMetadata(args.metadata),
+    });
+    if (error) console.warn('[audit] compliance audit failed:', error.message ?? error);
+  } catch (error) {
+    console.warn('[audit] compliance audit failed:', error);
+  }
 }
 
 export async function logSecurityEvent(
@@ -54,14 +58,18 @@ export async function logSecurityEvent(
     metadata?: Record<string, unknown> | null;
   },
 ): Promise<void> {
-  const { error } = await client.rpc('log_security_event_as_actor', {
-    _actor_id: args.actorId,
-    _event_type: args.eventType,
-    _target_resource: args.targetResource ?? null,
-    _ip_address: args.ipAddress ?? null,
-    _user_agent: args.userAgent ?? null,
-    _detail: args.detail ?? null,
-    _metadata: bestEffortMetadata(args.metadata),
-  });
-  if (error) console.warn('[audit] security event failed:', error.message ?? error);
+  try {
+    const { error } = await client.rpc('log_security_event_as_actor', {
+      _actor_id: args.actorId,
+      _event_type: args.eventType,
+      _target_resource: args.targetResource ?? null,
+      _ip_address: args.ipAddress ?? null,
+      _user_agent: args.userAgent ?? null,
+      _detail: args.detail ?? null,
+      _metadata: bestEffortMetadata(args.metadata),
+    });
+    if (error) console.warn('[audit] security event failed:', error.message ?? error);
+  } catch (error) {
+    console.warn('[audit] security event failed:', error);
+  }
 }
