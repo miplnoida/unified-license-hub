@@ -1,5 +1,5 @@
 type RpcClient = {
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data?: unknown; error?: { message?: string } | null }>;
+  rpc: (fn: string, args?: Record<string, unknown>) => any;
 };
 
 function bestEffortMetadata(metadata?: Record<string, unknown> | null): Record<string, unknown> {
