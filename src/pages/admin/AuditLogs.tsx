@@ -19,6 +19,7 @@ import {
 interface AuditLog {
   id: string;
   user_id: string | null;
+  user_role: string | null;
   action: string;
   entity_type: string;
   entity_id: string | null;
@@ -193,6 +194,7 @@ export default function AuditLogs() {
                       <TableHead>Action</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead className="text-right">Details</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -209,6 +211,9 @@ export default function AuditLogs() {
                           </TableCell>
                           <TableCell>{renderEntityLink(log)}</TableCell>
                           <TableCell className="text-sm">{log.user_email}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {log.user_role ? <Badge variant="secondary">{log.user_role}</Badge> : '—'}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm">View</Button>
                           </TableCell>
@@ -217,7 +222,7 @@ export default function AuditLogs() {
                     })}
                     {filtered.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
                           No audit logs found
                         </TableCell>
                       </TableRow>
@@ -257,6 +262,8 @@ export default function AuditLogs() {
                     <div className="col-span-2">{new Date(selected.created_at).toLocaleString()}</div>
                     <div className="text-muted-foreground">Actor</div>
                     <div className="col-span-2">{selected.user_email || 'System'}</div>
+                    <div className="text-muted-foreground">Role</div>
+                    <div className="col-span-2">{selected.user_role || '—'}</div>
                     <div className="text-muted-foreground">Entity</div>
                     <div className="col-span-2">{renderEntityLink(selected)}</div>
                     {selected.metadata?.application_number && (
