@@ -305,7 +305,17 @@ export default function FillReturnPage() {
   }, [id, allData, returnData, saving, versionByForm, saveFormData, updateReturn, insertAudit, user?.id]);
 
   const handleSubmit = async (ackText?: string) => {
-    if (submitting) return;
+    if (import.meta.env.DEV) {
+      console.debug('[FillReturn] submit click', { id, submitting, status: returnData?.workflow_status });
+    }
+    if (submitting) {
+      toast.message('Submission already in progress...');
+      return;
+    }
+    if (!id) {
+      toast.error('Return id missing — reload the page and try again.');
+      return;
+    }
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
@@ -315,7 +325,14 @@ export default function FillReturnPage() {
       // Server-verified authorization for the licensee/sector on this return.
       const targetLicenseeId = (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null;
       const targetSectorId = (returnData as any)?.sector_id || null;
-      const authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+      let authorized = false;
+      try {
+        authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+      } catch (err: any) {
+        console.error('[FillReturn] access guard threw', err);
+        toast.error(`Authorization check failed: ${err?.message || 'unknown error'}`);
+        return;
+      }
       if (!authorized) {
         toast.error('You are not authorized to submit this return.');
         return;
