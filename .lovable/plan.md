@@ -1,10 +1,21 @@
-## Why it's missing
-The Returns tab in Admin > Form Management filters `form_templates` by `form_type = 'returns'`. The earlier seed inserted "Balance Sheet Return" with `form_type = 'post_license'`, so it is currently listed under Post-License Forms instead of Returns.
+## Fix Back button on License Detail page
 
-## Fix
-Run a single data update on the existing template row (no schema, code, or RLS changes):
+**File:** `src/pages/licenses/LicenseDetail.tsx` (lines 681–682)
 
-- `form_type`: `post_license` → `returns`
-- `return_type_id`: set to the **Monthly** return type (`04dfc304-c82d-46d5-afaf-9f3ac91d58c6`)
+The `PageHeader` currently hardcodes `backHref="/licenses"`, which is wrong when an admin/internal user arrives here from `/admin/licensees` (or the Licensee Entities admin listing).
 
-After the update, the form will disappear from the Post-License tab and appear under Returns (Monthly). The existing monthly `return_configurations` row and the form's version/fields remain untouched.
+### Change
+Make the back target role-aware:
+
+- If the current user is an internal role (`super_admin`, `admin`, `supervisor`, `licensing_officer`, `analyst` — reuse `INTERNAL_ROLES` already imported), set:
+  - `backHref="/admin/licensees"`
+  - `backLabel="Back to Licensee Entities"`
+- Otherwise keep:
+  - `backHref="/licenses"`
+  - `backLabel="Back to My Licenses"`
+
+Role is available via `useAuth()` (already imported and used elsewhere in this file). No other logic, styling, or data flow changes.
+
+### Out of scope
+- No changes to routes, `PageHeader` component, or the licensee-side "My Licenses" listing.
+- No change to admin listing page itself.
