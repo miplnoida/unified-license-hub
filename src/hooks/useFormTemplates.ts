@@ -276,6 +276,14 @@ async function ensureVersionScopedFieldIds(versionId: string, sections: FormSect
   return hasCrossVersionCollision ? cloneSectionsWithNewFieldIds(sections) : sections;
 }
 
+function normalizeSchemaSnapshot(raw: unknown): FormSection[] {
+  if (Array.isArray(raw)) return raw as FormSection[];
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).sections)) {
+    return (raw as any).sections as FormSection[];
+  }
+  return [];
+}
+
 async function replaceVersionFields(versionId: string, sections: FormSection[]) {
   const { data: existingFields } = await supabase
     .from('form_fields')
@@ -967,8 +975,8 @@ export function useUpdateTemplateStatus() {
 
       // Draft exists → snapshot it as a NEW published version. We never
       // overwrite or delete prior published versions (multi-active support).
-      const draftSections = (latestDraft.schema_snapshot || []) as FormSection[];
-      const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[];
+      const draftSections     = normalizeSchemaSnapshot(latestDraft?.schema_snapshot);
+      const publishedSections = normalizeSchemaSnapshot(lastPublished?.schema_snapshot);
 
 
 
@@ -1131,6 +1139,8 @@ export function classifySchemaChange(
   oldSections: FormSection[],
   newSections: FormSection[],
 ): SchemaChangeKind {
+  oldSections = Array.isArray(oldSections) ? oldSections : [];
+  newSections = Array.isArray(newSections) ? newSections : [];
   // Section-level structural diffs (by section id is fine — sections don't get re-id'd on branching)
   const oldSectionIds = new Set(oldSections.map(s => s.id));
   const newSectionIds = new Set(newSections.map(s => s.id));
