@@ -19,11 +19,12 @@ import { Download, Loader2, FileWarning, History } from 'lucide-react';
 import { logExport, type ComplianceAuditAction } from '@/lib/complianceAudit';
 
 interface AuditRow {
+  source: 'legacy' | 'compliance' | 'security' | string;
   entry_id: string;
   timestamp: string;
   user_id: string | null;
   user_role: string | null;
-  action_type: ComplianceAuditAction;
+  action_type: string;
   object_type: string;
   object_id: string | null;
   before_value: any;
@@ -31,6 +32,8 @@ interface AuditRow {
   justification: string | null;
   ai_model_version: string | null;
   ip_address: string | null;
+  user_agent?: string | null;
+  metadata?: any;
 }
 
 interface SecurityRow {
@@ -64,6 +67,32 @@ const ACTION_BADGE: Record<string, string> = {
   LOGIN: 'bg-muted text-muted-foreground',
   LOGOUT: 'bg-muted text-muted-foreground',
 };
+
+const SOURCE_BADGE: Record<string, string> = {
+  compliance: 'bg-primary/15 text-primary border-primary/30',
+  security: 'bg-destructive/15 text-destructive border-destructive/30',
+  legacy: 'bg-muted text-muted-foreground border-border',
+};
+
+function normalizeTimelineRow(row: any): AuditRow {
+  return {
+    source: row.source ?? 'compliance',
+    entry_id: row.id,
+    timestamp: row.occurred_at,
+    user_id: row.user_id ?? null,
+    user_role: row.actor_role ?? null,
+    action_type: row.action,
+    object_type: row.object_type ?? 'unknown',
+    object_id: row.object_id ?? null,
+    before_value: row.before_value ?? null,
+    after_value: row.after_value ?? null,
+    justification: row.justification ?? null,
+    ai_model_version: row.metadata?.ai_model_version ?? null,
+    ip_address: row.ip_address ?? null,
+    user_agent: row.user_agent ?? null,
+    metadata: row.metadata ?? null,
+  };
+}
 
 function fmt(d: string) {
   return new Date(d).toLocaleString('en-GB', { timeZone: 'UTC', hour12: false }) + ' UTC';
@@ -114,19 +143,19 @@ export default function ComplianceAuditLogs() {
   async function loadAll() {
     setLoading(true);
     let q = supabase
-      .from('compliance_audit_logs' as any)
+      .from('audit_timeline')
       .select('*')
-      .order('timestamp', { ascending: false })
+      .order('occurred_at', { ascending: false })
       .limit(500);
-    if (actionFilter !== 'all') q = q.eq('action_type', actionFilter);
+    if (actionFilter !== 'all') q = q.eq('action', actionFilter);
     if (objectType) q = q.ilike('object_type', `%${objectType}%`);
     if (objectId) q = q.eq('object_id', objectId);
     if (userId) q = q.eq('user_id', userId);
-    if (from) q = q.gte('timestamp', from);
-    if (to) q = q.lte('timestamp', new Date(new Date(to).getTime() + 86400000).toISOString());
+    if (from) q = q.gte('occurred_at', from);
+    if (to) q = q.lte('occurred_at', new Date(new Date(to).getTime() + 86400000).toISOString());
     const { data, error } = await q;
     if (error) console.warn(error);
-    setRows((data as any[] as AuditRow[]) ?? []);
+    setRows(((data as any[]) ?? []).map(normalizeTimelineRow));
     setLoading(false);
   }
 
@@ -134,12 +163,12 @@ export default function ComplianceAuditLogs() {
     if (!caseObjectId.trim()) { setCaseRows([]); return; }
     setCaseLoading(true);
     const { data } = await supabase
-      .from('compliance_audit_logs' as any)
+      .from('audit_timeline')
       .select('*')
       .eq('object_type', caseObjectType)
       .eq('object_id', caseObjectId.trim())
-      .order('timestamp', { ascending: true });
-    setCaseRows((data as any[] as AuditRow[]) ?? []);
+      .order('occurred_at', { ascending: true });
+    setCaseRows(((data as any[]) ?? []).map(normalizeTimelineRow));
     setCaseLoading(false);
   }
 
@@ -175,10 +204,10 @@ export default function ComplianceAuditLogs() {
     let name = `audit-${kind}-${new Date().toISOString().slice(0,19)}.csv`;
     if (kind === 'all' || kind === 'exports') {
       const src = kind === 'all' ? rows : exportsRows;
-      headers = ['entry_id','timestamp','user_id','user_role','action_type','object_type','object_id','justification','ai_model_version','ip_address'];
+      headers = ['source','entry_id','timestamp','user_id','user_role','action_type','object_type','object_id','justification','ai_model_version','ip_address'];
       data = src;
     } else if (kind === 'case') {
-      headers = ['entry_id','timestamp','user_id','user_role','action_type','object_type','object_id','before_value','after_value','justification'];
+      headers = ['source','entry_id','timestamp','user_id','user_role','action_type','object_type','object_id','before_value','after_value','justification'];
       data = caseRows;
     } else {
       headers = ['id','event_time','user_id','event_type','target_resource','ip_address','user_agent'];
@@ -247,6 +276,7 @@ export default function ComplianceAuditLogs() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Timestamp (UTC)</TableHead>
+                        <TableHead>Source</TableHead>
                       <TableHead>Action</TableHead>
                       <TableHead>Object</TableHead>
                       <TableHead>User</TableHead>
@@ -258,6 +288,7 @@ export default function ComplianceAuditLogs() {
                     {rows.map(r => (
                       <TableRow key={r.entry_id} className="cursor-pointer" onClick={() => setSelected(r)}>
                         <TableCell className="font-mono text-xs">{fmt(r.timestamp)}</TableCell>
+                        <TableCell><Badge variant="outline" className={SOURCE_BADGE[r.source] || ''}>{r.source}</Badge></TableCell>
                         <TableCell><Badge variant="outline" className={ACTION_BADGE[r.action_type] || ''}>{r.action_type}</Badge></TableCell>
                         <TableCell className="text-xs"><span className="font-medium">{r.object_type}</span>{r.object_id ? ` · ${r.object_id.slice(0,8)}` : ''}</TableCell>
                         <TableCell className="font-mono text-xs">{r.user_id?.slice(0,8) ?? 'system'}</TableCell>
@@ -266,7 +297,7 @@ export default function ComplianceAuditLogs() {
                       </TableRow>
                     ))}
                     {!loading && rows.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No entries</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No entries</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -313,6 +344,7 @@ export default function ComplianceAuditLogs() {
                       <div className="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-primary border border-background" />
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-mono">{fmt(r.timestamp)}</span>
+                        <Badge variant="outline" className={SOURCE_BADGE[r.source] || ''}>{r.source}</Badge>
                         <Badge variant="outline" className={ACTION_BADGE[r.action_type] || ''}>{r.action_type}</Badge>
                         {r.user_role && <span>· {r.user_role}</span>}
                       </div>
@@ -343,6 +375,7 @@ export default function ComplianceAuditLogs() {
                       <div key={r.entry_id} className="border rounded-md p-3">
                         <div className="flex items-center gap-2 text-xs">
                           <Badge variant="outline" className={ACTION_BADGE[r.action_type] || ''}>{r.action_type}</Badge>
+                          <Badge variant="outline" className={SOURCE_BADGE[r.source] || ''}>{r.source}</Badge>
                           <span className="font-mono">{fmt(r.timestamp)}</span>
                           <span>· {r.user_role ?? 'system'}</span>
                         </div>
@@ -457,6 +490,7 @@ export default function ComplianceAuditLogs() {
               <div className="space-y-4 mt-4 text-sm">
                 <dl className="grid grid-cols-2 gap-2">
                   <dt className="text-muted-foreground">Entry ID</dt><dd className="font-mono text-xs">{selected.entry_id}</dd>
+                  <dt className="text-muted-foreground">Source</dt><dd><Badge variant="outline" className={SOURCE_BADGE[selected.source] || ''}>{selected.source}</Badge></dd>
                   <dt className="text-muted-foreground">Timestamp</dt><dd className="font-mono text-xs">{fmt(selected.timestamp)}</dd>
                   <dt className="text-muted-foreground">Action</dt><dd><Badge variant="outline" className={ACTION_BADGE[selected.action_type] || ''}>{selected.action_type}</Badge></dd>
                   <dt className="text-muted-foreground">Object</dt><dd>{selected.object_type} {selected.object_id ? `· ${selected.object_id}` : ''}</dd>
