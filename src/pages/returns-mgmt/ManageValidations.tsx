@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, History, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Trash2, History, UploadCloud, Copy, Archive, Undo2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useValidationRules, useUpsertValidationRule, useDeleteValidationRule } from '@/hooks/usePrudentialConfig';
@@ -61,6 +61,36 @@ export default function ManageValidations() {
     Swal.fire({ icon: 'success', text: 'New rule version published', timer: 1400, showConfirmButton: false });
   };
 
+  const cloneRule = async (r: ValidationRule) => {
+    const { value: name } = await Swal.fire({
+      title: 'Clone rule',
+      input: 'text',
+      inputLabel: 'New rule name',
+      inputValue: `${r.name} (copy)`,
+      showCancelButton: true,
+    });
+    if (!name) return;
+    const { error } = await (supabase as any).rpc('clone_validation_rule', { _rule_id: r.id, _new_name: name });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Rule cloned', timer: 1200, showConfirmButton: false });
+  };
+
+  const archiveRule = async (r: ValidationRule) => {
+    const ok = await Swal.fire({ title: 'Archive rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Archive' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('archive_validation_rule', { _rule_id: r.id });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Rule archived', timer: 1200, showConfirmButton: false });
+  };
+
+  const rollback = async (rule_id: string, to_version: number) => {
+    const ok = await Swal.fire({ title: `Rollback to v${to_version}?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Rollback' });
+    if (!ok.isConfirmed) return;
+    const { error } = await (supabase as any).rpc('rollback_validation_rule', { _rule_id: rule_id, _to_version: to_version });
+    if (error) { Swal.fire({ icon: 'error', text: error.message }); return; }
+    Swal.fire({ icon: 'success', text: 'Rolled back — new current version published', timer: 1600, showConfirmButton: false });
+    setHistoryRule(null);
+  };
 
   const columns = useMemo<Column<ValidationRule>[]>(() => [
     { key: 'name', label: 'Rule', render: (r) => <span className="font-medium">{r.name}</span> },
@@ -81,6 +111,8 @@ export default function ManageValidations() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => publish(r)} title="Publish new version"><UploadCloud className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openHistory(r)} title="Version history"><History className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cloneRule(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => archiveRule(r)} title="Archive"><Archive className="h-4 w-4" /></Button>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
           const ok = await Swal.fire({ title: 'Delete rule?', text: r.name, icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
           if (ok.isConfirmed) del.mutate(r.id);
@@ -229,7 +261,14 @@ export default function ManageValidations() {
               <div key={v.version} className="border rounded p-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
-                  <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                    {!v.is_current && historyRule && (
+                      <Button size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
+                        <Undo2 className="h-3 w-3 mr-1" /> Rollback
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
                 <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>

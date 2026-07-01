@@ -5776,6 +5776,7 @@ export type Database = {
           formula_snapshot: string | null
           id: string
           label: string | null
+          null_reason: string | null
           ratio_key: string
           ratio_version: number | null
           return_config_id: string | null
@@ -5789,6 +5790,7 @@ export type Database = {
           formula_snapshot?: string | null
           id?: string
           label?: string | null
+          null_reason?: string | null
           ratio_key: string
           ratio_version?: number | null
           return_config_id?: string | null
@@ -5802,6 +5804,7 @@ export type Database = {
           formula_snapshot?: string | null
           id?: string
           label?: string | null
+          null_reason?: string | null
           ratio_key?: string
           ratio_version?: number | null
           return_config_id?: string | null
@@ -7958,6 +7961,10 @@ export type Database = {
         }
         Returns: Json
       }
+      archive_validation_rule: {
+        Args: { _rule_id: string }
+        Returns: undefined
+      }
       assign_primary_user: {
         Args: { _entity_id: string; _user_id: string }
         Returns: Json
@@ -8008,6 +8015,10 @@ export type Database = {
           _value: number
           _warn: number
         }
+        Returns: string
+      }
+      clone_validation_rule: {
+        Args: { _new_name: string; _rule_id: string }
         Returns: string
       }
       complete_or_get_application_payment: {
@@ -8717,6 +8728,10 @@ export type Database = {
           _registration_id: string
         }
         Returns: Json
+      }
+      rollback_validation_rule: {
+        Args: { _rule_id: string; _to_version: number }
+        Returns: number
       }
       safe_uuid: { Args: { _value: string }; Returns: string }
       save_ppoc_mapping: {
