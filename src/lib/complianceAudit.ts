@@ -17,6 +17,7 @@ export interface ComplianceAuditInput {
   justification?: string | null;
   ai_model_version?: string | null;
   ip_address?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 let cachedIp: string | null = null;
@@ -34,11 +35,21 @@ async function resolveIp(): Promise<string | null> {
   }
 }
 
+function baseMetadata(extra?: Record<string, unknown> | null): Record<string, unknown> {
+  return {
+    ...(extra ?? {}),
+    route: typeof window !== 'undefined' ? window.location.pathname + window.location.search : null,
+    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    logged_at: new Date().toISOString(),
+  };
+}
+
 export async function logComplianceAudit(entry: ComplianceAuditInput): Promise<void> {
   if (entry.action_type === 'OVERRIDE' && (!entry.justification || entry.justification.trim().length < 10)) {
     throw new Error('Override requires a written justification (min 10 characters).');
   }
   const ip = entry.ip_address ?? (await resolveIp());
+  const metadata = baseMetadata(entry.metadata);
   const { error } = await supabase.rpc('log_compliance_audit' as any, {
     _action_type: entry.action_type,
     _object_type: entry.object_type,
@@ -48,6 +59,7 @@ export async function logComplianceAudit(entry: ComplianceAuditInput): Promise<v
     _justification: entry.justification ?? null,
     _ai_model_version: entry.ai_model_version ?? null,
     _ip_address: ip || null,
+    _metadata: metadata as any,
   });
   if (error && import.meta.env.DEV) {
     console.warn('[logComplianceAudit] failed:', error.message);
@@ -56,16 +68,18 @@ export async function logComplianceAudit(entry: ComplianceAuditInput): Promise<v
 
 export async function logSecurityEvent(
   event_type: SecurityEventType,
-  opts: { target_resource?: string; detail?: Record<string, unknown> } = {},
+  opts: { target_resource?: string; detail?: Record<string, unknown>; metadata?: Record<string, unknown> } = {},
 ): Promise<void> {
   const ip = await resolveIp();
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : null;
+  const metadata = baseMetadata(opts.metadata);
   const { error } = await supabase.rpc('log_security_event' as any, {
     _event_type: event_type,
     _target_resource: opts.target_resource ?? null,
     _ip_address: ip || null,
     _user_agent: ua,
     _detail: (opts.detail ?? null) as any,
+    _metadata: metadata as any,
   });
   if (error && import.meta.env.DEV) {
     console.warn('[logSecurityEvent] failed:', error.message);
@@ -88,5 +102,51 @@ export async function logExport(args: {
       record_count: args.record_count ?? args.record_ids?.length ?? 0,
       record_ids: args.record_ids ?? [],
     },
+  });
+}
+
+export async function logLogin(email?: string): Promise<void> {
+  await logComplianceAudit({
+    action_type: 'LOGIN',
+    object_type: 'auth.session',
+    after_value: { email: email ?? null },
+  });
+}
+
+export async function logLogout(userId?: string): Promise<void> {
+  await logComplianceAudit({
+    action_type: 'LOGOUT',
+    object_type: 'auth.session',
+    object_id: userId ?? null,
+  });
+}
+
+export async function logNotificationDispatch(args: {
+  event_key: string;
+  entity_type?: string;
+  entity_id?: string;
+  recipients?: number;
+  channel?: string;
+}): Promise<void> {
+  await logComplianceAudit({
+    action_type: 'NOTIFICATION_SENT',
+    object_type: args.entity_type ?? 'notification',
+    object_id: args.entity_id ?? null,
+    after_value: {
+      event_key: args.event_key,
+      recipients: args.recipients ?? null,
+      channel: args.channel ?? null,
+    },
+  });
+}
+
+export async function logIntegrationFailure(args: {
+  integration: string;
+  target_resource?: string;
+  detail?: Record<string, unknown>;
+}): Promise<void> {
+  await logSecurityEvent('INTEGRATION_FAILURE', {
+    target_resource: args.target_resource ?? args.integration,
+    detail: { integration: args.integration, ...(args.detail ?? {}) },
   });
 }
