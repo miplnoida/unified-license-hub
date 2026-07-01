@@ -194,6 +194,7 @@ export default function AuditLogs() {
                       <TableHead>Action</TableHead>
                       <TableHead>Entity</TableHead>
                       <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead className="text-right">Details</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -210,6 +211,9 @@ export default function AuditLogs() {
                           </TableCell>
                           <TableCell>{renderEntityLink(log)}</TableCell>
                           <TableCell className="text-sm">{log.user_email}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {log.user_role ? <Badge variant="secondary">{log.user_role}</Badge> : '—'}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm">View</Button>
                           </TableCell>
