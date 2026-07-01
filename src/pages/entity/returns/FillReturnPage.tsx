@@ -48,10 +48,14 @@ function SingleReturnForm({ returnId, formTemplateId, initialData, readOnly, onD
     : resolvedAny?.error || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
 
+  // Only re-seed when the resolved version changes; `initialData` is a fresh
+  // object each render and would otherwise cause a render/state loop that can
+  // race with button clicks.
   useEffect(() => {
     if (!resolvedVersionId) return;
     onDataChange(formTemplateId, initialData, resolvedVersionId);
-  }, [formTemplateId, initialData, onDataChange, resolvedVersionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formTemplateId, resolvedVersionId]);
 
   if (rLoading || sLoading) {
     return (
@@ -260,7 +264,17 @@ export default function FillReturnPage() {
   }, []);
 
   const handleSave = useCallback(async (auto = false) => {
-    if (!id || saving) return;
+    if (import.meta.env.DEV) {
+      console.debug('[FillReturn] save click', { id, saving, forms: Object.keys(allData).length, auto });
+    }
+    if (!id) {
+      if (!auto) toast.error('Return id missing — reload the page and try again.');
+      return;
+    }
+    if (saving) {
+      if (!auto) toast.message('A save is already in progress...');
+      return;
+    }
     setSaving(true);
     try {
       for (const [formId, dataMap] of Object.entries(allData)) {
@@ -283,13 +297,25 @@ export default function FillReturnPage() {
       setLastSaved(new Date());
       if (!auto) toast.success('Draft saved');
     } catch (e: any) {
-      toast.error(e.message);
+      console.error('[FillReturn] save failed', e);
+      toast.error(e?.message || 'Failed to save draft');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-  }, [id, allData, returnData, saving]);
+  }, [id, allData, returnData, saving, versionByForm, saveFormData, updateReturn, insertAudit, user?.id]);
 
   const handleSubmit = async (ackText?: string) => {
-    if (submitting) return;
+    if (import.meta.env.DEV) {
+      console.debug('[FillReturn] submit click', { id, submitting, status: returnData?.workflow_status });
+    }
+    if (submitting) {
+      toast.message('Submission already in progress...');
+      return;
+    }
+    if (!id) {
+      toast.error('Return id missing — reload the page and try again.');
+      return;
+    }
     if (licenseGate.isBlocked) {
       toast.error(licenseGate.blockedReason || 'Your license is not in good standing.');
       return;
@@ -299,7 +325,14 @@ export default function FillReturnPage() {
       // Server-verified authorization for the licensee/sector on this return.
       const targetLicenseeId = (returnData as any)?.on_behalf_of_licensee_id || (returnData as any)?.entity_id || null;
       const targetSectorId = (returnData as any)?.sector_id || null;
-      const authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+      let authorized = false;
+      try {
+        authorized = await accessGuard.verify(targetLicenseeId, targetSectorId);
+      } catch (err: any) {
+        console.error('[FillReturn] access guard threw', err);
+        toast.error(`Authorization check failed: ${err?.message || 'unknown error'}`);
+        return;
+      }
       if (!authorized) {
         toast.error('You are not authorized to submit this return.');
         return;
