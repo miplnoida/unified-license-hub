@@ -111,8 +111,11 @@ export function computeRatio(
   computedValues: Map<string, number> = new Map(),
 ): ComputedRatio {
   try {
-    const withRefs = substituteRatioRefs(ratio.formula, computedValues);
-    const value = safeEval(resolveTokens(withRefs, data));
+    // Resolve field tokens first — they use `formId.fieldKey` grammar which
+    // must not collide with the numeric literal produced by ratio substitution.
+    const withFields = resolveTokens(ratio.formula, data);
+    const withRefs = substituteRatioRefs(withFields, computedValues);
+    const value = safeEval(withRefs);
     return {
       ratio_key: ratio.ratio_key,
       label: ratio.label,
