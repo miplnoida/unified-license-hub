@@ -446,9 +446,12 @@ export default function ReturnDetail() {
     <DashboardLayout>
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => navigate(adminBasePath)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to Returns
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate(`${adminBasePath}/${id}/analysis`)}>
+            View Analysis
           </Button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
