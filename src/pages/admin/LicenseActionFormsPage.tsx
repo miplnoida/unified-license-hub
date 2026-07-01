@@ -70,10 +70,6 @@ export default function LicenseActionFormsPage() {
     queryKey: ['categories-all'],
     queryFn: async () => (await supabase.from('categories').select('id, name, sub_sector_id').order('name')).data || [],
   });
-  const { data: regulators = [] } = useQuery({
-    queryKey: ['regulators-all'],
-    queryFn: async () => (await supabase.from('regulators').select('id, name').order('name')).data || [],
-  });
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ['license_action_form_configs'],
