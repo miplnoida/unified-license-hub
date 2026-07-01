@@ -48,10 +48,14 @@ function SingleReturnForm({ returnId, formTemplateId, initialData, readOnly, onD
     : resolvedAny?.error || null;
   const { data: sections = [], isLoading: sLoading } = useVersionSections(resolvedVersionId);
 
+  // Only re-seed when the resolved version changes; `initialData` is a fresh
+  // object each render and would otherwise cause a render/state loop that can
+  // race with button clicks.
   useEffect(() => {
     if (!resolvedVersionId) return;
     onDataChange(formTemplateId, initialData, resolvedVersionId);
-  }, [formTemplateId, initialData, onDataChange, resolvedVersionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formTemplateId, resolvedVersionId]);
 
   if (rLoading || sLoading) {
     return (
