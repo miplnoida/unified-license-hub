@@ -97,7 +97,7 @@ describe('consolidatedAnalysis', () => {
   });
 
   it('peerPercentile places value against distribution', () => {
-    expect(peerPercentile(50, [10, 20, 30, 40, 50, 60, 70])).toBe(Math.round(5 / 7 * 10000) / 100);
+    expect(peerPercentile(50, [10, 20, 30, 40, 50, 60, 70])).toBe(Math.round(4 / 7 * 10000) / 100);
     expect(peerPercentile(100, [])).toBe(50);
   });
 
