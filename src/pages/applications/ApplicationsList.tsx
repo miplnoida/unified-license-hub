@@ -552,6 +552,12 @@ export default function ApplicationsList() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success(`Exported ${all.length} application${all.length === 1 ? '' : 's'}${all.length >= MAX ? ' (capped at 5000 — narrow filters for full export)' : ''}.`);
+      logExport({
+        object_type: 'application',
+        format: 'CSV',
+        record_count: all.length,
+        record_ids: (all as any[]).map(r => r.id).filter(Boolean).slice(0, 500),
+      }).catch(() => {});
     } catch (err: any) {
       toast.error(err?.message || 'Export failed');
     } finally {
