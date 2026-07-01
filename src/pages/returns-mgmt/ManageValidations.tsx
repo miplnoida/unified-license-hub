@@ -219,6 +219,25 @@ export default function ManageValidations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!historyRule} onOpenChange={(o) => !o && setHistoryRule(null)}>
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+          <SheetHeader><SheetTitle>Version history — {historyRule?.name}</SheetTitle></SheetHeader>
+          <div className="mt-4 space-y-3">
+            {versions.length === 0 && <div className="text-sm text-muted-foreground">No versions published yet.</div>}
+            {versions.map((v: any) => (
+              <div key={v.version} className="border rounded p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
+                  <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                </div>
+                <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
+                <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }
