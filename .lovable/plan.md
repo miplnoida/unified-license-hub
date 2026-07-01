@@ -1,42 +1,30 @@
 ## Goal
+Hide the "Regulator" concept from the License Action Form mapping UI (`/admin/license-action-forms`), while keeping regulator scoping intact under the hood so existing data and the backend resolver keep working.
 
-Make every existing `form_type = 'internal'` template a first-class member of the **Internal — License Action** tab, so admins see one unified list and can pick any of them when configuring a license action form.
+## Scope
+UI-only change in `src/pages/admin/LicenseActionFormsPage.tsx`. No DB, RPC, edge function, or `LicenseActionDialog` changes.
 
-The previous change already merges both types in the tab's *display*. This plan goes one step further and converts the legacy rows in the database so they truly belong to the new type — no more split storage.
+## Changes
 
-## Change
+**1. Edit/Create dialog — remove the Regulator field**
+- Remove the `<Label>Regulator</Label>` + `<Select>` block (lines ~283–292).
+- Remove `regulatorId` state, its `useEffect` reset, and the `regulators` prop from `EditDialog`.
+- On save, auto-set `regulator_id` from the currently active regulator (`useRegulator().activeRegulatorId`) instead of the dropdown. Fallback to `null` if none is active. This preserves the multi-regulator scoping model transparently.
 
-### 1. DB migration (data-only, no schema change)
+**2. Mapping list row — hide the "Reg: …" chip**
+- Remove the `Reg: {lookupName(regulators, r.regulator_id)} ·` fragment (line ~163) from each row's meta line. Keep Action / Sector / Sub / Category / Required chips.
 
-New migration file `supabase/migrations/<ts>_relabel_internal_form_templates.sql`:
-
-```sql
--- Fold legacy 'internal' form templates into 'internal_license_action'
--- so they appear in and are managed by the single Internal — License Action tab.
-UPDATE public.form_templates
-SET form_type = 'internal_license_action',
-    updated_at = now()
-WHERE form_type = 'internal';
-```
-
-The `form_templates.form_type` CHECK constraint already allows `internal_license_action` (added in the earlier migration), so no constraint change is needed. `license_action_form_configs` references templates by `form_template_id`, so existing configs keep working — nothing to update there.
-
-### 2. Frontend cleanup (safe once migration runs)
-
-- `src/hooks/useFormTemplates.ts` — keep the `.in('form_type', ['internal_license_action', 'internal'])` fallback for one release so any un-migrated row still appears; no change needed now.
-- `src/pages/admin/LicenseActionFormsPage.tsx` — same reasoning, keep the current merge of `internal` + `internal_license_action` + `post_license`.
-- `src/pages/admin/FormBuilder.tsx` — no change; legacy `formType === 'internal'` branches stay so any direct-URL edit of a not-yet-migrated draft still works.
-
-No other files change. No edge function, notification, dialog, or viewer change.
-
-## Verification
-
-- After migration runs: `/admin/forms?tab=internal_license_action` shows every previously-internal template alongside any `internal_license_action` templates.
-- License Action Forms config screen still lists them (identical set).
-- Existing `license_actions` rows and submitted `form_responses` continue to open via "View Submitted Form" (they reference `form_template_id` / `form_version_id`, not `form_type`).
-- `tsgo --noEmit` clean (no code changes needed).
+**3. Parent page cleanup**
+- Keep the `regulators` query only if still needed elsewhere; otherwise drop it and stop passing `regulators` to `EditDialog`.
+- Import and use `useRegulator` to source `activeRegulatorId` for the save payload.
 
 ## Out of scope
+- No changes to `license_action_form_configs` schema.
+- No changes to `resolve_license_action_form` RPC or `perform-license-action` edge function — they continue to accept and honor `regulator_id`.
+- No changes to `LicenseActionDialog` — it already passes the license's `regulator_id` at resolution time.
+- Existing mapping rows keep whatever `regulator_id` they already have; nothing is migrated.
 
-- Removing the legacy `'internal'` value from any code path — deferred so mid-flight drafts don't break.
-- Any change to Pre-License, Post-License, Returns, Registration, workflow engine, notifications, or applicant portal.
+## Verification
+- `/admin/license-action-forms`: no "Regulator" dropdown in the create/edit dialog and no "Reg: …" text on rows.
+- Creating a new mapping while a regulator is active stores that regulator's id (visible via DB read); the row displays and is respected at action time.
+- Suspend/Revoke on a license still resolves the correct form for the license's regulator.

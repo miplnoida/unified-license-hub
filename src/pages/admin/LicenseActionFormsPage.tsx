@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
+import { useRegulator } from '@/contexts/RegulatorContext';
 
 const ACTION_LABELS: Record<string, string> = {
   suspension: 'Suspension',
@@ -45,6 +46,7 @@ interface ConfigRow {
 
 export default function LicenseActionFormsPage() {
   const { user } = useAuth();
+  const { activeRegulatorId } = useRegulator();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<ConfigRow | null>(null);
   const [creating, setCreating] = useState(false);
@@ -67,10 +69,6 @@ export default function LicenseActionFormsPage() {
   const { data: categories = [] } = useQuery({
     queryKey: ['categories-all'],
     queryFn: async () => (await supabase.from('categories').select('id, name, sub_sector_id').order('name')).data || [],
-  });
-  const { data: regulators = [] } = useQuery({
-    queryKey: ['regulators-all'],
-    queryFn: async () => (await supabase.from('regulators').select('id, name').order('name')).data || [],
   });
 
   const { data: rows = [], isLoading } = useQuery({
@@ -160,7 +158,6 @@ export default function LicenseActionFormsPage() {
                       <TableCell>{ACTION_LABELS[r.license_action_type] || r.license_action_type}</TableCell>
                       <TableCell>{templates.find((t: any) => t.id === r.form_template_id)?.name || '—'}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        Reg: {lookupName(regulators as any[], r.regulator_id)} ·
                         Sec: {lookupName(sectors as any[], r.sector_id)} ·
                         Sub: {lookupName(subSectors as any[], r.sub_sector_id)} ·
                         Cat: {lookupName(categories as any[], r.category_id)}
@@ -187,30 +184,27 @@ export default function LicenseActionFormsPage() {
         sectors={sectors as any[]}
         subSectors={subSectors as any[]}
         categories={categories as any[]}
-        regulators={regulators as any[]}
         onClose={() => { setEditing(null); setCreating(false); }}
-        onSave={(v) => saveMutation.mutate({ ...v, id: editing?.id })}
+        onSave={(v) => saveMutation.mutate({ ...v, id: editing?.id, regulator_id: activeRegulatorId })}
         saving={saveMutation.isPending}
       />
     </DashboardLayout>
   );
 }
 
-function EditDialog({ open, initial, templates, sectors, subSectors, categories, regulators, onClose, onSave, saving }: {
+function EditDialog({ open, initial, templates, sectors, subSectors, categories, onClose, onSave, saving }: {
   open: boolean;
   initial: ConfigRow | null;
   templates: any[];
   sectors: any[];
   subSectors: any[];
   categories: any[];
-  regulators: any[];
   onClose: () => void;
   onSave: (v: Partial<ConfigRow>) => void;
   saving: boolean;
 }) {
   const [actionType, setActionType] = useState(initial?.license_action_type || 'suspension');
   const [templateId, setTemplateId] = useState(initial?.form_template_id || '');
-  const [regulatorId, setRegulatorId] = useState<string>(initial?.regulator_id || 'any');
   const [sectorId, setSectorId] = useState<string>(initial?.sector_id || 'any');
   const [subSectorId, setSubSectorId] = useState<string>(initial?.sub_sector_id || 'any');
   const [categoryId, setCategoryId] = useState<string>(initial?.category_id || 'any');
@@ -221,7 +215,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
     if (!open) return;
     setActionType(initial?.license_action_type || 'suspension');
     setTemplateId(initial?.form_template_id || '');
-    setRegulatorId(initial?.regulator_id || 'any');
     setSectorId(initial?.sector_id || 'any');
     setSubSectorId(initial?.sub_sector_id || 'any');
     setCategoryId(initial?.category_id || 'any');
@@ -238,7 +231,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
     onSave({
       license_action_type: actionType,
       form_template_id: templateId,
-      regulator_id: regulatorId === 'any' ? null : regulatorId,
       sector_id: sectorId === 'any' ? null : sectorId,
       sub_sector_id: subSectorId === 'any' ? null : subSectorId,
       category_id: categoryId === 'any' ? null : categoryId,
@@ -246,6 +238,7 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
       is_active: isActive,
     });
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -280,16 +273,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Regulator</Label>
-              <Select value={regulatorId} onValueChange={setRegulatorId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  {regulators.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <div>
               <Label>Sector</Label>
               <Select value={sectorId} onValueChange={(v) => { setSectorId(v); setSubSectorId('any'); setCategoryId('any'); }}>
