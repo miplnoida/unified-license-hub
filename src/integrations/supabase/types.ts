@@ -903,6 +903,7 @@ export type Database = {
           new_value: Json | null
           old_value: Json | null
           user_id: string | null
+          user_role: string | null
         }
         Insert: {
           action: string
@@ -914,6 +915,7 @@ export type Database = {
           new_value?: Json | null
           old_value?: Json | null
           user_id?: string | null
+          user_role?: string | null
         }
         Update: {
           action?: string
@@ -925,6 +927,7 @@ export type Database = {
           new_value?: Json | null
           old_value?: Json | null
           user_id?: string | null
+          user_role?: string | null
         }
         Relationships: []
       }
