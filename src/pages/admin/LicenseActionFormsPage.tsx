@@ -274,16 +274,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Regulator</Label>
-              <Select value={regulatorId} onValueChange={setRegulatorId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  {regulators.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label>Sector</Label>
               <Select value={sectorId} onValueChange={(v) => { setSectorId(v); setSubSectorId('any'); setCategoryId('any'); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
