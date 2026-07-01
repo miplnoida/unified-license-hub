@@ -4,6 +4,7 @@
 // for immediate UX feedback; the edge function is authoritative at submit.
 
 import { safeEvaluate } from '@/lib/safeEval';
+import { evaluateBoolean, hasBooleanOperator } from '@/lib/booleanExpression';
 
 function safeEval(expr: string): number {
   const { value, error } = safeEvaluate(expr);
