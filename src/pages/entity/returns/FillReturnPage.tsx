@@ -567,6 +567,9 @@ export default function FillReturnPage() {
 
       toast.success('Return submitted successfully!');
       navigate(`/entity/returns/${id}/view`);
+    } catch (e: any) {
+      console.error('[FillReturn] submit failed', e);
+      toast.error(e?.message || 'Failed to submit return');
     } finally {
       setSubmitting(false);
     }
