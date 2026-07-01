@@ -142,22 +142,34 @@ Deno.serve(async (req) => {
       admin.from("prudential_thresholds").select("*").eq("return_config_id", cfg).eq("is_active", true),
     ]);
 
-    // Evaluate rules
+    // Evaluate rules (tag rule_version from current_version for replay)
     const results = (rules as any[]).map((r) => ({
-      rule_id: r.id, name: r.name, severity: r.severity,
+      rule_id: r.id, rule_name: r.name, severity: r.severity,
+      rule_version: r.current_version ?? 1,
       ...evalRule(r, data),
     }));
     const errors = results.filter((r) => !r.passed && r.severity === "error");
     const warnings = results.filter((r) => !r.passed && r.severity === "warning");
 
-    // Compute ratios + persist
-    const computed: Array<{ ratio_key: string; label: string; value: number | null; display_format: string; metric_key: string | null }> = [];
+    // Persist per-rule execution log (append-only, creates a batch_id)
+    let batch_id: string | null = null;
+    try {
+      const { data: batch } = await admin.rpc("log_validation_run", {
+        _return_id: return_id,
+        _results: results,
+        _context: body.context || "submit",
+      });
+      batch_id = (batch as string) || null;
+    } catch (_) { /* log optional */ }
+
+    // Compute ratios + persist with formula snapshot + version
+    const computed: Array<{ ratio_key: string; label: string; value: number | null; display_format: string; metric_key: string | null; version: number; formula: string }> = [];
     for (const r of ratios as any[]) {
       try {
         const v = safeArith(resolve(r.formula, data));
-        computed.push({ ratio_key: r.ratio_key, label: r.label, value: Number.isFinite(v) ? v : null, display_format: r.display_format, metric_key: r.metric_key });
+        computed.push({ ratio_key: r.ratio_key, label: r.label, value: Number.isFinite(v) ? v : null, display_format: r.display_format, metric_key: r.metric_key, version: r.current_version ?? 1, formula: r.formula });
       } catch {
-        computed.push({ ratio_key: r.ratio_key, label: r.label, value: null, display_format: r.display_format, metric_key: r.metric_key });
+        computed.push({ ratio_key: r.ratio_key, label: r.label, value: null, display_format: r.display_format, metric_key: r.metric_key, version: r.current_version ?? 1, formula: r.formula });
       }
     }
     for (const c of computed) {
@@ -165,11 +177,16 @@ Deno.serve(async (req) => {
         _return_id: return_id, _ratio_key: c.ratio_key, _label: c.label,
         _value: c.value, _display_format: c.display_format, _computed_by: actor.id,
       });
+      try {
+        await admin.from("return_calculated_ratios")
+          .update({ ratio_version: c.version, formula_snapshot: c.formula })
+          .eq("return_id", return_id).eq("ratio_key", c.ratio_key);
+      } catch (_) { /* enrichment optional */ }
     }
 
-    // Detect breaches
+    // Detect breaches with Green/Amber/Red classification
     const thByKey = new Map((thresholds as any[]).map((t) => [t.metric_key, t]));
-    const breaches: Array<{ metric_key: string; level: "warn" | "breach"; value: number; threshold_value: number; comparator: string }> = [];
+    const breaches: Array<{ metric_key: string; level: "warn" | "breach"; risk_level: "amber" | "red"; value: number; threshold_value: number; comparator: string; threshold_version: number }> = [];
     for (const c of computed) {
       if (c.value == null) continue;
       const t: any = thByKey.get(c.metric_key || c.ratio_key);
@@ -177,19 +194,24 @@ Deno.serve(async (req) => {
       const v = c.value;
       const check = (limit: number | null) => {
         if (limit == null) return false;
-        if (t.comparator === ">=") return v < limit;
-        if (t.comparator === "<=") return v > limit;
+        if (t.comparator === ">=" || t.comparator === ">") return v >= limit;
+        if (t.comparator === "<=" || t.comparator === "<") return v <= limit;
         if (t.comparator === "between") { if (t.upper_value == null) return false; return v < limit || v > t.upper_value; }
         return false;
       };
-      if (check(t.breach_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "breach", value: v, threshold_value: t.breach_value, comparator: t.comparator });
-      else if (check(t.warn_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "warn", value: v, threshold_value: t.warn_value, comparator: t.comparator });
+      if (check(t.breach_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "breach", risk_level: "red", value: v, threshold_value: t.breach_value, comparator: t.comparator, threshold_version: t.current_version ?? 1 });
+      else if (check(t.warn_value)) breaches.push({ metric_key: c.metric_key || c.ratio_key, level: "warn", risk_level: "amber", value: v, threshold_value: t.warn_value, comparator: t.comparator, threshold_version: t.current_version ?? 1 });
     }
     for (const b of breaches) {
       await admin.rpc("record_return_breach", {
         _return_id: return_id, _metric_key: b.metric_key, _level: b.level,
         _value: b.value, _threshold_value: b.threshold_value, _comparator: b.comparator,
       });
+      try {
+        await admin.from("return_threshold_breaches")
+          .update({ risk_level: b.risk_level, threshold_version: b.threshold_version })
+          .eq("return_id", return_id).eq("metric_key", b.metric_key).is("risk_level", null);
+      } catch (_) { /* enrichment optional */ }
     }
 
     // Audit log via existing shared helper (best-effort)
@@ -208,7 +230,7 @@ Deno.serve(async (req) => {
         _metadata: {
           action: errors.length > 0 ? "RETURN_VALIDATION_FAILED" : "RETURN_VALIDATED",
           rules: results.length, errors: errors.length, warnings: warnings.length,
-          ratios: computed.length, breaches: breaches.length,
+          ratios: computed.length, breaches: breaches.length, batch_id,
         },
       });
     } catch (_) { /* audit is optional */ }
