@@ -7959,6 +7959,22 @@ export type Database = {
         }
         Returns: string
       }
+      log_compliance_audit_as_actor: {
+        Args: {
+          _action_type: Database["public"]["Enums"]["compliance_audit_action"]
+          _actor_id: string
+          _after_value?: Json
+          _ai_model_version?: string
+          _before_value?: Json
+          _ip_address?: string
+          _justification?: string
+          _metadata?: Json
+          _object_id?: string
+          _object_type: string
+          _user_agent?: string
+        }
+        Returns: string
+      }
       log_document_batch_action: {
         Args: { _action: string; _details?: Json; _group_id: string }
         Returns: undefined
@@ -7974,6 +7990,18 @@ export type Database = {
       }
       log_security_event: {
         Args: {
+          _detail?: Json
+          _event_type: Database["public"]["Enums"]["security_event_type"]
+          _ip_address?: string
+          _metadata?: Json
+          _target_resource?: string
+          _user_agent?: string
+        }
+        Returns: string
+      }
+      log_security_event_as_actor: {
+        Args: {
+          _actor_id: string
           _detail?: Json
           _event_type: Database["public"]["Enums"]["security_event_type"]
           _ip_address?: string

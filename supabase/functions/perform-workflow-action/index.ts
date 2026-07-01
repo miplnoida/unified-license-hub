@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { logComplianceAudit, logSecurityEvent } from "../_shared/audit.ts";
 
 /**
  * Thin authentication wrapper around the atomic perform_workflow_transition RPC.
@@ -122,20 +123,30 @@ export async function handler(req: Request): Promise<Response> {
         const { data: isLegal } = await admin.rpc("is_legal_compliance_user", { _user_id: caller.id });
         if (!isLegal) {
           try {
-            await admin.from("audit_logs").insert({
+            const detail = {
               user_id: caller.id,
-              action: "legal_stage_action_denied",
-              entity_type: "application",
-              entity_id: application_id,
-              metadata: {
-                user_id: caller.id,
-                application_id,
-                workflow_instance_id: instance_id ?? null,
-                step_id,
-                action_type: raw_action,
-                reason: "actor_not_legal_compliance_user",
-                timestamp: new Date().toISOString(),
-              },
+              application_id,
+              workflow_instance_id: instance_id ?? null,
+              step_id,
+              action_type: raw_action,
+              reason: "actor_not_legal_compliance_user",
+            };
+            await logSecurityEvent(admin, {
+              actorId: caller.id,
+              eventType: "ACCESS_DENIED",
+              targetResource: `application:${application_id}:legal_stage`,
+              userAgent: req.headers.get("user-agent"),
+              detail,
+              metadata: { edge_function: "perform-workflow-action" },
+            });
+            await logComplianceAudit(admin, {
+              actorId: caller.id,
+              actionType: "ACCESS_DENIED",
+              objectType: "application",
+              objectId: application_id,
+              afterValue: detail,
+              userAgent: req.headers.get("user-agent"),
+              metadata: { edge_function: "perform-workflow-action", workflow_instance_id: instance_id ?? null, step_id },
             });
           } catch (e) {
             console.warn("legal_stage_action_denied audit log failed:", e);

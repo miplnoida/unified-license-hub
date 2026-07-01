@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 
@@ -29,14 +30,18 @@ describe('FormRenderer step persistence', () => {
       },
     ];
 
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
     render(
-      <FormRenderer
-        formName="Registration"
-        sections={sections as any}
-        onSaveDraft={() => {}}
-        onSubmit={() => {}}
-        stepStorageKey={stepStorageKey}
-      />,
+      <QueryClientProvider client={queryClient}>
+        <FormRenderer
+          formName="Registration"
+          sections={sections as any}
+          onSaveDraft={() => {}}
+          onSubmit={() => {}}
+          stepStorageKey={stepStorageKey}
+        />
+      </QueryClientProvider>,
     );
 
     expect(screen.getAllByText('Review & Submit').length).toBeGreaterThan(0);

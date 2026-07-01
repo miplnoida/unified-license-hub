@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
+import { logComplianceAudit, logSecurityEvent } from "../_shared/audit.ts";
 
 /**
  * Server-side license action executor for suspend / revoke / cancel / reinstate
@@ -72,6 +73,18 @@ export async function handler(req: Request): Promise<Response> {
       return jsonResponse(req, 200, { error: permErr.message, code: "PERMISSION_CHECK_FAILED" });
     }
     if (!allowed) {
+      await logSecurityEvent(admin, {
+        actorId: caller.id,
+        eventType: "ACCESS_DENIED",
+        targetResource: "license_actions",
+        userAgent: req.headers.get("user-agent"),
+        detail: {
+          module: REQUIRED_PERMISSION_MODULE,
+          action: REQUIRED_PERMISSION_ACTION,
+          reason: "missing_permission",
+        },
+        metadata: { edge_function: "perform-license-action" },
+      });
       return jsonResponse(req, 200, { error: "You do not have permission to perform license actions", code: "FORBIDDEN" });
     }
 
@@ -197,14 +210,20 @@ export async function handler(req: Request): Promise<Response> {
         .eq("id", form_response_id);
     }
 
-    // Audit log via self RPC (server-side acting as caller via service_role direct insert)
-    await admin.from("audit_logs").insert({
-      user_id: caller.id,
-      action: `license_${action_type}`,
-      entity_type: "license",
-      entity_id: license.id,
-      old_value: { status: oldStatus },
-      new_value: { status: new_status, reason, form_response_id, form_template_id: templateId },
+    await logComplianceAudit(admin, {
+      actorId: caller.id,
+      actionType: "WORKFLOW_TRANSITION",
+      objectType: "license",
+      objectId: license.id,
+      beforeValue: { status: oldStatus },
+      afterValue: { status: new_status, action_type, reason, form_response_id, form_template_id: templateId },
+      justification: reason || null,
+      userAgent: req.headers.get("user-agent"),
+      metadata: {
+        edge_function: "perform-license-action",
+        license_action_id: actionRow.id,
+        legacy_action: `license_${action_type}`,
+      },
     });
 
     // Dispatch notification (best-effort)
