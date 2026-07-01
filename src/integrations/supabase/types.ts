@@ -1203,9 +1203,11 @@ export type Database = {
           entry_id: string
           ip_address: unknown
           justification: string | null
+          metadata: Json | null
           object_id: string | null
           object_type: string
           timestamp: string
+          user_agent: string | null
           user_id: string | null
           user_role: string | null
         }
@@ -1218,9 +1220,11 @@ export type Database = {
           entry_id?: string
           ip_address?: unknown
           justification?: string | null
+          metadata?: Json | null
           object_id?: string | null
           object_type: string
           timestamp?: string
+          user_agent?: string | null
           user_id?: string | null
           user_role?: string | null
         }
@@ -1233,9 +1237,11 @@ export type Database = {
           entry_id?: string
           ip_address?: unknown
           justification?: string | null
+          metadata?: Json | null
           object_id?: string | null
           object_type?: string
           timestamp?: string
+          user_agent?: string | null
           user_id?: string | null
           user_role?: string | null
         }
@@ -6528,9 +6534,11 @@ export type Database = {
           event_type: Database["public"]["Enums"]["security_event_type"]
           id: string
           ip_address: unknown
+          metadata: Json | null
           target_resource: string | null
           user_agent: string | null
           user_id: string | null
+          user_role: string | null
         }
         Insert: {
           created_at?: string
@@ -6539,9 +6547,11 @@ export type Database = {
           event_type: Database["public"]["Enums"]["security_event_type"]
           id?: string
           ip_address?: unknown
+          metadata?: Json | null
           target_resource?: string | null
           user_agent?: string | null
           user_id?: string | null
+          user_role?: string | null
         }
         Update: {
           created_at?: string
@@ -6550,9 +6560,11 @@ export type Database = {
           event_type?: Database["public"]["Enums"]["security_event_type"]
           id?: string
           ip_address?: unknown
+          metadata?: Json | null
           target_resource?: string | null
           user_agent?: string | null
           user_id?: string | null
+          user_role?: string | null
         }
         Relationships: []
       }
@@ -7078,6 +7090,24 @@ export type Database = {
       }
     }
     Views: {
+      audit_timeline: {
+        Row: {
+          action: string | null
+          actor_role: string | null
+          after_value: Json | null
+          before_value: Json | null
+          id: string | null
+          ip_address: string | null
+          justification: string | null
+          metadata: Json | null
+          object_id: string | null
+          object_type: string | null
+          occurred_at: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       report_runs: {
         Row: {
           category: string | null
@@ -7919,6 +7949,7 @@ export type Database = {
           _before_value?: Json
           _ip_address?: string
           _justification?: string
+          _metadata?: Json
           _object_id?: string
           _object_type: string
         }
@@ -7942,6 +7973,7 @@ export type Database = {
           _detail?: Json
           _event_type: Database["public"]["Enums"]["security_event_type"]
           _ip_address?: string
+          _metadata?: Json
           _target_resource?: string
           _user_agent?: string
         }
@@ -8082,6 +8114,7 @@ export type Database = {
         Args: { p_role_name: string }
         Returns: number
       }
+      resolve_actor_role: { Args: { _user_id: string }; Returns: string }
       resolve_application_form_version: {
         Args: { _application_id: string; _template_id: string }
         Returns: Json
