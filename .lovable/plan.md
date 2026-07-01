@@ -1,61 +1,69 @@
 ## Problem
 
-When publishing a return form template from Admin → Form Management → Returns, the toast shows:
+When a licensee user creates a return, PostgREST runs:
 
-> Failed to update status: oldSections.map is not a function
-
-Root cause: some existing published `form_versions.schema_snapshot` rows are stored as an **object** with shape `{ sections: [...] }` instead of a bare array. The publish path assumes an array:
-
-```ts
-// src/hooks/useFormTemplates.ts
-const publishedSections = (lastPublished?.schema_snapshot || []) as FormSection[]; // still object
-...
-classifySchemaChange(publishedSections, draftSections)
-  → const oldSectionIds = new Set(oldSections.map(s => s.id)); // crash
+```sql
+WITH pgrst_source AS (
+  INSERT INTO returns_filed (...) VALUES (...) RETURNING *
+)
+SELECT * FROM pgrst_source AS returns_filed
 ```
 
-DB confirms: `form_versions.schema_snapshot` for the return template `d6e04a93-…` published row is jsonb type `object` with key `sections`, while the draft row is `array`.
+The final `SELECT` triggers the `SELECT` RLS policy `external_returns_filed_select_capability_gate` against the newly-inserted row. Its `USING` clause calls:
+
+```sql
+external_can_access_return_filed(auth.uid(), id, 'can_view_status')
+external_can_access_return_filed(auth.uid(), id, 'can_submit_returns')
+```
+
+That helper re-queries the base table:
+
+```sql
+SELECT 1 FROM returns_filed r WHERE r.id = _return_id AND …
+```
+
+Inside the same INSERT statement Postgres uses the statement's own snapshot — the just-inserted row is not visible to that lookup, so the helper returns `false`, the `USING` clause is `false`, and Postgres reports:
+
+> new row violates row-level security policy "external_returns_filed_select_capability_gate"
+
+`INSERT WITH CHECK` uses the sibling helper `external_can_access_return_filed_values(...)` that receives the row's columns directly, which is why the INSERT gate passes but the SELECT gate fails.
 
 ## Fix
 
-Normalize `schema_snapshot` to a `FormSection[]` at the read sites in `src/hooks/useFormTemplates.ts` so the publish flow never hands a non-array to `classifySchemaChange` (or to the `newSections`/`publishedSections` variables it uses later).
+Rewrite the `external_returns_filed_select_capability_gate` policy to use the values-based helper (same one the INSERT gate uses), so it operates on the row columns already available in the policy context and doesn't re-query `returns_filed`.
 
-### Steps
+### Migration
 
-1. Add a small helper in `useFormTemplates.ts`:
-   ```ts
-   function normalizeSchemaSnapshot(raw: unknown): FormSection[] {
-     if (Array.isArray(raw)) return raw as FormSection[];
-     if (raw && typeof raw === 'object' && Array.isArray((raw as any).sections)) {
-       return (raw as any).sections as FormSection[];
-     }
-     return [];
-   }
-   ```
+Drop and recreate the policy:
 
-2. In the publish path of `useUpdateTemplateStatus` (around lines 970–971), replace:
-   ```ts
-   const draftSections     = (latestDraft.schema_snapshot     || []) as FormSection[];
-   const publishedSections = (lastPublished?.schema_snapshot  || []) as FormSection[];
-   ```
-   with:
-   ```ts
-   const draftSections     = normalizeSchemaSnapshot(latestDraft?.schema_snapshot);
-   const publishedSections = normalizeSchemaSnapshot(lastPublished?.schema_snapshot);
-   ```
+```sql
+DROP POLICY IF EXISTS external_returns_filed_select_capability_gate
+  ON public.returns_filed;
 
-3. Defensive-guard the top of `classifySchemaChange` so any future call from elsewhere can't crash the same way:
-   ```ts
-   oldSections = Array.isArray(oldSections) ? oldSections : [];
-   newSections = Array.isArray(newSections) ? newSections : [];
-   ```
+CREATE POLICY external_returns_filed_select_capability_gate
+  ON public.returns_filed
+  FOR SELECT
+  USING (
+    (NOT public.has_external_role(auth.uid()))
+    OR public.external_can_access_return_filed_values(
+         auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_view_status'
+       )
+    OR public.external_can_access_return_filed_values(
+         auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_submit_returns'
+       )
+  );
+```
+
+Same effective access, but evaluable against the newly-inserted row.
 
 ### Out of scope
 
-- No schema migration. Existing object-shaped `schema_snapshot` rows are left alone; the next publish will overwrite the row with an array-shaped snapshot via the existing insert path, which already writes an array. If the user wants a one-off data cleanup migration later we can add it.
-- No changes to the FormBuilder editor or Return Configuration UI.
+- Do not touch the INSERT / UPDATE gates — they already use the values helper and work correctly.
+- No changes to `has_portal_capability`, `has_external_role`, or the helper functions.
+- Do not alter internal/admin policies (`Users manage own returns`, PPOC policies) — they already work.
 
 ### Verification
 
-- Re-attempt publishing the previously-failing return form template — expect the success toast and a new `form_versions` row inserted with `schema_snapshot` as a JSON array.
-- Publishing forms that already have an array-shaped `schema_snapshot` continues to work unchanged.
+- Bharat (`bharatd@yopmail.com`, licensee_primary with `returns_management.submit`) can create a new return without the RLS error.
+- Existing reads of prior returns still respect capability — the values-based check evaluates the same way for existing rows.
+- Internal roles are unaffected because the first `NOT has_external_role(...)` branch short-circuits.
