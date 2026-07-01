@@ -65,9 +65,54 @@ function resolveTokens(expr: string, data: ReturnFormData): string {
   });
 }
 
-export function computeRatio(ratio: PrudentialRatio, data: ReturnFormData): ComputedRatio {
+/** Extract $ratio_key references from a formula. */
+function extractRatioRefs(formula: string): string[] {
+  return Array.from(formula.matchAll(/\$([A-Za-z0-9_-]+)/g)).map((m) => m[1]);
+}
+
+/** Substitute $ratio_key tokens with previously computed numeric values. */
+function substituteRatioRefs(formula: string, values: Map<string, number>): string {
+  return formula.replace(/\$([A-Za-z0-9_-]+)/g, (_m, key: string) => {
+    const v = values.get(key);
+    return v !== undefined && Number.isFinite(v) ? String(v) : '0';
+  });
+}
+
+/**
+ * Order ratios so that dependencies (via $ratio_key references) are
+ * computed before their dependants. Throws on circular dependencies.
+ */
+export function topologicallyOrderRatios(ratios: PrudentialRatio[]): PrudentialRatio[] {
+  const byKey = new Map(ratios.map((r) => [r.ratio_key, r]));
+  const visited = new Set<string>();
+  const stack = new Set<string>();
+  const out: PrudentialRatio[] = [];
+  const visit = (r: PrudentialRatio) => {
+    if (visited.has(r.ratio_key)) return;
+    if (stack.has(r.ratio_key)) {
+      throw new Error(`Circular ratio dependency detected at "${r.ratio_key}"`);
+    }
+    stack.add(r.ratio_key);
+    for (const dep of extractRatioRefs(r.formula)) {
+      const d = byKey.get(dep);
+      if (d) visit(d);
+    }
+    stack.delete(r.ratio_key);
+    visited.add(r.ratio_key);
+    out.push(r);
+  };
+  for (const r of ratios) visit(r);
+  return out;
+}
+
+export function computeRatio(
+  ratio: PrudentialRatio,
+  data: ReturnFormData,
+  computedValues: Map<string, number> = new Map(),
+): ComputedRatio {
   try {
-    const value = safeEval(resolveTokens(ratio.formula, data));
+    const withRefs = substituteRatioRefs(ratio.formula, computedValues);
+    const value = safeEval(resolveTokens(withRefs, data));
     return {
       ratio_key: ratio.ratio_key,
       label: ratio.label,
@@ -88,7 +133,35 @@ export function computeRatio(ratio: PrudentialRatio, data: ReturnFormData): Comp
 }
 
 export function computeAllRatios(ratios: PrudentialRatio[], data: ReturnFormData): ComputedRatio[] {
-  return ratios.filter((r) => r.is_active).map((r) => computeRatio(r, data));
+  const active = ratios.filter((r) => r.is_active);
+  let ordered: PrudentialRatio[];
+  try {
+    ordered = topologicallyOrderRatios(active);
+  } catch (e) {
+    // Circular dependency: mark all as errored so the caller can surface it.
+    return active.map((r) => ({
+      ratio_key: r.ratio_key,
+      label: r.label,
+      value: null,
+      display_format: r.display_format,
+      metric_key: r.metric_key,
+      error: e instanceof Error ? e.message : 'Circular ratio dependency',
+    }));
+  }
+  const values = new Map<string, number>();
+  const results: ComputedRatio[] = [];
+  const byKey = new Map<string, ComputedRatio>();
+  for (const r of ordered) {
+    const c = computeRatio(r, data, values);
+    if (c.value !== null && Number.isFinite(c.value)) values.set(r.ratio_key, c.value);
+    byKey.set(r.ratio_key, c);
+  }
+  // Preserve original active-order in the output for stable UI rendering.
+  for (const r of active) {
+    const c = byKey.get(r.ratio_key);
+    if (c) results.push(c);
+  }
+  return results;
 }
 
 /** Detect breaches by matching ratio.metric_key to threshold.metric_key. */
