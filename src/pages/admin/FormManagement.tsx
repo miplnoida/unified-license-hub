@@ -41,7 +41,6 @@ const FORM_TYPES = [
   { value: 'post_license', label: 'Post-License' },
   { value: 'returns', label: 'Returns' },
   { value: 'registration', label: 'Registration' },
-  { value: 'internal', label: 'Internal' },
   { value: 'internal_license_action', label: 'Internal — License Action' },
 ] as const;
 
@@ -53,11 +52,14 @@ export default function FormManagement() {
   const { hasPermission } = useUserDynamicPermissions();
   const canEditForms = hasPermission('form_management', 'edit');
 
-  const activeTab = searchParams.get('tab') || 'pre_license';
+  const rawTab = searchParams.get('tab') || 'pre_license';
+  // Legacy "internal" tab was merged into "internal_license_action".
+  const activeTab = rawTab === 'internal' ? 'internal_license_action' : rawTab;
   const setActiveTab = (tab: string) => {
     setSearchParams({ tab });
     setSelectedIds(new Set());
   };
+
 
   const { data: templates = [], isLoading } = useFormTemplates(activeTab, activeRegulatorId);
   const deleteTemplateMutation = useDeleteFormTemplate();

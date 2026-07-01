@@ -1,75 +1,41 @@
-## Close remaining gaps in License Action Forms
+## Context
 
-### 1. DB migration (defensive/idempotent)
-Live DB constraint already includes `internal_license_action` (verified), but there is no committed migration file proving it. Add:
+The Form Management screen (`/admin/forms`) currently shows two tabs that look almost identical:
 
-- `supabase/migrations/<ts>_form_templates_allow_internal_license_action.sql`
-  - `ALTER TABLE public.form_templates DROP CONSTRAINT IF EXISTS form_templates_form_type_check;`
-  - Re-add the CHECK constraint including the full existing list plus `internal_license_action` (preserves `pre_license`, `post_license`, `internal`, `registration`, `returns`, `return`, `renewal`, `complaint`, `fit_and_proper`).
-  - Comment noting purpose.
+- **Internal** → `form_type = 'internal'` (legacy generic internal form type)
+- **Internal — License Action** → `form_type = 'internal_license_action'` (the new type used by the License Action Forms feature)
 
-### 2. Remove feature-scoped `as any` casts
-After types auto-regenerate the `license_action_form_configs`, `license_actions`, `form_responses`, and `resolve_license_action_form` RPC entries already exist in `src/integrations/supabase/types.ts`. Clean up:
+Both are surfaced to the License Action Forms configuration screen (it merges `internal`, `internal_license_action`, and `post_license` templates), which is why they feel redundant to admins.
 
-- `supabase/functions/perform-license-action/index.ts`
-  - Type `cfgRows` result and `tpl`/`licensee` as narrow interfaces instead of `as any`.
-  - Keep the `catch (e)` `(e as Error).message` (not feature-related).
-- `src/components/licenses/LicenseActionDialog.tsx`
-  - Type the `functions.invoke` response as `{ error?: string; code?: string; ok?: boolean }` to drop `(data as any)`.
-- `src/pages/licenses/LicenseDetail.tsx`
-  - Replace ONLY the two feature-related casts:
-    - `supabase.from('license_actions' as any)` → `supabase.from('license_actions')` (lines 131, 691).
-  - Leave unrelated renewal/certificate/`fee_configurations` casts alone (out of scope per "do not change unrelated working functionality").
+You asked to keep only one tab, labeled **Internal — License Action**, and not to change other working functionality.
 
-### 3. Verify form_type wiring (no code change expected)
-Already confirmed:
-- `FormManagement.tsx` has `internal_license_action` in `FORM_TYPES` (create, edit, list, filter dropdown).
-- `FormBuilder.tsx` handles the label and uses `formType` in create/update/publish inserts.
-- `LicenseActionFormsPage.tsx` loads templates of type `internal_license_action` (plus legacy `internal` / `post_license`) for admin selection.
-- `LicenseActionDialog.tsx` renders the resolved template via `FormRenderer`.
+## Change
 
-No new code needed here — plan step is verification only. Will re-check after edits.
+Frontend-only, presentation change. No DB migration, no edge function change.
 
-### 4. Confirm backend is sole write path
-Grep confirms `src/pages/licenses/LicenseDetail.tsx` no longer writes to `licenses.status` or inserts into `license_actions` for suspend/revoke/cancel/reinstate/status_change — it only reads. All action buttons go through `LicenseActionDialog` → `perform-license-action`. No code change; will re-grep after edits.
+1. `src/pages/admin/FormManagement.tsx`
+   - Remove the `{ value: 'internal', label: 'Internal' }` entry from `FORM_TYPES`.
+   - The remaining `internal_license_action` tab already renders with the label "Internal — License Action" — no rename needed.
+   - Default tab logic stays as-is (falls back to first entry if the URL `?tab=internal` is used → we'll coerce a legacy `?tab=internal` query param to `internal_license_action` so old bookmarks don't land on a missing tab).
 
-### 5. End-to-end verification via Playwright
-Script under `/tmp/browser/license-actions/`:
+2. `src/pages/admin/FormBuilder.tsx`
+   - Leave `formType === 'internal'` branches intact so any pre-existing legacy templates can still be opened/edited via direct URL — this preserves "other working functionality".
+   - New forms created from the UI will only be creatable as `internal_license_action` (since the tab is gone), matching your intent.
 
-1. Restore Supabase session (internal admin with `manage_license_actions`).
-2. As admin, seed via SQL:
-   - Create an `internal_license_action` form template + published version + one text field.
-   - Insert `license_action_form_configs` row for `suspension` scoped to the test license's sector, `is_required=true`, pointing at the template.
-3. Open a test license → click Suspend → confirm dialog shows the form; try to invoke `perform-license-action` directly without `form_response_id` → expect `FORM_REQUIRED`.
-4. Submit the form → expect status → `suspended`, `license_actions` row with `form_response_id`, `form_template_id`, `form_version_id`, and `audit_logs` row.
-5. Query `notification_dispatch_log` for `license.suspended` for this license id.
-6. Confirm `LicenseActionFormViewer` opens the submitted response from the action history row.
-7. Negative cases via direct `functions.invoke` from Playwright page context:
-   - wrong template id response → `FORM_RESPONSE_MISMATCH`
-   - draft response → `FORM_NOT_SUBMITTED`
-   - other user's response → `FORM_RESPONSE_MISMATCH`
-8. Smoke: navigate to a renewal page, certificate download button, applicant portal `/portal` — assert pages render without console errors.
+3. No changes to:
+   - `LicenseActionFormsPage.tsx` (still merges legacy `internal` + new `internal_license_action` + `post_license` templates, so any existing legacy internal templates remain selectable in action configs).
+   - `perform-license-action` edge function.
+   - Database (`form_templates.form_type` CHECK constraint keeps allowing both values; existing rows untouched).
+   - License Action dialog, viewer, or notifications.
 
-Cleanup step deletes the seeded template/config/response/action rows.
+## Out of scope
 
-### 6. Build + lint
-- `npx tsgo --noEmit` (fast typecheck)
-- `npm run build`
-- `npm run lint` — fix only feature-touched files. Pre-existing lint issues in unrelated files are left as-is and reported.
+- Migrating existing `form_type = 'internal'` rows to `internal_license_action` (not requested; would be a data change).
+- Any change to Pre-License, Post-License, Returns, or Registration tabs.
 
-### 7. Final report (posted after build)
-- Files changed
-- Migration added
-- `tsgo` / `build` / `lint` results
-- Playwright verification results (screenshots + log excerpts)
-- Any remaining issues
+## Verification
 
-### Out of scope
-Renewals, certificates, workflow engine, AI assessments, applicant portal internals, unrelated `as any` casts in `LicenseDetail.tsx`.
-
-### Files touched
-- new `supabase/migrations/<ts>_form_templates_allow_internal_license_action.sql`
-- edit `supabase/functions/perform-license-action/index.ts`
-- edit `src/components/licenses/LicenseActionDialog.tsx`
-- edit `src/pages/licenses/LicenseDetail.tsx` (2 casts only)
-- `src/integrations/supabase/types.ts` auto-regenerated by migration
+- Load `/admin/forms` → only one "Internal — License Action" tab visible alongside Pre-License / Post-License / Returns / Registration.
+- Load `/admin/forms?tab=internal` → auto-redirects to the Internal — License Action tab.
+- License Action Forms config page still lists any existing legacy internal templates.
+- `tsgo --noEmit` clean.
