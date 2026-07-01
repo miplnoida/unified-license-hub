@@ -266,10 +266,10 @@ export default function CreateReturnPage() {
 
                 {activeConfigs.length === 0 ? (
                   <div className="p-4 border border-amber-300 bg-amber-50 rounded-lg text-sm text-amber-900">
-                    <p className="font-medium">No return form is currently configured.</p>
+                    <p className="font-medium">No return form is currently configured for your sector.</p>
                     <p className="mt-1 text-amber-800">
                       An admin must configure a return form (Sector, Sub-Sector and Return Type) from
-                      <strong> Admin → Form Management → Returns </strong> and link it to a return configuration before you can file a return.
+                      <strong> Admin → Form Management → Returns </strong> and link it to a return configuration matching your entity's sector before you can file a return.
                     </p>
                   </div>
                 ) : (
