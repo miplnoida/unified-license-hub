@@ -270,11 +270,11 @@ export default function FillReturnPage() {
     }
     if (!id) {
       if (!auto) toast.error('Return id missing — reload the page and try again.');
-      return;
+      return false;
     }
     if (saving) {
       if (!auto) toast.message('A save is already in progress...');
-      return;
+      return false;
     }
     setSaving(true);
     try {
@@ -297,9 +297,11 @@ export default function FillReturnPage() {
       }
       setLastSaved(new Date());
       if (!auto) toast.success('Draft saved');
+      return true;
     } catch (e: any) {
       console.error('[FillReturn] save failed', e);
       toast.error(e?.message || 'Failed to save draft');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -349,7 +351,11 @@ export default function FillReturnPage() {
 
       // Save first — persist the latest form data so the server-side
       // evaluator sees exactly what the user is about to submit.
-      await handleSave(true);
+      const saved = await handleSave(true);
+      if (!saved) {
+        toast.error('Submission stopped because the latest draft could not be saved.');
+        return;
+      }
 
       // ------------------------------------------------------------------
       // BLOCKING pre-submit prudential validation.
@@ -720,17 +726,17 @@ export default function FillReturnPage() {
           <div className="flex flex-wrap items-center justify-between gap-2 bg-card border rounded-lg p-4">
             <div className="flex gap-2">
               {tabIndex > 0 && (
-                <Button variant="outline" onClick={async () => { await handleSave(true); setActiveTab(tabs[tabIndex - 1]); }} disabled={saving}>
+                <Button variant="outline" onClick={async () => { if (await handleSave(true)) setActiveTab(tabs[tabIndex - 1]); }} disabled={saving}>
                   <ArrowLeft className="h-4 w-4 mr-2" />Previous
                 </Button>
               )}
               {tabIndex < tabs.length - 1 && (
-                <Button variant="outline" onClick={async () => { await handleSave(true); setActiveTab(tabs[tabIndex + 1]); }} disabled={saving}>
+                <Button variant="outline" onClick={async () => { if (await handleSave(true)) setActiveTab(tabs[tabIndex + 1]); }} disabled={saving}>
                   Next<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
               {tabIndex === tabs.length - 1 && (
-                <Button variant="outline" onClick={async () => { await handleSave(true); setActiveTab('__review__'); }} disabled={saving}>
+                <Button variant="outline" onClick={async () => { if (await handleSave(true)) setActiveTab('__review__'); }} disabled={saving}>
                   Review &amp; Submit<ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               )}
