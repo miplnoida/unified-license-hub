@@ -261,7 +261,14 @@ export default function ManageValidations() {
               <div key={v.version} className="border rounded p-3 space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">v{v.version}{v.is_current && <Badge className="ml-2">current</Badge>}</div>
-                  <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">{new Date(v.published_at).toLocaleString()}</div>
+                    {!v.is_current && historyRule && (
+                      <Button size="sm" variant="outline" onClick={() => rollback(historyRule.id, v.version)}>
+                        <Undo2 className="h-3 w-3 mr-1" /> Rollback
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <code className="text-xs block bg-muted p-2 rounded whitespace-pre-wrap">{v.definition?.expression}</code>
                 <div className="text-xs text-muted-foreground">Severity: {v.definition?.severity} · Type: {v.definition?.rule_type}</div>
