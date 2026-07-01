@@ -284,6 +284,61 @@ function normalizeSchemaSnapshot(raw: unknown): FormSection[] {
   return [];
 }
 
+/**
+ * Ensure a Return Configuration exists (and is linked to the given form
+ * template) whenever an admin publishes a return-type template. This lets the
+ * template appear immediately in the entity's "Create New Return" flow without
+ * requiring a separate manual step in Return Configurations.
+ */
+async function ensureReturnConfigForTemplate(templateId: string) {
+  const { data: tpl } = await supabase
+    .from('form_templates')
+    .select('form_type, name, sector_id, sub_sector_id, return_type_id')
+    .eq('id', templateId)
+    .maybeSingle();
+  const t = tpl as any;
+  if (!t || t.form_type !== 'returns' || !t.return_type_id) return;
+
+  let cfgQuery: any = supabase.from('return_configs').select('id').eq('return_type_id', t.return_type_id);
+  cfgQuery = t.sector_id ? cfgQuery.eq('sector_id', t.sector_id) : cfgQuery.is('sector_id', null);
+  cfgQuery = t.sub_sector_id ? cfgQuery.eq('subsector_id', t.sub_sector_id) : cfgQuery.is('subsector_id', null);
+  const { data: match } = await cfgQuery.maybeSingle();
+  let cfgId: string | undefined = (match as any)?.id;
+
+  if (!cfgId) {
+    const { data: created, error: cErr } = await (supabase as any)
+      .from('return_configs')
+      .insert({
+        name: t.name,
+        sector_id: t.sector_id ?? null,
+        subsector_id: t.sub_sector_id ?? null,
+        return_type_id: t.return_type_id,
+        status: 'active',
+      })
+      .select('id')
+      .maybeSingle();
+    if (cErr) throw cErr;
+    cfgId = (created as any)?.id;
+  }
+  if (!cfgId) return;
+
+  const { data: linked } = await (supabase as any)
+    .from('return_config_forms')
+    .select('id')
+    .eq('return_configuration_id', cfgId)
+    .eq('form_id', templateId)
+    .maybeSingle();
+  if (!linked) {
+    await (supabase as any).from('return_config_forms').insert({
+      return_configuration_id: cfgId,
+      form_id: templateId,
+      tab_name: 'General',
+      display_order: 0,
+      status: 'active',
+    });
+  }
+}
+
 async function replaceVersionFields(versionId: string, sections: FormSection[]) {
   const { data: existingFields } = await supabase
     .from('form_fields')
@@ -1108,11 +1163,16 @@ export function useUpdateTemplateStatus() {
       // Best-effort: announce upcoming version if it's scheduled for the future.
       try { await notifyUpcomingVersionIfNeeded(newVid); } catch (_) { /* non-blocking */ }
     },
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
+      if (variables?.status === 'published') {
+        try { await ensureReturnConfigForTemplate(variables.id); } catch (_) { /* non-blocking */ }
+      }
       queryClient.invalidateQueries({ queryKey: ['form_templates'] });
       queryClient.invalidateQueries({ queryKey: ['form_versions'] });
       queryClient.invalidateQueries({ queryKey: ['form_fields'] });
       queryClient.invalidateQueries({ queryKey: ['field_conditions'] });
+      queryClient.invalidateQueries({ queryKey: ['return_configs'] });
+      queryClient.invalidateQueries({ queryKey: ['return_config_forms'] });
     },
   });
 }
