@@ -8033,6 +8033,14 @@ export type Database = {
         }
         Returns: Json
       }
+      archive_prudential_ratio: {
+        Args: { _ratio_id: string }
+        Returns: undefined
+      }
+      archive_prudential_threshold: {
+        Args: { _threshold_id: string }
+        Returns: undefined
+      }
       archive_validation_rule: {
         Args: { _rule_id: string }
         Returns: undefined
@@ -8830,6 +8838,14 @@ export type Database = {
           _registration_id: string
         }
         Returns: Json
+      }
+      rollback_prudential_ratio: {
+        Args: { _ratio_id: string; _to_version: number }
+        Returns: number
+      }
+      rollback_prudential_threshold: {
+        Args: { _threshold_id: string; _to_version: number }
+        Returns: number
       }
       rollback_validation_rule: {
         Args: { _rule_id: string; _to_version: number }
