@@ -471,6 +471,13 @@ export default function FillReturnPage() {
           },
         }).catch(() => {});
       }
+
+      // Server-side prudential evaluation (validation + ratios + breaches + notifications).
+      // Fire-and-forget: submission has already succeeded; failures here are logged.
+      supabase.functions
+        .invoke('evaluate-return-prudential', { body: { return_id: id, dispatch_notifications: true } })
+        .catch((err) => console.warn('[prudential] evaluation failed', err));
+
       toast.success('Return submitted successfully!');
       navigate(`/entity/returns/${id}/view`);
     } finally {
