@@ -262,6 +262,8 @@ export default function AuditLogs() {
                     <div className="col-span-2">{new Date(selected.created_at).toLocaleString()}</div>
                     <div className="text-muted-foreground">Actor</div>
                     <div className="col-span-2">{selected.user_email || 'System'}</div>
+                    <div className="text-muted-foreground">Role</div>
+                    <div className="col-span-2">{selected.user_role || '—'}</div>
                     <div className="text-muted-foreground">Entity</div>
                     <div className="col-span-2">{renderEntityLink(selected)}</div>
                     {selected.metadata?.application_number && (
