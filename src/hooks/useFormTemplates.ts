@@ -276,6 +276,14 @@ async function ensureVersionScopedFieldIds(versionId: string, sections: FormSect
   return hasCrossVersionCollision ? cloneSectionsWithNewFieldIds(sections) : sections;
 }
 
+function normalizeSchemaSnapshot(raw: unknown): FormSection[] {
+  if (Array.isArray(raw)) return raw as FormSection[];
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).sections)) {
+    return (raw as any).sections as FormSection[];
+  }
+  return [];
+}
+
 async function replaceVersionFields(versionId: string, sections: FormSection[]) {
   const { data: existingFields } = await supabase
     .from('form_fields')
