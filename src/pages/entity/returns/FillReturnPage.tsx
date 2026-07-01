@@ -86,6 +86,7 @@ function SingleReturnForm({ returnId, formTemplateId, initialData, readOnly, onD
         readOnly={readOnly}
         saving={saving}
         showFullTabTitles
+        hideActions
       />
     </div>
   );
@@ -291,8 +292,8 @@ export default function FillReturnPage() {
       }
       // Transition TEMP → WIP on first save
       if (returnData?.workflow_status === 'TEMP') {
-        updateReturn.mutate({ id, workflow_status: 'WIP', updated_by: user?.id });
-        insertAudit.mutate({ return_id: id, action: 'draft_saved', previous_status: 'TEMP', new_status: 'WIP', performed_by: user?.id });
+        await updateReturn.mutateAsync({ id, workflow_status: 'WIP', updated_by: user?.id });
+        await insertAudit.mutateAsync({ return_id: id, action: 'draft_saved', previous_status: 'TEMP', new_status: 'WIP', performed_by: user?.id });
       }
       setLastSaved(new Date());
       if (!auto) toast.success('Draft saved');
