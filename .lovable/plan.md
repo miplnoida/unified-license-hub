@@ -1,110 +1,151 @@
+# Prudential Returns — Completion Plan (Gap Closure)
 
-# Prudential Returns — Completion Plan
+Foundational tables (`return_validation_rules`, `prudential_thresholds`, `prudential_ratios`, `return_calculated_ratios`, `return_threshold_breaches`) and the `evaluate-return-prudential` edge function already exist. This plan closes every remaining gap without altering unrelated modules.
 
-Extend the existing Returns module without redesigning. All changes are additive: new tables, new components mounted inside existing pages, and new notification event keys wired into the existing dispatcher.
+## 1. Schema additions (single migration, additive only)
 
-## 1. Configurable Validation Rules (business + cross-field)
+New tables (all with GRANT + RLS + immutability where noted):
 
-Replace the current mock `ManageValidations.tsx` with a real CRUD backed by a new table.
+- `return_validation_rule_versions` — snapshot of every published/edited rule (rule_id, version, definition jsonb, published_at, published_by, is_current). Append-only.
+- `return_validation_run_log` — per-execution log (return_id, rule_id, rule_version, passed, severity, message, executed_at, executed_by, context `submit|save|supervisor|resubmit`). Append-only.
+- `prudential_threshold_versions` — snapshot per threshold change (threshold_id, version, warn_value, breach_value, comparator, effective_from, effective_to, published_by). Append-only.
+- `prudential_ratio_versions` — snapshot per formula change (ratio_id, version, formula, display_format, effective_from, published_by). Append-only.
 
-**New table** `return_validation_rules`
-- return_config_id, form_id (nullable = cross-form), scope (`field` | `cross_field` | `cross_form`)
-- rule_type (`range` | `comparison` | `pattern` | `expression` | `required_if`)
-- expression (safe-eval string reusing `src/lib/safeEval.ts`)
-- severity (`error` | `warning`), error_message, field_refs jsonb, is_active
-- Grants + RLS: admins manage, entity users evaluate via RPC only.
+Additive columns:
 
-**Evaluator** `src/lib/returnsValidation.ts`
-- `evaluateReturn(returnId, formData): { errors, warnings }[]` using existing `safeEval` for expressions and referencing fields via `formId.fieldKey` tokens.
-- Called from `FillReturnPage` on Save/Next and from `verify-and-submit` edge function server-side (authoritative).
+- `return_validation_rules`: `current_version int not null default 1`.
+- `prudential_thresholds`: `effective_from date not null default current_date`, `effective_to date null`, `sector_id uuid null`, `return_type_id uuid null`, `current_version int default 1`.
+- `prudential_ratios`: `current_version int default 1`.
+- `return_calculated_ratios`: `ratio_version int`, `formula_snapshot text`.
+- `return_threshold_breaches`: `risk_level text check in ('green','amber','red')`, `threshold_version int`.
 
-## 2. Validation Result Panel
+New RPCs (SECURITY DEFINER, `search_path = public`):
 
-New `src/components/returns/ValidationResultPanel.tsx`
-- Grouped errors/warnings; each row has a "Go to field" button that switches the FillReturn tab and scrolls/focuses the field via existing `FormRenderer` field ids.
-- Mounted inside `FillReturnPage` (side panel, collapsible) and `ReturnReviewPanel` (blocks submission when errors > 0).
+- `publish_validation_rule(_rule_id uuid)` — snapshots into versions table, bumps `current_version`.
+- `publish_prudential_threshold(_threshold_id uuid, _effective_from date)` — closes prior version (`effective_to`), inserts new.
+- `publish_prudential_ratio(_ratio_id uuid)` — snapshots.
+- `log_validation_run(_return_id, _results jsonb, _context text)` — inserts one row per result, plus a single `RETURN_VALIDATED` compliance audit event.
+- `peer_ratio_snapshot(_period_end, _ratio_key, _sector_id)` — min/median/p90/max + caller value for peer chart.
+- `resolve_effective_threshold(_return_config_id, _metric_key, _as_of date)` — returns active threshold row for a return's period.
 
-## 3. Supervisor Validation Summary
+Triggers: forbid UPDATE/DELETE on all `*_versions` and `return_validation_run_log` for non-service roles.
 
-Add a `ValidationSummaryCard` to `pages/returns-mgmt/ReturnDetail.tsx` showing:
-- Last validation run, error/warning counts, rule breakdown, override history.
-- Uses same evaluator over stored `return_form_data`.
+## 2. Validation Engine (server-authoritative)
 
-## 4. Configurable Prudential Thresholds
+Extend `evaluate-return-prudential`:
 
-**New table** `prudential_thresholds`
-- return_config_id, metric_key, label, comparator (`>=` | `<=` | `between`), warn_value, breach_value, unit, is_active.
-- Admin UI: new tab `PrudentialThresholds.tsx` under `returns-mgmt` reusing `DataTableShell` + dialog patterns from `ManageValidations`.
+1. Load rules **at their `current_version`** via versions table (so historical returns replay against the version they were validated with, stored in `return_calculated_ratios.ratio_version` / run log).
+2. Evaluate through existing `returnsValidation.ts` (already handles cross-field, formula, conditional, pattern, required_if, warning vs blocking).
+3. Persist every result via `log_validation_run` (audit + per-rule log).
+4. Compute ratios using **effective ratio version** as of the return's `period_end`; snapshot formula into `return_calculated_ratios.formula_snapshot`.
+5. Resolve thresholds via `resolve_effective_threshold` (sector + return_type + effective window). Classify **Green** (within warn), **Amber** (>= warn, < breach), **Red** (>= breach) and persist to `return_threshold_breaches` with `risk_level` + `threshold_version`.
+6. Emit compliance audit events: `RETURN_VALIDATED`, `RATIOS_COMPUTED`, `THRESHOLD_BREACH`, `VALIDATION_OVERRIDDEN`.
+7. Dispatch notifications: `return.validation_failed`, `return.validation_passed`, `return.breach_warning`, `return.breach_critical`.
 
-## 5. Automatic Ratio Calculations
+Integrate into workflow:
 
-**New table** `prudential_ratios`
-- return_config_id, ratio_key, label, formula (safe-eval expression over field tokens), display_format.
-- Evaluated by `src/lib/returnsRatios.ts` at submit-time and on-demand in ReturnDetail.
-- Results persisted to new `return_calculated_ratios` (return_id, ratio_key, value, computed_at) — write via SECURITY DEFINER RPC `recompute_return_ratios(return_id)` invoked by `verify-and-submit` and by supervisor "Recompute" button.
+- `perform-return-workflow-action`: on submit/approve/reject transitions, invoke `evaluate-return-prudential` (blocking on errors for submit path only); dispatch `return.submitted|approved|rejected|resubmission_requested`.
+- `resubmit-return`: same pre-flight validation + re-run engine; emit `RESUBMISSION`, `return.resubmission_requested`.
+- Existing `FillReturnPage` client mirror already calls the function on submit — keep as UX preview only.
 
-## 6. Threshold Breach Detection & Alerts
+## 3. Admin Screens
 
-- After ratio computation, compare each ratio to matching threshold; insert rows into new `return_threshold_breaches` (return_id, metric_key, level `warn`|`breach`, value, threshold, detected_at).
-- Reuse existing `log_compliance_audit_as_actor` to record `THRESHOLD_BREACH` events.
-- Fire notification events `return.breach_warning` / `return.breach_critical`.
+Extend existing pages (no redesign, reuse `DataTableShell` + dialog patterns):
 
-## 7. Trend & Peer Comparison Analytics
+- `ManageValidations.tsx`: add columns for `current_version`, "Publish new version" button (calls `publish_validation_rule`), version history drawer listing prior versions with diff.
+- `PrudentialThresholds.tsx`: add sector / return_type selectors, effective_from picker, version history drawer, audit trail tab.
+- `PrudentialRatios.tsx`: add version history drawer, display formula snapshot.
 
-- New page `pages/returns-mgmt/PrudentialAnalytics.tsx` with two Recharts panels (reusing existing chart patterns):
-  - **Trend**: ratio value over historical returns for a licensee.
-  - **Peer**: same ratio across licensees in the same sector/sub-sector for the current period (aggregated via a SECURITY DEFINER RPC `peer_ratio_snapshot(period_end, ratio_key, sector_id)` returning min/median/p90/max + caller value).
-- Linked from ReturnDetail and Regulator dashboard.
+## 4. Entity Submission Flow
 
-## 8. Enhanced Version History & Audit Trail
+`FillReturnPage.tsx` + `ReturnReviewPanel.tsx`:
 
-- Extend `return_form_versions` usage: on every submit/resubmit snapshot `return_form_data` + computed ratios; add diff view in ReturnDetail reusing `src/lib/formDiff.ts`.
-- All state changes already write to `compliance_audit_logs`; add explicit events: `RETURN_VALIDATED`, `RATIOS_COMPUTED`, `THRESHOLD_BREACH`, `VERSION_SNAPSHOT`, `VALIDATION_OVERRIDDEN` (justification ≥10 chars via existing `OverrideJustificationDialog`).
-- Timeline tab in ReturnDetail queries `audit_timeline` view filtered to the return.
+- Mount `ValidationResultPanel` as collapsible side panel (already exists) — wire "Go to field" to switch tab + focus via existing `FormRenderer` field ids.
+- Block submit when errors > 0; show warnings inline with acknowledge checkbox.
+- On successful submit, persist link `returns_filed.validation_run_id` → latest `return_validation_run_log` batch (batch_id column added).
+- Resubmission path: reuse same panel; prior run log preserved.
 
-## 9. Notifications
+## 5. Supervisor Review (`ReturnDetail.tsx`)
 
-Register new event keys in `notification_event_configs` and templates in `return_notification_templates`:
-- `return.validation_failed`, `return.validation_passed`
-- `return.submitted`, `return.approved`, `return.rejected` (wire missing ones)
-- `return.overdue` (daily job in existing `run-scheduled-reports` / new cron on `compliance_returns` where `due_date < now() AND status IN ('pending','draft')`)
-- `return.breach_warning`, `return.breach_critical`
+Add tabs / cards (reuse existing tab shell):
 
-All dispatched via existing `dispatch-notification-event` from server-side (edge functions and cron), never client-only.
+- **Validation Summary** — pass/fail counts, per-rule table sourced from `return_validation_run_log` filtered to the return + latest batch.
+- **Ratios** — `RatioSummaryCard` (exists) extended with formula snapshot + version.
+- **Breaches** — table from `return_threshold_breaches` with Green/Amber/Red badges.
+- **Comments** — reuse existing `return_comments`.
+- **Version History** — `return_form_versions` diff viewer via `formDiff.ts`.
+- **Audit History** — `audit_timeline` view filtered to this return.
+- **Recompute** button → RPC `recompute_return_ratios` (supervisor role, logs `OVERRIDE` with justification via `OverrideJustificationDialog`).
 
-## Technical details
+## 6. Trends & Analytics
 
-**Migrations (single batch)**
-1. `return_validation_rules`, `prudential_thresholds`, `prudential_ratios`, `return_calculated_ratios`, `return_threshold_breaches` — each with GRANT + RLS (admins full; authenticated SELECT scoped through existing licensee visibility helpers).
-2. RPCs (SECURITY DEFINER, `search_path = public`):
-   - `evaluate_return_validations(_return_id uuid)`
-   - `recompute_return_ratios(_return_id uuid)`
-   - `peer_ratio_snapshot(_period_end date, _ratio_key text, _sector_id uuid)`
-3. Immutability trigger reused from existing audit pattern for `return_calculated_ratios` and `return_threshold_breaches` (no UPDATE/DELETE by non-service roles).
+`PrudentialAnalytics.tsx` extend with:
 
-**Edge functions**
-- `verify-and-submit`: after workflow transition, call `evaluate_return_validations` (block on errors), then `recompute_return_ratios`, then dispatch notifications for pass/fail + any breaches.
-- New cron caller (`overdue-returns-sweep`) scheduled via pg_cron using existing notification pattern.
+- Historical return trend (line) per licensee.
+- Ratio trend (line) per ratio_key.
+- Threshold overlay bands (warn/breach) on ratio chart.
+- Peer comparison (box plot / distribution) via `peer_ratio_snapshot`.
 
-**Frontend**
-- `ManageValidations.tsx`: replace mock data with real hooks (`useReturnValidationRules`).
-- New pages: `PrudentialThresholds.tsx`, `PrudentialRatios.tsx`, `PrudentialAnalytics.tsx` under `returns-mgmt`.
-- New components: `ValidationResultPanel`, `ValidationSummaryCard`, `RatioBreachBadges`, `RatioTrendChart`, `PeerComparisonChart`.
-- Wire into: `FillReturnPage`, `ReturnReviewPanel`, `ReturnDetail`, admin sidebar (existing `navigation.tsx`).
+Dashboard widgets (reuse `report_dashboard_widgets` config pattern):
 
-**Tests (Vitest)**
-- `returnsValidation.test.ts` — expression evaluator + severity gating.
-- `returnsRatios.test.ts` — formula parsing + persistence.
-- `thresholdBreach.test.ts` — comparator logic + notification dispatch call.
-- `overdueReturnsSweep.test.ts` — SQL selection window.
-- `validationResultPanel.test.tsx` — navigation-to-field behavior.
-- Extend `auditSourceCoverage.test.ts` with new event types.
+- Supervisor summary card: counts of Green/Amber/Red across current period, overdue returns, validation-failure rate.
+- Licensee summary card: my last submission risk, upcoming due dates.
 
-**Non-goals / preserved**
-- No changes to existing workflow engine, RBAC, or form builder internals.
-- No schema changes to `compliance_returns`, `returns_filed`, `return_form_data`, `return_form_versions` beyond additive relations.
-- Existing tests continue to pass; new features are gated behind admin-configured rows so unconfigured returns behave exactly as today.
+Mount widgets on existing supervisor + licensee dashboards.
+
+## 7. Notifications
+
+Seed `notification_event_configs` + `return_notification_templates` for any missing keys:
+`return.validation_failed`, `return.validation_passed`, `return.submitted`, `return.approved`, `return.rejected`, `return.resubmission_requested`, `return.overdue`, `return.breach_warning`, `return.breach_critical`.
+
+Dispatch exclusively server-side (edge functions + `overdue-returns-sweep` cron via `pg_cron`, scheduled through `supabase--insert` per project convention).
+
+## 8. Audit Logging
+
+Every path emits via existing `log_compliance_audit_as_actor` / `log_security_event_as_actor`:
+
+- `RULE_PUBLISHED`, `THRESHOLD_PUBLISHED`, `RATIO_PUBLISHED` — from admin publish RPCs.
+- `RETURN_VALIDATED`, `RATIOS_COMPUTED`, `THRESHOLD_BREACH`, `VALIDATION_OVERRIDDEN`, `VERSION_SNAPSHOT`, `RESUBMISSION`, `REVIEW_ACTION` — from edge functions.
+
+Extend `docs/audit-log-coverage.md` and `auditSourceCoverage.test.ts` to include the new event keys.
+
+## 9. Tests (Vitest + Deno)
+
+Frontend:
+- `returnsValidation.test.ts` — extend for versioned rule replay, warning-vs-error gating, conditional/required_if.
+- `returnsRatios.test.ts` — formula snapshot persistence.
+- `thresholdBreach.test.ts` — Green/Amber/Red classification, effective-window resolution.
+- `validationResultPanel.test.tsx` — "Go to field" navigation.
+- `prudentialAnalytics.test.tsx` — peer distribution rendering.
+- `returnSubmissionFlow.test.tsx` — blocked-on-errors, warnings ack, resubmission path.
+- `supervisorReviewTabs.test.tsx` — tabs render logs/ratios/breaches.
+- `auditSourceCoverage.test.ts` — new event keys.
+
+Edge (Deno):
+- `evaluate-return-prudential/index_test.ts` — end-to-end: rules + ratios + thresholds + audit + notifications called.
+- `perform-return-workflow-action/index_test.ts` — extend for validation gating.
+- `resubmit-return/index_test.ts` — new.
+- `overdue-returns-sweep/index_test.ts` — new.
+
+Regression: full existing suite (currently 432 tests) must still pass.
+
+## 10. Definition of Done (verification checklist)
+
+Before reporting complete, the agent will:
+
+1. Run frontend suite (`bunx vitest run`) and Deno edge tests — all green.
+2. Run `supabase--linter` — no new criticals.
+3. Playwright walkthrough: admin publishes a rule + threshold + ratio → entity user submits a failing return (blocked) → corrects and submits → supervisor sees validation summary, ratios, Green/Amber/Red breach, audit trail → notifications logged in `notification_dispatch_log`.
+4. Confirm no changes to unrelated modules (licenses, registration, workflow engine internals, RBAC, form builder core).
+
+## Technical notes
+
+- All new tables carry GRANT (`authenticated` SELECT scoped by RLS; `service_role` full) + RLS in the same migration.
+- All mutations flow through SECURITY DEFINER RPCs; direct INSERT/UPDATE on audit/log/version tables is revoked.
+- Cron for `overdue-returns-sweep` scheduled via `supabase--insert` (contains project-specific URL/anon key, not in migration).
+- No changes to `compliance_returns`, `returns_filed`, `return_form_data`, or `return_form_versions` beyond additive relations (`validation_run_id`, `latest_batch_id`).
+- Client evaluator remains UX-only; the edge function is the sole authority.
 
 ## Deliverable
 
-Working, migration-backed, server-enforced prudential returns layer with UI parity to existing admin patterns and full notification + audit coverage. All new tables carry GRANT + RLS in the same migration; all evaluators run server-side authoritatively with client mirrors for UX only.
+Fully server-enforced Prudential Returns layer with versioned rules/thresholds/ratios, Green/Amber/Red risk, per-run execution log, integrated submission + resubmission + supervisor review, dashboard widgets, complete notifications, audit coverage, and passing test suite.
