@@ -644,32 +644,6 @@ export default function LicenseDetail() {
     }
   };
 
-  const regenerateCertificate = async () => {
-    if (!license) return;
-    setDownloading(true);
-    try {
-      const gen = await supabase.functions.invoke('generate-license-certificate', {
-        body: { mode: 'generate', license_id: license.id },
-      });
-      const genErr = (gen.data as any)?.error;
-      if (gen.error || genErr) {
-        toast.error(genErr || 'Failed to regenerate certificate');
-        return;
-      }
-      const dl = await supabase.functions.invoke('generate-license-certificate', {
-        body: { mode: 'download', license_id: license.id },
-      });
-      const url = (dl.data as any)?.url;
-      if (!url) {
-        toast.error((dl.data as any)?.error || 'Certificate regenerated but download failed');
-        return;
-      }
-      toast.success('Certificate regenerated with latest signatory settings.');
-      await openSignedUrl(url);
-    } finally {
-      setDownloading(false);
-    }
-  };
 
 
   const [actionDialog, setActionDialog] = useState<LicenseActionConfig | null>(null);
@@ -710,14 +684,8 @@ export default function LicenseDetail() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={downloadCertificate} disabled={downloading}>
                 {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileDown className="h-4 w-4 mr-1" />}
-                Signed Certificate
+                Download Certificate
               </Button>
-              {isInternal && (
-                <Button variant="outline" size="sm" onClick={regenerateCertificate} disabled={downloading}>
-                  {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-                  Regenerate Certificate
-                </Button>
-              )}
               <LicenseStatusBadge status={license.status} validUntil={license.valid_until} gracePeriodDays={graceDays} />
             </div>
           }
