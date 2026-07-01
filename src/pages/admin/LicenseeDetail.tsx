@@ -169,10 +169,7 @@ export default function LicenseeDetail() {
 
   const tabs = [
     { id: 'background', label: 'Background Info', icon: Building2 },
-    { id: 'relationships', label: 'Relationships', icon: Users },
-    { id: 'ownership', label: 'Ownership', icon: GitBranch },
     { id: 'licenses', label: 'Licenses', icon: Shield },
-    { id: 'enforcement', label: 'Enforcement', icon: Gavel },
     { id: 'risk', label: 'Risk Ratings', icon: ShieldAlert },
     { id: 'supervisory', label: 'Supervisory Plan', icon: Target },
     { id: 'web-users', label: 'Web Users', icon: Users2 },
@@ -180,6 +177,7 @@ export default function LicenseeDetail() {
     { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
     ...(hasReinsurance ? [{ id: 'reinsurance', label: 'Reinsurance', icon: Umbrella }] : []),
   ];
+
 
   return (
     <DashboardLayout>
