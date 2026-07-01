@@ -46,6 +46,7 @@ const ManageValidations = lazy(() => import('@/pages/returns-mgmt/ManageValidati
 const PrudentialThresholds = lazy(() => import('@/pages/returns-mgmt/PrudentialThresholds'));
 const PrudentialRatios = lazy(() => import('@/pages/returns-mgmt/PrudentialRatios'));
 const PrudentialAnalytics = lazy(() => import('@/pages/returns-mgmt/PrudentialAnalytics'));
+const ReturnAnalysis = lazy(() => import('@/pages/returns-mgmt/ReturnAnalysis'));
 
 function A({ children }: { children: React.ReactNode }) {
   return <P><AdminRoute>{children}</AdminRoute></P>;
