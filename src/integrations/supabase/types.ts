@@ -4208,6 +4208,7 @@ export type Database = {
       }
       prudential_ratios: {
         Row: {
+          category: string | null
           created_at: string
           current_version: number
           display_format: string
@@ -4217,10 +4218,12 @@ export type Database = {
           label: string
           metric_key: string | null
           ratio_key: string
+          recommendation_template: string | null
           return_config_id: string
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           current_version?: number
           display_format?: string
@@ -4230,10 +4233,12 @@ export type Database = {
           label: string
           metric_key?: string | null
           ratio_key: string
+          recommendation_template?: string | null
           return_config_id: string
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           current_version?: number
           display_format?: string
@@ -4243,6 +4248,7 @@ export type Database = {
           label?: string
           metric_key?: string | null
           ratio_key?: string
+          recommendation_template?: string | null
           return_config_id?: string
           updated_at?: string
         }
@@ -6040,6 +6046,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      return_consolidated_analysis: {
+        Row: {
+          ai_summary: string | null
+          asset_quality_summary: Json
+          capital_summary: Json
+          computed_at: string
+          computed_by: string | null
+          concentration_risks: Json
+          early_warnings: Json
+          health_score: number | null
+          heatmap: Json
+          id: string
+          inputs: Json
+          liquidity_summary: Json
+          peer: Json
+          profitability_summary: Json
+          recommendations: Json
+          return_config_id: string | null
+          return_id: string
+          sector_id: string | null
+          trend: Json
+        }
+        Insert: {
+          ai_summary?: string | null
+          asset_quality_summary?: Json
+          capital_summary?: Json
+          computed_at?: string
+          computed_by?: string | null
+          concentration_risks?: Json
+          early_warnings?: Json
+          health_score?: number | null
+          heatmap?: Json
+          id?: string
+          inputs?: Json
+          liquidity_summary?: Json
+          peer?: Json
+          profitability_summary?: Json
+          recommendations?: Json
+          return_config_id?: string | null
+          return_id: string
+          sector_id?: string | null
+          trend?: Json
+        }
+        Update: {
+          ai_summary?: string | null
+          asset_quality_summary?: Json
+          capital_summary?: Json
+          computed_at?: string
+          computed_by?: string | null
+          concentration_risks?: Json
+          early_warnings?: Json
+          health_score?: number | null
+          heatmap?: Json
+          id?: string
+          inputs?: Json
+          liquidity_summary?: Json
+          peer?: Json
+          profitability_summary?: Json
+          recommendations?: Json
+          return_config_id?: string | null
+          return_id?: string
+          sector_id?: string | null
+          trend?: Json
+        }
+        Relationships: []
       }
       return_cutoff_config: {
         Row: {
@@ -8400,6 +8472,36 @@ export type Database = {
       is_primary_user_of: {
         Args: { _entity_id: string; _user_id: string }
         Returns: boolean
+      }
+      latest_return_analysis: {
+        Args: { _return_id: string }
+        Returns: {
+          ai_summary: string | null
+          asset_quality_summary: Json
+          capital_summary: Json
+          computed_at: string
+          computed_by: string | null
+          concentration_risks: Json
+          early_warnings: Json
+          health_score: number | null
+          heatmap: Json
+          id: string
+          inputs: Json
+          liquidity_summary: Json
+          peer: Json
+          profitability_summary: Json
+          recommendations: Json
+          return_config_id: string | null
+          return_id: string
+          sector_id: string | null
+          trend: Json
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "return_consolidated_analysis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       license_ids_for_licensee: {
         Args: { _licensee_id: string }
