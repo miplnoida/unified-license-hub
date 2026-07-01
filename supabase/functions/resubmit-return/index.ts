@@ -45,6 +45,15 @@ Deno.serve(async (req) => {
       const status = typeof result.http === "number" ? (result.http as number) : 422;
       return jsonResponse(req, status, result);
     }
+
+    // Re-run prudential evaluation so the new submission is scored server-side.
+    try {
+      await admin.functions.invoke("evaluate-return-prudential", {
+        body: { return_id, dispatch_notifications: true, context: "resubmit" },
+        headers: { Authorization: authHeader },
+      });
+    } catch (e) { console.warn("prudential re-eval on resubmit failed:", e); }
+
     // Best-effort notification dispatch
     try {
       await admin.functions.invoke("dispatch-notification-event", {
