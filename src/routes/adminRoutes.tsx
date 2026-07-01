@@ -46,6 +46,7 @@ const ManageValidations = lazy(() => import('@/pages/returns-mgmt/ManageValidati
 const PrudentialThresholds = lazy(() => import('@/pages/returns-mgmt/PrudentialThresholds'));
 const PrudentialRatios = lazy(() => import('@/pages/returns-mgmt/PrudentialRatios'));
 const PrudentialAnalytics = lazy(() => import('@/pages/returns-mgmt/PrudentialAnalytics'));
+const ReturnAnalysis = lazy(() => import('@/pages/returns-mgmt/ReturnAnalysis'));
 
 function A({ children }: { children: React.ReactNode }) {
   return <P><AdminRoute>{children}</AdminRoute></P>;
@@ -100,6 +101,7 @@ export const adminRoutes = (
     {/* Returns Management - Admin */}
     <Route path="/admin/returns/queue" element={<M module="returns_management"><ViewReturns /></M>} />
     <Route path="/admin/returns/queue/:id" element={<M module="returns_management"><ReturnDetail /></M>} />
+    <Route path="/admin/returns/queue/:id/analysis" element={<M module="returns_management"><ReturnAnalysis /></M>} />
     <Route path="/admin/returns/types" element={<M module="returns_management"><ReturnTypesPage /></M>} />
     <Route path="/admin/returns/configurations" element={<M module="returns_management"><ReturnConfigsPage /></M>} />
     <Route path="/admin/returns/cutoff" element={<M module="returns_management"><CutoffConfigPage /></M>} />
