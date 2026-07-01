@@ -6528,6 +6528,7 @@ export type Database = {
       }
       security_event_logs: {
         Row: {
+          actor_role: string | null
           created_at: string
           detail: Json | null
           event_time: string
@@ -6541,6 +6542,7 @@ export type Database = {
           user_role: string | null
         }
         Insert: {
+          actor_role?: string | null
           created_at?: string
           detail?: Json | null
           event_time?: string
@@ -6554,6 +6556,7 @@ export type Database = {
           user_role?: string | null
         }
         Update: {
+          actor_role?: string | null
           created_at?: string
           detail?: Json | null
           event_time?: string
