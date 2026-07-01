@@ -242,16 +242,28 @@ Deno.serve(async (req) => {
 
     // Compute ratios + persist with formula snapshot + version.
     // Detect division-by-zero and missing inputs so we can persist a null_reason.
+    // Ratios may reference other ratios via $ratio_key; topologically order
+    // so dependencies compute first, then substitute values into dependants.
     type Computed = { ratio_key: string; label: string; value: number | null; display_format: string; metric_key: string | null; version: number; formula: string; null_reason: string | null };
-    const computed: Computed[] = [];
-    for (const r of ratios as any[]) {
+    let orderedRatios: any[];
+    let cycleError: string | null = null;
+    try {
+      orderedRatios = topoOrderRatios(ratios as any[]);
+    } catch (e) {
+      cycleError = (e as Error).message;
+      orderedRatios = ratios as any[];
+    }
+    const computedByKey = new Map<string, Computed>();
+    const computedValues = new Map<string, number>();
+    for (const r of orderedRatios) {
       let value: number | null = null;
-      let null_reason: string | null = null;
+      let null_reason: string | null = cycleError;
       try {
-        const resolvedFormula = resolve(r.formula, data);
-        // Missing input detection: an operand resolved to "0" from a genuinely
-        // absent field is a distinct problem class. We treat any explicit
-        // undefined/null/"" on a referenced token as missing_input.
+        if (cycleError) throw new Error(cycleError);
+        // Substitute referenced ratios first, then field tokens.
+        const withRefs = substituteRatioRefs(r.formula, computedValues);
+        const resolvedFormula = resolve(withRefs, data);
+        // Missing input detection on original formula
         const tokens = String(r.formula).match(/([A-Za-z_][A-Za-z0-9_.-]*)/g) || [];
         let hasMissing = false;
         for (const tk of tokens) {
@@ -261,23 +273,33 @@ Deno.serve(async (req) => {
           const raw = fid ? data[fid]?.[key] : undefined;
           if (raw === undefined || raw === null || raw === "") { hasMissing = true; break; }
         }
-        // Division by zero detection: catch `/ 0` in the resolved formula.
+        // Missing ratio dependency detection
+        const missingDep = ratioRefs(r.formula).some((k) => !computedValues.has(k));
         if (/\/\s*0(?:\.0+)?\b/.test(resolvedFormula)) {
           null_reason = "division_by_zero";
         } else {
           const v = safeArith(resolvedFormula);
-          if (Number.isFinite(v)) value = v;
+          if (Number.isFinite(v)) { value = v; computedValues.set(r.ratio_key, v); }
           else null_reason = "non_numeric";
         }
-        if (value === null && !null_reason && hasMissing) null_reason = "missing_input";
+        if (value === null && !null_reason) {
+          if (missingDep) null_reason = "missing_ratio_dependency";
+          else if (hasMissing) null_reason = "missing_input";
+        }
       } catch (_e) {
-        null_reason = "computation_error";
+        null_reason = null_reason || "computation_error";
       }
-      computed.push({
+      computedByKey.set(r.ratio_key, {
         ratio_key: r.ratio_key, label: r.label, value,
         display_format: r.display_format, metric_key: r.metric_key,
         version: r.current_version ?? 1, formula: r.formula, null_reason,
       });
+    }
+    // Preserve original config order in the output.
+    const computed: Computed[] = [];
+    for (const r of ratios as any[]) {
+      const c = computedByKey.get(r.ratio_key);
+      if (c) computed.push(c);
     }
     for (const c of computed) {
       await admin.rpc("record_return_ratio", {
