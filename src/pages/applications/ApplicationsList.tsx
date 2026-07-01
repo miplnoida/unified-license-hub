@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SubmissionCompareDialog } from '@/components/form-builder/SubmissionCompareDialog';
 import { buildCsv } from '@/lib/applicationsExport';
+import { logExport } from '@/lib/complianceAudit';
 import type { ApplicationQueueSlaBucket, ApplicationQueueStatusGroup } from '@/lib/applicationQueueFilters';
 import { useWorkflowSlaInstances } from '@/hooks/useWorkflowSlaInstances';
 import { SlaStatusBadge } from '@/components/workflows/SlaIndicator';
