@@ -15,7 +15,7 @@ const R = (over: Partial<RatioInput>): RatioInput => ({
   ratio_key: over.ratio_key ?? 'car',
   label: over.label ?? 'Capital Adequacy',
   category: over.category ?? 'capital',
-  value: over.value ?? 15,
+  value: 'value' in over ? (over.value as number | null) : 15,
   display_format: over.display_format ?? 'percent',
   null_reason: over.null_reason ?? null,
   unit: over.unit ?? null,
