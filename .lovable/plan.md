@@ -1,69 +1,30 @@
-## Problem
 
-When a licensee user creates a return, PostgREST runs:
+## Goal
+Fix the licensee return-fill page (`/entity/returns/:id/fill`) where clicking **Save Draft** and **Submit** produces no visible response (no toast, no error, no console log) on a TEMP/WIP return.
 
-```sql
-WITH pgrst_source AS (
-  INSERT INTO returns_filed (...) VALUES (...) RETURNING *
-)
-SELECT * FROM pgrst_source AS returns_filed
-```
+## Investigation approach
+The click handlers in `src/pages/entity/returns/FillReturnPage.tsx` (`handleSave`, `handleSubmit`) should at minimum surface a toast, so a silent no-op points to one of:
 
-The final `SELECT` triggers the `SELECT` RLS policy `external_returns_filed_select_capability_gate` against the newly-inserted row. Its `USING` clause calls:
+1. The button never invokes the handler (overlay, `disabled`, tab pane hidden).
+2. The handler exits early on an unsatisfied guard (`!id`, stuck `saving=true` from a prior hung auto-save, `licenseGate.isBlocked` for Submit, `accessGuard.verify` returning `false` silently, or an unresolved Swal instance).
+3. A React state race: `SingleReturnForm`'s effect (lines 51-54) fires on every render because `initialData` is a fresh object each render, potentially thrashing state and interfering with the button's click cycle.
 
-```sql
-external_can_access_return_filed(auth.uid(), id, 'can_view_status')
-external_can_access_return_filed(auth.uid(), id, 'can_submit_returns')
-```
+I will drive the licensee flow with Playwright against `http://localhost:8080/entity/returns/<id>/fill` using the injected Supabase session, click both buttons, and capture console + network + screenshots to identify which branch swallows the click.
 
-That helper re-queries the base table:
+## Fix (applied after reproduction confirms the branch)
+Depending on root cause, the fix will be one of the following minimal changes in `src/pages/entity/returns/FillReturnPage.tsx`:
 
-```sql
-SELECT 1 FROM returns_filed r WHERE r.id = _return_id AND …
-```
+- **Stuck `saving` guard**: reset `setSaving(false)` in a `finally` in `handleSave`, and drop the `if (saving) return` early-exit in favor of the mutation's own concurrency (guarded by disabled button only).
+- **Silent guard exit**: add a user-visible `toast.error(...)` on every early return in `handleSubmit` (license gate, access guard, Swal cancel is fine to stay silent) and in `handleSave` (missing `id`).
+- **Access guard false-negative**: fall back to allowing submit when `accessGuard.verify` throws or returns a non-boolean, and surface the underlying reason via toast.
+- **Effect thrash in `SingleReturnForm`**: stabilize the effect deps by dropping `initialData` from the dep array (only re-seed when `resolvedVersionId` changes) so button re-renders don't compete with a state-set loop.
 
-Inside the same INSERT statement Postgres uses the statement's own snapshot — the just-inserted row is not visible to that lookup, so the helper returns `false`, the `USING` clause is `false`, and Postgres reports:
+Also add a one-time `console.debug('[FillReturn] save click', { id, saving, formCount })` and equivalent for submit, gated behind `import.meta.env.DEV`, so future silent-click regressions are diagnosable.
 
-> new row violates row-level security policy "external_returns_filed_select_capability_gate"
+## Out of scope
+- No changes to `useSaveReturnFormData`, `useMutateReturn`, RLS policies, edge functions, workflow engine, `ReturnReviewPanel`, or admin-side return configuration.
+- No visual/UI redesign.
 
-`INSERT WITH CHECK` uses the sibling helper `external_can_access_return_filed_values(...)` that receives the row's columns directly, which is why the INSERT gate passes but the SELECT gate fails.
-
-## Fix
-
-Rewrite the `external_returns_filed_select_capability_gate` policy to use the values-based helper (same one the INSERT gate uses), so it operates on the row columns already available in the policy context and doesn't re-query `returns_filed`.
-
-### Migration
-
-Drop and recreate the policy:
-
-```sql
-DROP POLICY IF EXISTS external_returns_filed_select_capability_gate
-  ON public.returns_filed;
-
-CREATE POLICY external_returns_filed_select_capability_gate
-  ON public.returns_filed
-  FOR SELECT
-  USING (
-    (NOT public.has_external_role(auth.uid()))
-    OR public.external_can_access_return_filed_values(
-         auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_view_status'
-       )
-    OR public.external_can_access_return_filed_values(
-         auth.uid(), entity_id, on_behalf_of_licensee_id, created_by, 'can_submit_returns'
-       )
-  );
-```
-
-Same effective access, but evaluable against the newly-inserted row.
-
-### Out of scope
-
-- Do not touch the INSERT / UPDATE gates — they already use the values helper and work correctly.
-- No changes to `has_portal_capability`, `has_external_role`, or the helper functions.
-- Do not alter internal/admin policies (`Users manage own returns`, PPOC policies) — they already work.
-
-### Verification
-
-- Bharat (`bharatd@yopmail.com`, licensee_primary with `returns_management.submit`) can create a new return without the RLS error.
-- Existing reads of prior returns still respect capability — the values-based check evaluates the same way for existing rows.
-- Internal roles are unaffected because the first `NOT has_external_role(...)` branch short-circuits.
+## Technical notes
+- Files touched: `src/pages/entity/returns/FillReturnPage.tsx` only.
+- Verification: rerun Playwright — click Save Draft on a fresh TEMP return, assert "Draft saved" toast + `return_form_data` row or WIP transition; click Submit on Review tab, assert Swal appears and either blocks with validation errors or proceeds to `/entity/returns/:id/view`.
