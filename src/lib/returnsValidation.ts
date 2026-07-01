@@ -4,6 +4,7 @@
 // for immediate UX feedback; the edge function is authoritative at submit.
 
 import { safeEvaluate } from '@/lib/safeEval';
+import { evaluateBoolean, hasBooleanOperator } from '@/lib/booleanExpression';
 
 function safeEval(expr: string): number {
   const { value, error } = safeEvaluate(expr);
@@ -85,6 +86,31 @@ function splitComparison(expr: string): { lhs: string; op: CmpOp; rhs: string } 
   return null;
 }
 
+/**
+ * Evaluate a single boolean predicate — either a comparison, or an
+ * arithmetic-truthy check, or a boolean composition of those.
+ */
+function evalBooleanPredicate(
+  expression: string,
+  data: ReturnFormData,
+  defaultFormId: string | null,
+): boolean {
+  const evalAtom = (atom: string): boolean => {
+    const cmp = splitComparison(atom);
+    if (cmp) {
+      const l = evalArith(cmp.lhs, data, defaultFormId);
+      const r = evalArith(cmp.rhs, data, defaultFormId);
+      return compare(l, cmp.op, r);
+    }
+    const v = evalArith(atom, data, defaultFormId);
+    return v !== 0 && !Number.isNaN(v);
+  };
+  if (hasBooleanOperator(expression)) {
+    return evaluateBoolean(expression, evalAtom);
+  }
+  return evalAtom(expression);
+}
+
 export function evaluateRule(rule: ValidationRule, data: ReturnFormData): ValidationResult {
   const defaultFormId = rule.form_id;
   const fail = (message: string): ValidationResult => ({
@@ -119,10 +145,7 @@ export function evaluateRule(rule: ValidationRule, data: ReturnFormData): Valida
         // if condition evaluates truthy, fieldKey must be non-empty.
         const [cond, target] = rule.expression.split('=>').map((s) => s.trim());
         if (!cond || !target) return fail(rule.error_message || 'Invalid required_if');
-        const cmp = splitComparison(cond);
-        const condTrue = cmp
-          ? compare(evalArith(cmp.lhs, data, defaultFormId), cmp.op, evalArith(cmp.rhs, data, defaultFormId))
-          : !!evalArith(cond, data, defaultFormId);
+        const condTrue = evalBooleanPredicate(cond, data, defaultFormId);
         if (!condTrue) return pass();
         const val = getRaw(target, data, defaultFormId);
         return val === undefined || val === null || val === '' ? fail(rule.error_message) : pass();
@@ -130,14 +153,9 @@ export function evaluateRule(rule: ValidationRule, data: ReturnFormData): Valida
       case 'range':
       case 'comparison':
       case 'expression': {
-        const cmp = splitComparison(rule.expression);
-        if (cmp) {
-          const l = evalArith(cmp.lhs, data, defaultFormId);
-          const r = evalArith(cmp.rhs, data, defaultFormId);
-          return compare(l, cmp.op, r) ? pass() : fail(rule.error_message);
-        }
-        const v = evalArith(rule.expression, data, defaultFormId);
-        return v !== 0 && !Number.isNaN(v) ? pass() : fail(rule.error_message);
+        return evalBooleanPredicate(rule.expression, data, defaultFormId)
+          ? pass()
+          : fail(rule.error_message);
       }
       default:
         return fail(`Unknown rule_type: ${rule.rule_type}`);
