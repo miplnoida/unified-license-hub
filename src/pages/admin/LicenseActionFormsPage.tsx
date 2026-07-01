@@ -192,21 +192,19 @@ export default function LicenseActionFormsPage() {
   );
 }
 
-function EditDialog({ open, initial, templates, sectors, subSectors, categories, regulators, onClose, onSave, saving }: {
+function EditDialog({ open, initial, templates, sectors, subSectors, categories, onClose, onSave, saving }: {
   open: boolean;
   initial: ConfigRow | null;
   templates: any[];
   sectors: any[];
   subSectors: any[];
   categories: any[];
-  regulators: any[];
   onClose: () => void;
   onSave: (v: Partial<ConfigRow>) => void;
   saving: boolean;
 }) {
   const [actionType, setActionType] = useState(initial?.license_action_type || 'suspension');
   const [templateId, setTemplateId] = useState(initial?.form_template_id || '');
-  const [regulatorId, setRegulatorId] = useState<string>(initial?.regulator_id || 'any');
   const [sectorId, setSectorId] = useState<string>(initial?.sector_id || 'any');
   const [subSectorId, setSubSectorId] = useState<string>(initial?.sub_sector_id || 'any');
   const [categoryId, setCategoryId] = useState<string>(initial?.category_id || 'any');
@@ -217,7 +215,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
     if (!open) return;
     setActionType(initial?.license_action_type || 'suspension');
     setTemplateId(initial?.form_template_id || '');
-    setRegulatorId(initial?.regulator_id || 'any');
     setSectorId(initial?.sector_id || 'any');
     setSubSectorId(initial?.sub_sector_id || 'any');
     setCategoryId(initial?.category_id || 'any');
@@ -234,7 +231,6 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
     onSave({
       license_action_type: actionType,
       form_template_id: templateId,
-      regulator_id: regulatorId === 'any' ? null : regulatorId,
       sector_id: sectorId === 'any' ? null : sectorId,
       sub_sector_id: subSectorId === 'any' ? null : subSectorId,
       category_id: categoryId === 'any' ? null : categoryId,
@@ -242,6 +238,7 @@ function EditDialog({ open, initial, templates, sectors, subSectors, categories,
       is_active: isActive,
     });
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
