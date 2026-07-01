@@ -678,8 +678,8 @@ export default function LicenseDetail() {
         <PageHeader
           title={`License ${license.license_number}`}
           description={formatTaxonomyLabel(license.license_type)}
-          backHref="/licenses"
-          backLabel="Back to Licenses"
+          backHref={isInternal ? "/admin/licensees" : "/licenses"}
+          backLabel={isInternal ? "Back to Licensee Entities" : "Back to My Licenses"}
           actions={
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={downloadCertificate} disabled={downloading}>
