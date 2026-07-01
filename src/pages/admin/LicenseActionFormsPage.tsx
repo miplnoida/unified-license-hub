@@ -158,7 +158,6 @@ export default function LicenseActionFormsPage() {
                       <TableCell>{ACTION_LABELS[r.license_action_type] || r.license_action_type}</TableCell>
                       <TableCell>{templates.find((t: any) => t.id === r.form_template_id)?.name || '—'}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        Reg: {lookupName(regulators as any[], r.regulator_id)} ·
                         Sec: {lookupName(sectors as any[], r.sector_id)} ·
                         Sub: {lookupName(subSectors as any[], r.sub_sector_id)} ·
                         Cat: {lookupName(categories as any[], r.category_id)}
