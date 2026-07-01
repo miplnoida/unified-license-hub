@@ -313,8 +313,55 @@ export default function FillReturnPage() {
       });
       if (!result.isConfirmed) return;
 
-      // Save first
+      // Save first — persist the latest form data so the server-side
+      // evaluator sees exactly what the user is about to submit.
       await handleSave(true);
+
+      // ------------------------------------------------------------------
+      // BLOCKING pre-submit prudential validation.
+      // We MUST evaluate rules + ratios + thresholds BEFORE flipping the
+      // return to SUB. If any error-severity rule fails, we abort the
+      // submission and surface the errors to the user via toast; the
+      // ValidationResultPanel on the Review tab reads the persisted run.
+      // ------------------------------------------------------------------
+      let prudential: any = null;
+      try {
+        const { data: prudRes, error: prudErr } = await supabase.functions.invoke(
+          'evaluate-return-prudential',
+          { body: { return_id: id, dispatch_notifications: false, context: 'pre_submit' } },
+        );
+        if (prudErr) throw prudErr;
+        prudential = prudRes;
+      } catch (e: any) {
+        toast.error(`Validation engine unavailable: ${e?.message || 'unknown error'}. Submission blocked.`);
+        return;
+      }
+      const prudErrors = Array.isArray(prudential?.errors) ? prudential.errors : [];
+      const prudWarnings = Array.isArray(prudential?.warnings) ? prudential.warnings : [];
+      if (prudErrors.length > 0) {
+        qc.invalidateQueries({ queryKey: ['return_validation_runs', id] });
+        qc.invalidateQueries({ queryKey: ['return_calculated_ratios', id] });
+        qc.invalidateQueries({ queryKey: ['return_threshold_breaches', id] });
+        const preview = prudErrors.slice(0, 3).map((r: any) => `• ${r.rule_name}: ${r.message}`).join('<br/>');
+        await Swal.fire({
+          title: 'Submission Blocked',
+          html: `<p>${prudErrors.length} validation error${prudErrors.length === 1 ? '' : 's'} must be resolved before submitting.</p><div class="text-left text-sm mt-2">${preview}</div>${prudErrors.length > 3 ? `<p class="text-xs mt-2">…and ${prudErrors.length - 3} more. See the Review tab.</p>` : ''}`,
+          icon: 'error',
+          confirmButtonText: 'Review Errors',
+        });
+        return;
+      }
+      if (prudWarnings.length > 0) {
+        const ack = await Swal.fire({
+          title: 'Warnings Detected',
+          html: `<p>${prudWarnings.length} non-blocking warning${prudWarnings.length === 1 ? '' : 's'} were raised. Submit anyway?</p>`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Submit with warnings',
+          cancelButtonText: 'Go back',
+        });
+        if (!ack.isConfirmed) return;
+      }
 
       const now = new Date();
       const dueDate = returnData?.due_date ? new Date(returnData.due_date) : null;
