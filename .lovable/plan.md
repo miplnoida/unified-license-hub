@@ -1,30 +1,25 @@
+## Plan
 
-## Goal
-Fix the licensee return-fill page (`/entity/returns/:id/fill`) where clicking **Save Draft** and **Submit** produces no visible response (no toast, no error, no console log) on a TEMP/WIP return.
+1. **Remove the misleading embedded actions in return forms**
+   - Update the shared `FormRenderer` to support hiding its built-in bottom action bar.
+   - Use that option only in the licensee return fill page so embedded `Save Draft` / `Submit` buttons no longer appear inside each sub-form.
 
-## Investigation approach
-The click handlers in `src/pages/entity/returns/FillReturnPage.tsx` (`handleSave`, `handleSubmit`) should at minimum surface a toast, so a silent no-op points to one of:
+2. **Keep one working Save Draft action**
+   - Use the existing page-level `Save Draft` button as the single draft-save control.
+   - Make it persist the latest in-memory form values, show `Draft saved` on success, and show a visible error toast if the database write fails.
 
-1. The button never invokes the handler (overlay, `disabled`, tab pane hidden).
-2. The handler exits early on an unsatisfied guard (`!id`, stuck `saving=true` from a prior hung auto-save, `licenseGate.isBlocked` for Submit, `accessGuard.verify` returning `false` silently, or an unresolved Swal instance).
-3. A React state race: `SingleReturnForm`'s effect (lines 51-54) fires on every render because `initialData` is a fresh object each render, potentially thrashing state and interfering with the button's click cycle.
+3. **Make submission flow explicit and reliable**
+   - Keep the existing `Review & Submit` step as the only final submission entry point.
+   - Ensure it saves latest form data first, runs server-side validation, then always shows a clear result:
+     - validation blocked dialog if rules fail
+     - error toast if save/update fails
+     - success toast/navigation if the return is submitted
 
-I will drive the licensee flow with Playwright against `http://localhost:8080/entity/returns/<id>/fill` using the injected Supabase session, click both buttons, and capture console + network + screenshots to identify which branch swallows the click.
+4. **Tighten backend access if needed**
+   - Add/adjust database policies only if the current licensee/PPOC draft writes are blocked by row-level access rules.
+   - Keep access scoped to users with return submission capability for the relevant licensee/entity.
 
-## Fix (applied after reproduction confirms the branch)
-Depending on root cause, the fix will be one of the following minimal changes in `src/pages/entity/returns/FillReturnPage.tsx`:
-
-- **Stuck `saving` guard**: reset `setSaving(false)` in a `finally` in `handleSave`, and drop the `if (saving) return` early-exit in favor of the mutation's own concurrency (guarded by disabled button only).
-- **Silent guard exit**: add a user-visible `toast.error(...)` on every early return in `handleSubmit` (license gate, access guard, Swal cancel is fine to stay silent) and in `handleSave` (missing `id`).
-- **Access guard false-negative**: fall back to allowing submit when `accessGuard.verify` throws or returns a non-boolean, and surface the underlying reason via toast.
-- **Effect thrash in `SingleReturnForm`**: stabilize the effect deps by dropping `initialData` from the dep array (only re-seed when `resolvedVersionId` changes) so button re-renders don't compete with a state-set loop.
-
-Also add a one-time `console.debug('[FillReturn] save click', { id, saving, formCount })` and equivalent for submit, gated behind `import.meta.env.DEV`, so future silent-click regressions are diagnosable.
-
-## Out of scope
-- No changes to `useSaveReturnFormData`, `useMutateReturn`, RLS policies, edge functions, workflow engine, `ReturnReviewPanel`, or admin-side return configuration.
-- No visual/UI redesign.
-
-## Technical notes
-- Files touched: `src/pages/entity/returns/FillReturnPage.tsx` only.
-- Verification: rerun Playwright — click Save Draft on a fresh TEMP return, assert "Draft saved" toast + `return_form_data` row or WIP transition; click Submit on Review tab, assert Swal appears and either blocks with validation errors or proceeds to `/entity/returns/:id/view`.
+5. **Verify the behavior**
+   - Confirm there is no inert embedded Submit button.
+   - Confirm Save Draft gives visible success/failure feedback.
+   - Confirm final submission shows validation errors when invalid and success/failure feedback once validation passes.
