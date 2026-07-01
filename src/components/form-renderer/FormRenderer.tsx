@@ -71,6 +71,8 @@ interface Props {
   stepStorageKey?: string;
   /** When true, section tabs show full title instead of letter-prefixed labels */
   showFullTabTitles?: boolean;
+  /** Hide the renderer's built-in action bar when parent pages provide their own save/submit controls. */
+  hideActions?: boolean;
   /** Form Management context for versioned document uploads. */
   formId?: string;
   formVersionId?: string | null;
@@ -226,7 +228,7 @@ function RowsGrid({ rows, renderField }: { rows: FormRow[]; renderField: (field:
 
 export function FormRenderer({
   formName, sections: rawSections, initialData, onSaveDraft, onSubmit, onChange, saving, readOnly, applicationId, stepStorageKey, showFullTabTitles,
-  formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData,
+  hideActions, formId, formVersionId, submissionId, entityType, entityId, portalArea, originalData,
 }: Props) {
   const { user } = useAuth();
   const { can } = useExternalPortalAccess();
@@ -1541,35 +1543,36 @@ export function FormRenderer({
         </CardContent>
       </Card>
 
-      {/* Navigation */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <Button variant="outline" onClick={handlePrev} disabled={isAtVeryStart} className="w-full sm:w-auto">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Previous
-        </Button>
-        <div className="flex flex-col sm:flex-row gap-2">
-          {!readOnly && (
-            <Button variant="outline" onClick={handleSaveDraft} disabled={saving} className="w-full sm:w-auto">
-              <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Draft'}
-            </Button>
-          )}
-          {!isAtVeryEnd ? (
-            <Button onClick={handleNext} className="w-full sm:w-auto">
-              Next <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            !readOnly && (
-              <Button
-                onClick={handleSubmit}
-                disabled={saving || !capSubmitAllowed}
-                title={!capSubmitAllowed ? "You don't have permission to submit in this portal" : undefined}
-                className="w-full sm:w-auto"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-2" /> Submit
+      {!hideActions && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <Button variant="outline" onClick={handlePrev} disabled={isAtVeryStart} className="w-full sm:w-auto">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Previous
+          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            {!readOnly && (
+              <Button variant="outline" onClick={handleSaveDraft} disabled={saving} className="w-full sm:w-auto">
+                <Save className="h-4 w-4 mr-2" /> {saving ? 'Saving...' : 'Save Draft'}
               </Button>
-            )
-          )}
+            )}
+            {!isAtVeryEnd ? (
+              <Button onClick={handleNext} className="w-full sm:w-auto">
+                Next <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              !readOnly && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={saving || !capSubmitAllowed}
+                  title={!capSubmitAllowed ? "You don't have permission to submit in this portal" : undefined}
+                  className="w-full sm:w-auto"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Submit
+                </Button>
+              )
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
