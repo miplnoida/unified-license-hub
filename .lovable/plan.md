@@ -1,7 +1,1 @@
-In `src/pages/licenses/LicenseDetail.tsx`:
-
-1. Rename the "Signed Certificate" button label (line ~713) to "Download Certificate".
-2. Remove the "Regenerate Certificate" button (lines ~716–718) and its surrounding wrapper if it becomes empty.
-3. Remove the now-unused `regenerateCertificate` function (lines ~647+) and any imports only it uses.
-
-No other files or behavior changes.
+In `src/pages/admin/LicenseeDetail.tsx`, remove the `relationships`, `ownership`, and `enforcement` entries from the `tabs` array so those triggers no longer render. Leave the lazy imports, `TabsContent` blocks, and tab components in place so nothing is deleted and the tabs can be re-enabled later by restoring the array entries.
