@@ -1,8 +1,10 @@
-## Change
-Hide (but do not remove) the **Reusable** column in the Form Management tables.
+## Why it's missing
+The Returns tab in Admin > Form Management filters `form_templates` by `form_type = 'returns'`. The earlier seed inserted "Balance Sheet Return" with `form_type = 'post_license'`, so it is currently listed under Post-License Forms instead of Returns.
 
-## Files
-- `src/pages/admin/PostLicenseForms.tsx` — comment out the `<TableHead>Reusable</TableHead>` header and its matching `<TableCell>` cell; reduce the empty-state `colSpan` from 8 to 7.
-- `src/pages/admin/PreLicenseForms.tsx` (if it has the same column) — apply the identical change.
+## Fix
+Run a single data update on the existing template row (no schema, code, or RLS changes):
 
-No data, hook, or type changes. The `is_reusable` field remains fully intact in the database, queries, form-create flow, and TypeScript types, so it can be restored by uncommenting.
+- `form_type`: `post_license` → `returns`
+- `return_type_id`: set to the **Monthly** return type (`04dfc304-c82d-46d5-afaf-9f3ac91d58c6`)
+
+After the update, the form will disappear from the Post-License tab and appear under Returns (Monthly). The existing monthly `return_configurations` row and the form's version/fields remain untouched.
