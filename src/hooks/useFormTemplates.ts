@@ -1139,6 +1139,8 @@ export function classifySchemaChange(
   oldSections: FormSection[],
   newSections: FormSection[],
 ): SchemaChangeKind {
+  oldSections = Array.isArray(oldSections) ? oldSections : [];
+  newSections = Array.isArray(newSections) ? newSections : [];
   // Section-level structural diffs (by section id is fine — sections don't get re-id'd on branching)
   const oldSectionIds = new Set(oldSections.map(s => s.id));
   const newSectionIds = new Set(newSections.map(s => s.id));
