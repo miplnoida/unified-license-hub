@@ -128,7 +128,7 @@ export default function LicenseDetail() {
       if (!id) return;
       const { data } = await supabase.from('licenses' as any).select('*').eq('id', id).single();
       if (data) setLicense(data as any);
-      const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', id).order('created_at', { ascending: false });
+      const { data: acts } = await supabase.from('license_actions').select('*').eq('license_id', id).order('created_at', { ascending: false });
       if (acts) setActions(acts as any);
       const { data: linked } = await supabase
         .from('licensees' as any)
@@ -688,7 +688,7 @@ export default function LicenseDetail() {
     if (!license) return;
     const { data: lic } = await supabase.from('licenses' as any).select('*').eq('id', license.id).single();
     if (lic) setLicense(lic as any);
-    const { data: acts } = await supabase.from('license_actions' as any).select('*').eq('license_id', license.id).order('created_at', { ascending: false });
+    const { data: acts } = await supabase.from('license_actions').select('*').eq('license_id', license.id).order('created_at', { ascending: false });
     if (acts) setActions(acts as any);
   };
 

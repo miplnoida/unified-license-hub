@@ -111,7 +111,7 @@ export async function handler(req: Request): Promise<Response> {
       _category_id: license.category_id,
     });
     if (cfgErr) return jsonResponse(req, 200, { error: cfgErr.message, code: "RESOLVE_FAILED" });
-    const cfg = (cfgRows as any[] | null)?.[0] || null;
+    const cfg = (cfgRows as Array<{ form_template_id: string | null; is_required: boolean }> | null)?.[0] ?? null;
     const required = !!(cfg && cfg.is_required);
     const templateId: string | null = cfg?.form_template_id || null;
 
@@ -142,8 +142,8 @@ export async function handler(req: Request): Promise<Response> {
         .from("form_templates")
         .select("name")
         .eq("id", resp.template_id)
-        .maybeSingle();
-      formTemplateName = (tpl as any)?.name ?? null;
+        .maybeSingle<{ name: string | null }>();
+      formTemplateName = tpl?.name ?? null;
     }
 
     const oldStatus = license.status as string;
@@ -180,10 +180,10 @@ export async function handler(req: Request): Promise<Response> {
       .from("licensees")
       .select("id, name")
       .eq("license_id", license.id)
-      .maybeSingle();
+      .maybeSingle<{ id: string; name: string | null }>();
     if (licensee) {
-      licenseeId = (licensee as any).id;
-      licenseeName = (licensee as any).name;
+      licenseeId = licensee.id;
+      licenseeName = licensee.name;
       if (new_status === "revoked" || new_status === "cancelled") {
         await admin.from("licensees").update({ status: new_status }).eq("license_id", license.id);
       }
@@ -235,7 +235,7 @@ export async function handler(req: Request): Promise<Response> {
         },
       });
     } catch (e) {
-      console.warn("[perform-license-action] dispatch failed", (e as any)?.message);
+      console.warn("[perform-license-action] dispatch failed", (e as Error)?.message);
     }
 
     return jsonResponse(req, 200, {

@@ -94,7 +94,13 @@ export default function LicenseActionDialog({ open, onOpenChange, license, confi
     if (!user) { toast.error('Not signed in'); return false; }
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('perform-license-action', {
+      const { data, error } = await supabase.functions.invoke<{
+        ok?: boolean;
+        error?: string;
+        code?: string;
+        action_id?: string;
+        new_status?: string;
+      }>('perform-license-action', {
         body: {
           license_id: license.id,
           action_type: config.actionType,
@@ -104,12 +110,11 @@ export default function LicenseActionDialog({ open, onOpenChange, license, confi
         },
       });
       if (error) { toast.error(error.message); return false; }
-      const errMsg = (data as any)?.error;
-      if (errMsg) {
-        if ((data as any)?.code === 'FORM_REQUIRED') {
+      if (data?.error) {
+        if (data.code === 'FORM_REQUIRED') {
           toast.error('An internal form must be submitted before this action.');
         } else {
-          toast.error(errMsg);
+          toast.error(data.error);
         }
         return false;
       }
