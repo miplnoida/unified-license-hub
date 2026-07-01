@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { useFormTemplates } from '@/hooks/useFormTemplates';
+import { useRegulator } from '@/contexts/RegulatorContext';
 
 const ACTION_LABELS: Record<string, string> = {
   suspension: 'Suspension',
