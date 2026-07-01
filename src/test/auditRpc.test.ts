@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const rpc = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { rpc },
+  supabase: { rpc: vi.fn().mockResolvedValue({ data: null, error: null }) },
 }));
+
+import { supabase } from '@/integrations/supabase/client';
+const rpc = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
 
 // Silence network IP lookup
 (globalThis as any).fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ip: '' }) });
