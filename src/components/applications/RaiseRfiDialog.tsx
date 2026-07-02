@@ -180,6 +180,7 @@ export function RaiseRfiDialog({
           item_count: items.length,
           due_at: dueAtIso,
           sla_paused: pauseSla && !!approvalStepActionId,
+          auto_rules_used: Array.from(loadedRuleIds),
         },
       });
 
