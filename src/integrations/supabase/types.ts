@@ -1983,6 +1983,130 @@ export type Database = {
           },
         ]
       }
+      correspondence_dispatches: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          recipient_user_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          source_id: string
+          source_type: string
+          status: string
+          subject: string | null
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          source_id: string
+          source_type: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          source_id?: string
+          source_type?: string
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_dispatches_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "correspondence_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correspondence_templates: {
+        Row: {
+          body: string
+          category: string
+          channel: string
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          regulator_id: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category?: string
+          channel?: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          regulator_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          channel?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          regulator_id?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correspondence_templates_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           created_at: string
