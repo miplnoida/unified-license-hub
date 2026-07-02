@@ -907,8 +907,8 @@ export default function ApplicationDetail() {
             )}
 
             {/* Advisory AI Analyst Assessment — internal staff only, post-draft. */}
-            {isInternal && app.status !== 'draft' && (
-              <ApplicationAiAssessmentPanel applicationId={app.id} />
+            {isInternal && app.status !== 'draft' && user && (
+              <ApplicationAiAssessmentPanel applicationId={app.id} currentUserId={user.id} />
             )}
 
             {/* Consolidated read-only decision support — internal staff only, post-draft. */}
