@@ -16,7 +16,7 @@
 // render any user-visible message.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, degrees, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 function json(req: Request, status: number, body: Record<string, unknown>) {
@@ -127,6 +127,8 @@ async function buildCertificatePdf(opts: {
   licenseNumber: string;
   issueDate: string;
   expiryDate: string;
+  status: string;
+  statusEffectiveDate: string;
   signatory: SignatoryConfig;
   cryptoSigned: boolean;
 }): Promise<Uint8Array> {
@@ -162,14 +164,42 @@ async function buildCertificatePdf(opts: {
   let y = height - 340;
   const label = (text: string, x: number, yy: number) =>
     page.drawText(text, { x, y: yy, size: 11, font: bold, color: rgb(0.3, 0.3, 0.3) });
-  const value = (text: string, x: number, yy: number) =>
-    page.drawText(text, { x, y: yy, size: 13, font, color: rgb(0, 0, 0) });
+  const value = (text: string, x: number, yy: number, color = rgb(0, 0, 0)) =>
+    page.drawText(text, { x, y: yy, size: 13, font, color });
 
   label("License Number", leftX, y); value(opts.licenseNumber, leftX, y - 18);
   label("Issue Date", rightX, y); value(opts.issueDate, rightX, y - 18);
   y -= 60;
   label("Expiry Date", leftX, y); value(opts.expiryDate || "No Expiry", leftX, y - 18);
-  label("Status", rightX, y); value("Active", rightX, y - 18);
+
+  const normalizedStatus = (opts.status || "active").toLowerCase();
+  const isActive = normalizedStatus === "active";
+  const statusLabel = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+  const statusColor = isActive ? rgb(0.09, 0.5, 0.2) : rgb(0.75, 0.1, 0.1);
+  label("Status", rightX, y);
+  value(statusLabel, rightX, y - 18, statusColor);
+  if (!isActive && opts.statusEffectiveDate) {
+    page.drawText(`Effective: ${opts.statusEffectiveDate}`, {
+      x: rightX, y: y - 34, size: 10, font, color: rgb(0.4, 0.4, 0.4),
+    });
+  }
+
+  // Watermark for non-active licenses so the certificate cannot be mistaken
+  // for a valid one when printed.
+  if (!isActive) {
+    const wm = statusLabel.toUpperCase();
+    const wmSize = 120;
+    const wmWidth = bold.widthOfTextAtSize(wm, wmSize);
+    page.drawText(wm, {
+      x: (width - wmWidth) / 2 + 120,
+      y: height / 2 - 120,
+      size: wmSize,
+      font: bold,
+      color: rgb(0.85, 0.1, 0.1),
+      opacity: 0.18,
+      rotate: degrees(-30),
+    });
+  }
 
   // Signatory block (right side)
   const blockRight = width - 80;
@@ -266,7 +296,7 @@ export async function handler(req: Request): Promise<Response> {
     // Generate mode
     const { data: license, error: licErr } = await admin
       .from("licenses")
-      .select("id, license_number, license_type, issued_at, valid_until, holder_id, application_id")
+      .select("id, license_number, license_type, issued_at, valid_until, status, holder_id, application_id")
       .eq("id", licenseId)
       .maybeSingle();
     if (licErr || !license) return json(req, 200, { error: "License not found" });
@@ -279,6 +309,54 @@ export async function handler(req: Request): Promise<Response> {
         .from("applications").select("data").eq("id", license.application_id).maybeSingle();
       entityName = (app?.data as any)?.entity_name || (app?.data as any)?.applicant_name || "Licensed Entity";
     }
+
+    // Resolve the effective date for the license's current status so the
+    // certificate reflects when the change took effect (suspension/revocation/
+    // cancellation) or when the license expired.
+    const status = String((license as any).status || "active").toLowerCase();
+    let statusEffectiveDate = "";
+    if (status !== "active") {
+      if (status === "expired") {
+        statusEffectiveDate = license.valid_until
+          ? new Date(license.valid_until).toLocaleDateString("en-GB")
+          : "";
+      } else {
+        const actionTypeByStatus: Record<string, string> = {
+          suspended: "suspension",
+          revoked: "revocation",
+          cancelled: "cancellation",
+          canceled: "cancellation",
+        };
+        const actionType = actionTypeByStatus[status];
+        if (actionType) {
+          const { data: act } = await admin
+            .from("license_actions")
+            .select("created_at")
+            .eq("license_id", license.id)
+            .eq("action_type", actionType)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (act?.created_at) {
+            statusEffectiveDate = new Date(act.created_at).toLocaleDateString("en-GB");
+          }
+        }
+        if (!statusEffectiveDate) {
+          const { data: act2 } = await admin
+            .from("license_actions")
+            .select("created_at")
+            .eq("license_id", license.id)
+            .eq("new_status", status)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (act2?.created_at) {
+            statusEffectiveDate = new Date(act2.created_at).toLocaleDateString("en-GB");
+          }
+        }
+      }
+    }
+
 
     const signingKey = Deno.env.get("LICENSE_SIGNING_KEY_PEM") || "";
     const signingCert = Deno.env.get("LICENSE_SIGNING_CERT_PEM") || "";
@@ -309,6 +387,8 @@ export async function handler(req: Request): Promise<Response> {
         licenseNumber: license.license_number,
         issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
         expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
+        status,
+        statusEffectiveDate,
         signatory,
         cryptoSigned,
       });
@@ -354,7 +434,7 @@ export async function handler(req: Request): Promise<Response> {
         signatory_title: signatory.title || null,
         signature_fingerprint: fingerprint,
         is_signed: cryptoSigned,
-        metadata: { entity_name: entityName, signatory_configured: signatory.configured },
+        metadata: { entity_name: entityName, signatory_configured: signatory.configured, status, status_effective_date: statusEffectiveDate || null },
       })
       .select("id, file_path, version, is_signed")
       .single();
