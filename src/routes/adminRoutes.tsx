@@ -32,6 +32,7 @@ const PpocManagement = lazy(() => import('@/pages/admin/PpocManagement'));
 const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview'));
 const LicenseActionFormsPage = lazy(() => import('@/pages/admin/LicenseActionFormsPage'));
 const RfiAutoRules = lazy(() => import('@/pages/admin/RfiAutoRules'));
+const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPlanTemplates'));
 
 
 
