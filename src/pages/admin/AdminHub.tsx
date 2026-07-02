@@ -57,6 +57,7 @@ export default function AdminHub() {
     { label: 'Twin Peaks Coordination', desc: 'Cross-regulator shared cases', icon: <Users className="h-5 w-5" />, href: '/coordination', module: 'application_management' },
     { label: 'Bulk Application Intake', desc: 'CSV → staged draft applications', icon: <Upload className="h-5 w-5" />, href: '/admin/applications/bulk-intake', module: 'application_management' },
     { label: 'Fit & Proper Register', desc: 'Directors, key persons & senior managers', icon: <UserCheck className="h-5 w-5" />, href: '/fit-and-proper', module: 'fit_and_proper' },
+    { label: 'FP Screening Rules', desc: 'Sanctions / PEP / adverse-media checks', icon: <Shield className="h-5 w-5" />, href: '/admin/fp-screening-configs', module: 'fit_and_proper' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },

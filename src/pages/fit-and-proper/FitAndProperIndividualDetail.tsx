@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
+import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,18 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  const { data: latestAssessment } = useQuery({
+    queryKey: ['fp_latest_assessment', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_assessments')
+        .select('id').eq('individual_id', id!).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const latestAssessmentId = latestAssessment?.id ?? null;
+
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (!person) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Not found or access denied.</div></DashboardLayout>;
 
@@ -59,7 +72,7 @@ export default function FitAndProperIndividualDetail() {
           <TabsList>
             <TabsTrigger value="roles">Roles ({roles?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="assessments">Assessments</TabsTrigger>
-            <TabsTrigger value="screening" disabled>Screening</TabsTrigger>
+            <TabsTrigger value="screening">Screening</TabsTrigger>
             <TabsTrigger value="determinations" disabled>Determinations</TabsTrigger>
             <TabsTrigger value="conditions" disabled>Conditions</TabsTrigger>
             <TabsTrigger value="appeals" disabled>Appeals</TabsTrigger>
@@ -86,6 +99,10 @@ export default function FitAndProperIndividualDetail() {
 
           <TabsContent value="assessments">
             {id && <FpAssessmentsPanel individualId={id} />}
+          </TabsContent>
+
+          <TabsContent value="screening">
+            {id && <FpScreeningPanel individualId={id} assessmentId={latestAssessmentId} />}
           </TabsContent>
         </Tabs>
       </div>
