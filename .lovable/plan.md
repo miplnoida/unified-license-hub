@@ -22,13 +22,12 @@ Estimated effort: **12–16 dev-days**, delivered in 5 self-contained sub-featur
 - Audit: acknowledge → `prudential.breach_acknowledged`; escalate → `prudential.breach_escalated` (both via `logAction`, both surface in `EntityTimeline`).
 - Wiring: `SupervisoryDashboard` gains an **Open Breaches** metric card linked to the inbox; new AdminHub tile "Prudential Breach Inbox".
 
-### 4.3 INS-001 — Inspection scheduling & findings
-- New route `/inspections` — cross-entity inspection queue with tabs: **Scheduled**, **In progress**, **Completed**, **Overdue**.
-- New route `/inspections/schedule` — calendar view (month/week) of upcoming inspections, drag-to-reschedule; supports on-site / off-site / desk-review type filter.
-- Inspection detail `/inspections/:id`: existing summary + new **Findings** section — many findings per inspection, each with `category`, `severity`, `description`, `recommended_action`, `follow_up_owner`, `follow_up_due`, `status` (`open` / `in_progress` / `closed`).
-- New tables: `inspection_findings`, `inspection_follow_up_actions`. Findings marked "severity=high" surface a one-click **create enforcement case** button (feeds 4.1).
-- Inspector assignment via a dedicated `inspection_assignments` join (multi-inspector support) — replaces current free-text `inspector_name`.
-- Existing `InspectionsTab` on licensee detail keeps working; it reads the same table.
+### 4.3 INS-001 — Inspection scheduling & findings ✅ SHIPPED
+- New routes: `/inspections` (cross-entity queue, tabs Scheduled / In progress / Completed / Overdue / All + counts + licensee/inspector/location/scope search), `/inspections/schedule` (month calendar with prev/today/next, colored by inspection type, click to open detail), `/inspections/:id` (summary + edit dialog + findings list).
+- Schema: extended `inspections` with `scheduled_date`, `location`, `scope`, `lead_inspector_id` (backfilled from `date_conducted`). New `inspection_findings` table (`category`, `severity` [low/medium/high/critical], `description`, `recommended_action`, `follow_up_owner`, `follow_up_due`, `status` [open/in_progress/closed], `escalated_enforcement_id` + timestamps) with full staff RLS and updated_at trigger.
+- Findings CRUD via dialog. High-/critical-severity findings get a **Escalate** button that inserts a new `enforcement_actions` row (`source_type=inspection_finding`, `source_reference_id=finding.id`), stamps `escalated_enforcement_id` on the finding, moves status to `in_progress`, and jumps to `/enforcement/:id`.
+- Audit: `inspection.updated`, `inspection.finding_added`, `inspection.finding_updated`, `inspection.finding_high` — all via `logAction`.
+- Existing `InspectionsTab` on licensee detail keeps working (reads the same table); new AdminHub tiles for the queue and calendar.
 
 ### 4.4 SUP-002 — Supervisory plan execution dashboard
 - New route `/supervision/plans` — supervisor cross-entity workload view: all `supervisory_plan_actions` grouped by owner_role, filterable by status (`pending` / `in_progress` / `completed` / `overdue`), due-date window, and licensee sector.
