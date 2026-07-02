@@ -101,13 +101,13 @@ Deno.serve(async (req) => {
       } else if (cfg.check_type === 'pep') {
         const hits = scan(declStr, PEP_KEYWORDS);
         if (hits.length) findings.push({ ...base, title: `Potential PEP indicator: ${hits.join(', ')}`, severity: cfg.severity_default || 'medium', summary: 'Employment history mentions politically-exposed roles.', raw_payload: { keywords: hits } });
-      } else if (cfg.check_type === 'criminal') {
+      } else if (cfg.check_type === 'criminal_history') {
         const cr = String(decl.criminal_record || '').trim();
         if (cr && cr.toLowerCase() !== 'none' && cr.toLowerCase() !== 'n/a') {
           findings.push({ ...base, title: 'Self-declared criminal history', severity: cfg.severity_default || 'high', summary: cr.slice(0, 300), raw_payload: {} });
         }
         if (decl.disqualifications) findings.push({ ...base, title: 'Self-declared director disqualification', severity: 'high', summary: 'Individual reported prior disqualification.', raw_payload: {} });
-      } else if (cfg.check_type === 'financial') {
+      } else if (cfg.check_type === 'credit_history') {
         const fs = String(decl.financial_soundness || '').trim();
         if (fs && fs.toLowerCase() !== 'none' && fs.toLowerCase() !== 'n/a') {
           findings.push({ ...base, title: 'Self-declared financial issue', severity: cfg.severity_default || 'medium', summary: fs.slice(0, 300), raw_payload: {} });

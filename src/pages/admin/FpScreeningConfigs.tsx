@@ -20,8 +20,8 @@ const CHECK_TYPES = [
   { value: 'sanctions', label: 'Sanctions list' },
   { value: 'pep', label: 'Politically-Exposed Person' },
   { value: 'adverse_media', label: 'Adverse media (AI-powered)' },
-  { value: 'criminal', label: 'Criminal history' },
-  { value: 'financial', label: 'Financial soundness' },
+  { value: 'criminal_history', label: 'Criminal history' },
+  { value: 'credit_history', label: 'Financial soundness' },
   { value: 'regulator_watchlist', label: 'Regulator watchlist' },
 ];
 const SEVERITIES = ['low', 'medium', 'high'];
