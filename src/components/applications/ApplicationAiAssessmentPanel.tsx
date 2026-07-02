@@ -56,6 +56,7 @@ interface Section {
 
 interface Assessment {
   id: string;
+  application_id?: string;
   status: string;
   summary: string | null;
   findings: Finding[];
@@ -71,6 +72,11 @@ interface Assessment {
   created_at: string;
   sections?: Section[];
   decision_report?: Record<string, unknown> | null;
+  analyst_decision?: string | null;
+  analyst_decision_action?: string | null;
+  analyst_justification?: string | null;
+  analyst_decision_by?: string | null;
+  analyst_decision_at?: string | null;
 }
 
 const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
