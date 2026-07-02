@@ -95,3 +95,52 @@ All with GRANTs + RLS + policies scoped by regulator / participant / applicant.
 ## Delivery order
 
 I'll ship in this order (each independently testable): 2.2 → 2.3 → 2.1 → 2.6 → 2.8 → 2.5 → 2.9 → 2.7 → 2.11. Confirm or reorder.
+
+---
+
+# Phase 3 — Script 2 (Fit & Proper) — greenfield
+
+Full greenfield build of the Fit & Proper regime for regulated-entity individuals (directors, key persons, senior managers). Estimated **20–28 dev-days** in 7 self-contained sub-features. Same additive pattern as Phase 2 — new module, new tables, new routes; no existing surfaces are modified.
+
+### 3.1 FPA-001 — FP schema foundation + Individuals registry
+- Full schema created up-front (all tables have RLS + GRANTs): `fp_individuals`, `fp_individual_roles`, `fp_assessments`, `fp_screening_configs`, `fp_screening_runs`, `fp_findings`, `fp_determinations`, `fp_committees`, `fp_committee_members`, `fp_committee_votes`, `fp_conditions`, `fp_appeals`, `fp_monitoring_events`.
+- Ships the Individuals module first: routes `/fit-and-proper`, `/fit-and-proper/individuals/:id`. Internal staff can create individuals (name, national ID, DOB, nationality, contact), link them to licensees with roles (director, CEO, key person, controller, shareholder), and view a case-file shell with tabs for the later sub-features.
+
+### 3.2 FPA-002 — Declarations form + assessments
+- Applicants / licensees submit an FP declaration (`fp_assessments`) referencing an individual: employment history, qualifications, regulatory history, criminal record, financial soundness, related-party disclosures.
+- New public route `/fit-and-proper/declare/:token` (magic-link) or authenticated inline form for licensee_primary.
+- Assessment lifecycle: `draft → submitted → screening → awaiting_committee → determined → closed`.
+
+### 3.3 FPA-003 — Screening engine
+- Admin-configured rule packs (`fp_screening_configs`): sanctions lists, PEP flags, adverse media, criminal history, regulator watchlists.
+- On assessment submit (or manual re-run), edge function `fp-screening-run` executes each rule against declared data + external sources, writes a `fp_screening_runs` row and per-hit `fp_findings` (severity, source, evidence URL, false-positive flag).
+- Adverse-media check uses Lovable AI Gateway to summarise search results per subject.
+
+### 3.4 FPA-004 — Committee voting + determinations
+- Admin creates committees (`fp_committees` + `fp_committee_members`) with quorum and voting rules.
+- Assessment routes to a committee → members vote (`fp_committee_votes`: approve / conditional / reject / abstain) with justification; when quorum reached, a determination row (`fp_determinations`) is auto-created with outcome + rationale.
+
+### 3.5 FPA-005 — Conditional determinations
+- Conditional approvals capture attached conditions (`fp_conditions`: description, deadline, monitoring owner, evidence type). Mirrors the `license_conditions` pattern.
+- Individual profile shows outstanding conditions; each can be marked satisfied with a note + evidence upload.
+
+### 3.6 FPA-006 — Appeals
+- Applicant / licensee can appeal a `rejected` or `conditional` determination within a configurable window. `fp_appeals` captures grounds, supporting docs, appeal committee, and outcome.
+- Appeal outcome creates a new determination (supersedes prior) with a full audit trail.
+
+### 3.7 FPA-007 — Ongoing monitoring cron
+- Edge function `fp-monitoring-sweep` (hourly / daily) re-runs screening for **approved** individuals on a rolling cadence (config: `recheck_days`), watches for new adverse hits, and creates `fp_monitoring_events` + `application.fp_alert` notifications when severity crosses a threshold.
+- New "Monitoring" tab on the individual profile shows the timeline of re-checks and any raised alerts.
+
+## Cross-cutting for Phase 3
+
+- Every FP write action calls `useEntityAuditLog` → surfaces on the unified `EntityTimeline`.
+- New permission module `fit_and_proper` (already referenced in `permissionTabs.ts`); AdminHub tile "Fit & Proper Register" added in 3.1.
+- Screening + monitoring edge functions log via `_shared/integration-log.ts`.
+- New notification event keys: `fp.declaration_submitted`, `fp.screening_hit`, `fp.determination_made`, `fp.condition_due`, `fp.monitoring_alert`, `fp.appeal_filed`.
+
+## Risks / open decisions
+
+- Adverse-media data source is a commercial decision — 3.3 defaults to Lovable AI Gateway summarisation of open web results; a real feed (e.g. Dow Jones RiskCenter) can be plugged in via the same `fp_screening_configs` rule pack.
+- Digital-signature stamp on determinations reuses the certificate signer from Phase 2.6.
+
