@@ -248,6 +248,7 @@ export default function ComplaintsList() {
                       <TableCell className="text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={async () => {
+                          if (isInternal) { nav(`/complaints/${c.id}`); return; }
                           setDetailDialog(c);
                           setDetailProfile(null);
                           if (c.complainant_id) {
