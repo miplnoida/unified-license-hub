@@ -53,9 +53,9 @@ export function MetricCard({
         </div>
         <div className="mt-3">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold mt-1 tabular-nums">
+          <div className="text-2xl font-bold mt-1 tabular-nums">
             {loading ? <Skeleton className="h-7 w-16" /> : display}
-          </p>
+          </div>
           {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
         </div>
       </CardContent>
