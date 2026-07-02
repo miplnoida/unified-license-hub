@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
     for (const r of ratios) {
       try {
         const { data: snap } = await (admin as any).rpc("peer_ratio_snapshot", {
-          _period_end: rf.period_end, _ratio_key: r.ratio_key, _sector_id: rf.sector_id,
+          _period_end: rf.period_end_date, _ratio_key: r.ratio_key, _sector_id: rf.sector_id,
         });
         peer.push({ ratio_key: r.ratio_key, label: r.label, my_value: r.value, distribution: snap ?? null });
       } catch { /* peer RPC unavailable for this metric */ }
