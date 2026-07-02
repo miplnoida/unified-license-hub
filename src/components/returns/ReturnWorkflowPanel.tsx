@@ -112,11 +112,49 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
   const { data: configuredStepActions = [] } = useStepActions(currentStep?.id);
   const { data: dynamicRolesMap = {} } = useDynamicRolesMap();
 
+  // Resolve display names for steps configured with specific users.
+  const specificApproverIds = useMemo(() => {
+    const ids = new Set<string>();
+    (steps as any[]).forEach((s) => {
+      if (s?.approver_type === 'specific_users') {
+        const cfg = (s.approver_config || {}) as { user_ids?: string[] };
+        (cfg.user_ids || []).forEach((id) => id && ids.add(id));
+      }
+    });
+    return Array.from(ids);
+  }, [steps]);
 
-  const stepRoleLabel = (step: { approver_role: string; approver_role_id?: string | null }) => {
-    if (step.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
-    return ROLE_LABELS[step.approver_role as AppRole] || step.approver_role;
+  const { data: approverNamesMap = {} } = useQuery({
+    queryKey: ['return-workflow-specific-approvers', specificApproverIds.sort().join(',')],
+    enabled: specificApproverIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', specificApproverIds);
+      const map: Record<string, string> = {};
+      ((data as any[]) || []).forEach((p) => {
+        map[p.id] = p.full_name || p.email || p.id;
+      });
+      return map;
+    },
+    staleTime: 60_000,
+  });
+
+  const stepRoleLabel = (step: any): string => {
+    if ((step?.approver_type ?? 'role_based_user') === 'specific_users') {
+      const cfg = (step?.approver_config || {}) as { user_ids?: string[] };
+      const ids = cfg.user_ids || [];
+      if (ids.length === 0) return 'Specific users (none selected)';
+      const names = ids.map((id) => approverNamesMap[id] || 'User');
+      const head = names.slice(0, 3).join(', ');
+      const extra = names.length > 3 ? ` +${names.length - 3} more` : '';
+      return `Specific user${ids.length > 1 ? 's' : ''}: ${head}${extra}`;
+    }
+    if (step?.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
+    return ROLE_LABELS[step?.approver_role as AppRole] || step?.approver_role;
   };
+
 
   if (!activeInstance && pausedInstance && isInternal) {
     return (
