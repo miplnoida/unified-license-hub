@@ -843,7 +843,19 @@ export default function ApplicationDetail() {
               <TabsContent value="activity" className="mt-4">
                 {activeTab === 'activity' && <ActivityTab applicationId={app.id} />}
               </TabsContent>
+
+              <TabsContent value="rfi" className="mt-4">
+                {activeTab === 'rfi' && user && (
+                  <ApplicationRfiTab
+                    applicationId={app.id}
+                    currentUserId={user.id}
+                    isInternal={isInternal}
+                    isApplicant={user.id === app.applicant_id}
+                  />
+                )}
+              </TabsContent>
             </Tabs>
+
 
 
             {/* Admin: Edit Request Pending — bypasses workflow */}
