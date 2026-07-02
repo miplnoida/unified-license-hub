@@ -34,6 +34,7 @@ const LicenseActionFormsPage = lazy(() => import('@/pages/admin/LicenseActionFor
 const RfiAutoRules = lazy(() => import('@/pages/admin/RfiAutoRules'));
 const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPlanTemplates'));
 const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
+const FpScreeningConfigs = lazy(() => import('@/pages/admin/FpScreeningConfigs'));
 
 
 
@@ -101,6 +102,7 @@ export const adminRoutes = (
     <Route path="/admin/rfi-auto-rules" element={<A><RfiAutoRules /></A>} />
     <Route path="/admin/supervisory-plan-templates" element={<A><SupervisoryPlanTemplates /></A>} />
     <Route path="/admin/applications/bulk-intake" element={<A><BulkIntake /></A>} />
+    <Route path="/admin/fp-screening-configs" element={<M module="fit_and_proper"><FpScreeningConfigs /></M>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     
     
