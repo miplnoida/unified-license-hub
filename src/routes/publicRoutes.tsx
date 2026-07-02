@@ -37,6 +37,10 @@ export const publicRoutes = (
     <Route path="/registration/update/:registrationId" element={<P><PreLicenseeRegistration mode="update" /></P>} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/reset-password" element={<ResetPassword />} />
+    <Route path="/registry" element={<PublicRegistry />} />
+    <Route path="/registry/licensees" element={<PublicLicensees />} />
+    <Route path="/registry/licensees/:id" element={<PublicLicenseeDetail />} />
+    <Route path="/registry/enforcement" element={<PublicEnforcement />} />
     <Route path="*" element={<NotFound />} />
   </>
 );
