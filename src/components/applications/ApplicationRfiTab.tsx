@@ -38,6 +38,9 @@ export function ApplicationRfiTab({
   isInternal,
   isApplicant,
   approvalStepActionId,
+  workflowTypeKey,
+  sectorId,
+  formData,
 }: ApplicationRfiTabProps) {
   const { rfis, loading, reload } = useApplicationRfis(applicationId);
   const [closeNotesById, setCloseNotesById] = useState<Record<string, string>>({});
