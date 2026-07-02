@@ -17,10 +17,11 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - Cron `rfi-near-due-sweep` (daily) → notification 48h before RFI due.
 - Auto-sufficiency rule engine: configurable required-fields checklist per workflow type; missing items pre-populate RFI draft.
 
-### 2.2 ULRA-002 — Batch document upload with per-file metadata
-- Extend existing multi-file staging (already implemented) with a metadata grid: document type, description, confidentiality flag per row before upload.
-- No new tables; adds columns `doc_type`, `confidential` to `file_uploads` if not present.
-- Reused inside RFI response, application intake, and licensee detail.
+### 2.2 ULRA-002 — Batch document upload with per-file metadata ✅ SHIPPED
+- New reusable component `src/components/shared/BatchDocumentUpload.tsx` — multi-file staging with a metadata grid: document type (dropdown), description (free text), confidentiality flag per row.
+- Persists extras to existing `file_uploads.metadata` JSONB (`doc_type`, `description`, `confidential`, `batch_upload: true`) — no migration required.
+- Ready to drop into RFI response, application intake, and licensee detail (Phase 2.1 will wire it into RFI).
+
 
 ### 2.3 ULRA-004 — SLA-age & priority queue columns
 - New view / RPC `application_queue_view` returning: age in business days, SLA remaining, priority (auto from sector + fee tier + manual override), current assignee.
