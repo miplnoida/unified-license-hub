@@ -1599,6 +1599,195 @@ export type Database = {
           },
         ]
       }
+      coordination_cases: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          owner_regulator_id: string | null
+          owner_user_id: string
+          status: string
+          subject_id: string | null
+          subject_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_regulator_id?: string | null
+          owner_user_id: string
+          status?: string
+          subject_id?: string | null
+          subject_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          owner_regulator_id?: string | null
+          owner_user_id?: string
+          status?: string
+          subject_id?: string | null
+          subject_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordination_cases_owner_regulator_id_fkey"
+            columns: ["owner_regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coordination_flags: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          flag_type: string
+          id: string
+          linked_application_id: string | null
+          linked_license_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          flag_type: string
+          id?: string
+          linked_application_id?: string | null
+          linked_license_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          flag_type?: string
+          id?: string
+          linked_application_id?: string | null
+          linked_license_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordination_flags_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "coordination_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coordination_messages: {
+        Row: {
+          author_id: string
+          body: string
+          case_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          case_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          case_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordination_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "coordination_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coordination_participants: {
+        Row: {
+          case_id: string
+          clearance_note: string | null
+          clearance_status: string
+          cleared_at: string | null
+          id: string
+          invited_at: string
+          invited_by: string | null
+          participant_role: string
+          regulator_id: string | null
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          clearance_note?: string | null
+          clearance_status?: string
+          cleared_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          participant_role?: string
+          regulator_id?: string | null
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          clearance_note?: string | null
+          clearance_status?: string
+          cleared_at?: string | null
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          participant_role?: string
+          regulator_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coordination_participants_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "coordination_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coordination_participants_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           created_at: string
@@ -8995,6 +9184,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_coordination_participant: {
+        Args: { _case_id: string; _user_id: string }
         Returns: boolean
       }
       is_doc_staff: { Args: { _user_id: string }; Returns: boolean }

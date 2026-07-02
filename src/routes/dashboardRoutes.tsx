@@ -39,6 +39,8 @@ const ChangePassword = lazy(() => import('@/pages/ChangePassword'));
 const FormPreview = lazy(() => import('@/pages/FormPreview'));
 const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector'));
 const RegistrationStatusPage = lazy(() => import('@/pages/registration/RegistrationStatusPage'));
+const CoordinationList = lazy(() => import('@/pages/coordination/CoordinationList'));
+const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationDetail'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -107,5 +109,7 @@ export const dashboardRoutes = (
     <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
     <Route path="/change-sector" element={<P><ChangeActiveSector /></P>} />
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
+    <Route path="/coordination" element={<M module="application_management"><CoordinationList /></M>} />
+    <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
   </>
 );

@@ -54,6 +54,7 @@ export default function AdminHub() {
     { label: 'Integration Logs', desc: 'Inbound/outbound integration events', icon: <Plug className="h-5 w-5" />, href: '/admin/integration-logs', module: 'settings' },
     { label: 'RFI Auto-Rules', desc: 'Auto-suggested RFI items for reviewers', icon: <Sparkles className="h-5 w-5" />, href: '/admin/rfi-auto-rules', module: 'settings' },
     { label: 'Supervisory Plan Templates', desc: 'Seed supervisory plans on approval', icon: <Target className="h-5 w-5" />, href: '/admin/supervisory-plan-templates', module: 'settings' },
+    { label: 'Twin Peaks Coordination', desc: 'Cross-regulator shared cases', icon: <Users className="h-5 w-5" />, href: '/coordination', module: 'application_management' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },

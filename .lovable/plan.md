@@ -64,10 +64,10 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - Database triggers on `applications.status → approved` and on `licenses` INSERT (whichever fires first) auto-create a `supervisory_plans` row + seed `supervisory_plan_actions` from the matching sector template (falls back to any active global template). Idempotent per license.
 - Admin CRUD page `/admin/supervisory-plan-templates` (AdminHub tile added) for full template + action management. Regulators can edit the generated plan afterwards in the existing supervisory plan panel.
 
-### 2.9 ULRA-012 — Twin Peaks coordination workspace
-- New tables: `coordination_cases`, `coordination_participants` (multi-regulator), `coordination_messages`, `coordination_flags` (interdependency).
-- New route `/coordination/:caseId` with shared thread, participant list, linked applications from each regulator, "Conditional Clearance" action that blocks final approval until all participants clear.
-- RLS: visibility scoped to `coordination_participants.user_id` — regulators still isolated by default; explicit invite required.
+### 2.9 ULRA-012 — Twin Peaks coordination workspace ✅ SHIPPED
+- New tables `coordination_cases`, `coordination_participants`, `coordination_messages`, `coordination_flags` with RLS scoped to invited participants (super_admin fallback). Triggers auto-seed the creator as an "owner" participant and recompute case status (`open` / `pending_clearance` / `cleared`) whenever any participant's clearance changes — the "Conditional Clearance" gate.
+- New routes `/coordination` (list + case creation) and `/coordination/:caseId` (thread, participants, flags). Owners can invite internal users as participant/observer; each participant clears or blocks the case with an optional note. Interdependency / blocker / notice / concurrent-review flags can be raised against linked applications or licenses.
+- AdminHub tile "Twin Peaks Coordination" surfaces the workspace. Regulators remain isolated by default — explicit invitation is required for visibility.
 
 ---
 
