@@ -29,12 +29,13 @@ Estimated effort: **12–16 dev-days**, delivered in 5 self-contained sub-featur
 - Audit: `inspection.updated`, `inspection.finding_added`, `inspection.finding_updated`, `inspection.finding_high` — all via `logAction`.
 - Existing `InspectionsTab` on licensee detail keeps working (reads the same table); new AdminHub tiles for the queue and calendar.
 
-### 4.4 SUP-002 — Supervisory plan execution dashboard
-- New route `/supervision/plans` — supervisor cross-entity workload view: all `supervisory_plan_actions` grouped by owner_role, filterable by status (`pending` / `in_progress` / `completed` / `overdue`), due-date window, and licensee sector.
-- Calendar sub-tab shows the same actions on a monthly calendar with color-coded severity.
-- Bulk operations: reassign owner (writes audit row), extend due date (with mandatory reason), mark complete (existing pattern).
-- Plan approval flow — new `supervisory_plans.approval_status` (`draft` / `pending_review` / `approved`); an `approve` button appears only when the reviewer is a different user than the plan creator (4-eyes).
-- Notifications: nightly cron sweep flags actions due within 7 days → `notifications` event key `supervisory.action_due`.
+### 4.4 SUP-002 — Supervisory plan execution dashboard ✅ SHIPPED
+- New route `/supervision/plans` — cross-entity workload of `supervisory_plan_actions` grouped by `owner_role`, filterable by tab (Open / Overdue / Completed / All), owner role, due window (7 / 14 / 30 days), and searchable by action / licensee / owner.
+- KPI strip: Open, Overdue, Completed, and **Plans pending review**.
+- Bulk operations on multi-select: **Reassign** (records `reassigned_from`, `reassigned_at`, `reassigned_by`), **Extend due** (stamps `previous_due_date` + `extension_reason`), **Mark complete**. Every write logs a `supervisory.*` audit event.
+- 4-eyes plan approval: **Submit for review** on `draft` plans; **Approve** button only shown when `approval_status = pending_review` and the reviewer is not the plan creator. Server relies on `approval_status` transitions (`draft` → `pending_review` → `approved`).
+- Schema: extended `supervisory_plans` with `approval_status`, `submitted_for_review_at/by`, `approved_at/by` (+ CHECK constraint). Extended `supervisory_plan_actions` with `previous_due_date`, `extension_reason`, `reassigned_from`, `reassigned_at`, `reassigned_by`. New indexes on `due_date`, `status`, and `approval_status`.
+- New AdminHub tile "Supervisory Plans Dashboard".
 
 ### 4.5 COMP-001 — Complaints investigation workflow
 - New tab **Investigation** on complaint detail (existing `ComplaintsList` links unchanged).
