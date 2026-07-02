@@ -44,9 +44,9 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - Every decision writes to `audit_logs` (`application.ai_assessment_accepted|overridden|escalated`) and surfaces on the unified `EntityTimeline`. Override/Escalate additionally dispatches the `application.ai_overridden` notification event (registered).
 - Analyst can "Clear decision" to re-evaluate. Regenerate button (already present) re-runs the AI while preserving existing decision history in `audit_logs`.
 
-### 2.5 ULRA-008 — Consolidated Case view
-- New tab "Consolidated Case" on `ApplicationDetail` that aggregates: linked applications from same entity, past licenses, open complaints, past enforcement actions, pending returns, prudential flags.
-- Read-only, pulls via parallel queries + TanStack; no schema changes.
+### 2.5 ULRA-008 — Consolidated Case view ✅ SHIPPED
+- New "Consolidated Case" tab on `ApplicationDetail` (internal-only) aggregates: sibling applications from same applicant, held licenses, open complaints, past enforcement actions, pending returns, and recent prudential breaches.
+- Read-only, parallel Supabase queries, no schema changes. Links out to each record for drill-through.
 
 ### 2.6 ULRA-009 — Conditional approval + digital signature stamp
 - New approval action option "Approve with Conditions" → captures condition list (structured: category, description, due date, monitoring owner).
