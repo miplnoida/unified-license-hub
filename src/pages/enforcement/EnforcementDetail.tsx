@@ -77,7 +77,7 @@ export default function EnforcementDetail() {
   });
 
   const recordEvent = async (eventType: string, note: string, detail: Record<string, unknown> = {}) => {
-    await supabase.from('enforcement_case_events').insert({
+    await (supabase.from('enforcement_case_events') as any).insert({
       case_id: id!, event_type: eventType, actor_id: user?.id ?? null, note, detail,
     });
     await logAction(`enforcement.${eventType}`, 'enforcement_action', id!, { meta: { entity_id: caseRow?.entity_id, ...detail } });
