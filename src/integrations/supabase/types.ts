@@ -3294,6 +3294,86 @@ export type Database = {
           },
         ]
       }
+      license_conditions: {
+        Row: {
+          application_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          license_id: string
+          monitoring_owner: string | null
+          notes: string | null
+          satisfied_at: string | null
+          satisfied_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          license_id: string
+          monitoring_owner?: string | null
+          notes?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          license_id?: string
+          monitoring_owner?: string | null
+          notes?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "license_conditions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_conditions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_conditions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "license_conditions_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       license_renewals: {
         Row: {
           created_at: string
