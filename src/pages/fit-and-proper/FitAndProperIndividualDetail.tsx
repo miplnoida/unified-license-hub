@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
+import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +60,7 @@ export default function FitAndProperIndividualDetail() {
           <TabsList>
             <TabsTrigger value="roles">Roles ({roles?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="assessments">Assessments</TabsTrigger>
-            <TabsTrigger value="screening" disabled>Screening</TabsTrigger>
+            <TabsTrigger value="screening">Screening</TabsTrigger>
             <TabsTrigger value="determinations" disabled>Determinations</TabsTrigger>
             <TabsTrigger value="conditions" disabled>Conditions</TabsTrigger>
             <TabsTrigger value="appeals" disabled>Appeals</TabsTrigger>
@@ -86,6 +87,10 @@ export default function FitAndProperIndividualDetail() {
 
           <TabsContent value="assessments">
             {id && <FpAssessmentsPanel individualId={id} />}
+          </TabsContent>
+
+          <TabsContent value="screening">
+            {id && <FpScreeningPanel individualId={id} assessmentId={latestAssessmentId} />}
           </TabsContent>
         </Tabs>
       </div>
