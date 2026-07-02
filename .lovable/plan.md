@@ -134,9 +134,11 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Workflow: `filed` → assign appeal committee (`under_review`) → record decision (`decided`) with mandatory rationale (min 10 chars). Reviewers may also withdraw an in-flight appeal.
 - Decisions: `upheld_original` leaves the current determination untouched; `overturned_to_approved` / `overturned_to_conditional` create a new `fp_determinations` row (marked current, supersedes the appealed determination) and stamp the appeal with `new_determination_id`, giving a full audit chain.
 
-### 3.7 FPA-007 — Ongoing monitoring cron
-- Edge function `fp-monitoring-sweep` (hourly / daily) re-runs screening for **approved** individuals on a rolling cadence (config: `recheck_days`), watches for new adverse hits, and creates `fp_monitoring_events` + `application.fp_alert` notifications when severity crosses a threshold.
-- New "Monitoring" tab on the individual profile shows the timeline of re-checks and any raised alerts.
+### 3.7 FPA-007 — Ongoing monitoring cron ✅ SHIPPED
+- Edge function `fp-monitoring-sweep` picks every individual whose current determination is `approved` / `conditional`, skips those whose last screening run is within `recheck_days` (configurable via `report_runtime_config.fp_monitoring_recheck_days`, default 30 days), then re-invokes `fp-screening-run` with `run_type='monitoring'`.
+- Any new medium/high findings on the re-run raise entries in `fp_monitoring_events` (severity, event type `screening.<check_type>`, link back to the finding/run).
+- Scheduled via `pg_cron` (`fp-monitoring-sweep-daily`) to fire at 02:00 UTC daily using `pg_net.http_post`.
+- New "Monitoring" tab on the individual profile (`FpMonitoringPanel`) shows raised alerts with severity chips and per-alert acknowledgement (mandatory 5+ char note), plus a rolling re-check timeline of the last 20 screening runs.
 
 ## Cross-cutting for Phase 3
 
