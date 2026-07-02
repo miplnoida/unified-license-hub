@@ -128,5 +128,8 @@ export const dashboardRoutes = (
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="returns_management"><BreachInbox /></M>} />
+    <Route path="/inspections" element={<M module="settings"><InspectionsList /></M>} />
+    <Route path="/inspections/schedule" element={<M module="settings"><InspectionsCalendar /></M>} />
+    <Route path="/inspections/:id" element={<M module="settings"><InspectionDetail /></M>} />
   </>
 );
