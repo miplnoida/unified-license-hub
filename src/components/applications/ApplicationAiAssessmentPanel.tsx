@@ -4,13 +4,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Sparkles, RefreshCw, AlertTriangle, Info } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Loader2, Sparkles, RefreshCw, AlertTriangle, Info,
+  ThumbsUp, ThumbsDown, ShieldAlert, CheckCircle2,
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatEvidenceList } from '@/lib/evidenceLabel';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Props {
   applicationId: string;
+  currentUserId?: string;
 }
 
 interface Finding {
