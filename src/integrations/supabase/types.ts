@@ -966,6 +966,7 @@ export type Database = {
       }
       approval_workflow_types: {
         Row: {
+          bulk_intake_enabled: boolean
           created_at: string
           description: string | null
           display_label: string
@@ -975,6 +976,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bulk_intake_enabled?: boolean
           created_at?: string
           description?: string | null
           display_label: string
@@ -984,6 +986,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bulk_intake_enabled?: boolean
           created_at?: string
           description?: string | null
           display_label?: string
