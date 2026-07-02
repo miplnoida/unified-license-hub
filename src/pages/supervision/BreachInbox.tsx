@@ -158,9 +158,11 @@ export default function BreachInbox() {
       }).eq('id', ackTarget.id);
       if (error) throw error;
       await logAction('prudential.breach_acknowledged', 'return_threshold_breaches', ackTarget.id, {
-        note: ackNote.trim(),
-        return_id: ackTarget.return_id,
-        metric_key: ackTarget.metric_key,
+        meta: {
+          note: ackNote.trim(),
+          return_id: ackTarget.return_id,
+          metric_key: ackTarget.metric_key,
+        },
       });
     },
     onSuccess: () => {
