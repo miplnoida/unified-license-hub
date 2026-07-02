@@ -52,6 +52,7 @@ const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
+const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
