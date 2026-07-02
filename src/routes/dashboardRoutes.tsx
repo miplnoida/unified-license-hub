@@ -41,6 +41,8 @@ const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector')
 const RegistrationStatusPage = lazy(() => import('@/pages/registration/RegistrationStatusPage'));
 const CoordinationList = lazy(() => import('@/pages/coordination/CoordinationList'));
 const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationDetail'));
+const FitAndProperIndividuals = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividuals'));
+const FitAndProperIndividualDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividualDetail'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
