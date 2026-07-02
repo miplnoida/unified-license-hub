@@ -248,6 +248,9 @@ export type Database = {
           applicant_id: string
           application_number: string
           approved_at: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
           cancelled_at: string | null
           created_at: string
           current_step_id: string | null
@@ -255,6 +258,10 @@ export type Database = {
           form_version_id: string | null
           id: string
           license_type: string
+          priority: number
+          priority_reason: string | null
+          priority_set_at: string | null
+          priority_set_by: string | null
           regulator_id: string | null
           rejected_at: string | null
           search_vector: unknown
@@ -270,6 +277,9 @@ export type Database = {
           applicant_id: string
           application_number?: string
           approved_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           cancelled_at?: string | null
           created_at?: string
           current_step_id?: string | null
@@ -277,6 +287,10 @@ export type Database = {
           form_version_id?: string | null
           id?: string
           license_type: string
+          priority?: number
+          priority_reason?: string | null
+          priority_set_at?: string | null
+          priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
           search_vector?: unknown
@@ -292,6 +306,9 @@ export type Database = {
           applicant_id?: string
           application_number?: string
           approved_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
           cancelled_at?: string | null
           created_at?: string
           current_step_id?: string | null
@@ -299,6 +316,10 @@ export type Database = {
           form_version_id?: string | null
           id?: string
           license_type?: string
+          priority?: number
+          priority_reason?: string | null
+          priority_set_at?: string | null
+          priority_set_by?: string | null
           regulator_id?: string | null
           rejected_at?: string | null
           search_vector?: unknown
