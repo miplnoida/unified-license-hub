@@ -127,6 +127,8 @@ async function buildCertificatePdf(opts: {
   licenseNumber: string;
   issueDate: string;
   expiryDate: string;
+  status: string;
+  statusEffectiveDate: string;
   signatory: SignatoryConfig;
   cryptoSigned: boolean;
 }): Promise<Uint8Array> {
@@ -162,14 +164,42 @@ async function buildCertificatePdf(opts: {
   let y = height - 340;
   const label = (text: string, x: number, yy: number) =>
     page.drawText(text, { x, y: yy, size: 11, font: bold, color: rgb(0.3, 0.3, 0.3) });
-  const value = (text: string, x: number, yy: number) =>
-    page.drawText(text, { x, y: yy, size: 13, font, color: rgb(0, 0, 0) });
+  const value = (text: string, x: number, yy: number, color = rgb(0, 0, 0)) =>
+    page.drawText(text, { x, y: yy, size: 13, font, color });
 
   label("License Number", leftX, y); value(opts.licenseNumber, leftX, y - 18);
   label("Issue Date", rightX, y); value(opts.issueDate, rightX, y - 18);
   y -= 60;
   label("Expiry Date", leftX, y); value(opts.expiryDate || "No Expiry", leftX, y - 18);
-  label("Status", rightX, y); value("Active", rightX, y - 18);
+
+  const normalizedStatus = (opts.status || "active").toLowerCase();
+  const isActive = normalizedStatus === "active";
+  const statusLabel = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+  const statusColor = isActive ? rgb(0.09, 0.5, 0.2) : rgb(0.75, 0.1, 0.1);
+  label("Status", rightX, y);
+  value(statusLabel, rightX, y - 18, statusColor);
+  if (!isActive && opts.statusEffectiveDate) {
+    page.drawText(`Effective: ${opts.statusEffectiveDate}`, {
+      x: rightX, y: y - 34, size: 10, font, color: rgb(0.4, 0.4, 0.4),
+    });
+  }
+
+  // Watermark for non-active licenses so the certificate cannot be mistaken
+  // for a valid one when printed.
+  if (!isActive) {
+    const wm = statusLabel.toUpperCase();
+    const wmSize = 120;
+    const wmWidth = bold.widthOfTextAtSize(wm, wmSize);
+    page.drawText(wm, {
+      x: (width - wmWidth) / 2 + 120,
+      y: height / 2 - 120,
+      size: wmSize,
+      font: bold,
+      color: rgb(0.85, 0.1, 0.1),
+      opacity: 0.18,
+      rotate: degrees(-30),
+    });
+  }
 
   // Signatory block (right side)
   const blockRight = width - 80;
