@@ -9008,9 +9008,14 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string
+          extension_reason: string | null
           id: string
           owner_role: string | null
           plan_id: string
+          previous_due_date: string | null
+          reassigned_at: string | null
+          reassigned_by: string | null
+          reassigned_from: string | null
           source: string
           status: string
           title: string
@@ -9022,9 +9027,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date: string
+          extension_reason?: string | null
           id?: string
           owner_role?: string | null
           plan_id: string
+          previous_due_date?: string | null
+          reassigned_at?: string | null
+          reassigned_by?: string | null
+          reassigned_from?: string | null
           source?: string
           status?: string
           title: string
@@ -9036,9 +9046,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string
+          extension_reason?: string | null
           id?: string
           owner_role?: string | null
           plan_id?: string
+          previous_due_date?: string | null
+          reassigned_at?: string | null
+          reassigned_by?: string | null
+          reassigned_from?: string | null
           source?: string
           status?: string
           title?: string
@@ -9141,6 +9156,9 @@ export type Database = {
       }
       supervisory_plans: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string | null
           created_from: string
@@ -9150,9 +9168,14 @@ export type Database = {
           notes: string | null
           risk_rating_id: string | null
           status: string
+          submitted_for_review_at: string | null
+          submitted_for_review_by: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           created_from?: string
@@ -9162,9 +9185,14 @@ export type Database = {
           notes?: string | null
           risk_rating_id?: string | null
           status?: string
+          submitted_for_review_at?: string | null
+          submitted_for_review_by?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string | null
           created_from?: string
@@ -9174,6 +9202,8 @@ export type Database = {
           notes?: string | null
           risk_rating_id?: string | null
           status?: string
+          submitted_for_review_at?: string | null
+          submitted_for_review_by?: string | null
           updated_at?: string
         }
         Relationships: [
