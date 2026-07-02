@@ -434,7 +434,7 @@ export async function handler(req: Request): Promise<Response> {
         signatory_title: signatory.title || null,
         signature_fingerprint: fingerprint,
         is_signed: cryptoSigned,
-        metadata: { entity_name: entityName, signatory_configured: signatory.configured },
+        metadata: { entity_name: entityName, signatory_configured: signatory.configured, status, status_effective_date: statusEffectiveDate || null },
       })
       .select("id, file_path, version, is_signed")
       .single();
