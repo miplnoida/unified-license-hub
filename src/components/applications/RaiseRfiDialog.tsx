@@ -37,6 +37,9 @@ interface RaiseRfiDialogProps {
   applicationId: string;
   raisedBy: string;
   approvalStepActionId?: string | null;
+  workflowTypeKey?: string | null;
+  sectorId?: string | null;
+  formData?: unknown;
   onCreated?: () => void;
   triggerLabel?: string;
 }
