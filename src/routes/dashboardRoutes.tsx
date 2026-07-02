@@ -71,7 +71,7 @@ export const dashboardRoutes = (
     <Route path="/applications" element={<EP area="licensing" capability="can_view_status"><ApplicationsList /></EP>} />
     <Route path="/applications/new" element={<EP area="licensing" capability="can_submit"><NewApplication /></EP>} />
     <Route path="/applications/:id/continue" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><NewApplication /></EP>} />
-    <Route path="/applications/queue" element={<M module="application_management"><ApplicationsList /></M>} />
+    <Route path="/applications/queue" element={<M module="application_management"><ApplicationQueue /></M>} />
     <Route path="/applications/:id" element={<EP area="licensing" capability={["can_view_status", "can_respond_rfi"]}><ApplicationDetail /></EP>} />
     <Route path="/applications/:applicationId/forms" element={<EP area="licensing" capability={["can_submit", "can_respond_rfi"]}><ApplicationForms /></EP>} />
 
