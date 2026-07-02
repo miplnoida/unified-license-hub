@@ -98,6 +98,7 @@ export const adminRoutes = (
     <Route path="/admin/registration-review" element={<M module="registration_management"><RegistrationReview /></M>} />
     <Route path="/admin/license-action-forms" element={<M module="license_management"><LicenseActionFormsPage /></M>} />
     <Route path="/admin/rfi-auto-rules" element={<A><RfiAutoRules /></A>} />
+    <Route path="/admin/supervisory-plan-templates" element={<A><SupervisoryPlanTemplates /></A>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     
     
