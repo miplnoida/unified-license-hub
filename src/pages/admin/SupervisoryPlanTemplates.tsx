@@ -115,7 +115,6 @@ export default function SupervisoryPlanTemplates() {
         <PageHeader
           title="Supervisory Plan Templates"
           description="Per-sector templates seeded into a new supervisory plan when an application is approved."
-          icon={<Target className="h-5 w-5" />}
           actions={
             <Button onClick={() => { setEditing({ id: '', name: '', description: '', sector_id: null, is_active: true } as Template); setShowEdit(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New template
