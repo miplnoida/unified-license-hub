@@ -2462,6 +2462,51 @@ export type Database = {
           },
         ]
       }
+      entity_risk_scores: {
+        Row: {
+          band: string
+          components: Json
+          computed_at: string
+          computed_by: string | null
+          created_at: string
+          entity_id: string
+          id: string
+          is_current: boolean
+          period_key: string
+          score: number
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          band?: string
+          components?: Json
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          entity_id: string
+          id?: string
+          is_current?: boolean
+          period_key: string
+          score?: number
+          updated_at?: string
+          weights?: Json
+        }
+        Update: {
+          band?: string
+          components?: Json
+          computed_at?: string
+          computed_by?: string | null
+          created_at?: string
+          entity_id?: string
+          id?: string
+          is_current?: boolean
+          period_key?: string
+          score?: number
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: []
+      }
       entity_user_access: {
         Row: {
           access_type: Database["public"]["Enums"]["entity_access_type"]
@@ -8755,6 +8800,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      risk_score_weights: {
+        Row: {
+          band_thresholds: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          band_thresholds?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Update: {
+          band_thresholds?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
