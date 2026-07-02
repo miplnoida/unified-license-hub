@@ -101,7 +101,7 @@ export default function RfiAutoRules() {
         .select('key, display_label')
         .eq('is_active', true)
         .order('sort_order');
-      return (data ?? []) as { key: string; display_label: string }[];
+      return (data ?? []) as unknown as { key: string; display_label: string }[];
     },
   });
 
