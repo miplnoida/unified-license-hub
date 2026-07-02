@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2 } from 'lucide-react';
+import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Bell } from 'lucide-react';
+import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import { Switch } from '@/components/ui/switch';
 import { usePpoc } from '@/contexts/PpocContext';
 
@@ -262,6 +263,9 @@ export default function Profile() {
             <TabsTrigger value="password" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-2">
               <KeyRound className="h-4 w-4 mr-2" />Change Password
             </TabsTrigger>
+            <TabsTrigger value="notifications" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-2">
+              <Bell className="h-4 w-4 mr-2" />Notifications
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-6 space-y-6">
@@ -414,6 +418,10 @@ export default function Profile() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="mt-6">
+            <NotificationPreferences />
           </TabsContent>
         </Tabs>
       </div>
