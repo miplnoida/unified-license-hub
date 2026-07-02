@@ -132,10 +132,12 @@ Deno.serve(async (req) => {
     const admin = createClient(url, service);
 
     // Load return + config
-    const { data: rf } = await admin.from("returns_filed")
-      .select("id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, period_end, unique_id")
+    const { data: rf, error: rfErr } = await admin.from("returns_filed")
+      .select("id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, period_end_date, unique_id")
       .eq("id", return_id).maybeSingle();
+    if (rfErr) return json({ error: `Return lookup failed: ${rfErr.message}` }, 500);
     if (!rf) return json({ error: "Return not found" }, 404);
+
 
     // Load latest ratios/breaches for THIS return
     const [{ data: calcRatios = [] }, { data: breachRows = [] }, { data: cfgRatios = [] }] = await Promise.all([
@@ -176,10 +178,11 @@ Deno.serve(async (req) => {
     // Trend: last 6 returns' latest ratios for same licensee+config
     const licensee = rf.on_behalf_of_licensee_id ?? rf.entity_id;
     const { data: siblingReturns = [] } = await admin
-      .from("returns_filed").select("id, period_end")
+      .from("returns_filed").select("id, period_end_date")
       .eq("return_configuration_id", rf.return_configuration_id)
       .eq("entity_id", licensee)
-      .order("period_end", { ascending: true })
+      .order("period_end_date", { ascending: true })
+
       .limit(6);
     const trend: TrendPoint[] = [];
     for (const sr of (siblingReturns as any[])) {
@@ -188,7 +191,7 @@ Deno.serve(async (req) => {
         .order("computed_at", { ascending: false });
       const latest: Record<string, number | null> = {};
       for (const r of (rows as any[])) if (!(r.ratio_key in latest)) latest[r.ratio_key] = r.value == null ? null : Number(r.value);
-      trend.push({ return_id: sr.id, period_end: sr.period_end, ratios: latest });
+      trend.push({ return_id: sr.id, period_end: sr.period_end_date, ratios: latest });
     }
 
     // Peer snapshot per ratio (best-effort — RPC may error for empty peer group)
@@ -196,7 +199,7 @@ Deno.serve(async (req) => {
     for (const r of ratios) {
       try {
         const { data: snap } = await (admin as any).rpc("peer_ratio_snapshot", {
-          _period_end: rf.period_end, _ratio_key: r.ratio_key, _sector_id: rf.sector_id,
+          _period_end: rf.period_end_date, _ratio_key: r.ratio_key, _sector_id: rf.sector_id,
         });
         peer.push({ ratio_key: r.ratio_key, label: r.label, my_value: r.value, distribution: snap ?? null });
       } catch { /* peer RPC unavailable for this metric */ }
@@ -223,7 +226,7 @@ Deno.serve(async (req) => {
     let ai_error: string | null = null;
     if (computeAi && lovableKey) {
       const payload = {
-        unique_id: rf.unique_id, period_end: rf.period_end, health_score,
+        unique_id: rf.unique_id, period_end: rf.period_end_date, health_score,
         capital, liquidity, asset_quality, profitability,
         concentration_risks: concentration, early_warnings, recommendations,
       };
