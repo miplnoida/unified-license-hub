@@ -112,7 +112,7 @@ export default function RfiAutoRules() {
         .from('sectors' as any)
         .select('id, name')
         .order('name');
-      return (data ?? []) as { id: string; name: string }[];
+      return (data ?? []) as unknown as { id: string; name: string }[];
     },
   });
 
