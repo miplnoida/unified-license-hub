@@ -60,6 +60,9 @@ export function RaiseRfiDialog({
   applicationId,
   raisedBy,
   approvalStepActionId,
+  workflowTypeKey,
+  sectorId,
+  formData,
   onCreated,
   triggerLabel = 'Raise RFI',
 }: RaiseRfiDialogProps) {
@@ -69,6 +72,39 @@ export function RaiseRfiDialog({
   const [pauseSla, setPauseSla] = useState(true);
   const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
   const [saving, setSaving] = useState(false);
+  const [loadedRuleIds, setLoadedRuleIds] = useState<Set<string>>(new Set());
+
+  const { data: suggestions = [], isLoading: loadingSuggestions } = useRfiAutoSuggestions({
+    applicationId: open ? applicationId : null,
+    workflowTypeKey,
+    sectorId,
+    formData,
+  });
+
+  const applySuggestion = (s: (typeof suggestions)[number]) => {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + (s.default_due_days || 7));
+    setItems((prev) => {
+      // If the only item is empty, replace it; otherwise append.
+      const draft: DraftItem = {
+        key: Math.random().toString(36).slice(2, 9),
+        prompt: s.prompt,
+        question_type: s.question_type,
+        required: s.required,
+        item_due_at: dueDate.toISOString().slice(0, 10),
+      };
+      if (prev.length === 1 && !prev[0].prompt.trim()) return [draft];
+      return [...prev, draft];
+    });
+    setLoadedRuleIds((prev) => new Set(prev).add(s.ruleId));
+  };
+
+  const applyAllSuggestions = () => {
+    suggestions.forEach((s) => {
+      if (!loadedRuleIds.has(s.ruleId)) applySuggestion(s);
+    });
+  };
+
 
   const reset = () => {
     setSummary('');
