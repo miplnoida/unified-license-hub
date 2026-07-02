@@ -56,6 +56,8 @@ const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboa
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
+const ApiKeys = lazy(() => import('@/pages/admin/ApiKeys'));
+const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -147,5 +149,7 @@ export const dashboardRoutes = (
     <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
     <Route path="/admin/correspondence-templates" element={<M module="settings"><CorrespondenceTemplates /></M>} />
     <Route path="/admin/document-intelligence" element={<M module="settings"><DocumentIntelligence /></M>} />
+    <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
+    <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
   </>
 );
