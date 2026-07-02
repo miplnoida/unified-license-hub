@@ -120,6 +120,10 @@ export default function FitAndProperIndividualDetail() {
           <TabsContent value="appeals">
             {id && <FpAppealsPanel individualId={id} />}
           </TabsContent>
+
+          <TabsContent value="monitoring">
+            {id && <FpMonitoringPanel individualId={id} />}
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
