@@ -14,6 +14,95 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_key_usage: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          id: string
+          ip: string | null
+          latency_ms: number | null
+          method: string
+          path: string
+          status_code: number
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          latency_ms?: number | null
+          method?: string
+          path: string
+          status_code: number
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          latency_ms?: number | null
+          method?: string
+          path?: string
+          status_code?: number
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_key_usage_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          last_used_ip: string | null
+          name: string
+          revoked: boolean
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          last_used_ip?: string | null
+          name: string
+          revoked?: boolean
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          last_used_ip?: string | null
+          name?: string
+          revoked?: boolean
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       application_ai_assessments: {
         Row: {
           analyst_decision: string | null
@@ -1151,6 +1240,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_export_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          file_path: string | null
+          from_date: string | null
+          id: string
+          module_filter: string | null
+          requested_by: string | null
+          row_count: number | null
+          source: string
+          status: string
+          to_date: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          from_date?: string | null
+          id?: string
+          module_filter?: string | null
+          requested_by?: string | null
+          row_count?: number | null
+          source?: string
+          status?: string
+          to_date?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          file_path?: string | null
+          from_date?: string | null
+          id?: string
+          module_filter?: string | null
+          requested_by?: string | null
+          row_count?: number | null
+          source?: string
+          status?: string
+          to_date?: string | null
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
