@@ -53,6 +53,7 @@ const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
+const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -141,5 +142,6 @@ export const dashboardRoutes = (
     <Route path="/supervision/plans" element={<M module="settings"><SupervisoryPlansDashboard /></M>} />
     <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="settings"><ExecutiveDashboard /></M>} />
+    <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
   </>
 );
