@@ -140,26 +140,14 @@ function ReturnWorkflowPanelContent({ returnId, workflowId, returnStatus, onStat
       return (
         <Card>
           <CardContent className="py-6 text-sm text-muted-foreground">
-            Workflow has not started yet. Initialize it to begin review.
-            <Button
-              className="ml-2"
-              size="sm"
-              onClick={async () => {
-                const { error } = await supabase.rpc('start_return_workflow' as any, { _return_id: returnId });
-                if (error) toast.error(error.message);
-                else {
-                  toast.success('Workflow started');
-                  queryClient.invalidateQueries({ queryKey: ['workflow_instances', 'return', returnId] });
-                  onStatusChange?.();
-                }
-              }}
-            >Start workflow</Button>
+            Workflow has not started yet. It will be created automatically when the return is submitted.
           </CardContent>
         </Card>
       );
     }
     return null;
   }
+
 
   const canAddRemark = !!canActResult?.can_add_remark || (isInternal && !canActResult);
   const canReject = !!canActResult?.can_reject;
