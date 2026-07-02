@@ -522,6 +522,8 @@ export default function ReturnDetail() {
                 workflowId={matchedWorkflowId}
                 workflowEnabled={workflowEnabled}
                 returnStatus={returnData.workflow_status}
+                returnSubmittedAt={(returnData as any).submit_date ?? null}
+                returnCreatedAt={(returnData as any).created_at ?? null}
                 onStatusChange={() => {
                   qc.invalidateQueries({ queryKey: ['returns_filed'] });
                   qc.invalidateQueries({ queryKey: ['returns_filed', id] });
@@ -530,6 +532,7 @@ export default function ReturnDetail() {
                   qc.invalidateQueries({ queryKey: ['approval_actions', 'return', id] });
                 }}
               />
+
             ) : (
               <Card>
                 <CardHeader className="pb-3">
