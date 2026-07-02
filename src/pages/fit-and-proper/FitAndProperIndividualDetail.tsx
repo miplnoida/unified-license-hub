@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
+import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPanel';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +58,7 @@ export default function FitAndProperIndividualDetail() {
         <Tabs defaultValue="roles">
           <TabsList>
             <TabsTrigger value="roles">Roles ({roles?.length ?? 0})</TabsTrigger>
-            <TabsTrigger value="assessments" disabled>Assessments</TabsTrigger>
+            <TabsTrigger value="assessments">Assessments</TabsTrigger>
             <TabsTrigger value="screening" disabled>Screening</TabsTrigger>
             <TabsTrigger value="determinations" disabled>Determinations</TabsTrigger>
             <TabsTrigger value="conditions" disabled>Conditions</TabsTrigger>
@@ -80,8 +81,11 @@ export default function FitAndProperIndividualDetail() {
                   {r.is_current && <Badge variant="outline" className="bg-green-100 text-green-800">current</Badge>}
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground pt-2">Role linking UI comes in Phase 3.2 (Declarations).</p>
             </CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="assessments">
+            {id && <FpAssessmentsPanel individualId={id} />}
           </TabsContent>
         </Tabs>
       </div>
