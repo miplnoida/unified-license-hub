@@ -54,10 +54,11 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - New "Conditions" tab on `ApplicationDetail` appears when the application is approved.
 - `generate-license-certificate` extended to (a) render a visible "DIGITALLY SIGNED / SHA-256 verified" stamp when signing keys are configured and (b) append a second page listing all active conditions attached to the license.
 
-### 2.7 ULRA-010 — Bulk intake (CSV → staged applications)
-- Admin route `/admin/applications/bulk-intake`.
-- CSV upload → server-side validation via edge function `bulk-intake-validate` → preview table (errors highlighted) → confirm creates draft applications assigned to originator.
-- Reuses existing form-template resolution; only supports workflow types flagged `bulk_intake_enabled`.
+### 2.7 ULRA-010 — Bulk intake (CSV → staged applications) ✅ SHIPPED
+- New `bulk_intake_enabled` boolean on `approval_workflow_types` — only whitelisted workflows can accept bulk uploads.
+- Edge function `bulk-intake` (actions: `validate` / `commit`) validates each row server-side (workflow enabled, applicant email resolves to a profile, license_type present), then commits with the service-role client. Max 500 rows/batch; extra CSV columns are merged into `applications.data`; writes an `application.bulk_intake` audit log entry on commit.
+- Admin route `/admin/applications/bulk-intake` (`BulkIntake.tsx`) — CSV template download, file picker, workflow-type dropdown (bulk-enabled only), inline preview table with per-row status/errors, and a commit button that stays disabled while any row is invalid. Created applications open in `draft` status and are auto-assigned to the originator.
+- AdminHub tile "Bulk Application Intake" added.
 
 ### 2.8 ULRA-011 — Auto supervisory plan on approval ✅ SHIPPED
 - New tables `supervisory_plan_templates` (per-sector or global) and `supervisory_plan_template_actions` (title, description, owner role, days-from-approval offset, sort order) with RLS scoped to internal staff.
