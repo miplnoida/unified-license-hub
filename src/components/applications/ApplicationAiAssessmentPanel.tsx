@@ -119,7 +119,7 @@ function groupBySeverity(items: Finding[]) {
   return grouped;
 }
 
-export function ApplicationAiAssessmentPanel({ applicationId }: Props) {
+export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: Props) {
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [generating, setGenerating] = useState(false);
