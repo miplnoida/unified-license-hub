@@ -20,6 +20,9 @@ interface ApplicationRfiTabProps {
   isInternal: boolean;
   isApplicant: boolean;
   approvalStepActionId?: string | null;
+  workflowTypeKey?: string | null;
+  sectorId?: string | null;
+  formData?: unknown;
 }
 
 const statusBadge: Record<string, string> = {
