@@ -515,35 +515,6 @@ export default function ReturnDetail() {
                 ))}
               </Tabs>
             )}
-          </div>
-
-          {/* Workflow / Approval sidebar */}
-          <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" /> Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Current Status</span>
-                  <StatusBadge status={returnData.workflow_status} />
-                </div>
-                {workflowEnabled && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Configurable approval workflow is active for this return.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <ReturnValidationAndRatiosPanel
-              returnId={returnData.id}
-              returnConfigId={returnData.return_configuration_id}
-              formData={valuesByForm}
-            />
-
 
             {workflowEnabled ? (
               <ReturnWorkflowPanel
@@ -578,7 +549,7 @@ export default function ReturnDetail() {
                           value={comments_} onChange={(e) => setComments(e.target.value)}
                           disabled={!!submitting} />
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <Button onClick={handleApprove} disabled={!!submitting}
                           className="bg-green-600 hover:bg-green-700">
                           {submitting === 'approve'
@@ -617,6 +588,35 @@ export default function ReturnDetail() {
                 </CardContent>
               </Card>
             )}
+          </div>
+
+          {/* Right-side status + validation sidebar */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" /> Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Current Status</span>
+                  <StatusBadge status={returnData.workflow_status} />
+                </div>
+                {workflowEnabled && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Configurable approval workflow is active for this return.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <ReturnValidationAndRatiosPanel
+              returnId={returnData.id}
+              returnConfigId={returnData.return_configuration_id}
+              formData={valuesByForm}
+            />
+
 
             {/* Edit-request history */}
             {requests.length > 0 && (
