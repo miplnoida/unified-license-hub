@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload, UserCheck, Gavel, ClipboardCheck,
+  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload, UserCheck, Gavel, ClipboardCheck, TrendingUp,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -66,6 +66,7 @@ export default function AdminHub() {
     { label: 'Inspection Calendar', desc: 'Monthly view of scheduled inspections', icon: <CalendarCheck className="h-5 w-5" />, href: '/inspections/schedule', module: 'settings' },
     { label: 'Supervisory Plans Dashboard', desc: 'Cross-entity plan action workload', icon: <Target className="h-5 w-5" />, href: '/supervision/plans', module: 'settings' },
     { label: 'Risk Heatmap', desc: 'Composite risk score across regulated entities', icon: <Shield className="h-5 w-5" />, href: '/supervision/risk', module: 'settings' },
+    { label: 'Executive Dashboard', desc: 'Cross-module KPIs & supervisory intelligence', icon: <TrendingUp className="h-5 w-5" />, href: '/executive', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
