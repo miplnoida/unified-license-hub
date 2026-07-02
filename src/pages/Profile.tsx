@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2 } from 'lucide-react';
+import { Save, Upload, Shield, Clock, Eye, EyeOff, UserCircle, KeyRound, Loader2, Bell } from 'lucide-react';
+import NotificationPreferences from '@/pages/profile/NotificationPreferences';
 import { Switch } from '@/components/ui/switch';
 import { usePpoc } from '@/contexts/PpocContext';
 
