@@ -15,12 +15,12 @@ Estimated effort: **12–16 dev-days**, delivered in 5 self-contained sub-featur
 - `src/pages/billing/Penalties.tsx` rewritten off the mock array — live totals for assessed / collected / outstanding / disputed, per-row overdue flag (unpaid past appeal deadline or 30 days after decision), deep-link to owning case. Route added at `/billing/penalties`.
 - Existing per-licensee `EnforcementTab` untouched; it reads the same table so newly-added lifecycle columns simply carry through.
 
-### 4.2 SUP-001 — Prudential breach alert inbox
-- New route `/supervision/breaches` — supervisor inbox of unresolved `return_threshold_breaches` across all licensees, grouped by licensee, sorted by severity (breach magnitude vs. threshold) then by `created_at`.
-- Row actions: **open return** (deep-link to existing `ReturnDetail`), **acknowledge** (adds analyst + note, hides from default queue), **escalate to enforcement** (creates an `enforcement_actions` row prefilled with breach context, jumps to 4.1 case detail).
-- Extend `return_threshold_breaches` with `acknowledged_at`, `acknowledged_by`, `acknowledgement_note`, `escalated_enforcement_id`.
-- Trigger on `return_threshold_breaches` insert → writes a `notifications` row (event key `prudential.breach_raised`) to the analyst pool assigned to that licensee's sector.
-- Small KPI tile on `SupervisoryDashboard` — "Open breaches" count linking to the queue.
+### 4.2 SUP-001 — Prudential breach alert inbox ✅ SHIPPED
+- New route `/supervision/breaches` — supervisor inbox of `return_threshold_breaches` across all licensees, filterable by status (open / acknowledged / escalated / all) and severity, searchable by metric key / licensee / return ID, and sorted open-first by breach magnitude (|value − threshold| / threshold) then `detected_at`.
+- KPI strip: **Open**, **Critical / High (open)**, **Acknowledged**, **Escalated**. Row actions: **open return** (deep-link to `ReturnDetail`), **acknowledge** (analyst note required, stamps `acknowledged_at` / `acknowledged_by`), **escalate to enforcement** (creates a prefilled `enforcement_actions` row + `enforcement_case_events` `opened` row, links back via `escalated_enforcement_id`, jumps to `/enforcement/:id`).
+- Schema: extended `return_threshold_breaches` with `acknowledged_at`, `acknowledged_by`, `acknowledgement_note`, `escalated_enforcement_id`, `escalated_at`, `escalated_by`. Added `Staff can update breaches` RLS policy + partial index on open breaches.
+- Audit: acknowledge → `prudential.breach_acknowledged`; escalate → `prudential.breach_escalated` (both via `logAction`, both surface in `EntityTimeline`).
+- Wiring: `SupervisoryDashboard` gains an **Open Breaches** metric card linked to the inbox; new AdminHub tile "Prudential Breach Inbox".
 
 ### 4.3 INS-001 — Inspection scheduling & findings
 - New route `/inspections` — cross-entity inspection queue with tabs: **Scheduled**, **In progress**, **Completed**, **Overdue**.
