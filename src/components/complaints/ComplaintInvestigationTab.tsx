@@ -1,0 +1,236 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle2, Circle, Clock, MessageSquare, Send, StickyNote, Loader2, FileText } from 'lucide-react';
+import { logAction } from '@/hooks/useAuditLog';
+
+interface Props { complaintId: string; complaintStatus: string; }
+
+const TASK_STATUS_META: Record<string, { label: string; icon: any; className: string }> = {
+  pending: { label: 'Pending', icon: Circle, className: 'text-muted-foreground' },
+  in_progress: { label: 'In Progress', icon: Clock, className: 'text-blue-600' },
+  completed: { label: 'Completed', icon: CheckCircle2, className: 'text-green-600' },
+  cancelled: { label: 'Cancelled', icon: Circle, className: 'text-red-600' },
+};
+
+export default function ComplaintInvestigationTab({ complaintId, complaintStatus }: Props) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  // Tasks
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDesc, setTaskDesc] = useState('');
+  const [taskDue, setTaskDue] = useState('');
+
+  // Correspondence
+  const [corrDirection, setCorrDirection] = useState<'outbound' | 'inbound' | 'internal_note'>('outbound');
+  const [corrSubject, setCorrSubject] = useState('');
+  const [corrBody, setCorrBody] = useState('');
+
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['complaint_tasks', complaintId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('complaint_investigation_tasks')
+        .select('*').eq('complaint_id', complaintId).order('created_at', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: correspondence, isLoading: corrLoading } = useQuery({
+    queryKey: ['complaint_correspondence', complaintId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('complaint_correspondence')
+        .select('*').eq('complaint_id', complaintId).order('created_at', { ascending: false });
+      if (error) throw error;
+      const authorIds = Array.from(new Set((data ?? []).map((r: any) => r.author_id).filter(Boolean)));
+      const map = new Map<string, string>();
+      if (authorIds.length) {
+        const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', authorIds);
+        (profs ?? []).forEach((p: any) => map.set(p.id, p.full_name || p.email));
+      }
+      return (data ?? []).map((r: any) => ({ ...r, author_name: r.author_id ? map.get(r.author_id) || 'Staff' : 'System' }));
+    },
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['complaint_tasks', complaintId] });
+    qc.invalidateQueries({ queryKey: ['complaint_correspondence', complaintId] });
+    qc.invalidateQueries({ queryKey: ['complaint', complaintId] });
+  };
+
+  const addTask = useMutation({
+    mutationFn: async () => {
+      if (!taskTitle.trim()) throw new Error('Title required');
+      const { error } = await (supabase.from('complaint_investigation_tasks') as any).insert({
+        complaint_id: complaintId,
+        title: taskTitle.trim(),
+        description: taskDesc.trim() || null,
+        due_date: taskDue || null,
+        owner_id: user?.id ?? null,
+        created_by: user?.id ?? null,
+      });
+      if (error) throw error;
+      await logAction('complaint.task_created', 'complaint', complaintId, { meta: { title: taskTitle.trim() } });
+    },
+    onSuccess: () => {
+      toast.success('Task added');
+      setTaskTitle(''); setTaskDesc(''); setTaskDue('');
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const setTaskStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const patch: any = { status };
+      if (status === 'completed') { patch.completed_at = new Date().toISOString(); patch.completed_by = user?.id; }
+      const { error } = await supabase.from('complaint_investigation_tasks').update(patch).eq('id', id);
+      if (error) throw error;
+      await logAction(`complaint.task_${status}`, 'complaint', complaintId, { meta: { task_id: id } });
+    },
+    onSuccess: () => { toast.success('Task updated'); invalidate(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const addCorrespondence = useMutation({
+    mutationFn: async () => {
+      if (corrBody.trim().length < 3) throw new Error('Message body required');
+      const { error } = await (supabase.from('complaint_correspondence') as any).insert({
+        complaint_id: complaintId,
+        direction: corrDirection,
+        subject: corrSubject.trim() || null,
+        body: corrBody.trim(),
+        author_id: user?.id ?? null,
+      });
+      if (error) throw error;
+      await logAction(`complaint.${corrDirection}`, 'complaint', complaintId);
+    },
+    onSuccess: () => {
+      toast.success('Recorded');
+      setCorrSubject(''); setCorrBody('');
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const readOnly = complaintStatus === 'closed';
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* Tasks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4" /> Investigation Tasks</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!readOnly && (
+            <div className="space-y-2 border-b pb-4">
+              <Input placeholder="Task title" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
+              <Textarea placeholder="Description (optional)" rows={2} value={taskDesc} onChange={e => setTaskDesc(e.target.value)} />
+              <div className="flex gap-2">
+                <Input type="date" value={taskDue} onChange={e => setTaskDue(e.target.value)} className="flex-1" />
+                <Button onClick={() => addTask.mutate()} disabled={addTask.isPending}>
+                  {addTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add Task'}
+                </Button>
+              </div>
+            </div>
+          )}
+          {tasksLoading ? (
+            <div className="py-6 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : !tasks?.length ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No tasks yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {tasks.map((t: any) => {
+                const meta = TASK_STATUS_META[t.status] || TASK_STATUS_META.pending;
+                const Icon = meta.icon;
+                const overdue = t.due_date && t.status !== 'completed' && t.status !== 'cancelled' && new Date(t.due_date) < new Date();
+                return (
+                  <li key={t.id} className="flex items-start gap-3 border rounded-md p-3">
+                    <Icon className={`h-4 w-4 mt-0.5 ${meta.className}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm">{t.title}</p>
+                        <Badge variant="outline" className="text-xs">{meta.label}</Badge>
+                        {overdue && <Badge variant="destructive" className="text-xs">Overdue</Badge>}
+                      </div>
+                      {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
+                      {t.due_date && <p className="text-xs text-muted-foreground mt-1">Due {new Date(t.due_date).toLocaleDateString()}</p>}
+                      {!readOnly && t.status !== 'completed' && t.status !== 'cancelled' && (
+                        <div className="flex gap-1 mt-2">
+                          {t.status !== 'in_progress' && (
+                            <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'in_progress' })}>Start</Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'completed' })}>Complete</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setTaskStatus.mutate({ id: t.id, status: 'cancelled' })}>Cancel</Button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Correspondence */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Correspondence & Notes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!readOnly && (
+            <div className="space-y-2 border-b pb-4">
+              <div className="flex gap-2">
+                <Select value={corrDirection} onValueChange={(v: any) => setCorrDirection(v)}>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="outbound">Outbound (to complainant)</SelectItem>
+                    <SelectItem value="inbound">Inbound (from complainant)</SelectItem>
+                    <SelectItem value="internal_note">Internal note</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Subject (optional)" value={corrSubject} onChange={e => setCorrSubject(e.target.value)} className="flex-1" />
+              </div>
+              <Textarea rows={3} placeholder="Message body…" value={corrBody} onChange={e => setCorrBody(e.target.value)} />
+              <Button onClick={() => addCorrespondence.mutate()} disabled={addCorrespondence.isPending} className="w-full">
+                {addCorrespondence.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4 mr-2" />Record</>}
+              </Button>
+            </div>
+          )}
+          {corrLoading ? (
+            <div className="py-6 text-center"><Loader2 className="h-4 w-4 animate-spin inline" /></div>
+          ) : !correspondence?.length ? (
+            <p className="text-sm text-muted-foreground text-center py-6">No correspondence recorded.</p>
+          ) : (
+            <ul className="space-y-3 max-h-[500px] overflow-y-auto">
+              {correspondence.map((c: any) => (
+                <li key={c.id} className="border rounded-md p-3 text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={c.direction === 'internal_note' ? 'secondary' : 'outline'} className="text-xs capitalize">
+                      {c.direction === 'internal_note' ? <><StickyNote className="h-3 w-3 mr-1" />Internal Note</> : c.direction}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{c.author_name} · {new Date(c.created_at).toLocaleString()}</span>
+                  </div>
+                  {c.subject && <p className="font-medium text-xs">{c.subject}</p>}
+                  <p className="text-sm whitespace-pre-wrap mt-1">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
