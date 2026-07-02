@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
         .order("computed_at", { ascending: false });
       const latest: Record<string, number | null> = {};
       for (const r of (rows as any[])) if (!(r.ratio_key in latest)) latest[r.ratio_key] = r.value == null ? null : Number(r.value);
-      trend.push({ return_id: sr.id, period_end: sr.period_end, ratios: latest });
+      trend.push({ return_id: sr.id, period_end: sr.period_end_date, ratios: latest });
     }
 
     // Peer snapshot per ratio (best-effort — RPC may error for empty peer group)
