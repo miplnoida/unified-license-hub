@@ -146,5 +146,6 @@ export const dashboardRoutes = (
     <Route path="/executive" element={<M module="settings"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
     <Route path="/admin/correspondence-templates" element={<M module="settings"><CorrespondenceTemplates /></M>} />
+    <Route path="/admin/document-intelligence" element={<M module="settings"><DocumentIntelligence /></M>} />
   </>
 );
