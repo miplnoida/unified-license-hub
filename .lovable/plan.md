@@ -124,9 +124,10 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Quorum-aware finalization: once vote count ≥ quorum, panel computes proposed outcome using `approve+conditional` share vs. `approval_threshold_pct` (conditional wins the tie-break when conditionals outweigh approvals). Any member of the committee can enter a final rationale (min 10 chars) and finalize — writes `fp_determinations` (marking prior current determination as superseded), stamps assessment `determined_at` and status `determined`.
 - Determinations history renders under the panel with outcome chips, current/supersedes badges, and rationale.
 
-### 3.5 FPA-005 — Conditional determinations
-- Conditional approvals capture attached conditions (`fp_conditions`: description, deadline, monitoring owner, evidence type). Mirrors the `license_conditions` pattern.
-- Individual profile shows outstanding conditions; each can be marked satisfied with a note + evidence upload.
+### 3.5 FPA-005 — Conditional determinations ✅ SHIPPED
+- `FpConditionsPanel` on individual case-file (Conditions tab now enabled). Reviewers attach structured conditions to the **current** determination — category (`training` / `reporting` / `restriction` / `monitoring` / `disclosure` / `other`), description, due date, evidence type, monitoring owner.
+- Conditions display with derived status chips: `open` / `overdue` (auto-computed vs today) / `satisfied` / `waived`. Each condition supports "Mark satisfied" (with evidence note) or "Waive" with reviewer stamp (`satisfied_by`, `satisfied_at`); satisfied conditions can be reopened.
+- Panel gates the "Add condition" button until a current `fp_determinations` row exists, mirroring the license-conditions pattern from Phase 2.6.
 
 ### 3.6 FPA-006 — Appeals
 - Applicant / licensee can appeal a `rejected` or `conditional` determination within a configurable window. `fp_appeals` captures grounds, supporting docs, appeal committee, and outcome.
