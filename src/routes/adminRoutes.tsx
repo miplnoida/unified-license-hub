@@ -22,6 +22,7 @@ const ManageWebUsers = lazy(() => import('@/pages/admin/ManageWebUsers'));
 const RoleManagement = lazy(() => import('@/pages/admin/RoleManagement'));
 const AuditLogs = lazy(() => import('@/pages/admin/AuditLogs'));
 const ComplianceAuditLogs = lazy(() => import('@/pages/admin/ComplianceAuditLogs'));
+const IntegrationLogs = lazy(() => import('@/pages/admin/IntegrationLogs'));
 const NotificationTemplates = lazy(() => import('@/pages/admin/NotificationTemplates'));
 const ComplaintTypes = lazy(() => import('@/pages/admin/ComplaintTypes'));
 const ApprovedLicensees = lazy(() => import('@/pages/admin/ApprovedLicensees'));
@@ -85,6 +86,7 @@ export const adminRoutes = (
     <Route path="/admin/roles" element={<M module="role_management"><RoleManagement /></M>} />
     <Route path="/admin/audit-logs" element={<M module="settings"><AuditLogs /></M>} />
     <Route path="/admin/compliance-audit-logs" element={<M module="settings"><ComplianceAuditLogs /></M>} />
+    <Route path="/admin/integration-logs" element={<M module="settings"><IntegrationLogs /></M>} />
     <Route path="/admin/notification-templates" element={<M module="settings"><NotificationTemplates /></M>} />
     <Route path="/admin/complaint-types" element={<M module="complaint_management"><ComplaintTypes /></M>} />
     <Route path="/admin/approved-licensees" element={<M module="license_management"><ApprovedLicensees /></M>} />
