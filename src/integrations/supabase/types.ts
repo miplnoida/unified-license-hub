@@ -2221,6 +2221,68 @@ export type Database = {
           },
         ]
       }
+      document_extractions: {
+        Row: {
+          created_at: string
+          error: string | null
+          extracted: Json | null
+          file_upload_id: string | null
+          id: string
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          preset: string
+          raw_text: string | null
+          requested_by: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          extracted?: Json | null
+          file_upload_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          preset?: string
+          raw_text?: string | null
+          requested_by?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          extracted?: Json | null
+          file_upload_id?: string | null
+          id?: string
+          input_tokens?: number | null
+          model?: string | null
+          output_tokens?: number | null
+          preset?: string
+          raw_text?: string | null
+          requested_by?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_extractions_file_upload_id_fkey"
+            columns: ["file_upload_id"]
+            isOneToOne: false
+            referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_groups: {
         Row: {
           created_at: string
