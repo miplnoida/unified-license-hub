@@ -23,10 +23,12 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - Ready to drop into RFI response, application intake, and licensee detail (Phase 2.1 will wire it into RFI).
 
 
-### 2.3 ULRA-004 — SLA-age & priority queue columns
-- New view / RPC `application_queue_view` returning: age in business days, SLA remaining, priority (auto from sector + fee tier + manual override), current assignee.
-- New "Queue" tab on Applications listing with sortable columns, color-coded SLA chips, bulk-assign action.
-- Priority override writes to `applications.priority` (new column) with audit entry.
+### 2.3 ULRA-004 — SLA-age & priority queue ✅ SHIPPED
+- New route `/applications/queue` → `src/pages/applications/ApplicationQueue.tsx`. Sits alongside the existing listing (no changes to `ApplicationsList`).
+- Added columns on `applications`: `priority` (1–5, default 3), `priority_reason`, `priority_set_by/at`, `assigned_to`, `assigned_by/at` + CHECK + indexes.
+- Trigger `log_application_triage_change` writes priority/assignee changes into `audit_logs` so they surface on the unified EntityTimeline.
+- Queue features: SLA-age chip (breached / due-soon / healthy), inline priority + assignee editing, multi-select bulk update dialog with reason capture, sector-scoped, stat tiles for pending / breached / due-soon / unassigned.
+
 
 ### 2.4 ULRA-006 — AI assessment with override & explanation
 - "Run AI Assessment" button on `ApplicationDetail` → edge function `ai-assess-application` (Lovable AI Gateway, `google/gemini-2.5-flash`).
