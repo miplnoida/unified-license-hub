@@ -55,6 +55,7 @@ const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
 const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
+const DocumentIntelligence = lazy(() => import('@/pages/admin/DocumentIntelligence'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
