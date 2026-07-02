@@ -142,5 +142,6 @@ export const dashboardRoutes = (
     <Route path="/supervision/plans" element={<M module="settings"><SupervisoryPlansDashboard /></M>} />
     <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="settings"><ExecutiveDashboard /></M>} />
+    <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
   </>
 );
