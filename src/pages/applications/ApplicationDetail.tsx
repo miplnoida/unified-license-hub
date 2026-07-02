@@ -648,7 +648,9 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="rfi">RFI</TabsTrigger>
               </TabsList>
+
 
 
               <TabsContent value="details" className="space-y-4 mt-4">
