@@ -236,6 +236,56 @@ export function RaiseRfiDialog({
               )}
             </div>
 
+            {suggestions.length > 0 && (
+              <Card className="p-3 border-primary/40 bg-primary/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    Suggested items ({suggestions.length})
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={applyAllSuggestions}
+                    disabled={suggestions.every((s) => loadedRuleIds.has(s.ruleId))}
+                  >
+                    Add all
+                  </Button>
+                </div>
+                <ul className="space-y-1">
+                  {suggestions.map((s) => {
+                    const loaded = loadedRuleIds.has(s.ruleId);
+                    return (
+                      <li
+                        key={s.ruleId}
+                        className="flex items-start gap-2 justify-between text-xs bg-background rounded px-2 py-1.5"
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{s.name}</div>
+                          <div className="text-muted-foreground line-clamp-2">{s.prompt}</div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={loaded ? 'ghost' : 'secondary'}
+                          onClick={() => applySuggestion(s)}
+                          disabled={loaded}
+                        >
+                          {loaded ? 'Added' : 'Add'}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            )}
+            {loadingSuggestions && (
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> Checking auto-rules…
+              </div>
+            )}
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Items ({items.length})</Label>
