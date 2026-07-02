@@ -9,13 +9,17 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 
 ## Sub-features
 
-### 2.1 ULRA-005 — RFI (Request For Information) subsystem
-- New tables: `application_rfis`, `application_rfi_items`, `application_rfi_responses`.
-- Reviewer action on `ApplicationDetail` → "Raise RFI" dialog (multi-item, per-item due date, attachments).
-- Automatically **pauses SLA** on the current approval step (new `paused_at` / `paused_reason` columns on `approval_step_actions`); resumes on applicant response.
-- Applicant portal: RFI tab on their application with response form + file upload (reuses `useDocumentUpload`).
-- Cron `rfi-near-due-sweep` (daily) → notification 48h before RFI due.
-- Auto-sufficiency rule engine: configurable required-fields checklist per workflow type; missing items pre-populate RFI draft.
+### 2.1 ULRA-005 — RFI (Request For Information) subsystem 🚧 IN PROGRESS
+**Part A shipped:**
+- Tables `application_rfis`, `application_rfi_items`, `application_rfi_responses` with RLS (applicants scoped to own applications; internal reviewer roles can raise/close).
+- Pause columns on `approval_step_actions` (`paused_at`, `paused_reason`, `resumed_at`).
+- Notification events registered: `application.rfi_raised`, `application.rfi_responded`, `application.rfi_near_due`.
+- Reviewer `RaiseRfiDialog` — multi-item, per-item due date, optional SLA pause.
+- New "RFI" tab on `ApplicationDetail` with per-item applicant response form (text + document via secure upload) and reviewer close-and-resume flow.
+- All actions write to `audit_logs` so they surface on the unified `EntityTimeline`.
+
+**Part B (next turn):** near-due sweep cron, auto-sufficiency rule engine for pre-populating RFI drafts.
+
 
 ### 2.2 ULRA-002 — Batch document upload with per-file metadata ✅ SHIPPED
 - New reusable component `src/components/shared/BatchDocumentUpload.tsx` — multi-file staging with a metadata grid: document type (dropdown), description (free text), confidentiality flag per row.
