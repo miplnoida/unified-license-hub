@@ -68,6 +68,7 @@ export default function AdminHub() {
     { label: 'Risk Heatmap', desc: 'Composite risk score across regulated entities', icon: <Shield className="h-5 w-5" />, href: '/supervision/risk', module: 'settings' },
     { label: 'Executive Dashboard', desc: 'Cross-module KPIs & supervisory intelligence', icon: <TrendingUp className="h-5 w-5" />, href: '/executive', module: 'settings' },
     { label: 'Alert Center', desc: 'Unified alerts across breaches, enforcement, complaints, risk', icon: <Bell className="h-5 w-5" />, href: '/alerts', module: 'settings' },
+    { label: 'Correspondence Templates', desc: 'Letter, email & SMS templates for outbound notices', icon: <Mail className="h-5 w-5" />, href: '/admin/correspondence-templates', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
