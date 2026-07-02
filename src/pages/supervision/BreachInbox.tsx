@@ -1,0 +1,404 @@
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide-react';
+import { logAction } from '@/hooks/useAuditLog';
+
+type BreachRow = {
+  id: string;
+  return_id: string;
+  metric_key: string;
+  level: string;
+  comparator: string | null;
+  threshold_value: number | null;
+  value: number | null;
+  risk_level: string | null;
+  detected_at: string;
+  acknowledged_at: string | null;
+  acknowledgement_note: string | null;
+  escalated_enforcement_id: string | null;
+  return_config_id: string | null;
+};
+
+const LEVEL_META: Record<string, { label: string; className: string }> = {
+  critical: { label: 'Critical', className: 'bg-red-100 text-red-800' },
+  high: { label: 'High', className: 'bg-orange-100 text-orange-800' },
+  medium: { label: 'Medium', className: 'bg-amber-100 text-amber-800' },
+  warning: { label: 'Warning', className: 'bg-yellow-100 text-yellow-800' },
+  low: { label: 'Low', className: 'bg-slate-100 text-slate-700' },
+  info: { label: 'Info', className: 'bg-slate-100 text-slate-700' },
+};
+
+function magnitude(row: BreachRow): number {
+  if (row.threshold_value == null || row.value == null || row.threshold_value === 0) return 0;
+  return Math.abs((row.value - row.threshold_value) / row.threshold_value);
+}
+
+export default function BreachInbox() {
+  const [statusFilter, setStatusFilter] = useState<'open' | 'ack' | 'escalated' | 'all'>('open');
+  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [ackTarget, setAckTarget] = useState<BreachRow | null>(null);
+  const [ackNote, setAckNote] = useState('');
+  const [escTarget, setEscTarget] = useState<BreachRow | null>(null);
+  const [escNote, setEscNote] = useState('');
+  const [escPenalty, setEscPenalty] = useState('');
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  const { data: breaches, isLoading } = useQuery({
+    queryKey: ['prudential_breach_inbox'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('return_threshold_breaches')
+        .select('id, return_id, metric_key, level, comparator, threshold_value, value, risk_level, detected_at, acknowledged_at, acknowledgement_note, escalated_enforcement_id, return_config_id')
+        .order('detected_at', { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []) as BreachRow[];
+    },
+  });
+
+  const returnIds = useMemo(() => Array.from(new Set((breaches ?? []).map(b => b.return_id))), [breaches]);
+  const { data: returnsMap } = useQuery({
+    queryKey: ['prudential_breach_returns', returnIds.join(',')],
+    enabled: returnIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('returns_filed')
+        .select('id, unique_id, entity_id, period_end_date, return_period, return_year')
+        .in('id', returnIds);
+      const map = new Map<string, any>();
+      (data ?? []).forEach(r => map.set(r.id, r));
+      return map;
+    },
+  });
+
+  const entityIds = useMemo(() => {
+    const set = new Set<string>();
+    returnsMap?.forEach((r) => { if (r.entity_id) set.add(r.entity_id); });
+    return Array.from(set);
+  }, [returnsMap]);
+
+  const { data: licenseesMap } = useQuery({
+    queryKey: ['prudential_breach_licensees', entityIds.join(',')],
+    enabled: entityIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from('licensees').select('id, name').in('id', entityIds);
+      const map = new Map<string, string>();
+      (data ?? []).forEach((l: any) => map.set(l.id, l.name));
+      return map;
+    },
+  });
+
+  const enriched = useMemo(() => {
+    return (breaches ?? []).map((b) => {
+      const ret = returnsMap?.get(b.return_id);
+      const licenseeName = ret?.entity_id ? licenseesMap?.get(ret.entity_id) : undefined;
+      return { ...b, ret, licenseeName, licenseeId: ret?.entity_id as string | undefined, mag: magnitude(b) };
+    });
+  }, [breaches, returnsMap, licenseesMap]);
+
+  const filtered = useMemo(() => {
+    let list = enriched;
+    if (statusFilter === 'open') list = list.filter(b => !b.acknowledged_at && !b.escalated_enforcement_id);
+    else if (statusFilter === 'ack') list = list.filter(b => b.acknowledged_at && !b.escalated_enforcement_id);
+    else if (statusFilter === 'escalated') list = list.filter(b => !!b.escalated_enforcement_id);
+    if (levelFilter !== 'all') list = list.filter(b => b.level === levelFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(b =>
+        b.metric_key.toLowerCase().includes(q) ||
+        (b.licenseeName || '').toLowerCase().includes(q) ||
+        (b.ret?.unique_id || '').toLowerCase().includes(q),
+      );
+    }
+    // sort: open first, then by magnitude desc, then detected_at desc
+    return [...list].sort((a, b) => {
+      const ao = a.acknowledged_at || a.escalated_enforcement_id ? 1 : 0;
+      const bo = b.acknowledged_at || b.escalated_enforcement_id ? 1 : 0;
+      if (ao !== bo) return ao - bo;
+      if (b.mag !== a.mag) return b.mag - a.mag;
+      return b.detected_at.localeCompare(a.detected_at);
+    });
+  }, [enriched, statusFilter, levelFilter, search]);
+
+  const stats = useMemo(() => {
+    const open = enriched.filter(b => !b.acknowledged_at && !b.escalated_enforcement_id).length;
+    const critical = enriched.filter(b => (b.level === 'critical' || b.level === 'high') && !b.acknowledged_at && !b.escalated_enforcement_id).length;
+    const escalated = enriched.filter(b => !!b.escalated_enforcement_id).length;
+    const ack = enriched.filter(b => b.acknowledged_at && !b.escalated_enforcement_id).length;
+    return { open, critical, escalated, ack };
+  }, [enriched]);
+
+  const levels = useMemo(() => Array.from(new Set(enriched.map(b => b.level))).sort(), [enriched]);
+
+  const acknowledge = useMutation({
+    mutationFn: async () => {
+      if (!ackTarget) return;
+      if (ackNote.trim().length < 5) throw new Error('Acknowledgement note required');
+      const { error } = await supabase.from('return_threshold_breaches').update({
+        acknowledged_at: new Date().toISOString(),
+        acknowledged_by: user?.id,
+        acknowledgement_note: ackNote.trim(),
+      }).eq('id', ackTarget.id);
+      if (error) throw error;
+      await logAction('prudential.breach_acknowledged', 'return_threshold_breaches', ackTarget.id, {
+        note: ackNote.trim(),
+        return_id: ackTarget.return_id,
+        metric_key: ackTarget.metric_key,
+      });
+    },
+    onSuccess: () => {
+      toast.success('Breach acknowledged');
+      setAckTarget(null); setAckNote('');
+      qc.invalidateQueries({ queryKey: ['prudential_breach_inbox'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  const escalate = useMutation({
+    mutationFn: async () => {
+      if (!escTarget) return null;
+      const row = enriched.find(b => b.id === escTarget.id);
+      if (!row?.licenseeId) throw new Error('Missing licensee on this return — cannot escalate');
+      if (escNote.trim().length < 15) throw new Error('Escalation summary required (min 15 chars)');
+      const desc = `Prudential breach: ${escTarget.metric_key} — value ${escTarget.value} ${escTarget.comparator ?? ''} threshold ${escTarget.threshold_value} (${escTarget.level}).\n\nAnalyst notes: ${escNote.trim()}`;
+      const insertPayload: any = {
+        entity_id: row.licenseeId,
+        enforcement_type: 'prudential_breach',
+        status: 'open',
+        description: desc,
+        findings: escTarget.metric_key,
+        opened_by: user?.id,
+        source_type: 'prudential_breach',
+        source_reference_id: escTarget.id,
+      };
+      if (escPenalty !== '' && Number.isFinite(Number(escPenalty))) insertPayload.penalty_amount = Number(escPenalty);
+      const { data, error } = await supabase.from('enforcement_actions').insert(insertPayload).select('id, case_number').single();
+      if (error) throw error;
+      const { error: upErr } = await supabase.from('return_threshold_breaches').update({
+        escalated_enforcement_id: data.id,
+        escalated_at: new Date().toISOString(),
+        escalated_by: user?.id,
+      }).eq('id', escTarget.id);
+      if (upErr) throw upErr;
+      await supabase.from('enforcement_case_events').insert({
+        enforcement_action_id: data.id,
+        event_type: 'opened',
+        note: `Auto-opened from prudential breach ${escTarget.metric_key}`,
+        detail: { source_breach_id: escTarget.id, return_id: escTarget.return_id },
+        actor_id: user?.id ?? null,
+      } as any).then(() => undefined);
+      await logAction('prudential.breach_escalated', 'return_threshold_breaches', escTarget.id, {
+        enforcement_action_id: data.id, case_number: data.case_number, note: escNote.trim(),
+      });
+      return data.id as string;
+    },
+    onSuccess: (newId) => {
+      toast.success('Escalated to enforcement');
+      setEscTarget(null); setEscNote(''); setEscPenalty('');
+      qc.invalidateQueries({ queryKey: ['prudential_breach_inbox'] });
+      if (newId) navigate(`/enforcement/${newId}`);
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  return (
+    <DashboardLayout>
+      <PageHeader title="Prudential breach inbox" description="Threshold breaches across all licensees. Acknowledge or escalate to enforcement." />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Open</div><div className="text-2xl font-semibold">{stats.open}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Critical / High (open)</div><div className="text-2xl font-semibold text-red-600">{stats.critical}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Acknowledged</div><div className="text-2xl font-semibold">{stats.ack}</div></CardContent></Card>
+        <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Escalated</div><div className="text-2xl font-semibold">{stats.escalated}</div></CardContent></Card>
+      </div>
+
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="flex-1 min-w-[220px]">
+              <Label className="text-xs">Search</Label>
+              <Input placeholder="Metric, licensee or return ID…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <div className="w-40">
+              <Label className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="ack">Acknowledged</SelectItem>
+                  <SelectItem value="escalated">Escalated</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-40">
+              <Label className="text-xs">Severity</Label>
+              <Select value={levelFilter} onValueChange={setLevelFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {levels.map((l) => <SelectItem key={l} value={l}>{LEVEL_META[l]?.label ?? l}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading breaches…</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">No breaches match the current filters.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="p-2">Licensee</th>
+                    <th className="p-2">Metric</th>
+                    <th className="p-2">Value vs threshold</th>
+                    <th className="p-2">Severity</th>
+                    <th className="p-2">Detected</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((b) => {
+                    const lvl = LEVEL_META[b.level] ?? { label: b.level, className: 'bg-slate-100 text-slate-700' };
+                    const cmp = b.comparator ?? '';
+                    const magPct = b.mag ? `${(b.mag * 100).toFixed(1)}%` : '';
+                    const closed = !!b.acknowledged_at || !!b.escalated_enforcement_id;
+                    return (
+                      <tr key={b.id} className="border-b hover:bg-muted/40">
+                        <td className="p-2">
+                          <div className="font-medium">{b.licenseeName ?? '—'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {b.ret?.unique_id ? (
+                              <Link to={`/returns-management/${b.return_id}`} className="hover:underline inline-flex items-center gap-1">
+                                {b.ret.unique_id} <ExternalLink className="h-3 w-3" />
+                              </Link>
+                            ) : b.return_id.slice(0, 8)}
+                          </div>
+                        </td>
+                        <td className="p-2 font-mono text-xs">{b.metric_key}</td>
+                        <td className="p-2 text-xs">
+                          <div>{b.value ?? '—'} {cmp} {b.threshold_value ?? '—'}</div>
+                          {magPct && <div className="text-muted-foreground">Δ {magPct}</div>}
+                        </td>
+                        <td className="p-2"><Badge className={lvl.className}>{lvl.label}</Badge></td>
+                        <td className="p-2 text-xs">{new Date(b.detected_at).toLocaleString()}</td>
+                        <td className="p-2 text-xs">
+                          {b.escalated_enforcement_id ? (
+                            <Link to={`/enforcement/${b.escalated_enforcement_id}`} className="text-red-700 hover:underline inline-flex items-center gap-1">
+                              Escalated <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          ) : b.acknowledged_at ? (
+                            <span className="text-emerald-700">Acknowledged</span>
+                          ) : (
+                            <span className="text-amber-700">Open</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-right">
+                          {!closed && (
+                            <div className="flex gap-1 justify-end">
+                              <Button size="sm" variant="outline" onClick={() => { setAckTarget(b); setAckNote(''); }}>
+                                <ShieldCheck className="h-3 w-3 mr-1" /> Ack
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => { setEscTarget(b); setEscNote(''); setEscPenalty(''); }}>
+                                <Gavel className="h-3 w-3 mr-1" /> Escalate
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Acknowledge dialog */}
+      <Dialog open={!!ackTarget} onOpenChange={(o) => { if (!o) setAckTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Acknowledge breach</DialogTitle>
+          </DialogHeader>
+          {ackTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded border p-2 bg-muted/40">
+                <div><span className="text-muted-foreground">Metric:</span> <span className="font-mono">{ackTarget.metric_key}</span></div>
+                <div><span className="text-muted-foreground">Value:</span> {ackTarget.value} {ackTarget.comparator} {ackTarget.threshold_value}</div>
+              </div>
+              <div>
+                <Label>Analyst note</Label>
+                <Textarea rows={4} value={ackNote} onChange={(e) => setAckNote(e.target.value)} placeholder="Reason for acknowledging without escalation…" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAckTarget(null)}>Cancel</Button>
+            <Button onClick={() => acknowledge.mutate()} disabled={acknowledge.isPending}>
+              {acknowledge.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Acknowledge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Escalate dialog */}
+      <Dialog open={!!escTarget} onOpenChange={(o) => { if (!o) setEscTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Escalate to enforcement</DialogTitle>
+          </DialogHeader>
+          {escTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded border p-2 bg-muted/40">
+                <div><span className="text-muted-foreground">Metric:</span> <span className="font-mono">{escTarget.metric_key}</span></div>
+                <div><span className="text-muted-foreground">Value:</span> {escTarget.value} {escTarget.comparator} {escTarget.threshold_value}</div>
+              </div>
+              <div>
+                <Label>Case summary</Label>
+                <Textarea rows={4} value={escNote} onChange={(e) => setEscNote(e.target.value)} placeholder="Why enforcement is warranted…" />
+              </div>
+              <div>
+                <Label>Provisional penalty (optional)</Label>
+                <Input type="number" value={escPenalty} onChange={(e) => setEscPenalty(e.target.value)} placeholder="Leave blank to decide later" />
+              </div>
+              <div className="text-xs text-muted-foreground flex items-start gap-2">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                Creates a new enforcement case and jumps you to its detail page.
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEscTarget(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => escalate.mutate()} disabled={escalate.isPending}>
+              {escalate.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Create enforcement case
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
+  );
+}
