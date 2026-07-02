@@ -80,7 +80,7 @@ export default function FitAndProperIndividualDetail() {
             <TabsTrigger value="determinations">Determinations</TabsTrigger>
             <TabsTrigger value="conditions">Conditions</TabsTrigger>
             <TabsTrigger value="appeals">Appeals</TabsTrigger>
-            <TabsTrigger value="monitoring" disabled>Monitoring</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
           </TabsList>
 
           <TabsContent value="roles">
