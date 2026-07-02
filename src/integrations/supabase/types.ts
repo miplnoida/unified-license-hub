@@ -3956,6 +3956,75 @@ export type Database = {
           },
         ]
       }
+      inspection_findings: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          escalated_at: string | null
+          escalated_by: string | null
+          escalated_enforcement_id: string | null
+          follow_up_due: string | null
+          follow_up_owner: string | null
+          id: string
+          inspection_id: string
+          recommended_action: string | null
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalated_enforcement_id?: string | null
+          follow_up_due?: string | null
+          follow_up_owner?: string | null
+          id?: string
+          inspection_id: string
+          recommended_action?: string | null
+          severity: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalated_enforcement_id?: string | null
+          follow_up_due?: string | null
+          follow_up_owner?: string | null
+          id?: string
+          inspection_id?: string
+          recommended_action?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_findings_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_findings_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspections: {
         Row: {
           compliance_rating: string | null
@@ -3968,7 +4037,11 @@ export type Database = {
           inspection_type: string
           inspector_id: string | null
           inspector_name: string | null
+          lead_inspector_id: string | null
+          location: string | null
           report_url: string | null
+          scheduled_date: string | null
+          scope: string | null
           status: string
           updated_at: string
         }
@@ -3983,7 +4056,11 @@ export type Database = {
           inspection_type?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          lead_inspector_id?: string | null
+          location?: string | null
           report_url?: string | null
+          scheduled_date?: string | null
+          scope?: string | null
           status?: string
           updated_at?: string
         }
@@ -3998,7 +4075,11 @@ export type Database = {
           inspection_type?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          lead_inspector_id?: string | null
+          location?: string | null
           report_url?: string | null
+          scheduled_date?: string | null
+          scope?: string | null
           status?: string
           updated_at?: string
         }
