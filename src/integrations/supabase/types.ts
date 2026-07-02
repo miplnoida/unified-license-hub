@@ -8052,8 +8052,14 @@ export type Database = {
       }
       return_threshold_breaches: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_note: string | null
           comparator: string | null
           detected_at: string
+          escalated_at: string | null
+          escalated_by: string | null
+          escalated_enforcement_id: string | null
           id: string
           level: string
           metric_key: string
@@ -8066,8 +8072,14 @@ export type Database = {
           value: number | null
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalated_enforcement_id?: string | null
           id?: string
           level: string
           metric_key: string
@@ -8080,8 +8092,14 @@ export type Database = {
           value?: number | null
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_note?: string | null
           comparator?: string | null
           detected_at?: string
+          escalated_at?: string | null
+          escalated_by?: string | null
+          escalated_enforcement_id?: string | null
           id?: string
           level?: string
           metric_key?: string
@@ -8093,7 +8111,15 @@ export type Database = {
           threshold_version?: number | null
           value?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "return_threshold_breaches_escalated_enforcement_id_fkey"
+            columns: ["escalated_enforcement_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       return_types: {
         Row: {
