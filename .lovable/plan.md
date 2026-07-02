@@ -1,23 +1,37 @@
-## Plan
+## Problem
 
-1. **Repair existing workflow role data everywhere**
-   - Backfill any remaining live `approval_steps` missing or referencing invalid `approver_role_id`.
-   - Backfill `approver_config.role_ids` so every role-based approval step points to the same configured `roles.id`.
-   - Repair stale `approval_workflow_versions.snapshot.steps` entries, including published snapshots that still have missing or deleted role IDs.
-   - Re-check workflow templates and only repair them if any stale role reference is found.
+The return you are viewing (`/admin/returns/queue/b48b4be7-…`) never shows the configured approval workflow on the frontend. The UI silently falls back to the legacy "Approve / Request Edit" buttons and the configured multi-step workflow is ignored.
 
-2. **Prevent the error from coming back**
-   - Update the workflow UI save path so changing a step role writes both:
-     - `approver_role_id`
-     - `approver_config.role_ids`
-   - Update “add step” and template/snapshot apply paths so newly-created steps always receive a configured role ID and matching `approver_config.role_ids`.
-   - Update the backend create-workflow RPC so atomic workflow creation also requires/assigns valid role IDs instead of inserting null values.
+## Root cause
 
-3. **Keep other functionality unchanged**
-   - Do not alter approval actions, routing, notification logic, workflow matching, permissions, or UI layout.
-   - Keep current role mapping behavior, preferring existing configured/system roles by `approver_role`.
+`resolveReturnWorkflow` (used by `ReturnDetail.tsx`) calls the Postgres RPC `resolve_return_workflow(_return_id)`. That function currently runs:
 
-4. **Verify before saying fixed**
-   - Run database diagnostics showing zero live step issues and zero snapshot/template role issues.
-   - Test the workflow operation that was failing so the `APPROVER_ROLE_ID_REQUIRED` error no longer appears.
-   - Only report completion after the backend verification succeeds.
+```sql
+SELECT rf.sector_id, rf.subsector_id, rc.category_id, s.regulator_id
+  FROM public.returns_filed rf
+  LEFT JOIN public.return_configurations rc ON rc.id = rf.return_configuration_id
+  ...
+```
+
+But `return_configurations` has no `category_id` column (its columns are `sector_id`, `sub_sector_id`, `regulator_id`, …). So the RPC throws `42703: column rc.category_id does not exist` on **every** call, the resolver returns `null`, `workflowEnabled` becomes `false`, and the configured workflow is never rendered — regardless of what is configured in the backend.
+
+I confirmed this directly against the database.
+
+## Fix (database-only, no frontend behavior changes)
+
+Rewrite `resolve_return_workflow(_return_id)` so it:
+
+1. Reads scope only from columns that actually exist:
+   - `returns_filed.sector_id`
+   - `returns_filed.subsector_id` (falling back to `return_configurations.sub_sector_id` when null on the row)
+   - `sectors.regulator_id` for the regulator
+2. Drops the non-existent `category_id` join entirely. Category-scoped matching stays available at the `approval_workflows` level (that table's own `category_id` column is untouched); we simply pass `NULL` for the return's category since returns are not category-scoped in this schema, which correctly means "match any category".
+3. Preserves the existing "most-specific match wins" ordering and the rule that a fully-unscoped workflow is rejected.
+
+Everything else — the resolver TS, `ReturnDetail.tsx`, `ReturnWorkflowPanel`, `start_return_workflow`, and `perform-return-workflow-action` — stays as-is. This is a surgical fix to a single SQL function.
+
+## Verification
+
+After the migration:
+- Re-run `SELECT resolve_return_workflow('b48b4be7-669f-4c64-afb4-0ae38bf5ff3d')` — must return a UUID (or `NULL` cleanly, never an error).
+- Reload the return page; the configurable workflow panel with the approval steps should render, and the legacy Approve/Request Edit fallback should disappear when a matching workflow exists.
