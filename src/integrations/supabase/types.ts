@@ -2079,44 +2079,89 @@ export type Database = {
       }
       enforcement_actions: {
         Row: {
+          appeal_deadline: string | null
           case_number: string
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           date_opened: string
+          decision_at: string | null
+          decision_outcome: string | null
+          decision_rationale: string | null
           description: string | null
           enforcement_type: string
           entity_id: string
           findings: string | null
           id: string
+          linked_document_ids: string[] | null
+          notice_issued_at: string | null
+          opened_by: string | null
           penalty_amount: number | null
+          penalty_currency: string | null
+          penalty_paid_amount: number | null
           resolution_date: string | null
+          response_received_at: string | null
+          response_summary: string | null
+          source_reference_id: string | null
+          source_type: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          appeal_deadline?: string | null
           case_number?: string
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           date_opened?: string
+          decision_at?: string | null
+          decision_outcome?: string | null
+          decision_rationale?: string | null
           description?: string | null
           enforcement_type?: string
           entity_id: string
           findings?: string | null
           id?: string
+          linked_document_ids?: string[] | null
+          notice_issued_at?: string | null
+          opened_by?: string | null
           penalty_amount?: number | null
+          penalty_currency?: string | null
+          penalty_paid_amount?: number | null
           resolution_date?: string | null
+          response_received_at?: string | null
+          response_summary?: string | null
+          source_reference_id?: string | null
+          source_type?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          appeal_deadline?: string | null
           case_number?: string
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           date_opened?: string
+          decision_at?: string | null
+          decision_outcome?: string | null
+          decision_rationale?: string | null
           description?: string | null
           enforcement_type?: string
           entity_id?: string
           findings?: string | null
           id?: string
+          linked_document_ids?: string[] | null
+          notice_issued_at?: string | null
+          opened_by?: string | null
           penalty_amount?: number | null
+          penalty_currency?: string | null
+          penalty_paid_amount?: number | null
           resolution_date?: string | null
+          response_received_at?: string | null
+          response_summary?: string | null
+          source_reference_id?: string | null
+          source_type?: string | null
           status?: string
           updated_at?: string
         }
@@ -2126,6 +2171,44 @@ export type Database = {
             columns: ["entity_id"]
             isOneToOne: false
             referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      enforcement_case_events: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          detail: Json | null
+          event_type: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          detail?: Json | null
+          event_type: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          detail?: Json | null
+          event_type?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enforcement_case_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
             referencedColumns: ["id"]
           },
         ]
