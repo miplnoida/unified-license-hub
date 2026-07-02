@@ -2645,6 +2645,63 @@ export type Database = {
           },
         ]
       }
+      integration_logs: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          direction: string
+          duration_ms: number | null
+          endpoint: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          http_status: number | null
+          id: string
+          integration_key: string
+          metadata: Json
+          method: string | null
+          request_summary: string | null
+          response_summary: string | null
+          status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          direction: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          integration_key: string
+          metadata?: Json
+          method?: string | null
+          request_summary?: string | null
+          response_summary?: string | null
+          status: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_ms?: number | null
+          endpoint?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          integration_key?: string
+          metadata?: Json
+          method?: string | null
+          request_summary?: string | null
+          response_summary?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       job_queue: {
         Row: {
           attempts: number
@@ -3310,6 +3367,8 @@ export type Database = {
       }
       notification_dispatch_log: {
         Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
           channel: string
           created_at: string
           dedupe_key: string
@@ -3330,6 +3389,8 @@ export type Database = {
           subject: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           channel?: string
           created_at?: string
           dedupe_key: string
@@ -3350,6 +3411,8 @@ export type Database = {
           subject?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
           channel?: string
           created_at?: string
           dedupe_key?: string
@@ -7214,6 +7277,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sla_escalation_dispatches: {
+        Row: {
+          dispatched_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          overdue_by_seconds: number | null
+          process_type: string
+          recipients: string | null
+          sla_deadline: string | null
+          tier: number
+          workflow_instance_id: string
+        }
+        Insert: {
+          dispatched_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json
+          overdue_by_seconds?: number | null
+          process_type: string
+          recipients?: string | null
+          sla_deadline?: string | null
+          tier: number
+          workflow_instance_id: string
+        }
+        Update: {
+          dispatched_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          overdue_by_seconds?: number | null
+          process_type?: string
+          recipients?: string | null
+          sla_deadline?: string | null
+          tier?: number
+          workflow_instance_id?: string
+        }
+        Relationships: []
       }
       sla_escalation_tiers: {
         Row: {

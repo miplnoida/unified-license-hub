@@ -1,214 +1,225 @@
 
-# Unified License Hub — Architecture Analysis Report (Phase 1 Pre-Read)
+# BOJ/FSCA Demo Scripts 1–5 — Gap Analysis & Phased Build Plan
 
-Read-only survey. No files changed, no migrations proposed. Everything below is intended as input for scoping Phase 1.
+Scope: make every scenario in Scripts 1–5 fully functional against the existing Unified License Hub (not demo-only). This plan maps each scenario to what already exists, what needs to be extended, and what must be built from scratch, then orders the work.
 
----
-
-## 1. Current Architecture Overview
-
-**Stack:** React 18 + Vite + TypeScript, TailwindCSS + shadcn/ui, TanStack Query, React Router, Lovable Cloud (Supabase) backend with Postgres, RLS, Edge Functions (Deno), Storage, pg_cron.
-
-**High-level shape**
-
-```text
-Browser (React SPA)
-  ├── Providers: QueryClient → SiteSettings → Auth → Regulator → Ppoc → ActiveSector
-  ├── Router: public / dashboard / admin / settings / returns route groups
-  ├── Guards: ProtectedRoute → RegistrationApprovalGate → ModuleRoute/PortalRoute/AdminRoute
-  ├── Data: TanStack Query hooks over supabase-js (RLS-enforced)
-  └── Realtime: Supabase channels for in-app notifications
-        │
-        ▼
-Supabase
-  ├── ~140 tables, RLS on all, has_role() SECURITY DEFINER pattern
-  ├── 30+ Edge Functions (workflow engines, notifications, reports, sweeps)
-  ├── pg_cron for license reminders + notification failure sweep
-  └── Storage buckets: secure-documents, license-certificates, payment-documents, branding-assets, avatars
-```
-
-**Domain surfaces:** applications, registrations, licenses, returns/compliance, forms, workflows/approvals, payments/fees, documents, notifications, reports, audit, RBAC, master data, complaints, supervisory/enforcement.
-
-**Portal audiences** (resolved by `useEffectivePortalContext` from Auth + Ppoc): internal (super_admin/admin/officer/analyst/viewer), licensee (primary + PPOC), applicant, pre-licensee — each with a different dashboard and permission surface.
+Nothing is implemented yet. Once approved, we execute phase-by-phase, each phase ending in a runnable increment.
 
 ---
 
-## 2. Existing Reusable Modules (High Value — Reuse First)
+## 0. Legend
 
-### Frontend contexts / hooks
-- **AuthContext** — session, 2FA, forcePasswordChange, periodic re-hydrate.
-- **RegulatorContext / PpocContext / ActiveSectorContext / SiteSettingsContext** — multi-tenant scoping.
-- **useEffectivePortalContext + `lib/effectiveRole.ts`** — canonical audience resolver.
-- **useUserDynamicPermissions (`hooks/usePermissions.ts`)** — dynamic RBAC (hasPermission / hasModuleAccess / canAccessPath).
-- **useApiQueries** — generic paginated Supabase queries + `useTableMutation`.
-- **useWorkflowEngine, useWorkflowVersions, useWorkflowSLA, useStepActions, useActionNotifications, useStepEntryNotifications** — full workflow toolkit.
-- **useAuditLog** — client-side audit writes via `log_self_audit` RPC.
-- **useNotifications** — realtime in-app inbox.
-- **useFormTemplates / useForms / useMasterData** — form + master-data infrastructure.
-
-### Frontend libs / services
-- **`lib/workflowService`, `workflowApprovalResolver`, `workflowActionFilter`, `workflowValidation`, `workflowTemplateSnapshot`, `workflowSlaResolver`, `returnWorkflowResolver`, `registrationWorkflowClient`** — full workflow client stack.
-- **`lib/secureFileUpload` + `lib/documentVersioning`** — MIME/size validation, signed URLs (5 min), versioned upload with `document_groups` / `document_versions` / `document_action_logs`.
-- **`lib/notificationEvents` (`dispatchNotificationEvent`)** — thin client for the unified dispatcher; only correct way to fire notifications.
-- **`lib/permissionModules` + `permissionRegistry`** — route↔module map, module→actions/menus registry.
-- **`lib/portalAccess`, `registrationAccess`, `authHelpers`, `complianceAudit`** — access gates and audit primitives.
-- **`lib/safeEval`, `booleanExpression`, `formDiff`, `formRows`, `formStorage`, `formFileUpload`, `fieldTypeChange`** — form-engine primitives.
-
-### Frontend UI
-- **Layout:** `DashboardLayout`, `Sidebar` (permission-filtered), `Header`, `RegulatorSwitcher`, `LicenseeSwitcher`, `ActingOnBehalfOfBanner`.
-- **Auth/access:** `PermissionGate`, `ModuleGate`, `ProtectedRoute`, `PortalRoute`, `ModuleRoute`, `AdminRoute`, `SettingsRoute`, `AccessDenied`, `AuthLoadingScreen`, `ErrorBoundary`.
-- **Shared primitives:** `RowActionsMenu`, `DataTableShell`, `PageHeader`, `AttachmentList`, `LicenseStatusBanner`, `RichLabel`.
-- **Form engine:** `FormRenderer` (dynamic renderer — conditionals, calc fields, versioned document uploads, multi-step) + full `form-builder/*` designer + `registration-builder/*`.
-- **Workflow UI:** `WorkflowPanel` (application), `WorkflowVersionPanel`, `ActionNotificationsEditor`, `StepEntryNotificationsEditor`, `ApproverConfigEditor`, `StepActionsEditor`, `SlaIndicator`, `WorkflowActionPreviewDialog`.
-- **Documents:** `VersionedDocumentUploader`, `DocumentGroupList`, `DocumentVersionHistoryDialog`.
-
-### Backend edge modules (`supabase/functions/_shared/*`)
-- **`audit.ts`** — `logComplianceAudit` / `logSecurityEvent` via SECURITY DEFINER RPCs. Use in every new edge function.
-- **`cors.ts`** — `handleCorsPreflight` / `buildCorsHeaders`.
-- **`email-layout.ts`** — `renderBrandedEmail` + `stripUnresolvedTemplateTokens`.
-- **`report-generator.ts`** — shared between `generate-report` and `run-scheduled-reports`.
-- **`return-notification-payload.ts`** — reusable return payload assembler.
-
-### Backend engines
-- **Workflow engines** (`perform-workflow-action`, `perform-return-workflow-action`, `perform-registration-workflow-action`, `perform-license-action`) — all identical shape: JWT auth → RPC (`perform_*_workflow_transition`) → sig persistence → `dispatch-notification-event`.
-- **`dispatch-notification-event`** — sole authorized path to fan out notifications (in-app + email, dedupe, template render).
-- **`send-notification`** — SMTP transport (Nodemailer + site_settings config).
-- **`process-queue`** — generic job queue for email/report/file jobs.
-- **`generate-license-certificate`, `generate-report`, `run-scheduled-reports`, `notification-retry`, `notification-failure-sweep`, `license-expiry-reminders`, `overdue-returns-sweep`**.
-
-### Polymorphic schema (entity_type / entity_id) — reuse for any new entity
-`workflow_instances`, `approval_actions`, `approval_workflows`, `document_groups`, `document_versions`, `file_uploads`, `form_responses`, `payments`, `notifications`, `notification_dispatch_log`, `compliance_audit_logs`.
+- ✅ **Exists** — already implemented; only wiring/UX polish needed
+- 🟡 **Partial** — core exists; missing capability listed
+- 🔴 **Build** — must be built from scratch
+- Each scenario ID matches the uploaded scripts (`DEMO-ULRA-###`, `DEMO-FPA-###`, `DEMO-PRUD-###`, `DEMO-MCS-###`, `DEMO-DPA-###`)
 
 ---
 
-## 3. Components / Modules That MUST NOT Be Duplicated
+## 1. Script 1 — Unified Licensing, Registration & Approval
 
-Adding a parallel version of any of these has caused (or will cause) drift, RLS bypass, or audit gaps. Extend in place.
-
-- **`supabase/integrations/supabase/client.ts`** — auto-generated, never edited.
-- **`AuthContext`** — do not create a second session source; hydrate via `authHelpers.fetchPlatformUser`.
-- **Route guards** (`ProtectedRoute`, `RegistrationApprovalGate`, `PortalRoute`, `ModuleRoute`, `AdminRoute`, `SettingsRoute`) — new protected routes must compose these, not reimplement session/permission checks.
-- **`usePermissions` / `PermissionGate` / `ModuleGate`** — the only correct RBAC gate. Do not re-check via `user.role === 'admin'`.
-- **`FormRenderer` + `form-builder`** — the only dynamic form engine; new form UIs must render through it, not through bespoke JSX.
-- **`WorkflowPanel` (applications), `ReturnWorkflowPanel`** — canonical workflow UX (Accordion + SLA + history + signature dialog). New entity workflows must mirror this UI, not build a new one.
-- **Workflow edge engines** — never write approval transitions from the client. All state changes go through the `perform-*-workflow-action` edge fn → RPC.
-- **`dispatchNotificationEvent` / `dispatch-notification-event`** — do not send notifications by direct insert into `notifications` or by calling `send-notification` from the client. Register a new `notification_event_configs` row instead.
-- **`secureFileUpload` + `documentVersioning`** — do not upload to Storage directly; both AV metadata and versioning depend on this path.
-- **`_shared/audit.ts` + `log_compliance_audit_as_actor` RPC** — do not insert into `compliance_audit_logs` directly from an edge function.
-- **`has_role()` SECURITY DEFINER** — do not put role checks directly in RLS `USING` clauses (recursion risk).
-- **`user_roles` / `user_dynamic_roles`** — never store roles on `profiles`.
-- **`site_settings` (SMTP, branding, license expiry, certificate signatory)** — single source of truth; do not fork configuration into new tables.
-
----
-
-## 4. Missing Reusable Platform Services
-
-Genuine platform-level gaps identified across frontend and backend.
-
-### Frontend
-1. **Unified Timeline / Activity Feed component** — three inconsistent implementations (`StatusTimeline`, `ApplicationTimeline`, `ActivityTab`) each hard-coded to applications. No `<EntityTimeline entityType entityId />` primitive; every new entity re-implements.
-2. **Cross-entity comments/thread primitive** — `PaymentRemarksThread` exists only for payments; return/application/complaint comments are bespoke.
-3. **`useEntityAuditLog` read-hook** — writes are unified (`useAuditLog`), reads are not; each detail page queries `audit_logs` itself.
-4. **Generic Entity Detail shell** — `entity-detail/*` panels are LicenseeDetail-only; no reusable tabbed detail scaffold.
-5. **Generic paginated DataTable** — `DataTableShell` is thin; ~15 pages duplicate column/filter/export code.
-6. **In-app document/PDF viewer** — signed URLs open in a new tab; no inline preview.
-7. **Global search / command palette** — none.
-8. **Confirmation-dialog bus** — `SweetAlert2` used ad hoc; no shared destructive-confirm primitive.
-9. **`FormRenderer` decomposition** — 1601 lines; not a "missing service" but a refactor lever before adding new field types.
-
-### Backend
-1. **No active SLA escalation sweep** — `sla_escalation_tiers` configured, no scheduled function consumes it.
-2. **`process-queue` email handler is a stub** — real delivery bypasses the queue; queue offers no delivery guarantee.
-3. **`run-scheduled-reports` has no pg_cron entry** — schedules never trigger automatically.
-4. **`overdue-returns-sweep` pg_cron entry is commented out** — must be triggered externally.
-5. **Fragmented audit** — `audit_logs`, `compliance_audit_logs`, `security_event_logs`, `return_audit_log`, `document_action_logs` never joined; no unified DB view.
-6. **Legacy notification tables** — `return_notification_templates` / `return_notifications_log` are dead weight parallel to the unified pipeline.
-7. **Two document models** — legacy flat `documents` vs versioned `document_groups`/`document_versions` coexist without a migration path.
-8. **AV scan is simulated** — `file_uploads.scan_status` set to `clean` without real scanning.
-9. **Open master-data policies** — `forms`, `sectors`, `sub_sectors`, `categories`, `services` have `FOR ALL USING (true)`; any authenticated user can mutate.
-10. **`audit_logs` INSERT is open** — integrity relies solely on a UPDATE/DELETE-blocking trigger.
-11. **`workflow_instances` SELECT is open** — instance status leaks across entities.
+| ID | Scenario | Status | Gap / Work |
+|----|----------|--------|-----------|
+| ULRA-001 | Applicant draft creation, resume | ✅ | Confirm resume-draft dashboard tile visible for all license types. |
+| ULRA-002 | Dynamic forms, validation, batch upload, doc versioning | 🟡 | Batch/multi-file upload with per-file metadata (add batch-mode to VersionedDocumentUploader). |
+| ULRA-003 | Submission, reference no., acknowledgement (portal + email) | ✅ | Add explicit "Acknowledgement" artifact (PDF receipt) to notification. |
+| ULRA-004 | Officer intake queue with status, owner, SLA age, priority | 🟡 | Add SLA-age column + priority sort to Applications list; owner filter. |
+| ULRA-005 | Sufficiency review, SLA timer, RFI with pause/resume, near-due alerts | 🔴 | **New RFI subsystem**: `application_rfis` table, RFI dialog, SLA pause/resume RPC, applicant response UI, "near-due" cron. Auto-sufficiency rules engine. |
+| ULRA-006 | Analyst review + AI-assisted findings, override + explanations | 🟡 | Reuse `application_ai_assessments`; add "generate assessment" button on analyst step, override + rationale capture, explanation panel. |
+| ULRA-007 | Legal/compliance review with restricted access | ✅ | `application_legal_notes` + role-gated tab already exist; verify denied-access audit entry. |
+| ULRA-008 | Decision-ready consolidated case view | 🟡 | New "Consolidated Case" tab on ApplicationDetail: applicant + docs + analyst + legal + RFIs + SLA + AI assessment. |
+| ULRA-009 | Decision (approve/conditional/reject) + digitally signed license + notifications; configurable per assessment | 🟡 | Add "Conditional approval" outcome with condition capture; wire digital-signature stamp on issued license PDF. |
+| ULRA-010 | Renewal, revocation with justification, bulk intake (5–10), audit | 🟡 | Bulk intake screen (CSV upload → staged applications). Renewal/revocation exist. |
+| ULRA-011 | Licensing → Supervision continuity: auto initial supervisory plan + time-bound corrective actions | 🔴 | **New supervisory-plan generator**: on approve, create `supervisory_plans` row + `supervisory_plan_actions` from licensing risk profile. |
+| ULRA-012 | Twin Peaks: prudential/conduct interdependency, coordination space, conditional clearance | 🔴 | **New coordination workspace**: shared discussion thread across regulators, interdependency flag table, conditional-clearance record. |
 
 ---
 
-## 5. Recommended Extension Points
+## 2. Script 2 — Fit & Proper Assessment
 
-For any Phase-1 feature adding a new domain entity (e.g. inspection cycle, permit, enforcement dossier) with workflow + audit + notifications + documents:
+Existing platform has **no Fit & Proper module**. This is the largest new domain.
 
-1. **Workflow:** insert `approval_workflows(entity_type='<new>')`, `approval_steps`, `approval_step_actions`. Add one new edge function `perform-<new>-workflow-action` cloning the existing three; add RPC `perform_<new>_workflow_transition`. `workflow_instances` + `approval_actions` accept the new entity_type unchanged.
-2. **Audit:** call `logComplianceAudit()` from `_shared/audit.ts` in the new edge function; add a DB trigger writing `compliance_audit_logs` for data-layer changes; use `useAuditLog.logAction` in the client.
-3. **Notifications:** insert rows in `notification_event_configs` for `<new>.*` event keys; call `dispatchNotificationEvent(...)` from the client and `dispatch-notification-event` from edges.
-4. **Documents:** use `document_groups` with `entity_type='<new>'`; UI uses `VersionedDocumentUploader` + `DocumentVersionHistoryDialog` — no bespoke storage code.
-5. **Forms:** create a `form_templates` row; render via `FormRenderer`; persist via `form_responses(entity_type='<new>')`.
-6. **Payments:** insert `payments` with the same polymorphic keys.
-7. **RBAC:** add a permission module row + register actions in `permission_actions`; use `PermissionGate` / `ModuleGate` in UI and route via `ModuleRoute`.
-8. **SLA:** insert `sla_configurations(process_type='<new>')`; wire escalation tiers (note the missing sweep — see Risks).
-9. **Timeline UX:** build (or reuse when created) a unified `<EntityTimeline>` fed by `useEntityAuditLog` — this is the highest-leverage new primitive.
-10. **Detail page:** use `DashboardLayout` + `PageHeader`; assemble tabs following the LicenseeDetail pattern until a generic shell exists.
-
----
-
-## 6. Database Impact
-
-Without knowing Phase-1's specific feature, the shape of typical impact is:
-
-- **Reused as-is (no schema change):** `workflow_instances`, `approval_actions`, `document_groups`, `document_versions`, `file_uploads`, `form_responses`, `payments`, `notifications`, `notification_dispatch_log`, `compliance_audit_logs`, `sla_configurations` — extend by adding a new `entity_type` value.
-- **Extended (config rows, no DDL):** `approval_workflows`, `approval_steps`, `approval_step_actions`, `approval_action_notifications`, `notification_event_configs`, `notification_templates`, `permission_modules`, `permission_actions`, `sla_configurations`, `sla_escalation_tiers`.
-- **Likely new tables** for a substantive new domain entity: one core entity table (`<new>s`), optionally `<new>_versions` if versioning is required. Both must ship with `GRANT` statements and RLS policies per project convention.
-- **Watch-outs:** any new external portal capability requires rows in `external_portal_role_capabilities` and a new `external_can_access_<new>()` SECURITY DEFINER function referenced by Storage RLS.
-
-Every migration touching `public.*` must follow the mandated order — `CREATE TABLE` → `GRANT` → `ENABLE RLS` → `CREATE POLICY`.
+| ID | Scenario | Status | Gap / Work |
+|----|----------|--------|-----------|
+| FPA-001 | Four initiation paths (new license / monitoring / ad-hoc / cycle) | 🔴 | New `fp_assessments` entity with `initiation_type` enum + trigger surfaces on License, Licensee, and Cron. |
+| FPA-002 | Single individual + multiple roles across entities (unique ID, no duplicates) | 🔴 | `fp_individuals` table with system-generated unique ID; `fp_individual_roles` join to entities; cumulative-influence view. |
+| FPA-003 | Subject profile + access control with denial audit | 🔴 | Profile page + role-scoped RLS; denial writes to `security_event_logs`. |
+| FPA-004 | Declarations + assessor notifications | 🔴 | Declarations form (via existing FormRenderer) + `notification_event_configs` entries `fp.declaration.*`. |
+| FPA-005 | Configurable automated screening + adverse-media, match-confidence, false-positive resolution | 🔴 | `fp_screening_configs`, `fp_screening_runs`, edge fn `run-fp-screening` (initial rules-based; adverse-media via Lovable AI). |
+| FPA-006 | Manual screening + evidence attachment | 🔴 | Manual-task type in `fp_screening_runs`; VersionedDocumentUploader for evidence. |
+| FPA-007 | Adverse findings, severity, high-severity escalation | 🔴 | `fp_findings` table with severity enum; escalation rules reuse `sla_escalation_tiers`. |
+| FPA-008 | Historic comparison + individual/population trends | 🔴 | Comparison view + trends chart from `fp_assessments` history. |
+| FPA-009 | AI-assisted analysis + human override with audit | 🔴 | Edge fn `generate-fp-ai-analysis` (Lovable AI gateway); override captured on assessment. |
+| FPA-010 | Sector-specific decision logic | 🔴 | `fp_decision_rules` keyed by sector; rendered via decision-rule engine. |
+| FPA-011 | Multi-regulator determinations on the same profile | 🔴 | `fp_determinations` scoped by `regulator_id`; independent workflows per regulator. |
+| FPA-012 | Committee review with weighted voting | 🔴 | `fp_committees`, `fp_committee_votes` (weight, rationale); outcome tally RPC. |
+| FPA-013 | Conditional determination + condition lifecycle + SLA breach | 🔴 | `fp_conditions` with reminders (cron) + breach log. |
+| FPA-014 | Appeals (standalone + linked to license) | 🔴 | `fp_appeals` table; reflect outcome on linked license. |
+| FPA-015 | Monitoring scheduler + event-triggered reassessment + audit | 🔴 | pg_cron entry + event triggers writing to `compliance_audit_logs`. |
 
 ---
 
-## 7. Migration Estimate (per typical Phase-1 feature)
+## 3. Script 3 — Prudential Supervision
 
-Estimate for adding one net-new entity type with workflow + audit + notifications + documents + one form + one payment surface. Refine once Phase-1 scope is known.
+Substantial base exists (`returns_filed`, `prudential_ratios`, `prudential_thresholds`, `return_calculated_ratios`, `return_threshold_breaches`, `supervisory_plans`, `enforcement_actions`).
 
-| Area | Effort | Notes |
-|------|--------|-------|
-| Schema (1 core table + optional versioning) + RLS + GRANTs | 0.5–1 day | Follows public-schema-grants rule. |
-| Workflow RPC + `perform-<new>-workflow-action` edge fn | 1–2 days | Clone of existing engines. |
-| Notification event configs + templates | 0.5 day | Config-only. |
-| Permission module + gates + routes | 0.5 day | Register in `permission_modules` / `permission_actions`; wire `ModuleRoute`. |
-| Form template + FormRenderer wiring | 0.5–1 day | No new engine work. |
-| List page + detail page (tabs, workflow panel, documents, audit) | 2–3 days | If reusable `<EntityTimeline>` and `<EntityDetailShell>` don't exist yet, +1–2 days to build them. |
-| SLA config + (optional) escalation sweep | 0.5–1 day | Escalation sweep is currently missing platform-wide. |
-| Tests (Vitest for guards/hooks, edge fn Deno tests) | 1 day | Existing patterns under `src/test/` and `supabase/functions/*/index_test.ts`. |
-| **Total** | **~7–10 dev-days** | Excludes discovery, design, and QA. |
-
-If Phase-1 instead builds a missing platform primitive (unified timeline, generic detail shell, generic data-table, SLA escalation sweep, unified audit view), each is a separate 2–4 day slice.
-
----
-
-## 8. Risks
-
-**Architectural**
-- Fragmented audit surfaces make cross-entity reporting hard; if Phase-1 needs a "single audit trail" UX, expect scope creep to unify.
-- Two document models (`documents` vs `document_groups`) — using the wrong one silently breaks version history and download audit.
-- Notification event resolution is centralized but the *event key* space is a loose `string` type — misspelled keys silently fail.
-- `FormRenderer` size (1601 lines) — any Phase-1 requirement for a new field type or new conditional operator risks regression across every form in the system.
-
-**Security / RLS**
-- Master-data tables with `FOR ALL USING (true)` and open `audit_logs` INSERT — a Phase-1 admin UI accidentally trusting the client is a real exposure. Tighten as part of any related work.
-- Open SELECT on `workflow_instances` leaks status across entities; if Phase-1 introduces new sensitive entity types, this becomes disclosure risk.
-- Simulated AV scanning — any new user-facing upload path inherits an unscanned file. Do not present `scan_status = 'clean'` as a guarantee to users.
-
-**Operational**
-- No SLA escalation sweep, no cron for scheduled reports, commented-out cron for overdue returns — anything Phase-1 promises to fire "automatically" will not fire without new pg_cron wiring.
-- `process-queue` email path is a stub; if a Phase-1 feature enqueues emails through the queue it will silently no-op.
-- `run-scheduled-reports` needs an external trigger today.
-
-**Portal / RBAC**
-- `PpocContext` is complex (multi-source resolution, ~500 lines, no full unit coverage). Any Phase-1 feature touching "acting on behalf of" behaviour needs careful test coverage.
-- Not every action button uses `PermissionGate` — partial adoption means Phase-1 must audit newly touched pages for lingering `user.role === 'admin'` checks.
-- Registration approval gate (`RegistrationApprovalGate`) intercepts pre-licensee traffic — any new pre-licensee-visible route must be added to `REGISTRATION_GATE_ALLOWLIST` or it will redirect.
-
-**Delivery**
-- Edge functions must return HTTP 200 with error body per project convention; a Phase-1 addition returning non-200 breaks existing client error UX.
-- Migrations are the only path to schema changes and must include GRANTs — a missed GRANT will surface as a runtime permission error, not a build failure.
+| ID | Scenario | Status | Gap / Work |
+|----|----------|--------|-----------|
+| PRUD-001 | Supervisory universe + configurable risk taxonomy | 🟡 | New `risk_taxonomy` config UI (categories/sub-risks) — reuse `master_data_types`. |
+| PRUD-002 | Baseline + historical prudential profile | 🟡 | New "Prudential Profile" tab on Licensee showing prior returns/ratios/assessments/enforcement. |
+| PRUD-003 | Entity submits return + validation | ✅ | Existing `returns_filed` + FormRenderer + validation rules. |
+| PRUD-004 | Supervisor intake, validation, version history | 🟡 | Version-history view on `return_form_versions`; add "validation results" panel. |
+| PRUD-005 | Ratio calc + threshold breach flag | ✅ | Already implemented via `evaluate-return-prudential`; confirm breach UI. |
+| PRUD-006 | Peer comparison + trend | 🔴 | Peer-comparison query + trend chart; new "Peer Analytics" page. |
+| PRUD-007 | Supervisory assessment + risk score + rationale | 🟡 | New `supervisory_assessments` table + form on Licensee/Return; risk score to `risk_ratings`. |
+| PRUD-008 | Supervisory actions + escalation | 🟡 | Extend `supervisory_plan_actions` with escalation routing → reuses SLA tiers. |
+| PRUD-009 | Notifications + acknowledgements | ✅ | `dispatchNotificationEvent`; add "acknowledged_at" to `notification_dispatch_log`. |
+| PRUD-010 | Ongoing monitoring + early-warning indicators | 🟡 | New cron `prudential-early-warning-sweep` scanning trends against thresholds. |
+| PRUD-011 | Dashboards + integration logs + end-to-end audit | 🟡 | Prudential dashboard widgets; integration-log table for outbound feeds. |
 
 ---
 
-### Next step
-Share the Phase-1 feature scope. I will refine the migration estimate, identify which of the missing platform services are prerequisites vs. deferrable, and produce a build-ready plan.
+## 4. Script 4 — Market Conduct Supervision
+
+Complaints module exists; conduct-specific analytics do not.
+
+| ID | Scenario | Status | Gap / Work |
+|----|----------|--------|-----------|
+| MCS-001 | Conduct risk taxonomy | 🔴 | `mc_risk_taxonomy` config (mis-selling, unfair treatment, etc.). |
+| MCS-002 | Historical conduct context | 🟡 | Conduct-history tab on entity/product. |
+| MCS-003 | Complaint intake (consumer portal + regulator) | ✅ | Complaints module exists; add public consumer intake page. |
+| MCS-004 | Classification + prioritization + routing | 🟡 | Auto-priority rules + auto-routing on complaint create. |
+| MCS-005 | Conduct analytics + alerts (spike detection) | 🔴 | Analytics edge fn + `mc_alerts` table + alert dashboard. |
+| MCS-006 | Thematic review initiation | 🔴 | `mc_thematic_reviews` table (scope, entities, timeframe, assignee). |
+| MCS-007 | Investigation + evidence + restricted access | 🟡 | Extend `enforcement_actions` with investigation subtype + evidence via document_groups. |
+| MCS-008 | Actions + outcomes + notifications | ✅ | Reuse enforcement + notification pipeline. |
+| MCS-009 | Ongoing monitoring rules (relapse thresholds) | 🔴 | `mc_monitoring_rules` engine + cron. |
+| MCS-010 | Oversight dashboard with drill-down | 🔴 | Conduct dashboard with drill from trend → cases → actions. |
+
+---
+
+## 5. Script 5 — Dashboards, Reporting, Auditability (cross-cutting)
+
+| ID | Scenario | Status | Gap / Work |
+|----|----------|--------|-----------|
+| DPA-001 | Cross-module supervisory dashboard + AI-driven insights | 🔴 | New `/supervisor/overview` page aggregating Licensing + F&P + Prudential + Conduct; Lovable-AI insight widget. |
+| DPA-002 | Role-specific dashboards (exec vs operational; regulator vs licensee) | 🟡 | Dashboard layouts already keyed to role; add "executive" role/preset. |
+| DPA-003 | Cross-script operational reports with filters | 🟡 | Add predefined `report_templates` for licensing throughput, all SLAs, return compliance, complaint volumes. |
+| DPA-004 | Ad-hoc report + export + export audit | 🟡 | Report builder exists; add export-audit event to `compliance_audit_logs`. |
+| DPA-005 | Case-centric audit (Licensing → F&P) | 🔴 | Requires unified `<EntityTimeline>` primitive from analysis report; view keyed by case ID spanning entity_types. |
+| DPA-006 | Supervisory & enforcement audit | 🟡 | Same primitive filtered by supervisory action IDs. |
+| DPA-007 | Data lineage + version history | 🟡 | `compliance_audit_logs.before_value/after_value` already stored; add diff view. |
+| DPA-008 | Overrides + mandatory justification | 🟡 | Central "override with justification" dialog primitive reused across modules. |
+| DPA-009 | Integration + security-event logs | 🟡 | `security_event_logs` exists; add `integration_logs` table + admin viewer. |
+
+---
+
+## 6. Cross-Cutting Platform Primitives (build once, reused everywhere)
+
+These are prerequisites for multiple scenarios and were flagged as platform gaps in the earlier architecture analysis:
+
+1. **Unified `<EntityTimeline>` component** + `useEntityAuditLog` — required by DPA-005/006, ULRA-011, F&P appeals.
+2. **RFI subsystem** (`entity_rfis`, dialog, SLA pause/resume) — ULRA-005, extendable to F&P & Conduct.
+3. **SLA escalation sweep cron** — ULRA-005, FPA-013, PRUD-008.
+4. **Twin-Peaks coordination workspace** (shared thread + interdependency flags + conditional clearance) — ULRA-012.
+5. **Override-with-justification** dialog + audit hook — DPA-008.
+6. **Bulk-intake (CSV) primitive** — ULRA-010, reusable by F&P and Conduct.
+7. **AI-analysis wrapper** on Lovable AI Gateway with source citation + confidence + human-override storage — FPA-009, DPA-001, ULRA-006.
+8. **Peer-comparison chart primitive** — PRUD-006.
+9. **Integration-log service** — DPA-009.
+
+---
+
+## 7. Phased Delivery
+
+Each phase ends in a runnable, testable increment. Phases 1–2 unblock every downstream module.
+
+**Phase 1 — Platform primitives (foundation) — ✅ COMPLETE**
+- ✅ Unified `<EntityTimeline>` + `useEntityAuditLog` (`src/components/shared/EntityTimeline.tsx`, `src/hooks/useEntityAuditLog.ts`). `ActivityTab` refactored to delegate.
+- ✅ Override-with-justification primitive (already existed as `OverrideJustificationDialog` + `logComplianceAudit`).
+- ✅ SLA escalation sweep edge function (`supabase/functions/sla-escalation-sweep`) + `sla_escalation_dispatches` ledger (idempotent per instance/tier) + `workflow.sla_escalation` notification event + `*/15 * * * *` pg_cron entry.
+- ✅ `integration_logs` table + `_shared/integration-log.ts` helper + admin viewer page `/admin/integration-logs` (linked from AdminHub).
+- ✅ `notification_dispatch_log.acknowledged_at` / `acknowledged_by` columns (UI surface deferred to Phase 5 supervisory dashboard).
+
+**Phase 2 — Script 1 completions**
+- ULRA-005 RFI subsystem
+- ULRA-002 batch upload + per-file metadata
+- ULRA-004 SLA-age/priority queue columns
+- ULRA-006 AI assessment button + override
+- ULRA-008 Consolidated Case View
+- ULRA-009 Conditional approval + signed license
+- ULRA-010 Bulk intake CSV
+- ULRA-011 Auto supervisory plan on approval
+- ULRA-012 Twin Peaks coordination workspace
+
+**Phase 3 — Script 2: Fit & Proper (largest greenfield)**
+- Schema: `fp_individuals`, `fp_individual_roles`, `fp_assessments`, `fp_screening_configs`, `fp_screening_runs`, `fp_findings`, `fp_determinations`, `fp_committees`, `fp_committee_votes`, `fp_conditions`, `fp_appeals`
+- Workflow engine `perform-fp-workflow-action` + RPC
+- Individual profile, subject-context UI
+- Declarations form + notifications
+- Screening engine (rules-based + adverse-media via AI)
+- Committee voting UI
+- Conditional determination + SLA reminders
+- Appeals + monitoring cron
+
+**Phase 4 — Script 3: Prudential completions**
+- Risk taxonomy config
+- Prudential profile tab (historical)
+- Return version-history view
+- Supervisory assessment + risk score
+- Peer comparison + trends
+- Early-warning cron
+
+**Phase 5 — Script 4: Market Conduct**
+- Conduct risk taxonomy
+- Public consumer intake page
+- Auto-priority + auto-routing
+- Conduct analytics + alerts (spike detection)
+- Thematic reviews
+- Ongoing monitoring rules + cron
+- Conduct oversight dashboard with drill-down
+
+**Phase 6 — Script 5: Dashboards & Reporting**
+- Cross-module supervisor overview + AI insights
+- Executive role + dashboard preset
+- Predefined report templates
+- Export-audit hook
+- Data-lineage diff viewer
+
+**Phase 7 — QA + hardening**
+- Playwright end-to-end walkthrough of every DEMO-*** ID
+- Tighten open RLS on `forms`/`sectors`/`sub_sectors`/`categories`/`services`/`audit_logs` (called out in architecture report)
+- Real AV scanning on `file_uploads` (or explicit "unscanned" warning until enabled)
+- Cron entries for `run-scheduled-reports` + `overdue-returns-sweep`
+
+---
+
+## 8. Effort Estimate (rough)
+
+| Phase | Est. dev-days |
+|-------|---------------|
+| 1 – Platform primitives | 7–10 |
+| 2 – Script 1 completions | 10–14 |
+| 3 – Fit & Proper (greenfield) | 20–28 |
+| 4 – Prudential completions | 6–9 |
+| 5 – Market Conduct | 10–14 |
+| 6 – Dashboards & Reporting | 6–9 |
+| 7 – QA + hardening | 5–7 |
+| **Total** | **~64–91 dev-days** |
+
+---
+
+## 9. Assumptions & Open Questions
+
+1. **AI provider** — assume Lovable AI Gateway for FPA-009 / ULRA-006 / DPA-001 (chat completions, embeddings). Confirm.
+2. **Adverse-media data source** — FPA-005 refers to "large adverse-media datasets". No external subscription is wired today; either (a) rules-based + AI-generated adverse-media synthesis for demo defensibility, or (b) integrate a real feed (WorldCheck/Dow Jones) — needs commercial decision.
+3. **Digital signature** — ULRA-009 already stamps a signature-of-record on certificates via `generate-license-certificate`; confirm current PEM-key based signing is acceptable, or add third-party e-sign (DocuSign/eIDAS).
+4. **Multi-regulator (BOJ + FSCA)** — existing `regulators` table + `RegulatorContext` support this; assume no new tenant model needed.
+5. **Cycle-based F&P trigger** — cadence configurable per sector? Assume yes (annual default, override per sector).
+6. **Consumer complaint portal** — public unauthenticated with OTP, or authenticated only? Existing complaints require auth today.
+7. **Twin-Peaks coordination** — cross-regulator visibility on the same case is a security decision (default RLS isolates regulators). Confirm allowed.
+
+---
+
+## Next step
+Approve this plan and we start with **Phase 1 — Platform primitives**. After each phase you review the increment before we start the next.
