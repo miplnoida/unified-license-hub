@@ -12,6 +12,10 @@ const RegistrationSuccess = lazy(() => import('@/pages/registration/Registration
 const RegistrationPortal = lazy(() => import('@/pages/registration/RegistrationPortal'));
 const PreLicenseeRegistration = lazy(() => import('@/pages/registration/PreLicenseeRegistration'));
 const UpdateRegistrationRedirect = lazy(() => import('@/routes/UpdateRegistrationRedirect'));
+const PublicRegistry = lazy(() => import('@/pages/public/PublicRegistry'));
+const PublicLicensees = lazy(() => import('@/pages/public/PublicLicensees'));
+const PublicLicenseeDetail = lazy(() => import('@/pages/public/PublicLicenseeDetail'));
+const PublicEnforcement = lazy(() => import('@/pages/public/PublicEnforcement'));
 
 export const publicRoutes = (
   <>
