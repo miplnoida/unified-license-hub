@@ -851,6 +851,9 @@ export default function ApplicationDetail() {
                     currentUserId={user.id}
                     isInternal={isInternal}
                     isApplicant={user.id === app.applicant_id}
+                    workflowTypeKey={(app as any).license_type ?? null}
+                    sectorId={(app as any).sector_id ?? null}
+                    formData={(app as any).data ?? null}
                   />
                 )}
               </TabsContent>
