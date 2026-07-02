@@ -11,6 +11,7 @@ import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPan
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
+import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
