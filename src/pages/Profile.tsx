@@ -263,6 +263,9 @@ export default function Profile() {
             <TabsTrigger value="password" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-2">
               <KeyRound className="h-4 w-4 mr-2" />Change Password
             </TabsTrigger>
+            <TabsTrigger value="notifications" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 pb-3 pt-2">
+              <Bell className="h-4 w-4 mr-2" />Notifications
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="mt-6 space-y-6">
