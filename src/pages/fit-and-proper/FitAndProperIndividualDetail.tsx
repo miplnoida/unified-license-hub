@@ -35,6 +35,18 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  const { data: latestAssessment } = useQuery({
+    queryKey: ['fp_latest_assessment', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_assessments')
+        .select('id').eq('individual_id', id!).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const latestAssessmentId = latestAssessment?.id ?? null;
+
   if (isLoading) return <DashboardLayout><div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin inline mr-2" /> Loading…</div></DashboardLayout>;
   if (!person) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Not found or access denied.</div></DashboardLayout>;
 
