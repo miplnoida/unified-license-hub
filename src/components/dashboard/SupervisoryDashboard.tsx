@@ -25,6 +25,20 @@ export function SupervisoryDashboard() {
   const { data, isLoading } = useSupervisoryMetrics(filters);
   const { hasModuleAccess } = useUserDynamicPermissions();
 
+  // Open (unacknowledged, non-escalated) prudential breaches — tile links to inbox
+  const { data: openBreaches } = useQuery({
+    queryKey: ['supervisory_open_breaches'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('return_threshold_breaches')
+        .select('id', { head: true, count: 'exact' })
+        .is('acknowledged_at', null)
+        .is('escalated_enforcement_id', null);
+      return count ?? 0;
+    },
+    staleTime: 60_000,
+  });
+
   const insights = useMemo(() => (data ? buildInsights(data) : []), [data]);
 
   // Permission-gated module map. `hasModuleAccess` returns true for super_admin
