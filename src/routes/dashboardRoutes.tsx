@@ -109,5 +109,7 @@ export const dashboardRoutes = (
     <Route path="/preview/:versionId" element={<P><FormPreview /></P>} />
     <Route path="/change-sector" element={<P><ChangeActiveSector /></P>} />
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
+    <Route path="/coordination" element={<M module="application_management"><CoordinationList /></M>} />
+    <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
   </>
 );
