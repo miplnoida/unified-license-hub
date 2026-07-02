@@ -95,17 +95,18 @@ Deno.serve(async (req) => {
       const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
       const { data, error, count } = await admin
         .from("enforcement_actions")
-        .select("id, action_type, status, decision_summary, decided_at, penalty_amount, licensees(name)", { count: "exact" })
+        .select("id, enforcement_type, status, decision_outcome, decision_rationale, decision_at, closed_at, penalty_amount, licensees(name)", { count: "exact" })
         .in("status", ["closed", "decided"])
-        .order("decided_at", { ascending: false, nullsFirst: false })
+        .order("decision_at", { ascending: false, nullsFirst: false })
         .range(offset, offset + limit - 1);
       if (error) return json({ error: error.message }, 500);
       const rows = (data || []).map((r: any) => ({
         id: r.id,
-        action_type: r.action_type,
+        enforcement_type: r.enforcement_type,
         status: r.status,
-        decision_summary: r.decision_summary,
-        decided_at: r.decided_at,
+        decision_outcome: r.decision_outcome,
+        decision_rationale: r.decision_rationale,
+        decision_at: r.decision_at || r.closed_at,
         penalty_amount: r.penalty_amount,
         licensee_name: r.licensees?.name || null,
       }));
