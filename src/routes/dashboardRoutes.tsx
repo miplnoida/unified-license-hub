@@ -54,6 +54,7 @@ const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/Supervi
 const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const ExecutiveDashboard = lazy(() => import('@/pages/analytics/ExecutiveDashboard'));
 const AlertCenter = lazy(() => import('@/pages/analytics/AlertCenter'));
+const CorrespondenceTemplates = lazy(() => import('@/pages/admin/CorrespondenceTemplates'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -143,5 +144,6 @@ export const dashboardRoutes = (
     <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
     <Route path="/executive" element={<M module="settings"><ExecutiveDashboard /></M>} />
     <Route path="/alerts" element={<M module="settings"><AlertCenter /></M>} />
+    <Route path="/admin/correspondence-templates" element={<M module="settings"><CorrespondenceTemplates /></M>} />
   </>
 );
