@@ -111,6 +111,7 @@ export function RaiseRfiDialog({
     setDueAt('');
     setPauseSla(true);
     setItems([emptyItem()]);
+    setLoadedRuleIds(new Set());
   };
 
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
