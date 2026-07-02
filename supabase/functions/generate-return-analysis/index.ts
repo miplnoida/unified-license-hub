@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
     let ai_error: string | null = null;
     if (computeAi && lovableKey) {
       const payload = {
-        unique_id: rf.unique_id, period_end: rf.period_end, health_score,
+        unique_id: rf.unique_id, period_end: rf.period_end_date, health_score,
         capital, liquidity, asset_quality, profitability,
         concentration_risks: concentration, early_warnings, recommendations,
       };
