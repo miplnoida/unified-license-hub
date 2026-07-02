@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
+import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
@@ -646,7 +648,9 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="fees">{isInternal ? 'Fees' : 'Payment'}</TabsTrigger>
                 <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="rfi">RFI</TabsTrigger>
               </TabsList>
+
 
 
               <TabsContent value="details" className="space-y-4 mt-4">
@@ -839,7 +843,19 @@ export default function ApplicationDetail() {
               <TabsContent value="activity" className="mt-4">
                 {activeTab === 'activity' && <ActivityTab applicationId={app.id} />}
               </TabsContent>
+
+              <TabsContent value="rfi" className="mt-4">
+                {activeTab === 'rfi' && user && (
+                  <ApplicationRfiTab
+                    applicationId={app.id}
+                    currentUserId={user.id}
+                    isInternal={isInternal}
+                    isApplicant={user.id === app.applicant_id}
+                  />
+                )}
+              </TabsContent>
             </Tabs>
+
 
 
             {/* Admin: Edit Request Pending — bypasses workflow */}

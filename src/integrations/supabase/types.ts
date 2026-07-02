@@ -240,6 +240,161 @@ export type Database = {
           },
         ]
       }
+      application_rfi_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_due_at: string | null
+          ordinal: number
+          prompt: string
+          question_type: string
+          required: boolean
+          response_status: string
+          rfi_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_due_at?: string | null
+          ordinal?: number
+          prompt: string
+          question_type?: string
+          required?: boolean
+          response_status?: string
+          rfi_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_due_at?: string | null
+          ordinal?: number
+          prompt?: string
+          question_type?: string
+          required?: boolean
+          response_status?: string
+          rfi_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_rfi_items_rfi_id_fkey"
+            columns: ["rfi_id"]
+            isOneToOne: false
+            referencedRelation: "application_rfis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_rfi_responses: {
+        Row: {
+          created_at: string
+          file_upload_ids: string[]
+          id: string
+          response_text: string | null
+          rfi_item_id: string
+          submitted_at: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_upload_ids?: string[]
+          id?: string
+          response_text?: string | null
+          rfi_item_id: string
+          submitted_at?: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          file_upload_ids?: string[]
+          id?: string
+          response_text?: string | null
+          rfi_item_id?: string
+          submitted_at?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_rfi_responses_rfi_item_id_fkey"
+            columns: ["rfi_item_id"]
+            isOneToOne: false
+            referencedRelation: "application_rfi_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_rfis: {
+        Row: {
+          application_id: string
+          approval_step_action_id: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_notes: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          raised_at: string
+          raised_by: string
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          approval_step_action_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          raised_at?: string
+          raised_by: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          approval_step_action_id?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          closure_notes?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          raised_at?: string
+          raised_by?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_rfis_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_rfis_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_rfis_approval_step_action_id_fkey"
+            columns: ["approval_step_action_id"]
+            isOneToOne: false
+            referencedRelation: "approval_step_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           ack_at: string | null
@@ -505,9 +660,12 @@ export type Database = {
           label: string | null
           next_step_id: string | null
           next_step_mode: string
+          paused_at: string | null
+          paused_reason: string | null
           require_comments: boolean
           require_digital_signature: boolean
           result_status_override: string | null
+          resumed_at: string | null
           signature_data_url: string | null
           sort_order: number
           step_id: string
@@ -522,9 +680,12 @@ export type Database = {
           label?: string | null
           next_step_id?: string | null
           next_step_mode?: string
+          paused_at?: string | null
+          paused_reason?: string | null
           require_comments?: boolean
           require_digital_signature?: boolean
           result_status_override?: string | null
+          resumed_at?: string | null
           signature_data_url?: string | null
           sort_order?: number
           step_id: string
@@ -539,9 +700,12 @@ export type Database = {
           label?: string | null
           next_step_id?: string | null
           next_step_mode?: string
+          paused_at?: string | null
+          paused_reason?: string | null
           require_comments?: boolean
           require_digital_signature?: boolean
           result_status_override?: string | null
+          resumed_at?: string | null
           signature_data_url?: string | null
           sort_order?: number
           step_id?: string
