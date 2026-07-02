@@ -98,6 +98,9 @@ export function SupervisoryDashboard() {
         {can.enforcement && (
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
         )}
+        {can.returns && (
+          <MetricCard title="Open Breaches" value={openBreaches ?? 0} icon={ShieldAlert} tone="destructive" loading={openBreaches === undefined} to="/supervision/breaches" />
+        )}
       </div>
 
       {/* Workflow SLA Overview — same calculation as Applications list + WorkflowPanel */}
