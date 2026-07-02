@@ -611,30 +611,22 @@ export default function LicenseDetail() {
     if (!license) return;
     setDownloading(true);
     try {
+      // Always regenerate first so the PDF reflects the license's current
+      // status (Suspended/Revoked/Cancelled/Expired) rather than a cached
+      // "Active" version from when it was first issued.
+      const gen = await supabase.functions.invoke('generate-license-certificate', {
+        body: { mode: 'generate', license_id: license.id },
+      });
+      const genErr = (gen.data as any)?.error;
+      if (gen.error || genErr) {
+        toast.error(genErr || 'Failed to generate certificate');
+        return;
+      }
       const { data, error } = await supabase.functions.invoke('generate-license-certificate', {
         body: { mode: 'download', license_id: license.id },
       });
       const errMsg = (data as any)?.error;
-      const errCode = (data as any)?.code;
       if (error || errMsg) {
-        if (errCode === 'NOT_FOUND') {
-          // No certificate exists yet — generate one then download.
-          const gen = await supabase.functions.invoke('generate-license-certificate', {
-            body: { mode: 'generate', license_id: license.id },
-          });
-          const genErr = (gen.data as any)?.error;
-          if (gen.error || genErr) {
-            toast.error(genErr || 'Failed to generate certificate');
-            return;
-          }
-          const retry = await supabase.functions.invoke('generate-license-certificate', {
-            body: { mode: 'download', license_id: license.id },
-          });
-          const url = (retry.data as any)?.url;
-          if (!url) { toast.error((retry.data as any)?.error || 'Failed to load certificate'); return; }
-          await openSignedUrl(url);
-          return;
-        }
         toast.error(errMsg || 'Failed to load certificate');
         return;
       }
