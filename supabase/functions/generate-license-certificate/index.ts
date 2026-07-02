@@ -16,7 +16,7 @@
 // render any user-visible message.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, degrees, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 import { buildCorsHeaders, handleCorsPreflight } from "../_shared/cors.ts";
 
 function json(req: Request, status: number, body: Record<string, unknown>) {
