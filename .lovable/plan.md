@@ -106,10 +106,11 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Full schema created up-front (all tables have RLS + GRANTs): `fp_individuals`, `fp_individual_roles`, `fp_assessments`, `fp_screening_configs`, `fp_screening_runs`, `fp_findings`, `fp_determinations`, `fp_committees`, `fp_committee_members`, `fp_committee_votes`, `fp_conditions`, `fp_appeals`, `fp_monitoring_events`.
 - Ships the Individuals module first: routes `/fit-and-proper`, `/fit-and-proper/individuals/:id`. Internal staff can create individuals (name, national ID, DOB, nationality, contact), link them to licensees with roles (director, CEO, key person, controller, shareholder), and view a case-file shell with tabs for the later sub-features.
 
-### 3.2 FPA-002 — Declarations form + assessments
-- Applicants / licensees submit an FP declaration (`fp_assessments`) referencing an individual: employment history, qualifications, regulatory history, criminal record, financial soundness, related-party disclosures.
-- New public route `/fit-and-proper/declare/:token` (magic-link) or authenticated inline form for licensee_primary.
-- Assessment lifecycle: `draft → submitted → screening → awaiting_committee → determined → closed`.
+### 3.2 FPA-002 — Declarations form + assessments ✅ SHIPPED
+- New `FpAssessmentsPanel` inside the individual case-file lets internal staff (and licensee_primary via RLS) start an assessment (`initial` / `renewal` / `material_change` / `adverse_event`) linked to a specific role.
+- New route `/fit-and-proper/assessments/:id` renders the full declaration form: employment history, qualifications, disclosures (regulatory / criminal / financial / related parties, disqualifications / bankruptcy / disciplinary flags) with a mandatory confirmation checkbox.
+- Lifecycle wired end-to-end: `draft → submitted → screening → awaiting_committee → determined → closed`. Draft is editable; submission stamps `submitted_by` / `submitted_at`. Internal-only "Send to screening / committee / Determined / Close" buttons transition status. Assessments tab on the individual profile now enabled and shows the full list.
+- Magic-link declaration route (`/fit-and-proper/declare/:token`) deferred to a follow-up — the authenticated inline form covers licensee_primary via existing RLS.
 
 ### 3.3 FPA-003 — Screening engine
 - Admin-configured rule packs (`fp_screening_configs`): sanctions lists, PEP flags, adverse media, criminal history, regulator watchlists.
