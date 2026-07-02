@@ -178,10 +178,11 @@ Deno.serve(async (req) => {
     // Trend: last 6 returns' latest ratios for same licensee+config
     const licensee = rf.on_behalf_of_licensee_id ?? rf.entity_id;
     const { data: siblingReturns = [] } = await admin
-      .from("returns_filed").select("id, period_end")
+      .from("returns_filed").select("id, period_end_date")
       .eq("return_configuration_id", rf.return_configuration_id)
       .eq("entity_id", licensee)
-      .order("period_end", { ascending: true })
+      .order("period_end_date", { ascending: true })
+
       .limit(6);
     const trend: TrendPoint[] = [];
     for (const sr of (siblingReturns as any[])) {
