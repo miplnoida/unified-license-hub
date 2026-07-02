@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
+import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApplicationCategory, getApplicationCategoryLabel } from '@/lib/applicationCategory';
