@@ -62,6 +62,8 @@ export default function AdminHub() {
     { label: 'Enforcement Queue', desc: 'Cross-licensee enforcement caseload', icon: <Gavel className="h-5 w-5" />, href: '/enforcement', module: 'license_management' },
     { label: 'Penalties', desc: 'Collected & outstanding enforcement penalties', icon: <DollarSign className="h-5 w-5" />, href: '/billing/penalties', module: 'fee_management' },
     { label: 'Prudential Breach Inbox', desc: 'Unacknowledged threshold breaches', icon: <AlertTriangle className="h-5 w-5" />, href: '/supervision/breaches', module: 'returns_management' },
+    { label: 'Inspection Queue', desc: 'Scheduled, in-progress and overdue inspections', icon: <ClipboardCheck className="h-5 w-5" />, href: '/inspections', module: 'settings' },
+    { label: 'Inspection Calendar', desc: 'Monthly view of scheduled inspections', icon: <CalendarCheck className="h-5 w-5" />, href: '/inspections/schedule', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
