@@ -1,3 +1,5 @@
 project_id = "sndfttzqmbkmkcnrvpfn"
 [functions.public-registry]
 verify_jwt = false
+[functions.developer-api]
+verify_jwt = false
