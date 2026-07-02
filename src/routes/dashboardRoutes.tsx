@@ -24,6 +24,8 @@ const ReturnSubmission = lazy(() => import('@/pages/compliance/ReturnSubmission'
 const PaymentHistory = lazy(() => import('@/pages/payments/PaymentHistory'));
 const PaymentDetail = lazy(() => import('@/pages/payments/PaymentDetail'));
 const ComplaintsList = lazy(() => import('@/pages/complaints/ComplaintsList'));
+const ComplaintDetail = lazy(() => import('@/pages/complaints/ComplaintDetail'));
+const ComplaintsAnalytics = lazy(() => import('@/pages/complaints/ComplaintsAnalytics'));
 const WorkflowList = lazy(() => import('@/pages/workflows/WorkflowList'));
 const DelegationRules = lazy(() => import('@/pages/delegation/DelegationRules'));
 const DocumentStore = lazy(() => import('@/pages/documents/DocumentStore'));
@@ -105,6 +107,8 @@ export const dashboardRoutes = (
     <Route path="/payments" element={<EP area="licensing" capability="can_view_status"><PaymentHistory /></EP>} />
     <Route path="/payments/:id" element={<EP area="licensing" capability="can_view_status"><PaymentDetail /></EP>} />
     <Route path="/complaints" element={<ExternalPortalOrModule module="complaint_management" area="complaints" capability={["can_submit_complaints", "can_view_status"]} allowedRoles={['super_admin', 'admin', 'supervisor', 'reviewer', 'licensee_primary', 'licensee_secondary', 'pre_licensee']}><ComplaintsList /></ExternalPortalOrModule>} />
+    <Route path="/complaints/analytics" element={<M module="complaint_management"><ComplaintsAnalytics /></M>} />
+    <Route path="/complaints/:id" element={<M module="complaint_management"><ComplaintDetail /></M>} />
     <Route path="/workflows" element={<M module="workflow_management"><WorkflowList /></M>} />
     <Route path="/delegation-rules" element={<M module="workflow_management"><DelegationRules /></M>} />
     <Route path="/documents" element={<EP area="licensing" capability={["can_view_status", "can_upload_documents"]}><DocumentStore /></EP>} />

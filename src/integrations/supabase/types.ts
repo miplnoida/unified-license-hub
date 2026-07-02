@@ -1357,6 +1357,166 @@ export type Database = {
           },
         ]
       }
+      complaint_correspondence: {
+        Row: {
+          attachments: Json
+          author_id: string | null
+          body: string
+          complaint_id: string
+          created_at: string
+          direction: string
+          id: string
+          subject: string | null
+        }
+        Insert: {
+          attachments?: Json
+          author_id?: string | null
+          body: string
+          complaint_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          subject?: string | null
+        }
+        Update: {
+          attachments?: Json
+          author_id?: string | null
+          body?: string
+          complaint_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_correspondence_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_correspondence_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_evidence: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          description: string | null
+          file_upload_id: string | null
+          id: string
+          label: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          description?: string | null
+          file_upload_id?: string | null
+          id?: string
+          label: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          description?: string | null
+          file_upload_id?: string | null
+          id?: string
+          label?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_evidence_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_evidence_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_evidence_file_upload_id_fkey"
+            columns: ["file_upload_id"]
+            isOneToOne: false
+            referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_investigation_tasks: {
+        Row: {
+          complaint_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          owner_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owner_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_investigation_tasks_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_investigation_tasks_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_types: {
         Row: {
           created_at: string
@@ -1364,6 +1524,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          sla_days: number
           updated_at: string
         }
         Insert: {
@@ -1372,6 +1533,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          sla_days?: number
           updated_at?: string
         }
         Update: {
@@ -1380,58 +1542,74 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          sla_days?: number
           updated_at?: string
         }
         Relationships: []
       }
       complaints: {
         Row: {
+          acknowledged_at: string | null
           complainant_id: string | null
           complaint_number: string
           complaint_type_id: string | null
           created_at: string
           description: string
           email: string | null
+          enforcement_action_id: string | null
           id: string
           investigator_id: string | null
           license_holder_id: string | null
+          licensee_id: string | null
           regulator_id: string | null
           resolution: string | null
+          resolved_at: string | null
           search_vector: unknown
+          severity: string
           status: string
           subject: string
           updated_at: string
         }
         Insert: {
+          acknowledged_at?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
           created_at?: string
           description: string
           email?: string | null
+          enforcement_action_id?: string | null
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
+          licensee_id?: string | null
           regulator_id?: string | null
           resolution?: string | null
+          resolved_at?: string | null
           search_vector?: unknown
+          severity?: string
           status?: string
           subject: string
           updated_at?: string
         }
         Update: {
+          acknowledged_at?: string | null
           complainant_id?: string | null
           complaint_number?: string
           complaint_type_id?: string | null
           created_at?: string
           description?: string
           email?: string | null
+          enforcement_action_id?: string | null
           id?: string
           investigator_id?: string | null
           license_holder_id?: string | null
+          licensee_id?: string | null
           regulator_id?: string | null
           resolution?: string | null
+          resolved_at?: string | null
           search_vector?: unknown
+          severity?: string
           status?: string
           subject?: string
           updated_at?: string
@@ -1442,6 +1620,20 @@ export type Database = {
             columns: ["complaint_type_id"]
             isOneToOne: false
             referencedRelation: "complaint_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
           {
