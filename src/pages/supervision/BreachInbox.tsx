@@ -207,7 +207,7 @@ export default function BreachInbox() {
         actor_id: user?.id ?? null,
       } as any).then(() => undefined);
       await logAction('prudential.breach_escalated', 'return_threshold_breaches', escTarget.id, {
-        enforcement_action_id: data.id, case_number: data.case_number, note: escNote.trim(),
+        meta: { enforcement_action_id: data.id, case_number: data.case_number, note: escNote.trim() },
       });
       return data.id as string;
     },
