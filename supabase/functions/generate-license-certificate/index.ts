@@ -434,6 +434,19 @@ export async function handler(req: Request): Promise<Response> {
       });
     }
 
+    // Fetch active conditions attached to this license (open / in_progress / overdue).
+    const { data: condRows } = await admin
+      .from("license_conditions")
+      .select("category, description, due_date, status")
+      .eq("license_id", license.id)
+      .in("status", ["open", "in_progress", "overdue"])
+      .order("created_at", { ascending: true });
+    const conditions = ((condRows as any[]) || []).map(r => ({
+      category: String(r.category || "Condition"),
+      description: String(r.description || ""),
+      due_date: r.due_date ? new Date(r.due_date).toLocaleDateString("en-GB") : null,
+    }));
+
     let pdf: Uint8Array;
     try {
       pdf = await buildCertificatePdf({
@@ -446,6 +459,7 @@ export async function handler(req: Request): Promise<Response> {
         statusEffectiveDate,
         signatory,
         cryptoSigned,
+        conditions,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
