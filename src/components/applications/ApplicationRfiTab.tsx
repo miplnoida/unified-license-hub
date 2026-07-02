@@ -99,6 +99,9 @@ export function ApplicationRfiTab({
             applicationId={applicationId}
             raisedBy={currentUserId}
             approvalStepActionId={approvalStepActionId}
+            workflowTypeKey={workflowTypeKey}
+            sectorId={sectorId}
+            formData={formData}
             onCreated={reload}
           />
         )}
