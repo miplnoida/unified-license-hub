@@ -859,6 +859,14 @@ export default function ApplicationDetail() {
                   />
                 )}
               </TabsContent>
+
+              {isInternal && (
+                <TabsContent value="consolidated" className="mt-4">
+                  {activeTab === 'consolidated' && (
+                    <ConsolidatedCaseTab applicationId={app.id} applicantId={app.applicant_id} />
+                  )}
+                </TabsContent>
+              )}
             </Tabs>
 
 
