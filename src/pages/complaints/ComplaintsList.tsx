@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { logAudit } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { INTERNAL_ROLES } from '@/types/platform';
-import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck, Mail, User } from 'lucide-react';
+import { PlusCircle, Search, Eye, AlertTriangle, Loader2, UserCheck, Mail, User, BarChart3 } from 'lucide-react';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   submitted: 'default',
@@ -59,6 +60,7 @@ interface ComplainantProfile {
 
 export default function ComplaintsList() {
   const { user } = useAuth();
+  const nav = useNavigate();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [complaintTypes, setComplaintTypes] = useState<ComplaintType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,34 +158,41 @@ export default function ComplaintsList() {
           title="Complaints"
           description={isInternal ? 'Manage and investigate complaints' : 'Submit and track your complaints'}
           actions={
-            !isInternal && (
-              <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Submit a Complaint</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    {complaintTypes.length > 0 && (
-                      <div>
-                        <Label>Complaint Type</Label>
-                        <Select value={newTypeId} onValueChange={setNewTypeId}>
-                          <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
-                          <SelectContent>
-                            {complaintTypes.map(t => (
-                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
-                    <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
-                    <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )
+            <div className="flex gap-2">
+              {isInternal && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/complaints/analytics"><BarChart3 className="h-4 w-4 mr-2" />Analytics</Link>
+                </Button>
+              )}
+              {!isInternal && (
+                <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button><PlusCircle className="h-4 w-4 mr-2" />File Complaint</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Submit a Complaint</DialogTitle></DialogHeader>
+                    <div className="space-y-4">
+                      {complaintTypes.length > 0 && (
+                        <div>
+                          <Label>Complaint Type</Label>
+                          <Select value={newTypeId} onValueChange={setNewTypeId}>
+                            <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                            <SelectContent>
+                              {complaintTypes.map(t => (
+                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div><Label>Subject</Label><Input value={newSubject} onChange={e => setNewSubject(e.target.value)} placeholder="Brief subject..." /></div>
+                      <div><Label>Description</Label><Textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="Describe the complaint in detail..." rows={5} /></div>
+                      <Button onClick={handleCreate} disabled={creating} className="w-full">{creating ? 'Submitting...' : 'Submit Complaint'}</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           }
         />
 
