@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload,
+  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload, UserCheck,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -56,6 +56,7 @@ export default function AdminHub() {
     { label: 'Supervisory Plan Templates', desc: 'Seed supervisory plans on approval', icon: <Target className="h-5 w-5" />, href: '/admin/supervisory-plan-templates', module: 'settings' },
     { label: 'Twin Peaks Coordination', desc: 'Cross-regulator shared cases', icon: <Users className="h-5 w-5" />, href: '/coordination', module: 'application_management' },
     { label: 'Bulk Application Intake', desc: 'CSV → staged draft applications', icon: <Upload className="h-5 w-5" />, href: '/admin/applications/bulk-intake', module: 'application_management' },
+    { label: 'Fit & Proper Register', desc: 'Directors, key persons & senior managers', icon: <UserCheck className="h-5 w-5" />, href: '/fit-and-proper', module: 'fit_and_proper' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },

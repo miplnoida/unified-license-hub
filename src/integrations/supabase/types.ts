@@ -3038,6 +3038,841 @@ export type Database = {
           },
         ]
       }
+      fp_appeals: {
+        Row: {
+          appeal_committee_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision: string | null
+          decision_rationale: string | null
+          determination_id: string
+          filed_at: string
+          filed_by: string
+          grounds: string
+          id: string
+          individual_id: string
+          new_determination_id: string | null
+          status: string
+          supporting_docs: Json
+          updated_at: string
+        }
+        Insert: {
+          appeal_committee_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          determination_id: string
+          filed_at?: string
+          filed_by: string
+          grounds: string
+          id?: string
+          individual_id: string
+          new_determination_id?: string | null
+          status?: string
+          supporting_docs?: Json
+          updated_at?: string
+        }
+        Update: {
+          appeal_committee_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string | null
+          decision_rationale?: string | null
+          determination_id?: string
+          filed_at?: string
+          filed_by?: string
+          grounds?: string
+          id?: string
+          individual_id?: string
+          new_determination_id?: string | null
+          status?: string
+          supporting_docs?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_appeals_appeal_committee_id_fkey"
+            columns: ["appeal_committee_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_appeals_determination_id_fkey"
+            columns: ["determination_id"]
+            isOneToOne: false
+            referencedRelation: "fp_determinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_appeals_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_appeals_new_determination_id_fkey"
+            columns: ["new_determination_id"]
+            isOneToOne: false
+            referencedRelation: "fp_determinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_assessments: {
+        Row: {
+          assessment_type: string
+          closed_at: string | null
+          committee_id: string | null
+          created_at: string
+          created_by: string | null
+          declaration_data: Json
+          determined_at: string | null
+          id: string
+          individual_id: string
+          licensee_id: string | null
+          regulator_id: string | null
+          role_id: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_type?: string
+          closed_at?: string | null
+          committee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          declaration_data?: Json
+          determined_at?: string | null
+          id?: string
+          individual_id: string
+          licensee_id?: string | null
+          regulator_id?: string | null
+          role_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_type?: string
+          closed_at?: string | null
+          committee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          declaration_data?: Json
+          determined_at?: string | null
+          id?: string
+          individual_id?: string
+          licensee_id?: string | null
+          regulator_id?: string | null
+          role_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_assessments_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individual_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_committee_members: {
+        Row: {
+          added_at: string
+          committee_id: string
+          id: string
+          is_active: boolean
+          member_role: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          committee_id: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          committee_id?: string
+          id?: string
+          is_active?: boolean
+          member_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_committee_members_committee_id_fkey"
+            columns: ["committee_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_committee_votes: {
+        Row: {
+          assessment_id: string
+          committee_id: string
+          id: string
+          justification: string | null
+          member_id: string
+          vote: string
+          voted_at: string
+        }
+        Insert: {
+          assessment_id: string
+          committee_id: string
+          id?: string
+          justification?: string | null
+          member_id: string
+          vote: string
+          voted_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          committee_id?: string
+          id?: string
+          justification?: string | null
+          member_id?: string
+          vote?: string
+          voted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_committee_votes_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_committee_votes_committee_id_fkey"
+            columns: ["committee_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_committee_votes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "fp_committee_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_committees: {
+        Row: {
+          approval_threshold_pct: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          quorum: number
+          regulator_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_threshold_pct?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          quorum?: number
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_threshold_pct?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          quorum?: number
+          regulator_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_committees_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_conditions: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          determination_id: string
+          due_date: string | null
+          evidence_type: string | null
+          id: string
+          individual_id: string
+          monitoring_owner: string | null
+          satisfaction_note: string | null
+          satisfied_at: string | null
+          satisfied_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          determination_id: string
+          due_date?: string | null
+          evidence_type?: string | null
+          id?: string
+          individual_id: string
+          monitoring_owner?: string | null
+          satisfaction_note?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          determination_id?: string
+          due_date?: string | null
+          evidence_type?: string | null
+          id?: string
+          individual_id?: string
+          monitoring_owner?: string | null
+          satisfaction_note?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_conditions_determination_id_fkey"
+            columns: ["determination_id"]
+            isOneToOne: false
+            referencedRelation: "fp_determinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_conditions_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_determinations: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          determined_at: string
+          determined_by: string
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          individual_id: string
+          is_current: boolean
+          outcome: string
+          rationale: string
+          signature_hash: string | null
+          supersedes_id: string | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          determined_at?: string
+          determined_by: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          individual_id: string
+          is_current?: boolean
+          outcome: string
+          rationale: string
+          signature_hash?: string | null
+          supersedes_id?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          determined_at?: string
+          determined_by?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          individual_id?: string
+          is_current?: boolean
+          outcome?: string
+          rationale?: string
+          signature_hash?: string | null
+          supersedes_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_determinations_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_determinations_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_determinations_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "fp_determinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_findings: {
+        Row: {
+          assessment_id: string
+          check_type: string
+          config_id: string | null
+          created_at: string
+          evidence_url: string | null
+          id: string
+          individual_id: string
+          is_false_positive: boolean
+          raw_payload: Json | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          run_id: string
+          severity: string
+          source: string | null
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          assessment_id: string
+          check_type: string
+          config_id?: string | null
+          created_at?: string
+          evidence_url?: string | null
+          id?: string
+          individual_id: string
+          is_false_positive?: boolean
+          raw_payload?: Json | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          run_id: string
+          severity?: string
+          source?: string | null
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          assessment_id?: string
+          check_type?: string
+          config_id?: string | null
+          created_at?: string
+          evidence_url?: string | null
+          id?: string
+          individual_id?: string
+          is_false_positive?: boolean
+          raw_payload?: Json | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          run_id?: string
+          severity?: string
+          source?: string | null
+          summary?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_findings_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_findings_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "fp_screening_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_findings_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_findings_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "fp_screening_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_individual_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          individual_id: string
+          is_current: boolean
+          license_id: string | null
+          licensee_id: string | null
+          notes: string | null
+          ownership_pct: number | null
+          role_title: string | null
+          role_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          individual_id: string
+          is_current?: boolean
+          license_id?: string | null
+          licensee_id?: string | null
+          notes?: string | null
+          ownership_pct?: number | null
+          role_title?: string | null
+          role_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          individual_id?: string
+          is_current?: boolean
+          license_id?: string | null
+          licensee_id?: string | null
+          notes?: string | null
+          ownership_pct?: number | null
+          role_title?: string | null
+          role_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_individual_roles_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_individual_roles_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_individual_roles_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_individual_roles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_individuals: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          full_name: string
+          id: string
+          national_id: string | null
+          nationality: string | null
+          notes: string | null
+          passport_number: string | null
+          phone: string | null
+          regulator_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          national_id?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          national_id?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          regulator_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_individuals_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_monitoring_events: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          acknowledgement_note: string | null
+          detail: Json | null
+          determination_id: string | null
+          event_type: string
+          id: string
+          individual_id: string
+          raised_at: string
+          severity: string
+          summary: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_note?: string | null
+          detail?: Json | null
+          determination_id?: string | null
+          event_type: string
+          id?: string
+          individual_id: string
+          raised_at?: string
+          severity?: string
+          summary: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          acknowledgement_note?: string | null
+          detail?: Json | null
+          determination_id?: string | null
+          event_type?: string
+          id?: string
+          individual_id?: string
+          raised_at?: string
+          severity?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_monitoring_events_determination_id_fkey"
+            columns: ["determination_id"]
+            isOneToOne: false
+            referencedRelation: "fp_determinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_monitoring_events_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fp_screening_configs: {
+        Row: {
+          check_type: string
+          config: Json
+          created_at: string
+          description: string | null
+          display_label: string
+          id: string
+          is_active: boolean
+          key: string
+          provider: string | null
+          severity_default: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          check_type: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          display_label: string
+          id?: string
+          is_active?: boolean
+          key: string
+          provider?: string | null
+          severity_default?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          check_type?: string
+          config?: Json
+          created_at?: string
+          description?: string | null
+          display_label?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          provider?: string | null
+          severity_default?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fp_screening_runs: {
+        Row: {
+          assessment_id: string
+          completed_at: string | null
+          error: string | null
+          id: string
+          individual_id: string
+          run_type: string
+          started_at: string
+          status: string
+          total_checks: number
+          total_hits: number
+          triggered_by: string | null
+        }
+        Insert: {
+          assessment_id: string
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          individual_id: string
+          run_type?: string
+          started_at?: string
+          status?: string
+          total_checks?: number
+          total_hits?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          individual_id?: string
+          run_type?: string
+          started_at?: string
+          status?: string
+          total_checks?: number
+          total_hits?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_screening_runs_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "fp_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_screening_runs_individual_id_fkey"
+            columns: ["individual_id"]
+            isOneToOne: false
+            referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspections: {
         Row: {
           compliance_rating: string | null
@@ -9198,6 +10033,7 @@ export type Database = {
         Args: { _existing_mapping_id?: string; _user_id: string }
         Returns: boolean
       }
+      is_fp_staff: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff_user: { Args: { _user_id: string }; Returns: boolean }
       is_legal_compliance_user: { Args: { _user_id: string }; Returns: boolean }
       is_primary_user_of: {

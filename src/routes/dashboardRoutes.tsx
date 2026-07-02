@@ -41,6 +41,8 @@ const ChangeActiveSector = lazy(() => import('@/pages/admin/ChangeActiveSector')
 const RegistrationStatusPage = lazy(() => import('@/pages/registration/RegistrationStatusPage'));
 const CoordinationList = lazy(() => import('@/pages/coordination/CoordinationList'));
 const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationDetail'));
+const FitAndProperIndividuals = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividuals'));
+const FitAndProperIndividualDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividualDetail'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -111,5 +113,7 @@ export const dashboardRoutes = (
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="application_management"><CoordinationList /></M>} />
     <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
+    <Route path="/fit-and-proper" element={<M module="fit_and_proper"><FitAndProperIndividuals /></M>} />
+    <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
   </>
 );
