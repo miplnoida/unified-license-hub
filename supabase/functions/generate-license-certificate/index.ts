@@ -387,6 +387,8 @@ export async function handler(req: Request): Promise<Response> {
         licenseNumber: license.license_number,
         issueDate: new Date(license.issued_at).toLocaleDateString("en-GB"),
         expiryDate: license.valid_until ? new Date(license.valid_until).toLocaleDateString("en-GB") : "",
+        status,
+        statusEffectiveDate,
         signatory,
         cryptoSigned,
       });
