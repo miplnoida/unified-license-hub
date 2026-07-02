@@ -113,5 +113,7 @@ export const dashboardRoutes = (
     <Route path="/registration-status" element={<P><RegistrationStatusPage /></P>} />
     <Route path="/coordination" element={<M module="application_management"><CoordinationList /></M>} />
     <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
+    <Route path="/fit-and-proper" element={<M module="fit_and_proper"><FitAndProperIndividuals /></M>} />
+    <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
   </>
 );
