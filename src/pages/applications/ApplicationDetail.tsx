@@ -869,6 +869,18 @@ export default function ApplicationDetail() {
                   )}
                 </TabsContent>
               )}
+
+              {app.status === 'approved' && (
+                <TabsContent value="conditions" className="mt-4">
+                  {activeTab === 'conditions' && (
+                    <ApplicationConditionsTab
+                      applicationId={app.id}
+                      applicationStatus={app.status}
+                      isInternal={isInternal}
+                    />
+                  )}
+                </TabsContent>
+              )}
             </Tabs>
 
 
