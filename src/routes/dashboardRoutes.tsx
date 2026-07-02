@@ -10,7 +10,9 @@ import type { PortalArea, PortalCapability } from '@/lib/portalAccess';
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ApplicationsList = lazy(() => import('@/pages/applications/ApplicationsList'));
+const ApplicationQueue = lazy(() => import('@/pages/applications/ApplicationQueue'));
 const ApplicationDetail = lazy(() => import('@/pages/applications/ApplicationDetail'));
+
 const NewApplication = lazy(() => import('@/pages/NewApplication'));
 const NewPostLicenseApplication = lazy(() => import('@/pages/NewPostLicenseApplication'));
 const PostLicenseApplicationForms = lazy(() => import('@/pages/PostLicenseApplicationForms'));
