@@ -20,9 +20,10 @@ import {
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Loader2, MessageSquarePlus } from 'lucide-react';
+import { Plus, Trash2, Loader2, MessageSquarePlus, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useRfiAutoSuggestions } from '@/hooks/useRfiAutoSuggestions';
 
 interface DraftItem {
   key: string;
