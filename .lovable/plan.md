@@ -59,9 +59,10 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - CSV upload → server-side validation via edge function `bulk-intake-validate` → preview table (errors highlighted) → confirm creates draft applications assigned to originator.
 - Reuses existing form-template resolution; only supports workflow types flagged `bulk_intake_enabled`.
 
-### 2.8 ULRA-011 — Auto supervisory plan on approval
-- Trigger on `applications` status → `approved`: insert into `supervisory_plans` + seed `supervisory_plan_actions` from a per-sector template (`supervisory_plan_templates`, new table).
-- Editable by regulator afterwards; audit-logged via `useEntityAuditLog`.
+### 2.8 ULRA-011 — Auto supervisory plan on approval ✅ SHIPPED
+- New tables `supervisory_plan_templates` (per-sector or global) and `supervisory_plan_template_actions` (title, description, owner role, days-from-approval offset, sort order) with RLS scoped to internal staff.
+- Database triggers on `applications.status → approved` and on `licenses` INSERT (whichever fires first) auto-create a `supervisory_plans` row + seed `supervisory_plan_actions` from the matching sector template (falls back to any active global template). Idempotent per license.
+- Admin CRUD page `/admin/supervisory-plan-templates` (AdminHub tile added) for full template + action management. Regulators can edit the generated plan afterwards in the existing supervisory plan panel.
 
 ### 2.9 ULRA-012 — Twin Peaks coordination workspace
 - New tables: `coordination_cases`, `coordination_participants` (multi-regulator), `coordination_messages`, `coordination_flags` (interdependency).
