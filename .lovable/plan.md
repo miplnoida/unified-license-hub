@@ -1,25 +1,25 @@
 ## Problem
 
-On `RET-2026-00022`, Step 1 (Level 1) is configured with `approver_type = 'specific_users'` (a specific user), but the workflow panel displays it as "Admin". The label comes from `stepRoleLabel` in `src/components/returns/ReturnWorkflowPanel.tsx`:
+`ratnpriyaemp@yopmail.com` is correctly configured in the database as `legal_compliance`:
+- `profiles.role = 'legal_compliance'`
+- `user_roles.role = 'legal_compliance'` (the DB `app_role` enum includes this value)
+- Dynamic role: "Legal/Compliance Reviewer"
 
-```ts
-const stepRoleLabel = (step) => {
-  if (step.approver_role_id) return dynamicRolesMap[step.approver_role_id] || 'Configured role missing';
-  return ROLE_LABELS[step.approver_role as AppRole] || step.approver_role;   // <-- falls back to legacy 'admin'
-};
-```
+But the UI treats them as **Applicant**. The reason:
 
-It ignores `approver_type` and `approver_config.user_ids`, so a specific-user step falls through to the legacy `approver_role` field and shows "Admin".
+`src/lib/authHelpers.ts::resolveUserRole` reads `user_roles.role` and then picks the first entry that appears in `ROLE_HIERARCHY` (defined in `src/types/platform.ts`). The frontend `AppRole` type, `ROLE_LABELS`, `ROLE_HIERARCHY`, and `INTERNAL_ROLES` **do not include `legal_compliance`**, so the loop finds no match and returns the safe default `'applicant'`. Every downstream UI check (role-based nav, guards, labels) then acts as if the user is an applicant.
 
 ## Fix
 
-In `ReturnWorkflowPanel.tsx`, port the same specific-user handling already used by `src/components/applications/WorkflowPanel.tsx`:
+Update `src/types/platform.ts` to add `legal_compliance` as a first-class app role:
 
-1. Collect every `approver_config.user_ids` across `steps` where `approver_type === 'specific_users'`.
-2. Fetch matching `profiles(id, full_name, email)` in a single query via `useQuery`.
-3. Update `stepRoleLabel` so that:
-   - `specific_users` → `Specific user(s): <name1, name2 …>` (or "none selected" when empty).
-   - `role_based_user` with `approver_role_id` → dynamic role name (current behavior).
-   - Fallback → legacy role label.
+1. Add `'legal_compliance'` to the `AppRole` union.
+2. Add `legal_compliance: 'Legal / Compliance Reviewer'` to `ROLE_LABELS`.
+3. Insert `'legal_compliance'` into `ROLE_HIERARCHY` — placed after `analyst` and before `developer`, so `resolveUserRole` picks it above `applicant` fallback.
+4. Add `'legal_compliance'` to `INTERNAL_ROLES` (staff, not licensee/applicant).
 
-No changes to database, workflow engine, or other components. Purely a display fix in the return workflow panel.
+No other code changes. Existing dynamic-permission checks (`hasModuleAccess`, `is_legal_compliance_user` RPC, workflow legal stage handling) continue to work — they already handle this role through the dynamic-role system. This change simply makes the base-role resolver recognize the value instead of falling back to `applicant`.
+
+## Verification
+
+After the change, this user's UI should reflect internal-staff navigation and the profile chip should show "Legal / Compliance Reviewer" instead of "Applicant".

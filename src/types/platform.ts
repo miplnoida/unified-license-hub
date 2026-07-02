@@ -6,6 +6,7 @@ export type AppRole =
   | 'supervisor' 
   | 'licensing_officer' 
   | 'analyst' 
+  | 'legal_compliance'
   | 'applicant' 
   | 'developer'
   | 'pre_licensee'
@@ -18,6 +19,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   supervisor: 'Supervisor',
   licensing_officer: 'Licensing Officer',
   analyst: 'Analyst',
+  legal_compliance: 'Legal / Compliance Reviewer',
   applicant: 'Applicant',
   developer: 'Developer',
   pre_licensee: 'Pre-Licensee Applicant',
@@ -31,6 +33,7 @@ export const ROLE_HIERARCHY: AppRole[] = [
   'supervisor',
   'licensing_officer',
   'analyst',
+  'legal_compliance',
   'developer',
   'licensee_primary',
   'licensee_secondary',
@@ -44,8 +47,10 @@ export const INTERNAL_ROLES: AppRole[] = [
   'supervisor',
   'licensing_officer',
   'analyst',
+  'legal_compliance',
   'developer',
 ];
+
 
 export const LICENSEE_ROLES: AppRole[] = [
   'licensee_primary',
