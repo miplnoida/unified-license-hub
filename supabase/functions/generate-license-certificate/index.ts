@@ -296,7 +296,7 @@ export async function handler(req: Request): Promise<Response> {
     // Generate mode
     const { data: license, error: licErr } = await admin
       .from("licenses")
-      .select("id, license_number, license_type, issued_at, valid_until, holder_id, application_id")
+      .select("id, license_number, license_type, issued_at, valid_until, status, holder_id, application_id")
       .eq("id", licenseId)
       .maybeSingle();
     if (licErr || !license) return json(req, 200, { error: "License not found" });
@@ -309,6 +309,54 @@ export async function handler(req: Request): Promise<Response> {
         .from("applications").select("data").eq("id", license.application_id).maybeSingle();
       entityName = (app?.data as any)?.entity_name || (app?.data as any)?.applicant_name || "Licensed Entity";
     }
+
+    // Resolve the effective date for the license's current status so the
+    // certificate reflects when the change took effect (suspension/revocation/
+    // cancellation) or when the license expired.
+    const status = String((license as any).status || "active").toLowerCase();
+    let statusEffectiveDate = "";
+    if (status !== "active") {
+      if (status === "expired") {
+        statusEffectiveDate = license.valid_until
+          ? new Date(license.valid_until).toLocaleDateString("en-GB")
+          : "";
+      } else {
+        const actionTypeByStatus: Record<string, string> = {
+          suspended: "suspension",
+          revoked: "revocation",
+          cancelled: "cancellation",
+          canceled: "cancellation",
+        };
+        const actionType = actionTypeByStatus[status];
+        if (actionType) {
+          const { data: act } = await admin
+            .from("license_actions")
+            .select("created_at")
+            .eq("license_id", license.id)
+            .eq("action_type", actionType)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (act?.created_at) {
+            statusEffectiveDate = new Date(act.created_at).toLocaleDateString("en-GB");
+          }
+        }
+        if (!statusEffectiveDate) {
+          const { data: act2 } = await admin
+            .from("license_actions")
+            .select("created_at")
+            .eq("license_id", license.id)
+            .eq("new_status", status)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (act2?.created_at) {
+            statusEffectiveDate = new Date(act2.created_at).toLocaleDateString("en-GB");
+          }
+        }
+      }
+    }
+
 
     const signingKey = Deno.env.get("LICENSE_SIGNING_KEY_PEM") || "";
     const signingCert = Deno.env.get("LICENSE_SIGNING_CERT_PEM") || "";
