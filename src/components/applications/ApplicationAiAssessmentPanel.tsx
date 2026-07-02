@@ -4,13 +4,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Sparkles, RefreshCw, AlertTriangle, Info } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Loader2, Sparkles, RefreshCw, AlertTriangle, Info,
+  ThumbsUp, ThumbsDown, ShieldAlert, CheckCircle2,
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatEvidenceList } from '@/lib/evidenceLabel';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Props {
   applicationId: string;
+  currentUserId?: string;
 }
 
 interface Finding {
@@ -49,6 +56,7 @@ interface Section {
 
 interface Assessment {
   id: string;
+  application_id?: string;
   status: string;
   summary: string | null;
   findings: Finding[];
@@ -64,6 +72,11 @@ interface Assessment {
   created_at: string;
   sections?: Section[];
   decision_report?: Record<string, unknown> | null;
+  analyst_decision?: string | null;
+  analyst_decision_action?: string | null;
+  analyst_justification?: string | null;
+  analyst_decision_by?: string | null;
+  analyst_decision_at?: string | null;
 }
 
 const SECTION_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -106,7 +119,7 @@ function groupBySeverity(items: Finding[]) {
   return grouped;
 }
 
-export function ApplicationAiAssessmentPanel({ applicationId }: Props) {
+export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: Props) {
   const [loading, setLoading] = useState(true);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -210,14 +223,29 @@ export function ApplicationAiAssessmentPanel({ applicationId }: Props) {
             </Button>
           </div>
         ) : (
-          <CompletedView assessment={assessment} />
+          <CompletedView
+            assessment={assessment}
+            applicationId={applicationId}
+            currentUserId={currentUserId}
+            onDecisionSaved={fetchLatest}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
 
-function CompletedView({ assessment }: { assessment: Assessment }) {
+function CompletedView({
+  assessment,
+  applicationId,
+  currentUserId,
+  onDecisionSaved,
+}: {
+  assessment: Assessment;
+  applicationId: string;
+  currentUserId?: string;
+  onDecisionSaved: () => void | Promise<void>;
+}) {
   const findings = Array.isArray(assessment.findings) ? assessment.findings : [];
   const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
   const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
@@ -234,6 +262,13 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
           These results are suggestions. Analysts must still take all decisions through the Workflow panel below.
         </AlertDescription>
       </Alert>
+
+      <AnalystDecisionBar
+        assessment={assessment}
+        applicationId={applicationId}
+        currentUserId={currentUserId}
+        onSaved={onDecisionSaved}
+      />
 
       {assessment.summary && (
         <section>
@@ -414,6 +449,232 @@ function CompletedView({ assessment }: { assessment: Assessment }) {
           <span>Overall confidence: {(assessment.confidence_score * 100).toFixed(0)}%</span>
         )}
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Analyst Decision Bar — Accept / Override / Escalate                        */
+/* -------------------------------------------------------------------------- */
+
+const DECISION_LABEL: Record<string, string> = {
+  accepted: 'Accepted AI recommendation',
+  overridden: 'Overridden AI recommendation',
+  escalated: 'Escalated for senior review',
+};
+
+const DECISION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  accepted: 'secondary',
+  overridden: 'destructive',
+  escalated: 'default',
+};
+
+function AnalystDecisionBar({
+  assessment,
+  applicationId,
+  currentUserId,
+  onSaved,
+}: {
+  assessment: Assessment;
+  applicationId: string;
+  currentUserId?: string;
+  onSaved: () => void | Promise<void>;
+}) {
+  const [mode, setMode] = useState<'accepted' | 'overridden' | 'escalated' | null>(null);
+  const [justification, setJustification] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const existing = assessment.analyst_decision;
+
+  const startMode = (m: 'accepted' | 'overridden' | 'escalated') => {
+    setMode(m);
+    setJustification('');
+  };
+
+  const cancel = () => {
+    setMode(null);
+    setJustification('');
+  };
+
+  const submit = async () => {
+    if (!mode || !currentUserId) return;
+    if ((mode === 'overridden' || mode === 'escalated') && justification.trim().length < 10) {
+      toast.error('Please provide a justification of at least 10 characters');
+      return;
+    }
+    setSaving(true);
+    try {
+      const routingAction =
+        (assessment.routing_recommendation as any)?.recommended_action ?? null;
+      const now = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('application_ai_assessments' as never)
+        .update({
+          analyst_decision: mode,
+          analyst_decision_action: routingAction,
+          analyst_justification: justification.trim() || null,
+          analyst_decision_by: currentUserId,
+          analyst_decision_at: now,
+        } as never)
+        .eq('id', assessment.id);
+      if (error) throw error;
+
+      await supabase.from('audit_logs' as any).insert({
+        user_id: currentUserId,
+        action: `application.ai_assessment_${mode}`,
+        table_name: 'applications',
+        record_id: applicationId,
+        new_values: {
+          assessment_id: assessment.id,
+          decision: mode,
+          justification: justification.trim() || null,
+          ai_recommended_action: routingAction,
+          ai_confidence: assessment.confidence_score,
+          model: assessment.model_name,
+        },
+      });
+
+      // Fire notification event on override (per plan). Non-blocking.
+      if (mode === 'overridden' || mode === 'escalated') {
+        supabase.functions
+          .invoke('dispatch-notification-event', {
+            body: {
+              event_key: 'application.ai_overridden',
+              entity_type: 'applications',
+              entity_id: applicationId,
+              payload: {
+                assessment_id: assessment.id,
+                decision: mode,
+                justification: justification.trim(),
+                ai_recommended_action: routingAction,
+              },
+            },
+          })
+          .catch(() => {
+            /* best-effort */
+          });
+      }
+
+      toast.success('Decision recorded');
+      setMode(null);
+      setJustification('');
+      await onSaved();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to record decision');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (existing) {
+    return (
+      <Alert className="border-primary/40">
+        <CheckCircle2 className="h-4 w-4" />
+        <AlertTitle className="flex items-center gap-2">
+          <Badge variant={DECISION_VARIANT[existing] || 'outline'}>
+            {DECISION_LABEL[existing] || existing}
+          </Badge>
+          {assessment.analyst_decision_at && (
+            <span className="text-xs font-normal text-muted-foreground">
+              {formatDistanceToNow(new Date(assessment.analyst_decision_at), {
+                addSuffix: true,
+              })}
+            </span>
+          )}
+        </AlertTitle>
+        {assessment.analyst_justification && (
+          <AlertDescription>
+            <span className="font-medium">Justification: </span>
+            {assessment.analyst_justification}
+          </AlertDescription>
+        )}
+        {currentUserId && (
+          <div className="mt-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMode(null);
+                supabase
+                  .from('application_ai_assessments' as never)
+                  .update({
+                    analyst_decision: null,
+                    analyst_decision_action: null,
+                    analyst_justification: null,
+                    analyst_decision_by: null,
+                    analyst_decision_at: null,
+                  } as never)
+                  .eq('id', assessment.id)
+                  .then(() => onSaved());
+              }}
+            >
+              Clear decision
+            </Button>
+          </div>
+        )}
+      </Alert>
+    );
+  }
+
+  if (!currentUserId) return null;
+
+  return (
+    <div className="rounded-md border p-3 space-y-3 bg-muted/40">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="text-sm font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Analyst decision on AI recommendation
+        </div>
+        {!mode && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => startMode('accepted')}>
+              <ThumbsUp className="h-4 w-4 mr-1" />
+              Accept
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => startMode('overridden')}>
+              <ThumbsDown className="h-4 w-4 mr-1" />
+              Override
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => startMode('escalated')}>
+              <ShieldAlert className="h-4 w-4 mr-1" />
+              Escalate
+            </Button>
+          </div>
+        )}
+      </div>
+      {mode && (
+        <div className="space-y-2">
+          <Label className="text-xs">
+            Justification{' '}
+            {(mode === 'overridden' || mode === 'escalated') && (
+              <span className="text-destructive">*</span>
+            )}
+            <span className="text-muted-foreground ml-1">
+              ({mode === 'accepted' ? 'optional' : 'required, min 10 characters'})
+            </span>
+          </Label>
+          <Textarea
+            rows={3}
+            value={justification}
+            onChange={(e) => setJustification(e.target.value)}
+            placeholder={
+              mode === 'accepted'
+                ? 'Optional note about accepting the AI recommendation'
+                : 'Explain why the AI recommendation is being overridden or escalated'
+            }
+          />
+          <div className="flex gap-2 justify-end">
+            <Button size="sm" variant="ghost" onClick={cancel} disabled={saving}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={submit} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Save {DECISION_LABEL[mode]?.toLowerCase() || mode}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

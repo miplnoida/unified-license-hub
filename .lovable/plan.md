@@ -38,10 +38,11 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - Queue features: SLA-age chip (breached / due-soon / healthy), inline priority + assignee editing, multi-select bulk update dialog with reason capture, sector-scoped, stat tiles for pending / breached / due-soon / unassigned.
 
 
-### 2.4 ULRA-006 — AI assessment with override & explanation
-- "Run AI Assessment" button on `ApplicationDetail` → edge function `ai-assess-application` (Lovable AI Gateway, `google/gemini-2.5-flash`).
-- Persists to existing `application_ai_assessments` (already has 25 columns) + new `override_reason`, `overridden_by`, `overridden_at`.
-- Right-side panel shows: score, risk flags, per-criterion explanation, cite-back to form fields, "Accept / Override" with mandatory justification.
+### 2.4 ULRA-006 — AI assessment with override & explanation ✅ SHIPPED
+- Existing edge function `generate-application-ai-assessment` (Lovable AI Gateway, `google/gemini-2.5-flash`) already writes section-wise findings, risks, and routing recommendations into `application_ai_assessments` (25 columns incl. `analyst_decision`, `analyst_decision_action`, `analyst_justification`, `analyst_decision_by`, `analyst_decision_at`).
+- Added an **Analyst Decision Bar** to `ApplicationAiAssessmentPanel`: Accept / Override / Escalate buttons; Override & Escalate require a justification (min 10 chars). Records the decision + AI's recommended action + confidence + model name for full traceability.
+- Every decision writes to `audit_logs` (`application.ai_assessment_accepted|overridden|escalated`) and surfaces on the unified `EntityTimeline`. Override/Escalate additionally dispatches the `application.ai_overridden` notification event (registered).
+- Analyst can "Clear decision" to re-evaluate. Regenerate button (already present) re-runs the AI while preserving existing decision history in `audit_logs`.
 
 ### 2.5 ULRA-008 — Consolidated Case view
 - New tab "Consolidated Case" on `ApplicationDetail` that aggregates: linked applications from same entity, past licenses, open complaints, past enforcement actions, pending returns, prudential flags.
