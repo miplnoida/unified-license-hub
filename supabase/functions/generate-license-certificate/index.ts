@@ -131,6 +131,7 @@ async function buildCertificatePdf(opts: {
   statusEffectiveDate: string;
   signatory: SignatoryConfig;
   cryptoSigned: boolean;
+  conditions?: Array<{ category: string; description: string; due_date: string | null }>;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`License Certificate ${opts.licenseNumber}`);
@@ -249,8 +250,62 @@ async function buildCertificatePdf(opts: {
   }
 
   if (opts.cryptoSigned) {
-    page.drawText("Digitally signed", {
-      x: 80, y: 60, size: 9, font: bold, color: rgb(0.09, 0.64, 0.29),
+    // Visible digital-signature stamp
+    page.drawRectangle({
+      x: 70, y: 45, width: 170, height: 42,
+      borderColor: rgb(0.09, 0.64, 0.29), borderWidth: 1,
+      color: rgb(0.95, 1, 0.96),
+    });
+    page.drawText("DIGITALLY SIGNED", {
+      x: 80, y: 72, size: 10, font: bold, color: rgb(0.09, 0.5, 0.2),
+    });
+    page.drawText("SHA-256 verified", {
+      x: 80, y: 58, size: 8, font, color: rgb(0.3, 0.3, 0.3),
+    });
+  }
+
+  // Conditions page (appended when there are conditions attached)
+  if (opts.conditions && opts.conditions.length > 0) {
+    const p2 = doc.addPage([842, 595]);
+    const { width: w2, height: h2 } = p2.getSize();
+    p2.drawRectangle({ x: 30, y: 30, width: w2 - 60, height: h2 - 60, borderColor: rgb(0.12, 0.23, 0.54), borderWidth: 2 });
+    const centerP2 = (text: string, size: number, y: number, useBold = false) => {
+      const f = useBold ? bold : font;
+      const wt = f.widthOfTextAtSize(text, size);
+      p2.drawText(text, { x: (w2 - wt) / 2, y, size, font: f, color: rgb(0.05, 0.12, 0.36) });
+    };
+    centerP2("LICENSE CONDITIONS", 22, h2 - 80, true);
+    centerP2(`Attached to License No. ${opts.licenseNumber}`, 11, h2 - 105);
+
+    let yy = h2 - 150;
+    const wrap = (text: string, size: number, maxWidth: number): string[] => {
+      const words = text.split(/\s+/);
+      const lines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const trial = cur ? `${cur} ${w}` : w;
+        if (font.widthOfTextAtSize(trial, size) > maxWidth) {
+          if (cur) lines.push(cur);
+          cur = w;
+        } else cur = trial;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    };
+
+    opts.conditions.forEach((c, idx) => {
+      if (yy < 80) return; // hard-stop; keep single-page to avoid overflow
+      p2.drawText(`${idx + 1}. [${c.category}]`, { x: 60, y: yy, size: 11, font: bold, color: rgb(0.09, 0.5, 0.2) });
+      if (c.due_date) {
+        p2.drawText(`Due: ${c.due_date}`, { x: w2 - 200, y: yy, size: 10, font, color: rgb(0.4, 0.4, 0.4) });
+      }
+      yy -= 14;
+      const lines = wrap(c.description, 10, w2 - 140);
+      lines.slice(0, 4).forEach(line => {
+        p2.drawText(line, { x: 78, y: yy, size: 10, font, color: rgb(0.1, 0.1, 0.1) });
+        yy -= 12;
+      });
+      yy -= 6;
     });
   }
 
@@ -379,6 +434,19 @@ export async function handler(req: Request): Promise<Response> {
       });
     }
 
+    // Fetch active conditions attached to this license (open / in_progress / overdue).
+    const { data: condRows } = await admin
+      .from("license_conditions")
+      .select("category, description, due_date, status")
+      .eq("license_id", license.id)
+      .in("status", ["open", "in_progress", "overdue"])
+      .order("created_at", { ascending: true });
+    const conditions = ((condRows as any[]) || []).map(r => ({
+      category: String(r.category || "Condition"),
+      description: String(r.description || ""),
+      due_date: r.due_date ? new Date(r.due_date).toLocaleDateString("en-GB") : null,
+    }));
+
     let pdf: Uint8Array;
     try {
       pdf = await buildCertificatePdf({
@@ -391,6 +459,7 @@ export async function handler(req: Request): Promise<Response> {
         statusEffectiveDate,
         signatory,
         cryptoSigned,
+        conditions,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

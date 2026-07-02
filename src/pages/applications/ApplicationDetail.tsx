@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
 import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
+import { ApplicationConditionsTab } from '@/components/applications/ApplicationConditionsTab';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -651,6 +652,7 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="rfi">RFI</TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
+                {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
               </TabsList>
 
 
@@ -864,6 +866,18 @@ export default function ApplicationDetail() {
                 <TabsContent value="consolidated" className="mt-4">
                   {activeTab === 'consolidated' && (
                     <ConsolidatedCaseTab applicationId={app.id} applicantId={app.applicant_id} />
+                  )}
+                </TabsContent>
+              )}
+
+              {app.status === 'approved' && (
+                <TabsContent value="conditions" className="mt-4">
+                  {activeTab === 'conditions' && (
+                    <ApplicationConditionsTab
+                      applicationId={app.id}
+                      applicationStatus={app.status}
+                      isInternal={isInternal}
+                    />
                   )}
                 </TabsContent>
               )}

@@ -48,10 +48,11 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 - New "Consolidated Case" tab on `ApplicationDetail` (internal-only) aggregates: sibling applications from same applicant, held licenses, open complaints, past enforcement actions, pending returns, and recent prudential breaches.
 - Read-only, parallel Supabase queries, no schema changes. Links out to each record for drill-through.
 
-### 2.6 ULRA-009 — Conditional approval + digital signature stamp
-- New approval action option "Approve with Conditions" → captures condition list (structured: category, description, due date, monitoring owner).
-- Writes to new `license_conditions` table; conditions surface on the issued certificate PDF and licensee dashboard.
-- Certificate generation extended to embed digital-signature stamp (PEM key already in secrets; else placeholder image + hash).
+### 2.6 ULRA-009 — Conditional approval + digital signature stamp ✅ SHIPPED
+- New `license_conditions` table with RLS (internal manage; holder read).
+- `LicenseConditionsPanel` + `ApplicationConditionsTab` — internal reviewers can attach structured conditions (category, description, due date, monitoring owner, notes) once the license is issued; holders see them read-only.
+- New "Conditions" tab on `ApplicationDetail` appears when the application is approved.
+- `generate-license-certificate` extended to (a) render a visible "DIGITALLY SIGNED / SHA-256 verified" stamp when signing keys are configured and (b) append a second page listing all active conditions attached to the license.
 
 ### 2.7 ULRA-010 — Bulk intake (CSV → staged applications)
 - Admin route `/admin/applications/bulk-intake`.
