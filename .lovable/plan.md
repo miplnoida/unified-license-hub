@@ -1,154 +1,66 @@
+# Phase 4 — Script 3 (Supervision & Enforcement) Completions
 
-# Phase 2 — Script 1 (ULRA) Completions
+Additive build on Phases 1–3. Fills the largest supervisor-facing gaps identified in the codebase inventory: enforcement lifecycle, prudential breach alerting, inspection scheduling & findings, cross-entity supervisory plan execution, and complaints investigation. No existing screens are altered — every item ships behind new routes, new tabs, or new admin panels.
 
-Builds on Phase 1 primitives (`EntityTimeline`, `useEntityAuditLog`, `integration_logs`, SLA sweep, notification acknowledgements). No changes to existing working flows — every item is additive, gated behind new tabs, buttons, or admin routes.
-
-Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-features. Each one ships as its own change set so you can pause/review between them.
+Estimated effort: **12–16 dev-days**, delivered in 5 self-contained sub-features. Ships one at a time, same pattern as Phase 2 and 3.
 
 ---
 
 ## Sub-features
 
-### 2.1 ULRA-005 — RFI (Request For Information) subsystem ✅ SHIPPED
-**Part A:**
-- Tables `application_rfis`, `application_rfi_items`, `application_rfi_responses` with RLS.
-- Pause columns on `approval_step_actions`.
-- Reviewer `RaiseRfiDialog` — multi-item, per-item due date, optional SLA pause.
-- Applicant response (text + secure document upload) & reviewer close-and-resume flow inside a new RFI tab on `ApplicationDetail`.
-- Every action writes to `audit_logs` for the unified `EntityTimeline`.
+### 4.1 ENF-001 — Enforcement case lifecycle & queue ✅ SHIPPED
+- New route `/enforcement` — cross-licensee queue with status/type filters, penalty & days-open sort, and headline stats (active, collected, outstanding). New `/enforcement/:id` case workspace.
+- Lifecycle actions: **issue notice** (min 20 chars, stamps `notice_issued_at`), **record response** (date + summary), **record decision** (outcome + rationale + optional penalty override + appeal deadline), **mark appealed**, **record penalty payment** (running paid total), **close**, **withdraw**. Every action writes an `enforcement_case_events` row (actor + note + detail JSON) and a matching `audit_logs` entry via `logAction('enforcement.<event>', …)`.
+- Schema: extended `enforcement_actions` with `notice_issued_at`, `response_received_at`, `response_summary`, `decision_at`, `decision_outcome`, `decision_rationale`, `appeal_deadline`, `penalty_currency`, `penalty_paid_amount`, `linked_document_ids[]`, `opened_by`, `closed_at`, `closed_by`, `source_type`, `source_reference_id`. New `enforcement_case_events` table with RLS (staff manage, all staff read).
+- `src/pages/billing/Penalties.tsx` rewritten off the mock array — live totals for assessed / collected / outstanding / disputed, per-row overdue flag (unpaid past appeal deadline or 30 days after decision), deep-link to owning case. Route added at `/billing/penalties`.
+- Existing per-licensee `EnforcementTab` untouched; it reads the same table so newly-added lifecycle columns simply carry through.
 
-**Part B:**
-- `near_due_notified_at` / `overdue_notified_at` idempotency columns on `application_rfis`.
-- Edge function `rfi-near-due-sweep` scans open RFIs each hour (pg_cron `rfi-near-due-sweep-hourly`), dispatches `application.rfi_near_due` (within 48h) and `application.rfi_overdue` events, stamps the tracking columns so each RFI is notified once.
-- Auto-sufficiency rule engine — new `application_rfi_auto_rules` table (admin-managed). Rules match by workflow type + sector; conditions (missing / present / eq / neq / lt / gt / regex) evaluate against `applications.data`; prompt templates interpolate `{{field.path}}`.
-- Reviewer dialog shows a **Suggested items** panel with one-click "Add" / "Add all", auto-populates per-item due date from the rule's `default_due_days`, and records the rules used in the RFI audit log.
-- New admin route `/admin/rfi-auto-rules` (AdminHub tile "RFI Auto-Rules") for full CRUD, activation toggle, and scope/condition editing.
+### 4.2 SUP-001 — Prudential breach alert inbox
+- New route `/supervision/breaches` — supervisor inbox of unresolved `return_threshold_breaches` across all licensees, grouped by licensee, sorted by severity (breach magnitude vs. threshold) then by `created_at`.
+- Row actions: **open return** (deep-link to existing `ReturnDetail`), **acknowledge** (adds analyst + note, hides from default queue), **escalate to enforcement** (creates an `enforcement_actions` row prefilled with breach context, jumps to 4.1 case detail).
+- Extend `return_threshold_breaches` with `acknowledged_at`, `acknowledged_by`, `acknowledgement_note`, `escalated_enforcement_id`.
+- Trigger on `return_threshold_breaches` insert → writes a `notifications` row (event key `prudential.breach_raised`) to the analyst pool assigned to that licensee's sector.
+- Small KPI tile on `SupervisoryDashboard` — "Open breaches" count linking to the queue.
 
+### 4.3 INS-001 — Inspection scheduling & findings
+- New route `/inspections` — cross-entity inspection queue with tabs: **Scheduled**, **In progress**, **Completed**, **Overdue**.
+- New route `/inspections/schedule` — calendar view (month/week) of upcoming inspections, drag-to-reschedule; supports on-site / off-site / desk-review type filter.
+- Inspection detail `/inspections/:id`: existing summary + new **Findings** section — many findings per inspection, each with `category`, `severity`, `description`, `recommended_action`, `follow_up_owner`, `follow_up_due`, `status` (`open` / `in_progress` / `closed`).
+- New tables: `inspection_findings`, `inspection_follow_up_actions`. Findings marked "severity=high" surface a one-click **create enforcement case** button (feeds 4.1).
+- Inspector assignment via a dedicated `inspection_assignments` join (multi-inspector support) — replaces current free-text `inspector_name`.
+- Existing `InspectionsTab` on licensee detail keeps working; it reads the same table.
 
-### 2.2 ULRA-002 — Batch document upload with per-file metadata ✅ SHIPPED
-- New reusable component `src/components/shared/BatchDocumentUpload.tsx` — multi-file staging with a metadata grid: document type (dropdown), description (free text), confidentiality flag per row.
-- Persists extras to existing `file_uploads.metadata` JSONB (`doc_type`, `description`, `confidential`, `batch_upload: true`) — no migration required.
-- Ready to drop into RFI response, application intake, and licensee detail (Phase 2.1 will wire it into RFI).
+### 4.4 SUP-002 — Supervisory plan execution dashboard
+- New route `/supervision/plans` — supervisor cross-entity workload view: all `supervisory_plan_actions` grouped by owner_role, filterable by status (`pending` / `in_progress` / `completed` / `overdue`), due-date window, and licensee sector.
+- Calendar sub-tab shows the same actions on a monthly calendar with color-coded severity.
+- Bulk operations: reassign owner (writes audit row), extend due date (with mandatory reason), mark complete (existing pattern).
+- Plan approval flow — new `supervisory_plans.approval_status` (`draft` / `pending_review` / `approved`); an `approve` button appears only when the reviewer is a different user than the plan creator (4-eyes).
+- Notifications: nightly cron sweep flags actions due within 7 days → `notifications` event key `supervisory.action_due`.
 
-
-### 2.3 ULRA-004 — SLA-age & priority queue ✅ SHIPPED
-- New route `/applications/queue` → `src/pages/applications/ApplicationQueue.tsx`. Sits alongside the existing listing (no changes to `ApplicationsList`).
-- Added columns on `applications`: `priority` (1–5, default 3), `priority_reason`, `priority_set_by/at`, `assigned_to`, `assigned_by/at` + CHECK + indexes.
-- Trigger `log_application_triage_change` writes priority/assignee changes into `audit_logs` so they surface on the unified EntityTimeline.
-- Queue features: SLA-age chip (breached / due-soon / healthy), inline priority + assignee editing, multi-select bulk update dialog with reason capture, sector-scoped, stat tiles for pending / breached / due-soon / unassigned.
-
-
-### 2.4 ULRA-006 — AI assessment with override & explanation ✅ SHIPPED
-- Existing edge function `generate-application-ai-assessment` (Lovable AI Gateway, `google/gemini-2.5-flash`) already writes section-wise findings, risks, and routing recommendations into `application_ai_assessments` (25 columns incl. `analyst_decision`, `analyst_decision_action`, `analyst_justification`, `analyst_decision_by`, `analyst_decision_at`).
-- Added an **Analyst Decision Bar** to `ApplicationAiAssessmentPanel`: Accept / Override / Escalate buttons; Override & Escalate require a justification (min 10 chars). Records the decision + AI's recommended action + confidence + model name for full traceability.
-- Every decision writes to `audit_logs` (`application.ai_assessment_accepted|overridden|escalated`) and surfaces on the unified `EntityTimeline`. Override/Escalate additionally dispatches the `application.ai_overridden` notification event (registered).
-- Analyst can "Clear decision" to re-evaluate. Regenerate button (already present) re-runs the AI while preserving existing decision history in `audit_logs`.
-
-### 2.5 ULRA-008 — Consolidated Case view ✅ SHIPPED
-- New "Consolidated Case" tab on `ApplicationDetail` (internal-only) aggregates: sibling applications from same applicant, held licenses, open complaints, past enforcement actions, pending returns, and recent prudential breaches.
-- Read-only, parallel Supabase queries, no schema changes. Links out to each record for drill-through.
-
-### 2.6 ULRA-009 — Conditional approval + digital signature stamp ✅ SHIPPED
-- New `license_conditions` table with RLS (internal manage; holder read).
-- `LicenseConditionsPanel` + `ApplicationConditionsTab` — internal reviewers can attach structured conditions (category, description, due date, monitoring owner, notes) once the license is issued; holders see them read-only.
-- New "Conditions" tab on `ApplicationDetail` appears when the application is approved.
-- `generate-license-certificate` extended to (a) render a visible "DIGITALLY SIGNED / SHA-256 verified" stamp when signing keys are configured and (b) append a second page listing all active conditions attached to the license.
-
-### 2.7 ULRA-010 — Bulk intake (CSV → staged applications) ✅ SHIPPED
-- New `bulk_intake_enabled` boolean on `approval_workflow_types` — only whitelisted workflows can accept bulk uploads.
-- Edge function `bulk-intake` (actions: `validate` / `commit`) validates each row server-side (workflow enabled, applicant email resolves to a profile, license_type present), then commits with the service-role client. Max 500 rows/batch; extra CSV columns are merged into `applications.data`; writes an `application.bulk_intake` audit log entry on commit.
-- Admin route `/admin/applications/bulk-intake` (`BulkIntake.tsx`) — CSV template download, file picker, workflow-type dropdown (bulk-enabled only), inline preview table with per-row status/errors, and a commit button that stays disabled while any row is invalid. Created applications open in `draft` status and are auto-assigned to the originator.
-- AdminHub tile "Bulk Application Intake" added.
-
-### 2.8 ULRA-011 — Auto supervisory plan on approval ✅ SHIPPED
-- New tables `supervisory_plan_templates` (per-sector or global) and `supervisory_plan_template_actions` (title, description, owner role, days-from-approval offset, sort order) with RLS scoped to internal staff.
-- Database triggers on `applications.status → approved` and on `licenses` INSERT (whichever fires first) auto-create a `supervisory_plans` row + seed `supervisory_plan_actions` from the matching sector template (falls back to any active global template). Idempotent per license.
-- Admin CRUD page `/admin/supervisory-plan-templates` (AdminHub tile added) for full template + action management. Regulators can edit the generated plan afterwards in the existing supervisory plan panel.
-
-### 2.9 ULRA-012 — Twin Peaks coordination workspace ✅ SHIPPED
-- New tables `coordination_cases`, `coordination_participants`, `coordination_messages`, `coordination_flags` with RLS scoped to invited participants (super_admin fallback). Triggers auto-seed the creator as an "owner" participant and recompute case status (`open` / `pending_clearance` / `cleared`) whenever any participant's clearance changes — the "Conditional Clearance" gate.
-- New routes `/coordination` (list + case creation) and `/coordination/:caseId` (thread, participants, flags). Owners can invite internal users as participant/observer; each participant clears or blocks the case with an optional note. Interdependency / blocker / notice / concurrent-review flags can be raised against linked applications or licenses.
-- AdminHub tile "Twin Peaks Coordination" surfaces the workspace. Regulators remain isolated by default — explicit invitation is required for visibility.
+### 4.5 COMP-001 — Complaints investigation workflow
+- New tab **Investigation** on complaint detail (existing `ComplaintsList` links unchanged).
+- New tables: `complaint_investigation_tasks` (task + owner + due date + status), `complaint_correspondence` (inbound/outbound message log, direction + subject + body + attachments), `complaint_evidence` (metadata linked to `file_uploads`).
+- SLA badge on complaint rows — days open vs configurable `complaint_types.sla_days`; overdue rows highlighted.
+- Complainant acknowledgement email on intake + status-change email on resolution (via existing notifications pipeline).
+- **Escalate to enforcement** button on resolved complaints with severity ≥ medium — creates a prefilled `enforcement_actions` row (feeds 4.1) and links it back on the complaint.
+- Small analytics panel on `/complaints/analytics` — trend by complaint type + average resolution time.
 
 ---
 
-## Cross-cutting
+## Cross-cutting for Phase 4
 
-- Every write action calls `useEntityAuditLog` → renders in the unified `EntityTimeline` (Phase 1).
-- SLA pauses/resumes feed the Phase 1 sweep function automatically.
-- All new edge functions log via `_shared/integration-log.ts`.
-- Notifications use existing `notification_event_configs` — 4 new event keys registered: `application.rfi_raised`, `application.rfi_near_due`, `application.ai_overridden`, `coordination.clearance_requested`.
-
-## Database impact
-
-New tables (10): `application_rfis`, `application_rfi_items`, `application_rfi_responses`, `license_conditions`, `supervisory_plan_templates`, `coordination_cases`, `coordination_participants`, `coordination_messages`, `coordination_flags`, plus columns on `approval_step_actions`, `applications`, `application_ai_assessments`, `file_uploads`.
-
-All with GRANTs + RLS + policies scoped by regulator / participant / applicant.
-
-## Risks
-
-- **RFI SLA pause** touches the active approval flow — mitigated by wrapping in a feature flag per workflow type; existing steps unaffected until enabled.
-- **Twin Peaks RLS**: cross-regulator visibility is a policy decision — default is opt-in per case; will confirm before enabling for any live regulator.
-- **AI cost/latency** on assessment — cached per submission hash; manual re-run only.
-- **CSV bulk intake** validation must match every field rule of the form engine — will reuse the existing render-side validator server-side to avoid drift.
+- Every write action calls `useEntityAuditLog` → renders in the unified `EntityTimeline`.
+- Enforcement, inspection, plan-execution, and breach cron jobs all log via `_shared/integration-log.ts`.
+- New notification event keys: `prudential.breach_raised`, `prudential.breach_escalated`, `enforcement.notice_issued`, `enforcement.decided`, `inspection.scheduled`, `inspection.finding_high`, `supervisory.action_due`, `complaint.acknowledged`, `complaint.resolved`, `complaint.escalated`.
+- New AdminHub tiles: Enforcement Queue, Breach Inbox, Inspection Queue, Plan Dashboard, Complaint Analytics.
+- New permission modules: `enforcement`, `inspections` (both pre-referenced in `permissionTabs.ts` — no new module wiring needed for existing supervisory/complaint modules).
 
 ## Delivery order
 
-I'll ship in this order (each independently testable): 2.2 → 2.3 → 2.1 → 2.6 → 2.8 → 2.5 → 2.9 → 2.7 → 2.11. Confirm or reorder.
-
----
-
-# Phase 3 — Script 2 (Fit & Proper) — greenfield
-
-Full greenfield build of the Fit & Proper regime for regulated-entity individuals (directors, key persons, senior managers). Estimated **20–28 dev-days** in 7 self-contained sub-features. Same additive pattern as Phase 2 — new module, new tables, new routes; no existing surfaces are modified.
-
-### 3.1 FPA-001 — FP schema foundation + Individuals registry
-- Full schema created up-front (all tables have RLS + GRANTs): `fp_individuals`, `fp_individual_roles`, `fp_assessments`, `fp_screening_configs`, `fp_screening_runs`, `fp_findings`, `fp_determinations`, `fp_committees`, `fp_committee_members`, `fp_committee_votes`, `fp_conditions`, `fp_appeals`, `fp_monitoring_events`.
-- Ships the Individuals module first: routes `/fit-and-proper`, `/fit-and-proper/individuals/:id`. Internal staff can create individuals (name, national ID, DOB, nationality, contact), link them to licensees with roles (director, CEO, key person, controller, shareholder), and view a case-file shell with tabs for the later sub-features.
-
-### 3.2 FPA-002 — Declarations form + assessments ✅ SHIPPED
-- New `FpAssessmentsPanel` inside the individual case-file lets internal staff (and licensee_primary via RLS) start an assessment (`initial` / `renewal` / `material_change` / `adverse_event`) linked to a specific role.
-- New route `/fit-and-proper/assessments/:id` renders the full declaration form: employment history, qualifications, disclosures (regulatory / criminal / financial / related parties, disqualifications / bankruptcy / disciplinary flags) with a mandatory confirmation checkbox.
-- Lifecycle wired end-to-end: `draft → submitted → screening → awaiting_committee → determined → closed`. Draft is editable; submission stamps `submitted_by` / `submitted_at`. Internal-only "Send to screening / committee / Determined / Close" buttons transition status. Assessments tab on the individual profile now enabled and shows the full list.
-- Magic-link declaration route (`/fit-and-proper/declare/:token`) deferred to a follow-up — the authenticated inline form covers licensee_primary via existing RLS.
-
-### 3.3 FPA-003 — Screening engine ✅ SHIPPED
-- Edge function `fp-screening-run` executes every active `fp_screening_configs` rule against the assessment's declaration + individual identity, writes a `fp_screening_runs` row (with `total_checks`/`total_hits` + duration) and per-hit `fp_findings` (severity, source, summary, raw payload). Auto-advances assessment status to `screening` when hits are found; logs via `_shared/integration-log.ts`.
-- Built-in rule types: `sanctions` (keyword scan), `pep` (employment history keywords), `criminal_history` / `credit_history` / `regulator_watchlist` (self-declaration flags), `adverse_media` (Lovable AI Gateway `google/gemini-2.5-flash` returning risk-graded summaries in strict JSON).
-- Admin CRUD `/admin/fp-screening-configs` — full rule pack management (key, label, type, provider, severity, active toggle, sort order). AdminHub tile "FP Screening Rules" added; 6 default rules seeded.
-- New `FpScreeningPanel` on individual case-file (Screening tab now enabled) — "Run screening" button, run history, findings list with severity chips, one-click "mark as false positive" with review note and reviewer stamp.
-
-### 3.4 FPA-004 — Committee voting + determinations ✅ SHIPPED
-- Admin CRUD `/admin/fp-committees` — create committees (name, description, quorum, approval threshold %, active toggle) and add/remove members with `chair` / `deputy_chair` / `member` / `observer` roles. AdminHub tile "FP Committees" added.
-- `FpDeterminationsPanel` on individual case-file (Determinations tab now enabled) — reviewers assign an assessment to an active committee (auto-advances status to `awaiting_committee`); members cast `approve` / `conditional` / `reject` / `abstain` votes with justification; live tally shows each vote + voter.
-- Quorum-aware finalization: once vote count ≥ quorum, panel computes proposed outcome using `approve+conditional` share vs. `approval_threshold_pct` (conditional wins the tie-break when conditionals outweigh approvals). Any member of the committee can enter a final rationale (min 10 chars) and finalize — writes `fp_determinations` (marking prior current determination as superseded), stamps assessment `determined_at` and status `determined`.
-- Determinations history renders under the panel with outcome chips, current/supersedes badges, and rationale.
-
-### 3.5 FPA-005 — Conditional determinations ✅ SHIPPED
-- `FpConditionsPanel` on individual case-file (Conditions tab now enabled). Reviewers attach structured conditions to the **current** determination — category (`training` / `reporting` / `restriction` / `monitoring` / `disclosure` / `other`), description, due date, evidence type, monitoring owner.
-- Conditions display with derived status chips: `open` / `overdue` (auto-computed vs today) / `satisfied` / `waived`. Each condition supports "Mark satisfied" (with evidence note) or "Waive" with reviewer stamp (`satisfied_by`, `satisfied_at`); satisfied conditions can be reopened.
-- Panel gates the "Add condition" button until a current `fp_determinations` row exists, mirroring the license-conditions pattern from Phase 2.6.
-
-### 3.6 FPA-006 — Appeals ✅ SHIPPED
-- `FpAppealsPanel` on individual case-file (Appeals tab now enabled). Appeals are only fileable when the current determination is `rejected` or `conditional`, and only one open appeal is allowed at a time per determination.
-- Workflow: `filed` → assign appeal committee (`under_review`) → record decision (`decided`) with mandatory rationale (min 10 chars). Reviewers may also withdraw an in-flight appeal.
-- Decisions: `upheld_original` leaves the current determination untouched; `overturned_to_approved` / `overturned_to_conditional` create a new `fp_determinations` row (marked current, supersedes the appealed determination) and stamp the appeal with `new_determination_id`, giving a full audit chain.
-
-### 3.7 FPA-007 — Ongoing monitoring cron ✅ SHIPPED
-- Edge function `fp-monitoring-sweep` picks every individual whose current determination is `approved` / `conditional`, skips those whose last screening run is within `recheck_days` (configurable via `report_runtime_config.fp_monitoring_recheck_days`, default 30 days), then re-invokes `fp-screening-run` with `run_type='monitoring'`.
-- Any new medium/high findings on the re-run raise entries in `fp_monitoring_events` (severity, event type `screening.<check_type>`, link back to the finding/run).
-- Scheduled via `pg_cron` (`fp-monitoring-sweep-daily`) to fire at 02:00 UTC daily using `pg_net.http_post`.
-- New "Monitoring" tab on the individual profile (`FpMonitoringPanel`) shows raised alerts with severity chips and per-alert acknowledgement (mandatory 5+ char note), plus a rolling re-check timeline of the last 20 screening runs.
-
-## Cross-cutting for Phase 3
-
-- Every FP write action calls `useEntityAuditLog` → surfaces on the unified `EntityTimeline`.
-- New permission module `fit_and_proper` (already referenced in `permissionTabs.ts`); AdminHub tile "Fit & Proper Register" added in 3.1.
-- Screening + monitoring edge functions log via `_shared/integration-log.ts`.
-- New notification event keys: `fp.declaration_submitted`, `fp.screening_hit`, `fp.determination_made`, `fp.condition_due`, `fp.monitoring_alert`, `fp.appeal_filed`.
+Build in the numeric sequence above — each sub-feature is self-contained and shippable independently. 4.1 → 4.2 creates the enforcement→breach loop; 4.3 findings can then escalate into 4.1; 4.4 and 4.5 are independent.
 
 ## Risks / open decisions
 
-- Adverse-media data source is a commercial decision — 3.3 defaults to Lovable AI Gateway summarisation of open web results; a real feed (e.g. Dow Jones RiskCenter) can be plugged in via the same `fp_screening_configs` rule pack.
-- Digital-signature stamp on determinations reuses the certificate signer from Phase 2.6.
-
+- Notice/letter document generation reuses the Phase 2.6 certificate signer template engine — same signing key.
+- Inspection calendar uses `react-big-calendar` (already in deps? confirm before 4.3 kicks off — otherwise switch to a lightweight month grid).
+- Enforcement→penalty billing wiring stops at "display collected/outstanding"; actual invoicing is out of scope (belongs to the fees & payments module).
