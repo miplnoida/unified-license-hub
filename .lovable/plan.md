@@ -129,9 +129,10 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Conditions display with derived status chips: `open` / `overdue` (auto-computed vs today) / `satisfied` / `waived`. Each condition supports "Mark satisfied" (with evidence note) or "Waive" with reviewer stamp (`satisfied_by`, `satisfied_at`); satisfied conditions can be reopened.
 - Panel gates the "Add condition" button until a current `fp_determinations` row exists, mirroring the license-conditions pattern from Phase 2.6.
 
-### 3.6 FPA-006 — Appeals
-- Applicant / licensee can appeal a `rejected` or `conditional` determination within a configurable window. `fp_appeals` captures grounds, supporting docs, appeal committee, and outcome.
-- Appeal outcome creates a new determination (supersedes prior) with a full audit trail.
+### 3.6 FPA-006 — Appeals ✅ SHIPPED
+- `FpAppealsPanel` on individual case-file (Appeals tab now enabled). Appeals are only fileable when the current determination is `rejected` or `conditional`, and only one open appeal is allowed at a time per determination.
+- Workflow: `filed` → assign appeal committee (`under_review`) → record decision (`decided`) with mandatory rationale (min 10 chars). Reviewers may also withdraw an in-flight appeal.
+- Decisions: `upheld_original` leaves the current determination untouched; `overturned_to_approved` / `overturned_to_conditional` create a new `fp_determinations` row (marked current, supersedes the appealed determination) and stamp the appeal with `new_determination_id`, giving a full audit chain.
 
 ### 3.7 FPA-007 — Ongoing monitoring cron
 - Edge function `fp-monitoring-sweep` (hourly / daily) re-runs screening for **approved** individuals on a rolling cadence (config: `recheck_days`), watches for new adverse hits, and creates `fp_monitoring_events` + `application.fp_alert` notifications when severity crosses a threshold.

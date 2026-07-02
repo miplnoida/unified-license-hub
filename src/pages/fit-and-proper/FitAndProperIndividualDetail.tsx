@@ -11,6 +11,7 @@ import { FpAssessmentsPanel } from '@/components/fit-and-proper/FpAssessmentsPan
 import { FpScreeningPanel } from '@/components/fit-and-proper/FpScreeningPanel';
 import { FpDeterminationsPanel } from '@/components/fit-and-proper/FpDeterminationsPanel';
 import { FpConditionsPanel } from '@/components/fit-and-proper/FpConditionsPanel';
+import { FpAppealsPanel } from '@/components/fit-and-proper/FpAppealsPanel';
 
 export default function FitAndProperIndividualDetail() {
   const { id } = useParams<{ id: string }>();
@@ -77,7 +78,7 @@ export default function FitAndProperIndividualDetail() {
             <TabsTrigger value="screening">Screening</TabsTrigger>
             <TabsTrigger value="determinations">Determinations</TabsTrigger>
             <TabsTrigger value="conditions">Conditions</TabsTrigger>
-            <TabsTrigger value="appeals" disabled>Appeals</TabsTrigger>
+            <TabsTrigger value="appeals">Appeals</TabsTrigger>
             <TabsTrigger value="monitoring" disabled>Monitoring</TabsTrigger>
           </TabsList>
 
@@ -113,6 +114,10 @@ export default function FitAndProperIndividualDetail() {
 
           <TabsContent value="conditions">
             {id && <FpConditionsPanel individualId={id} />}
+          </TabsContent>
+
+          <TabsContent value="appeals">
+            {id && <FpAppealsPanel individualId={id} />}
           </TabsContent>
         </Tabs>
       </div>
