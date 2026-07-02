@@ -196,6 +196,21 @@ export interface ApplySnapshotParams {
   fallbackSystemRole: string;
   /** Provide the list of currently valid role ids so we can sanity-check. */
   validRoleIds?: Set<string>;
+  /** Optional system-role lookup so stale snapshots can resolve to the intended configured role. */
+  roleIdBySystemRole?: Record<string, string>;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string' && v.length > 0) : [];
+}
+
+function roleConfigWithPrimary(config: Record<string, unknown> | null | undefined, roleId: string) {
+  const base = config ?? {};
+  const existing = stringArray((base as { role_ids?: unknown }).role_ids);
+  return {
+    ...base,
+    role_ids: [roleId, ...existing.filter(id => id !== roleId)],
+  };
 }
 
 /**
@@ -204,15 +219,19 @@ export interface ApplySnapshotParams {
  * and approval_action_notifications, remapping local ids → real ids.
  */
 export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Promise<void> {
-  const { workflowId, snapshot, fallbackRoleId, fallbackSystemRole, validRoleIds } = params;
+  const { workflowId, snapshot, fallbackRoleId, fallbackSystemRole, validRoleIds, roleIdBySystemRole } = params;
   if (snapshot.steps.length === 0) return;
 
   const sorted = [...snapshot.steps].sort((a, b) => a.step_order - b.step_order);
 
   const stepPayload = sorted.map(s => {
-    const roleId = s.approver_role_id && (!validRoleIds || validRoleIds.has(s.approver_role_id))
-      ? s.approver_role_id
-      : fallbackRoleId;
+    const isRoleBased = (s.approver_type ?? 'role_based_user') !== 'specific_users';
+    const mappedRoleId = s.approver_role ? roleIdBySystemRole?.[s.approver_role] : undefined;
+    const roleId = isRoleBased
+      ? (s.approver_role_id && (!validRoleIds || validRoleIds.has(s.approver_role_id))
+          ? s.approver_role_id
+          : (mappedRoleId ?? fallbackRoleId))
+      : null;
     const sysRole = s.approver_role || fallbackSystemRole;
     return {
       workflow_id: workflowId,
@@ -222,7 +241,9 @@ export async function applyV2SnapshotToWorkflow(params: ApplySnapshotParams): Pr
       approver_role: sysRole,
       approver_role_id: roleId,
       approver_type: s.approver_type ?? 'role_based_user',
-      approver_config: s.approver_config ?? {},
+      approver_config: isRoleBased && roleId
+        ? roleConfigWithPrimary(s.approver_config, roleId)
+        : (s.approver_config ?? {}),
       auto_approve_on_timeout: !!s.auto_approve_on_timeout,
       require_digital_signature: !!s.require_digital_signature,
       sla_hours: s.sla_hours ?? 48,

@@ -364,6 +364,8 @@ export function useCreateWorkflowWithSteps() {
         description?: string | null;
         approver_role: AppRole;
         approver_role_id?: string | null;
+        approver_type?: ApproverType;
+        approver_config?: ApproverConfig;
         step_type?: string;
         is_required?: boolean;
         sla_hours?: number;
@@ -452,6 +454,8 @@ export function useCreateStep() {
       name: string;
       approver_role: AppRole;
       approver_role_id?: string | null;
+      approver_type?: ApproverType;
+      approver_config?: ApproverConfig;
       step_type?: string;
       sla_hours?: number;
       allowed_actions?: WorkflowActionType[];
@@ -466,6 +470,10 @@ export function useCreateStep() {
           name: params.name,
           approver_role: params.approver_role,
           approver_role_id: params.approver_role_id ?? null,
+          approver_type: params.approver_type ?? 'role_based_user',
+          approver_config: params.approver_config ?? (
+            params.approver_role_id ? { role_ids: [params.approver_role_id] } : {}
+          ),
           step_type: params.step_type || 'sequential',
           sla_hours: params.sla_hours || 48,
           // No silent default: callers MUST pass an explicit allowed_actions list.
