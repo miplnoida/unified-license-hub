@@ -47,6 +47,7 @@ const FitAndProperAssessmentDetail = lazy(() => import('@/pages/fit-and-proper/F
 const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
 const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
+const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
