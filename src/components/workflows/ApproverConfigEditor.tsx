@@ -72,11 +72,19 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
       } else {
         // Switching to Role Based User: drop any previously selected
         // specific users so they no longer gate the step.
+        const primary = step.approver_role_id || cfg.role_ids?.find(id => dynamicRoles.some(r => r.id === id)) || dynamicRoles[0]?.id;
+        if (!primary) {
+          toast.error('No roles configured. Please create at least one role.');
+          return;
+        }
+        const primaryRole = dynamicRoles.find(r => r.id === primary);
         await Promise.resolve(
           onUpdate(step.id, {
             approver_type: 'role_based_user',
+            approver_role_id: primary,
+            approver_role: (primaryRole?.system_role as any) || step.approver_role,
             approver_config: {
-              role_ids: cfg.role_ids ?? (step.approver_role_id ? [step.approver_role_id] : []),
+              role_ids: [primary, ...(cfg.role_ids ?? []).filter(id => id !== primary)],
             },
           } as any),
         );
@@ -105,6 +113,10 @@ export function ApproverConfigEditor({ step, dynamicRoles, isEditing, onUpdate }
     const next = new Set(selectedRoleIds);
     if (checked) next.add(roleId); else next.delete(roleId);
     const arr = Array.from(next);
+    if (arr.length === 0) {
+      toast.error('Role Based User approver requires at least one role');
+      return;
+    }
     // Keep approver_role_id as the "primary" role for back-compat with the
     // role validator trigger. Fall back to the first selected role.
     const primary = step.approver_role_id && next.has(step.approver_role_id)

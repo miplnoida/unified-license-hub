@@ -68,6 +68,8 @@ import { WorkflowVersionPanel } from '@/components/workflows/WorkflowVersionPane
 type TemplateStep = {
   name: string;
   approver_role: string;
+  approver_role_id?: string | null;
+  approver_config?: Record<string, unknown>;
   sla_hours?: number;
   allowed_actions?: WorkflowActionType[];
   // v2 fields (optional, present only when template is v2)
@@ -321,10 +323,13 @@ export default function WorkflowList() {
       approver_role_id: string;
       sla_hours: number;
       allowed_actions: WorkflowActionType[];
+      approver_config: { role_ids: string[] };
     };
     const stepsPayload: AtomicStep[] = templateSteps
       ? templateSteps.map((s, i) => {
-          const tplRole = dynamicRoles.find(r => r.system_role === s.approver_role) || fallbackRole;
+          const tplRole = (s.approver_role_id ? dynamicRoles.find(r => r.id === s.approver_role_id) : null)
+            || dynamicRoles.find(r => r.system_role === s.approver_role)
+            || fallbackRole;
           const tplAllowed = Array.isArray(s.allowed_actions) && s.allowed_actions.length > 0
             ? (s.allowed_actions as WorkflowActionType[])
             : (['approve', 'reject', 'send_back'] as WorkflowActionType[]);
@@ -333,6 +338,7 @@ export default function WorkflowList() {
             name: s.name || `Step ${i + 1}`,
             approver_role: ((tplRole.system_role || 'admin') as any),
             approver_role_id: tplRole.id,
+            approver_config: { role_ids: [tplRole.id] },
             sla_hours: s.sla_hours || 48,
             allowed_actions: tplAllowed,
           };
@@ -342,6 +348,7 @@ export default function WorkflowList() {
           name: fallbackRole.name ? `${fallbackRole.name} Review` : 'Step 1',
           approver_role: ((fallbackRole.system_role || 'admin') as any),
           approver_role_id: fallbackRole.id,
+          approver_config: { role_ids: [fallbackRole.id] },
           sla_hours: 48,
           allowed_actions: ['approve', 'reject', 'send_back'] as WorkflowActionType[],
         }];
@@ -373,6 +380,7 @@ export default function WorkflowList() {
           fallbackRoleId: fallbackRole.id,
           fallbackSystemRole: fallbackRole.system_role || 'admin',
           validRoleIds: new Set(dynamicRoles.map(r => r.id)),
+          roleIdBySystemRole: Object.fromEntries(dynamicRoles.map(r => [r.system_role, r.id])),
         });
         qc.invalidateQueries({ queryKey: ['approval_steps'] });
       } else {
@@ -648,6 +656,7 @@ export default function WorkflowList() {
         name: `Step ${steps.length + 1}`,
         approver_role: (lastRole.system_role || 'admin') as any,
         approver_role_id: lastRole.id,
+        approver_config: { role_ids: [lastRole.id] },
         sla_hours: 48,
         allowed_actions: ['approve', 'reject', 'send_back'],
       } as any);
@@ -1568,8 +1577,18 @@ function StepCard({ step, index, total, siblingSteps, dynamicRoles, roleLabel, s
       (step.approver_role && String(step.approver_role).trim()) ||
       'licensing_officer';
     try {
+      const existingRoleIds = Array.isArray(step.approver_config?.role_ids)
+        ? step.approver_config.role_ids.filter((id): id is string => typeof id === 'string' && id.length > 0)
+        : [];
       await Promise.resolve(
-        onUpdate(step.id, { approver_role: safeApproverRole as any, approver_role_id: r.id } as any),
+        onUpdate(step.id, {
+          approver_role: safeApproverRole as any,
+          approver_role_id: r.id,
+          approver_config: {
+            ...(step.approver_config ?? {}),
+            role_ids: [r.id, ...existingRoleIds.filter(id => id !== r.id)],
+          },
+        } as any),
       );
       setPickerOpen(false);
       setRoleSearch('');
