@@ -223,14 +223,29 @@ export function ApplicationAiAssessmentPanel({ applicationId, currentUserId }: P
             </Button>
           </div>
         ) : (
-          <CompletedView assessment={assessment} />
+          <CompletedView
+            assessment={assessment}
+            applicationId={applicationId}
+            currentUserId={currentUserId}
+            onDecisionSaved={fetchLatest}
+          />
         )}
       </CardContent>
     </Card>
   );
 }
 
-function CompletedView({ assessment }: { assessment: Assessment }) {
+function CompletedView({
+  assessment,
+  applicationId,
+  currentUserId,
+  onDecisionSaved,
+}: {
+  assessment: Assessment;
+  applicationId: string;
+  currentUserId?: string;
+  onDecisionSaved: () => void | Promise<void>;
+}) {
   const findings = Array.isArray(assessment.findings) ? assessment.findings : [];
   const risks = Array.isArray(assessment.risks) ? assessment.risks : [];
   const missing = Array.isArray(assessment.missing_information) ? assessment.missing_information : [];
