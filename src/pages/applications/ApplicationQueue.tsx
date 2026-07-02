@@ -124,7 +124,7 @@ export default function ApplicationQueue() {
       let q = supabase
         .from('applications')
         .select(
-          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, resolved_sector_id, sector_id',
+          'id, application_number, applicant_id, license_type, status, submitted_at, created_at, priority, priority_reason, assigned_to, data',
         )
         .in('status', PENDING_STATUSES)
         .order('priority', { ascending: true })
@@ -132,7 +132,12 @@ export default function ApplicationQueue() {
         .limit(500);
 
       if (activeSectorId) {
-        q = q.or(`resolved_sector_id.eq.${activeSectorId},sector_id.eq.${activeSectorId}`);
+        // applications don't carry a sector column directly — filter via the
+        // JSONB `data.sector_id` / `data.resolved_sector_id` fields written
+        // by the form engine.
+        q = q.or(
+          `data->>sector_id.eq.${activeSectorId},data->>resolved_sector_id.eq.${activeSectorId}`,
+        );
       }
 
       const { data, error } = await q;
