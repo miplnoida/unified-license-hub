@@ -64,6 +64,7 @@ export default function AdminHub() {
     { label: 'Prudential Breach Inbox', desc: 'Unacknowledged threshold breaches', icon: <AlertTriangle className="h-5 w-5" />, href: '/supervision/breaches', module: 'returns_management' },
     { label: 'Inspection Queue', desc: 'Scheduled, in-progress and overdue inspections', icon: <ClipboardCheck className="h-5 w-5" />, href: '/inspections', module: 'settings' },
     { label: 'Inspection Calendar', desc: 'Monthly view of scheduled inspections', icon: <CalendarCheck className="h-5 w-5" />, href: '/inspections/schedule', module: 'settings' },
+    { label: 'Supervisory Plans Dashboard', desc: 'Cross-entity plan action workload', icon: <Target className="h-5 w-5" />, href: '/supervision/plans', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
