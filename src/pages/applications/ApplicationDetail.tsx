@@ -652,6 +652,7 @@ export default function ApplicationDetail() {
                 <TabsTrigger value="activity">Activity</TabsTrigger>
                 <TabsTrigger value="rfi">RFI</TabsTrigger>
                 {isInternal && <TabsTrigger value="consolidated">Consolidated Case</TabsTrigger>}
+                {app.status === 'approved' && <TabsTrigger value="conditions">Conditions</TabsTrigger>}
               </TabsList>
 
 
