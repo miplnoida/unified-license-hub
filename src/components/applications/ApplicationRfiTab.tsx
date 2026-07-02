@@ -20,6 +20,9 @@ interface ApplicationRfiTabProps {
   isInternal: boolean;
   isApplicant: boolean;
   approvalStepActionId?: string | null;
+  workflowTypeKey?: string | null;
+  sectorId?: string | null;
+  formData?: unknown;
 }
 
 const statusBadge: Record<string, string> = {
@@ -35,6 +38,9 @@ export function ApplicationRfiTab({
   isInternal,
   isApplicant,
   approvalStepActionId,
+  workflowTypeKey,
+  sectorId,
+  formData,
 }: ApplicationRfiTabProps) {
   const { rfis, loading, reload } = useApplicationRfis(applicationId);
   const [closeNotesById, setCloseNotesById] = useState<Record<string, string>>({});
@@ -93,6 +99,9 @@ export function ApplicationRfiTab({
             applicationId={applicationId}
             raisedBy={currentUserId}
             approvalStepActionId={approvalStepActionId}
+            workflowTypeKey={workflowTypeKey}
+            sectorId={sectorId}
+            formData={formData}
             onCreated={reload}
           />
         )}

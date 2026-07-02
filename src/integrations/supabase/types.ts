@@ -240,6 +240,72 @@ export type Database = {
           },
         ]
       }
+      application_rfi_auto_rules: {
+        Row: {
+          active: boolean
+          condition: Json
+          created_at: string
+          created_by: string | null
+          default_due_days: number
+          description: string | null
+          id: string
+          name: string
+          prompt_template: string
+          question_type: string
+          required: boolean
+          sector_id: string | null
+          updated_at: string
+          workflow_type_key: string | null
+        }
+        Insert: {
+          active?: boolean
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          default_due_days?: number
+          description?: string | null
+          id?: string
+          name: string
+          prompt_template: string
+          question_type?: string
+          required?: boolean
+          sector_id?: string | null
+          updated_at?: string
+          workflow_type_key?: string | null
+        }
+        Update: {
+          active?: boolean
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          default_due_days?: number
+          description?: string | null
+          id?: string
+          name?: string
+          prompt_template?: string
+          question_type?: string
+          required?: boolean
+          sector_id?: string | null
+          updated_at?: string
+          workflow_type_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_rfi_auto_rules_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_rfi_auto_rules_workflow_type_key_fkey"
+            columns: ["workflow_type_key"]
+            isOneToOne: false
+            referencedRelation: "approval_workflow_types"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       application_rfi_items: {
         Row: {
           created_at: string
@@ -335,6 +401,8 @@ export type Database = {
           created_at: string
           due_at: string | null
           id: string
+          near_due_notified_at: string | null
+          overdue_notified_at: string | null
           raised_at: string
           raised_by: string
           status: string
@@ -350,6 +418,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          near_due_notified_at?: string | null
+          overdue_notified_at?: string | null
           raised_at?: string
           raised_by: string
           status?: string
@@ -365,6 +435,8 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          near_due_notified_at?: string | null
+          overdue_notified_at?: string | null
           raised_at?: string
           raised_by?: string
           status?: string

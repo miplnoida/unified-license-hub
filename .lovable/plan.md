@@ -9,16 +9,20 @@ Estimated effort: **10–14 dev-days**, delivered in 9 self-contained sub-featur
 
 ## Sub-features
 
-### 2.1 ULRA-005 — RFI (Request For Information) subsystem 🚧 IN PROGRESS
-**Part A shipped:**
-- Tables `application_rfis`, `application_rfi_items`, `application_rfi_responses` with RLS (applicants scoped to own applications; internal reviewer roles can raise/close).
-- Pause columns on `approval_step_actions` (`paused_at`, `paused_reason`, `resumed_at`).
-- Notification events registered: `application.rfi_raised`, `application.rfi_responded`, `application.rfi_near_due`.
+### 2.1 ULRA-005 — RFI (Request For Information) subsystem ✅ SHIPPED
+**Part A:**
+- Tables `application_rfis`, `application_rfi_items`, `application_rfi_responses` with RLS.
+- Pause columns on `approval_step_actions`.
 - Reviewer `RaiseRfiDialog` — multi-item, per-item due date, optional SLA pause.
-- New "RFI" tab on `ApplicationDetail` with per-item applicant response form (text + document via secure upload) and reviewer close-and-resume flow.
-- All actions write to `audit_logs` so they surface on the unified `EntityTimeline`.
+- Applicant response (text + secure document upload) & reviewer close-and-resume flow inside a new RFI tab on `ApplicationDetail`.
+- Every action writes to `audit_logs` for the unified `EntityTimeline`.
 
-**Part B (next turn):** near-due sweep cron, auto-sufficiency rule engine for pre-populating RFI drafts.
+**Part B:**
+- `near_due_notified_at` / `overdue_notified_at` idempotency columns on `application_rfis`.
+- Edge function `rfi-near-due-sweep` scans open RFIs each hour (pg_cron `rfi-near-due-sweep-hourly`), dispatches `application.rfi_near_due` (within 48h) and `application.rfi_overdue` events, stamps the tracking columns so each RFI is notified once.
+- Auto-sufficiency rule engine — new `application_rfi_auto_rules` table (admin-managed). Rules match by workflow type + sector; conditions (missing / present / eq / neq / lt / gt / regex) evaluate against `applications.data`; prompt templates interpolate `{{field.path}}`.
+- Reviewer dialog shows a **Suggested items** panel with one-click "Add" / "Add all", auto-populates per-item due date from the rule's `default_due_days`, and records the rules used in the RFI audit log.
+- New admin route `/admin/rfi-auto-rules` (AdminHub tile "RFI Auto-Rules") for full CRUD, activation toggle, and scope/condition editing.
 
 
 ### 2.2 ULRA-002 — Batch document upload with per-file metadata ✅ SHIPPED
