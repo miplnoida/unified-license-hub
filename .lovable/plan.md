@@ -134,12 +134,12 @@ These are prerequisites for multiple scenarios and were flagged as platform gaps
 
 Each phase ends in a runnable, testable increment. Phases 1–2 unblock every downstream module.
 
-**Phase 1 — Platform primitives (foundation)**
-- Unified `<EntityTimeline>` + `useEntityAuditLog`
-- Override-with-justification primitive
-- SLA escalation sweep cron
-- Integration-log table + viewer
-- Confirm `dispatch-notification-event` "acknowledged_at"
+**Phase 1 — Platform primitives (foundation) — ✅ COMPLETE**
+- ✅ Unified `<EntityTimeline>` + `useEntityAuditLog` (`src/components/shared/EntityTimeline.tsx`, `src/hooks/useEntityAuditLog.ts`). `ActivityTab` refactored to delegate.
+- ✅ Override-with-justification primitive (already existed as `OverrideJustificationDialog` + `logComplianceAudit`).
+- ✅ SLA escalation sweep edge function (`supabase/functions/sla-escalation-sweep`) + `sla_escalation_dispatches` ledger (idempotent per instance/tier) + `workflow.sla_escalation` notification event + `*/15 * * * *` pg_cron entry.
+- ✅ `integration_logs` table + `_shared/integration-log.ts` helper + admin viewer page `/admin/integration-logs` (linked from AdminHub).
+- ✅ `notification_dispatch_log.acknowledged_at` / `acknowledged_by` columns (UI surface deferred to Phase 5 supervisory dashboard).
 
 **Phase 2 — Script 1 completions**
 - ULRA-005 RFI subsystem
