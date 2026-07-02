@@ -43,6 +43,7 @@ const CoordinationList = lazy(() => import('@/pages/coordination/CoordinationLis
 const CoordinationDetail = lazy(() => import('@/pages/coordination/CoordinationDetail'));
 const FitAndProperIndividuals = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividuals'));
 const FitAndProperIndividualDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperIndividualDetail'));
+const FitAndProperAssessmentDetail = lazy(() => import('@/pages/fit-and-proper/FitAndProperAssessmentDetail'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -115,5 +116,6 @@ export const dashboardRoutes = (
     <Route path="/coordination/:caseId" element={<M module="application_management"><CoordinationDetail /></M>} />
     <Route path="/fit-and-proper" element={<M module="fit_and_proper"><FitAndProperIndividuals /></M>} />
     <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
+    <Route path="/fit-and-proper/assessments/:id" element={<M module="fit_and_proper"><FitAndProperAssessmentDetail /></M>} />
   </>
 );
