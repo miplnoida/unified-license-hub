@@ -1,0 +1,284 @@
+import { useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { Loader2, Scale } from 'lucide-react';
+
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  filed: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
+  under_review: { label: 'Under review', className: 'bg-amber-100 text-amber-800' },
+  decided: { label: 'Decided', className: 'bg-slate-200 text-slate-800' },
+  withdrawn: { label: 'Withdrawn', className: 'bg-slate-100 text-slate-600' },
+};
+
+const DECISION_META: Record<string, { label: string; className: string }> = {
+  upheld_original: { label: 'Original upheld', className: 'bg-slate-100 text-slate-800' },
+  overturned_to_approved: { label: 'Overturned → Approved', className: 'bg-green-100 text-green-800' },
+  overturned_to_conditional: { label: 'Overturned → Conditional', className: 'bg-amber-100 text-amber-800' },
+};
+
+interface Props { individualId: string }
+
+export function FpAppealsPanel({ individualId }: Props) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [grounds, setGrounds] = useState('');
+  const [committeePick, setCommitteePick] = useState<Record<string, string>>({});
+  const [decisionPick, setDecisionPick] = useState<Record<string, string>>({});
+  const [decisionNote, setDecisionNote] = useState<Record<string, string>>({});
+
+  const { data: currentDet } = useQuery({
+    queryKey: ['fp_current_determination', individualId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_determinations')
+        .select('id, assessment_id, outcome, rationale, determined_at')
+        .eq('individual_id', individualId).eq('is_current', true).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: committees } = useQuery({
+    queryKey: ['fp_committees_active'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_committees')
+        .select('id, name, quorum, approval_threshold_pct').eq('is_active', true).order('name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: appeals } = useQuery({
+    queryKey: ['fp_appeals', individualId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fp_appeals')
+        .select('*').eq('individual_id', individualId).order('filed_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const canFile = useMemo(() => {
+    if (!currentDet) return false;
+    if (!['rejected', 'conditional'].includes(currentDet.outcome)) return false;
+    const openAppeal = (appeals ?? []).find((a: any) => a.determination_id === currentDet.id && a.status !== 'decided' && a.status !== 'withdrawn');
+    return !openAppeal;
+  }, [currentDet, appeals]);
+
+  const fileAppeal = useMutation({
+    mutationFn: async () => {
+      if (!currentDet) throw new Error('No current determination');
+      if (grounds.trim().length < 20) throw new Error('Grounds must be at least 20 characters');
+      const { error } = await supabase.from('fp_appeals').insert({
+        individual_id: individualId,
+        determination_id: currentDet.id,
+        filed_by: user!.id,
+        grounds: grounds.trim(),
+        status: 'filed',
+        supporting_docs: [],
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Appeal filed');
+      setGrounds('');
+      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to file appeal'),
+  });
+
+  const assignAppealCommittee = useMutation({
+    mutationFn: async ({ appealId, committeeId }: { appealId: string; committeeId: string }) => {
+      const { error } = await supabase.from('fp_appeals')
+        .update({ appeal_committee_id: committeeId, status: 'under_review' })
+        .eq('id', appealId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Appeal committee assigned');
+      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  const decideAppeal = useMutation({
+    mutationFn: async ({ appeal, decision, note }: { appeal: any; decision: string; note: string }) => {
+      if (!decision) throw new Error('Pick a decision');
+      if (note.trim().length < 10) throw new Error('Decision rationale required (min 10 chars)');
+
+      let newDetId: string | null = null;
+      if (decision !== 'upheld_original') {
+        const outcome = decision === 'overturned_to_approved' ? 'approved' : 'conditional';
+        await supabase.from('fp_determinations').update({ is_current: false }).eq('id', appeal.determination_id);
+        const { data: inserted, error: insErr } = await supabase.from('fp_determinations').insert({
+          assessment_id: appeal.assessment_id ?? currentDet?.assessment_id,
+          individual_id: individualId,
+          outcome,
+          rationale: `Appeal outcome: ${note.trim()}`,
+          determined_by: user!.id,
+          supersedes_id: appeal.determination_id,
+          is_current: true,
+          effective_from: new Date().toISOString().slice(0, 10),
+        }).select('id').single();
+        if (insErr) throw insErr;
+        newDetId = inserted.id;
+      }
+
+      const { error } = await supabase.from('fp_appeals').update({
+        status: 'decided',
+        decision,
+        decision_rationale: note.trim(),
+        decided_by: user!.id,
+        decided_at: new Date().toISOString(),
+        new_determination_id: newDetId,
+      }).eq('id', appeal.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Appeal decided');
+      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_current_determination', individualId] });
+      qc.invalidateQueries({ queryKey: ['fp_determinations', individualId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  const withdrawAppeal = useMutation({
+    mutationFn: async (appealId: string) => {
+      const { error } = await supabase.from('fp_appeals').update({ status: 'withdrawn' }).eq('id', appealId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Appeal withdrawn');
+      qc.invalidateQueries({ queryKey: ['fp_appeals', individualId] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Scale className="h-4 w-4" /> File appeal</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!currentDet ? (
+            <p className="text-sm text-muted-foreground">No current determination to appeal.</p>
+          ) : !['rejected', 'conditional'].includes(currentDet.outcome) ? (
+            <p className="text-sm text-muted-foreground">
+              Current determination is <Badge variant="outline">{currentDet.outcome}</Badge> — only rejected or conditional determinations may be appealed.
+            </p>
+          ) : !canFile ? (
+            <p className="text-sm text-muted-foreground">An open appeal already exists for the current determination.</p>
+          ) : (
+            <>
+              <div className="text-xs text-muted-foreground">
+                Appealing determination from {new Date(currentDet.determined_at).toLocaleDateString()} — outcome <Badge variant="outline">{currentDet.outcome}</Badge>
+              </div>
+              <div>
+                <Label className="text-xs">Grounds for appeal (min 20 chars)</Label>
+                <Textarea rows={4} value={grounds} onChange={(e) => setGrounds(e.target.value)}
+                  placeholder="Explain the basis for challenging the determination…" />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => fileAppeal.mutate()} disabled={fileAppeal.isPending || grounds.trim().length < 20}>
+                  {fileAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  File appeal
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">Appeals history</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {(appeals ?? []).length === 0 && <p className="text-sm text-muted-foreground">No appeals filed.</p>}
+          {(appeals ?? []).map((a: any) => {
+            const sMeta = STATUS_META[a.status] || STATUS_META.filed;
+            const dMeta = a.decision ? DECISION_META[a.decision] : null;
+            return (
+              <div key={a.id} className="border rounded p-3 space-y-2 text-sm">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className={sMeta.className}>{sMeta.label}</Badge>
+                  {dMeta && <Badge variant="outline" className={dMeta.className}>{dMeta.label}</Badge>}
+                  <span className="text-xs text-muted-foreground">Filed {new Date(a.filed_at).toLocaleString()}</span>
+                </div>
+                <div className="text-xs whitespace-pre-wrap">{a.grounds}</div>
+
+                {a.status === 'filed' && (
+                  <div className="border rounded p-2 bg-muted/30 space-y-2">
+                    <Label className="text-xs">Assign appeal committee</Label>
+                    <div className="flex gap-2 items-end">
+                      <Select
+                        value={committeePick[a.id] || ''}
+                        onValueChange={(v) => setCommitteePick((p) => ({ ...p, [a.id]: v }))}
+                      >
+                        <SelectTrigger className="flex-1"><SelectValue placeholder="Pick committee" /></SelectTrigger>
+                        <SelectContent>{(committees ?? []).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}</SelectContent>
+                      </Select>
+                      <Button size="sm" disabled={!committeePick[a.id] || assignAppealCommittee.isPending}
+                        onClick={() => assignAppealCommittee.mutate({ appealId: a.id, committeeId: committeePick[a.id] })}>
+                        Assign
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
+                    </div>
+                  </div>
+                )}
+
+                {a.status === 'under_review' && (
+                  <div className="border rounded p-2 bg-muted/30 space-y-2">
+                    <Label className="text-xs">Record appeal decision</Label>
+                    <Select
+                      value={decisionPick[a.id] || ''}
+                      onValueChange={(v) => setDecisionPick((p) => ({ ...p, [a.id]: v }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Pick decision" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upheld_original">Uphold original determination</SelectItem>
+                        <SelectItem value="overturned_to_approved">Overturn → Approved</SelectItem>
+                        <SelectItem value="overturned_to_conditional">Overturn → Conditional</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Textarea rows={3} placeholder="Decision rationale (min 10 chars)…"
+                      value={decisionNote[a.id] || ''}
+                      onChange={(e) => setDecisionNote((p) => ({ ...p, [a.id]: e.target.value }))} />
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
+                      <Button size="sm" disabled={decideAppeal.isPending}
+                        onClick={() => decideAppeal.mutate({
+                          appeal: a,
+                          decision: decisionPick[a.id] || '',
+                          note: decisionNote[a.id] || '',
+                        })}>
+                        {decideAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Record decision
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {a.status === 'decided' && a.decision_rationale && (
+                  <div className="text-xs border-t pt-2">
+                    <strong>Rationale:</strong> {a.decision_rationale}
+                    {a.decided_at && <span className="text-muted-foreground"> · {new Date(a.decided_at).toLocaleString()}</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
