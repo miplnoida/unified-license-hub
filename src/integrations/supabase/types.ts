@@ -5316,6 +5316,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_digest_log: {
+        Row: {
+          categories_included: string[]
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          item_count: number
+          payload: Json | null
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          categories_included?: string[]
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          item_count?: number
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          categories_included?: string[]
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          item_count?: number
+          payload?: Json | null
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_dispatch_log: {
         Row: {
           acknowledged_at: string | null
@@ -5433,6 +5472,48 @@ export type Database = {
           recipient_rules?: Json
           title_template?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          categories: Json
+          channels: Json
+          created_at: string
+          digest_enabled: boolean
+          digest_time: string
+          digest_timezone: string
+          id: string
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categories?: Json
+          channels?: Json
+          created_at?: string
+          digest_enabled?: boolean
+          digest_time?: string
+          digest_timezone?: string
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categories?: Json
+          channels?: Json
+          created_at?: string
+          digest_enabled?: boolean
+          digest_time?: string
+          digest_timezone?: string
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
