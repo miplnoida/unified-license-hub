@@ -87,7 +87,6 @@ export default function CoordinationList() {
         <PageHeader
           title="Twin Peaks Coordination"
           description="Cross-regulator coordination workspaces — shared threads, participant clearance, and interdependency flags."
-          icon={<Users className="h-6 w-6" />}
           actions={
             <Dialog open={creating} onOpenChange={setCreating}>
               <DialogTrigger asChild>
