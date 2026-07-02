@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Download, Play, FileArchive } from 'lucide-react';
+import { Loader2, Download, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Job = {
@@ -83,7 +83,6 @@ export default function AuditExport() {
       <PageHeader
         title="Audit Log Export"
         description="Package activity/audit logs into a CSV for regulators and external auditors."
-        icon={FileArchive}
       />
 
       <Card>

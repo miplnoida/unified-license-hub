@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Plus, Copy, ShieldOff, KeyRound } from 'lucide-react';
+import { Loader2, Plus, Copy, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ApiKey = {
@@ -94,7 +94,6 @@ export default function ApiKeys() {
       <PageHeader
         title="Developer API Keys"
         description="Issue read-only API keys for external systems to consume the public registry."
-        icon={KeyRound}
         actions={<Button onClick={() => { setIssuedKey(null); setOpen(true); }}><Plus className="h-4 w-4 mr-2" />Issue key</Button>}
       />
 
