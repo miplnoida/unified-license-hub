@@ -131,6 +131,7 @@ async function buildCertificatePdf(opts: {
   statusEffectiveDate: string;
   signatory: SignatoryConfig;
   cryptoSigned: boolean;
+  conditions?: Array<{ category: string; description: string; due_date: string | null }>;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`License Certificate ${opts.licenseNumber}`);
