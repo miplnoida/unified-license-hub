@@ -7837,6 +7837,91 @@ export type Database = {
           },
         ]
       }
+      supervisory_plan_template_actions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          offset_days: number
+          owner_role: string | null
+          sort_order: number
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          offset_days?: number
+          owner_role?: string | null
+          sort_order?: number
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          offset_days?: number
+          owner_role?: string | null
+          sort_order?: number
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_plan_template_actions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "supervisory_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supervisory_plan_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supervisory_plan_templates_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supervisory_plans: {
         Row: {
           created_at: string

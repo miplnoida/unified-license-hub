@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit, Timer, Plug, Sparkles,
+  ClipboardEdit, Timer, Plug, Sparkles, Target,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -53,6 +53,7 @@ export default function AdminHub() {
     { label: 'Audit Logs', desc: 'Immutable legal evidence trail', icon: <Shield className="h-5 w-5" />, href: '/admin/compliance-audit-logs', module: 'settings' },
     { label: 'Integration Logs', desc: 'Inbound/outbound integration events', icon: <Plug className="h-5 w-5" />, href: '/admin/integration-logs', module: 'settings' },
     { label: 'RFI Auto-Rules', desc: 'Auto-suggested RFI items for reviewers', icon: <Sparkles className="h-5 w-5" />, href: '/admin/rfi-auto-rules', module: 'settings' },
+    { label: 'Supervisory Plan Templates', desc: 'Seed supervisory plans on approval', icon: <Target className="h-5 w-5" />, href: '/admin/supervisory-plan-templates', module: 'settings' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
