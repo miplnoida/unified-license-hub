@@ -118,9 +118,11 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Admin CRUD `/admin/fp-screening-configs` — full rule pack management (key, label, type, provider, severity, active toggle, sort order). AdminHub tile "FP Screening Rules" added; 6 default rules seeded.
 - New `FpScreeningPanel` on individual case-file (Screening tab now enabled) — "Run screening" button, run history, findings list with severity chips, one-click "mark as false positive" with review note and reviewer stamp.
 
-### 3.4 FPA-004 — Committee voting + determinations
-- Admin creates committees (`fp_committees` + `fp_committee_members`) with quorum and voting rules.
-- Assessment routes to a committee → members vote (`fp_committee_votes`: approve / conditional / reject / abstain) with justification; when quorum reached, a determination row (`fp_determinations`) is auto-created with outcome + rationale.
+### 3.4 FPA-004 — Committee voting + determinations ✅ SHIPPED
+- Admin CRUD `/admin/fp-committees` — create committees (name, description, quorum, approval threshold %, active toggle) and add/remove members with `chair` / `deputy_chair` / `member` / `observer` roles. AdminHub tile "FP Committees" added.
+- `FpDeterminationsPanel` on individual case-file (Determinations tab now enabled) — reviewers assign an assessment to an active committee (auto-advances status to `awaiting_committee`); members cast `approve` / `conditional` / `reject` / `abstain` votes with justification; live tally shows each vote + voter.
+- Quorum-aware finalization: once vote count ≥ quorum, panel computes proposed outcome using `approve+conditional` share vs. `approval_threshold_pct` (conditional wins the tie-break when conditionals outweigh approvals). Any member of the committee can enter a final rationale (min 10 chars) and finalize — writes `fp_determinations` (marking prior current determination as superseded), stamps assessment `determined_at` and status `determined`.
+- Determinations history renders under the panel with outcome chips, current/supersedes badges, and rationale.
 
 ### 3.5 FPA-005 — Conditional determinations
 - Conditional approvals capture attached conditions (`fp_conditions`: description, deadline, monitoring owner, evidence type). Mirrors the `license_conditions` pattern.
