@@ -33,6 +33,7 @@ const RegistrationReview = lazy(() => import('@/pages/admin/RegistrationReview')
 const LicenseActionFormsPage = lazy(() => import('@/pages/admin/LicenseActionFormsPage'));
 const RfiAutoRules = lazy(() => import('@/pages/admin/RfiAutoRules'));
 const SupervisoryPlanTemplates = lazy(() => import('@/pages/admin/SupervisoryPlanTemplates'));
+const BulkIntake = lazy(() => import('@/pages/admin/BulkIntake'));
 
 
 
@@ -99,6 +100,7 @@ export const adminRoutes = (
     <Route path="/admin/license-action-forms" element={<M module="license_management"><LicenseActionFormsPage /></M>} />
     <Route path="/admin/rfi-auto-rules" element={<A><RfiAutoRules /></A>} />
     <Route path="/admin/supervisory-plan-templates" element={<A><SupervisoryPlanTemplates /></A>} />
+    <Route path="/admin/applications/bulk-intake" element={<A><BulkIntake /></A>} />
     <Route path="/admin/external-portal-access" element={<Navigate to="/admin/roles" replace />} />
     
     

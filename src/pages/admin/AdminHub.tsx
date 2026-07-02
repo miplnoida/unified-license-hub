@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit, Timer, Plug, Sparkles, Target,
+  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload,
 } from 'lucide-react';
 
 export default function AdminHub() {
@@ -55,6 +55,7 @@ export default function AdminHub() {
     { label: 'RFI Auto-Rules', desc: 'Auto-suggested RFI items for reviewers', icon: <Sparkles className="h-5 w-5" />, href: '/admin/rfi-auto-rules', module: 'settings' },
     { label: 'Supervisory Plan Templates', desc: 'Seed supervisory plans on approval', icon: <Target className="h-5 w-5" />, href: '/admin/supervisory-plan-templates', module: 'settings' },
     { label: 'Twin Peaks Coordination', desc: 'Cross-regulator shared cases', icon: <Users className="h-5 w-5" />, href: '/coordination', module: 'application_management' },
+    { label: 'Bulk Application Intake', desc: 'CSV → staged draft applications', icon: <Upload className="h-5 w-5" />, href: '/admin/applications/bulk-intake', module: 'application_management' },
     { label: 'System Settings', desc: 'Security, branding & more', icon: <Settings className="h-5 w-5" />, href: '/settings', module: 'settings' },
     { label: 'Registration Forms', desc: 'Dynamic registration flow config', icon: <FormInput className="h-5 w-5" />, href: '/admin/registration-forms', module: 'form_management' },
     { label: 'Registration Review', desc: 'Review submitted registration requests', icon: <ClipboardEdit className="h-5 w-5" />, href: '/admin/registration-review', module: 'registration_management' },
