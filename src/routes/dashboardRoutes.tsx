@@ -47,6 +47,7 @@ const FitAndProperAssessmentDetail = lazy(() => import('@/pages/fit-and-proper/F
 const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList'));
 const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
+const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -123,5 +124,6 @@ export const dashboardRoutes = (
     <Route path="/enforcement" element={<M module="license_management"><EnforcementList /></M>} />
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
+    <Route path="/supervision/breaches" element={<M module="returns_management"><BreachInbox /></M>} />
   </>
 );

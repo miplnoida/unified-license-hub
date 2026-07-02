@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useSupervisoryMetrics, SupervisoryFilters } from '@/hooks/useSupervisoryMetrics';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
@@ -22,6 +24,20 @@ export function SupervisoryDashboard() {
   const [filters] = useState<SupervisoryFilters>({});
   const { data, isLoading } = useSupervisoryMetrics(filters);
   const { hasModuleAccess } = useUserDynamicPermissions();
+
+  // Open (unacknowledged, non-escalated) prudential breaches — tile links to inbox
+  const { data: openBreaches } = useQuery({
+    queryKey: ['supervisory_open_breaches'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('return_threshold_breaches')
+        .select('id', { head: true, count: 'exact' })
+        .is('acknowledged_at', null)
+        .is('escalated_enforcement_id', null);
+      return count ?? 0;
+    },
+    staleTime: 60_000,
+  });
 
   const insights = useMemo(() => (data ? buildInsights(data) : []), [data]);
 
@@ -81,6 +97,9 @@ export function SupervisoryDashboard() {
         )}
         {can.enforcement && (
           <MetricCard title="Open Enforcement" value={data?.enforcement.open ?? 0} icon={AlertTriangle} tone="destructive" loading={isLoading} />
+        )}
+        {can.returns && (
+          <MetricCard title="Open Breaches" value={openBreaches ?? 0} icon={ShieldAlert} tone="destructive" loading={openBreaches === undefined} to="/supervision/breaches" />
         )}
       </div>
 
