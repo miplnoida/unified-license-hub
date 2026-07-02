@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useSupervisoryMetrics, SupervisoryFilters } from '@/hooks/useSupervisoryMetrics';
 import { buildInsights } from '@/lib/dashboardInsights';
 import { useUserDynamicPermissions } from '@/hooks/usePermissions';
