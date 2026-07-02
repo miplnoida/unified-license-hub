@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ActivityTab } from '@/components/applications/ActivityTab';
 import { ApplicationRfiTab } from '@/components/applications/ApplicationRfiTab';
+import { ConsolidatedCaseTab } from '@/components/applications/ConsolidatedCaseTab';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
