@@ -200,7 +200,7 @@ export default function BreachInbox() {
       }).eq('id', escTarget.id);
       if (upErr) throw upErr;
       await supabase.from('enforcement_case_events').insert({
-        enforcement_action_id: data.id,
+        case_id: data.id,
         event_type: 'opened',
         note: `Auto-opened from prudential breach ${escTarget.metric_key}`,
         detail: { source_breach_id: escTarget.id, return_id: escTarget.return_id },
