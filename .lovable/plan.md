@@ -8,13 +8,12 @@ Estimated effort: **12–16 dev-days**, delivered in 5 self-contained sub-featur
 
 ## Sub-features
 
-### 4.1 ENF-001 — Enforcement case lifecycle & queue
-- New route `/enforcement` — cross-licensee enforcement queue with status filters (`opened` / `notice_issued` / `response_received` / `decided` / `appealed` / `closed` / `withdrawn`), enforcement-type filter, sortable by penalty amount and days open.
-- Case detail `/enforcement/:id` with lifecycle actions: **issue notice** (letter template + document generation via existing certificate signer), **record response**, **record decision** (upheld / reduced penalty / dismissed), **withdraw**, **close**.
-- Extend `enforcement_actions` with lifecycle fields (`notice_issued_at`, `response_received_at`, `decision_at`, `decision_outcome`, `decision_rationale`, `appeal_deadline`, `linked_document_ids[]`).
-- New table `enforcement_case_events` (timeline of every action + actor + note) rendered via existing `EntityTimeline`.
-- Wire the mock `src/pages/billing/Penalties.tsx` to real `enforcement_actions.penalty_amount` — display collected/outstanding penalties, flag overdue.
-- Keep the existing `EnforcementTab` on licensee detail intact; it becomes a filtered view of the same table.
+### 4.1 ENF-001 — Enforcement case lifecycle & queue ✅ SHIPPED
+- New route `/enforcement` — cross-licensee queue with status/type filters, penalty & days-open sort, and headline stats (active, collected, outstanding). New `/enforcement/:id` case workspace.
+- Lifecycle actions: **issue notice** (min 20 chars, stamps `notice_issued_at`), **record response** (date + summary), **record decision** (outcome + rationale + optional penalty override + appeal deadline), **mark appealed**, **record penalty payment** (running paid total), **close**, **withdraw**. Every action writes an `enforcement_case_events` row (actor + note + detail JSON) and a matching `audit_logs` entry via `logAction('enforcement.<event>', …)`.
+- Schema: extended `enforcement_actions` with `notice_issued_at`, `response_received_at`, `response_summary`, `decision_at`, `decision_outcome`, `decision_rationale`, `appeal_deadline`, `penalty_currency`, `penalty_paid_amount`, `linked_document_ids[]`, `opened_by`, `closed_at`, `closed_by`, `source_type`, `source_reference_id`. New `enforcement_case_events` table with RLS (staff manage, all staff read).
+- `src/pages/billing/Penalties.tsx` rewritten off the mock array — live totals for assessed / collected / outstanding / disputed, per-row overdue flag (unpaid past appeal deadline or 30 days after decision), deep-link to owning case. Route added at `/billing/penalties`.
+- Existing per-licensee `EnforcementTab` untouched; it reads the same table so newly-added lifecycle columns simply carry through.
 
 ### 4.2 SUP-001 — Prudential breach alert inbox
 - New route `/supervision/breaches` — supervisor inbox of unresolved `return_threshold_breaches` across all licensees, grouped by licensee, sorted by severity (breach magnitude vs. threshold) then by `created_at`.
