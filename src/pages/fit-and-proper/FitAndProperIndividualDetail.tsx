@@ -105,6 +105,10 @@ export default function FitAndProperIndividualDetail() {
           <TabsContent value="screening">
             {id && <FpScreeningPanel individualId={id} assessmentId={latestAssessmentId} />}
           </TabsContent>
+
+          <TabsContent value="determinations">
+            {id && <FpDeterminationsPanel individualId={id} assessmentId={latestAssessmentId} />}
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
