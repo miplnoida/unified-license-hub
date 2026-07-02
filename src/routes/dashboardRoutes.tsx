@@ -48,6 +48,9 @@ const EnforcementList = lazy(() => import('@/pages/enforcement/EnforcementList')
 const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDetail'));
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
+const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
+const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
+const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -125,5 +128,8 @@ export const dashboardRoutes = (
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
     <Route path="/supervision/breaches" element={<M module="returns_management"><BreachInbox /></M>} />
+    <Route path="/inspections" element={<M module="settings"><InspectionsList /></M>} />
+    <Route path="/inspections/schedule" element={<M module="settings"><InspectionsCalendar /></M>} />
+    <Route path="/inspections/:id" element={<M module="settings"><InspectionDetail /></M>} />
   </>
 );
