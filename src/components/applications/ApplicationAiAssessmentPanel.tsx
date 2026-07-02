@@ -263,6 +263,13 @@ function CompletedView({
         </AlertDescription>
       </Alert>
 
+      <AnalystDecisionBar
+        assessment={assessment}
+        applicationId={applicationId}
+        currentUserId={currentUserId}
+        onSaved={onDecisionSaved}
+      />
+
       {assessment.summary && (
         <section>
           <div className="text-sm font-semibold mb-1">Summary</div>
