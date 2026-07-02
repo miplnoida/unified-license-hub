@@ -112,10 +112,11 @@ Full greenfield build of the Fit & Proper regime for regulated-entity individual
 - Lifecycle wired end-to-end: `draft → submitted → screening → awaiting_committee → determined → closed`. Draft is editable; submission stamps `submitted_by` / `submitted_at`. Internal-only "Send to screening / committee / Determined / Close" buttons transition status. Assessments tab on the individual profile now enabled and shows the full list.
 - Magic-link declaration route (`/fit-and-proper/declare/:token`) deferred to a follow-up — the authenticated inline form covers licensee_primary via existing RLS.
 
-### 3.3 FPA-003 — Screening engine
-- Admin-configured rule packs (`fp_screening_configs`): sanctions lists, PEP flags, adverse media, criminal history, regulator watchlists.
-- On assessment submit (or manual re-run), edge function `fp-screening-run` executes each rule against declared data + external sources, writes a `fp_screening_runs` row and per-hit `fp_findings` (severity, source, evidence URL, false-positive flag).
-- Adverse-media check uses Lovable AI Gateway to summarise search results per subject.
+### 3.3 FPA-003 — Screening engine ✅ SHIPPED
+- Edge function `fp-screening-run` executes every active `fp_screening_configs` rule against the assessment's declaration + individual identity, writes a `fp_screening_runs` row (with `total_checks`/`total_hits` + duration) and per-hit `fp_findings` (severity, source, summary, raw payload). Auto-advances assessment status to `screening` when hits are found; logs via `_shared/integration-log.ts`.
+- Built-in rule types: `sanctions` (keyword scan), `pep` (employment history keywords), `criminal_history` / `credit_history` / `regulator_watchlist` (self-declaration flags), `adverse_media` (Lovable AI Gateway `google/gemini-2.5-flash` returning risk-graded summaries in strict JSON).
+- Admin CRUD `/admin/fp-screening-configs` — full rule pack management (key, label, type, provider, severity, active toggle, sort order). AdminHub tile "FP Screening Rules" added; 6 default rules seeded.
+- New `FpScreeningPanel` on individual case-file (Screening tab now enabled) — "Run screening" button, run history, findings list with severity chips, one-click "mark as false positive" with review note and reviewer stamp.
 
 ### 3.4 FPA-004 — Committee voting + determinations
 - Admin creates committees (`fp_committees` + `fp_committee_members`) with quorum and voting rules.
