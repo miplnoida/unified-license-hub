@@ -78,7 +78,7 @@ export default function FitAndProperIndividualDetail() {
             <TabsTrigger value="screening">Screening</TabsTrigger>
             <TabsTrigger value="determinations">Determinations</TabsTrigger>
             <TabsTrigger value="conditions">Conditions</TabsTrigger>
-            <TabsTrigger value="appeals" disabled>Appeals</TabsTrigger>
+            <TabsTrigger value="appeals">Appeals</TabsTrigger>
             <TabsTrigger value="monitoring" disabled>Monitoring</TabsTrigger>
           </TabsList>
 
