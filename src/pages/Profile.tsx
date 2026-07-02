@@ -419,6 +419,10 @@ export default function Profile() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="notifications" className="mt-6">
+            <NotificationPreferences />
+          </TabsContent>
         </Tabs>
       </div>
 
