@@ -136,13 +136,23 @@ export default function ComplaintDetail() {
       if (escalateNote.trim().length < 10) throw new Error('Provide findings (min 10 chars)');
       const { data: created, error } = await (supabase.from('enforcement_actions') as any).insert({
         entity_id: complaint.licensee_id,
-        action_type: 'complaint_escalation',
-        status: 'draft',
+        enforcement_type: 'complaint_escalation',
+        status: 'open',
+        description: `Escalated from complaint ${complaint.complaint_number}: ${complaint.subject}\n\nFindings: ${escalateNote.trim()}`,
         findings: escalateNote.trim(),
-        initiated_by: user?.id ?? null,
+        opened_by: user?.id ?? null,
+        source_type: 'complaint',
+        source_reference_id: complaint.id,
       }).select('id, case_number').single();
       if (error) throw error;
       await supabase.from('complaints').update({ enforcement_action_id: created.id }).eq('id', id!);
+      await (supabase.from('enforcement_case_events') as any).insert({
+        case_id: created.id,
+        event_type: 'opened',
+        note: `Auto-opened from complaint ${complaint.complaint_number}`,
+        detail: { complaint_id: complaint.id },
+        actor_id: user?.id ?? null,
+      });
       await logAction('complaint.escalated_to_enforcement', 'complaint', id!, { meta: { enforcement_id: created.id } });
       return created;
     },
