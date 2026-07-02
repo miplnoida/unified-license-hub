@@ -51,6 +51,7 @@ const EnforcementDetail = lazy(() => import('@/pages/enforcement/EnforcementDeta
 const Penalties = lazy(() => import('@/pages/billing/Penalties'));
 const BreachInbox = lazy(() => import('@/pages/supervision/BreachInbox'));
 const SupervisoryPlansDashboard = lazy(() => import('@/pages/supervision/SupervisoryPlansDashboard'));
+const RiskHeatmap = lazy(() => import('@/pages/supervision/RiskHeatmap'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
@@ -137,5 +138,6 @@ export const dashboardRoutes = (
     <Route path="/inspections/schedule" element={<M module="settings"><InspectionsCalendar /></M>} />
     <Route path="/inspections/:id" element={<M module="settings"><InspectionDetail /></M>} />
     <Route path="/supervision/plans" element={<M module="settings"><SupervisoryPlansDashboard /></M>} />
+    <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
   </>
 );
