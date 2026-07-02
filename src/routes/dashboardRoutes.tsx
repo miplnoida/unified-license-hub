@@ -138,5 +138,6 @@ export const dashboardRoutes = (
     <Route path="/inspections/schedule" element={<M module="settings"><InspectionsCalendar /></M>} />
     <Route path="/inspections/:id" element={<M module="settings"><InspectionDetail /></M>} />
     <Route path="/supervision/plans" element={<M module="settings"><SupervisoryPlansDashboard /></M>} />
+    <Route path="/supervision/risk" element={<M module="settings"><RiskHeatmap /></M>} />
   </>
 );
