@@ -9,7 +9,7 @@ import { ShieldAlert } from 'lucide-react';
 import {
   Building2, Users, Shield, FormInput, GitBranch, DollarSign, BarChart3, Bell,
   Settings, ScrollText, Layers, FileCheck, AlertTriangle, ArrowUpRight, CalendarCheck, Briefcase,
-  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload, UserCheck, Gavel, ClipboardCheck, TrendingUp,
+  ClipboardEdit, Timer, Plug, Sparkles, Target, Upload, UserCheck, Gavel, ClipboardCheck, TrendingUp, Mail,
 } from 'lucide-react';
 
 export default function AdminHub() {
