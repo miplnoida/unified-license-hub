@@ -132,10 +132,12 @@ Deno.serve(async (req) => {
     const admin = createClient(url, service);
 
     // Load return + config
-    const { data: rf } = await admin.from("returns_filed")
-      .select("id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, period_end, unique_id")
+    const { data: rf, error: rfErr } = await admin.from("returns_filed")
+      .select("id, entity_id, on_behalf_of_licensee_id, return_configuration_id, sector_id, period_end_date, unique_id")
       .eq("id", return_id).maybeSingle();
+    if (rfErr) return json({ error: `Return lookup failed: ${rfErr.message}` }, 500);
     if (!rf) return json({ error: "Return not found" }, 404);
+
 
     // Load latest ratios/breaches for THIS return
     const [{ data: calcRatios = [] }, { data: breachRows = [] }, { data: cfgRatios = [] }] = await Promise.all([
