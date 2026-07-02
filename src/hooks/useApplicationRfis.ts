@@ -33,7 +33,9 @@ export interface Rfi {
   closure_notes: string | null;
   closed_by: string | null;
   closed_at: string | null;
+  approval_step_action_id: string | null;
   items?: RfiItem[];
+
 }
 
 export function useApplicationRfis(applicationId: string | undefined) {
