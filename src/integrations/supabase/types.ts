@@ -4817,11 +4817,13 @@ export type Database = {
           id: string
           individual_id: string
           monitoring_owner: string | null
+          overdue_at: string | null
           satisfaction_note: string | null
           satisfied_at: string | null
           satisfied_by: string | null
           status: string
           updated_at: string
+          waiver_reason: string | null
         }
         Insert: {
           category: string
@@ -4834,11 +4836,13 @@ export type Database = {
           id?: string
           individual_id: string
           monitoring_owner?: string | null
+          overdue_at?: string | null
           satisfaction_note?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
           status?: string
           updated_at?: string
+          waiver_reason?: string | null
         }
         Update: {
           category?: string
@@ -4851,11 +4855,13 @@ export type Database = {
           id?: string
           individual_id?: string
           monitoring_owner?: string | null
+          overdue_at?: string | null
           satisfaction_note?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
           status?: string
           updated_at?: string
+          waiver_reason?: string | null
         }
         Relationships: [
           {
@@ -4960,6 +4966,7 @@ export type Database = {
           reviewed_by: string | null
           run_id: string
           severity: string
+          severity_basis: Json | null
           source: string | null
           summary: string | null
           title: string
@@ -4979,6 +4986,7 @@ export type Database = {
           reviewed_by?: string | null
           run_id: string
           severity?: string
+          severity_basis?: Json | null
           source?: string | null
           summary?: string | null
           title: string
@@ -4998,6 +5006,7 @@ export type Database = {
           reviewed_by?: string | null
           run_id?: string
           severity?: string
+          severity_basis?: Json | null
           source?: string | null
           summary?: string | null
           title?: string
@@ -5284,6 +5293,7 @@ export type Database = {
         Row: {
           assessment_id: string
           completed_at: string | null
+          config_snapshot: Json | null
           error: string | null
           id: string
           individual_id: string
@@ -5297,6 +5307,7 @@ export type Database = {
         Insert: {
           assessment_id: string
           completed_at?: string | null
+          config_snapshot?: Json | null
           error?: string | null
           id?: string
           individual_id: string
@@ -5310,6 +5321,7 @@ export type Database = {
         Update: {
           assessment_id?: string
           completed_at?: string | null
+          config_snapshot?: Json | null
           error?: string | null
           id?: string
           individual_id?: string
