@@ -265,11 +265,29 @@ export function FpAppealsPanel({ individualId }: Props) {
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
                       <Button size="sm" disabled={decideAppeal.isPending}
-                        onClick={() => decideAppeal.mutate({
-                          appeal: a,
-                          decision: decisionPick[a.id] || '',
-                          note: decisionNote[a.id] || '',
-                        })}>
+                        onClick={() => {
+                          const decision = decisionPick[a.id] || '';
+                          const note = decisionNote[a.id] || '';
+                          if (decision === 'overturned_to_approved' || decision === 'overturned_to_conditional') {
+                            setPending({
+                              appealId: a.id,
+                              ruleKey: 'fit_and_proper.appeal.determination_override',
+                              original: { determination_id: a.determination_id, outcome: currentDet?.outcome },
+                              overridden: { decision, new_outcome: decision === 'overturned_to_approved' ? 'approved' : 'conditional' },
+                              metadata: {
+                                source: 'phase1_override_framework',
+                                screen: 'FpAppealsPanel',
+                                appeal_id: a.id,
+                                individual_id: individualId,
+                                previous_outcome: currentDet?.outcome,
+                                new_outcome: decision === 'overturned_to_approved' ? 'approved' : 'conditional',
+                              },
+                              apply: async () => { await decideAppeal.mutateAsync({ appeal: a, decision, note }); },
+                            });
+                          } else {
+                            decideAppeal.mutate({ appeal: a, decision, note });
+                          }
+                        }}>
                         {decideAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         Record decision
                       </Button>
