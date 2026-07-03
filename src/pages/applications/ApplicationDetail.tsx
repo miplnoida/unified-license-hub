@@ -49,6 +49,7 @@ import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
+import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
