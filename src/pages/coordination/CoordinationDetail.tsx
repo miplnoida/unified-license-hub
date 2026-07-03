@@ -607,6 +607,10 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         .update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: currentUserId! })
         .eq('id', id);
       if (error) throw error;
+      await logCoordinationAction('coordination.flag.resolved', 'coordination_flag', id, {
+        after: { status: 'resolved' },
+        context: { caseId, flagId: id },
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['coordination_flags', caseId] }),
   });
