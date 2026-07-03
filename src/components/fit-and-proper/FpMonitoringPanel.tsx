@@ -91,7 +91,15 @@ export function FpMonitoringPanel({ individualId }: Props) {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Radar className="h-4 w-4" /> Monitoring alerts</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2"><Radar className="h-4 w-4" /> Monitoring alerts</span>
+            <Button size="sm" variant="outline" disabled={rechecking} onClick={triggerRecheck}>
+              {rechecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Trigger recheck
+            </Button>
+          </CardTitle>
+        </CardHeader>
         <CardContent className="space-y-3">
           {isLoading && <div className="text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</div>}
           {!isLoading && (events ?? []).length === 0 && <p className="text-sm text-muted-foreground">No monitoring alerts raised.</p>}
