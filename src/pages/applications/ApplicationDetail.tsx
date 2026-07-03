@@ -978,6 +978,7 @@ export default function ApplicationDetail() {
             {isInternal && app.status !== 'draft' && (
               <>
                 <SufficiencyPanel applicationId={app.id} />
+                <TwinPeaksPanel applicationId={app.id} />
                 <DecisionReadySummary
                   application={app as any}
                   events={events}
@@ -987,6 +988,7 @@ export default function ApplicationDetail() {
                 />
               </>
             )}
+
 
             {/* Per-step SLA is rendered inside WorkflowPanel for the active step;
                 top-level banner removed to avoid duplicate/misleading aggregate SLA. */}
