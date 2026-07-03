@@ -21,7 +21,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Plus, Pencil, Trash2, Layers } from 'lucide-react';
 import { toast } from 'sonner';
-import { logAudit } from '@/lib/audit';
+import { logAudit } from '@/hooks/useAuditLog';
 
 const ROLE_TYPES = ['director', 'senior_manager', 'key_person', 'controller', 'other'];
 

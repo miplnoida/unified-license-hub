@@ -4,7 +4,7 @@ import { Printer, X } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { logAudit } from '@/lib/audit';
+import { logAudit } from '@/hooks/useAuditLog';
 import { logExport } from '@/lib/exportAudit';
 
 export interface ComplaintAckInput {

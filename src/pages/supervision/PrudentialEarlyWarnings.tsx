@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle, Loader2, TrendingDown, TrendingUp, Download, Play, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { logExport } from '@/lib/exportAudit';
-import { logAudit } from '@/lib/audit';
+import { logAudit } from '@/hooks/useAuditLog';
 
 type Warning = {
   licensee_id: string;
