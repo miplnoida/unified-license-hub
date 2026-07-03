@@ -246,6 +246,12 @@ export default function RuleOverrides() {
                   <DiffViewer before={selected.original_value} after={selected.overridden_value} />
                 </div>
 
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setTimelineFor(selected)}>
+                    View full entity timeline
+                  </Button>
+                </div>
+
                 {selected.metadata && Object.keys(selected.metadata).length > 0 && (
                   <div>
                     <div className="text-xs uppercase text-muted-foreground mb-1">Metadata</div>
