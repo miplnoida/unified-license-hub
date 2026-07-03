@@ -333,7 +333,7 @@ function CompletedView({
       <section>
         <div className="text-sm font-semibold mb-2">Routing recommendation</div>
         {routing.recommended_route ? (
-          <div className="rounded-md border p-3 space-y-1">
+          <div className="rounded-md border p-3 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge>{ROUTE_LABELS[routing.recommended_route] || routing.recommended_route}</Badge>
               {routing.recommended_action && (
@@ -344,6 +344,11 @@ function CompletedView({
               )}
             </div>
             {routing.reason && <p className="text-sm text-muted-foreground">{routing.reason}</p>}
+            <AIRoutingDecisionActions
+              assessment={assessment}
+              currentUserId={currentUserId}
+              onSaved={onDecisionSaved}
+            />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No routing recommendation provided.</p>
