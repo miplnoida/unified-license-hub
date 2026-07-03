@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, Play, RefreshCw } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldAlert, ShieldQuestion, Play, RefreshCw, MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { logAction } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
+import { RaiseRfiDialog, type RfiInitialItem } from '@/components/applications/RaiseRfiDialog';
 
 interface Props { applicationId: string }
 
