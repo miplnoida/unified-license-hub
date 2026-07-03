@@ -273,17 +273,18 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
                   <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                   <SelectContent>{(OPS[c.field] || []).map(o => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
                 </Select>
-                {c.op === 'is_true' ? (
+                {NO_VALUE_OPS.has(c.op) ? (
                   <div className="col-span-4 text-xs text-muted-foreground pt-2">(no value)</div>
                 ) : (
                   <Input
                     className="col-span-4"
-                    placeholder={c.op === 'in' || c.op === 'contains_any' ? 'comma,separated,values' : 'value'}
+                    placeholder={LIST_OPS.has(c.op) ? 'comma,separated,values' : 'value'}
                     value={Array.isArray(c.value) ? c.value.join(',') : (c.value ?? '')}
                     onChange={e => {
                       const raw = e.target.value;
-                      const v = (c.op === 'in' || c.op === 'contains_any') ? raw.split(',').map(s => s.trim()).filter(Boolean) :
-                        (c.field === 'repeat_count' ? Number(raw) : raw);
+                      const v = LIST_OPS.has(c.op)
+                        ? raw.split(',').map(s => s.trim()).filter(Boolean)
+                        : (NUM_FIELDS.has(c.field) ? (raw === '' ? '' : Number(raw)) : raw);
                       setCond(i, { value: v });
                     }}
                   />
