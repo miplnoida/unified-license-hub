@@ -419,7 +419,32 @@ export default function SupervisoryPlansDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={clearBulk}>Cancel</Button>
-            <Button onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
+            <Button onClick={() => {
+              const anyOverdue = Array.from(selected).some((id) => {
+                const cur = enriched.find((a: any) => a.id === id);
+                return cur && isOverdue(cur);
+              });
+              if (anyOverdue) {
+                const firstId = Array.from(selected)[0];
+                setPending({
+                  ruleKey: 'supervisory_plan.due_date.override',
+                  title: `Extend due date after SLA breach (${selected.size} action(s))`,
+                  entityId: firstId,
+                  original: { selection_ids: Array.from(selected) },
+                  overridden: { new_due_date: extendDate, reason: extendReason.trim() },
+                  metadata: {
+                    source: 'phase1_override_framework',
+                    screen: 'SupervisoryPlansDashboard',
+                    supervisory_plan_action_ids: Array.from(selected),
+                    new_due_date: extendDate,
+                    contains_overdue: true,
+                  },
+                  apply: async () => { await runBulk.mutateAsync(); },
+                });
+              } else {
+                runBulk.mutate();
+              }
+            }} disabled={runBulk.isPending}>
               {runBulk.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Extend
             </Button>
           </DialogFooter>
