@@ -36,21 +36,52 @@ export default function ConductAlerts() {
   };
   useEffect(() => { load(); }, [status]);
 
-  const ack = async (id: string) => {
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() }).eq('id', id);
+  const ack = async (row: any) => {
+    const prevStatus = row.status;
+    const { error } = await supabase.from('conduct_alerts').update({ status: 'acknowledged', acknowledged_by: user?.id, acknowledged_at: new Date().toISOString() }).eq('id', row.id);
     if (error) return toast.error(error.message);
-    await logAudit({ action: 'conduct_alert_acknowledged', entityType: 'conduct_alert', entityId: id });
+    await logAudit({
+      action: 'conduct_alert_acknowledged',
+      entityType: 'conduct_alert',
+      entityId: row.id,
+      metadata: {
+        old_status: prevStatus,
+        new_status: 'acknowledged',
+        actor_id: user?.id,
+        alert_kind: row.kind,
+        complaint_id: row.complaint_id,
+        triage_rule_id: row.triage_rule_id,
+        licensee_id: row.licensee_id,
+        severity: row.severity,
+      },
+    });
     load();
   };
-  const doClose = async (id: string) => {
-    const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', id);
+  const doClose = async (row: any, extra?: Record<string, any>) => {
+    const prevStatus = row.status;
+    const { error } = await supabase.from('conduct_alerts').update({ status: 'closed', closed_by: user?.id, closed_at: new Date().toISOString() }).eq('id', row.id);
     if (error) return toast.error(error.message);
-    await logAudit({ action: 'conduct_alert_closed', entityType: 'conduct_alert', entityId: id });
+    await logAudit({
+      action: 'conduct_alert_closed',
+      entityType: 'conduct_alert',
+      entityId: row.id,
+      metadata: {
+        old_status: prevStatus,
+        new_status: 'closed',
+        actor_id: user?.id,
+        alert_kind: row.kind,
+        complaint_id: row.complaint_id,
+        triage_rule_id: row.triage_rule_id,
+        licensee_id: row.licensee_id,
+        severity: row.severity,
+        ...(extra || {}),
+      },
+    });
     load();
   };
   const close = async (row: any) => {
     if (row.triage_rule_id) { setOverrideAlert(row); return; }
-    await doClose(row.id);
+    await doClose(row);
   };
 
   return (
@@ -107,7 +138,7 @@ export default function ConductAlerts() {
                       <TableCell className="text-sm">{r.conduct_risk_categories?.name || '—'}</TableCell>
                       <TableCell><Badge variant={r.status === 'open' ? 'destructive' : r.status === 'acknowledged' ? 'secondary' : 'default'} className="capitalize">{r.status}</Badge></TableCell>
                       <TableCell className="text-right">
-                        {r.status === 'open' && <Button size="sm" variant="outline" onClick={() => ack(r.id)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
+                        {r.status === 'open' && <Button size="sm" variant="outline" onClick={() => ack(r)}><CheckCircle2 className="h-3 w-3 mr-1" />Ack</Button>}
                         {r.status !== 'closed' && <Button size="sm" variant="ghost" className="ml-1" onClick={() => close(r)}><XCircle className="h-3 w-3 mr-1" />Close</Button>}
                       </TableCell>
                     </TableRow>
@@ -132,7 +163,7 @@ export default function ConductAlerts() {
           metadata={{ source: 'ConductAlerts', complaint_id: overrideAlert.complaint_id, kind: overrideAlert.kind }}
           title="Close rule-generated alert"
           description="This alert was raised by an active triage rule. Provide a written justification before closing."
-          onOverridden={async () => { await doClose(overrideAlert.id); setOverrideAlert(null); }}
+          onOverridden={async () => { await doClose(overrideAlert, { override: true, override_rule_id: overrideAlert.triage_rule_id }); setOverrideAlert(null); }}
         />
       )}
     </DashboardLayout>

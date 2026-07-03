@@ -434,10 +434,22 @@ Deno.serve(async (req) => {
     const { error: uErr } = await supabase.from('complaints').update(update).eq('id', complaint_id);
     if (uErr) throw uErr;
 
-    // Alerts (duplicate-safe via dedupe_key)
+    // Alerts (race-safe: SELECT-then-INSERT against partial unique index on open dedupe_key)
     const alertsCreated: Array<{ id: string; kind: string }> = [];
+    const alertsSkipped: Array<{ kind: string; dedupe_key: string }> = [];
     for (const a of plannedAlerts) {
       const dedupe = await sha1Hex(a.dedupeParts.join(':'));
+      const { data: existing } = await supabase
+        .from('conduct_alerts')
+        .select('id')
+        .eq('dedupe_key', dedupe)
+        .neq('status', 'closed')
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        alertsSkipped.push({ kind: a.kind, dedupe_key: dedupe });
+        continue;
+      }
       const row: any = {
         complaint_id: a.kind === 'thematic_spike' ? null : complaint_id,
         licensee_id: a.licensee_id ?? complaint.licensee_id ?? null,
@@ -452,9 +464,17 @@ Deno.serve(async (req) => {
         window_start: a.window_start ?? null, window_end: a.window_end ?? null,
       };
       const { data, error } = await supabase.from('conduct_alerts')
-        .upsert(row, { onConflict: 'dedupe_key', ignoreDuplicates: true })
+        .insert(row)
         .select('id').maybeSingle();
-      if (!error && data?.id) alertsCreated.push({ id: data.id, kind: a.kind });
+      if (error) {
+        if ((error as any).code === '23505') {
+          alertsSkipped.push({ kind: a.kind, dedupe_key: dedupe });
+        } else {
+          console.warn('[triage] alert insert failed', error.message);
+        }
+        continue;
+      }
+      if (data?.id) alertsCreated.push({ id: data.id, kind: a.kind });
     }
 
     const outcome = matched ? 'matched' : 'no_match';
@@ -473,6 +493,7 @@ Deno.serve(async (req) => {
       new_values: update,
       applied_outputs: appliedOutputs,
       alerts_generated: alertsCreated,
+      alerts_skipped: alertsSkipped,
     });
     await logComplianceAudit(supabase, {
       actorId: actorId ?? SYSTEM_ACTOR, actionType: 'UPDATE',
@@ -483,6 +504,7 @@ Deno.serve(async (req) => {
         dry_run: false, triggered_by, matched_rule_id: matched?.id ?? null,
         matched_rule_name: matched?.name ?? null, rules_evaluated: rules.length,
         alerts_created: alertsCreated.length, alert_kinds: alertsCreated.map((a) => a.kind),
+        alerts_skipped: alertsSkipped.length,
       },
     });
 

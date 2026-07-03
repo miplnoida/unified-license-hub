@@ -33,8 +33,12 @@ interface Outputs {
   priority?: 'p1' | 'p2' | 'p3' | 'p4';
   sla_days?: number;
   assigned_team?: string;
+  conduct_risk_category_id?: string;
   conduct_risk_category_code?: string;
   generate_alert_kind?: string;
+  alert_severity?: 'low' | 'medium' | 'high' | 'critical';
+  alert_title?: string;
+  alert_detail?: Record<string, unknown>;
   recommended_action?: string;
 }
 
@@ -43,11 +47,14 @@ const FIELDS = [
   { v: 'product', l: 'Product (ID)' },
   { v: 'channel', l: 'Channel (ID)' },
   { v: 'entity', l: 'Licensee / Entity (ID)' },
+  { v: 'conduct_risk_category', l: 'Conduct Risk Category' },
   { v: 'customer_type', l: 'Customer Type' },
   { v: 'customer_vulnerability', l: 'Customer Vulnerability' },
   { v: 'keywords', l: 'Keywords (subject + description)' },
   { v: 'repeat_count', l: 'Repeat Complaint Count (12m)' },
   { v: 'sla_days', l: 'Current SLA days' },
+  { v: 'sla_due_at', l: 'SLA Due At (date/time)' },
+  { v: 'status', l: 'Complaint Status' },
   { v: 'severity', l: 'Current Severity' },
   { v: 'priority', l: 'Current Priority' },
   { v: 'assigned_team', l: 'Current Assigned Team' },
@@ -62,6 +69,12 @@ const COMMON_OPS = [
 const NUM_OPS = [
   { v: 'eq', l: '=' }, { v: 'neq', l: '≠' },
   { v: 'gte', l: '≥' }, { v: 'lte', l: '≤' },
+  { v: 'gt', l: '>' }, { v: 'lt', l: '<' },
+  { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
+];
+const DATE_OPS = [
+  { v: 'lt', l: 'before' }, { v: 'lte', l: 'on or before' },
+  { v: 'gt', l: 'after' }, { v: 'gte', l: 'on or after' },
   { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
 ];
 const TEXT_OPS = [
@@ -76,11 +89,14 @@ const OPS: Record<string, { v: string; l: string }[]> = {
   product: COMMON_OPS,
   channel: COMMON_OPS,
   entity: COMMON_OPS,
+  conduct_risk_category: COMMON_OPS,
   customer_type: COMMON_OPS,
   customer_vulnerability: BOOL_OPS,
   keywords: TEXT_OPS,
   repeat_count: NUM_OPS,
   sla_days: NUM_OPS,
+  sla_due_at: DATE_OPS,
+  status: COMMON_OPS,
   severity: COMMON_OPS,
   priority: COMMON_OPS,
   assigned_team: TEXT_OPS,
@@ -90,9 +106,16 @@ const OPS: Record<string, { v: string; l: string }[]> = {
 const NO_VALUE_OPS = new Set(['is_true', 'is_false', 'is_empty', 'is_not_empty']);
 const LIST_OPS = new Set(['in', 'not_in', 'contains_any', 'contains_all']);
 const NUM_FIELDS = new Set(['repeat_count', 'sla_days', 'age_days']);
+const DATE_FIELDS = new Set(['sla_due_at']);
+const STATUS_VALUES = ['submitted', 'under_investigation', 'resolved', 'closed', 'rejected'];
 
 const SEVS = ['low', 'medium', 'high', 'critical'];
 const PRIOS = ['p1', 'p2', 'p3', 'p4'];
+const ALERT_KINDS = [
+  'repeat_complaint', 'vulnerable_customer', 'critical_severity',
+  'thematic_spike', 'sla_breach', 'sla_at_risk',
+  'rule_triggered', 'high_risk_category',
+];
 
 export default function TriageRules() {
   const [rows, setRows] = useState<Rule[]>([]);
@@ -102,10 +125,12 @@ export default function TriageRules() {
   const [form, setForm] = useState<Rule>(emptyRule());
   const [saving, setSaving] = useState(false);
   const [simOpen, setSimOpen] = useState(false);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; code: string | null }>>([]);
 
   function emptyRule(): Rule {
     return { id: '', name: '', description: '', active: true, priority_order: 100, match_mode: 'all', conditions: [], outputs: {} };
   }
+
 
   const load = async () => {
     setLoading(true);
@@ -114,7 +139,11 @@ export default function TriageRules() {
     setRows(((data || []) as unknown) as Rule[]);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  const loadCategories = async () => {
+    const { data } = await supabase.from('conduct_risk_categories').select('id, name, code').order('name');
+    setCategories((data || []) as any);
+  };
+  useEffect(() => { load(); loadCategories(); }, []);
 
   const openNew = () => { setEditing(null); setForm(emptyRule()); setOpen(true); };
   const openEdit = (r: Rule) => {
@@ -222,13 +251,21 @@ export default function TriageRules() {
         </Card>
       </div>
 
-      <RuleEditor open={open} onOpenChange={setOpen} form={form} setForm={setForm} save={save} saving={saving} editing={editing} />
+      <RuleEditor open={open} onOpenChange={setOpen} form={form} setForm={setForm} save={save} saving={saving} editing={editing} categories={categories} />
       <SimulateDialog open={simOpen} onOpenChange={setSimOpen} />
     </DashboardLayout>
   );
 }
 
-function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }: any) {
+function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing, categories }: any) {
+  const [detailText, setDetailText] = useState<string>(
+    form.outputs?.alert_detail ? JSON.stringify(form.outputs.alert_detail, null, 2) : ''
+  );
+  const [detailErr, setDetailErr] = useState<string>('');
+  useEffect(() => {
+    setDetailText(form.outputs?.alert_detail ? JSON.stringify(form.outputs.alert_detail, null, 2) : '');
+    setDetailErr('');
+  }, [editing?.id]);
   const setCond = (i: number, patch: Partial<Condition>) => {
     const next = [...form.conditions];
     next[i] = { ...next[i], ...patch };
@@ -275,6 +312,23 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
                 </Select>
                 {NO_VALUE_OPS.has(c.op) ? (
                   <div className="col-span-4 text-xs text-muted-foreground pt-2">(no value)</div>
+                ) : c.field === 'conduct_risk_category' && !LIST_OPS.has(c.op) ? (
+                  <Select value={String(c.value ?? '')} onValueChange={(v: string) => setCond(i, { value: v })}>
+                    <SelectTrigger className="col-span-4"><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>{(categories || []).map((cat: any) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : c.field === 'status' && !LIST_OPS.has(c.op) ? (
+                  <Select value={String(c.value ?? '')} onValueChange={(v: string) => setCond(i, { value: v })}>
+                    <SelectTrigger className="col-span-4"><SelectValue placeholder="Select status" /></SelectTrigger>
+                    <SelectContent>{STATUS_VALUES.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : DATE_FIELDS.has(c.field) && !LIST_OPS.has(c.op) ? (
+                  <Input
+                    type="datetime-local"
+                    className="col-span-4"
+                    value={typeof c.value === 'string' && c.value ? new Date(c.value).toISOString().slice(0, 16) : ''}
+                    onChange={e => setCond(i, { value: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                  />
                 ) : (
                   <Input
                     className="col-span-4"
@@ -314,13 +368,94 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }
               </div>
               <div><Label className="text-xs">SLA days</Label><Input type="number" value={form.outputs?.sla_days ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, sla_days: e.target.value ? +e.target.value : undefined } })} /></div>
               <div><Label className="text-xs">Assigned team</Label><Input value={form.outputs?.assigned_team ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, assigned_team: e.target.value || undefined } })} placeholder="e.g. Conduct-Retail" /></div>
-              <div className="col-span-2"><Label className="text-xs">Conduct risk category code</Label><Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" /></div>
-              <div><Label className="text-xs">Generate alert (kind)</Label><Input value={form.outputs?.generate_alert_kind ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: e.target.value || undefined } })} placeholder="e.g. thematic_spike" /></div>
-              <div><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
+              <div className="col-span-2 grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Conduct risk category</Label>
+                  <Select
+                    value={form.outputs?.conduct_risk_category_id || 'none'}
+                    onValueChange={(v: string) => {
+                      const cat = (categories || []).find((c: any) => c.id === v);
+                      setForm({
+                        ...form,
+                        outputs: {
+                          ...form.outputs,
+                          conduct_risk_category_id: v === 'none' ? undefined : v,
+                          conduct_risk_category_code: v === 'none' ? undefined : (cat?.code || undefined),
+                        },
+                      });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="(leave as-is)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">(leave as-is)</SelectItem>
+                      {(categories || []).map((cat: any) => <SelectItem key={cat.id} value={cat.id}>{cat.name}{cat.code ? ` (${cat.code})` : ''}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Category code (fallback)</Label>
+                  <Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" />
+                </div>
+              </div>
+
+              <div className="col-span-2 border-t pt-3">
+                <Label className="text-xs font-semibold">Alert generation</Label>
+              </div>
+              <div>
+                <Label className="text-xs">Alert kind</Label>
+                <Select value={form.outputs?.generate_alert_kind || 'none'} onValueChange={(v: string) => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: v === 'none' ? undefined : v } })}>
+                  <SelectTrigger><SelectValue placeholder="(no alert)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">(no alert)</SelectItem>
+                    {ALERT_KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Alert severity</Label>
+                <Select value={form.outputs?.alert_severity || 'none'} onValueChange={(v: any) => setForm({ ...form, outputs: { ...form.outputs, alert_severity: v === 'none' ? undefined : v } })}>
+                  <SelectTrigger><SelectValue placeholder="(default)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">(default)</SelectItem>
+                    {SEVS.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Alert title</Label>
+                <Input value={form.outputs?.alert_title ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, alert_title: e.target.value || undefined } })} placeholder="Rule triggered: mis-selling risk" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Alert detail (JSON)</Label>
+                <Textarea
+                  rows={4}
+                  className="font-mono text-xs"
+                  value={detailText}
+                  onChange={e => {
+                    const raw = e.target.value;
+                    setDetailText(raw);
+                    if (!raw.trim()) {
+                      setDetailErr('');
+                      setForm({ ...form, outputs: { ...form.outputs, alert_detail: undefined } });
+                      return;
+                    }
+                    try {
+                      const parsed = JSON.parse(raw);
+                      setDetailErr('');
+                      setForm({ ...form, outputs: { ...form.outputs, alert_detail: parsed } });
+                    } catch (err: any) {
+                      setDetailErr(err.message);
+                    }
+                  }}
+                  placeholder='{"note": "context for reviewers"}'
+                />
+                {detailErr && <p className="text-xs text-destructive mt-1">Invalid JSON: {detailErr}</p>}
+              </div>
+              <div className="col-span-2"><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
             </div>
           </div>
 
-          <Button onClick={save} disabled={saving} className="w-full">{saving ? 'Saving…' : editing ? 'Update rule' : 'Create rule'}</Button>
+          <Button onClick={save} disabled={saving || !!detailErr} className="w-full">{saving ? 'Saving…' : editing ? 'Update rule' : 'Create rule'}</Button>
         </div>
       </DialogContent>
     </Dialog>
