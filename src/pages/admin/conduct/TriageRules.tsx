@@ -257,7 +257,15 @@ export default function TriageRules() {
   );
 }
 
-function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing }: any) {
+function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing, categories }: any) {
+  const [detailText, setDetailText] = useState<string>(
+    form.outputs?.alert_detail ? JSON.stringify(form.outputs.alert_detail, null, 2) : ''
+  );
+  const [detailErr, setDetailErr] = useState<string>('');
+  useEffect(() => {
+    setDetailText(form.outputs?.alert_detail ? JSON.stringify(form.outputs.alert_detail, null, 2) : '');
+    setDetailErr('');
+  }, [editing?.id]);
   const setCond = (i: number, patch: Partial<Condition>) => {
     const next = [...form.conditions];
     next[i] = { ...next[i], ...patch };
