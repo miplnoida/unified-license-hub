@@ -1899,6 +1899,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "complaints_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "complaints_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -2062,6 +2069,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "compliance_returns_on_behalf_of_licensee_id_fkey"
+            columns: ["on_behalf_of_licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "compliance_returns_return_config_id_fkey"
             columns: ["return_config_id"]
             isOneToOne: false
@@ -2154,6 +2168,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "conduct_actions_product_id_fkey"
@@ -2338,6 +2359,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conduct_alerts_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "conduct_alerts_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -2461,6 +2489,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_monitoring_results_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "conduct_monitoring_results_product_id_fkey"
@@ -3712,6 +3747,13 @@ export type Database = {
             referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "enforcement_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
         ]
       }
       enforcement_case_events: {
@@ -3801,11 +3843,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entity_relationships_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "entity_relationships_related_entity_id_fkey"
             columns: ["related_entity_id"]
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relationships_related_entity_id_fkey"
+            columns: ["related_entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -3905,6 +3961,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_user_access_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "entity_user_access_user_id_fkey"
@@ -4892,6 +4955,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fp_assessments_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "fp_assessments_regulator_id_fkey"
             columns: ["regulator_id"]
             isOneToOne: false
@@ -5145,6 +5215,7 @@ export type Database = {
           is_current: boolean
           outcome: string
           rationale: string
+          regulator_id: string | null
           signature_hash: string | null
           supersedes_id: string | null
         }
@@ -5160,6 +5231,7 @@ export type Database = {
           is_current?: boolean
           outcome: string
           rationale: string
+          regulator_id?: string | null
           signature_hash?: string | null
           supersedes_id?: string | null
         }
@@ -5175,6 +5247,7 @@ export type Database = {
           is_current?: boolean
           outcome?: string
           rationale?: string
+          regulator_id?: string | null
           signature_hash?: string | null
           supersedes_id?: string | null
         }
@@ -5191,6 +5264,13 @@ export type Database = {
             columns: ["individual_id"]
             isOneToOne: false
             referencedRelation: "fp_individuals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_determinations_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
           {
@@ -5398,6 +5478,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_individual_roles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -5628,6 +5715,73 @@ export type Database = {
           },
         ]
       }
+      fp_sector_decision_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          criteria: Json
+          id: string
+          is_active: boolean
+          name: string
+          rationale_template_id: string | null
+          role_type: string | null
+          sector_id: string
+          sub_sector_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          rationale_template_id?: string | null
+          role_type?: string | null
+          sector_id: string
+          sub_sector_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          criteria?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          rationale_template_id?: string | null
+          role_type?: string | null
+          sector_id?: string
+          sub_sector_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fp_sector_decision_rules_rationale_template_id_fkey"
+            columns: ["rationale_template_id"]
+            isOneToOne: false
+            referencedRelation: "decision_rationale_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_sector_decision_rules_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_sector_decision_rules_sub_sector_id_fkey"
+            columns: ["sub_sector_id"]
+            isOneToOne: false
+            referencedRelation: "sub_sectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inspection_findings: {
         Row: {
           category: string
@@ -5762,6 +5916,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -6425,6 +6586,13 @@ export type Database = {
             referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "licensee_channels_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
         ]
       }
       licensee_products: {
@@ -6468,6 +6636,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensee_products_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "licensee_products_product_id_fkey"
@@ -7492,6 +7667,13 @@ export type Database = {
             referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ppoc_entity_mappings_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
         ]
       }
       ppoc_mapping_sectors: {
@@ -7677,6 +7859,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "profiles_role_id_fkey"
@@ -8277,6 +8466,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reinsurance_contracts_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -9770,6 +9966,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "return_due_dates_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "return_due_dates_return_configuration_id_fkey"
             columns: ["return_configuration_id"]
             isOneToOne: false
@@ -10409,11 +10612,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "returns_filed_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "returns_filed_on_behalf_of_licensee_id_fkey"
             columns: ["on_behalf_of_licensee_id"]
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_filed_on_behalf_of_licensee_id_fkey"
+            columns: ["on_behalf_of_licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "returns_filed_return_configuration_id_fkey"
@@ -10492,6 +10709,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_ratings_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
         ]
       }
@@ -11512,6 +11736,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supervisory_plans_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "supervisory_plans_license_id_fkey"
             columns: ["license_id"]
             isOneToOne: false
@@ -11608,6 +11839,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "thematic_review_actions_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
+          {
             foreignKeyName: "thematic_review_actions_review_id_fkey"
             columns: ["review_id"]
             isOneToOne: false
@@ -11658,6 +11896,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_entities_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "thematic_review_entities_review_id_fkey"
@@ -11782,6 +12027,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "licensees"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_findings_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
           },
           {
             foreignKeyName: "thematic_review_findings_review_id_fkey"
@@ -12455,6 +12707,13 @@ export type Database = {
             referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
         ]
       }
       report_view_licenses: {
@@ -12530,6 +12789,13 @@ export type Database = {
             referencedRelation: "licensees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "v_prudential_early_warnings"
+            referencedColumns: ["licensee_id"]
+          },
         ]
       }
       report_view_payments: {
@@ -12570,6 +12836,37 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_prudential_early_warnings: {
+        Row: {
+          current_value: number | null
+          delta_pct: number | null
+          last_seen: string | null
+          licensee_id: string | null
+          licensee_name: string | null
+          previous_value: number | null
+          ratio_key: string | null
+          recent_breach_count: number | null
+          regulator_id: string | null
+          sector_id: string | null
+          warning_level: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "returns_filed_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sectors_regulator_id_fkey"
+            columns: ["regulator_id"]
+            isOneToOne: false
+            referencedRelation: "regulators"
             referencedColumns: ["id"]
           },
         ]
