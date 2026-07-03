@@ -214,7 +214,7 @@ export default function EnforcementDetail() {
           description={`${caseRow.enforcement_type} · ${licensee?.name || 'Licensee'}`}
           backHref="/enforcement"
           backLabel="Queue"
-          actions={<Badge variant="outline" className={meta.className}>{meta.label}</Badge>}
+          actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="enforcement_action" entityId={caseRow.id} title={`History — ${caseRow.case_number}`} /></div>}
         />
 
         <Card>
