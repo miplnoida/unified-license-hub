@@ -20,8 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInternalUsers } from '@/hooks/useInternalUsers';
 import { toast } from 'sonner';
-import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, MessageSquare, Flag, UserPlus, CheckCircle2, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import { logCoordinationAction } from '@/lib/coordinationAudit';
+import { EscalationsTab } from '@/components/coordination/EscalationsTab';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   open: { label: 'Open', className: 'bg-blue-100 text-blue-700 border-blue-200' },
