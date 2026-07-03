@@ -132,13 +132,10 @@ export default function CoordinationList() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Subject Type</Label>
-                      <Select value={form.subject_type} onValueChange={(v) => setForm({ ...form, subject_type: v as any })}>
+                      <Select value={form.subject_type} onValueChange={(v) => setForm({ ...form, subject_type: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="application">Application</SelectItem>
-                          <SelectItem value="license">License</SelectItem>
-                          <SelectItem value="entity">Entity</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
+                          {SUBJECT_TYPES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -146,6 +143,18 @@ export default function CoordinationList() {
                       <Label>Subject ID (optional)</Label>
                       <Input value={form.subject_id} onChange={(e) => setForm({ ...form, subject_id: e.target.value })} placeholder="UUID" />
                     </div>
+                  </div>
+                  <div>
+                    <Label>Primary Regulator (Twin Peaks lead)</Label>
+                    <Select value={form.primary_regulator_id} onValueChange={(v) => setForm({ ...form, primary_regulator_id: v })}>
+                      <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— None —</SelectItem>
+                        {(regulators ?? []).map((r: any) => (
+                          <SelectItem key={r.id} value={r.id}>{r.code} · {r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <DialogFooter>
