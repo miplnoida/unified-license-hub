@@ -1,73 +1,87 @@
+# Phase 3 Completion Plan — Fit & Proper + Twin Peaks Coordination
 
-## Phase 9 — Thematic Reviews, Conduct Action Ledger & Ongoing Monitoring
+Extends the existing implementation (commit f8015e6). No rewrites — only additive schema, wiring, audit, and UI gaps. Delivered in 6 small, independently shippable slices.
 
-Extends the existing Market Conduct module (`ConductDashboard`, `ConductAlerts`, `conduct_triage_rules`, `entity_risk_scores`) without touching complaint triage. All new work is additive.
+---
 
-### Slice 9.1 — Schema (single migration)
+## Slice 3C-1 — Navigation, Admin Hub, Types (foundation)
 
-Nine new tables, all with grants (`authenticated` + `service_role`), RLS via `has_role()`, `updated_at` triggers, and audit-friendly columns.
+- **Nav (`src/config/navigation.tsx`)**: add "Fit & Proper" group → Individual Register (`/fit-and-proper`), plus admin entries Screening Configs (`/admin/fp-screening-configs`) and Committees (`/admin/fp-committees`). Confirm "Twin Peaks Coordination" (`/coordination`) is visible. Guard with module `fit_and_proper` + admin roles for admin items.
+- **Permission registry (`src/lib/permissionModules.ts`, `permissionRegistry.ts`)**: register `fit_and_proper` and `coordination` modules with `view/create/edit/approve/reject` actions; map routes.
+- **Admin Hub tiles**: add F&P Screening Configs, F&P Committees, Coordination Settings.
+- **Types regen**: after any schema slice, `types.ts` is auto-regenerated; verify all `fp_*` and `coordination_*` tables present.
 
-- **`thematic_reviews`** — `id, code (auto, TR-YYYY-####), title, description, regulator_id, lead_officer_id, risk_category_id, status` (enum below), `scope_start, scope_end, methodology jsonb, hypothesis, closure_summary, created_by, opened_at, closed_at`.
-- **`thematic_review_status_history`** — immutable log: `review_id, from_status, to_status, changed_by, changed_at, reason, override_id (nullable → rule_overrides)`.
-- **`thematic_review_entities`** — `review_id, licensee_id, inclusion_reason, sample_weight, added_by`.
-- **`thematic_review_products`** — `review_id, product_id, channel_id (nullable), notes`.
-- **`thematic_review_findings`** — `id, review_id, licensee_id (nullable = thematic-wide), severity (low/medium/high/critical), title, detail, root_cause, evidence_summary, status (draft/issued/accepted/disputed/closed), issued_at, issued_by`.
-- **`thematic_review_evidence`** — `review_id, finding_id (nullable), file_upload_id (→ file_uploads), source_type (complaint/return/inspection/document/external), source_ref, notes, collected_by, collected_at`.
-- **`thematic_review_actions`** — `id, review_id, finding_id (nullable), licensee_id (nullable), action_type (remediation/mis/enforcement_referral/policy_change/monitoring), title, description, due_date, status (open/in_progress/completed/overdue/waived), assigned_to, assigned_team, completed_at, evidence_of_completion, waiver_override_id`.
-- **`conduct_actions`** — cross-module ledger. `id, source_module` (complaint/thematic_review/inspection/breach/manual), `source_id, entity_id, product_id, action_type, title, description, due_date, status, assigned_to, enforcement_action_id (nullable), created_by, closed_by, closed_at`. Central "one place to see every conduct commitment".
-- **`conduct_monitoring_rules`** — `id, name, description, scope (entity/product/thematic), rule_type (metric_threshold/complaint_volume/action_overdue/repeat_finding), definition jsonb (fields+ops mirroring triage rules), frequency (daily/weekly/monthly), risk_delta numeric, active, created_by`.
-- **`conduct_monitoring_results`** — `id, rule_id, entity_id, product_id (nullable), thematic_review_id (nullable), evaluated_at, matched bool, metrics jsonb, alert_id (nullable → conduct_alerts), risk_delta_applied numeric, notes`.
+## Slice 3C-2 — Configurable PQ via existing Form Builder
 
-Triggers:
-- `trg_thematic_status_history` — INSERT into `thematic_review_status_history` on any `thematic_reviews.status` change, validating allowed transitions per the lifecycle (Draft→Scoped→Evidence Collection→Analysis→Findings Issued→Actions Required→Monitoring→Closed; backward moves require `override_id`).
-- `trg_action_overdue_alert` — on `thematic_review_actions` / `conduct_actions` UPDATE, when `due_date < now()` and status not terminal, insert a `conduct_alerts` row (`kind='action_overdue'`, race-safe dedupe by SHA-1 of `action_id`).
-- `trg_thematic_action_ledger_sync` — INSERT/UPDATE on `thematic_review_actions` mirrors to `conduct_actions` (`source_module='thematic_review'`).
-- `trg_monitoring_risk_feedback` — on `conduct_monitoring_results` INSERT where `matched=true`, upsert into `entity_risk_scores` for current period: adds `risk_delta` into a new `components.monitoring` bucket, recomputes `score` and `band`, sets `is_current=true`, previous period rolled to `is_current=false`.
+- **Migration**: add enum value `fit_and_proper_pq` to the existing form category/type used by Form Builder; seed one master PQ form covering the 13 required disclosure sections (identity, qualifications, employment, directorships, ownership, criminal/regulatory, insolvency, disciplinary, conflicts, related parties, AML/CFT, consent).
+- **Schema**: add `fp_assessments.form_id`, `form_version_id`, `form_response_id` (FK to existing `form_responses`). Do NOT create a parallel response table — reuse `form_responses` for pinning to version.
+- **UI (`FitAndProperAssessmentDetail.tsx`)**: replace hardcoded declaration with `<FormRenderer>` bound to the pinned version; keep legacy hardcoded view as read-only fallback when `form_version_id` is null.
+- **Historical integrity**: version pin happens at "Start Assessment"; renderer always loads pinned version so old submissions never shift schemas.
 
-### Slice 9.2 — Edge Functions
+## Slice 3C-3 — F&P Audit Coverage + Committee/Determination Hardening
 
-- **`evaluate-conduct-monitoring`** — invoked by cron and on-demand. Loads active rules, evaluates per scope, writes `conduct_monitoring_results`, creates alerts (race-safe SELECT-then-INSERT against `conduct_alerts` partial index), and lets the feedback trigger update risk scores.
-- **`thematic-review-transition`** — server-side status transition endpoint that validates prerequisites (e.g. Analysis → Findings Issued requires ≥1 issued finding; Actions Required → Monitoring requires ≥1 monitoring rule linked; Closed requires all actions terminal). Backward moves require an `override_id` created via the existing override framework.
-- **`overdue-action-sweep`** — nightly cron: marks `thematic_review_actions` / `conduct_actions` as `overdue` when past `due_date`, ensures alerts exist. Uses `pg_cron` + `pg_net` (registered via `supabase--insert`, not migration).
+- **Audit**: wire `logAudit` / `logComplianceAudit` into every mutation site in F&P panels and hooks (individual CRUD, roles, assessment lifecycle, screening run/finding/override, committee CRUD/members/votes, determination finalize, condition create/satisfy/waive/overdue, appeal lifecycle). Include before/after, assessment_id, individual_id.
+- **Committee DB triggers**: enforce (a) voter must be `fp_committee_members.status='active'`, (b) unique `(assessment_id, member_id)`, (c) reject/conditional votes require `justification` text, (d) finalize requires quorum + threshold + rationale, (e) previous `current=true` determination auto-superseded, (f) finalized determinations immutable except via superseding row or appeal-linked new row.
+- **UI**: disable Finalize until quorum/threshold met; require rationale modal; force condition creation dialog on conditional outcome.
 
-### Slice 9.3 — Front-end
+## Slice 3C-4 — Screening Engine Hardening + Conditions/Appeals/Monitoring UI QA
 
-Routes registered in `src/routes/dashboardRoutes.tsx` under `supervision` module:
-- `/supervision/thematic-reviews` — list with filters (status, regulator, lead officer, risk category, date range), KPI strip (open, overdue actions, findings this quarter), "New Review" CTA.
-- `/supervision/thematic-reviews/new` — 4-step wizard: (1) Basics + regulator + lead officer, (2) Scope (period, hypothesis, methodology JSON editor with template), (3) Entities & Products pickers (reuse existing licensee/product selectors), (4) Review & Create (creates as Draft).
-- `/supervision/thematic-reviews/:id` — detail with tabs:
-  - **Overview** — meta, lifecycle stepper, status transition button (calls edge fn), history timeline.
-  - **Scope** — entities & products (add/remove; audit logged).
-  - **Evidence** — upload/link evidence, reuse `file_uploads` and `secure-download-file`.
-  - **Findings** — CRUD, issue/accept/dispute/close.
-  - **Actions** — CRUD, mark complete with evidence, waive via `OverrideReasonDialog` (`rule_key='thematic.action.waive'`).
-  - **Monitoring** — link `conduct_monitoring_rules`, view `conduct_monitoring_results`, "Run now" button.
-  - **Audit** — `HistoryButton` + inline status history + related `audit_logs`.
-- `/conduct/actions` — unified conduct action ledger (all sources), filters by source module, entity, status, assignee, overdue.
-- `/admin/conduct/monitoring-rules` — CRUD for `conduct_monitoring_rules`, mirroring existing `TriageRules.tsx` UX (fields, operators, dropdowns, JSON output, simulator).
+- **Screening**:
+  - Snapshot config into `fp_screening_runs.config_snapshot` (jsonb) at run time.
+  - Each finding stamped with `source`, `rule_id`, deterministic `severity` (config-driven).
+  - Add channels: sanctions, PEP, adverse_media, criminal, watchlist, credit/insolvency, custom.
+  - Graceful degradation when `LOVABLE_API_KEY` missing → mark channel `skipped` with reason; do not fail run.
+  - False-positive override requires reason (uses existing `OverrideReasonDialog`) + writes `rule_overrides` row.
+  - Rerun preserves prior findings (`superseded_by_run_id`).
+- **Conditions panel**: verify create-from-determination, owner, due date, evidence upload, satisfy/waive with justification, overdue badge (cron/trigger already exists — confirm and wire UI).
+- **Appeals panel**: file → grounds/docs, assign appeal committee, decision enum (upheld / partially_upheld / dismissed / remitted), if outcome changes → insert linked superseding `fp_determinations` row.
+- **Monitoring panel**: list events, acknowledge with note, "Trigger recheck" button (calls existing screening function), overdue-condition auto-events.
 
-Sidebar (under Supervision): "Thematic Reviews", "Conduct Actions". Admin Hub gains "Conduct Monitoring Rules".
+## Slice 3C-5 — Licensing ↔ F&P Integration + Shared Individual Registry
 
-### Slice 9.4 — Audit, Override & Alert wiring
+- **Application detail**: new "Fit & Proper" tab listing linked individuals/assessments with status chip; button to create/link assessment for a proposed director/controller.
+- **Approval guardrail**: application approval action checks required F&P assessments; blocks/warns if missing/rejected/unresolved; permits conditional approval if F&P is conditional. Uses `OverrideReasonDialog` when officer overrides warning.
+- **Shared registry**:
+  - Add DB function `fp_find_duplicate_individuals(national_id, passport, email, name, dob)` returning match candidates with confidence.
+  - "New Individual" dialog calls it and shows duplicate warning with "Use existing" action.
+  - Individual detail shows all roles, determinations across licensees/sectors/regulators.
+  - RLS: shared identity readable to any internal user with F&P view; restricted notes (`fp_individuals.private_notes`) scoped to owning regulator.
+  - Optional merge action audited via `rule_overrides`.
 
-- Every mutation on reviews / findings / actions / evidence / monitoring rules calls `logAudit` with `old_status`, `new_status`, actor, related IDs.
-- Backward status moves, action waivers, and closing a review with open findings all go through `OverrideReasonDialog` and record an `override_id` on the resulting row (`thematic_reviews.status_history`, `thematic_review_actions.waiver_override_id`).
-- Overdue alerts feed `conduct_alerts` (kind `action_overdue`) and appear in existing `/conduct/alerts` and Executive Dashboard/Alert Center.
-- `conduct_monitoring_results` matches raise `conduct_alerts` (kind `monitoring_match`) and adjust `entity_risk_scores.components.monitoring`, so the existing risk heatmap immediately reflects the feedback loop.
+## Slice 3C-6 — Twin Peaks Coordination Completion
 
-### Slice 9.5 — Verification (before commit)
+- **Schema additions**:
+  - `coordination_cases.subject_type` enum widen: application, complaint, return, prudential_finding, fp_assessment, enforcement_action, license, entity.
+  - Add `coordination_escalations` (case_id, raised_by, reason, positions jsonb, proposed_resolution, decision_owner_id, due_date, status, outcome, outcome_rationale, resolved_at, resolved_by).
+  - Add `coordination_participants.role` (owner/primary/secondary) and `clearance_status` (pending/cleared/conditionally_cleared/blocked) + `clearance_note`.
+  - Add `coordination_cases.closure_rationale` (required at close via trigger).
+- **Auto-suggest**: "Open Coordination" button on Application, Complaint, Prudential breach, F&P assessment, Enforcement detail — prefills subject linkage.
+- **Conflict/escalation UI**: block-with-reason, request-resolution, escalate, resolve escalation with outcome enum (cleared/conditionally_cleared/blocked/deferred).
+- **Decision enforcement**: source case detail shows coordination status badge; approval action blocked if any participant blocked, warned if pending, allows conditional if any conditionally_cleared. Uses existing `OverrideReasonDialog` for overrides.
+- **Regulator scoping**: seed ABC Prudential + FSC Conduct regulators; add regulator badges to participants; RLS ensures users only see cases their regulator participates in (except owner-regulator staff).
+- **Audit**: wire `logComplianceAudit` for every coordination mutation (create, invite, remove, message, clearance, flag raise/resolve, escalation raise/resolve, close, subject link/unlink).
 
-- `tsgo --noEmit` clean.
-- `supabase--linter` clean on new tables.
-- Playwright smoke: create review → advance through each status → attempt invalid transition (expect blocked) → waive an action (override captured) → run monitoring rule → confirm `entity_risk_scores` delta and new alert.
+---
 
-### Technical notes
+## Cross-cutting Technical Notes
 
-- All new tables carry `regulator_id` where applicable and scope RLS through `has_role()` (`admin`, `super_admin`, `supervisor`, `analyst`, `legal_compliance`) — no `anon` grants.
-- Enum for review status implemented as a `text` column + CHECK-free trigger (per project convention) to avoid brittle enum migrations.
-- Monitoring rule engine reuses the FIELDS/OPS pattern from `TriageRules` so operators feel identical.
-- No changes to complaint triage, existing conduct alerts schema, or risk-scoring weights table — additive only.
+- **Migrations**: five small migration files, each following the CREATE/GRANT/RLS/POLICY order for any new table. All new triggers use `SET search_path = public`.
+- **Reuse**: `OverrideReasonDialog`, `rule_overrides`, `DiffViewer`, `HistoryButton`, `FormRenderer`, `logAudit`, `logComplianceAudit`, existing screening edge function.
+- **No new backends**: extend existing edge functions (`run-fp-screening`, `overdue-action-sweep`) rather than adding new ones.
 
-### Rollout order
+## Verification (final slice)
 
-9.1 schema → 9.3 UI list/detail/wizard → 9.2 edge functions → 9.3 monitoring rule admin & ledger page → 9.4 alerts/overrides → cron registration → 9.5 verification.
+- `npm run build` clean.
+- Vitest: add targeted tests for committee quorum/threshold enforcement, PQ version pinning, coordination approval guard, screening degradation.
+- Playwright smoke: two scripts covering the F&P and Twin Peaks checklists exactly as user listed; screenshots stored under `/tmp/browser/phase3/`.
+- Report includes: commit SHA, files changed, migration filenames, per-item acceptance confirmation, build output, smoke-test screenshots summary.
+
+## Delivery Order
+
+1. 3C-1 Nav + module registration (small, unblocks discovery)
+2. 3C-2 PQ Form Builder wiring
+3. 3C-3 Audit + committee/determination triggers
+4. 3C-4 Screening hardening + conditions/appeals/monitoring QA
+5. 3C-5 Licensing integration + shared registry dedupe
+6. 3C-6 Coordination completion + escalation + decision enforcement
+7. Build, tests, Playwright, final report
