@@ -184,9 +184,13 @@ export default function ComplaintDetail() {
           title={`Complaint ${complaint.complaint_number}`}
           description={complaint.subject}
           actions={
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to Complaints</Link>
-            </Button>
+          actions={
+            <div className="flex items-center gap-2">
+              <HistoryButton entityType="complaint" entityId={complaint.id} title={`History — ${complaint.complaint_number}`} />
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/complaints"><ArrowLeft className="h-4 w-4 mr-2" />Back to Complaints</Link>
+              </Button>
+            </div>
           }
         />
 
