@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { Loader2, Target, ExternalLink, ShieldCheck, CalendarClock, UserCog, CheckCircle2 } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-blue-100 text-blue-800' },
