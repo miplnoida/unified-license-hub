@@ -6367,6 +6367,108 @@ export type Database = {
           },
         ]
       }
+      licensee_channels: {
+        Row: {
+          active_from: string | null
+          active_to: string | null
+          channel_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          licensee_id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_from?: string | null
+          active_to?: string | null
+          channel_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensee_id: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_from?: string | null
+          active_to?: string | null
+          channel_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensee_id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensee_channels_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensee_channels_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensee_products: {
+        Row: {
+          active_from: string | null
+          active_to: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          licensee_id: string
+          notes: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_from?: string | null
+          active_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensee_id: string
+          notes?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_from?: string | null
+          active_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensee_id?: string
+          notes?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensee_products_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensee_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licensees: {
         Row: {
           category_id: string | null
