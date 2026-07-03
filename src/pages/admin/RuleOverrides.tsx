@@ -265,6 +265,16 @@ export default function RuleOverrides() {
           )}
         </SheetContent>
       </Sheet>
+
+      {timelineFor && (
+        <ChangeHistoryDrawer
+          open={!!timelineFor}
+          onOpenChange={(o) => { if (!o) setTimelineFor(null); }}
+          entityType={timelineFor.entity_type}
+          entityId={timelineFor.entity_id}
+          title={`Timeline — ${timelineFor.entity_type}`}
+        />
+      )}
     </DashboardLayout>
   );
 }
