@@ -364,7 +364,32 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAckTarget(null)}>Cancel</Button>
-            <Button onClick={() => acknowledge.mutate()} disabled={acknowledge.isPending}>
+            <Button onClick={() => {
+              if (!ackTarget) return;
+              const highRisk = ackTarget.level === 'critical' || ackTarget.level === 'high';
+              if (highRisk) {
+                setPendingOverride({
+                  row: ackTarget,
+                  ruleKey: 'prudential.breach.no_escalation',
+                  title: `Acknowledge ${ackTarget.level} breach without escalation`,
+                  original: { status: 'open', level: ackTarget.level },
+                  overridden: { status: 'acknowledged', note: ackNote.trim() },
+                  metadata: {
+                    source: 'phase1_override_framework',
+                    screen: 'BreachInbox',
+                    breach_id: ackTarget.id,
+                    return_id: ackTarget.return_id,
+                    metric_key: ackTarget.metric_key,
+                    previous_severity: ackTarget.level,
+                    threshold_value: ackTarget.threshold_value,
+                    value: ackTarget.value,
+                  },
+                  apply: async () => { await acknowledge.mutateAsync(); },
+                });
+              } else {
+                acknowledge.mutate();
+              }
+            }} disabled={acknowledge.isPending}>
               {acknowledge.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Acknowledge
             </Button>
