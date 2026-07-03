@@ -102,7 +102,7 @@ export default function RuleOverrides() {
     await logExport({
       object_type: 'rule_overrides',
       format: 'CSV',
-      criteria: { module: fModule, entity_type: fEntity, rule_key: fRule, from: fFrom, to: fTo },
+      criteria: { module: fModule, entity_type: fEntity, entity_id: fEntityId, rule_key: fRule, from: fFrom, to: fTo },
       record_ids: rows.map((r) => r.id),
       record_count: rows.length,
     });
@@ -142,6 +142,10 @@ export default function RuleOverrides() {
             <div className="space-y-1">
               <Label className="text-xs">Entity type</Label>
               <Input value={fEntity} onChange={(e) => setFEntity(e.target.value)} placeholder="application, complaint…" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Entity ID</Label>
+              <Input value={fEntityId} onChange={(e) => setFEntityId(e.target.value)} placeholder="uuid or partial…" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Rule key</Label>
