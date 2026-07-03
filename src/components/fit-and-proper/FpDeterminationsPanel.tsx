@@ -41,10 +41,15 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessmentId,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_assessments')
-        .select('id, individual_id, status, committee_id').eq('id', assessmentId!).maybeSingle();
+        .select('id, individual_id, status, committee_id, regulator_id').eq('id', assessmentId!).maybeSingle();
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: regulators = [] } = useQuery({
+    queryKey: ['regulators-active'],
+    queryFn: async () => (await supabase.from('regulators').select('id, name').order('name')).data ?? [],
   });
 
   const { data: committees } = useQuery({
@@ -102,13 +107,20 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
   const { data: determinations } = useQuery({
     queryKey: ['fp_determinations', individualId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('fp_determinations')
-        .select('id, assessment_id, outcome, rationale, determined_at, is_current, supersedes_id')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from('fp_determinations') as any)
+        .select('id, assessment_id, outcome, rationale, determined_at, is_current, supersedes_id, regulator_id')
         .eq('individual_id', individualId).order('determined_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const regulatorMap = useMemo(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    () => new Map((regulators as any[]).map((r) => [r.id, r.name])),
+    [regulators],
+  );
 
   const myVote = useMemo(
     () => (votes ?? []).find((v: any) => v.member?.user_id === user?.id) || null,
