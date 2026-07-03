@@ -18,6 +18,7 @@ import { logAction } from '@/hooks/useAuditLog';
 import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
