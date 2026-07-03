@@ -61,6 +61,8 @@ const AuditExport = lazy(() => import('@/pages/admin/AuditExport'));
 const InspectionsList = lazy(() => import('@/pages/inspections/InspectionsList'));
 const InspectionsCalendar = lazy(() => import('@/pages/inspections/InspectionsCalendar'));
 const InspectionDetail = lazy(() => import('@/pages/inspections/InspectionDetail'));
+const ConductDashboard = lazy(() => import('@/pages/conduct/ConductDashboard'));
+const ConductAlerts = lazy(() => import('@/pages/conduct/ConductAlerts'));
 
 function M({ module, children, allowedRoles }: { module: PermissionModule; children: React.ReactNode; allowedRoles?: any }) {
   return <P><ModuleRoute module={module} allowedRoles={allowedRoles}>{children}</ModuleRoute></P>;
@@ -151,5 +153,7 @@ export const dashboardRoutes = (
     <Route path="/admin/document-intelligence" element={<M module="settings"><DocumentIntelligence /></M>} />
     <Route path="/admin/api-keys" element={<M module="settings"><ApiKeys /></M>} />
     <Route path="/admin/audit-export" element={<M module="settings"><AuditExport /></M>} />
+    <Route path="/conduct" element={<M module="complaint_management"><ConductDashboard /></M>} />
+    <Route path="/conduct/alerts" element={<M module="complaint_management"><ConductAlerts /></M>} />
   </>
 );
