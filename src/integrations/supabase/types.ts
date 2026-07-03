@@ -492,9 +492,11 @@ export type Database = {
           id: string
           near_due_notified_at: string | null
           overdue_notified_at: string | null
+          pauses_sla: boolean
           raised_at: string
           raised_by: string
           status: string
+          sufficiency_evaluation_id: string | null
           summary: string | null
           updated_at: string
         }
@@ -509,9 +511,11 @@ export type Database = {
           id?: string
           near_due_notified_at?: string | null
           overdue_notified_at?: string | null
+          pauses_sla?: boolean
           raised_at?: string
           raised_by: string
           status?: string
+          sufficiency_evaluation_id?: string | null
           summary?: string | null
           updated_at?: string
         }
@@ -526,9 +530,11 @@ export type Database = {
           id?: string
           near_due_notified_at?: string | null
           overdue_notified_at?: string | null
+          pauses_sla?: boolean
           raised_at?: string
           raised_by?: string
           status?: string
+          sufficiency_evaluation_id?: string | null
           summary?: string | null
           updated_at?: string
         }
@@ -554,6 +560,13 @@ export type Database = {
             referencedRelation: "approval_step_actions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "application_rfis_sufficiency_evaluation_id_fkey"
+            columns: ["sufficiency_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_evaluations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       applications: {
@@ -573,6 +586,7 @@ export type Database = {
           data: Json | null
           form_version_id: string | null
           id: string
+          last_sufficiency_evaluation_id: string | null
           license_type: string
           priority: number
           priority_reason: string | null
@@ -583,6 +597,7 @@ export type Database = {
           search_vector: unknown
           status: string
           submitted_at: string | null
+          sufficiency_status: string | null
           updated_at: string
           workflow_id: string | null
         }
@@ -602,6 +617,7 @@ export type Database = {
           data?: Json | null
           form_version_id?: string | null
           id?: string
+          last_sufficiency_evaluation_id?: string | null
           license_type: string
           priority?: number
           priority_reason?: string | null
@@ -612,6 +628,7 @@ export type Database = {
           search_vector?: unknown
           status?: string
           submitted_at?: string | null
+          sufficiency_status?: string | null
           updated_at?: string
           workflow_id?: string | null
         }
@@ -631,6 +648,7 @@ export type Database = {
           data?: Json | null
           form_version_id?: string | null
           id?: string
+          last_sufficiency_evaluation_id?: string | null
           license_type?: string
           priority?: number
           priority_reason?: string | null
@@ -641,6 +659,7 @@ export type Database = {
           search_vector?: unknown
           status?: string
           submitted_at?: string | null
+          sufficiency_status?: string | null
           updated_at?: string
           workflow_id?: string | null
         }
@@ -650,6 +669,13 @@ export type Database = {
             columns: ["form_version_id"]
             isOneToOne: false
             referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_last_sufficiency_evaluation_id_fkey"
+            columns: ["last_sufficiency_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_evaluations"
             referencedColumns: ["id"]
           },
           {
@@ -3128,6 +3154,104 @@ export type Database = {
           iso_code?: string
           name?: string
           status?: string
+        }
+        Relationships: []
+      }
+      decision_options: {
+        Row: {
+          applies_to: Json
+          code: string
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          label: string
+          min_reason_length: number
+          outcome: string
+          rationale_template_id: string | null
+          requires_conditions: boolean
+          requires_reason: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: Json
+          code: string
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          min_reason_length?: number
+          outcome: string
+          rationale_template_id?: string | null
+          requires_conditions?: boolean
+          requires_reason?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: Json
+          code?: string
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          min_reason_length?: number
+          outcome?: string
+          rationale_template_id?: string | null
+          requires_conditions?: boolean
+          requires_reason?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_options_rationale_template_id_fkey"
+            columns: ["rationale_template_id"]
+            isOneToOne: false
+            referencedRelation: "decision_rationale_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decision_rationale_templates: {
+        Row: {
+          body: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          outcome: string | null
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          outcome?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          outcome?: string | null
+          updated_at?: string
+          variables?: Json
         }
         Relationships: []
       }
@@ -10622,6 +10746,297 @@ export type Database = {
           },
         ]
       }
+      sufficiency_evaluation_results: {
+        Row: {
+          auto_rfi_item_id: string | null
+          created_at: string
+          detail: Json
+          evaluation_id: string
+          id: string
+          rule_id: string | null
+          rule_snapshot: Json
+          severity: string
+          status: string
+        }
+        Insert: {
+          auto_rfi_item_id?: string | null
+          created_at?: string
+          detail?: Json
+          evaluation_id: string
+          id?: string
+          rule_id?: string | null
+          rule_snapshot?: Json
+          severity: string
+          status: string
+        }
+        Update: {
+          auto_rfi_item_id?: string | null
+          created_at?: string
+          detail?: Json
+          evaluation_id?: string
+          id?: string
+          rule_id?: string | null
+          rule_snapshot?: Json
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sufficiency_evaluation_results_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_evaluation_results_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sufficiency_evaluations: {
+        Row: {
+          application_id: string
+          blocker_count: number
+          created_at: string
+          evaluated_at: string
+          evaluated_by: string | null
+          id: string
+          overall_status: string
+          pass_count: number
+          rule_set_id: string | null
+          snapshot: Json
+          triggered_by: string
+          warning_count: number
+        }
+        Insert: {
+          application_id: string
+          blocker_count?: number
+          created_at?: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          overall_status: string
+          pass_count?: number
+          rule_set_id?: string | null
+          snapshot?: Json
+          triggered_by?: string
+          warning_count?: number
+        }
+        Update: {
+          application_id?: string
+          blocker_count?: number
+          created_at?: string
+          evaluated_at?: string
+          evaluated_by?: string | null
+          id?: string
+          overall_status?: string
+          pass_count?: number
+          rule_set_id?: string | null
+          snapshot?: Json
+          triggered_by?: string
+          warning_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sufficiency_evaluations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_evaluations_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_evaluations_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sufficiency_overrides: {
+        Row: {
+          created_at: string
+          evaluation_result_id: string
+          id: string
+          overridden_by: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          evaluation_result_id: string
+          id?: string
+          overridden_by: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          evaluation_result_id?: string
+          id?: string
+          overridden_by?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sufficiency_overrides_evaluation_result_id_fkey"
+            columns: ["evaluation_result_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_evaluation_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sufficiency_rule_set_items: {
+        Row: {
+          created_at: string
+          id: string
+          ordinal: number
+          rule_id: string
+          rule_set_id: string
+          severity_override: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ordinal?: number
+          rule_id: string
+          rule_set_id: string
+          severity_override?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ordinal?: number
+          rule_id?: string
+          rule_set_id?: string
+          severity_override?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sufficiency_rule_set_items_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sufficiency_rule_set_items_rule_set_id_fkey"
+            columns: ["rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "sufficiency_rule_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sufficiency_rule_sets: {
+        Row: {
+          application_type: string | null
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          license_type: string | null
+          name: string
+          priority: number
+          sector_id: string | null
+          sub_sector_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_type?: string | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name: string
+          priority?: number
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_type?: string | null
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          license_type?: string | null
+          name?: string
+          priority?: number
+          sector_id?: string | null
+          sub_sector_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sufficiency_rules: {
+        Row: {
+          auto_rfi: boolean
+          code: string
+          config: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          rfi_prompt_template: string | null
+          rfi_question_type: string | null
+          rule_type: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          auto_rfi?: boolean
+          code: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          rfi_prompt_template?: string | null
+          rfi_question_type?: string | null
+          rule_type: string
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_rfi?: boolean
+          code?: string
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          rfi_prompt_template?: string | null
+          rfi_question_type?: string | null
+          rule_type?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       supervisory_plan_actions: {
         Row: {
           completed_at: string | null
@@ -11343,8 +11758,12 @@ export type Database = {
           entity_id: string
           entity_type: string
           id: string
+          paused_at: string | null
+          paused_reason: string | null
+          resumed_at: string | null
           started_at: string
           status: string
+          total_pause_seconds: number
           updated_at: string
           version_snapshot: Json | null
           workflow_id: string
@@ -11358,8 +11777,12 @@ export type Database = {
           entity_id: string
           entity_type: string
           id?: string
+          paused_at?: string | null
+          paused_reason?: string | null
+          resumed_at?: string | null
           started_at?: string
           status?: string
+          total_pause_seconds?: number
           updated_at?: string
           version_snapshot?: Json | null
           workflow_id: string
@@ -11373,8 +11796,12 @@ export type Database = {
           entity_id?: string
           entity_type?: string
           id?: string
+          paused_at?: string | null
+          paused_reason?: string | null
+          resumed_at?: string | null
           started_at?: string
           status?: string
+          total_pause_seconds?: number
           updated_at?: string
           version_snapshot?: Json | null
           workflow_id?: string
