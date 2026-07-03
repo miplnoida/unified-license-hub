@@ -463,6 +463,22 @@ export default function SupervisoryPlansDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="supervisory_plans"
+          entityType="supervisory_plan_action"
+          entityId={pending.entityId}
+          ruleKey={pending.ruleKey}
+          title={pending.title}
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }
