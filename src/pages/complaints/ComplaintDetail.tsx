@@ -280,7 +280,7 @@ export default function ComplaintDetail() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <Button onClick={() => setSeverityMut.mutate()} disabled={setSeverityMut.isPending || !severity}>Update</Button>
+                      <Button onClick={handleSeverityUpdate} disabled={setSeverityMut.isPending || !severity}>Update</Button>
                     </div>
                     {complaint.status === 'submitted' && (
                       <Button onClick={() => takeInvestigation.mutate()} disabled={takeInvestigation.isPending} className="w-full">
@@ -328,6 +328,34 @@ export default function ComplaintDetail() {
             )}
           </TabsContent>
         </Tabs>
+
+        {severityOverride && complaint && (
+          <OverrideReasonDialog
+            open={!!severityOverride}
+            onOpenChange={(o) => { if (!o) setSeverityOverride(null); }}
+            module="complaints"
+            entityType="complaint"
+            entityId={complaint.id}
+            ruleKey="complaints.triage.severity_override"
+            originalValue={{ severity: severityOverride.from }}
+            overriddenValue={{ severity: severityOverride.to }}
+            metadata={{
+              source: 'phase1_override_framework',
+              screen: 'ComplaintDetail',
+              complaint_id: complaint.id,
+              previous_severity: severityOverride.from,
+              new_severity: severityOverride.to,
+              recommendation_source: 'triage_engine',
+            }}
+            title="Override complaint severity"
+            description={`Changing severity from ${severityOverride.from} to ${severityOverride.to} contradicts the current triage classification. Provide a written justification.`}
+            onOverridden={async () => {
+              const next = severityOverride.to;
+              setSeverityOverride(null);
+              await applySeverityChange(next);
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
