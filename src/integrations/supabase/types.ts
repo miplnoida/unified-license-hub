@@ -2010,6 +2010,114 @@ export type Database = {
           },
         ]
       }
+      conduct_actions: {
+        Row: {
+          action_type: string
+          assigned_team: string | null
+          assigned_to: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          enforcement_action_id: string | null
+          entity_id: string | null
+          id: string
+          metadata: Json
+          product_id: string | null
+          source_id: string | null
+          source_module: string
+          status: string
+          thematic_action_id: string | null
+          title: string
+          updated_at: string
+          waiver_override_id: string | null
+        }
+        Insert: {
+          action_type?: string
+          assigned_team?: string | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          enforcement_action_id?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string | null
+          source_id?: string | null
+          source_module: string
+          status?: string
+          thematic_action_id?: string | null
+          title: string
+          updated_at?: string
+          waiver_override_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          assigned_team?: string | null
+          assigned_to?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          enforcement_action_id?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string | null
+          source_id?: string | null
+          source_module?: string
+          status?: string
+          thematic_action_id?: string | null
+          title?: string
+          updated_at?: string
+          waiver_override_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_actions_enforcement_action_id_fkey"
+            columns: ["enforcement_action_id"]
+            isOneToOne: false
+            referencedRelation: "enforcement_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_thematic_action_id_fkey"
+            columns: ["thematic_action_id"]
+            isOneToOne: true
+            referencedRelation: "thematic_review_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_actions_waiver_override_id_fkey"
+            columns: ["waiver_override_id"]
+            isOneToOne: false
+            referencedRelation: "rule_overrides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conduct_alert_thresholds: {
         Row: {
           active: boolean
@@ -2235,6 +2343,132 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conduct_monitoring_results: {
+        Row: {
+          alert_id: string | null
+          created_at: string
+          entity_id: string | null
+          evaluated_at: string
+          id: string
+          matched: boolean
+          metrics: Json
+          notes: string | null
+          product_id: string | null
+          risk_delta_applied: number
+          rule_id: string
+          thematic_review_id: string | null
+        }
+        Insert: {
+          alert_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          evaluated_at?: string
+          id?: string
+          matched?: boolean
+          metrics?: Json
+          notes?: string | null
+          product_id?: string | null
+          risk_delta_applied?: number
+          rule_id: string
+          thematic_review_id?: string | null
+        }
+        Update: {
+          alert_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          evaluated_at?: string
+          id?: string
+          matched?: boolean
+          metrics?: Json
+          notes?: string | null
+          product_id?: string | null
+          risk_delta_applied?: number
+          rule_id?: string
+          thematic_review_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduct_monitoring_results_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_monitoring_results_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_monitoring_results_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_monitoring_results_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_monitoring_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_monitoring_results_thematic_review_id_fkey"
+            columns: ["thematic_review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduct_monitoring_rules: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          definition: Json
+          description: string | null
+          frequency: string
+          id: string
+          name: string
+          risk_delta: number
+          rule_type: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          definition?: Json
+          description?: string | null
+          frequency?: string
+          id?: string
+          name: string
+          risk_delta?: number
+          rule_type?: string
+          scope?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          definition?: Json
+          description?: string | null
+          frequency?: string
+          id?: string
+          name?: string
+          risk_delta?: number
+          rule_type?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       conduct_products: {
         Row: {
@@ -10506,6 +10740,435 @@ export type Database = {
             columns: ["risk_rating_id"]
             isOneToOne: false
             referencedRelation: "risk_ratings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_actions: {
+        Row: {
+          action_type: string
+          assigned_team: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          evidence_of_completion: string | null
+          finding_id: string | null
+          id: string
+          licensee_id: string | null
+          review_id: string
+          status: string
+          title: string
+          updated_at: string
+          waiver_override_id: string | null
+        }
+        Insert: {
+          action_type?: string
+          assigned_team?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_of_completion?: string | null
+          finding_id?: string | null
+          id?: string
+          licensee_id?: string | null
+          review_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          waiver_override_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          assigned_team?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          evidence_of_completion?: string | null
+          finding_id?: string | null
+          id?: string
+          licensee_id?: string | null
+          review_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          waiver_override_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_actions_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_review_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_actions_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_actions_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_actions_waiver_override_id_fkey"
+            columns: ["waiver_override_id"]
+            isOneToOne: false
+            referencedRelation: "rule_overrides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_entities: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          id: string
+          inclusion_reason: string | null
+          licensee_id: string
+          review_id: string
+          sample_weight: number | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          inclusion_reason?: string | null
+          licensee_id: string
+          review_id: string
+          sample_weight?: number | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          inclusion_reason?: string | null
+          licensee_id?: string
+          review_id?: string
+          sample_weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_entities_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_entities_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_evidence: {
+        Row: {
+          collected_at: string
+          collected_by: string | null
+          file_upload_id: string | null
+          finding_id: string | null
+          id: string
+          notes: string | null
+          review_id: string
+          source_ref: string | null
+          source_type: string
+        }
+        Insert: {
+          collected_at?: string
+          collected_by?: string | null
+          file_upload_id?: string | null
+          finding_id?: string | null
+          id?: string
+          notes?: string | null
+          review_id: string
+          source_ref?: string | null
+          source_type?: string
+        }
+        Update: {
+          collected_at?: string
+          collected_by?: string | null
+          file_upload_id?: string | null
+          finding_id?: string | null
+          id?: string
+          notes?: string | null
+          review_id?: string
+          source_ref?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_evidence_file_upload_id_fkey"
+            columns: ["file_upload_id"]
+            isOneToOne: false
+            referencedRelation: "file_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_evidence_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_review_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_evidence_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_findings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          detail: string | null
+          evidence_summary: string | null
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          licensee_id: string | null
+          review_id: string
+          root_cause: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          evidence_summary?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          licensee_id?: string | null
+          review_id: string
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          evidence_summary?: string | null
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          licensee_id?: string | null
+          review_id?: string
+          root_cause?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_findings_licensee_id_fkey"
+            columns: ["licensee_id"]
+            isOneToOne: false
+            referencedRelation: "licensees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_findings_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_products: {
+        Row: {
+          channel_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          review_id: string
+        }
+        Insert: {
+          channel_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          review_id: string
+        }
+        Update: {
+          channel_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_products_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_products_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_review_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: string | null
+          id: string
+          metadata: Json
+          override_id: string | null
+          reason: string | null
+          review_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          override_id?: string | null
+          reason?: string | null
+          review_id: string
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          override_id?: string | null
+          reason?: string | null
+          review_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_review_status_history_override_id_fkey"
+            columns: ["override_id"]
+            isOneToOne: false
+            referencedRelation: "rule_overrides"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thematic_review_status_history_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "thematic_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thematic_reviews: {
+        Row: {
+          closed_at: string | null
+          closure_summary: string | null
+          code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          hypothesis: string | null
+          id: string
+          lead_officer_id: string | null
+          methodology: Json
+          opened_at: string | null
+          regulator_id: string | null
+          risk_category_id: string | null
+          scope_end: string | null
+          scope_start: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closure_summary?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hypothesis?: string | null
+          id?: string
+          lead_officer_id?: string | null
+          methodology?: Json
+          opened_at?: string | null
+          regulator_id?: string | null
+          risk_category_id?: string | null
+          scope_end?: string | null
+          scope_start?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closure_summary?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          hypothesis?: string | null
+          id?: string
+          lead_officer_id?: string | null
+          methodology?: Json
+          opened_at?: string | null
+          regulator_id?: string | null
+          risk_category_id?: string | null
+          scope_end?: string | null
+          scope_start?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thematic_reviews_risk_category_id_fkey"
+            columns: ["risk_category_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_risk_categories"
             referencedColumns: ["id"]
           },
         ]
