@@ -129,7 +129,7 @@ export function ConfigurableDecisionActions({
     }
   }
 
-  async function attemptSubmit(overrideId?: string) {
+  async function attemptSubmit(overrideId?: string, twinPeaksOverrideId?: string) {
     if (!selected) return;
     if (!OUTCOMES_GATED.has(selected.outcome)) {
       await runExecute(null, overrideId ?? null);
@@ -137,8 +137,26 @@ export function ConfigurableDecisionActions({
     }
     setGateBusy(true);
     const s = sufficiency ?? (await ensureFreshSufficiency());
+    // Twin-peaks gate applies only to approval outcomes
+    const isApproval = selected.outcome === 'approve' || selected.outcome === 'conditional_approve';
+    let tp: TwinPeaksClearance[] = twinPeaks;
+    if (isApproval) {
+      try {
+        tp = await fetchClearances(applicationId);
+        setTwinPeaks(tp);
+      } catch (e: any) {
+        toast.error(`Twin-peaks check failed: ${e?.message ?? e}`);
+        setGateBusy(false);
+        return;
+      }
+    }
     setGateBusy(false);
     if (!s) return;
+    if (isApproval && isTwinPeaksBlocked(tp) && !twinPeaksOverrideId) {
+      setTwinPeaksOverrideOpen(true);
+      setPendingExecute(true);
+      return;
+    }
     if (s.status === 'blocked' && !overrideId) {
       setOverrideOpen(true);
       setPendingExecute(true);
