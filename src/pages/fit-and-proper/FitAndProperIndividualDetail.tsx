@@ -32,17 +32,42 @@ export default function FitAndProperIndividualDetail() {
     },
   });
 
+  const qc = useQueryClient();
+  const [cycleEdits, setCycleEdits] = useState<Record<string, string>>({});
+
   const { data: roles } = useQuery({
     queryKey: ['fp_individual_roles', id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_individual_roles')
-        .select('id, role_type, role_title, licensee_id, is_current, effective_from, effective_to')
+        .select('id, role_type, role_title, licensee_id, is_current, effective_from, effective_to, reassessment_cycle_months, next_reassessment_due, last_reassessment_at')
         .eq('individual_id', id!).order('is_current', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  async function saveCycle(roleId: string) {
+    const raw = cycleEdits[roleId];
+    const months = raw === '' || raw == null ? null : Number(raw);
+    if (months != null && (!Number.isFinite(months) || months <= 0 || months > 120)) {
+      toast.error('Cycle must be 1-120 months'); return;
+    }
+    const patch: Record<string, unknown> = { reassessment_cycle_months: months };
+    if (months != null) {
+      // if never reassessed, seed next-due from today so scheduler doesn't fire immediately for future edits
+      const next = new Date();
+      next.setMonth(next.getMonth() + months);
+      patch.next_reassessment_due = next.toISOString().slice(0, 10);
+    } else {
+      patch.next_reassessment_due = null;
+    }
+    const { error } = await supabase.from('fp_individual_roles').update(patch).eq('id', roleId);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Reassessment cycle updated');
+    setCycleEdits((s) => { const c = { ...s }; delete c[roleId]; return c; });
+    qc.invalidateQueries({ queryKey: ['fp_individual_roles', id] });
+  }
 
   const { data: latestAssessment } = useQuery({
     queryKey: ['fp_latest_assessment', id],
