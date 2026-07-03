@@ -18,6 +18,7 @@ import { Download, Loader2, ShieldAlert } from 'lucide-react';
 import { OVERRIDE_MODULES, type RuleOverrideRow } from '@/lib/ruleOverrides';
 import { logExport } from '@/lib/complianceAudit';
 import { DiffViewer } from '@/components/audit/DiffViewer';
+import { ChangeHistoryDrawer } from '@/components/audit/ChangeHistoryDrawer';
 
 const ALL = '__all__';
 
