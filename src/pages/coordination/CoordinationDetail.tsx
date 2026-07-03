@@ -254,8 +254,18 @@ export default function CoordinationDetail() {
           backHref="/coordination"
           backLabel="All cases"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={statusMeta.className}>{statusMeta.label}</Badge>
+              {caseRow.primary_regulator_id && regMap.get(caseRow.primary_regulator_id) && (
+                <Badge variant="outline" className="bg-indigo-100 text-indigo-800 border-indigo-200">
+                  Primary: {regMap.get(caseRow.primary_regulator_id)!.code}
+                </Badge>
+              )}
+              {caseRow.owner_regulator_id && caseRow.owner_regulator_id !== caseRow.primary_regulator_id && regMap.get(caseRow.owner_regulator_id) && (
+                <Badge variant="outline" className="bg-slate-100 text-slate-700">
+                  Owner: {regMap.get(caseRow.owner_regulator_id)!.code}
+                </Badge>
+              )}
               {isOwner && caseRow.status !== 'closed' && (
                 <Button variant="outline" size="sm" onClick={() => closeCase.mutate()}>Close Case</Button>
               )}
