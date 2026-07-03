@@ -49,6 +49,7 @@ export default function SupervisoryPlansDashboard() {
   const [reassignReason, setReassignReason] = useState('');
   const [extendDate, setExtendDate] = useState('');
   const [extendReason, setExtendReason] = useState('');
+  const [pending, setPending] = useState<null | { ruleKey: string; title: string; entityId: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
 
   const { data: actions, isLoading } = useQuery({
     queryKey: ['supervisory_actions_dashboard'],
