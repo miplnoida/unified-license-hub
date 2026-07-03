@@ -1711,6 +1711,10 @@ export type Database = {
           sla_due_at: string | null
           status: string
           subject: string
+          triage_evaluated_at: string | null
+          triage_last_error: string | null
+          triage_override_status: string
+          triage_result_snapshot: Json | null
           triage_rule_id: string | null
           triage_source: string | null
           updated_at: string
@@ -1746,6 +1750,10 @@ export type Database = {
           sla_due_at?: string | null
           status?: string
           subject: string
+          triage_evaluated_at?: string | null
+          triage_last_error?: string | null
+          triage_override_status?: string
+          triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
           triage_source?: string | null
           updated_at?: string
@@ -1781,6 +1789,10 @@ export type Database = {
           sla_due_at?: string | null
           status?: string
           subject?: string
+          triage_evaluated_at?: string | null
+          triage_last_error?: string | null
+          triage_override_status?: string
+          triage_result_snapshot?: Json | null
           triage_rule_id?: string | null
           triage_source?: string | null
           updated_at?: string
@@ -2049,6 +2061,7 @@ export type Database = {
           complaint_id: string | null
           conduct_risk_category_id: string | null
           created_at: string
+          dedupe_key: string | null
           detail: Json
           generated_by: string
           id: string
@@ -2059,6 +2072,7 @@ export type Database = {
           severity: string
           status: string
           title: string
+          triage_rule_id: string | null
           updated_at: string
         }
         Insert: {
@@ -2070,6 +2084,7 @@ export type Database = {
           complaint_id?: string | null
           conduct_risk_category_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           detail?: Json
           generated_by?: string
           id?: string
@@ -2080,6 +2095,7 @@ export type Database = {
           severity?: string
           status?: string
           title: string
+          triage_rule_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -2091,6 +2107,7 @@ export type Database = {
           complaint_id?: string | null
           conduct_risk_category_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           detail?: Json
           generated_by?: string
           id?: string
@@ -2101,6 +2118,7 @@ export type Database = {
           severity?: string
           status?: string
           title?: string
+          triage_rule_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2151,6 +2169,13 @@ export type Database = {
             columns: ["regulator_id"]
             isOneToOne: false
             referencedRelation: "regulators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduct_alerts_triage_rule_id_fkey"
+            columns: ["triage_rule_id"]
+            isOneToOne: false
+            referencedRelation: "conduct_triage_rules"
             referencedColumns: ["id"]
           },
         ]
@@ -2328,6 +2353,7 @@ export type Database = {
           priority_order: number
           regulator_id: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           active?: boolean
@@ -2342,6 +2368,7 @@ export type Database = {
           priority_order?: number
           regulator_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           active?: boolean
@@ -2356,6 +2383,7 @@ export type Database = {
           priority_order?: number
           regulator_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
