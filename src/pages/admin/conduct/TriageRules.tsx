@@ -251,7 +251,7 @@ export default function TriageRules() {
         </Card>
       </div>
 
-      <RuleEditor open={open} onOpenChange={setOpen} form={form} setForm={setForm} save={save} saving={saving} editing={editing} />
+      <RuleEditor open={open} onOpenChange={setOpen} form={form} setForm={setForm} save={save} saving={saving} editing={editing} categories={categories} />
       <SimulateDialog open={simOpen} onOpenChange={setSimOpen} />
     </DashboardLayout>
   );
