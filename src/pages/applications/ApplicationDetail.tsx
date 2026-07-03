@@ -996,33 +996,47 @@ export default function ApplicationDetail() {
                           <p className="text-sm text-muted-foreground">
                             Approval workflow is not active for this request type. As an authorized reviewer, you can take direct action below.
                           </p>
-                          <div className="space-y-2">
-                            <Label className="text-sm">Remarks <span className="text-destructive">*</span></Label>
-                            <Textarea
-                              value={actionComment}
-                              onChange={e => setActionComment(e.target.value)}
-                              placeholder="Enter your remarks before taking action..."
-                              rows={3}
-                            />
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              onClick={() => handleStageTransition('approved', 'approved', actionComment)}
-                              disabled={processing}
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />Approve
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => handleStageTransition('rejected', 'rejected', actionComment)}
-                              disabled={processing}
-                            >
-                              <XCircle className="h-4 w-4 mr-2" />Reject
-                            </Button>
-                            <Button variant="outline" onClick={handleAdminRequestResubmission} disabled={processing}>
-                              <RotateCcw className="h-4 w-4 mr-2" />Request Resubmission
-                            </Button>
-                          </div>
+                          <ConfigurableDecisionActions
+                            applicationId={app.id}
+                            processing={processing}
+                            context={{
+                              application_type: (app as any).application_type ?? null,
+                              license_type: (app as any).license_type ?? null,
+                              sector_id: (app as any).sector_id ?? null,
+                              status: app.status,
+                            }}
+                            templateVars={{
+                              application_number: app.application_number,
+                              applicant_name: (app as any).applicant_name,
+                              application_type: (app as any).application_type,
+                              license_type: (app as any).license_type,
+                            }}
+                            onExecute={async ({ option, rationale, conditions }) => {
+                              setActionComment(rationale);
+                              const outcome = option.outcome;
+                              if (outcome === 'approve' || outcome === 'conditional_approve') {
+                                const remarks = conditions
+                                  ? `${rationale}\n\nConditions:\n${conditions}`
+                                  : rationale;
+                                await handleStageTransition('approved', 'approved', remarks);
+                              } else if (outcome === 'reject') {
+                                await handleStageTransition('rejected', 'rejected', rationale);
+                              } else if (outcome === 'return' || outcome === 'info_request') {
+                                setActionComment(rationale);
+                                await handleAdminRequestResubmission();
+                              } else {
+                                await supabase.from('approval_actions').insert({
+                                  application_id: app.id,
+                                  action: outcome,
+                                  actor_id: user!.id,
+                                  comments: rationale || null,
+                                  metadata: { decision_option_id: option.id, decision_option_code: option.code, conditions: conditions || null } as any,
+                                } as any);
+                                toast.success(`Recorded: ${option.label}`);
+                                loadData();
+                              }
+                            }}
+                          />
                         </div>
                       </AccordionContent>
                     </AccordionItem>
