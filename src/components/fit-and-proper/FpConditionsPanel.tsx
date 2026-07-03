@@ -83,7 +83,7 @@ export function FpConditionsPanel({ individualId }: Props) {
     mutationFn: async () => {
       if (!currentDet) throw new Error('No current determination to attach conditions to');
       if (!form.description.trim()) throw new Error('Description required');
-      const { error } = await supabase.from('fp_conditions').insert({
+      const payload = {
         individual_id: individualId,
         determination_id: currentDet.id,
         category: form.category,
@@ -91,10 +91,15 @@ export function FpConditionsPanel({ individualId }: Props) {
         due_date: form.due_date || null,
         monitoring_owner: form.monitoring_owner.trim() || null,
         evidence_type: form.evidence_type,
-        status: 'open',
+        status: 'open' as const,
         created_by: user?.id,
-      });
+      };
+      const { data, error } = await supabase.from('fp_conditions').insert(payload).select('id').single();
       if (error) throw error;
+      await logFpAction('fp.condition.created', 'fp_condition', data.id, {
+        after: payload,
+        context: { individualId, conditionId: data.id, determinationId: currentDet.id },
+      });
     },
     onSuccess: () => {
       toast.success('Condition added');
