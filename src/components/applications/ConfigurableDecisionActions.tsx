@@ -331,6 +331,30 @@ export function ConfigurableDecisionActions({
           }}
         />
       )}
+
+      {selected && (
+        <OverrideReasonDialog
+          open={twinPeaksOverrideOpen}
+          onOpenChange={(o) => {
+            setTwinPeaksOverrideOpen(o);
+            if (!o) setPendingExecute(false);
+          }}
+          module="licensing"
+          entityType="application"
+          entityId={applicationId}
+          ruleKey="licensing.twin_peaks.blocker_override"
+          title="Override twin-peaks clearance blocker"
+          description={`One or more regulators have recorded a "blocked" clearance. Provide justification to proceed with "${selected.label}".`}
+          originalValue={twinPeaks.filter((c) => c.status === 'blocked').map((c) => ({ regulator_role: c.regulator_role, rationale: c.rationale }))}
+          overriddenValue={{ decision_option: selected.code, outcome: selected.outcome }}
+          metadata={{ decision_option_id: selected.id, screen: 'ConfigurableDecisionActions' }}
+          onOverridden={async (id) => {
+            setTwinPeaksOverrideOpen(false);
+            // Re-enter attemptSubmit with override recorded so sufficiency gates still fire
+            await attemptSubmit(undefined, id);
+          }}
+        />
+      )}
     </>
   );
 }
