@@ -220,6 +220,8 @@ export default function EnforcementDetail() {
           actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="enforcement_action" entityId={caseRow.id} title={`History — ${caseRow.case_number}`} /></div>}
         />
 
+        <DecisionGatesBanner subjectType="enforcement_action" subjectId={caseRow.id} compact />
+
         <Card>
           <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div><div className="text-xs text-muted-foreground">Licensee</div><div>{licensee ? <Link to={`/admin/licensees/${licensee.id}`} className="underline">{licensee.name}</Link> : '—'}</div></div>
