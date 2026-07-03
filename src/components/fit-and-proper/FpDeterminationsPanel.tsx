@@ -73,7 +73,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessment?.committee_id && !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_members')
-        .select('id, member_role, is_active').eq('committee_id', assessment!.committee_id!).eq('user_id', user!.id).maybeSingle();
+        .select('id, member_role, is_active, vote_weight').eq('committee_id', assessment!.committee_id!).eq('user_id', user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
