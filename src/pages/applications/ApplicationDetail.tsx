@@ -253,6 +253,38 @@ export default function ApplicationDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Auto-run sufficiency evaluation once when the app moves to submitted/review
+  // and no evaluation exists yet. Guarded by ref so it only fires once per mount.
+  const sufficiencyAutoRan = useRef<string | null>(null);
+  useEffect(() => {
+    if (!app || !user) return;
+    const gatedStatuses = ['submitted', 'under_review', 'review', 'pending_review'];
+    if (!gatedStatuses.includes(app.status)) return;
+    if (sufficiencyAutoRan.current === app.id) return;
+    sufficiencyAutoRan.current = app.id;
+    (async () => {
+      try {
+        const { data: existing } = await supabase
+          .from('sufficiency_evaluations' as any)
+          .select('id, evaluated_at')
+          .eq('application_id', app.id)
+          .order('evaluated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const stale =
+          !existing || Date.now() - new Date((existing as any).evaluated_at).getTime() > 30 * 60_000;
+        if (stale) {
+          await evaluateApplicationSufficiency({
+            applicationId: app.id,
+            triggerSource: existing ? 'rfi_closed' : 'application_submitted',
+          });
+        }
+      } catch {
+        /* silent — panel will show manual trigger */
+      }
+    })();
+  }, [app?.id, app?.status, user?.id]);
+
   const handleSubmit = async () => {
     if (!app || !user) return;
     if (licenseGate.isBlocked) {
