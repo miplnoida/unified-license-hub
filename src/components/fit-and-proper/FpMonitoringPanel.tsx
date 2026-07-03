@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Loader2, Radar } from 'lucide-react';
+import { Loader2, Radar, RefreshCw } from 'lucide-react';
 import { logFpAction } from '@/lib/fpAudit';
 
 const SEV_META: Record<string, string> = {
