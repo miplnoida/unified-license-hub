@@ -4567,6 +4567,9 @@ export type Database = {
           created_by: string | null
           declaration_data: Json
           determined_at: string | null
+          form_response_id: string | null
+          form_template_id: string | null
+          form_version_id: string | null
           id: string
           individual_id: string
           licensee_id: string | null
@@ -4585,6 +4588,9 @@ export type Database = {
           created_by?: string | null
           declaration_data?: Json
           determined_at?: string | null
+          form_response_id?: string | null
+          form_template_id?: string | null
+          form_version_id?: string | null
           id?: string
           individual_id: string
           licensee_id?: string | null
@@ -4603,6 +4609,9 @@ export type Database = {
           created_by?: string | null
           declaration_data?: Json
           determined_at?: string | null
+          form_response_id?: string | null
+          form_template_id?: string | null
+          form_version_id?: string | null
           id?: string
           individual_id?: string
           licensee_id?: string | null
@@ -4614,6 +4623,27 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fp_assessments_form_response_id_fkey"
+            columns: ["form_response_id"]
+            isOneToOne: false
+            referencedRelation: "form_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_form_template_id_fkey"
+            columns: ["form_template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fp_assessments_form_version_id_fkey"
+            columns: ["form_version_id"]
+            isOneToOne: false
+            referencedRelation: "form_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fp_assessments_individual_id_fkey"
             columns: ["individual_id"]
