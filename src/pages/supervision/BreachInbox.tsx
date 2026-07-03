@@ -432,6 +432,22 @@ export default function BreachInbox() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pendingOverride && (
+        <OverrideReasonDialog
+          open={!!pendingOverride}
+          onOpenChange={(o) => { if (!o) setPendingOverride(null); }}
+          module="prudential_returns"
+          entityType="prudential_breach"
+          entityId={pendingOverride.row.id}
+          ruleKey={pendingOverride.ruleKey}
+          title={pendingOverride.title}
+          originalValue={pendingOverride.original}
+          overriddenValue={pendingOverride.overridden}
+          metadata={pendingOverride.metadata}
+          onOverridden={async () => { await pendingOverride.apply(); setPendingOverride(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }
