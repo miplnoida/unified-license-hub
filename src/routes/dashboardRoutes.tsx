@@ -144,6 +144,7 @@ export const dashboardRoutes = (
     <Route path="/fit-and-proper" element={<M module="fit_and_proper"><FitAndProperIndividuals /></M>} />
     <Route path="/fit-and-proper/individuals/:id" element={<M module="fit_and_proper"><FitAndProperIndividualDetail /></M>} />
     <Route path="/fit-and-proper/assessments/:id" element={<M module="fit_and_proper"><FitAndProperAssessmentDetail /></M>} />
+    <Route path="/fit-and-proper/trends" element={<M module="fit_and_proper"><FpPopulationTrends /></M>} />
     <Route path="/enforcement" element={<M module="license_management"><EnforcementList /></M>} />
     <Route path="/enforcement/:id" element={<M module="license_management"><EnforcementDetail /></M>} />
     <Route path="/billing/penalties" element={<M module="fee_management"><Penalties /></M>} />
