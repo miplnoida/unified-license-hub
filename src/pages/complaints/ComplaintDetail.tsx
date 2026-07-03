@@ -259,6 +259,7 @@ export default function ComplaintDetail() {
               </CardContent>
             </Card>
             <ConductClassificationCard complaint={complaint} />
+            <TriageHistoryCard complaint={complaint} />
           </TabsContent>
 
           <TabsContent value="investigation">
