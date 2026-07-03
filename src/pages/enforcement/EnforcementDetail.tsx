@@ -17,6 +17,7 @@ import { Loader2, Send, MessageSquare, Gavel, XCircle, CheckCircle2 } from 'luci
 import { logAction } from '@/hooks/useAuditLog';
 import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
