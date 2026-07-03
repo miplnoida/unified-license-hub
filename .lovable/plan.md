@@ -1,73 +1,60 @@
-# Phase 6 — Communications, Document Intelligence, Public Transparency & API
 
-Phases 1–5 built the internal supervisory operating system. Phase 6 closes the loop with the outside world: how the regulator communicates decisions, how documents get read faster, what the public can see, and how partner systems consume data.
+# 7.10 — Universal Audit & Override Framework
 
-## 6.1 COMM-001 — Outbound Correspondence Service
+Extends the existing app; does not rebuild anything. Reuses the current `audit_logs` table, `has_role` gating, DashboardLayout, PageHeader, shadcn UI, and AdminHub tile pattern.
 
-A single place to compose, template, send, and archive formal letters (notices, decisions, RFIs, penalty demands).
+## What's already done (migration approved earlier this turn)
 
-- Tables: `correspondence_templates` (channel, subject, body with `{{tokens}}`, jurisdiction), `correspondence_dispatches` (recipient, source_type/source_id → any case, rendered payload, channel, status, tracking IDs).
-- Edge function `send-correspondence`: renders template with record context, sends via existing email/SMS pipes, writes to `document_versions` so it appears in the case file.
-- UI: `/admin/correspondence-templates` + a "Send Correspondence" action on Application, Enforcement, Complaint, F&P and Return workspaces. Timeline entry on the source record.
+- **`public.rule_overrides`** table with the mandatory columns:
+  `module`, `entity_type`, `entity_id`, `rule_key`, `original_value` (jsonb), `overridden_value` (jsonb), `reason`, `user_id`, `user_role`, `metadata`, `created_at`.
+- Append-only trigger (no UPDATE / DELETE).
+- RLS: any signed-in user can insert their own override; Super Admin / Admin / Supervisor can read the register.
+- Full GRANTs on the table for `authenticated` and `service_role`.
+- Security-definer RPC **`log_rule_override(...)`** that:
+  1. Enforces reason ≥ 10 chars and required fields.
+  2. Inserts the `rule_overrides` row.
+  3. Mirrors it into the existing `audit_logs` with `action = 'RULE_OVERRIDE'`, `old_value = original_value`, `new_value = overridden_value`, and metadata `{module, rule_key, reason, override_id}`.
 
-## 6.2 DOC-001 — Document Intelligence (AI extraction)
+`audit_logs` schema, triggers, and RLS are untouched.
 
-Turn uploaded PDFs/images into structured metadata.
+## Files to create (build mode)
 
-- Table `document_extractions` (document_id, extracted_json, confidence, model, reviewed_by).
-- Edge function `document-extract` using Lovable AI (Gemini) with vision to pull: doc type, party names, dates, monetary amounts, obligations, signatures present (bool).
-- Auto-trigger on new upload; result surfaces as a right-panel "AI Insights" card on the document viewer with accept/edit-and-save.
-- Search: `SELECT` documents by extracted fields (e.g., all uploads mentioning a specific licensee director).
+1. **`src/lib/ruleOverrides.ts`** — `logRuleOverride(input)` client helper that calls the RPC (client-side reason check ≥ 10 chars, adds route + user-agent + captured_at into metadata) and `fetchOverridesForEntity(entity_type, entity_id)`.
+2. **`src/components/audit/DiffViewer.tsx`** — structured before/after renderer. Object diff: added / removed / changed keys color-coded, scalar values shown inline, arrays / nested objects fall back to a formatted JSON block. Reused by drawer and admin page.
+3. **`src/components/audit/OverrideReasonDialog.tsx`** — reusable dialog. Props: `module`, `entityType`, `entityId`, `ruleKey`, `originalValue`, `overriddenValue`, `title?`, `description?`, `onOverridden?(overrideId)`. Handles submit + toast + calls `logRuleOverride`. Replaces future ad-hoc justification prompts across the app; the existing `OverrideJustificationDialog` stays untouched for backwards compatibility.
+4. **`src/components/audit/ChangeHistoryDrawer.tsx`** — right-side Sheet. Props: `entityType`, `entityId`, `open`, `onOpenChange`, `title?`. Loads in parallel:
+   - `audit_logs` rows for the entity (existing table — old_value / new_value already there).
+   - `rule_overrides` rows for the entity.
+   Merges them into one timeline sorted desc by timestamp. Each row shows action badge, actor, timestamp, and expandable DiffViewer. Overrides show `rule_key`, `reason`, and their diff.
+5. **`src/pages/admin/RuleOverrides.tsx`** — full admin page under DashboardLayout:
+   - Filters: module (dropdown from `OVERRIDE_MODULES`), entity_type, rule_key, user email, date range.
+   - Table: timestamp, module, entity_type, entity_id, rule_key, actor (with role badge), reason preview.
+   - Row → Sheet showing full DiffViewer(original vs overridden) + reason + metadata.
+   - "Export CSV" button routes through the existing `logExport()` helper so exports keep hitting `compliance_audit_logs` uniformly.
+6. **`src/routes/adminRoutes.tsx`** — add `/admin/overrides` mapped to `RuleOverrides`, gated by `<M module="settings">` (same gate ComplianceAuditLogs already uses).
+7. **`src/pages/admin/AdminHub.tsx`** — add a tile `{ label: 'Rule Overrides', desc: 'System overrides & justifications', icon: <ShieldAlert/>, href: '/admin/overrides', module: 'settings' }` next to the Audit Logs tiles.
 
-## 6.3 PUB-001 — Public Registry Portal
+## Where the framework is *available* (this slice)
 
-A public, unauthenticated pages set that mirrors what most regulators are required to publish.
+Every consumer module already has an entity id we can pass, so `OverrideReasonDialog` and `ChangeHistoryDrawer` are usable immediately from:
+- Applications (`applications.id`, entity_type `application`)
+- Fit & Proper assessments (`fp_assessments.id`, `fp_assessment`)
+- Prudential returns (`returns_filed.id`, `return_filed`)
+- Complaints (`complaints.id`, `complaint`)
+- Enforcement actions (`enforcement_actions.id`, `enforcement_action`)
+- Supervisory plans (`supervisory_plans.id`, `supervisory_plan`)
+- AI assessments (`application_ai_assessments.id`, `ai_assessment`)
+- Rule evaluations (`rule_key` chosen per rule, entity id = the record the rule ran against)
+- Decision records (`approval_actions.id`, `decision_record`)
 
-- Read-only views (RLS `anon` SELECT with strict column allowlists on new secure views):
-  - `/public/licensees` — active licensees, license type, issue/expiry, status.
-  - `/public/enforcement` — closed enforcement actions with published decisions.
-  - `/public/warnings` — public warnings (a new `is_public` flag on enforcement + a `published_at`).
-- Search + CSV download. SEO metadata on each page.
+Wiring the dialog into each existing screen is a follow-up slice — this slice guarantees the primitives, the register, and the audit mirroring are in place first so nothing regresses.
 
-## 6.4 NOT-002 — Notification Preferences & Digest
+## Non-negotiables kept
 
-Per-user control over what shows in the in-app bell + a daily digest email.
+- `audit_logs` schema, triggers, RLS: unchanged.
+- Existing `OverrideJustificationDialog` and `logComplianceAudit` paths: unchanged.
+- Existing routes, auth, roles, layout, sidebar: unchanged.
+- No new user role or module permission introduced.
+- Every override write produces exactly one `rule_overrides` row and one `audit_logs` row, in one transaction, atomically via the RPC.
 
-- Table `notification_preferences(user_id, channel, event_type, enabled)`.
-- `/settings/notifications` grid: rows = event types (breach, enforcement update, RFI response, complaint assigned, F&P alert, risk band change), cols = In-App / Email / SMS.
-- Edge function `send-daily-digest` (cron 08:00) rolls up yesterday's undelivered events into one email per user honoring preferences.
-
-## 6.5 API-001 — Partner Read API + Webhooks
-
-A stable, tokened surface for ministry/BI systems.
-
-- Table `api_clients` (client_id, hashed_secret, scopes, rate_limit) and `webhook_subscriptions` (client_id, event_type, target_url, secret).
-- Edge function `partner-api` exposing GET endpoints: `/licensees`, `/enforcement/public`, `/returns/summary` — all scope-gated.
-- Edge function `emit-webhook` invoked from DB triggers on key events (license issued, enforcement closed, breach raised); signs with HMAC-SHA256, retries with backoff, logs to `webhook_deliveries`.
-- `/admin/api-clients` UI to mint/rotate secrets and manage subscriptions.
-
-## 6.6 SEC-001 — Compliance Audit Trail Export
-
-Signed, timestamped exports of the audit log for periodic archival to the ministry / auditor-general.
-
-- Edge function `audit-export` produces a JSONL + SHA-256 manifest for a date range, stored in a private bucket with a signed 24h URL.
-- Table `audit_exports` records who exported what range and the manifest hash.
-- UI: `/admin/audit-exports` list + "New export" dialog with range picker; regulator-only.
-
-## Technical notes
-
-- All new tables follow the mandatory `CREATE TABLE → GRANT → ENABLE RLS → CREATE POLICY` order; public registry uses secure views not raw table `anon` grants.
-- AI calls stay on the Lovable AI Gateway (no user keys).
-- Webhooks and correspondence run through Edge Functions, never client-side.
-- All new admin UIs slot into AdminHub under the existing module gating.
-
-## Suggested order
-
-1. 6.1 Correspondence (highest daily value)
-2. 6.4 Notification prefs + digest (small but user-visible)
-3. 6.2 Document intelligence
-4. 6.3 Public registry
-5. 6.5 Partner API + webhooks
-6. 6.6 Audit export
-
-Reply **continue** to start with 6.1, or name the sub-phase you'd like first.
+Reply **continue** (or "switch to build") and I will write the seven files above.
