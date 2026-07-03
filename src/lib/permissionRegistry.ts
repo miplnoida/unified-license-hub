@@ -122,6 +122,18 @@ export const MODULE_REGISTRY: Record<PermissionModule, Omit<ModuleRegistryEntry,
     description: 'Manage system configuration, branding, master data and audit logs.',
     actions: ['view', 'edit'],
   },
+  fit_and_proper: {
+    module: 'fit_and_proper',
+    label: 'Fit & Proper',
+    description: 'Individual register, personal questionnaires, screening, committee voting, determinations, conditions and appeals.',
+    actions: ['view', 'create', 'edit', 'approve', 'reject'],
+  },
+  coordination: {
+    module: 'coordination',
+    label: 'Twin Peaks Coordination',
+    description: 'Cross-regulator coordination cases, participants, clearance, flags and escalations.',
+    actions: ['view', 'create', 'edit', 'approve', 'reject'],
+  },
 };
 
 /** Collect every leaf nav item (with href) flat. */
