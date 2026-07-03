@@ -55,6 +55,10 @@ export function FpMonitoringPanel({ individualId }: Props) {
         acknowledgement_note: note,
       }).eq('id', eventId);
       if (error) throw error;
+      await logFpAction('fp.monitoring.acknowledged', 'fp_monitoring_event', eventId, {
+        after: { acknowledged: true, note },
+        context: { individualId, extra: { event_id: eventId } },
+      });
     },
     onSuccess: () => {
       toast.success('Alert acknowledged');
