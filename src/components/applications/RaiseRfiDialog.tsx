@@ -212,7 +212,7 @@ export function RaiseRfiDialog({
       // Audit log for unified timeline
       await supabase.from('audit_logs' as any).insert({
         user_id: raisedBy,
-        action: 'application.rfi_raised',
+        action: sufficiencyEvaluationId ? 'application.rfi_raised_from_sufficiency' : 'application.rfi_raised',
         table_name: 'applications',
         record_id: applicationId,
         new_values: {
@@ -221,6 +221,8 @@ export function RaiseRfiDialog({
           due_at: dueAtIso,
           sla_paused: pauseSla && !!approvalStepActionId,
           auto_rules_used: Array.from(loadedRuleIds),
+          sufficiency_evaluation_id: sufficiencyEvaluationId ?? null,
+          sufficiency_result_ids: sufficiencyResultIds ?? [],
         },
       });
 
