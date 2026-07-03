@@ -206,10 +206,16 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           <div className="font-medium">Screening runs</div>
           <div className="text-xs text-muted-foreground">Runs sanctions / PEP / criminal / financial / regulator watchlist / adverse-media checks configured by admin.</div>
         </div>
-        <Button size="sm" onClick={runScreening} disabled={running || !assessmentId}>
-          {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
-          Run screening
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={runAiMedia} disabled={runningAi || !assessmentId}>
+            {runningAi ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            AI media scan
+          </Button>
+          <Button size="sm" onClick={runScreening} disabled={running || !assessmentId}>
+            {running ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+            Run screening
+          </Button>
+        </div>
       </CardContent></Card>
 
       <Card><CardContent className="p-4 space-y-2">
