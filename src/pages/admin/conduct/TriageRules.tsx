@@ -139,7 +139,11 @@ export default function TriageRules() {
     setRows(((data || []) as unknown) as Rule[]);
     setLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  const loadCategories = async () => {
+    const { data } = await supabase.from('conduct_risk_categories').select('id, name, code').order('name');
+    setCategories((data || []) as any);
+  };
+  useEffect(() => { load(); loadCategories(); }, []);
 
   const openNew = () => { setEditing(null); setForm(emptyRule()); setOpen(true); };
   const openEdit = (r: Rule) => {
