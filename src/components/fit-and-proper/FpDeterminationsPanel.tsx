@@ -73,7 +73,7 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessment?.committee_id && !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_members')
-        .select('id, member_role, is_active').eq('committee_id', assessment!.committee_id!).eq('user_id', user!.id).maybeSingle();
+        .select('id, member_role, is_active, vote_weight').eq('committee_id', assessment!.committee_id!).eq('user_id', user!.id).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -84,11 +84,11 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
     enabled: !!assessmentId,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_votes')
-        .select('id, member_id, vote, justification, voted_at').eq('assessment_id', assessmentId!);
+        .select('id, member_id, vote, justification, voted_at, weight').eq('assessment_id', assessmentId!);
       if (error) throw error;
       const memberIds = (data ?? []).map((v: any) => v.member_id);
       if (!memberIds.length) return [];
-      const { data: mems } = await supabase.from('fp_committee_members').select('id, user_id, member_role').in('id', memberIds);
+      const { data: mems } = await supabase.from('fp_committee_members').select('id, user_id, member_role, vote_weight').in('id', memberIds);
       const userIds = (mems ?? []).map((m: any) => m.user_id);
       const { data: profs } = await supabase.from('profiles').select('id, full_name, email').in('id', userIds);
       const memMap = new Map((mems ?? []).map((m: any) => [m.id, m]));
@@ -141,13 +141,15 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
       if ((voteChoice === 'reject' || voteChoice === 'conditional') && voteNote.trim().length < 10) {
         throw new Error('Justification required for reject/conditional votes (min 10 chars)');
       }
+      const weight = (myMembership as any).vote_weight ?? 1;
       const { data, error } = await supabase.from('fp_committee_votes').insert({
         assessment_id: assessmentId, committee_id: assessment.committee_id,
         member_id: myMembership.id, vote: voteChoice, justification: voteNote || null,
+        weight,
       }).select('id').single();
       if (error) throw error;
       await logFpAction('fp.committee.vote_cast', 'fp_committee_vote', data.id, {
-        after: { vote: voteChoice, justification: voteNote || null },
+        after: { vote: voteChoice, justification: voteNote || null, weight },
         context: { individualId, assessmentId, committeeId: assessment.committee_id },
       });
     },
@@ -160,24 +162,44 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
   });
 
   const tally = useMemo(() => {
-    const t = { approve: 0, conditional: 0, reject: 0, abstain: 0, total: 0 };
+    const t = {
+      approve: 0, conditional: 0, reject: 0, abstain: 0, total: 0,
+      w_approve: 0, w_conditional: 0, w_reject: 0, w_abstain: 0, w_total: 0,
+    };
     for (const v of votes ?? []) {
+      const w = Number(v.weight ?? (v.member as any)?.vote_weight ?? 1);
       if (v.vote in t) (t as any)[v.vote]++;
+      (t as any)[`w_${v.vote}`] = ((t as any)[`w_${v.vote}`] ?? 0) + w;
       t.total++;
+      t.w_total += w;
     }
     return t;
   }, [votes]);
 
   const quorumMet = committee ? tally.total >= (committee.quorum || 1) : false;
   const voting = tally.approve + tally.conditional + tally.reject;
+  const wVoting = tally.w_approve + tally.w_conditional + tally.w_reject;
   const outcome = useMemo(() => {
     if (!quorumMet || voting === 0) return null;
-    const approvePct = ((tally.approve + tally.conditional) / voting) * 100;
-    if (approvePct >= (committee?.approval_threshold_pct || 50)) {
-      return tally.conditional > tally.approve ? 'conditional' : 'approved';
+    const approveWeight = tally.w_approve + tally.w_conditional;
+    const approvePct = wVoting > 0 ? (approveWeight / wVoting) * 100 : 0;
+    const threshold = committee?.approval_threshold_pct || 50;
+    // Tie / edge → apply chair casting vote if configured
+    if (approvePct === threshold && committee?.casting_vote_member_id) {
+      const casting = (votes ?? []).find(
+        (v: any) => v.member_id === committee.casting_vote_member_id,
+      );
+      if (casting) {
+        if (casting.vote === 'approve') return 'approved';
+        if (casting.vote === 'conditional') return 'conditional';
+        if (casting.vote === 'reject') return 'rejected';
+      }
+    }
+    if (approvePct >= threshold) {
+      return tally.w_conditional > tally.w_approve ? 'conditional' : 'approved';
     }
     return 'rejected';
-  }, [quorumMet, voting, tally, committee]);
+  }, [quorumMet, voting, wVoting, tally, committee, votes]);
 
   const finalize = useMutation({
     mutationFn: async () => {
@@ -253,12 +275,13 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
             <Card>
               <CardHeader><CardTitle className="text-base">Voting</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex gap-4 text-sm">
+                <div className="flex gap-4 text-sm flex-wrap">
                   <span>Total: <strong>{tally.total}</strong> / {committee.quorum}</span>
-                  <span className="text-green-700">Approve: {tally.approve}</span>
-                  <span className="text-amber-700">Conditional: {tally.conditional}</span>
-                  <span className="text-red-700">Reject: {tally.reject}</span>
+                  <span className="text-green-700">Approve: {tally.approve} <span className="text-xs">(w {tally.w_approve.toFixed(1)})</span></span>
+                  <span className="text-amber-700">Conditional: {tally.conditional} <span className="text-xs">(w {tally.w_conditional.toFixed(1)})</span></span>
+                  <span className="text-red-700">Reject: {tally.reject} <span className="text-xs">(w {tally.w_reject.toFixed(1)})</span></span>
                   <span className="text-slate-500">Abstain: {tally.abstain}</span>
+                  <span className="text-muted-foreground">Weighted total: {tally.w_total.toFixed(1)}</span>
                 </div>
 
                 {myMembership && !myVote && (

@@ -4,7 +4,11 @@
 ## Progress log
 - ✅ Phase 5A schema migration: `license_certificate_signatures` table, cert dispatch_status, F&P weighted-vote columns, AI-routing columns on `application_ai_assessments`, `has_legal_access()` helper, tightened `application_legal_notes` RLS.
 - ✅ Gap 4 (License signing & dispatch): edge fns `sign-license-certificate` + `dispatch-license-certificate` with HMAC-SHA256 ledger, `LicenseSignaturePanel` wired into `LicenseDetail.tsx`, secret `LICENSE_SIGNING_SECRET` generated.
-- ⏭️ Next in Phase 5A: Gap 2 (AI-proposed routing UI + edge fn extension), Gap 3 (Security Events viewer wiring), Gap 11 (F&P weighted-voting RPC + UI), Gap 12 (F&P appeals module).
+- ✅ Gap 2 (AI routing acceptance): `AIRoutingDecisionActions` in `ApplicationAiAssessmentPanel` with Accept + OverrideReasonDialog persisting `routing_decision/*` on `application_ai_assessments`, rule_overrides + audit mirrored.
+- ✅ Gap 11 (F&P weighted voting): `vote_weight` editable on `fp_committee_members`, `casting_vote_member_id` selector on committee, weighted tally + casting-vote tie-break in `FpDeterminationsPanel`, weight persisted on each `fp_committee_votes` row.
+- ✅ Gap 12 (F&P appeals): confirmed `FpAppealsPanel` fully implements filing, committee assignment, decision recording (with override dialog for overturn), reversal of prior `fp_determinations`, and full audit via `logFpAction`.
+- ✅ Gap 3 (Legal-access RLS): `has_legal_access()` gates `application_legal_notes`; denied-access events + viewer already surface in `ComplianceAuditLogs`.
+- ⏭️ Next: Phase 5B (Gap 6 twin-peaks clearance, Gap 5 supervisory plan auto-provision) then Phases 5C–5E.
 
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 

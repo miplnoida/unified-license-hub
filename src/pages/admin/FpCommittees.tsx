@@ -40,7 +40,7 @@ export default function FpCommittees() {
     enabled: !!selectedCommittee,
     queryFn: async () => {
       const { data, error } = await supabase.from('fp_committee_members')
-        .select('id, user_id, member_role, is_active, added_at')
+        .select('id, user_id, member_role, is_active, added_at, vote_weight')
         .eq('committee_id', selectedCommittee!).order('added_at', { ascending: true });
       if (error) throw error;
       const userIds = (data ?? []).map((m: any) => m.user_id);
@@ -50,6 +50,8 @@ export default function FpCommittees() {
       return (data ?? []).map((m: any) => ({ ...m, profile: map.get(m.user_id) }));
     },
   });
+
+  const selectedCommitteeRow = (committees ?? []).find((c: any) => c.id === selectedCommittee);
 
   const { data: profileOptions } = useQuery({
     queryKey: ['fp_profile_search'],
@@ -107,6 +109,30 @@ export default function FpCommittees() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
+  });
+
+  const updateMemberWeight = useMutation({
+    mutationFn: async ({ id, weight }: { id: string; weight: number }) => {
+      const { error } = await supabase.from('fp_committee_members').update({ vote_weight: weight }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  const setCastingVote = useMutation({
+    mutationFn: async (memberId: string | null) => {
+      if (!selectedCommittee) return;
+      const { error } = await supabase.from('fp_committees')
+        .update({ casting_vote_member_id: memberId })
+        .eq('id', selectedCommittee);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Casting vote updated');
+      qc.invalidateQueries({ queryKey: ['fp_committees'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
   return (
@@ -198,9 +224,12 @@ export default function FpCommittees() {
                   {(members ?? []).length === 0 ? (
                     <p className="text-sm text-muted-foreground py-3">No members yet.</p>
                   ) : (
+                    <>
                     <Table>
                       <TableHeader><TableRow>
-                        <TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Active</TableHead><TableHead />
+                        <TableHead>Name</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead>
+                        <TableHead className="w-24">Weight</TableHead>
+                        <TableHead>Active</TableHead><TableHead />
                       </TableRow></TableHeader>
                       <TableBody>
                         {(members ?? []).map((m: any) => (
@@ -208,12 +237,48 @@ export default function FpCommittees() {
                             <TableCell>{m.profile?.full_name || '—'}</TableCell>
                             <TableCell className="text-xs">{m.profile?.email || '—'}</TableCell>
                             <TableCell><Badge variant="outline">{m.member_role}</Badge></TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min={0.1}
+                                max={100}
+                                step={0.1}
+                                defaultValue={m.vote_weight ?? 1}
+                                className="h-8 w-20"
+                                onBlur={(e) => {
+                                  const w = Number(e.target.value);
+                                  if (w > 0 && w <= 100 && w !== m.vote_weight) {
+                                    updateMemberWeight.mutate({ id: m.id, weight: w });
+                                  }
+                                }}
+                              />
+                            </TableCell>
                             <TableCell>{m.is_active ? 'Yes' : 'No'}</TableCell>
                             <TableCell><Button size="sm" variant="ghost" onClick={() => { if (confirm('Remove?')) removeMember.mutate(m.id); }}><Trash2 className="h-4 w-4" /></Button></TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
+                    <div className="mt-3 flex items-end gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs">Casting vote (used to break ties)</Label>
+                        <Select
+                          value={selectedCommitteeRow?.casting_vote_member_id ?? 'none'}
+                          onValueChange={(v) => setCastingVote.mutate(v === 'none' ? null : v)}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {(members ?? []).filter((m: any) => m.is_active).map((m: any) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.profile?.full_name || m.profile?.email || m.id.slice(0, 8)} ({m.member_role})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    </>
                   )}
                 </>
               )}
