@@ -467,7 +467,7 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.title.trim()) throw new Error('Title required');
-      const { error } = await supabase.from('coordination_flags').insert({
+      const { data, error } = await supabase.from('coordination_flags').insert({
         case_id: caseId,
         flag_type: form.flag_type,
         title: form.title.trim(),
@@ -475,8 +475,12 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         linked_application_id: form.linked_application_id.trim() || null,
         linked_license_id: form.linked_license_id.trim() || null,
         created_by: currentUserId!,
-      });
+      }).select('id').single();
       if (error) throw error;
+      await logCoordinationAction('coordination.flag.raised', 'coordination_flag', data.id, {
+        after: { flag_type: form.flag_type, title: form.title.trim() },
+        context: { caseId, flagId: data.id },
+      });
     },
     onSuccess: () => {
       toast.success('Flag raised');
