@@ -143,7 +143,7 @@ export default function ComplaintsList() {
         complaint_number: (inserted as any).complaint_number,
         subject: (inserted as any).subject,
         submitted_at: (inserted as any).created_at,
-        complainant_name: user.full_name ?? user.email ?? null,
+        complainant_name: user.fullName ?? user.email ?? null,
         complainant_email: (inserted as any).email ?? user.email ?? null,
         channel: isInternal ? 'staff_intake' : 'consumer_portal',
         sla_days: 20,
