@@ -188,6 +188,23 @@ export function SufficiencyPanel({ applicationId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {user && (
+        <RaiseRfiDialog
+          applicationId={applicationId}
+          raisedBy={user.id}
+          hideTrigger
+          open={rfiOpen}
+          onOpenChange={setRfiOpen}
+          initialItems={initialRfiItems}
+          sufficiencyEvaluationId={latest?.id ?? null}
+          sufficiencyResultIds={autoRfiCandidates.map((r) => r.id)}
+          onCreated={() => {
+            qc.invalidateQueries({ queryKey: ['application_rfis'] });
+            qc.invalidateQueries({ queryKey: ['sufficiency_latest', applicationId] });
+          }}
+        />
+      )}
     </Card>
   );
 }
