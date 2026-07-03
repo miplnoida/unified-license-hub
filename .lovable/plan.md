@@ -10,7 +10,12 @@
 - ✅ Gap 3 (Legal-access RLS): `has_legal_access()` gates `application_legal_notes`; denied-access events + viewer already surface in `ComplianceAuditLogs`.
 - ✅ Gap 6 (Twin-Peaks clearance + divergence): tables `twinpeaks_clearances`/`twinpeaks_disagreements` + `coordination_cases.clearance_required`, `TwinPeaksPanel` mounted in `ApplicationDetail`, approval blocked in `ConfigurableDecisionActions` unless override recorded.
 - ✅ Gap 5 (Auto-provisioning supervisory plan): trigger `trg_license_issued_seed_plan` on `licenses` insert/status→active materialises `supervisory_plans` + `supervisory_plan_actions` from best-matching template with template offset due dates.
-- ⏭️ Next: Phase 5C (F&P cycle scheduler, adverse-media confidence, trend dashboard, AI ingest).
+- ✅ Phase 5C schema: `fp_individual_roles.reassessment_cycle_months/last_reassessment_at/next_reassessment_due`; `fp_findings.confidence_score/resolution_status/resolution_reason/resolved_by/resolved_at/citations` + confidence-band trigger.
+- ✅ Gap 7 (Cycle scheduler): edge fn `fp-cycle-scheduler` opens cycle assessments when roles are due; manual trigger button on `FpPopulationTrends`; per-role cycle editable on individual detail Roles tab with next-due tracking.
+- ✅ Gap 8 (Adverse-media confidence + triage): screening engine and AI ingest write `confidence_score`; auto-band trigger drafts false-positive/needs-review/true-positive; `FpScreeningPanel` triage dialog with mandatory reason (min 10 chars), citations rendered inline.
+- ✅ Gap 9 (Population trends): `FpPopulationTrends` page at `/fit-and-proper/trends` — Recharts for findings-by-month, throughput, check-type mix, resolution mix, appeals stats.
+- ✅ Gap 10 (AI ingest): edge fn `fp-ai-media-ingest` calls Lovable AI Gateway, stores findings with citations + confidence, exposed via "AI media scan" button in `FpScreeningPanel`; analyst must accept/reject each hit with reason before it counts.
+- ⏭️ Next: Phase 5D (prudential/conduct taxonomy admin, peer comparison, product/channel dimension, monitoring rule admin, batch document upload).
 
 Scope: turn every 🟡/❌ item from the approved assessment into fully wired, RLS-secured, audited, tested features. Grouped into 5 phases by dependency and risk. Each phase ends with build + targeted tests green.
 
