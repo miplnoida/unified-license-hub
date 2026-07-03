@@ -111,6 +111,30 @@ export default function FpCommittees() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
   });
 
+  const updateMemberWeight = useMutation({
+    mutationFn: async ({ id, weight }: { id: string; weight: number }) => {
+      const { error } = await supabase.from('fp_committee_members').update({ vote_weight: weight }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fp_committee_members', selectedCommittee] }),
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
+  const setCastingVote = useMutation({
+    mutationFn: async (memberId: string | null) => {
+      if (!selectedCommittee) return;
+      const { error } = await supabase.from('fp_committees')
+        .update({ casting_vote_member_id: memberId })
+        .eq('id', selectedCommittee);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Casting vote updated');
+      qc.invalidateQueries({ queryKey: ['fp_committees'] });
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed'),
+  });
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
