@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, PlayCircle, ShieldAlert, ShieldOff } from 'lucide-react';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { logFpAction } from '@/lib/fpAudit';
 
 const SEVERITY_CLASS: Record<string, string> = {
   high: 'bg-red-100 text-red-800',
