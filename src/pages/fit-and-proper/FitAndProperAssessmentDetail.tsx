@@ -158,7 +158,7 @@ export default function FitAndProperAssessmentDetail() {
           description={`Assessment ${assessment.assessment_type} · created ${new Date(assessment.created_at).toLocaleDateString()}`}
           backHref={person ? `/fit-and-proper/individuals/${person.id}` : '/fit-and-proper'}
           backLabel={person ? 'Individual' : 'Register'}
-          actions={<Badge variant="outline" className={meta.className}>{meta.label}</Badge>}
+          actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="fp_assessment" entityId={assessment.id} title="Assessment history" /></div>}
         />
 
         <Card>
