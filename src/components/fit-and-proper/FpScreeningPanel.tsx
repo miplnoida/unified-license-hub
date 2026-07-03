@@ -34,7 +34,10 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
+  const [runningAi, setRunningAi] = useState(false);
   const [pending, setPending] = useState<PendingOverride | null>(null);
+  const [resolving, setResolving] = useState<{ id: string; status: 'true_positive' | 'false_positive' | 'needs_review'; title: string } | null>(null);
+  const [resolutionReason, setResolutionReason] = useState('');
 
   const { data: runs } = useQuery({
     queryKey: ['fp_screening_runs', individualId],
