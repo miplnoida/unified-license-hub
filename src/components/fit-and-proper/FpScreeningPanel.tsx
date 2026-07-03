@@ -184,9 +184,11 @@ export function FpScreeningPanel({ individualId, assessmentId }: Props) {
           <div key={f.id} className={`border rounded p-3 ${f.is_false_positive ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={SEVERITY_CLASS[f.severity] || SEVERITY_CLASS.low}>{f.severity}</Badge>
                   <span className="text-xs text-muted-foreground">{f.check_type}</span>
+                  {f.source && <span className="text-xs text-muted-foreground">· source: {f.source}</span>}
+                  {f.config_id && <span className="text-xs font-mono text-muted-foreground">· cfg {String(f.config_id).slice(0, 8)}</span>}
                   {f.is_false_positive && <Badge variant="outline" className="bg-slate-100 text-slate-700">false positive</Badge>}
                 </div>
                 <div className="font-medium text-sm mt-1">{f.title}</div>
