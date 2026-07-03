@@ -112,7 +112,6 @@ export default function RuleOverrides() {
       <PageHeader
         title="Rule Overrides"
         description="Browse, filter, review and export all overrides recorded across the platform."
-        icon={ShieldAlert}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
