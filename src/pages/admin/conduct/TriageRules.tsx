@@ -33,8 +33,12 @@ interface Outputs {
   priority?: 'p1' | 'p2' | 'p3' | 'p4';
   sla_days?: number;
   assigned_team?: string;
+  conduct_risk_category_id?: string;
   conduct_risk_category_code?: string;
   generate_alert_kind?: string;
+  alert_severity?: 'low' | 'medium' | 'high' | 'critical';
+  alert_title?: string;
+  alert_detail?: Record<string, unknown>;
   recommended_action?: string;
 }
 
@@ -43,11 +47,14 @@ const FIELDS = [
   { v: 'product', l: 'Product (ID)' },
   { v: 'channel', l: 'Channel (ID)' },
   { v: 'entity', l: 'Licensee / Entity (ID)' },
+  { v: 'conduct_risk_category', l: 'Conduct Risk Category' },
   { v: 'customer_type', l: 'Customer Type' },
   { v: 'customer_vulnerability', l: 'Customer Vulnerability' },
   { v: 'keywords', l: 'Keywords (subject + description)' },
   { v: 'repeat_count', l: 'Repeat Complaint Count (12m)' },
   { v: 'sla_days', l: 'Current SLA days' },
+  { v: 'sla_due_at', l: 'SLA Due At (date/time)' },
+  { v: 'status', l: 'Complaint Status' },
   { v: 'severity', l: 'Current Severity' },
   { v: 'priority', l: 'Current Priority' },
   { v: 'assigned_team', l: 'Current Assigned Team' },
@@ -62,6 +69,12 @@ const COMMON_OPS = [
 const NUM_OPS = [
   { v: 'eq', l: '=' }, { v: 'neq', l: '≠' },
   { v: 'gte', l: '≥' }, { v: 'lte', l: '≤' },
+  { v: 'gt', l: '>' }, { v: 'lt', l: '<' },
+  { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
+];
+const DATE_OPS = [
+  { v: 'lt', l: 'before' }, { v: 'lte', l: 'on or before' },
+  { v: 'gt', l: 'after' }, { v: 'gte', l: 'on or after' },
   { v: 'is_empty', l: 'is empty' }, { v: 'is_not_empty', l: 'is not empty' },
 ];
 const TEXT_OPS = [
@@ -76,11 +89,14 @@ const OPS: Record<string, { v: string; l: string }[]> = {
   product: COMMON_OPS,
   channel: COMMON_OPS,
   entity: COMMON_OPS,
+  conduct_risk_category: COMMON_OPS,
   customer_type: COMMON_OPS,
   customer_vulnerability: BOOL_OPS,
   keywords: TEXT_OPS,
   repeat_count: NUM_OPS,
   sla_days: NUM_OPS,
+  sla_due_at: DATE_OPS,
+  status: COMMON_OPS,
   severity: COMMON_OPS,
   priority: COMMON_OPS,
   assigned_team: TEXT_OPS,
@@ -90,9 +106,16 @@ const OPS: Record<string, { v: string; l: string }[]> = {
 const NO_VALUE_OPS = new Set(['is_true', 'is_false', 'is_empty', 'is_not_empty']);
 const LIST_OPS = new Set(['in', 'not_in', 'contains_any', 'contains_all']);
 const NUM_FIELDS = new Set(['repeat_count', 'sla_days', 'age_days']);
+const DATE_FIELDS = new Set(['sla_due_at']);
+const STATUS_VALUES = ['submitted', 'under_investigation', 'resolved', 'closed', 'rejected'];
 
 const SEVS = ['low', 'medium', 'high', 'critical'];
 const PRIOS = ['p1', 'p2', 'p3', 'p4'];
+const ALERT_KINDS = [
+  'repeat_complaint', 'vulnerable_customer', 'critical_severity',
+  'thematic_spike', 'sla_breach', 'sla_at_risk',
+  'rule_triggered', 'high_risk_category',
+];
 
 export default function TriageRules() {
   const [rows, setRows] = useState<Rule[]>([]);
