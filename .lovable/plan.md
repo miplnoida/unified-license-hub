@@ -1,7 +1,21 @@
 
-# Phase 6 — Close the final Script 1–5 gaps
+# Phase 6 — Close the final Script 1–5 gaps (SHIPPED)
 
-I re-read every "MERGED FOR CV" tab in Scripts 1–5, walked the plan log, and grep-verified each claim against the codebase. The prior phases (5A–5E) covered 20 of the flagged items. Six requirements from the scripts are still missing or only partially wired — all six break "fully functional" if a real regulator uses them. This phase closes them.
+All six items from the assessment table are now in the codebase, tsgo-clean, and RLS-secured. See the progress log below for what changed and where.
+
+## Progress log
+- ✅ Gap 1 (Multi-regulator F&P determinations): `fp_determinations.regulator_id` + `uq_fp_det_current_per_regulator` partial-unique index; `FpDeterminationsPanel` derives regulator from the assessment, only supersedes prior current row for the SAME regulator, tags each history row with the regulator badge, and stamps regulator on every audit event.
+- ✅ Gap 2 (Sector-specific F&P decision rules): `fp_sector_decision_rules` table with sector + optional sub_sector + optional role_type + JSON `criteria` (min_score, mandatory_checks, disqualifiers, warnings) + rationale template FK; admin CRUD page `/admin/fp-sector-rules`; helper `src/lib/fpSectorRules.ts` with `resolveFpSectorRule` (most-specific-first cascade) + `evaluateFpCriteria` for panels/edge fns to reuse.
+- ✅ Gap 3 (Case-centric cross-module audit trail): `src/lib/caseAuditGraph.ts` (one-hop related-entity discovery + timeline aggregator across `audit_logs`, `rule_overrides`, `compliance_audit_logs`, `enforcement_case_events`); `CaseAuditTrail.tsx` at `/admin/case-audit` (search-based) + `/admin/case-audit/:entityType/:entityId` (deep-link); chronological grouped-by-day timeline with diff viewer + JSON export routed through `logExport`.
+- ✅ Gap 4 (Prudential early warnings): `v_prudential_early_warnings` view (latest vs previous ratio + 180-day breach count → watch/warning/critical); admin page `/supervision/early-warnings` with level counters, filters, per-row "seed supervisory action", CSV export via `logExport`, manual recompute button; edge fn `evaluate-prudential-early-warnings` reads the view and dispatches `prudential.early_warning` notifications for critical rows (idempotent, cron-invokable).
+- ✅ Gap 5 (Security Events surface): `AdminHub` gained a Security Events tile plus tiles for Case Audit Trail, Prudential Early Warnings, and F&P Sector Rules.
+- ✅ Gap 6 (Complaint acknowledgement artifact): `ComplaintAcknowledgement.tsx` reusable dialog with print-to-PDF, government branding, reference number, SLA target; auto-shown after every consumer/staff submission on `ComplaintsList`; "Reprint acknowledgement" button on `ComplaintDetail` header; each print writes an `ACK_GENERATED` audit row and an `export_audit_jobs` entry through the central `logExport` helper.
+
+## Verification
+- `bunx tsgo --noEmit` → clean.
+- Migration applied (added regulator_id + sector rule table + early-warning view + grants). Linter noise reported is pre-existing (search_path warnings on legacy functions, not introduced here).
+
+
 
 ## Gaps identified
 
