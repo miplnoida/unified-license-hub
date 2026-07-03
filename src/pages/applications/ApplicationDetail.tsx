@@ -623,6 +623,7 @@ export default function ApplicationDetail() {
               <Badge variant={statusVariant[app.status] || 'outline'} className="text-sm px-3 py-1">
                 {APPLICATION_STATUS_LABELS[app.status]}
               </Badge>
+              {isInternal && <HistoryButton entityType="application" entityId={app.id} title={`History — ${app.application_number}`} />}
             </div>
           }
         />
