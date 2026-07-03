@@ -1,117 +1,76 @@
-# Phase 3 Completion Plan — Fit & Proper + Twin Peaks Coordination
+# Phase 3 Finalization Plan
 
-Extending existing implementation from commit `7862ad4`. No rewrites — additive slices only. Delivered in 6 slices (3C-3 through 3C-8), each independently shippable.
+Close the remaining Phase 3 gaps after commit `7e3e7c5`. No rewrites of working modules — targeted fixes only.
 
-## Slice 3C-3 — Audit Coverage (Items 2, 10)
+## 1. Regenerate Supabase types
+Regenerate `src/integrations/supabase/types.ts` from the current schema so every Phase 3 table and new column is present:
+- F&P: `fp_individuals`, `fp_individual_roles`, `fp_assessments` (+ `form_template_id`, `form_version_id`, `form_response_id`), `fp_screening_configs`, `fp_screening_runs`, `fp_findings`, `fp_committees`, `fp_committee_members`, `fp_committee_votes`, `fp_determinations`, `fp_conditions`, `fp_appeals`, `fp_monitoring_events`
+- Coordination: `coordination_cases` (+ `primary_regulator_id`, `closure_rationale`, `closed_by`), `coordination_participants` (+ `regulator_id`), `coordination_messages`, `coordination_flags`, `coordination_escalations`
 
-Wire `logAudit` + `logComplianceAudit` into every F&P and Coordination mutation site. No new tables.
+## 2. Complete F&P audit coverage
+Wire `logFpAction` (existing `src/lib/fpAudit.ts`) into every mutation path that currently writes directly to Supabase:
+- `FitAndProperIndividuals.tsx`, `FitAndProperIndividualDetail.tsx` — create/update/deactivate individual, duplicate accepted, link-existing
+- Roles UI — add/update/end/mark current/link
+- `FpAssessmentsPanel.tsx` — re-read inserted row and audit `fp_assessment.created` with pinned `form_template_id` / `form_version_id` / `form_response_id`; also link/close
+- `FpScreeningPanel.tsx` + `fp-screening-run` edge function — run, success, failure, finding created/reviewed/false-positive/restored
+- `FpDeterminationsPanel.tsx`, `admin/FpCommittees.tsx` — committee CRUD, activate/deactivate, member add/remove, assign, vote cast/update, determination finalize/supersede
+- `FpConditionsPanel.tsx`, `FpAppealsPanel.tsx`, `FpMonitoringPanel.tsx` + `fp-monitoring-sweep` — condition create/update/satisfy/waive/overdue, appeal file/update/decide/link-revised, monitoring create/ack/sweep
+- Metadata: module=`fit_and_proper`, actor, entity type/id, individual/assessment ids, before/after, source component
 
-**F&P surfaces touched**
-- `FitAndProperRegister.tsx` / `FpIndividualDialog` — create/update/deactivate individual, duplicate-accept
-- `FpIndividualDetail.tsx` — role add/update/end, link licensee/license/application
-- `FitAndProperAssessmentDetail.tsx` — draft save (already partial), submit, status transitions, route-to-screening, assign committee, close
-- `FpScreeningPanel.tsx` — run, success/failure, finding review, false-positive override (via existing `OverrideReasonDialog`)
-- `FpCommitteesAdmin.tsx` + `FpCommitteeVotePanel` — create/update/(de)activate committee, add/remove member, cast vote, finalize
-- `FpDeterminationsPanel.tsx` — approve/conditional/reject/defer, supersede
-- `FpConditionsPanel.tsx` — create/update/satisfy/waive/overdue/attach evidence
-- `FpAppealsPanel.tsx` — file/assign/decide/withdraw (partial via override dialog exists)
+## 3. Coordination closure rules
+**Migration**
+- Add `coordination_cases.closure_rationale text`, `closed_by uuid`
+- `BEFORE UPDATE` trigger on `coordination_cases`: when transitioning to `closed`, reject if any related `coordination_escalations.status IN ('open','in_review')`, any `coordination_flags.status='open' AND flag_type IN ('blocker','interdependency','concurrent_review')`, or `closure_rationale` shorter than 10 chars; set `closed_by = auth.uid()`
 
-**Coordination surfaces touched**
-- `CoordinationList.tsx` / `NewCoordinationCase.tsx` — create case, link/unlink subject
-- `CoordinationDetail.tsx` — invite/remove participant, post message, clear/block, raise/resolve flag, close
-- `CoordinationEscalationsTab.tsx` (new in 3C-6) — raise/assign/update/resolve/withdraw
+**UI (`CoordinationDetail.tsx`)**
+- Replace direct close with a dialog listing open blockers/escalations, disabling close while any exist, requiring rationale textarea (min 10 chars)
+- Audit close attempt + successful close; audit failed close on error
 
-Every call passes `{ action, entityType, entityId, before, after, metadata: { individual_id, assessment_id, case_id, regulator_id, participant_id } }`.
+## 4. Complete coordination audit
+Ensure `logCoordinationAction` (existing helper) covers every mutation: case create, participant invite/remove/clear/block/update-clearance, message post, flag raise/resolve/withdraw, escalation raise/assign/in-review/resolve/withdraw, link/unlink subject, close (success + blocked failure).
 
-## Slice 3C-4 — F&P Workflow + Committee Governance (Items 3, 4)
+## 5. Regulator-specific Twin Peaks behavior
+- **`CoordinationList.tsx`** case creation: owner regulator selector + primary regulator selector; defaults include ABC Prudential and FSC Conduct when seeded
+- **Participant invite**: regulator selector storing `coordination_participants.regulator_id`; regulator badge next to each participant and (where author regulator resolvable) each message
+- **`CoordinationDetail.tsx`**: add three views (tabs) — **Prudential View** (ABC/Prudential participants, clearances, flags, escalations), **Conduct View** (FSC/Conduct equivalents), **Shared Resolution View** (combined status + final outcome)
 
-DB triggers + client guards. No new tables.
+## 6. Extend decision gates
+Extend `check_decision_gates` (or add sibling RPCs) to accept subject types `fp_assessment`, `complaint`, `prudential_return`, `prudential_finding`, `enforcement_action`, returning coordination pending-clearance / open-blocker / open-escalation blockers.
 
-**Migration `fp_governance_triggers.sql`**
-- `trg_fp_assessment_transition` — enforce Draft→Submitted requires `form_response_id` marked complete; Submitted→Screening allowed; Screening→Committee requires ≥1 `fp_screening_runs` OR row in `rule_overrides` with `rule_key='fit_and_proper.skip_screening'`; Committee→Determined requires finalized `fp_determinations`; Determined/Closed reject direct edits except from `has_role(_, 'admin')` with override.
-- `trg_fp_vote_unique` — `(assessment_id, member_id)` unique for active members only; reject if member inactive; require `justification` when `vote IN ('reject','conditional')`.
-- `trg_fp_determination_finalize` — verify quorum (count votes ≥ committee.quorum) and threshold (% approve ≥ approval_threshold_pct) before insert with `is_current=true`; require `rationale`; conditional insert must create ≥1 `fp_conditions` row in same tx (deferred check function).
-- `trg_fp_determination_immutable` — block UPDATE/DELETE on finalized rows unless via appeal (`supersedes_id` set) or admin override row.
+**DB triggers (BEFORE UPDATE)**:
+- `fp_determinations`: block finalize if linked coordination case has unresolved items (bypass via `rule_overrides` `decision.gate.override`)
+- `complaints`: block final closure/escalation-complete transition
+- `enforcement_actions`: block final closure
+- Prudential finding/return final sign-off if such a state exists
 
-**Client**
-- `FitAndProperAssessmentDetail.tsx` — hide transition buttons when disallowed; surface trigger errors via toast + `OverrideReasonDialog` when applicable.
-- `FpCommitteeVotePanel` — require justification textbox for reject/conditional; disable finalize until quorum met (computed client-side + server-enforced).
+**UI**: mount `DecisionGatesBanner` (extended to accept `subjectType`/`subjectId`) on `FitAndProperAssessmentDetail`, `ComplaintDetail`, enforcement detail, prudential finding/return detail.
 
-## Slice 3C-5 — Conditions, Appeals, Monitoring, Screening Transparency (Items 5, 6)
+## 7. Permission seed migration
+Migration inserts into `permission_modules`, `permission_actions`, `permissions`, `role_permissions`:
+- Modules `fit_and_proper` and `coordination` (plus already-seeded sub-modules) with view/create/update/delete/admin actions
+- Grants to `super_admin`, `admin`, `supervisor`, and any of `reviewer/analyst`, `legal_compliance`, `licensing_officer`, `committee_member` that exist in `roles`
+- Idempotent (`ON CONFLICT DO NOTHING`) so it can re-run safely
 
-**Schema additions (migration `fp_runtime_hardening.sql`)**
-- `fp_screening_runs.config_snapshot jsonb` — snapshot of active `fp_screening_configs` at run time.
-- `fp_findings.config_id uuid`, `source text`, `severity_basis jsonb` — provenance per finding.
-- `fp_findings.reviewed_by/reviewed_at/review_note/override_reason` (add if missing).
-- `fp_conditions.overdue_at timestamptz` computed via nightly job; `waiver_reason text` required when status='waived' (CHECK via trigger).
-- `fp_appeals.decision` expand enum to include `partially_upheld`, `dismissed`, `remitted` (already has `upheld_original`, `overturned_to_*` — map old→new labels, keep back-compat).
-- `fp_monitoring_events.acknowledged_by/at/note` for ack; scheduled `evaluate-fp-monitoring` edge function generates overdue-condition events.
+## 8. PQ pinning verification in assessment creation
+In `FpAssessmentsPanel.tsx` create mutation: change insert `.select('id')` to select `id, form_template_id, form_version_id, form_response_id, individual_id, assessment_type, role_id, licensee_id`; if pinning columns missing after trigger, toast a hard error and abort navigation; log `fp_assessment.created` audit including pinned template/version.
 
-**UI**
-- `FpConditionsPanel.tsx` — full CRUD: assign owner, due date, evidence upload (via existing `VersionedDocumentUploader`), satisfy/waive with mandatory reason, overdue badge.
-- `FpAppealsPanel.tsx` — extend decision picker; on `overturned_*` create new `fp_determinations` (already partial) + link `new_determination_id`.
-- `FpMonitoringPanel.tsx` — event list, acknowledge button with note, "Trigger recheck" action calling edge function.
-- `FpScreeningPanel.tsx` — show snapshot pill, config id per finding, mandatory reason on false-positive toggle, integration log entries on failure via `logIntegrationFailure`.
+## 9. Build
+Run `npm run build`; fix any TS errors from the type regeneration or new imports. Do not report complete unless the build passes.
 
-**Edge functions**
-- `evaluate-fp-monitoring` (new, cron) — scan `fp_conditions.due_date < now() AND status='open'` → insert `fp_monitoring_events` with severity + notify owner.
+## Final reply format
+Reply with the exact structure requested: Commit / Migrations / Checklist (all Yes) / Files changed / Build result.
 
-## Slice 3C-6 — Coordination Escalation + Subject Types + Regulator Logic (Items 9, 12, 13)
+## Technical Details
 
-**Migration `coordination_escalation.sql`**
-- `coordination_escalations` table with fields per spec + GRANTs + RLS (participants can read; raised_by/assigned_to/admin can write; resolve requires rationale via trigger).
-- Extend `coordination_cases.subject_type` CHECK to include `complaint`, `prudential_return`, `prudential_finding`, `fp_assessment`, `enforcement_action`.
-- Seed regulators `ABC_PRUDENTIAL` and `FSC_CONDUCT` if absent (idempotent insert).
-- Add `coordination_cases.primary_regulator_id` (nullable, references regulators) alongside `owner_regulator_id`.
+**New migrations** (three files):
+1. `coordination_cases` closure columns + closure enforcement trigger
+2. Decision-gate extension: extended `check_decision_gates` + triggers on `fp_determinations`, `complaints`, `enforcement_actions` (+ prudential where applicable)
+3. Permission seeds for `fit_and_proper` / `coordination` modules and role grants
 
-**UI**
-- `CoordinationDetail.tsx` — new `EscalationsTab` (raise/assign/update/resolve/withdraw with rationale), regulator badges on participants/messages/clearances, mandatory note on `block` clearance and case closure.
-- `NewCoordinationCase.tsx` — expanded subject-type dropdown; primary/secondary regulator selects; subject lookups per type.
-- `LinkedSubjectCard` component reused across subject detail pages (Slice 3C-7).
+**Types regeneration**: full rewrite of `src/integrations/supabase/types.ts` from live schema.
 
-## Slice 3C-7 — Application/Licensing ↔ F&P + Coordination Decision Enforcement (Items 7, 11)
+**Component edits**: F&P individuals/roles pages, `FpAssessmentsPanel`, `FpScreeningPanel`, `FpDeterminationsPanel`, `FpCommittees` admin page, `FpConditionsPanel`, `FpAppealsPanel`, `FpMonitoringPanel`, `CoordinationList`, `CoordinationDetail`, participant/message components, `DecisionGatesBanner` (generalized), `FitAndProperAssessmentDetail`, `ComplaintDetail`, enforcement detail, prudential finding/return detail.
 
-No new tables — new columns + read-only integrations.
+**Edge function edits**: `fp-screening-run`, `fp-monitoring-sweep` — call `logComplianceAudit` from `_shared/audit.ts` for run + per-finding events.
 
-**Migration `licensing_fp_link.sql`**
-- `applications.required_fp_roles jsonb` — array of `{role, individual_id?, assessment_id?}` slots (director, controller, senior_manager, key_person, shareholder).
-- Trigger `trg_application_final_approval_fp_gate` — block status='approved' unless every required slot has a current `fp_determinations` with outcome IN ('approved','conditional'); conditional allows only when application status='conditional_approval'.
-- Trigger `trg_source_case_coordination_gate` — before approve/close on `applications`, `complaints`, `fp_assessments`, `enforcement_actions`, `compliance_returns`: reject if any linked `coordination_cases` has pending/blocked clearances or open escalations unless resolution_outcome='conditionally_cleared' (allows conditional decision only).
-
-**UI**
-- `ApplicationDetail` (existing) — new **Fit & Proper** section: list required roles, link/create assessment button, live status chips; new **Coordination** section: linked cases + pending blockers.
-- `ComplaintDetail`, `FitAndProperAssessmentDetail`, `EnforcementDetail`, `ReturnDetail` — inject shared `LinkedCoordinationCard` showing status/participants/blockers/escalations.
-- Decision buttons on each surface disabled with tooltip when gate fails; override path via `OverrideReasonDialog`.
-
-## Slice 3C-8 — Shared Registry Dedupe, Configurable PQ finalization, Permissions, Types, Build (Items 1 finalization, 8, 14, 15, 16)
-
-**PQ Form Builder finalization (item 1)**
-- Verify seeded master PQ contains all 15 required sections listed in spec; migration `fp_pq_master_v2.sql` appends any missing sections (identity, nationality/residence, current/proposed roles, employment history, qualifications, directorships, ownership, regulatory history, criminal, bankruptcy, disciplinary, conflicts, related parties, AML/CFT, consent).
-- `FitAndProperAssessmentDetail` — remove hardcoded declaration UI from primary path; retain behind `if (!form_version_id)` legacy branch only.
-
-**Shared registry (item 8)**
-- Migration `fp_individuals_dedupe.sql` — `fp_find_duplicate_individuals(_national_id, _passport, _email, _full_name, _dob)` SECURITY DEFINER function returning candidate matches with match_reason.
-- `FpIndividualDialog` — call function on blur of key fields → show `DuplicateWarningDialog` with "Use existing" (link) or "Create anyway" (audited) options.
-- `FpIndividualDetail` — cross-regulator roles/determinations tabs already exist; add RLS check ensuring `restricted_notes` visible only to owning regulator's staff.
-
-**Permissions (item 15)**
-- Migration `phase3_permission_seeds.sql` — idempotent inserts for `permission_modules` `fit_and_proper`, `coordination`; `permission_actions` view/create/edit/approve/reject/admin; `role_permissions` assigning to `regulator_admin`, `licensing_officer`, `conduct_officer`, `prudential_officer` per matrix.
-
-**Types + Build (items 14, 16)**
-- Regenerate `src/integrations/supabase/types.ts` covering all Phase 3 tables including `coordination_escalations` and new columns.
-- `npm run build` clean; fix any TS errors.
-- Smoke: vitest run for new logic (workflow guard, dedupe fn, coordination gate).
-
-## Sequencing & Deliverables per slice
-
-Each slice ends with: migration(s) applied, files listed, targeted vitest, `npm run build` pass, and short acceptance note against the spec item(s) it covers. Final message after 3C-8 includes the full checklist required by the user (commit SHA, files, migrations, all 15 confirmations, build result).
-
-## Technical notes
-
-- All new triggers use `SET search_path = public` and are `SECURITY DEFINER` only where cross-table checks demand it.
-- Every new public table gets `GRANT` block before `ENABLE RLS` per project rules.
-- Override paths uniformly go through existing `OverrideReasonDialog` + `rule_overrides` table — no bespoke bypass UIs.
-- Audit calls batched into helper `logFpAction(action, entity, id, before, after, extra)` in `src/lib/fpAudit.ts` and `logCoordinationAction(...)` in `src/lib/coordinationAudit.ts` to keep call sites terse.
-- No changes to `src/integrations/supabase/client.ts`; types file regenerated only after migrations approved.
-
-Reply **"continue 3C-3"** to start with the audit-coverage slice, or name a different slice to prioritize.
+**No touch**: Phase 3 modules already working (PQ trigger, escalation table/UI, subject types, regulators seed, existing coordination audit helper, existing app/license decision gates).

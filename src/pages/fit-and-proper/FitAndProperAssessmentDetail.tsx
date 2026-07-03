@@ -20,6 +20,7 @@ import { FormRenderer } from '@/components/form-renderer/FormRenderer';
 import { migrateSectionsToRows } from '@/lib/formRows';
 import type { FormSection } from '@/types/formBuilder';
 import { logAudit } from '@/hooks/useAuditLog';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
@@ -104,6 +105,8 @@ export default function FitAndProperAssessmentDetail() {
           backLabel={person ? 'Individual' : 'Register'}
           actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="fp_assessment" entityId={assessment.id} title="Assessment history" /></div>}
         />
+
+        <DecisionGatesBanner subjectType="fp_assessment" subjectId={assessment.id} compact />
 
         {hasPinnedForm ? (
           <PinnedPqForm

@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Plus, FileText } from 'lucide-react';
+import { logFpAction } from '@/lib/fpAudit';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   draft: { label: 'Draft', className: 'bg-slate-100 text-slate-700' },
@@ -72,13 +73,36 @@ export function FpAssessmentsPanel({ individualId }: Props) {
           status: 'draft',
           declaration_data: {},
         })
-        .select('id')
+        .select('id, individual_id, assessment_type, role_id, licensee_id, form_template_id, form_version_id, form_response_id')
         .single();
       if (error) throw error;
+      // The BEFORE INSERT trigger pins the PQ form; enforce that it succeeded.
+      if (!data.form_template_id || !data.form_version_id) {
+        throw new Error('Personal Questionnaire form is not configured for Fit & Proper. Ask an admin to publish the FP PQ template before starting an assessment.');
+      }
+      await logFpAction('fp.assessment.created', 'fp_assessment', data.id, {
+        after: {
+          assessment_type: data.assessment_type,
+          role_id: data.role_id,
+          licensee_id: data.licensee_id,
+          form_template_id: data.form_template_id,
+          form_version_id: data.form_version_id,
+          form_response_id: data.form_response_id,
+        },
+        context: {
+          individualId: data.individual_id,
+          assessmentId: data.id,
+          extra: {
+            pinned_template: data.form_template_id,
+            pinned_version: data.form_version_id,
+            source: 'FpAssessmentsPanel',
+          },
+        },
+      });
       return data;
     },
     onSuccess: (data) => {
-      toast.success('Assessment started');
+      toast.success('Assessment started · PQ pinned');
       qc.invalidateQueries({ queryKey: ['fp_assessments', individualId] });
       setOpen(false);
       window.location.href = `/fit-and-proper/assessments/${data.id}`;

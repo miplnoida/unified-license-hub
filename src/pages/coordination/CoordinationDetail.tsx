@@ -216,22 +216,43 @@ export default function CoordinationDetail() {
     onError: (e: any) => toast.error(e?.message || 'Failed'),
   });
 
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeRationale, setCloseRationale] = useState('');
+
   const closeCase = useMutation({
     mutationFn: async () => {
+      if (closeRationale.trim().length < 10) {
+        throw new Error('Closure rationale must be at least 10 characters');
+      }
       const { error } = await supabase
         .from('coordination_cases')
-        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .update({
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          closure_rationale: closeRationale.trim(),
+          closed_by: user?.id,
+        } as any)
         .eq('id', caseId!);
-      if (error) throw error;
+      if (error) {
+        await logCoordinationAction('coordination.case.close_blocked', 'coordination_case', caseId!, {
+          after: { attempted_status: 'closed', error: error.message },
+          context: { caseId: caseId!, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+        });
+        throw error;
+      }
       await logCoordinationAction('coordination.case.closed', 'coordination_case', caseId!, {
-        after: { status: 'closed' },
+        after: { status: 'closed', closure_rationale: closeRationale.trim() },
         context: { caseId: caseId!, subjectType: caseRow?.subject_type, subjectId: caseRow?.subject_id },
+        justification: closeRationale.trim(),
       });
     },
     onSuccess: () => {
       toast.success('Case closed');
+      setCloseOpen(false);
+      setCloseRationale('');
       qc.invalidateQueries({ queryKey: ['coordination_case', caseId] });
     },
+    onError: (e: any) => toast.error(e?.message || 'Close blocked'),
   });
 
   if (isLoading) {
@@ -267,7 +288,48 @@ export default function CoordinationDetail() {
                 </Badge>
               )}
               {isOwner && caseRow.status !== 'closed' && (
-                <Button variant="outline" size="sm" onClick={() => closeCase.mutate()}>Close Case</Button>
+                <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">Close Case</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Close Coordination Case</DialogTitle></DialogHeader>
+                    <div className="space-y-3 text-sm">
+                      {((flags ?? []).filter((f: any) => f.status === 'open' && ['blocker','interdependency','concurrent_review'].includes(f.flag_type)).length > 0) && (
+                        <div className="rounded border border-red-200 bg-red-50 p-3 text-red-800">
+                          <div className="font-medium mb-1">Open blocker / interdependency flags:</div>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {(flags ?? []).filter((f: any) => f.status === 'open' && ['blocker','interdependency','concurrent_review'].includes(f.flag_type)).map((f: any) => (
+                              <li key={f.id}>{f.flag_type} — {f.title}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div>
+                        <Label>Closure rationale *</Label>
+                        <Textarea
+                          value={closeRationale}
+                          onChange={(e) => setCloseRationale(e.target.value)}
+                          rows={4}
+                          placeholder="Describe the coordination outcome and why the case can be closed (min 10 characters)…"
+                        />
+                        <div className="text-xs text-muted-foreground mt-1">{closeRationale.trim().length}/10 min</div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        The database will reject closure while any open blocker flag or open/in-review escalation remains.
+                      </p>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setCloseOpen(false)}>Cancel</Button>
+                      <Button
+                        onClick={() => closeCase.mutate()}
+                        disabled={closeCase.isPending || closeRationale.trim().length < 10}
+                      >
+                        {closeCase.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Close Case
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           }
@@ -545,6 +607,10 @@ function FlagsTab({ caseId, flags, canPost, currentUserId }: {
         .update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: currentUserId! })
         .eq('id', id);
       if (error) throw error;
+      await logCoordinationAction('coordination.flag.resolved', 'coordination_flag', id, {
+        after: { status: 'resolved' },
+        context: { caseId, flagId: id },
+      });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['coordination_flags', caseId] }),
   });

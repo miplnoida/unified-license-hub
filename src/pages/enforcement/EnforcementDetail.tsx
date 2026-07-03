@@ -18,6 +18,7 @@ import { logAction } from '@/hooks/useAuditLog';
 import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
@@ -218,6 +219,8 @@ export default function EnforcementDetail() {
           backLabel="Queue"
           actions={<div className="flex items-center gap-2"><Badge variant="outline" className={meta.className}>{meta.label}</Badge><HistoryButton entityType="enforcement_action" entityId={caseRow.id} title={`History — ${caseRow.case_number}`} /></div>}
         />
+
+        <DecisionGatesBanner subjectType="enforcement_action" subjectId={caseRow.id} compact />
 
         <Card>
           <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

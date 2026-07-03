@@ -2725,6 +2725,8 @@ export type Database = {
       coordination_cases: {
         Row: {
           closed_at: string | null
+          closed_by: string | null
+          closure_rationale: string | null
           created_at: string
           description: string | null
           id: string
@@ -2739,6 +2741,8 @@ export type Database = {
         }
         Insert: {
           closed_at?: string | null
+          closed_by?: string | null
+          closure_rationale?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -2753,6 +2757,8 @@ export type Database = {
         }
         Update: {
           closed_at?: string | null
+          closed_by?: string | null
+          closure_rationale?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -11902,6 +11908,10 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      check_coordination_gates: {
+        Args: { _subject_id: string; _subject_type: string }
+        Returns: Json
+      }
       check_decision_gates: {
         Args: { _application_id: string; _license_id: string }
         Returns: Json
@@ -12274,6 +12284,10 @@ export type Database = {
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_decision_gate_override: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: boolean
       }
       has_external_role: { Args: { _user_id: string }; Returns: boolean }
       has_portal_capability: {
