@@ -40,6 +40,9 @@ const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
 const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
 const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
+const SufficiencyRules = lazy(() => import('@/pages/admin/SufficiencyRules'));
+const SufficiencyRuleSets = lazy(() => import('@/pages/admin/SufficiencyRuleSets'));
+const DecisionOptions = lazy(() => import('@/pages/admin/DecisionOptions'));
 
 
 
@@ -114,6 +117,9 @@ export const adminRoutes = (
     <Route path="/admin/conduct/risk-taxonomy" element={<M module="complaint_management"><ConductRiskTaxonomy /></M>} />
     <Route path="/admin/conduct/products-channels" element={<M module="complaint_management"><ConductProductsChannels /></M>} />
     <Route path="/admin/conduct/triage-rules" element={<M module="complaint_management"><ConductTriageRules /></M>} />
+    <Route path="/admin/sufficiency-rules" element={<M module="license_management"><SufficiencyRules /></M>} />
+    <Route path="/admin/sufficiency-rule-sets" element={<M module="license_management"><SufficiencyRuleSets /></M>} />
+    <Route path="/admin/decision-options" element={<M module="license_management"><DecisionOptions /></M>} />
     
     
 
