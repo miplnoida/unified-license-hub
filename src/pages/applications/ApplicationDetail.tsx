@@ -48,6 +48,7 @@ import { LicenseStatusBanner } from '@/components/shared/LicenseStatusBanner';
 import { useLicenseeAccessGuard } from '@/hooks/useLicenseeAccessGuard';
 import { usePpoc } from '@/contexts/PpocContext';
 import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
+import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   draft: 'secondary',
