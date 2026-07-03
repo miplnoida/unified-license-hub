@@ -40,6 +40,9 @@ const RuleOverrides = lazy(() => import('@/pages/admin/RuleOverrides'));
 const ConductRiskTaxonomy = lazy(() => import('@/pages/admin/conduct/RiskTaxonomy'));
 const ConductProductsChannels = lazy(() => import('@/pages/admin/conduct/ProductsChannels'));
 const ConductTriageRules = lazy(() => import('@/pages/admin/conduct/TriageRules'));
+const SufficiencyRules = lazy(() => import('@/pages/admin/SufficiencyRules'));
+const SufficiencyRuleSets = lazy(() => import('@/pages/admin/SufficiencyRuleSets'));
+const DecisionOptions = lazy(() => import('@/pages/admin/DecisionOptions'));
 
 
 
