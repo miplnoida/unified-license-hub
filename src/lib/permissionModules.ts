@@ -81,6 +81,15 @@ const ROUTE_MODULE_MAP: Array<[string, PermissionModule]> = [
   ['/reports', 'report_management'],
   ['/analytics', 'report_management'],
 
+  // Fit & Proper
+  ['/fit-and-proper', 'fit_and_proper'],
+  ['/admin/fp-screening-configs', 'fit_and_proper'],
+  ['/admin/fp-committees', 'fit_and_proper'],
+
+  // Twin Peaks Coordination
+  ['/coordination', 'coordination'],
+
+
   // Settings + audit + notifications + master data
   ['/settings', 'settings'],
   ['/admin/audit-logs', 'settings'],
