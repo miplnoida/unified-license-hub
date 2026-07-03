@@ -374,9 +374,14 @@ export function FpDeterminationsPanel({ individualId, assessmentId }: Props) {
             const meta = OUTCOME_META[d.outcome] || OUTCOME_META.rejected;
             return (
               <div key={d.id} className="border rounded p-3 text-sm">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={meta.className}>{meta.label}</Badge>
                   {d.is_current && <Badge variant="outline" className="bg-blue-100 text-blue-800">current</Badge>}
+                  {d.regulator_id && (
+                    <Badge variant="outline" className="bg-slate-100 text-slate-700">
+                      {regulatorMap.get(d.regulator_id) ?? 'Regulator'}
+                    </Badge>
+                  )}
                   <span className="text-xs text-muted-foreground">{new Date(d.determined_at).toLocaleString()}</span>
                 </div>
                 <div className="mt-1 text-xs">{d.rationale}</div>
