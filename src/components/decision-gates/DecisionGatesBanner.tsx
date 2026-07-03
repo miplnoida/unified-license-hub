@@ -5,7 +5,7 @@ import { AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface Blocker {
-  kind: 'coordination_flag' | 'coordination_escalation' | 'fit_and_proper';
+  kind: string;
   flag_type?: string;
   title?: string;
   tier?: string;
@@ -13,22 +13,34 @@ interface Blocker {
   role_type?: string | null;
   role_title?: string | null;
   latest_outcome?: string;
+  case_id?: string;
 }
 
 interface Props {
   applicationId?: string | null;
   licenseId?: string | null;
+  /** Generic coordination gate check for other subject types: 'fp_assessment' | 'complaint' | 'enforcement_action' | 'prudential_return' | 'prudential_finding' */
+  subjectType?: string | null;
+  subjectId?: string | null;
   compact?: boolean;
 }
 
-export function DecisionGatesBanner({ applicationId, licenseId, compact }: Props) {
+export function DecisionGatesBanner({ applicationId, licenseId, subjectType, subjectId, compact }: Props) {
   const { data, isLoading } = useQuery({
-    queryKey: ['decision-gates', applicationId ?? null, licenseId ?? null],
-    enabled: !!(applicationId || licenseId),
+    queryKey: ['decision-gates', applicationId ?? null, licenseId ?? null, subjectType ?? null, subjectId ?? null],
+    enabled: !!(applicationId || licenseId || (subjectType && subjectId)),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('check_decision_gates', {
-        _application_id: applicationId ?? null,
-        _license_id: licenseId ?? null,
+      if (applicationId || licenseId) {
+        const { data, error } = await supabase.rpc('check_decision_gates', {
+          _application_id: applicationId ?? null,
+          _license_id: licenseId ?? null,
+        });
+        if (error) throw error;
+        return (data as unknown as Blocker[]) ?? [];
+      }
+      const { data, error } = await supabase.rpc('check_coordination_gates' as any, {
+        _subject_type: subjectType!,
+        _subject_id: subjectId!,
       });
       if (error) throw error;
       return (data as unknown as Blocker[]) ?? [];
@@ -60,8 +72,9 @@ export function DecisionGatesBanner({ applicationId, licenseId, compact }: Props
                 {b.kind.replace(/_/g, ' ')}
               </Badge>
               <span>
-                {b.kind === 'coordination_flag' && `${b.flag_type}: ${b.title ?? 'Unnamed flag'}`}
-                {b.kind === 'coordination_escalation' && `Escalation (${b.tier}) — ${b.status}`}
+                {b.kind === 'coordination_flag' && `${b.flag_type ?? 'flag'}: ${b.title ?? 'Unnamed'}`}
+                {b.kind === 'coordination_escalation' && `Escalation${b.tier ? ` (${b.tier})` : ''}${b.status ? ` — ${b.status}` : ''} · case ${b.title ?? ''}`}
+                {b.kind === 'pending_clearance' && `Pending participant clearance · case ${b.title ?? ''}`}
                 {b.kind === 'fit_and_proper' && `${b.role_title ?? b.role_type ?? 'Individual'} — latest outcome: ${b.latest_outcome}`}
               </span>
             </li>
