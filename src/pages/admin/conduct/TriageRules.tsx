@@ -368,13 +368,94 @@ function RuleEditor({ open, onOpenChange, form, setForm, save, saving, editing, 
               </div>
               <div><Label className="text-xs">SLA days</Label><Input type="number" value={form.outputs?.sla_days ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, sla_days: e.target.value ? +e.target.value : undefined } })} /></div>
               <div><Label className="text-xs">Assigned team</Label><Input value={form.outputs?.assigned_team ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, assigned_team: e.target.value || undefined } })} placeholder="e.g. Conduct-Retail" /></div>
-              <div className="col-span-2"><Label className="text-xs">Conduct risk category code</Label><Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" /></div>
-              <div><Label className="text-xs">Generate alert (kind)</Label><Input value={form.outputs?.generate_alert_kind ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: e.target.value || undefined } })} placeholder="e.g. thematic_spike" /></div>
-              <div><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
+              <div className="col-span-2 grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Conduct risk category</Label>
+                  <Select
+                    value={form.outputs?.conduct_risk_category_id || 'none'}
+                    onValueChange={(v: string) => {
+                      const cat = (categories || []).find((c: any) => c.id === v);
+                      setForm({
+                        ...form,
+                        outputs: {
+                          ...form.outputs,
+                          conduct_risk_category_id: v === 'none' ? undefined : v,
+                          conduct_risk_category_code: v === 'none' ? undefined : (cat?.code || undefined),
+                        },
+                      });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue placeholder="(leave as-is)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">(leave as-is)</SelectItem>
+                      {(categories || []).map((cat: any) => <SelectItem key={cat.id} value={cat.id}>{cat.name}{cat.code ? ` (${cat.code})` : ''}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Category code (fallback)</Label>
+                  <Input value={form.outputs?.conduct_risk_category_code ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, conduct_risk_category_code: e.target.value.toUpperCase() || undefined } })} placeholder="MIS_SELLING" />
+                </div>
+              </div>
+
+              <div className="col-span-2 border-t pt-3">
+                <Label className="text-xs font-semibold">Alert generation</Label>
+              </div>
+              <div>
+                <Label className="text-xs">Alert kind</Label>
+                <Select value={form.outputs?.generate_alert_kind || 'none'} onValueChange={(v: string) => setForm({ ...form, outputs: { ...form.outputs, generate_alert_kind: v === 'none' ? undefined : v } })}>
+                  <SelectTrigger><SelectValue placeholder="(no alert)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">(no alert)</SelectItem>
+                    {ALERT_KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Alert severity</Label>
+                <Select value={form.outputs?.alert_severity || 'none'} onValueChange={(v: any) => setForm({ ...form, outputs: { ...form.outputs, alert_severity: v === 'none' ? undefined : v } })}>
+                  <SelectTrigger><SelectValue placeholder="(default)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">(default)</SelectItem>
+                    {SEVS.map(s => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Alert title</Label>
+                <Input value={form.outputs?.alert_title ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, alert_title: e.target.value || undefined } })} placeholder="Rule triggered: mis-selling risk" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Alert detail (JSON)</Label>
+                <Textarea
+                  rows={4}
+                  className="font-mono text-xs"
+                  value={detailText}
+                  onChange={e => {
+                    const raw = e.target.value;
+                    setDetailText(raw);
+                    if (!raw.trim()) {
+                      setDetailErr('');
+                      setForm({ ...form, outputs: { ...form.outputs, alert_detail: undefined } });
+                      return;
+                    }
+                    try {
+                      const parsed = JSON.parse(raw);
+                      setDetailErr('');
+                      setForm({ ...form, outputs: { ...form.outputs, alert_detail: parsed } });
+                    } catch (err: any) {
+                      setDetailErr(err.message);
+                    }
+                  }}
+                  placeholder='{"note": "context for reviewers"}'
+                />
+                {detailErr && <p className="text-xs text-destructive mt-1">Invalid JSON: {detailErr}</p>}
+              </div>
+              <div className="col-span-2"><Label className="text-xs">Recommended action</Label><Input value={form.outputs?.recommended_action ?? ''} onChange={e => setForm({ ...form, outputs: { ...form.outputs, recommended_action: e.target.value || undefined } })} placeholder="Escalate to Conduct-Retail team" /></div>
             </div>
           </div>
 
-          <Button onClick={save} disabled={saving} className="w-full">{saving ? 'Saving…' : editing ? 'Update rule' : 'Create rule'}</Button>
+          <Button onClick={save} disabled={saving || !!detailErr} className="w-full">{saving ? 'Saving…' : editing ? 'Update rule' : 'Create rule'}</Button>
         </div>
       </DialogContent>
     </Dialog>
