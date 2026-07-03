@@ -2775,6 +2775,7 @@ export type Database = {
       }
       coordination_cases: {
         Row: {
+          clearance_required: boolean
           closed_at: string | null
           closed_by: string | null
           closure_rationale: string | null
@@ -2791,6 +2792,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          clearance_required?: boolean
           closed_at?: string | null
           closed_by?: string | null
           closure_rationale?: string | null
@@ -2807,6 +2809,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          clearance_required?: boolean
           closed_at?: string | null
           closed_by?: string | null
           closure_rationale?: string | null
@@ -11818,6 +11821,117 @@ export type Database = {
             columns: ["risk_category_id"]
             isOneToOne: false
             referencedRelation: "conduct_risk_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twinpeaks_clearances: {
+        Row: {
+          application_id: string
+          conditions: string[]
+          created_at: string
+          id: string
+          rationale: string | null
+          recorded_at: string | null
+          recorded_by: string | null
+          regulator_role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          conditions?: string[]
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          regulator_role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          conditions?: string[]
+          created_at?: string
+          id?: string
+          rationale?: string | null
+          recorded_at?: string | null
+          recorded_by?: string | null
+          regulator_role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twinpeaks_clearances_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twinpeaks_clearances_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twinpeaks_disagreements: {
+        Row: {
+          application_id: string
+          created_at: string
+          description: string
+          id: string
+          raised_at: string
+          raised_by: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          description: string
+          id?: string
+          raised_at?: string
+          raised_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          raised_at?: string
+          raised_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twinpeaks_disagreements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twinpeaks_disagreements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "report_view_applications"
             referencedColumns: ["id"]
           },
         ]

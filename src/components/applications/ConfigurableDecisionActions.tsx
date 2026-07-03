@@ -20,6 +20,7 @@ import {
 } from '@/lib/applicationSufficiency';
 import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 import { logAction } from '@/hooks/useAuditLog';
+import { fetchClearances, isTwinPeaksBlocked, type TwinPeaksClearance } from '@/lib/twinPeaksClearance';
 
 const OUTCOMES_GATED = new Set([
   'approve',
@@ -83,6 +84,8 @@ export function ConfigurableDecisionActions({
   const [sufficiency, setSufficiency] = useState<SufficiencyEvaluationSummary | null>(null);
   const [gateBusy, setGateBusy] = useState(false);
   const [overrideOpen, setOverrideOpen] = useState(false);
+  const [twinPeaksOverrideOpen, setTwinPeaksOverrideOpen] = useState(false);
+  const [twinPeaks, setTwinPeaks] = useState<TwinPeaksClearance[]>([]);
   const [warningAckOpen, setWarningAckOpen] = useState(false);
   const [pendingExecute, setPendingExecute] = useState(false);
 
@@ -126,7 +129,7 @@ export function ConfigurableDecisionActions({
     }
   }
 
-  async function attemptSubmit(overrideId?: string) {
+  async function attemptSubmit(overrideId?: string, twinPeaksOverrideId?: string) {
     if (!selected) return;
     if (!OUTCOMES_GATED.has(selected.outcome)) {
       await runExecute(null, overrideId ?? null);
@@ -134,8 +137,26 @@ export function ConfigurableDecisionActions({
     }
     setGateBusy(true);
     const s = sufficiency ?? (await ensureFreshSufficiency());
+    // Twin-peaks gate applies only to approval outcomes
+    const isApproval = selected.outcome === 'approve' || selected.outcome === 'conditional_approve';
+    let tp: TwinPeaksClearance[] = twinPeaks;
+    if (isApproval) {
+      try {
+        tp = await fetchClearances(applicationId);
+        setTwinPeaks(tp);
+      } catch (e: any) {
+        toast.error(`Twin-peaks check failed: ${e?.message ?? e}`);
+        setGateBusy(false);
+        return;
+      }
+    }
     setGateBusy(false);
     if (!s) return;
+    if (isApproval && isTwinPeaksBlocked(tp) && !twinPeaksOverrideId) {
+      setTwinPeaksOverrideOpen(true);
+      setPendingExecute(true);
+      return;
+    }
     if (s.status === 'blocked' && !overrideId) {
       setOverrideOpen(true);
       setPendingExecute(true);
@@ -307,6 +328,30 @@ export function ConfigurableDecisionActions({
           onOverridden={async (id) => {
             setWarningAckOpen(false);
             await runExecute(sufficiency, id);
+          }}
+        />
+      )}
+
+      {selected && (
+        <OverrideReasonDialog
+          open={twinPeaksOverrideOpen}
+          onOpenChange={(o) => {
+            setTwinPeaksOverrideOpen(o);
+            if (!o) setPendingExecute(false);
+          }}
+          module="licensing"
+          entityType="application"
+          entityId={applicationId}
+          ruleKey="licensing.twin_peaks.blocker_override"
+          title="Override twin-peaks clearance blocker"
+          description={`One or more regulators have recorded a "blocked" clearance. Provide justification to proceed with "${selected.label}".`}
+          originalValue={twinPeaks.filter((c) => c.status === 'blocked').map((c) => ({ regulator_role: c.regulator_role, rationale: c.rationale }))}
+          overriddenValue={{ decision_option: selected.code, outcome: selected.outcome }}
+          metadata={{ decision_option_id: selected.id, screen: 'ConfigurableDecisionActions' }}
+          onOverridden={async (id) => {
+            setTwinPeaksOverrideOpen(false);
+            // Re-enter attemptSubmit with override recorded so sufficiency gates still fire
+            await attemptSubmit(undefined, id);
           }}
         />
       )}
