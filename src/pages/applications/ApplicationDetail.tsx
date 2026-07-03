@@ -51,6 +51,7 @@ import { useEffectivePortalContext } from '@/hooks/useEffectivePortalContext';
 import { DecisionGatesBanner } from '@/components/decision-gates/DecisionGatesBanner';
 import { SufficiencyPanel } from '@/components/applications/SufficiencyPanel';
 import { ConfigurableDecisionActions } from '@/components/applications/ConfigurableDecisionActions';
+import { TwinPeaksPanel } from '@/components/applications/TwinPeaksPanel';
 import { evaluateApplicationSufficiency } from '@/lib/applicationSufficiency';
 
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
