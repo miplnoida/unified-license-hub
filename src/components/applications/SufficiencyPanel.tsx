@@ -30,6 +30,7 @@ export function SufficiencyPanel({ applicationId }: Props) {
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
   const [override, setOverride] = useState<{ result: ResultRow | null; reason: string }>({ result: null, reason: '' });
+  const [rfiOpen, setRfiOpen] = useState(false);
 
   const { data: latest } = useQuery({
     queryKey: ['sufficiency_latest', applicationId],
