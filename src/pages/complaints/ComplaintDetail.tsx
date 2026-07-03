@@ -220,6 +220,8 @@ export default function ComplaintDetail() {
           }
         />
 
+        <DecisionGatesBanner subjectType="complaint" subjectId={complaint.id} compact />
+
         <div className="grid gap-4 md:grid-cols-4">
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Status</p><Badge variant={statusMeta.variant} className="mt-1">{statusMeta.label}</Badge></CardContent></Card>
           <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Severity</p><Badge variant={sevMeta.variant} className="mt-1">{sevMeta.label}</Badge></CardContent></Card>
