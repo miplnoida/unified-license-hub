@@ -346,6 +346,22 @@ export default function EnforcementDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="enforcement"
+          entityType="enforcement_action"
+          entityId={caseRow.id}
+          ruleKey={pending.ruleKey}
+          title={pending.title}
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }
