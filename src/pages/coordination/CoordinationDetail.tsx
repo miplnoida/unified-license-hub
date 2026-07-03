@@ -64,6 +64,29 @@ export default function CoordinationDetail() {
     },
   });
 
+  const regIds = useMemo(() => {
+    const s = new Set<string>();
+    if (caseRow?.primary_regulator_id) s.add(caseRow.primary_regulator_id);
+    if (caseRow?.owner_regulator_id) s.add(caseRow.owner_regulator_id);
+    return [...s];
+  }, [caseRow]);
+
+  const { data: regulators } = useQuery({
+    queryKey: ['coordination_case_regulators', regIds.join(',')],
+    enabled: regIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('regulators')
+        .select('id, code, name').in('id', regIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const regMap = useMemo(() => {
+    const m = new Map<string, { code: string; name: string }>();
+    for (const r of (regulators ?? []) as any[]) m.set(r.id, { code: r.code, name: r.name });
+    return m;
+  }, [regulators]);
+
   const { data: participants } = useQuery({
     queryKey: ['coordination_participants', caseId],
     enabled: !!caseId,
