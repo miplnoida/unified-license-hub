@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { Loader2, Target, ExternalLink, ShieldCheck, CalendarClock, UserCog, CheckCircle2 } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-blue-100 text-blue-800' },
@@ -48,6 +49,7 @@ export default function SupervisoryPlansDashboard() {
   const [reassignReason, setReassignReason] = useState('');
   const [extendDate, setExtendDate] = useState('');
   const [extendReason, setExtendReason] = useState('');
+  const [pending, setPending] = useState<null | { ruleKey: string; title: string; entityId: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
 
   const { data: actions, isLoading } = useQuery({
     queryKey: ['supervisory_actions_dashboard'],
@@ -417,7 +419,32 @@ export default function SupervisoryPlansDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={clearBulk}>Cancel</Button>
-            <Button onClick={() => runBulk.mutate()} disabled={runBulk.isPending}>
+            <Button onClick={() => {
+              const anyOverdue = Array.from(selected).some((id) => {
+                const cur = enriched.find((a: any) => a.id === id);
+                return cur && isOverdue(cur);
+              });
+              if (anyOverdue) {
+                const firstId = Array.from(selected)[0];
+                setPending({
+                  ruleKey: 'supervisory_plan.due_date.override',
+                  title: `Extend due date after SLA breach (${selected.size} action(s))`,
+                  entityId: firstId,
+                  original: { selection_ids: Array.from(selected) },
+                  overridden: { new_due_date: extendDate, reason: extendReason.trim() },
+                  metadata: {
+                    source: 'phase1_override_framework',
+                    screen: 'SupervisoryPlansDashboard',
+                    supervisory_plan_action_ids: Array.from(selected),
+                    new_due_date: extendDate,
+                    contains_overdue: true,
+                  },
+                  apply: async () => { await runBulk.mutateAsync(); },
+                });
+              } else {
+                runBulk.mutate();
+              }
+            }} disabled={runBulk.isPending}>
               {runBulk.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Extend
             </Button>
           </DialogFooter>
@@ -436,6 +463,22 @@ export default function SupervisoryPlansDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="supervisory_plans"
+          entityType="supervisory_plan_action"
+          entityId={pending.entityId}
+          ruleKey={pending.ruleKey}
+          title={pending.title}
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }

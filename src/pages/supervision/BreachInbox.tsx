@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { AlertTriangle, Loader2, ExternalLink, ShieldCheck, Gavel } from 'lucide-react';
 import { logAction } from '@/hooks/useAuditLog';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 type BreachRow = {
   id: string;
@@ -57,6 +58,7 @@ export default function BreachInbox() {
   const [escTarget, setEscTarget] = useState<BreachRow | null>(null);
   const [escNote, setEscNote] = useState('');
   const [escPenalty, setEscPenalty] = useState('');
+  const [pendingOverride, setPendingOverride] = useState<null | { row: BreachRow; ruleKey: string; title: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -362,7 +364,32 @@ export default function BreachInbox() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAckTarget(null)}>Cancel</Button>
-            <Button onClick={() => acknowledge.mutate()} disabled={acknowledge.isPending}>
+            <Button onClick={() => {
+              if (!ackTarget) return;
+              const highRisk = ackTarget.level === 'critical' || ackTarget.level === 'high';
+              if (highRisk) {
+                setPendingOverride({
+                  row: ackTarget,
+                  ruleKey: 'prudential.breach.no_escalation',
+                  title: `Acknowledge ${ackTarget.level} breach without escalation`,
+                  original: { status: 'open', level: ackTarget.level },
+                  overridden: { status: 'acknowledged', note: ackNote.trim() },
+                  metadata: {
+                    source: 'phase1_override_framework',
+                    screen: 'BreachInbox',
+                    breach_id: ackTarget.id,
+                    return_id: ackTarget.return_id,
+                    metric_key: ackTarget.metric_key,
+                    previous_severity: ackTarget.level,
+                    threshold_value: ackTarget.threshold_value,
+                    value: ackTarget.value,
+                  },
+                  apply: async () => { await acknowledge.mutateAsync(); },
+                });
+              } else {
+                acknowledge.mutate();
+              }
+            }} disabled={acknowledge.isPending}>
               {acknowledge.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Acknowledge
             </Button>
@@ -405,6 +432,22 @@ export default function BreachInbox() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pendingOverride && (
+        <OverrideReasonDialog
+          open={!!pendingOverride}
+          onOpenChange={(o) => { if (!o) setPendingOverride(null); }}
+          module="prudential_returns"
+          entityType="prudential_breach"
+          entityId={pendingOverride.row.id}
+          ruleKey={pendingOverride.ruleKey}
+          title={pendingOverride.title}
+          originalValue={pendingOverride.original}
+          overriddenValue={pendingOverride.overridden}
+          metadata={pendingOverride.metadata}
+          onOverridden={async () => { await pendingOverride.apply(); setPendingOverride(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }

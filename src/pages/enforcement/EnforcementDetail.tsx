@@ -17,6 +17,7 @@ import { Loader2, Send, MessageSquare, Gavel, XCircle, CheckCircle2 } from 'luci
 import { logAction } from '@/hooks/useAuditLog';
 import { ENFORCEMENT_STATUS_META } from './EnforcementList';
 import { HistoryButton } from '@/components/audit/HistoryButton';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const DECISION_OPTIONS = [
   { value: 'upheld', label: 'Upheld — full penalty' },
@@ -40,6 +41,7 @@ export default function EnforcementDetail() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [closeNote, setCloseNote] = useState('');
   const [withdrawReason, setWithdrawReason] = useState('');
+  const [pending, setPending] = useState<null | { ruleKey: string; title: string; original: unknown; overridden: unknown; metadata: Record<string, unknown>; apply: () => Promise<void> }>(null);
 
   const { data: caseRow, isLoading } = useQuery({
     queryKey: ['enforcement_case', id],
@@ -267,7 +269,29 @@ export default function EnforcementDetail() {
                   </div>
                   <Input type="date" placeholder="Appeal deadline (optional)" value={appealDeadline} onChange={(e) => setAppealDeadline(e.target.value)} />
                   <Textarea rows={3} placeholder="Decision rationale (min 15 chars)…" value={decisionRationale} onChange={(e) => setDecisionRationale(e.target.value)} />
-                  <div className="flex justify-end"><Button size="sm" onClick={() => recordDecision.mutate()} disabled={recordDecision.isPending}>Record decision</Button></div>
+                  <div className="flex justify-end"><Button size="sm" onClick={() => {
+                    if (decisionOutcome === 'warning_only' || decisionOutcome === 'dismissed' || decisionOutcome === 'reduced') {
+                      const ruleKey = decisionOutcome === 'reduced' ? 'enforcement.penalty.waiver' : 'enforcement.recommended_action.override';
+                      setPending({
+                        ruleKey,
+                        title: decisionOutcome === 'reduced' ? 'Reduce / waive penalty' : `Decide with "${decisionOutcome}"`,
+                        original: { status: caseRow.status, penalty_amount: caseRow.penalty_amount },
+                        overridden: { outcome: decisionOutcome, penalty_amount: decisionPenalty || null },
+                        metadata: {
+                          source: 'phase1_override_framework',
+                          screen: 'EnforcementDetail',
+                          enforcement_id: caseRow.id,
+                          case_number: caseRow.case_number,
+                          previous_status: caseRow.status,
+                          new_status: 'decided',
+                          decision_outcome: decisionOutcome,
+                        },
+                        apply: async () => { await recordDecision.mutateAsync(); },
+                      });
+                    } else {
+                      recordDecision.mutate();
+                    }
+                  }} disabled={recordDecision.isPending}>Record decision</Button></div>
                 </div>
               )}
 
@@ -322,6 +346,22 @@ export default function EnforcementDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="enforcement"
+          entityType="enforcement_action"
+          entityId={caseRow.id}
+          ruleKey={pending.ruleKey}
+          title={pending.title}
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </DashboardLayout>
   );
 }

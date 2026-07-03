@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Scale } from 'lucide-react';
+import { OverrideReasonDialog } from '@/components/audit/OverrideReasonDialog';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   filed: { label: 'Filed', className: 'bg-blue-100 text-blue-800' },
@@ -33,6 +34,14 @@ export function FpAppealsPanel({ individualId }: Props) {
   const [committeePick, setCommitteePick] = useState<Record<string, string>>({});
   const [decisionPick, setDecisionPick] = useState<Record<string, string>>({});
   const [decisionNote, setDecisionNote] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState<null | {
+    appealId: string;
+    ruleKey: string;
+    original: unknown;
+    overridden: unknown;
+    metadata: Record<string, unknown>;
+    apply: () => Promise<void>;
+  }>(null);
 
   const { data: currentDet } = useQuery({
     queryKey: ['fp_current_determination', individualId],
@@ -256,11 +265,29 @@ export function FpAppealsPanel({ individualId }: Props) {
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={() => withdrawAppeal.mutate(a.id)}>Withdraw</Button>
                       <Button size="sm" disabled={decideAppeal.isPending}
-                        onClick={() => decideAppeal.mutate({
-                          appeal: a,
-                          decision: decisionPick[a.id] || '',
-                          note: decisionNote[a.id] || '',
-                        })}>
+                        onClick={() => {
+                          const decision = decisionPick[a.id] || '';
+                          const note = decisionNote[a.id] || '';
+                          if (decision === 'overturned_to_approved' || decision === 'overturned_to_conditional') {
+                            setPending({
+                              appealId: a.id,
+                              ruleKey: 'fit_and_proper.appeal.determination_override',
+                              original: { determination_id: a.determination_id, outcome: currentDet?.outcome },
+                              overridden: { decision, new_outcome: decision === 'overturned_to_approved' ? 'approved' : 'conditional' },
+                              metadata: {
+                                source: 'phase1_override_framework',
+                                screen: 'FpAppealsPanel',
+                                appeal_id: a.id,
+                                individual_id: individualId,
+                                previous_outcome: currentDet?.outcome,
+                                new_outcome: decision === 'overturned_to_approved' ? 'approved' : 'conditional',
+                              },
+                              apply: async () => { await decideAppeal.mutateAsync({ appeal: a, decision, note }); },
+                            });
+                          } else {
+                            decideAppeal.mutate({ appeal: a, decision, note });
+                          }
+                        }}>
                         {decideAppeal.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                         Record decision
                       </Button>
@@ -279,6 +306,22 @@ export function FpAppealsPanel({ individualId }: Props) {
           })}
         </CardContent>
       </Card>
+
+      {pending && (
+        <OverrideReasonDialog
+          open={!!pending}
+          onOpenChange={(o) => { if (!o) setPending(null); }}
+          module="fit_and_proper"
+          entityType="fp_appeal"
+          entityId={pending.appealId}
+          ruleKey={pending.ruleKey}
+          title="Overturn prior determination"
+          originalValue={pending.original}
+          overriddenValue={pending.overridden}
+          metadata={pending.metadata}
+          onOverridden={async () => { await pending.apply(); setPending(null); }}
+        />
+      )}
     </div>
   );
 }
